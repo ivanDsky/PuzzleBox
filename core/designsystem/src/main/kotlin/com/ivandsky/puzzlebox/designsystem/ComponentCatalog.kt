@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -84,28 +85,32 @@ fun ComponentCatalogSections() {
     CatalogSection(title = "Puzzle board") {
         var path by remember { mutableStateOf(listOf<Pair<Int, Int>>()) }
         val scheme = MaterialTheme.colorScheme
-        PuzzleBoard(
-            cellsPerSide = 4,
-            onCellTap = { row, col -> path = listOf(row to col) },
-            onCellDragStart = { row, col -> path = listOf(row to col) },
-            onCellDrag = { row, col -> path = path + (row to col) },
-            cellContent = { row, col ->
-                when {
-                    row == 0 && col == 0 -> EndpointCell("A")
-                    row == 3 && col == 3 -> EndpointCell("B")
-                    (row to col) in path -> {
-                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            Box(
-                                modifier = Modifier
-                                    .size(14.dp)
-                                    .clip(CircleShape)
-                                    .background(scheme.primary),
-                            )
+        // Play-sized board: capped to 360dp and centered instead of filling wide panes.
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            PuzzleBoard(
+                cellsPerSide = 4,
+                modifier = Modifier.widthIn(max = 360.dp),
+                onCellTap = { row, col -> path = listOf(row to col) },
+                onCellDragStart = { row, col -> path = listOf(row to col) },
+                onCellDrag = { row, col -> path = path + (row to col) },
+                cellContent = { row, col ->
+                    when {
+                        row == 0 && col == 0 -> EndpointCell("A")
+                        row == 3 && col == 3 -> EndpointCell("B")
+                        (row to col) in path -> {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clip(CircleShape)
+                                        .background(scheme.primary),
+                                )
+                            }
                         }
                     }
-                }
-            },
-        )
+                },
+            )
+        }
         Text(
             text = "Tap or drag across the cells — the trace above is the surface the Zip path gesture will build on.",
             style = MaterialTheme.typography.bodySmall,
@@ -193,9 +198,10 @@ fun ComponentCatalogSections() {
 
 @Composable
 private fun EndpointCell(label: String) {
+    // fillMaxSize + center: the marker must sit mid-cell, not top-start.
     Box(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .padding(Spacing.sm),
         contentAlignment = Alignment.Center,
     ) {
