@@ -34,6 +34,7 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp.logging.interceptor)
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.koin.core)
 
     testImplementation(libs.junit)
