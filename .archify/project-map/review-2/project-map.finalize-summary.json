@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/ivandsky/orca/workspaces/PuzzleBox/main-2/.archify/project-map/architecture-candidate.json",
+    "sha256": "452b6ac52d89b24fe60ee6152de086044b739664db9e0e7cb6c43fa1750d8fc5",
+    "bytes": 6303
+  },
+  "artifact": {
+    "path": "/Users/ivandsky/orca/workspaces/PuzzleBox/main-2/docs/agents/project-map.html",
+    "sha256": "ecfbbd66d9290d8d13a7a5705ff843a1b7ea6327ac506978039c97dfd39e078e",
+    "bytes": 855836
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/ivandsky/orca/workspaces/PuzzleBox/main-2/.archify/project-map/review-2/project-map.finalize.json",
+    "summaryReceipt": "/Users/ivandsky/orca/workspaces/PuzzleBox/main-2/.archify/project-map/review-2/project-map.finalize-summary.json",
+    "browserCheckReceipt": "/Users/ivandsky/orca/workspaces/PuzzleBox/main-2/.archify/project-map/review-2/project-map.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 3020,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.designsystem
 
+import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -230,5 +231,44 @@ private fun CatalogCard(content: @Composable () -> Unit) {
             .background(MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
         content()
+    }
+}
+
+// Previews — Studio tooling only, zero public API surface (internal, not private, so
+// Showkase's generated index can access them; ticket 00 visibility findings). Exactly
+// light + dark, always inside PuzzleBoxTheme (spec A1/A5). The catalogs are scrollable
+// showcases, so each preview constrains a representative phone viewport (360×640dp)
+// instead of rendering the full scroll height. A8: nothing in these sections animates
+// on its own — the board cells and state cards are static, every motion is user-driven
+// — so the static panes show the resting state.
+
+@ShowkaseComposable(name = "ComponentCatalogScreen", group = "Catalogs")
+@PuzzleBoxPreviews
+@Composable
+internal fun ComponentCatalogScreenPreview() {
+    PuzzleBoxTheme {
+        Box(Modifier.size(360.dp, 640.dp)) {
+            ComponentCatalogScreen()
+        }
+    }
+}
+
+@ShowkaseComposable(name = "ComponentCatalogSections", group = "Catalogs")
+@PuzzleBoxPreviews
+@Composable
+internal fun ComponentCatalogSectionsPreview() {
+    PuzzleBoxTheme {
+        Box(Modifier.size(360.dp, 640.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = Spacing.lg)
+                    .padding(bottom = Spacing.xxl),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xl),
+            ) {
+                ComponentCatalogSections()
+            }
+        }
     }
 }

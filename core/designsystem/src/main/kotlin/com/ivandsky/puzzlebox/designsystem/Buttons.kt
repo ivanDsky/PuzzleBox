@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.designsystem
 
+import android.content.res.Configuration
+import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
@@ -15,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 // Press feedback: content scales to 0.97 on a critically damped spring — subtle,
@@ -80,5 +83,41 @@ fun SecondaryButton(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Text(text)
+    }
+}
+
+// Previews — Studio tooling only, zero public API surface (internal, not private, so
+// Showkase's generated index can access them; ticket 00 visibility findings). Exactly
+// light + dark, always inside PuzzleBoxTheme (spec A1/A5). A8: the press-scale spring
+// is touch-driven from an interaction source the component owns — there is no
+// programmatic trigger a preview could start, so the static panes show the resting
+// state and interactive mode runs the animation on press.
+
+/**
+ * The module's one light/dark multipreview: declared HERE (not the binary androidx
+ * @PreviewLightDark) because Showkase 1.0.5 only expands multipreview annotation
+ * classes it can see in the processed sources — a jar-packaged annotation is invisible
+ * to its round scan and indexes nothing (ticket 00, AGP9/KSP2 findings). Shared by
+ * every design-system preview.
+ */
+@Preview(name = "Light", uiMode = Configuration.UI_MODE_NIGHT_NO, showBackground = true)
+@Preview(name = "Dark", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
+annotation class PuzzleBoxPreviews
+
+@ShowkaseComposable(name = "PrimaryButton", group = "Buttons")
+@PuzzleBoxPreviews
+@Composable
+internal fun PrimaryButtonPreview() {
+    PuzzleBoxTheme {
+        PrimaryButton(text = "Confirm", onClick = {})
+    }
+}
+
+@ShowkaseComposable(name = "SecondaryButton", group = "Buttons")
+@PuzzleBoxPreviews
+@Composable
+internal fun SecondaryButtonPreview() {
+    PuzzleBoxTheme {
+        SecondaryButton(text = "Cancel", onClick = {})
     }
 }
