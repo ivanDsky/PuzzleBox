@@ -1,6 +1,8 @@
 # PROFILE.md — written by init-profile, read by /start
-# version: 0.2.0 (semver source of truth, per deliver: feature → minor, fix → patch;
-# 1.0.0 reserved for the live compete loop — Phase 1 done)
+# version: 0.2.0 (semver source of truth, per deliver: feature → minor, fix → patch)
+# 1.0.0 = public release of ALL games (Zip, Queens, Tango, MiniSudoku, Strands) in a
+# good tested state. Until then the app is ALPHA: 0.x.y forever; minor = phase/feature
+# milestone, patch = fix rounds.
 
 ## Product (frame)
 # purpose: one app for daily logic puzzles — play official NYT/LinkedIn dailies, build and share custom games, compete via leaderboards and 1v1; Zip ships first
