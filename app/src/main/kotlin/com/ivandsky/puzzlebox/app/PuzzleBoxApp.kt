@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -22,8 +23,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import android.content.Intent
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -127,7 +132,7 @@ fun PuzzleBoxApp(
                         SceneCanvas { ProfileScreen(onOpenCatalog = { backStack.add(Catalog) }) }
                     }
                     entry<Catalog> {
-                        SceneCanvas { TokenCatalogScreen() }
+                        SceneCanvas { CatalogScreenWithShowkaseTrial() }
                     }
                 },
             )
@@ -139,6 +144,34 @@ fun PuzzleBoxApp(
 private fun select(key: NavKey, backStack: NavBackStack<NavKey>) {
     backStack.clear()
     backStack.add(key)
+}
+
+// Showkase keep-or-drop trial (ticket design-previews-06): a debug-only entry to the
+// browser activity on the catalog screen. The activity merges from the showkase AAR
+// in DEBUG builds only, so the button launches it by class name — no compile-time
+// Showkase dependency in :app, and the FLAG_DEBUGGABLE gate keeps it out of release
+// where neither the activity nor the dependency exists.
+@Composable
+private fun CatalogScreenWithShowkaseTrial() {
+    val context = LocalContext.current
+    val isDebuggable = context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
+    Box(Modifier.fillMaxSize()) {
+        TokenCatalogScreen()
+        if (isDebuggable) {
+            Button(
+                onClick = {
+                    context.startActivity(
+                        Intent().setClassName(context.packageName, "com.airbnb.android.showkase.ui.ShowkaseBrowserActivity"),
+                    )
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp),
+            ) {
+                Text("Showkase")
+            }
+        }
+    }
 }
 
 // Fade-through screen transition: 90ms accelerated fade-out, then the incoming screen
