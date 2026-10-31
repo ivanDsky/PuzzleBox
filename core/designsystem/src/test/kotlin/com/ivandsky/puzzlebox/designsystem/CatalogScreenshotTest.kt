@@ -15,6 +15,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -38,7 +39,23 @@ class CatalogScreenshotTest {
         capture(darkTheme = true, name = "catalog-dark.png")
     }
 
-    private fun capture(darkTheme: Boolean, name: String) {
+    // A17: 150% font scale (Android's "Large" accessibility step) — exactly where fixed
+    // heights and adaptive weights regress silently.
+    @Test
+    fun `catalog renders the full token set in light at font scale 1_5`() {
+        capture(darkTheme = false, name = "catalog-light-f1.5.png", fontScale = 1.5f)
+    }
+
+    @Test
+    fun `catalog renders the full token set in dark at font scale 1_5`() {
+        capture(darkTheme = true, name = "catalog-dark-f1.5.png", fontScale = 1.5f)
+    }
+
+    private fun capture(darkTheme: Boolean, name: String, fontScale: Float = 1f) {
+        // Must run before setContent: LocalDensity reads the configuration at
+        // composition. Robolectric's qualifier strings don't parse a font-scale
+        // segment, so the programmatic API is the supported mechanism.
+        RuntimeEnvironment.setFontScale(fontScale)
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = darkTheme) {
                 Box(
