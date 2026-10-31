@@ -66,6 +66,9 @@ roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+# NOTE: pure-Kotlin modules (A16: core/game, games/zip) apply org.jetbrains.kotlin.jvm
+# VERSION-LESS — AGP 9's built-in Kotlin already carries the plugin on the classpath,
+# and requesting it with a version fails resolution. Same embedded compiler as Android.
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
