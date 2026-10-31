@@ -1,5 +1,12 @@
 package com.ivandsky.puzzlebox.app
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -27,6 +34,7 @@ import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.screens.PlayScreen
 import com.ivandsky.puzzlebox.app.screens.ProfileScreen
 import com.ivandsky.puzzlebox.data.model.ThemeMode
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.TokenCatalogScreen
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.HomeRoute
@@ -91,6 +99,15 @@ fun PuzzleBoxApp(
             NavDisplay(
                 backStack = backStack,
                 modifier = Modifier.weight(1f),
+                // Nav3's default transition is 700ms — reads sluggish for tab switches.
+                // Emil/apple guidance: ~200ms in, exit faster than enter (~140ms), a
+                // subtle slide so the move reads as one gesture. Pop mirrors it.
+                transitionSpec = {
+                    screenEnterTransform() togetherWith screenExitTransform()
+                },
+                popTransitionSpec = {
+                    screenEnterTransform() togetherWith screenExitTransform()
+                },
                 entryProvider = entryProvider {
                     entry<Home> {
                         HomeRoute(
@@ -115,3 +132,13 @@ private fun select(key: NavKey, backStack: NavBackStack<NavKey>) {
     backStack.clear()
     backStack.add(key)
 }
+
+// Screen transition: 200ms enter (fade + 1/20 slide, emphasized decelerate), 140ms exit
+// (accelerated fade) — exit faster than enter so leaving feels snappy, arriving reads as
+// intentional. Consumes MotionTokens so all screen movement stays on one vocabulary.
+private fun AnimatedContentTransitionScope<*>.screenEnterTransform() =
+    fadeIn(tween(MotionTokens.NavTransitionEnter, easing = MotionTokens.EasingEmphasizedDecelerate)) +
+        slideInHorizontally(tween(MotionTokens.NavTransitionEnter, easing = MotionTokens.EasingEmphasizedDecelerate)) { it / 20 }
+
+private fun AnimatedContentTransitionScope<*>.screenExitTransform() =
+    fadeOut(tween(MotionTokens.NavTransitionExit, easing = MotionTokens.EasingEmphasizedAccelerate))

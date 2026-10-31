@@ -16,6 +16,11 @@ object MotionTokens {
     val DurationLong = 300
     val DurationExpressive = 400
 
+    // Screen-to-screen nav transitions (Nav3 default is 700ms — sluggish for tab switches).
+    // ~200ms in, exit faster than enter, per the motion guidance in emil-design-eng.
+    const val NavTransitionEnter = 200
+    const val NavTransitionExit = 140
+
     // Material 3 emphasized curves: decelerate on the way in, accelerate on the way out.
     val EasingStandard = CubicBezierEasing(0.2f, 0f, 0f, 1f)
     val EasingEmphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
