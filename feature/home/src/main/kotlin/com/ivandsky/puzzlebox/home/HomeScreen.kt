@@ -51,6 +51,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
@@ -98,6 +99,16 @@ fun HomeScreen(
         scope.launch { snackbarHostState.showSnackbar(message) }
     }
 
+    // Cards float ABOVE the pane in both themes (ticket 11): white on cool paper in
+    // light, lighter slate on near-black in dark. The M3 container ramp inverts its
+    // direction between themes (light descends from white, dark ascends from
+    // near-black), so the pane/card pairing flips with the resolved scheme — this
+    // also stays correct when the user forces the opposite appearance.
+    val scheme = MaterialTheme.colorScheme
+    val cardsFloatLighter = scheme.surface.luminance() > scheme.surfaceContainerHighest.luminance()
+    val paneColor = if (cardsFloatLighter) scheme.surfaceContainer else scheme.surface
+    val cardColor = if (cardsFloatLighter) scheme.surface else scheme.surfaceContainerLow
+
     Box(modifier.fillMaxSize()) {
         if (layout == HomeLayout.TwoPane) {
             Row(Modifier.fillMaxSize()) {
@@ -110,8 +121,8 @@ fun HomeScreen(
                     selectable = true,
                     onPlayToday = { comingSoon("Zip is coming soon.") },
                     onSignIn = { comingSoon("Google sign-in arrives with leaderboards.") },
-                    paneColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    cardColor = MaterialTheme.colorScheme.surfaceContainer,
+                    paneColor = paneColor,
+                    cardColor = cardColor,
                     modifier = Modifier
                         .weight(0.42f)
                         .fillMaxHeight(),
@@ -134,8 +145,8 @@ fun HomeScreen(
                 selectable = false,
                 onPlayToday = { comingSoon("Zip is coming soon.") },
                 onSignIn = { comingSoon("Google sign-in arrives with leaderboards.") },
-                paneColor = MaterialTheme.colorScheme.surface,
-                cardColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                paneColor = paneColor,
+                cardColor = cardColor,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -517,16 +528,20 @@ private fun DayDetail(
 @Composable
 private fun ZipPreviewBoard(modifier: Modifier = Modifier) {
     val path = remember {
+        // Ticket 11: Zip's rule is that every cell is visited, so the decorative
+        // board is a 5x5 Hamiltonian path — row snake on top, then a vertical comb
+        // through the bottom three rows so the rhythm doesn't read mechanical.
         listOf(
-            0 to 0, 0 to 1, 0 to 2, 0 to 3, 1 to 3, 1 to 2, 1 to 1,
-            2 to 1, 2 to 2, 2 to 3, 2 to 4, 1 to 4, 0 to 4, 0 to 5,
-            1 to 5, 2 to 5, 3 to 5, 3 to 4, 3 to 3, 3 to 2, 4 to 2,
-            4 to 3, 4 to 4, 5 to 4, 5 to 5,
+            0 to 0, 0 to 1, 0 to 2, 0 to 3, 0 to 4,
+            1 to 4, 1 to 3, 1 to 2, 1 to 1, 1 to 0,
+            2 to 0, 3 to 0, 4 to 0, 4 to 1, 3 to 1,
+            2 to 1, 2 to 2, 3 to 2, 4 to 2, 4 to 3,
+            3 to 3, 2 to 3, 2 to 4, 3 to 4, 4 to 4,
         )
     }
     val scheme = MaterialTheme.colorScheme
     PuzzleBoard(
-        cellsPerSide = 6,
+        cellsPerSide = 5,
         modifier = modifier.semantics { contentDescription = "Zip board preview" },
         cellContent = { row, col ->
             val index = path.indexOf(row to col)
