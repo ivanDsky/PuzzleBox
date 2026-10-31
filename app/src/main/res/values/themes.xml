@@ -1,0 +1,5 @@
+<resources>
+    <style name="Theme.PuzzleBox" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/puzzlebox_launch_background</item>
+    </style>
+</resources>
