@@ -18,5 +18,10 @@ android {
 
 dependencies {
     api(libs.kotlinx.coroutines.core)
+    // SerializationException (AppError.Parsing cause) lives in serialization-core.
+    implementation(libs.kotlinx.serialization.core)
     implementation(libs.koin.core)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

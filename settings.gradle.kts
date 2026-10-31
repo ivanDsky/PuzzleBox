@@ -25,3 +25,4 @@ rootProject.name = "PuzzleBox"
 include(":app")
 include(":core:designsystem")
 include(":core:common")
+include(":core:data")
