@@ -16,6 +16,8 @@ import com.ivandsky.puzzlebox.games.zip.engine.ZipValidation
  * in the play feature, ticket 13).
  */
 data class ZipRendererModel(
+    val n: Int,
+    val path: List<Int>, // player's trace as row-major indices — the registered board draws it
     val cells: List<CellRender>,
     val walls: List<WallRender>,
     val hintHighlight: Int?,
@@ -66,6 +68,8 @@ data class ZipRendererModel(
                 .sortedWith(compareBy({ it.cell.idx }, { it.direction.ordinal }))
                 .map { WallRender(it.cell.idx, WallRender.Direction.valueOf(it.direction.name)) }
             return ZipRendererModel(
+                n = board.n,
+                path = path.map(Cell::idx),
                 cells = cells,
                 walls = walls,
                 hintHighlight = (hint as? ZipHint.Step)?.cell?.idx,
