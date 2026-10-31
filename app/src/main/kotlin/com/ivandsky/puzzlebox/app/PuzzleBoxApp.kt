@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import com.ivandsky.puzzlebox.app.nav.Catalog
 import com.ivandsky.puzzlebox.app.nav.Home
 import com.ivandsky.puzzlebox.app.nav.Play
 import com.ivandsky.puzzlebox.app.nav.Profile
@@ -18,6 +19,7 @@ import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.screens.HomeScreen
 import com.ivandsky.puzzlebox.app.screens.PlayScreen
 import com.ivandsky.puzzlebox.app.screens.ProfileScreen
+import com.ivandsky.puzzlebox.designsystem.TokenCatalogScreen
 
 @Composable
 fun PuzzleBoxApp(modifier: Modifier = Modifier) {
@@ -50,7 +52,8 @@ fun PuzzleBoxApp(modifier: Modifier = Modifier) {
             entryProvider = entryProvider {
                 entry<Home> { HomeScreen() }
                 entry<Play> { PlayScreen() }
-                entry<Profile> { ProfileScreen() }
+                entry<Profile> { ProfileScreen(onOpenCatalog = { backStack.add(Catalog) }) }
+                entry<Catalog> { TokenCatalogScreen() }
             },
         )
     }

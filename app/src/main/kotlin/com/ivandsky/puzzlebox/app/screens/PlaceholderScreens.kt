@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,14 +23,22 @@ internal fun PlayScreen(modifier: Modifier = Modifier) =
     PlaceholderScreen(title = "Play", blurb = "Jump into today's games.", modifier = modifier)
 
 @Composable
-internal fun ProfileScreen(modifier: Modifier = Modifier) =
-    PlaceholderScreen(title = "Profile", blurb = "Your stats and settings will live here.", modifier = modifier)
+internal fun ProfileScreen(modifier: Modifier = Modifier, onOpenCatalog: () -> Unit = {}) =
+    PlaceholderScreen(
+        title = "Profile",
+        blurb = "Your stats and settings will live here.",
+        action = {
+            Button(onClick = onOpenCatalog) { Text("Design system catalog") }
+        },
+        modifier = modifier,
+    )
 
 @Composable
 private fun PlaceholderScreen(
     title: String,
     blurb: String,
     modifier: Modifier = Modifier,
+    action: (@Composable () -> Unit)? = null,
 ) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
@@ -48,6 +57,7 @@ private fun PlaceholderScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
+            action?.invoke()
         }
     }
 }

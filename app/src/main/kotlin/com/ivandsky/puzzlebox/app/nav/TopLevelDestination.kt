@@ -17,6 +17,10 @@ data object Play : NavKey
 @Serializable
 data object Profile : NavKey
 
+// Detail route under Profile: the design-system catalog.
+@Serializable
+data object Catalog : NavKey
+
 data class TopLevelDestination(
     val key: NavKey,
     val label: String,
