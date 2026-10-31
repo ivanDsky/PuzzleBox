@@ -242,9 +242,11 @@ class ZipPlayState(
         updateSession(current.onForeground(now()))
     }
 
-    /** What TimerBar draws right now (banked + running window). */
+    /** What TimerBar draws right now (banked + running window). Never negative:
+     *  the first frame after the initial Extend observes runningSince before the
+     *  tick loop's first tick() advances nowMs. */
     fun displayedElapsedMs(): Long =
-        session?.displayedElapsedMs(Instant.ofEpochMilli(nowMs)) ?: 0L
+        session?.displayedElapsedMs(Instant.ofEpochMilli(nowMs))?.coerceAtLeast(0L) ?: 0L
 
     //endregion
 
