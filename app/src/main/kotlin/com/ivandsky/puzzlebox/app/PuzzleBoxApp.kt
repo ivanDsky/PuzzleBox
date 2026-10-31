@@ -146,18 +146,13 @@ private fun select(key: NavKey, backStack: NavBackStack<NavKey>) {
     backStack.add(key)
 }
 
-// Showkase keep-or-drop trial (ticket design-previews-06): a debug-only entry to the
-// browser activity on the catalog screen. The activity merges from the showkase AAR
-// in DEBUG builds only, so the button launches it by class name — no compile-time
-// Showkase dependency in :app, and the FLAG_DEBUGGABLE gate keeps it out of release
-// where neither the activity nor the dependency exists.
-// The activity REQUIRES the root-module extra ("Missing key in bundle" crash without
-// it) — it resolves the generated ShowkaseProvider through this canonical name.
+// Ticket design-previews-08: the "Showkase" button opens the custom flat dark browser
+// from :app's debug source set — still launched by class name so :app main keeps no
+// compile-time reference to debug-only code, and the FLAG_DEBUGGABLE gate keeps the
+// button out of release. The stock AAR activity stays merged but is no longer the
+// target; it needs no intent extras from here (that requirement was stock-activity-only).
 private const val SHOWKASE_BROWSER_ACTIVITY =
-    "com.airbnb.android.showkase.ui.ShowkaseBrowserActivity"
-private const val SHOWKASE_ROOT_MODULE_EXTRA = "SHOWKASE_ROOT_MODULE"
-private const val SHOWKASE_ROOT_MODULE =
-    "com.ivandsky.puzzlebox.designsystem.PuzzleBoxShowkaseModule"
+    "com.ivandsky.puzzlebox.app.debug.ShowkaseBrowserActivity"
 
 @Composable
 private fun CatalogScreenWithShowkaseTrial() {
@@ -169,9 +164,7 @@ private fun CatalogScreenWithShowkaseTrial() {
             Button(
                 onClick = {
                     context.startActivity(
-                        Intent()
-                            .setClassName(context.packageName, SHOWKASE_BROWSER_ACTIVITY)
-                            .putExtra(SHOWKASE_ROOT_MODULE_EXTRA, SHOWKASE_ROOT_MODULE),
+                        Intent().setClassName(context.packageName, SHOWKASE_BROWSER_ACTIVITY),
                     )
                 },
                 modifier = Modifier
