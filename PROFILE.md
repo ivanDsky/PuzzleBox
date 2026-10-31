@@ -1,0 +1,40 @@
+# PROFILE.md — written by init-profile, read by /start
+# version: 0.2.0 (semver source of truth, per deliver: feature → minor, fix → patch;
+# 1.0.0 reserved for the live compete loop — Phase 1 done)
+
+## Product (frame)
+# purpose: one app for daily logic puzzles — play official NYT/LinkedIn dailies, build and share custom games, compete via leaderboards and 1v1; Zip ships first
+# users: daily-puzzle players who want one place to play, create, and compete with friends
+# core loop: open app → today's puzzle or a shared custom game → score recorded → check rank / challenge a friend → return tomorrow
+# pain points: no history — official apps keep no browsable record of past games and scores; dailies scattered across NYT and LinkedIn apps with separate logins
+# replay-awareness: app pulls your LinkedIn result for today so it shows you already played; any puzzle replayable anytime
+
+## Care-axes (ranked: what quality means here)
+1. UI/UX (premium)          # tied #1 with architecture; detailed design direction set at spec/design stage
+1. architecture/SOLID       # tied #1 with UI/UX; equal review priority
+2. reactivity
+
+## Effort
+- level: thorough            # restored 2026-11-01 after brief downgrade: run default only; PER-TASK EFFORT IS THE RULE (effort-mapping.md): fast = contained fixes, standard = ordinary feature tickets, thorough = architecture/module/cross-cutting only; agent flags each ticket's level in the run plan
+- debug: off
+
+## Platform & stack (deltas only)
+# Preferred stack + default platform live in ~/.agents/AGENTS.md.
+# platform: (none — matches user default, Android; mobile + tablet support)
+# stack: (none — matches preferred stack)
+
+## Deploy targets (in order; empty list = build-only)
+- local: ./gradlew :app:assembleDebug
+- tailscale: ivandsky.github
+  - device: ivans-tab-s9-ultra @ 100.93.158.113  # interim until Firebase exists; re-verify IP at deploy time
+# - firebase: <project id>  # activate once the Firebase project is created; deliver moves off tailscale then
+
+## Testing style
+- runner: ./gradlew :app:testDebugUnitTest   # JVM unit tests against fakes
+- approach: tdd-fakes
+- seams: repository/use-case interfaces (+ fakes), dispatcher provider
+
+## Integrations (facts for spec/research)
+- NYT Strands: public API exists — no scraping needed
+- LinkedIn games (Zip, Queens, Tango, MiniSudoku): no public API — unofficial endpoints + session; research Unknown at spec time
+- Firebase: Auth Google-sign-in-only (no email/password); leaderboard / 1v1 backend decided at spec
