@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -308,18 +309,17 @@ private fun MotionPatternCard(pattern: MotionPattern) {
 @Composable
 private fun SpringDemo(label: String, dampingRatio: Float, stiffness: Float) {
     var atEnd by remember { mutableStateOf(false) }
-    val x by animateDpAsState(
-        targetValue = if (atEnd) 240.dp else 0.dp,
-        animationSpec = spring(dampingRatio = dampingRatio, stiffness = stiffness),
-        label = "spring-demo",
-    )
+    val knobSize = 24.dp
+    val edgePadding = Spacing.sm
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Box(
+        // BoxWithConstraints so the travel derives from the measured track: the knob
+        // rides edge-to-edge minus knob size + edge padding at any pane width.
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(40.dp)
@@ -327,10 +327,16 @@ private fun SpringDemo(label: String, dampingRatio: Float, stiffness: Float) {
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .clickable { atEnd = !atEnd },
         ) {
+            val x by animateDpAsState(
+                targetValue = if (atEnd) maxWidth - knobSize - edgePadding * 2 else 0.dp,
+                animationSpec = spring(dampingRatio = dampingRatio, stiffness = stiffness),
+                label = "spring-demo",
+            )
             Box(
                 modifier = Modifier
-                    .offset(x = x + Spacing.sm)
-                    .size(24.dp)
+                    .align(Alignment.CenterStart)
+                    .offset(x = x + edgePadding)
+                    .size(knobSize)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary),
             )
