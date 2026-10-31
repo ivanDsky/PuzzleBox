@@ -60,6 +60,52 @@ class ColorTokensTest {
         }
     }
 
+    @Test
+    fun `surface ramps carry no warm cast in both themes`() {
+        // Ticket 11: the neutral family reads cool — every surface/outline value has
+        // blue >= green >= red (the old light ramp was cream-green, green > blue).
+        // The deepest dark layers additionally stay near-black slate with bounded
+        // chroma so panels can't render them warm (the old windowBackground was
+        // red-brown #1B110D; it now pairs with surface in app res colors).
+        val lightNeutrals = listOf(
+            LightColorScheme.surfaceVariant,
+            LightColorScheme.onSurfaceVariant,
+            LightColorScheme.outline,
+            LightColorScheme.outlineVariant,
+            LightColorScheme.surfaceDim,
+            LightColorScheme.surfaceContainerLow,
+            LightColorScheme.surfaceContainer,
+            LightColorScheme.surfaceContainerHigh,
+            LightColorScheme.surfaceContainerHighest,
+        )
+        val darkNeutrals = listOf(
+            DarkColorScheme.surfaceVariant,
+            DarkColorScheme.onSurfaceVariant,
+            DarkColorScheme.outline,
+            DarkColorScheme.outlineVariant,
+            DarkColorScheme.surfaceBright,
+            DarkColorScheme.surfaceContainerLow,
+            DarkColorScheme.surfaceContainer,
+            DarkColorScheme.surfaceContainerHigh,
+            DarkColorScheme.surfaceContainerHighest,
+        )
+        for (c in lightNeutrals + darkNeutrals) {
+            assertTrue("$c is not cool-neutral", c.blue >= c.green && c.green >= c.red)
+        }
+        for (c in listOf(DarkColorScheme.surface, DarkColorScheme.surfaceContainerLowest)) {
+            assertTrue("$c is not near-black slate", c.red >= 8f / 255f && (c.blue - c.red) <= 10f / 255f)
+        }
+    }
+
+    @Test
+    fun `home card floats visibly above the pane in both themes`() {
+        // Ticket 11: light cards are white on the cool-paper pane (the brief's
+        // FFFFFF-on-F2F4F7 target); dark cards are the first container step on the
+        // near-black surface. The ratios pin the visible step against future drift.
+        assertTrue(contrast(LightColorScheme.surface, LightColorScheme.surfaceContainer) >= 1.10f)
+        assertTrue(contrast(DarkColorScheme.surfaceContainerLow, DarkColorScheme.surface) >= 1.05f)
+    }
+
     private fun contrast(foreground: Color, background: Color): Float {
         val top = foreground.luminance() + 0.05f
         val bottom = background.luminance() + 0.05f

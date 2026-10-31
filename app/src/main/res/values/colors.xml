@@ -1,4 +1,5 @@
 <resources>
-    <color name="puzzlebox_launch_background">#FFF8F6</color>
+    <!-- Pairs with LightColorScheme.background (deepest canvas, see ColorTokens.kt). -->
+    <color name="puzzlebox_launch_background">#F2F4F7</color>
     <color name="ic_launcher_background">#FFF8F6</color>
 </resources>
