@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -99,15 +100,22 @@ private fun ShowkaseBrowserScreen(onClose: () -> Unit) {
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
     BackHandler(enabled = selected != null) { selected = null }
 
-    val surface = Modifier
-        .fillMaxSize()
-        .background(MaterialTheme.colorScheme.background)
-        .windowInsetsPadding(WindowInsets.safeDrawing)
+    // Surface (not a bare background) so LocalContentColor follows the dark scheme —
+    // default Texts would otherwise inherit black and vanish on the dark surface.
+    Surface(
+        Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        val surface = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
 
-    when {
-        metadata == null -> ErrorPane(surface, onClose)
-        selected == null -> BrowserHome(surface, metadata, onClose) { selected = it }
-        else -> DetailPane(surface, metadata, selected!!) { selected = null }
+        when {
+            metadata == null -> ErrorPane(surface, onClose)
+            selected == null -> BrowserHome(surface, metadata, onClose) { selected = it }
+            else -> DetailPane(surface, metadata, selected!!) { selected = null }
+        }
     }
 }
 
@@ -166,31 +174,22 @@ private fun BrowserHome(
                 metadata.componentList,
                 group = { it.group },
                 keyPrefix = "comp",
-                showHeaders = true,
                 itemId = { it.componentKey },
             ) {
                 ComponentRow(it) { onOpen(selectionKey("component", it.componentKey)) }
-            }
-            item(key = "section-colors") {
-                SectionTitle("Colors — ${metadata.colorList.size}")
             }
             renderGroups(
                 metadata.colorList,
                 group = { it.colorGroup },
                 keyPrefix = "color",
-                showHeaders = false,
                 itemId = { it.colorName },
             ) {
                 ColorRow(it) { onOpen(selectionKey("color", "${it.colorGroup}/${it.colorName}")) }
-            }
-            item(key = "section-typography") {
-                SectionTitle("Typography — ${metadata.typographyList.size}")
             }
             renderGroups(
                 metadata.typographyList,
                 group = { it.typographyGroup },
                 keyPrefix = "type",
-                showHeaders = false,
                 itemId = { it.typographyName },
             ) {
                 TypographyRow(it) {
@@ -201,23 +200,23 @@ private fun BrowserHome(
     }
 }
 
-// Flat list: every group's header sits directly on top of its items (sticky in the
-// components section, where there are several groups; single-group sections rely on
-// their section title alone to avoid a duplicated header).
+// Flat list: every section's group headers stick until the next group's header arrives.
+// A section without its own sticky header would let the previous group's header float
+// over it indefinitely (observed with TOPBARS over the color rows), so headers are
+// mandatory here. A single-group section folds its item count into the header, which
+// then doubles as the section title.
 private fun <T> androidx.compose.foundation.lazy.LazyListScope.renderGroups(
     entries: List<T>,
     group: (T) -> String,
     keyPrefix: String,
-    showHeaders: Boolean,
     itemId: (T) -> String,
     row: @Composable (T) -> Unit,
 ) {
     val groups = entries.groupBy(group).toSortedMap()
     groups.forEach { (groupName, groupItems) ->
-        if (showHeaders) {
-            stickyHeader(key = "$keyPrefix-header-$groupName") {
-                GroupHeader(groupName)
-            }
+        val suffix = if (groups.size == 1) " — ${entries.size}" else ""
+        stickyHeader(key = "$keyPrefix-header-$groupName") {
+            GroupHeader(groupName.uppercase() + suffix)
         }
         items(
             groupItems,
@@ -241,7 +240,7 @@ private fun SectionTitle(text: String) {
 @Composable
 private fun GroupHeader(text: String) {
     Text(
-        text.uppercase(),
+        text,
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
