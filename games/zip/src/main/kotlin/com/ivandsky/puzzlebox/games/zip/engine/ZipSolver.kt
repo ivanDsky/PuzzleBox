@@ -91,8 +91,13 @@ class ZipSolver {
 
         fun dfs(): Boolean {
             if (path.size == total) {
-                found++
-                if (first == null) first = path.toList()
+                // I6: a solution must END at the final waypoint. Full coverage alone is not
+                // enough — a walk that enters waypoint k mid-path and finishes elsewhere is
+                // a dead trace, never a solution (ZipRules.isComplete agrees).
+                if (path.last() == board.waypoints.last()) {
+                    found++
+                    if (first == null) first = path.toList()
+                }
                 return found >= limit
             }
             // Prune: unvisited cells reachable only as dead ends. Every unvisited cell with

@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.zip
 
+import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
 import com.ivandsky.puzzlebox.games.zip.engine.ZipSolver
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -26,6 +27,32 @@ class ZipSolverUniquenessTest {
         val puzzle = ZipTestSupport.n5Puzzle()
         assertEquals(1, solver.countSolutions(puzzle))
         assertEquals(ZipTestSupport.n5Solution, solver.solve(puzzle))
+    }
+
+    /**
+     * I6 at the solver boundary (review round 1): a full-coverage walk that enters the
+     * END waypoint mid-path and finishes elsewhere is NOT a solution. P2 below covers
+     * all 25 cells, starts at waypoint 1, passes waypoint 3 (cell 24) at index 20 and
+     * ends at cell 4. Deleting the `path.last() == waypoints.last()` check flips every
+     * assertion here (mutant: canComplete true, longest prefix 24, solve may end at 4).
+     */
+    @Test
+    fun `I6 - a full walk through the end waypoint is not a solution`() {
+        val open = ZipPuzzle(
+            ZipTestSupport.variantOf(5).id,
+            ZipBoard(5, emptySet(), listOf(Cell(0), Cell(24))),
+            null,
+        )
+        val p2 = ZipTestSupport.path(
+            0, 1, 6, 5, 10, 11, 12, 7, 2, 3, 8, 13, 18, 17, 16, 15, 20, 21, 22, 23, 24, 19, 14, 9, 4,
+        )
+        assertTrue(ZipRules.verifyPath(open, p2)) // it is a full-coverage I1-I5 walk...
+        assertNotEquals(Cell(24), p2.last()) // ...but ends off the last waypoint
+        assertTrue(!solver.canComplete(open, p2)) // no completion once 24 is spent mid-path
+        assertTrue(!solver.canComplete(open, p2.take(21))) // prefix ending AT 24 is already dead
+        assertEquals(Cell(24), solver.solve(open)!!.last()) // reported solutions end at waypoint 3
+        val counted = solver.search(open, emptyList(), limit = 1)
+        assertEquals(Cell(24), counted.firstSolution!!.last())
     }
 
     /**

@@ -50,6 +50,9 @@ class ZipRendererModelTest {
         val state = ZipState(puzzle, ZipTestSupport.path(0, 1, 2))
         val stepped = ZipRendererModel.of(state, ZipHint.Step(Cell(3)))
         assertEquals(3, stepped.hintHighlight)
+        // F2 §7: the registered board draws the trace from the model alone — n + path flow through
+        assertEquals(5, stepped.n)
+        assertEquals(listOf(0, 1, 2), stepped.path)
         assertNull(ZipRendererModel.of(state, null).hintHighlight)
         // a backtrack hint highlights nothing (the trim is applied before re-hinting)
         assertNull(ZipRendererModel.of(state, ZipHint.Backtrack(1)).hintHighlight)
