@@ -18,6 +18,15 @@ data object Play : NavKey
 @Serializable
 data object History : NavKey
 
+/**
+ * Replay of a captured day (ticket 14): the history-built session blob rides base64
+ * in the key; the play entry restores it via its existing restore path. The blob is
+ * self-describing (A19) and carries the day's ref, so records stay attributed to
+ * their day (A4).
+ */
+@Serializable
+data class ReplayZip(val session: String) : NavKey
+
 @Serializable
 data object Profile : NavKey
 
