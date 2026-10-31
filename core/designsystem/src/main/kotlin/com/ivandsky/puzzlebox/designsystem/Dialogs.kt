@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.designsystem
 
 import android.content.res.Configuration
+import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
@@ -113,6 +114,7 @@ fun AppDialog(
 // it runs in-app on every real dialog and in Studio interactive mode.
 
 /** The bare scaffold: extraLarge card on surfaceContainerHigh with slot content. */
+@ShowkaseComposable(name = "DialogCard", group = "Dialogs")
 @PuzzleBoxPreviews
 @Composable
 internal fun DialogCardPreview() {
@@ -133,6 +135,7 @@ internal fun DialogCardPreview() {
 }
 
 /** AppDialog's content composition — the card layout it hosts, minus scrim and window. */
+@ShowkaseComposable(name = "AppDialog", group = "Dialogs")
 @PuzzleBoxPreviews
 @Composable
 internal fun AppDialogPreview() {

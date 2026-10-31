@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.designsystem
 
+import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -388,6 +389,7 @@ private fun typographySamples(): List<Pair<String, TextStyle>> {
 // programmatic trigger a preview could start; the static panes show the resting state
 // and interactive mode runs the spring on tap.
 
+@ShowkaseComposable(name = "TokenCatalogScreen", group = "Catalogs")
 @PuzzleBoxPreviews
 @Composable
 internal fun TokenCatalogScreenPreview() {
