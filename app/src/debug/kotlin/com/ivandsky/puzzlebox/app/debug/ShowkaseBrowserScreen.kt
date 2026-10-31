@@ -11,6 +11,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,7 +25,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
@@ -38,7 +38,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -322,6 +321,17 @@ private fun ComponentRow(component: ShowkaseBrowserComponent) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Spacer(Modifier.height(Spacing.sm))
+        // Inline preview (ticket 02): the indexed composable invoked in place, on the
+        // shared backdrop — no tap needed. Declared @Preview sizes arrive as hints and
+        // cap, never stretch; anything taller than 480dp is contained by the backdrop.
+        PreviewBackdrop(
+            modifier = Modifier.fillMaxWidth(),
+            widthHint = component.widthDp?.dp,
+            heightHint = component.heightDp?.dp,
+        ) {
+            component.component()
+        }
     }
 }
 
@@ -330,15 +340,14 @@ private fun ColorRow(color: ShowkaseBrowserColor) {
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.xs),
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Spacer(
-            Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(color.color),
-        )
+        // A3: the swatch IS the color's inline preview — the backdrop's checkerboard
+        // doubles as a transparency grid, and the border marks the sampled region.
+        PreviewBackdrop(contentPadding = PaddingValues(Spacing.sm)) {
+            Box(Modifier.size(44.dp).background(color.color))
+        }
         Spacer(Modifier.width(Spacing.md))
         Column {
             Text(color.colorName, style = MaterialTheme.typography.bodyLarge)
@@ -363,12 +372,17 @@ private fun TypographyRow(typography: ShowkaseBrowserTypography) {
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Text(
-            "Sample text",
-            style = typography.textStyle.resolved(),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Spacer(Modifier.height(Spacing.xs))
+        // A3: sample text on the shared backdrop, so the type specimen reads as a
+        // framed sample rather than body copy.
+        PreviewBackdrop(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                "Sample text",
+                style = typography.textStyle.resolved(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -459,7 +473,11 @@ private fun previewComponent(
     group = group,
     componentName = name,
     componentKDoc = "",
-    component = {},
+    // Inline previews invoke this lambda in place (ticket 02): a stub render, not an
+    // empty box, so the preview panel shows realistic backdrops.
+    component = {
+        Text("…$name…", style = MaterialTheme.typography.bodyMedium)
+    },
     styleName = styleName,
 )
 
