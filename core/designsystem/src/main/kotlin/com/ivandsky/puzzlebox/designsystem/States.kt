@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.designsystem
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
 fun EmptyState(
@@ -90,4 +92,37 @@ private fun StateLayout(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         content = content,
     )
+}
+
+// Previews — Studio tooling only, zero public API surface (internal, not private, so
+// Showkase's generated index can access them; ticket 00 visibility findings). Exactly
+// light + dark, always inside PuzzleBoxTheme (spec A1/A5). A8: neither state component
+// animates — no infinite transition, no trigger — so static panes show the resting
+// state.
+
+/** The empty slot, shown with its optional action so both branches render. */
+@PuzzleBoxPreviews
+@Composable
+internal fun EmptyStatePreview() {
+    PuzzleBoxTheme {
+        EmptyState(
+            title = "No boards yet",
+            message = "Create your first board to start building puzzles.",
+            actionLabel = "New board",
+            onAction = {},
+        )
+    }
+}
+
+/** The error slot with its retry action. */
+@PuzzleBoxPreviews
+@Composable
+internal fun ErrorStatePreview() {
+    PuzzleBoxTheme {
+        ErrorState(
+            title = "Something went wrong",
+            message = "We couldn't load your boards. Check your connection and try again.",
+            onRetry = {},
+        )
+    }
 }
