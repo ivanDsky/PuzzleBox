@@ -39,6 +39,7 @@ import com.ivandsky.puzzlebox.app.nav.History
 import com.ivandsky.puzzlebox.app.nav.Home
 import com.ivandsky.puzzlebox.app.nav.Play
 import com.ivandsky.puzzlebox.app.nav.Profile
+import com.ivandsky.puzzlebox.app.nav.ReplayZip
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.screens.ProfileScreen
 import com.ivandsky.puzzlebox.data.model.ThemeMode
@@ -52,6 +53,7 @@ import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.HomeRoute
 import com.ivandsky.puzzlebox.home.homeLayoutFor
 import com.ivandsky.puzzlebox.play.PlayRoute
+import java.util.Base64
 
 @Composable
 fun PuzzleBoxApp(
@@ -151,6 +153,22 @@ fun PuzzleBoxApp(
                             HistoryRoute(
                                 layout = historyLayout,
                                 onBack = { backStack.removeLastOrNull() },
+                                onReplay = { ready ->
+                                    backStack.add(
+                                        ReplayZip(Base64.getEncoder().encodeToString(ready.session)),
+                                    )
+                                },
+                            )
+                        }
+                    }
+                    entry<ReplayZip> { key ->
+                        SceneCanvas {
+                            PlayRoute(
+                                layout = playLayout,
+                                onBack = { backStack.removeLastOrNull() },
+                                restoredSession = runCatching {
+                                    Base64.getDecoder().decode(key.session)
+                                }.getOrNull(),
                             )
                         }
                     }
