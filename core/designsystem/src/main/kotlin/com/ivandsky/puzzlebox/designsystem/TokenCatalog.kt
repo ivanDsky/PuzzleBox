@@ -38,12 +38,9 @@ import androidx.compose.ui.unit.dp
 
 // Renders the complete token set (A12): color, type, shape, spacing, motion.
 // It draws whatever theme wraps it, so dark and light both come from the same tree.
-// [styleSwitcher] is a debug-only slot (ticket 08): null in release, so no switcher
-// entry point exists there.
 @Composable
 fun TokenCatalogScreen(
     modifier: Modifier = Modifier,
-    styleSwitcher: (@Composable () -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
@@ -64,10 +61,6 @@ fun TokenCatalogScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        }
-
-        if (styleSwitcher != null) {
-            styleSwitcher()
         }
 
         CatalogSection(title = "Color") {
