@@ -31,6 +31,9 @@
   - device: ivans-tab-s9-ultra @ 100.93.158.113  # interim until Firebase exists; re-verify IP at deploy time
 # - firebase: <project id>  # activate once the Firebase project is created; deliver moves off tailscale then
 
+## Review site publish
+always  # user ruling 2026-10-31: every review gate publishes a localhost HTML review page (REVIEW.md contract + archify diagrams); served on LAN :8777
+
 ## Testing style
 - runner: ./gradlew :app:testDebugUnitTest   # JVM unit tests against fakes
 - approach: tdd-fakes
