@@ -8,9 +8,12 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import com.ivandsky.puzzlebox.data.model.ThemeMode
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -34,8 +37,23 @@ class MainActivity : ComponentActivity(), KoinComponent {
             val windowSize = calculateWindowSizeClass(this)
 
             themeMode?.let { mode ->
+                val darkTheme = mode.isDarkTheme(systemDark)
+
+                // enableEdgeToEdge() above follows the SYSTEM dark mode, but the app can
+                // force the opposite, so the system bars must follow the RESOLVED
+                // in-app theme: light appearance = dark icons (light theme), and the
+                // inverse for dark. SideEffect re-applies whenever the resolved flag
+                // flips, including the SYSTEM mode following an OS theme change.
+                val view = LocalView.current
+                SideEffect {
+                    WindowCompat.getInsetsController(window, view).apply {
+                        isAppearanceLightStatusBars = !darkTheme
+                        isAppearanceLightNavigationBars = !darkTheme
+                    }
+                }
+
                 val scope = rememberCoroutineScope()
-                PuzzleBoxTheme(darkTheme = mode.isDarkTheme(systemDark)) {
+                PuzzleBoxTheme(darkTheme = darkTheme) {
                     PuzzleBoxApp(
                         windowWidthSizeClass = windowSize.widthSizeClass,
                         themeMode = mode,
