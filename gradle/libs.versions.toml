@@ -10,13 +10,13 @@ composeBom = "2026.09.00"
 # Policy: use the core set only; NEVER add icons-extended (same freeze, ~10x bloat).
 # Glyphs outside the core set come in as Material Symbols SVG imports (drawables).
 materialIconsCore = "1.7.8"
-coroutines = "1.10.2"
+coroutines = "1.11.0"
 navigation3 = "1.2.0"
 koin = "4.2.2"
 junit = "4.13.2"
 room = "2.8.5"
 ksp = "2.2.10-2.0.2" # first segment must match the Kotlin compiler pinned by AGP
-datastore = "1.1.7"
+datastore = "1.3.0"
 retrofit = "3.0.0"
 okhttp = "5.5.1"
 # 1.12.x carries Kotlin 2.4 metadata — unreadable by AGP 9.5's pinned Kotlin 2.2 compiler.
@@ -27,6 +27,9 @@ turbine = "1.2.1"
 # removed TestedExtension and cannot apply on AGP 9.x, so screenshots are recorded by
 # the plain JVM test task via captureRoboImage.
 roborazzi = "1.44.0-alpha03"
+# Runtime libs may move independently of the broken Gradle plugin; plugin stays pinned
+# above until it supports AGP 9.x.
+roborazziRuntime = "1.77.0"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -60,8 +63,8 @@ robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
-roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", version.ref = "roborazzi" }
-roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazzi" }
+roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", version.ref = "roborazziRuntime" }
+roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazziRuntime" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

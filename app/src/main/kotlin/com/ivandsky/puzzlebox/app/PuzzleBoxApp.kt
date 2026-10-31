@@ -23,7 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -52,12 +52,14 @@ fun PuzzleBoxApp(
 ) {
     // Two-pane needs width AND height: a large tablet in portrait still measures
     // Expanded by width class, so the orientation comes from the current window
-    // metrics. One policy call drives both the nav shape and Home's pane arrangement,
-    // and LocalConfiguration keeps a live rotation recomposing without a restart.
-    val configuration = LocalConfiguration.current
+    // container size. One policy call drives both the nav shape and Home's pane
+    // arrangement, and containerSize keeps a live rotation recomposing without a restart.
+    val isLandscape = with(LocalWindowInfo.current) {
+        containerSize.width > containerSize.height
+    }
     val layout = homeLayoutFor(
         widthSizeClass = windowWidthSizeClass,
-        isLandscape = configuration.screenWidthDp > configuration.screenHeightDp,
+        isLandscape = isLandscape,
     )
     val expanded = layout == HomeLayout.TwoPane
     val backStack = rememberNavBackStack(Home)
