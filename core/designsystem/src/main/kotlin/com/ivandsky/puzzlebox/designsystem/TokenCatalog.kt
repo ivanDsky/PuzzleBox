@@ -198,11 +198,13 @@ fun TokenCatalogScreen(modifier: Modifier = Modifier) {
                 stiffness = MotionTokens.SpringStiffnessDefault,
             )
         }
+
+        ComponentCatalogSections()
     }
 }
 
 @Composable
-private fun CatalogSection(
+internal fun CatalogSection(
     title: String,
     content: @Composable () -> Unit,
 ) {
