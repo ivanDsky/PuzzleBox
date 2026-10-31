@@ -28,6 +28,7 @@ import com.ivandsky.puzzlebox.app.screens.PlayScreen
 import com.ivandsky.puzzlebox.app.screens.ProfileScreen
 import com.ivandsky.puzzlebox.data.model.ThemeMode
 import com.ivandsky.puzzlebox.designsystem.TokenCatalogScreen
+import com.ivandsky.puzzlebox.designsystem.StyleSwitcherSection
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.HomeRoute
 import com.ivandsky.puzzlebox.home.homeLayoutFor
@@ -38,6 +39,8 @@ fun PuzzleBoxApp(
     themeMode: ThemeMode,
     onSetThemeMode: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,
+    // Ticket 08 debug switcher; null in release — the catalog renders no switcher.
+    styleControls: DebugStyleControls? = null,
 ) {
     // Two-pane needs width AND height: a large tablet in portrait still measures
     // Expanded by width class, so the orientation comes from the current window
@@ -101,7 +104,18 @@ fun PuzzleBoxApp(
                     }
                     entry<Play> { PlayScreen() }
                     entry<Profile> { ProfileScreen(onOpenCatalog = { backStack.add(Catalog) }) }
-                    entry<Catalog> { TokenCatalogScreen() }
+                    entry<Catalog> {
+                        TokenCatalogScreen(
+                            styleSwitcher = styleControls?.let { controls -> {
+                                StyleSwitcherSection(
+                                    typographyVariant = controls.typography,
+                                    paletteVariant = controls.palette,
+                                    onTypographyVariant = controls.onTypography,
+                                    onPaletteVariant = controls.onPalette,
+                                )
+                            } },
+                        )
+                    }
                 },
             )
         }
