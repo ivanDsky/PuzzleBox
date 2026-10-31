@@ -63,7 +63,7 @@ class CatalogScreenshotTest {
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background),
                 ) {
-                    TokenCatalogScreen(Modifier.padding(top = Spacing.xl))
+                    TokenCatalogScreen(modifier = Modifier.padding(top = Spacing.xl))
                 }
             }
         }

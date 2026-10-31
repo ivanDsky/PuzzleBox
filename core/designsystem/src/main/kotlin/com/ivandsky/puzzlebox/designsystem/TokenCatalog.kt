@@ -42,8 +42,8 @@ import androidx.compose.ui.unit.dp
 // entry point exists there.
 @Composable
 fun TokenCatalogScreen(
-    styleSwitcher: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier,
+    styleSwitcher: (@Composable () -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
