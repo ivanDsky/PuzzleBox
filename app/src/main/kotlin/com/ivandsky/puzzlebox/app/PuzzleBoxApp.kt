@@ -35,6 +35,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.ivandsky.puzzlebox.app.nav.Catalog
+import com.ivandsky.puzzlebox.app.nav.History
 import com.ivandsky.puzzlebox.app.nav.Home
 import com.ivandsky.puzzlebox.app.nav.Play
 import com.ivandsky.puzzlebox.app.nav.Profile
@@ -44,6 +45,9 @@ import com.ivandsky.puzzlebox.data.model.ThemeMode
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.TokenCatalogScreen
 import com.ivandsky.puzzlebox.gameui.playLayoutFor
+import com.ivandsky.puzzlebox.history.HistoryLayout
+import com.ivandsky.puzzlebox.history.HistoryRoute
+import com.ivandsky.puzzlebox.history.historyLayoutFor
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.HomeRoute
 import com.ivandsky.puzzlebox.home.homeLayoutFor
@@ -70,6 +74,11 @@ fun PuzzleBoxApp(
     // Same 07 policy as home, play's own pane shapes (game-ui): two-pane iff expanded
     // landscape; portrait of any width stays single-pane.
     val playLayout = playLayoutFor(
+        widthSizeClass = windowWidthSizeClass,
+        isLandscape = isLandscape,
+    )
+    // Same 07 policy for history's list-detail panes.
+    val historyLayout = historyLayoutFor(
         widthSizeClass = windowWidthSizeClass,
         isLandscape = isLandscape,
     )
@@ -133,6 +142,15 @@ fun PuzzleBoxApp(
                                 layout = layout,
                                 themeMode = themeMode,
                                 onSetThemeMode = onSetThemeMode,
+                                onOpenHistory = { backStack.add(History) },
+                            )
+                        }
+                    }
+                    entry<History> {
+                        SceneCanvas {
+                            HistoryRoute(
+                                layout = historyLayout,
+                                onBack = { backStack.removeLastOrNull() },
                             )
                         }
                     }

@@ -25,6 +25,7 @@ fun HomeRoute(
     themeMode: ThemeMode,
     onSetThemeMode: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenHistory: () -> Unit = {},
 ) {
     val repository = koinInject<DailyPuzzleRepository>()
     val history by repository.observeHistory(ZIP_GAME_ID).collectAsState(initial = emptyList())
@@ -37,6 +38,7 @@ fun HomeRoute(
         layout = layout,
         themeMode = themeMode,
         onSetThemeMode = onSetThemeMode,
+        onOpenHistory = onOpenHistory,
         history = days,
         modifier = modifier,
     )

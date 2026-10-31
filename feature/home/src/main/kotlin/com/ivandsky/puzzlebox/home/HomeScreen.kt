@@ -37,6 +37,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -87,6 +88,7 @@ fun HomeScreen(
     layout: HomeLayout,
     themeMode: ThemeMode,
     onSetThemeMode: (ThemeMode) -> Unit,
+    onOpenHistory: () -> Unit = {},
     history: List<HistoryDay>,
     modifier: Modifier = Modifier,
 ) {
@@ -115,6 +117,7 @@ fun HomeScreen(
                 ListPane(
                     themeMode = themeMode,
                     onOpenTheme = { showThemeDialog = true },
+                    onOpenHistory = onOpenHistory,
                     history = history,
                     selectedDay = selectedDay,
                     onDayClick = { selectedDay = it },
@@ -139,6 +142,7 @@ fun HomeScreen(
             ListPane(
                 themeMode = themeMode,
                 onOpenTheme = { showThemeDialog = true },
+                onOpenHistory = onOpenHistory,
                 history = history,
                 selectedDay = null,
                 onDayClick = {},
@@ -172,6 +176,7 @@ fun HomeScreen(
 private fun ListPane(
     themeMode: ThemeMode,
     onOpenTheme: () -> Unit,
+    onOpenHistory: () -> Unit,
     history: List<HistoryDay>,
     selectedDay: String?,
     onDayClick: (String) -> Unit,
@@ -213,6 +218,7 @@ private fun ListPane(
                 selectedDay = selectedDay,
                 onDayClick = onDayClick,
                 selectable = selectable,
+                onOpenHistory = onOpenHistory,
                 cardColor = cardColor,
                 modifier = Modifier.padding(top = Spacing.xl),
             )
@@ -277,6 +283,7 @@ private fun HistorySection(
     selectedDay: String?,
     onDayClick: (String) -> Unit,
     selectable: Boolean,
+    onOpenHistory: () -> Unit,
     cardColor: Color,
     modifier: Modifier = Modifier,
 ) {
@@ -286,11 +293,20 @@ private fun HistorySection(
             .padding(horizontal = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Text(
-            text = "Your history",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Your history",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onOpenHistory) {
+                Text(text = "See all", style = MaterialTheme.typography.labelLarge)
+            }
+        }
         if (history.isEmpty()) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
