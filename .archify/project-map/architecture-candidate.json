@@ -1,0 +1,325 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "PuzzleBox — Phase 0 architecture",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": "docs/agents/project-map.html"
+  },
+  "components": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "Player",
+      "sublabel": "daily puzzles",
+      "pos": [
+        10,
+        292
+      ],
+      "size": [
+        104,
+        60
+      ]
+    },
+    {
+      "id": "application",
+      "type": "frontend",
+      "label": "PuzzleBoxApplication",
+      "sublabel": "startKoin(appModules)",
+      "pos": [
+        150,
+        104
+      ],
+      "size": [
+        190,
+        72
+      ]
+    },
+    {
+      "id": "di",
+      "type": "backend",
+      "label": "Koin DI graph",
+      "sublabel": "commonModule + dataModule",
+      "pos": [
+        430,
+        100
+      ],
+      "size": [
+        220,
+        84
+      ]
+    },
+    {
+      "id": "activity",
+      "type": "frontend",
+      "label": "MainActivity",
+      "sublabel": "waits for persisted theme",
+      "pos": [
+        176,
+        288
+      ],
+      "size": [
+        150,
+        84
+      ]
+    },
+    {
+      "id": "shell",
+      "type": "frontend",
+      "label": "PuzzleBoxApp",
+      "sublabel": "Navigation3 shell + tab bar",
+      "pos": [
+        396,
+        288
+      ],
+      "size": [
+        176,
+        84
+      ]
+    },
+    {
+      "id": "home",
+      "type": "frontend",
+      "label": "HomeRoute",
+      "sublabel": "offline-first history",
+      "pos": [
+        638,
+        288
+      ],
+      "size": [
+        150,
+        84
+      ]
+    },
+    {
+      "id": "designsystem",
+      "type": "frontend",
+      "label": "core:designsystem",
+      "sublabel": "theme · tokens · PuzzleBoard",
+      "pos": [
+        396,
+        478
+      ],
+      "size": [
+        176,
+        80
+      ]
+    },
+    {
+      "id": "prefs",
+      "type": "backend",
+      "label": "UserPreferencesRepository",
+      "sublabel": "DataStore-backed",
+      "pos": [
+        176,
+        478
+      ],
+      "size": [
+        176,
+        72
+      ]
+    },
+    {
+      "id": "datastore",
+      "type": "database",
+      "label": "Preferences DataStore",
+      "sublabel": "puzzlebox.preferences_pb",
+      "pos": [
+        176,
+        640
+      ],
+      "size": [
+        176,
+        66
+      ]
+    },
+    {
+      "id": "repo",
+      "type": "backend",
+      "label": "DailyPuzzleRepository",
+      "sublabel": "network-first, typed errors",
+      "pos": [
+        830,
+        478
+      ],
+      "size": [
+        190,
+        84
+      ]
+    },
+    {
+      "id": "room",
+      "type": "database",
+      "label": "PuzzleBoxDatabase",
+      "sublabel": "Room · daily_puzzles",
+      "pos": [
+        610,
+        640
+      ],
+      "size": [
+        180,
+        72
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "PuzzleFeedApi",
+      "sublabel": "Retrofit + OkHttp + auth",
+      "pos": [
+        830,
+        640
+      ],
+      "size": [
+        190,
+        84
+      ]
+    },
+    {
+      "id": "linkedin",
+      "type": "external",
+      "label": "LinkedIn hosts",
+      "sublabel": "planned · placeholder URL",
+      "pos": [
+        830,
+        786
+      ],
+      "size": [
+        190,
+        72
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "PuzzleBox Android process",
+      "wraps": [
+        "application",
+        "di",
+        "activity",
+        "shell",
+        "home",
+        "designsystem",
+        "prefs",
+        "datastore",
+        "repo",
+        "room",
+        "api"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "open",
+      "from": "user",
+      "to": "activity",
+      "label": "opens",
+      "variant": "emphasis"
+    },
+    {
+      "id": "startkoin",
+      "from": "application",
+      "to": "di",
+      "label": "startKoin"
+    },
+    {
+      "id": "inject-prefs",
+      "from": "di",
+      "to": "activity",
+      "label": "injects prefs"
+    },
+    {
+      "id": "inject-repo",
+      "from": "di",
+      "to": "home",
+      "label": "injects repository"
+    },
+    {
+      "id": "host",
+      "from": "activity",
+      "to": "shell",
+      "label": "hosts"
+    },
+    {
+      "id": "home-entry",
+      "from": "shell",
+      "to": "home",
+      "label": "Home"
+    },
+    {
+      "id": "theme-tokens",
+      "from": "shell",
+      "to": "designsystem",
+      "label": "theme + Catalog route"
+    },
+    {
+      "id": "observe",
+      "from": "home",
+      "to": "repo",
+      "label": "observe",
+      "variant": "emphasis"
+    },
+    {
+      "id": "refresh",
+      "from": "repo",
+      "to": "api",
+      "label": "refresh()"
+    },
+    {
+      "id": "unsigned-get",
+      "from": "api",
+      "to": "linkedin",
+      "label": "unsigned GET",
+      "variant": "dashed"
+    },
+    {
+      "id": "cache",
+      "from": "repo",
+      "to": "room",
+      "label": "cache read/write"
+    },
+    {
+      "id": "themeflow",
+      "from": "activity",
+      "to": "prefs",
+      "label": "themeMode"
+    },
+    {
+      "id": "prefs-io",
+      "from": "prefs",
+      "to": "datastore",
+      "label": "key-value I/O"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Contracts",
+      "items": [
+        "Repository interfaces live in core; features inject them via Koin",
+        "refresh() is network-first and returns AppResult; observeHistory()/cached() never touch the network",
+        "homeLayoutFor() is a pure function: two-pane needs Expanded width AND landscape",
+        "Pinned at 7b8eeea383c6533c691e9370a32b6fece28fab2f — no git remote, local-only identity"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Persistence",
+      "items": [
+        "Room schema JSON exported under core/data/schemas on every version bump; destructive fallbacks disallowed",
+        "DataStore owns puzzlebox.preferences_pb process-wide on a SupervisorJob scope"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Security",
+      "items": [
+        "OkHttp redacts Authorization and Cookie from logcat",
+        "AuthHeaderSource binding is NONE today; LinkedIn session headers arrive in Phase 1",
+        "Retrofit base URL is a placeholder pending the real hosts"
+      ]
+    }
+  ]
+}
