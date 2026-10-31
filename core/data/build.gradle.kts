@@ -16,6 +16,16 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    sourceSets {
+        // WHY: MigrationTestHelper (ticket-04 deferral harness) reads the committed schema
+        // JSONs from the merged test ASSETS (requires includeAndroidResources).
+        getByName("test") { assets.srcDir("$projectDir/schemas") }
+    }
+
+    testOptions {
+        unitTests { isIncludeAndroidResources = true }
+    }
 }
 
 ksp {
@@ -26,6 +36,9 @@ ksp {
 
 dependencies {
     api(project(":core:common"))
+    // Wire -> engine seam (ADR-0002): the LinkedIn adapter parses to ZipWireParser's input
+    // and stores ZipCodec bytes; games/zip exposes :core:game as api.
+    implementation(project(":games:zip"))
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.room.runtime)
@@ -42,4 +55,6 @@ dependencies {
     testImplementation(libs.turbine)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.robolectric)
+    // Migration harness (ticket-04 deferral): MigrationTestHelper replays committed schemas.
+    testImplementation(libs.androidx.room.testing)
 }

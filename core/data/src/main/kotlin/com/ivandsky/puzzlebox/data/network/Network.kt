@@ -29,3 +29,22 @@ fun retrofit(baseUrl: String, client: OkHttpClient, json: Json): Retrofit =
         .client(client)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
+
+/**
+ * Client for the anonymous LinkedIn screen endpoints (research 01 §2): cookie jar for the
+ * JSESSIONID handshake, csrf interceptor echoing it, logging that redacts both session
+ * vectors. The AuthHeaderSource seam stays out until a signed-in phase needs it.
+ */
+fun linkedInClient(jar: LinkedInSessionCookieJar): OkHttpClient =
+    OkHttpClient.Builder()
+        .cookieJar(jar)
+        .addInterceptor(LinkedInCsrfInterceptor(jar))
+        .addInterceptor(
+            HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BASIC
+                // WHY: the csrf token is the session cookie's value — never log either.
+                redactHeader("csrf-token")
+                redactHeader("Cookie")
+            },
+        )
+        .build()
