@@ -1,0 +1,21 @@
+{
+  "$type": "proto.com.linkedin.games.api.library.TrailGamePuzzle",
+  "gridSize": 6,
+  "orderedSequence": [10, 19, 18, 11, 25, 16],
+  "solution": [10, 9, 15, 14, 13, 19, 18, 12, 6, 0, 1, 7, 8, 2, 3, 4, 5, 11, 17, 23, 29, 35, 34, 28, 27, 33, 32, 31, 30, 24, 25, 26, 20, 21, 22, 16],
+  "walls": [
+    {"$type": "proto.com.linkedin.games.api.library.Wall", "cellIdx": 8, "direction": "WallDirection_RIGHT"},
+    {"$type": "proto.com.linkedin.games.api.library.Wall", "cellIdx": 8, "direction": "WallDirection_DOWN"},
+    {"$type": "proto.com.linkedin.games.api.library.Wall", "cellIdx": 21, "direction": "WallDirection_DOWN"},
+    {"$type": "proto.com.linkedin.games.api.library.Wall", "cellIdx": 26, "direction": "WallDirection_RIGHT"}
+  ],
+  "wallHints": [],
+  "orderedSequencePositions": [
+    {"$type": "proto.com.linkedin.games.api.library.TrailGameSequencePosition", "cellIndex": 10, "isMystery": false},
+    {"$type": "proto.com.linkedin.games.api.library.TrailGameSequencePosition", "cellIndex": 19, "isMystery": false},
+    {"$type": "proto.com.linkedin.games.api.library.TrailGameSequencePosition", "cellIndex": 18, "isMystery": false},
+    {"$type": "proto.com.linkedin.games.api.library.TrailGameSequencePosition", "cellIndex": 11, "isMystery": false},
+    {"$type": "proto.com.linkedin.games.api.library.TrailGameSequencePosition", "cellIndex": 25, "isMystery": false},
+    {"$type": "proto.com.linkedin.games.api.library.TrailGameSequencePosition", "cellIndex": 16, "isMystery": false}
+  ]
+}

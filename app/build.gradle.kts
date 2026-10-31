@@ -12,8 +12,8 @@ android {
         applicationId = "com.ivandsky.puzzlebox"
         minSdk = 26
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
     }
 
     buildTypes {
@@ -53,6 +53,9 @@ dependencies {
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.koin.android)
 
+    // Ticket design-previews-08: the debug-only custom Showkase browser compiles
+    // against Showkase models; the debug source set never enters release builds.
+    debugImplementation(libs.showkase)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)

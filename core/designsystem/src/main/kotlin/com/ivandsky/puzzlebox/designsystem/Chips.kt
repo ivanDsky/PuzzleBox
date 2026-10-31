@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.designsystem
 
+import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -69,5 +70,28 @@ private fun ChipSurface(
             verticalAlignment = Alignment.CenterVertically,
             content = content,
         )
+    }
+}
+
+// Previews — Studio tooling only, zero public API surface (internal, not private, so
+// Showkase's generated index can access them; ticket 00 visibility findings). Exactly
+// light + dark, always inside PuzzleBoxTheme (spec A1/A5). A8: neither chip animates —
+// no infinite transition, no trigger — so static panes show the resting state.
+
+@ShowkaseComposable(name = "ScoreChip", group = "Chips")
+@PuzzleBoxPreviews
+@Composable
+internal fun ScoreChipPreview() {
+    PuzzleBoxTheme {
+        ScoreChip(value = "1:24", label = "Score")
+    }
+}
+
+@ShowkaseComposable(name = "HintChip", group = "Chips")
+@PuzzleBoxPreviews
+@Composable
+internal fun HintChipPreview() {
+    PuzzleBoxTheme {
+        HintChip(count = 3)
     }
 }

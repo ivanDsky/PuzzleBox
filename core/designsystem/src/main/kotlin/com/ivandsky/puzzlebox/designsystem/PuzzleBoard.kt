@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.designsystem
 
+import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,13 +14,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -161,5 +166,54 @@ fun PuzzleBoard(
                     }
                 },
         )
+    }
+}
+
+// Light/dark previews (ticket-01 pattern: module-local @PuzzleBoxPreviews, PuzzleBoxTheme,
+// internal composables — Showkase 1.0.5 cannot index androidx jar-packaged multipreviews).
+// A8: the board's only motion is the touch-driven pressed-cell highlight (pointer state
+// drawn via drawBehind); it has no programmatic trigger a preview could start, so the
+// panes show the resting grid and interactive mode runs the highlight on tap/drag —
+// same honest path as the ticket-01 press-scale spring (see reports/01-report.md).
+@ShowkaseComposable(name = "PuzzleBoard", group = "PuzzleBoard")
+@PuzzleBoxPreviews
+@Composable
+internal fun PuzzleBoardPreview() {
+    PuzzleBoxTheme {
+        PuzzleBoard(
+            cellsPerSide = 3,
+            modifier = Modifier.padding(16.dp),
+        )
+    }
+}
+
+@ShowkaseComposable(name = "PuzzleBoard (sample tiles)", group = "PuzzleBoard")
+@PuzzleBoxPreviews
+@Composable
+internal fun PuzzleBoardSampleTilesPreview() {
+    PuzzleBoxTheme {
+        // Sample board data defined preview-side: a scrambled 15-puzzle, 0 is the gap.
+        val tiles = listOf(5, 2, 8, 1, 9, 6, 3, 12, 7, 4, 15, 10, 13, 11, 14, 0)
+        PuzzleBoard(
+            cellsPerSide = 4,
+            modifier = Modifier.padding(16.dp),
+        ) { row, col ->
+            when (val number = tiles[row * 4 + col]) {
+                0 -> Unit
+                else -> Box(
+                    Modifier
+                        .padding(3.dp)
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.medium),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "$number",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+        }
     }
 }
