@@ -39,14 +39,15 @@ import com.ivandsky.puzzlebox.app.nav.Home
 import com.ivandsky.puzzlebox.app.nav.Play
 import com.ivandsky.puzzlebox.app.nav.Profile
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
-import com.ivandsky.puzzlebox.app.screens.PlayScreen
 import com.ivandsky.puzzlebox.app.screens.ProfileScreen
 import com.ivandsky.puzzlebox.data.model.ThemeMode
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.TokenCatalogScreen
+import com.ivandsky.puzzlebox.gameui.playLayoutFor
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.HomeRoute
 import com.ivandsky.puzzlebox.home.homeLayoutFor
+import com.ivandsky.puzzlebox.play.PlayRoute
 
 @Composable
 fun PuzzleBoxApp(
@@ -63,6 +64,12 @@ fun PuzzleBoxApp(
         containerSize.width > containerSize.height
     }
     val layout = homeLayoutFor(
+        widthSizeClass = windowWidthSizeClass,
+        isLandscape = isLandscape,
+    )
+    // Same 07 policy as home, play's own pane shapes (game-ui): two-pane iff expanded
+    // landscape; portrait of any width stays single-pane.
+    val playLayout = playLayoutFor(
         widthSizeClass = windowWidthSizeClass,
         isLandscape = isLandscape,
     )
@@ -129,7 +136,14 @@ fun PuzzleBoxApp(
                             )
                         }
                     }
-                    entry<Play> { SceneCanvas { PlayScreen() } }
+                    entry<Play> {
+                        SceneCanvas {
+                            PlayRoute(
+                                layout = playLayout,
+                                onBack = { backStack.removeLastOrNull() },
+                            )
+                        }
+                    }
                     entry<Profile> {
                         SceneCanvas { ProfileScreen(onOpenCatalog = { backStack.add(Catalog) }) }
                     }

@@ -14,11 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
-// Play and Profile stay placeholders until Phase 1; Home is the real :feature:home screen.
-
-@Composable
-internal fun PlayScreen(modifier: Modifier = Modifier) =
-    PlaceholderScreen(title = "Play", blurb = "Jump into today's games.", modifier = modifier)
+// Profile stays a placeholder; Play is the real :feature:play screen (ticket 13).
 
 @Composable
 internal fun ProfileScreen(modifier: Modifier = Modifier, onOpenCatalog: () -> Unit = {}) =

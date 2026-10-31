@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.app
 import android.app.Application
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.di.dataModule
+import com.ivandsky.puzzlebox.play.di.playModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
@@ -17,6 +18,6 @@ class PuzzleBoxApplication : Application() {
     }
 
     companion object {
-        val appModules = listOf(commonModule, dataModule)
+        val appModules = listOf(commonModule, dataModule, playModule)
     }
 }
