@@ -2,13 +2,15 @@
 <!-- ShowkaseBrowserActivity extends AppCompatActivity and crashes under the app's
      platform Material theme ("must use a Theme.AppCompat theme"). Debug-only trial
      (ticket design-previews-06), so the AppCompat theme from the showkase AAR's
-     transitive deps is applied just to this activity. -->
+     transitive deps is applied just to this activity. Ticket 07: pinned to the dark
+     variant — the app-default look is the dark scheme, so the browser must not flip
+     with the device's day/night setting. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <application>
         <activity
             android:name="com.airbnb.android.showkase.ui.ShowkaseBrowserActivity"
-            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
             tools:replace="android:theme" />
     </application>
 </manifest>
