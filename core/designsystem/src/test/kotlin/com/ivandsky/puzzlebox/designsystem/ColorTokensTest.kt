@@ -25,6 +25,20 @@ class ColorTokensTest {
         }
     }
 
+    @Test
+    fun `container pairs used by components meet WCAG AA contrast in both themes`() {
+        // Chips (secondary/tertiary containers), states and error surfaces, and the
+        // board cell background — every container/on pair the component set leans on.
+        for (scheme in listOf(LightColorScheme, DarkColorScheme)) {
+            assertTrue(contrast(scheme.onSecondaryContainer, scheme.secondaryContainer) >= 4.5f)
+            assertTrue(contrast(scheme.onTertiaryContainer, scheme.tertiaryContainer) >= 4.5f)
+            assertTrue(contrast(scheme.onErrorContainer, scheme.errorContainer) >= 4.5f)
+            assertTrue(contrast(scheme.onSurface, scheme.surfaceContainerLowest) >= 4.5f)
+            assertTrue(contrast(scheme.onSurface, scheme.surfaceContainerLow) >= 4.5f)
+            assertTrue(contrast(scheme.onSurfaceVariant, scheme.surfaceContainerLow) >= 4.5f)
+        }
+    }
+
     private fun contrast(foreground: Color, background: Color): Float {
         val top = foreground.luminance() + 0.05f
         val bottom = background.luminance() + 0.05f

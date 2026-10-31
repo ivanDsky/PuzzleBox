@@ -55,10 +55,8 @@ class CatalogScreenshotTest {
     }
 
     companion object {
-        private val SNAPSHOT_DIR = checkNotNull(System.getProperty("user.dir"))
-            .let(::File)
-            .resolve("../..")
-            .canonicalFile
-            .resolve(".scratch/puzzlebox/reports/02-evidence/snapshots")
+        // Committed inside the module (NOT gitignored .scratch/) so a fresh clone can
+        // verify against goldens instead of having to re-record them.
+        private val SNAPSHOT_DIR = File(System.getProperty("user.dir")).resolve("snapshots")
     }
 }
