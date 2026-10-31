@@ -151,6 +151,14 @@ private fun select(key: NavKey, backStack: NavBackStack<NavKey>) {
 // in DEBUG builds only, so the button launches it by class name — no compile-time
 // Showkase dependency in :app, and the FLAG_DEBUGGABLE gate keeps it out of release
 // where neither the activity nor the dependency exists.
+// The activity REQUIRES the root-module extra ("Missing key in bundle" crash without
+// it) — it resolves the generated ShowkaseProvider through this canonical name.
+private const val SHOWKASE_BROWSER_ACTIVITY =
+    "com.airbnb.android.showkase.ui.ShowkaseBrowserActivity"
+private const val SHOWKASE_ROOT_MODULE_EXTRA = "SHOWKASE_ROOT_MODULE"
+private const val SHOWKASE_ROOT_MODULE =
+    "com.ivandsky.puzzlebox.designsystem.PuzzleBoxShowkaseModule"
+
 @Composable
 private fun CatalogScreenWithShowkaseTrial() {
     val context = LocalContext.current
@@ -161,7 +169,9 @@ private fun CatalogScreenWithShowkaseTrial() {
             Button(
                 onClick = {
                     context.startActivity(
-                        Intent().setClassName(context.packageName, "com.airbnb.android.showkase.ui.ShowkaseBrowserActivity"),
+                        Intent()
+                            .setClassName(context.packageName, SHOWKASE_BROWSER_ACTIVITY)
+                            .putExtra(SHOWKASE_ROOT_MODULE_EXTRA, SHOWKASE_ROOT_MODULE),
                     )
                 },
                 modifier = Modifier
