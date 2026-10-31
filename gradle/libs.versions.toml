@@ -27,6 +27,10 @@ turbine = "1.2.1"
 # removed TestedExtension and cannot apply on AGP 9.x, so screenshots are recorded by
 # the plain JVM test task via captureRoboImage.
 roborazzi = "1.44.0-alpha03"
+# Trial only (keep-or-drop decided after the run). 1.0.5 is the first and only line
+# with KSP2/Kotlin 2.x support; <1.0.5 crashes under KSP2 (NoSuchMethodError via
+# Room 2.7 xprocessing). design-previews-00 research.
+showkase = "1.0.5"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -62,6 +66,9 @@ androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-te
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", version.ref = "roborazzi" }
 roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazzi" }
+showkase = { group = "com.airbnb.android", name = "showkase", version.ref = "showkase" }
+showkase-annotation = { group = "com.airbnb.android", name = "showkase-annotation", version.ref = "showkase" }
+showkase-processor = { group = "com.airbnb.android", name = "showkase-processor", version.ref = "showkase" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
