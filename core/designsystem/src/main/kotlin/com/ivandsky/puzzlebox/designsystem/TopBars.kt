@@ -7,6 +7,11 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -82,5 +87,49 @@ fun CompactTopBar(
             modifier = Modifier.weight(1f),
         )
         actions()
+    }
+}
+
+// Previews — Studio tooling only, zero public API surface (internal, not private, so
+// Showkase's generated index can access them; ticket 00 visibility findings). Exactly
+// light + dark, always inside PuzzleBoxTheme (spec A1/A5). A8: neither top bar animates
+// — no infinite transition, no trigger — so static panes show the resting state.
+
+@PuzzleBoxPreviews
+@Composable
+internal fun LargeTopBarPreview() {
+    PuzzleBoxTheme {
+        LargeTopBar(
+            title = "Today",
+            subtitle = "Friday, October 31",
+            actions = {
+                IconButton(onClick = {}) {
+                    Icon(
+                        imageVector = Icons.Filled.Settings,
+                        contentDescription = "Settings",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+        )
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun CompactTopBarPreview() {
+    PuzzleBoxTheme {
+        CompactTopBar(
+            title = "Daily Zip",
+            navigationIcon = {
+                IconButton(onClick = {}) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+        )
     }
 }
