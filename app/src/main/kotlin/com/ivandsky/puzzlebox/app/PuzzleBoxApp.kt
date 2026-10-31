@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -23,12 +22,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import android.content.Intent
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -134,7 +131,7 @@ fun PuzzleBoxApp(
                         SceneCanvas { ProfileScreen(onOpenCatalog = { backStack.add(Catalog) }) }
                     }
                     entry<Catalog> {
-                        SceneCanvas { CatalogScreenWithShowkaseTrial() }
+                        SceneCanvas { CatalogScreen() }
                     }
                 },
             )
@@ -148,34 +145,47 @@ private fun select(key: NavKey, backStack: NavBackStack<NavKey>) {
     backStack.add(key)
 }
 
-// Ticket design-previews-08: the "Showkase" button opens the custom flat dark browser
-// from :app's debug source set — still launched by class name so :app main keeps no
-// compile-time reference to debug-only code, and the FLAG_DEBUGGABLE gate keeps the
-// button out of release. The stock AAR activity stays merged but is no longer the
-// target; it needs no intent extras from here (that requirement was stock-activity-only).
-private const val SHOWKASE_BROWSER_ACTIVITY =
-    "com.ivandsky.puzzlebox.app.debug.ShowkaseBrowserActivity"
+// Catalog route (ticket showkase-v2-01): debug builds render the new Showkase browser
+// inline — it follows PuzzleBoxTheme instead of the old pinned-dark activity — while
+// release keeps the stock token catalog. Main cannot reference debug-only code at
+// compile time (the debug source set doesn't exist in release), so the browser is
+// registered reflectively: loading CatalogDebugBinding runs its class-init, which
+// assigns DebugCatalogContent. The FLAG_DEBUGGABLE gate keeps release from ever
+// touching the reflection path.
+internal object DebugCatalogContent {
+    @Volatile
+    var browser: (@Composable () -> Unit)? = null
+}
+
+private const val DEBUG_CATALOG_BINDING =
+    "com.ivandsky.puzzlebox.app.debug.CatalogDebugBinding"
 
 @Composable
-private fun CatalogScreenWithShowkaseTrial() {
-    val context = LocalContext.current
-    val isDebuggable = context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
-    Box(Modifier.fillMaxSize()) {
+private fun CatalogScreen() {
+    val debugBrowser = debugCatalogBrowser()
+    if (debugBrowser != null) {
+        debugBrowser()
+    } else {
         TokenCatalogScreen()
-        if (isDebuggable) {
-            Button(
-                onClick = {
-                    context.startActivity(
-                        Intent().setClassName(context.packageName, SHOWKASE_BROWSER_ACTIVITY),
-                    )
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp),
-            ) {
-                Text("Showkase")
+    }
+}
+
+@Composable
+private fun debugCatalogBrowser(): (@Composable () -> Unit)? {
+    val isDebuggable = LocalContext.current.applicationInfo.flags and
+        android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
+    return if (isDebuggable) {
+        remember {
+            try {
+                // Class.forName initializes the class, running the binding's registration.
+                Class.forName(DEBUG_CATALOG_BINDING)
+                DebugCatalogContent.browser
+            } catch (_: Throwable) {
+                null
             }
         }
+    } else {
+        null
     }
 }
 
