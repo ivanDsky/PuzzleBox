@@ -14,9 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
-@Composable
-internal fun HomeScreen(modifier: Modifier = Modifier) =
-    PlaceholderScreen(title = "Home", blurb = "Your daily puzzles will live here.", modifier = modifier)
+// Play and Profile stay placeholders until Phase 1; Home is the real :feature:home screen.
 
 @Composable
 internal fun PlayScreen(modifier: Modifier = Modifier) =
