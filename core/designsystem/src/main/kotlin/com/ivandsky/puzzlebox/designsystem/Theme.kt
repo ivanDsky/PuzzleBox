@@ -3,6 +3,17 @@ package com.ivandsky.puzzlebox.designsystem
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+
+/**
+ * Text-role step of the primary hue (see ColorTokens.kt): SecondaryButton and any
+ * component that renders the primary color as text reads this instead of
+ * `colorScheme.primary`, whose light value is a fill green that fails AA as text.
+ * Provided by [PuzzleBoxTheme] so it always follows the RESOLVED theme, including a
+ * forced appearance opposite the system.
+ */
+val LocalPrimaryText = staticCompositionLocalOf { LightPrimaryText }
 
 /**
  * Theme composition root (ticket 10): the promoted style IS the token set — Baloo 2
@@ -14,10 +25,12 @@ fun PuzzleBoxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(
-        colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
-        typography = AppTypography,
-        shapes = AppShapes,
-        content = content,
-    )
+    CompositionLocalProvider(LocalPrimaryText provides if (darkTheme) DarkPrimaryText else LightPrimaryText) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
+            typography = AppTypography,
+            shapes = AppShapes,
+            content = content,
+        )
+    }
 }

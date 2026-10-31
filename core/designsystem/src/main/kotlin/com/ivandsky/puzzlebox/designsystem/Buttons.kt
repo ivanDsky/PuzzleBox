@@ -73,7 +73,9 @@ fun SecondaryButton(
         shape = MaterialTheme.shapes.medium,
         interactionSource = interactionSource,
         colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = MaterialTheme.colorScheme.primary,
+            // The primary hue's accessible TEXT role, not colorScheme.primary: the
+            // light primary is a fill green that fails AA as text (ColorTokens.kt).
+            contentColor = LocalPrimaryText.current,
         ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {

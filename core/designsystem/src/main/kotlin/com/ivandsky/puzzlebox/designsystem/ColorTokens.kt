@@ -9,6 +9,14 @@ import androidx.compose.ui.graphics.Color
 // true dark navy at night (prototype C6). Every on-color pair holds WCAG AA (>= 4.5:1)
 // against its base in both modes; the designsystem unit tests guard that invariant.
 
+// The primary hue's TEXT role. #58CC02 is a fill/background green — as text on white it
+// holds only 2.09:1 — so text-bearing components (SecondaryButton) render this darker
+// same-family step: 6.03:1 on white, 5.15:1 on the dialog surface. Dark mode's primary
+// already clears AA as text (10.3:1), so it doubles as the dark text role.
+val LightPrimaryText = Color(0xFF377000)
+val DarkPrimaryText = Color(0xFF6BDF17)
+
+
 val LightColorScheme = lightColorScheme(
     primary = Color(0xFF58CC02),
     onPrimary = Color(0xFF1F3A0D),

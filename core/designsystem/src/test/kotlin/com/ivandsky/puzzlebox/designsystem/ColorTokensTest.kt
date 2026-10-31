@@ -40,6 +40,26 @@ class ColorTokensTest {
         }
     }
 
+    @Test
+    fun `primary-as-text role meets WCAG AA on every surface it renders on`() {
+        // SecondaryButton renders the primary hue as text (Buttons.kt). The light
+        // value is the darker accessible step; dark keeps colorScheme.primary itself,
+        // which already clears AA. Surfaces: white (surface + lowest container), the
+        // Home cards, and the dialog surface (surfaceContainerHigh).
+        val lightSurfaces = listOf(
+            Color.White,
+            LightColorScheme.surfaceContainerLow,
+            LightColorScheme.surfaceContainer,
+            LightColorScheme.surfaceContainerHigh,
+        )
+        for (surface in lightSurfaces) {
+            assertTrue(contrast(LightPrimaryText, surface) >= 4.5f)
+        }
+        for (surface in listOf(DarkColorScheme.surface, DarkColorScheme.surfaceContainerHigh)) {
+            assertTrue(contrast(DarkPrimaryText, surface) >= 4.5f)
+        }
+    }
+
     private fun contrast(foreground: Color, background: Color): Float {
         val top = foreground.luminance() + 0.05f
         val bottom = background.luminance() + 0.05f
