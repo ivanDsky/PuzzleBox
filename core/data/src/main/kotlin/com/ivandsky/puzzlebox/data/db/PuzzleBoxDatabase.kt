@@ -16,13 +16,15 @@ class CellsConverter {
 }
 
 @Database(
-    entities = [DailyPuzzleEntity::class],
-    version = 1,
+    entities = [DailyPuzzleEntity::class, PuzzleDailyEntity::class],
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(CellsConverter::class)
 abstract class PuzzleBoxDatabase : RoomDatabase() {
     abstract fun dailyPuzzleDao(): DailyPuzzleDao
+
+    abstract fun puzzleDailyDao(): PuzzleDailyDao
 
     companion object {
         const val NAME = "puzzlebox.db"
