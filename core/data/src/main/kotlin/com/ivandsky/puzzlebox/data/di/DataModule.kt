@@ -15,11 +15,13 @@ import com.ivandsky.puzzlebox.data.network.PuzzleFeedApi
 import com.ivandsky.puzzlebox.data.network.linkedInClient
 import com.ivandsky.puzzlebox.data.network.okHttpClient
 import com.ivandsky.puzzlebox.data.network.retrofit
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.DataStoreUserPreferencesRepository
 import com.ivandsky.puzzlebox.data.repository.LinkedInZipDailySource
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstDailyPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstZipDailyRepository
+import com.ivandsky.puzzlebox.data.repository.RoomCompletionRepository
 import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
 import com.ivandsky.puzzlebox.data.repository.ZipDailySource
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
@@ -56,6 +58,10 @@ val dataModule = module {
     }
     single { get<PuzzleBoxDatabase>().dailyPuzzleDao() }
     single { get<PuzzleBoxDatabase>().puzzleDailyDao() }
+    single { get<PuzzleBoxDatabase>().completionDao() }
+    // Records/replays store (ADR-0004): the A4 first-win record is enforced here, so
+    // feature modules consume the interface only (pinned ticket-15 contract).
+    single<CompletionRepository> { RoomCompletionRepository(get(), get()) }
     single<DailyPuzzleRepository> { OfflineFirstDailyPuzzleRepository(get(), get(), get()) }
     // The DataStore owns its file for the whole process, so its scope lives as long
     // as the singleton: I/O dispatcher from the provider, SupervisorJob so one failed
