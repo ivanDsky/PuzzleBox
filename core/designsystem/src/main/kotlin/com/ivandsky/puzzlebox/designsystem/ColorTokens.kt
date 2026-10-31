@@ -1,0 +1,81 @@
+package com.ivandsky.puzzlebox.designsystem
+
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.graphics.Color
+
+// One brand token set (A12): warm paper surfaces, ink text, persimmon accent.
+// Every on-color pair holds WCAG AA (>= 4.5:1) against its base in both modes;
+// the designsystem unit tests guard that invariant.
+
+val LightColorScheme = lightColorScheme(
+    primary = Color(0xFFB03A0E),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFFFDBCA),
+    onPrimaryContainer = Color(0xFF380D00),
+    secondary = Color(0xFF765749),
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFFFDBCA),
+    onSecondaryContainer = Color(0xFF2B150A),
+    tertiary = Color(0xFF1F6B5B),
+    onTertiary = Color(0xFFFFFFFF),
+    tertiaryContainer = Color(0xFFA7F2DC),
+    onTertiaryContainer = Color(0xFF00201A),
+    error = Color(0xFFBA1A1A),
+    onError = Color(0xFFFFFFFF),
+    errorContainer = Color(0xFFFFDAD6),
+    onErrorContainer = Color(0xFF410002),
+    surface = Color(0xFFFFF8F6),
+    onSurface = Color(0xFF231916),
+    surfaceVariant = Color(0xFFF4DED5),
+    onSurfaceVariant = Color(0xFF53433D),
+    outline = Color(0xFF85736C),
+    outlineVariant = Color(0xFFD8C2B9),
+    scrim = Color(0xFF000000),
+    inverseSurface = Color(0xFF392E2A),
+    inverseOnSurface = Color(0xFFFFEDE7),
+    inversePrimary = Color(0xFFFFB59B),
+    surfaceDim = Color(0xFFE8D8D2),
+    surfaceBright = Color(0xFFFFF8F6),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFFEF1EC),
+    surfaceContainer = Color(0xFFF8EBE6),
+    surfaceContainerHigh = Color(0xFFF2E5E0),
+    surfaceContainerHighest = Color(0xFFEDDFDA),
+)
+
+val DarkColorScheme = darkColorScheme(
+    primary = Color(0xFFFFB59B),
+    onPrimary = Color(0xFF541F09),
+    primaryContainer = Color(0xFF772D12),
+    onPrimaryContainer = Color(0xFFFFDBCA),
+    secondary = Color(0xFFE6BEAC),
+    onSecondary = Color(0xFF432B1E),
+    secondaryContainer = Color(0xFF5C4033),
+    onSecondaryContainer = Color(0xFFFFDBCA),
+    tertiary = Color(0xFF8CD5BE),
+    onTertiary = Color(0xFF00382C),
+    tertiaryContainer = Color(0xFF005142),
+    onTertiaryContainer = Color(0xFFA7F2DC),
+    error = Color(0xFFFFB4AB),
+    onError = Color(0xFF690005),
+    errorContainer = Color(0xFF93000A),
+    onErrorContainer = Color(0xFFFFDAD6),
+    surface = Color(0xFF1B110D),
+    onSurface = Color(0xFFF1DFD8),
+    surfaceVariant = Color(0xFF53433D),
+    onSurfaceVariant = Color(0xFFD8C2B9),
+    outline = Color(0xFFA08C84),
+    outlineVariant = Color(0xFF53433D),
+    scrim = Color(0xFF000000),
+    inverseSurface = Color(0xFFF1DFD8),
+    inverseOnSurface = Color(0xFF392E2A),
+    inversePrimary = Color(0xFFB03A0E),
+    surfaceDim = Color(0xFF1B110D),
+    surfaceBright = Color(0xFF42332D),
+    surfaceContainerLowest = Color(0xFF150B08),
+    surfaceContainerLow = Color(0xFF231914),
+    surfaceContainer = Color(0xFF271C17),
+    surfaceContainerHigh = Color(0xFF322620),
+    surfaceContainerHighest = Color(0xFF3D302A),
+)
