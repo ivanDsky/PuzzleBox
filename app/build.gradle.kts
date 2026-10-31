@@ -44,6 +44,7 @@ dependencies {
     implementation(project(":core:game-ui"))
     implementation(project(":feature:home"))
     implementation(project(":feature:play"))
+    implementation(project(":feature:history"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

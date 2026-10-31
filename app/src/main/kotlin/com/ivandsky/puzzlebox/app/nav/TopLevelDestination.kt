@@ -14,6 +14,10 @@ data object Home : NavKey
 @Serializable
 data object Play : NavKey
 
+/** Full history browser over the captured days (A8) — pushed from Home's teaser. */
+@Serializable
+data object History : NavKey
+
 @Serializable
 data object Profile : NavKey
 
