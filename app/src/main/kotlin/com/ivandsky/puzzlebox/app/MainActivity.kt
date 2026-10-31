@@ -56,11 +56,12 @@ class MainActivity : ComponentActivity(), KoinComponent {
                 // enableEdgeToEdge() above follows the SYSTEM dark mode, but the app can
                 // force the opposite, so the system bars must follow the RESOLVED
                 // in-app theme: light appearance = dark icons (light theme), and the
-                // inverse for dark. Palette variants without a dark scheme always show
-                // light surfaces, so the icons follow the resolved scheme, not the raw
-                // theme request. SideEffect re-applies whenever the resolved flag
-                // flips, including the SYSTEM mode following an OS theme change.
-                val effectiveDark = darkTheme && paletteVariant.supportsDarkScheme()
+                // inverse for dark. Palette variants pin their look (C2-C5 always
+                // light, C6/C7 always dark; ticket 09), so the icons follow the
+                // resolved scheme, not the raw theme request. SideEffect re-applies
+                // whenever the resolved flag flips, including the SYSTEM mode
+                // following an OS theme change.
+                val effectiveDark = paletteVariant.resolvesDark(darkTheme)
                 val view = LocalView.current
                 SideEffect {
                     WindowCompat.getInsetsController(window, view).apply {

@@ -40,28 +40,37 @@ class StyleVariantTest {
         val palette = PaletteVariant.DEFAULT
         assertSame(LightColorScheme, palette.toColorScheme(darkTheme = false))
         assertSame(DarkColorScheme, palette.toColorScheme(darkTheme = true))
-        assertTrue(palette.supportsDarkScheme())
+        assertTrue(palette.resolvesDark(darkTheme = true))
+        assertFalse(palette.resolvesDark(darkTheme = false))
     }
 
     @Test
-    fun `only the editorial palette supports dark mode`() {
-        for (variant in PaletteVariant.entries) {
-            assertEquals(
-                "$variant supportsDarkScheme",
-                variant == PaletteVariant.EDITORIAL_DARK,
-                variant.supportsDarkScheme(),
+    fun `pinned-dark palettes resolve dark under every theme request`() {
+        for (variant in listOf(PaletteVariant.PLAYFUL_NIGHT, PaletteVariant.PLAYFUL_MIDNIGHT)) {
+            assertTrue("$variant resolvesDark(false)", variant.resolvesDark(darkTheme = false))
+            assertTrue("$variant resolvesDark(true)", variant.resolvesDark(darkTheme = true))
+            assertSame(
+                "$variant ignores the light request",
+                variant.toColorScheme(darkTheme = false),
+                variant.toColorScheme(darkTheme = true),
             )
         }
     }
 
     @Test
     fun `light-look palettes ignore the dark request`() {
-        for (variant in listOf(PaletteVariant.CLEAN_LIGHT, PaletteVariant.PLAYFUL_SATURATED)) {
+        for (variant in listOf(
+            PaletteVariant.CLEAN_LIGHT,
+            PaletteVariant.PLAYFUL_SATURATED,
+            PaletteVariant.PLAYFUL_SUNSET,
+            PaletteVariant.PLAYFUL_CANDY,
+        )) {
             assertSame(
                 variant.toColorScheme(darkTheme = false),
                 variant.toColorScheme(darkTheme = true),
             )
-            assertFalse(variant.supportsDarkScheme())
+            assertFalse(variant.resolvesDark(darkTheme = false))
+            assertFalse(variant.resolvesDark(darkTheme = true))
         }
     }
 
