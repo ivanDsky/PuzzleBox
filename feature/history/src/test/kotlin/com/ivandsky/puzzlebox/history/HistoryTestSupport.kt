@@ -1,0 +1,117 @@
+package com.ivandsky.puzzlebox.history
+
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.repository.ZipDailyEntry
+import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.games.zip.Cell
+import com.ivandsky.puzzlebox.games.zip.Wall
+import com.ivandsky.puzzlebox.games.zip.WallDirection
+import com.ivandsky.puzzlebox.games.zip.ZipBoard
+import com.ivandsky.puzzlebox.games.zip.ZipDefinition
+import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
+import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
+import com.ivandsky.puzzlebox.games.zip.ZipSession
+import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
+import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
+import java.time.LocalDate
+import java.time.ZoneOffset
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
+
+/**
+ * Deterministic 5x5 fixture (hand-verifiable, mirrors the games/zip and play fixtures):
+ * boustrophedon solution; DOWN walls on every row crossing the solution does NOT use,
+ * so exactly one full path exists.
+ */
+object HistoryTestSupport {
+
+    const val PUZZLE_NUMBER = 592
+
+    val solution: List<Cell> = listOf(
+        0, 1, 2, 3, 4, 9, 8, 7, 6, 5, 10, 11, 12, 13, 14,
+        19, 18, 17, 16, 15, 20, 21, 22, 23, 24,
+    ).map(::Cell)
+
+    private val wallCells: Set<Int> = (0..19).toSet() - setOf(4, 5, 14, 15)
+
+    private val waypoints: List<Cell> = listOf(Cell(0), Cell(12), Cell(24))
+
+    fun puzzle(): ZipPuzzle =
+        ZipPuzzle(
+            variant = ZipVariants.byId(VariantId("zip/n5"))!!.id,
+            board = ZipBoard(n = 5, walls = wallCells.map { Wall(Cell(it), WallDirection.DOWN) }.toSet(), waypoints = waypoints),
+            solution = solution,
+        )
+
+    /** Envelope as ZipDailyRepository hands it to the UI (payload = codec bytes). */
+    fun envelope(puzzle: ZipPuzzle = puzzle()): Puzzle = Puzzle(
+        gameId = ZipDefinition.id,
+        variant = puzzle.variant,
+        formatVersion = ZipCodec.VERSION,
+        payload = ZipCodec.encode(puzzle),
+    )
+
+    fun entry(day: LocalDate, puzzleNumber: Int? = PUZZLE_NUMBER, fetchedAtMs: Long = 0L) =
+        ZipDailyEntry(day = day, puzzleNumber = puzzleNumber, variant = "zip/n5", fetchedAtMs = fetchedAtMs)
+
+    fun record(day: LocalDate, timeMs: Long = 95_000, hints: Int = 2) = CompletionRecord(
+        puzzleRef = ZipPuzzleRef(day, PUZZLE_NUMBER),
+        time = timeMs,
+        hints = hints,
+        stats = RecordStats(schemaVersion = 1, blob = """{"v":1,"mistakes":0}"""),
+    )
+
+    /** Fresh ZipSession the replay blob must carry: this day's ref, empty path. */
+    fun expectedSession(day: LocalDate) = ZipSession(
+        ref = ZipPuzzleRef(day, PUZZLE_NUMBER),
+        puzzle = puzzle(),
+    )
+}
+
+/** Scriptable cache-only ZipDailyRepository fake: history emissions + a cached map. */
+class FakeZipDailyRepository(
+    history: List<ZipDailyEntry> = emptyList(),
+    private val cachedByDay: Map<LocalDate, Puzzle> = emptyMap(),
+) : ZipDailyRepository {
+
+    val historyFlow = MutableStateFlow(history)
+
+    /** The current snapshot, for tests that compose [HistoryScreen] directly. */
+    val entries: List<ZipDailyEntry> get() = historyFlow.value
+
+    override suspend fun today() =
+        error("history is cache-only (A8) — the browser must never call today()")
+
+    override suspend fun cached(day: LocalDate): Puzzle? = cachedByDay[day]
+
+    override fun observeHistory(): Flow<List<ZipDailyEntry>> = historyFlow
+
+    fun addEntry(entry: ZipDailyEntry) {
+        // Repository contract: newest first.
+        historyFlow.value = (listOf(entry) + historyFlow.value).sortedByDescending { it.day }
+    }
+}
+
+/** In-memory CompletionRepository fake: stores verbatim what callers write. */
+class FakeCompletionRepository(records: List<CompletionRecord> = emptyList()) : CompletionRepository {
+
+    private val recordsFlow = MutableStateFlow(records)
+
+    override suspend fun onCompleted(record: CompletionRecord) {
+        recordsFlow.value = recordsFlow.value + record
+    }
+
+    override fun observeRecords(): Flow<List<CompletionRecord>> = recordsFlow
+
+    override fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
+        recordsFlow.map { rows -> rows.filter { it.puzzleRef == puzzleRef } }
+}
+
+/** Epoch-ms for a day's start (UTC) — stable "captured" timestamps in tests. */
+fun fetchedAtMs(day: LocalDate): Long = day.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()

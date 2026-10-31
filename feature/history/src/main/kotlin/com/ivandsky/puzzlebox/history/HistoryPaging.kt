@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /** Page shape: one 20-row load with a 5-row lookahead — laziness visible past 30 days. */
-private const val PAGE_SIZE = 20
+internal const val PAGE_SIZE = 20
 private const val PREFETCH_DISTANCE = 5
 
 /**
