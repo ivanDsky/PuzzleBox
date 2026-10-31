@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -27,7 +28,9 @@ import com.ivandsky.puzzlebox.app.screens.PlayScreen
 import com.ivandsky.puzzlebox.app.screens.ProfileScreen
 import com.ivandsky.puzzlebox.data.model.ThemeMode
 import com.ivandsky.puzzlebox.designsystem.TokenCatalogScreen
+import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.HomeRoute
+import com.ivandsky.puzzlebox.home.homeLayoutFor
 
 @Composable
 fun PuzzleBoxApp(
@@ -36,13 +39,22 @@ fun PuzzleBoxApp(
     onSetThemeMode: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val expanded = windowWidthSizeClass == WindowWidthSizeClass.Expanded
+    // Two-pane needs width AND height: a large tablet in portrait still measures
+    // Expanded by width class, so the orientation comes from the current window
+    // metrics. One policy call drives both the nav shape and Home's pane arrangement,
+    // and LocalConfiguration keeps a live rotation recomposing without a restart.
+    val configuration = LocalConfiguration.current
+    val layout = homeLayoutFor(
+        widthSizeClass = windowWidthSizeClass,
+        isLandscape = configuration.screenWidthDp > configuration.screenHeightDp,
+    )
+    val expanded = layout == HomeLayout.TwoPane
     val backStack = rememberNavBackStack(Home)
 
     Scaffold(
         modifier = modifier,
         bottomBar = {
-            // Expanded widths move navigation to a rail; the bottom bar is the phone shape.
+            // Two-pane moves navigation to a rail; the bottom bar is every other shape.
             if (!expanded) {
                 NavigationBar {
                     topLevelDestinations.forEach { destination ->
@@ -82,9 +94,9 @@ fun PuzzleBoxApp(
                 entryProvider = entryProvider {
                     entry<Home> {
                         HomeRoute(
+                            layout = layout,
                             themeMode = themeMode,
                             onSetThemeMode = onSetThemeMode,
-                            windowWidthSizeClass = windowWidthSizeClass,
                         )
                     }
                     entry<Play> { PlayScreen() }

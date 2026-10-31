@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.home
 
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -16,14 +15,15 @@ private const val ZIP_GAME_ID = "zip"
 
 /**
  * Home's DI-bound entry point: observes the cached daily history (Room, never the
- * network — A15 solo browsing is offline-first) and derives the pane layout from the
- * window width. UI below this point stays repository-free.
+ * network — A15 solo browsing is offline-first). The pane layout is decided once at
+ * the app shell (width class + orientation) and passed in; UI below this point stays
+ * repository-free.
  */
 @Composable
 fun HomeRoute(
+    layout: HomeLayout,
     themeMode: ThemeMode,
     onSetThemeMode: (ThemeMode) -> Unit,
-    windowWidthSizeClass: WindowWidthSizeClass,
     modifier: Modifier = Modifier,
 ) {
     val repository = koinInject<DailyPuzzleRepository>()
@@ -34,7 +34,7 @@ fun HomeRoute(
     }
 
     HomeScreen(
-        layout = homeLayoutFor(windowWidthSizeClass),
+        layout = layout,
         themeMode = themeMode,
         onSetThemeMode = onSetThemeMode,
         history = days,
