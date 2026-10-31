@@ -311,7 +311,7 @@ private fun StreakTeaser(
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(
                     text = "Day streak",
                     style = MaterialTheme.typography.titleMedium,
@@ -504,7 +504,7 @@ private fun RecordCard(
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Text(
                         text = "Your record",
                         style = MaterialTheme.typography.titleMedium,
@@ -517,7 +517,7 @@ private fun RecordCard(
                     )
                 }
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Text(
                         text = "Not finished yet",
                         style = MaterialTheme.typography.titleMedium,
