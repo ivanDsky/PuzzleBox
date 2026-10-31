@@ -20,14 +20,6 @@ Official puzzle apps scatter dailies across NYT and LinkedIn with separate login
 - **Leaderboards & 1v1** — Google sign-in, compete with friends *(planned)*
 - **Adaptive design** — phone and tablet layouts, light and dark themes
 
-## Design system
-
-Every color, type style, corner, and motion in the app is built from a single source of truth in light and dark — enforced by Roborazzi screenshot tests (`core/designsystem`).
-
-| Light | Dark |
-| --- | --- |
-| ![Design system catalog, light](docs/screenshots/designsystem-light.png) | ![Design system catalog, dark](docs/screenshots/designsystem-dark.png) |
-
 ## Architecture
 
 Multi-module Gradle project, Kotlin + Compose (Material 3):
