@@ -377,3 +377,23 @@ private fun typographySamples(): List<Pair<String, TextStyle>> {
         "labelSmall" to t.labelSmall,
     )
 }
+
+// Previews — Studio tooling only, zero public API surface (internal, not private, so
+// Showkase's generated index can access them; ticket 00 visibility findings). Exactly
+// light + dark, always inside PuzzleBoxTheme (spec A1/A5). The catalog is a scrollable
+// showcase, so the preview constrains a representative phone viewport (360×640dp)
+// instead of rendering the full scroll height. A4: TokenCatalogScreen is public, so the
+// catalog gets previews. A8: the only animation in the tree is the tap-driven
+// SpringDemo track — touch-triggered like the buttons (ticket 01), so there is no
+// programmatic trigger a preview could start; the static panes show the resting state
+// and interactive mode runs the spring on tap.
+
+@PuzzleBoxPreviews
+@Composable
+internal fun TokenCatalogScreenPreview() {
+    PuzzleBoxTheme {
+        Box(Modifier.size(360.dp, 640.dp)) {
+            TokenCatalogScreen()
+        }
+    }
+}
