@@ -48,6 +48,9 @@ dependencies {
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.koin.android)
 
+    // Ticket design-previews-08: the debug-only custom Showkase browser compiles
+    // against Showkase models; the debug source set never enters release builds.
+    debugImplementation(libs.showkase)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
