@@ -16,8 +16,21 @@ class ColorTokensTest {
     }
 
     @Test
+    fun `every palette variant ships a distinct scheme`() {
+        val schemes = PaletteVariant.entries.map { it.toColorScheme(darkTheme = false) }
+        for (i in schemes.indices) {
+            for (j in i + 1 until schemes.size) {
+                assertNotEquals("palettes $i and $j share a primary", schemes[i].primary, schemes[j].primary)
+                assertNotEquals("palettes $i and $j share a surface", schemes[i].surface, schemes[j].surface)
+            }
+        }
+    }
+
+    @Test
     fun `text roles meet WCAG AA contrast in both themes`() {
-        for (scheme in listOf(LightColorScheme, DarkColorScheme)) {
+        // Every scheme the theme root can resolve: the control pair plus the ticket 08
+        // prototype palettes (light looks — one scheme each).
+        for (scheme in listOf(LightColorScheme, DarkColorScheme, CleanLightColorScheme, PlayfulLightColorScheme)) {
             assertTrue(contrast(scheme.onSurface, scheme.surface) >= 4.5f)
             assertTrue(contrast(scheme.onSurfaceVariant, scheme.surfaceVariant) >= 4.5f)
             assertTrue(contrast(scheme.onPrimary, scheme.primary) >= 4.5f)
@@ -29,7 +42,7 @@ class ColorTokensTest {
     fun `container pairs used by components meet WCAG AA contrast in both themes`() {
         // Chips (secondary/tertiary containers), states and error surfaces, and the
         // board cell background — every container/on pair the component set leans on.
-        for (scheme in listOf(LightColorScheme, DarkColorScheme)) {
+        for (scheme in listOf(LightColorScheme, DarkColorScheme, CleanLightColorScheme, PlayfulLightColorScheme)) {
             assertTrue(contrast(scheme.onSecondaryContainer, scheme.secondaryContainer) >= 4.5f)
             assertTrue(contrast(scheme.onTertiaryContainer, scheme.tertiaryContainer) >= 4.5f)
             assertTrue(contrast(scheme.onErrorContainer, scheme.errorContainer) >= 4.5f)
