@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.designsystem
 
 import android.content.res.Configuration
+import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -101,6 +102,7 @@ private fun StateLayout(
 // state.
 
 /** The empty slot, shown with its optional action so both branches render. */
+@ShowkaseComposable(name = "EmptyState", group = "States")
 @PuzzleBoxPreviews
 @Composable
 internal fun EmptyStatePreview() {
@@ -115,6 +117,7 @@ internal fun EmptyStatePreview() {
 }
 
 /** The error slot with its retry action. */
+@ShowkaseComposable(name = "ErrorState", group = "States")
 @PuzzleBoxPreviews
 @Composable
 internal fun ErrorStatePreview() {

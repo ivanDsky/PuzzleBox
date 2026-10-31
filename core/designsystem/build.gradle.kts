@@ -62,6 +62,15 @@ dependencies {
     testImplementation(libs.roborazzi.compose)
 }
 
+// Ticket 07: component mode — only @ShowkaseComposable-annotated composables are
+// indexed, so the @Preview variants stop multiplying into Light/Dark browser entries.
+// The args extension is the shared `ksp { }` block (per-variant `kspDebug` exists only
+// as a dependency configuration, there is no kspDebug arg block); harmless for
+// release, where this module runs no KSP task carrying the Showkase processor.
+ksp {
+    arg("requireShowkaseComposableAnnotation", "true")
+}
+
 // Screenshot tests default to recording goldens; run with -Proborazzi.verify to
 // re-capture and fail on any pixel drift against the committed goldens instead.
 val verifySnapshots = providers.gradleProperty("roborazzi.verify").isPresent

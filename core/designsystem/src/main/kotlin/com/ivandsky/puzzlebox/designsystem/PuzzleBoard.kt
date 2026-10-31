@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.designsystem
 
+import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -174,6 +175,7 @@ fun PuzzleBoard(
 // drawn via drawBehind); it has no programmatic trigger a preview could start, so the
 // panes show the resting grid and interactive mode runs the highlight on tap/drag —
 // same honest path as the ticket-01 press-scale spring (see reports/01-report.md).
+@ShowkaseComposable(name = "PuzzleBoard", group = "PuzzleBoard")
 @PuzzleBoxPreviews
 @Composable
 internal fun PuzzleBoardPreview() {
@@ -185,6 +187,7 @@ internal fun PuzzleBoardPreview() {
     }
 }
 
+@ShowkaseComposable(name = "PuzzleBoard (sample tiles)", group = "PuzzleBoard")
 @PuzzleBoxPreviews
 @Composable
 internal fun PuzzleBoardSampleTilesPreview() {

@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.designsystem
 
+import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -95,6 +96,7 @@ fun CompactTopBar(
 // light + dark, always inside PuzzleBoxTheme (spec A1/A5). A8: neither top bar animates
 // — no infinite transition, no trigger — so static panes show the resting state.
 
+@ShowkaseComposable(name = "LargeTopBar", group = "TopBars")
 @PuzzleBoxPreviews
 @Composable
 internal fun LargeTopBarPreview() {
@@ -115,6 +117,7 @@ internal fun LargeTopBarPreview() {
     }
 }
 
+@ShowkaseComposable(name = "CompactTopBar", group = "TopBars")
 @PuzzleBoxPreviews
 @Composable
 internal fun CompactTopBarPreview() {

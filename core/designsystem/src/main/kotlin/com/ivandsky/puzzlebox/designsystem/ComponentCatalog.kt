@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.designsystem
 
+import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -241,6 +242,7 @@ private fun CatalogCard(content: @Composable () -> Unit) {
 // on its own — the board cells and state cards are static, every motion is user-driven
 // — so the static panes show the resting state.
 
+@ShowkaseComposable(name = "ComponentCatalogScreen", group = "Catalogs")
 @PuzzleBoxPreviews
 @Composable
 internal fun ComponentCatalogScreenPreview() {
@@ -251,6 +253,7 @@ internal fun ComponentCatalogScreenPreview() {
     }
 }
 
+@ShowkaseComposable(name = "ComponentCatalogSections", group = "Catalogs")
 @PuzzleBoxPreviews
 @Composable
 internal fun ComponentCatalogSectionsPreview() {

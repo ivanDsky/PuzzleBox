@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.designsystem
 
 import android.content.res.Configuration
+import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
@@ -103,6 +104,7 @@ fun SecondaryButton(
 @Preview(name = "Dark", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
 annotation class PuzzleBoxPreviews
 
+@ShowkaseComposable(name = "PrimaryButton", group = "Buttons")
 @PuzzleBoxPreviews
 @Composable
 internal fun PrimaryButtonPreview() {
@@ -111,6 +113,7 @@ internal fun PrimaryButtonPreview() {
     }
 }
 
+@ShowkaseComposable(name = "SecondaryButton", group = "Buttons")
 @PuzzleBoxPreviews
 @Composable
 internal fun SecondaryButtonPreview() {
