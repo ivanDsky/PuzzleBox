@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.db
 
 import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
  * WHY: every schema change bumps the [PuzzleBoxDatabase] version, exports a schema JSON
@@ -8,5 +9,26 @@ import androidx.room.migration.Migration
  * Destructive fallbacks are not allowed once Phase 0 ships.
  */
 object Migrations {
-    val ALL: Array<Migration> = emptyArray()
+
+    /** v2 (ticket 12): adds the daily envelope store `puzzle_dailies`; v1 rows untouched. */
+    val MIGRATION_1_2 = object : Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `puzzle_dailies` (
+                    `gameId` TEXT NOT NULL,
+                    `day` TEXT NOT NULL,
+                    `puzzleNumber` INTEGER,
+                    `variant` TEXT NOT NULL,
+                    `formatVersion` INTEGER NOT NULL,
+                    `payload` BLOB NOT NULL,
+                    `fetchedAtMs` INTEGER NOT NULL,
+                    PRIMARY KEY(`gameId`, `day`)
+                )
+                """.trimIndent(),
+            )
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2)
 }
