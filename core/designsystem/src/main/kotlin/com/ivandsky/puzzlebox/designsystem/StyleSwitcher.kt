@@ -35,7 +35,7 @@ fun StyleSwitcherSection(
                 color = MaterialTheme.colorScheme.primary,
             )
             Text(
-                text = "Debug only — flip each axis live; your pick survives restart. Three typography × three palette, every combo valid.",
+                text = "Debug only — flip each axis live; your pick survives restart. Three typography × seven palette, every combo valid.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
