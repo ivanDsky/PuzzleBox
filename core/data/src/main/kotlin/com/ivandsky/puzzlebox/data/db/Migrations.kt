@@ -30,5 +30,29 @@ object Migrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2)
+    /** v3 (ticket 15): adds the completions store (records + replays, A4/A5); v2 rows untouched. */
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `completions` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `puzzleRef` TEXT NOT NULL,
+                    `timeMs` INTEGER NOT NULL,
+                    `hints` INTEGER NOT NULL,
+                    `statsVersion` INTEGER NOT NULL,
+                    `statsBlob` TEXT NOT NULL,
+                    `completedAtMs` INTEGER NOT NULL,
+                    `firstCompletedAtMs` INTEGER,
+                    `isRecord` INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_completions_puzzleRef` ON `completions` (`puzzleRef`)",
+            )
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 }
