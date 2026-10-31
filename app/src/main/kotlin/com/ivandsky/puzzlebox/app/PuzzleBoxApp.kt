@@ -7,10 +7,13 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
@@ -99,9 +102,10 @@ fun PuzzleBoxApp(
             NavDisplay(
                 backStack = backStack,
                 modifier = Modifier.weight(1f),
-                // Nav3's default transition is 700ms — reads sluggish for tab switches.
-                // Emil/apple guidance: ~200ms in, exit faster than enter (~140ms), a
-                // subtle slide so the move reads as one gesture. Pop mirrors it.
+                // Fade-through: the outgoing screen fades out in 90ms BEFORE the incoming
+                // one starts, so the two contents never superimpose mid-flight (Nav3's
+                // simultaneous crossfade showed both screens' text over each other).
+                // Slide is a residual 1/24 — tab switches aren't hierarchical.
                 transitionSpec = {
                     screenEnterTransform() togetherWith screenExitTransform()
                 },
@@ -110,16 +114,20 @@ fun PuzzleBoxApp(
                 },
                 entryProvider = entryProvider {
                     entry<Home> {
-                        HomeRoute(
-                            layout = layout,
-                            themeMode = themeMode,
-                            onSetThemeMode = onSetThemeMode,
-                        )
+                        SceneCanvas {
+                            HomeRoute(
+                                layout = layout,
+                                themeMode = themeMode,
+                                onSetThemeMode = onSetThemeMode,
+                            )
+                        }
                     }
-                    entry<Play> { PlayScreen() }
-                    entry<Profile> { ProfileScreen(onOpenCatalog = { backStack.add(Catalog) }) }
+                    entry<Play> { SceneCanvas { PlayScreen() } }
+                    entry<Profile> {
+                        SceneCanvas { ProfileScreen(onOpenCatalog = { backStack.add(Catalog) }) }
+                    }
                     entry<Catalog> {
-                        TokenCatalogScreen()
+                        SceneCanvas { TokenCatalogScreen() }
                     }
                 },
             )
@@ -133,12 +141,29 @@ private fun select(key: NavKey, backStack: NavBackStack<NavKey>) {
     backStack.add(key)
 }
 
-// Screen transition: 200ms enter (fade + 1/20 slide, emphasized decelerate), 140ms exit
-// (accelerated fade) — exit faster than enter so leaving feels snappy, arriving reads as
-// intentional. Consumes MotionTokens so all screen movement stays on one vocabulary.
+// Fade-through screen transition: 90ms accelerated fade-out, then the incoming screen
+// fades in over 200ms (delayed 90ms) with a residual 1/24 slide. Sequencing guarantees
+// only one screen's content is ever visible; every scene root paints an opaque canvas
+// (SceneCanvas) so nothing underneath can bleed through. Tokens keep one vocabulary.
 private fun AnimatedContentTransitionScope<*>.screenEnterTransform() =
-    fadeIn(tween(MotionTokens.NavTransitionEnter, easing = MotionTokens.EasingEmphasizedDecelerate)) +
-        slideInHorizontally(tween(MotionTokens.NavTransitionEnter, easing = MotionTokens.EasingEmphasizedDecelerate)) { it / 20 }
+    fadeIn(
+        tween(MotionTokens.NavTransitionEnter, delayMillis = MotionTokens.NavTransitionEnterDelay, easing = MotionTokens.EasingEmphasizedDecelerate),
+    ) + slideInHorizontally(
+        tween(MotionTokens.NavTransitionEnter, delayMillis = MotionTokens.NavTransitionEnterDelay, easing = MotionTokens.EasingEmphasizedDecelerate),
+    ) { it / 24 }
 
 private fun AnimatedContentTransitionScope<*>.screenExitTransform() =
     fadeOut(tween(MotionTokens.NavTransitionExit, easing = MotionTokens.EasingEmphasizedAccelerate))
+
+// Opaque canvas behind every nav scene: without it the AnimatedContent layers blend and
+// screens read as ghosts of each other during the transition.
+@Composable
+private fun SceneCanvas(content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+    ) {
+        content()
+    }
+}

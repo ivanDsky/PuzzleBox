@@ -17,9 +17,12 @@ object MotionTokens {
     val DurationExpressive = 400
 
     // Screen-to-screen nav transitions (Nav3 default is 700ms — sluggish for tab switches).
-    // ~200ms in, exit faster than enter, per the motion guidance in emil-design-eng.
+    // Fade-through: exit fades out fast, enter starts after a delay — content from the two
+    // screens never superimposes (emil-design-eng "two distinct objects" overlap fix;
+    // tab switches aren't hierarchical, so the slide stays a residual 1/24).
     const val NavTransitionEnter = 200
-    const val NavTransitionExit = 140
+    const val NavTransitionEnterDelay = 90
+    const val NavTransitionExit = 90
 
     // Material 3 emphasized curves: decelerate on the way in, accelerate on the way out.
     val EasingStandard = CubicBezierEasing(0.2f, 0f, 0f, 1f)
