@@ -8,8 +8,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -26,19 +27,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.paging.LoadState
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.itemKey
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /**
- * The history browser (A8): the days the app has captured, newest first. Phones — and
- * portrait of any width — see one pane; expanded landscape gets list-detail (07).
+ * The history browser (A8): the days the app has captured, newest first, paged lazily.
+ * Phones — and portrait of any width — see one pane; expanded landscape gets
+ * list-detail (07).
  */
 @Composable
 fun HistoryScreen(
     layout: HistoryLayout,
     onBack: () -> Unit,
-    rows: List<HistoryDayRow>,
+    days: LazyPagingItems<HistoryDayRow>,
+    streak: Int,
+    capturedCount: Int,
     modifier: Modifier = Modifier,
 ) {
     // Cards float ABOVE the pane in both themes (home convention): white on cool paper
@@ -55,7 +62,9 @@ fun HistoryScreen(
             .background(paneColor),
     ) {
         ListPane(
-            rows = rows,
+            days = days,
+            streak = streak,
+            capturedCount = capturedCount,
             onBack = onBack,
             cardColor = cardColor,
             modifier = Modifier.fillMaxSize(),
@@ -65,7 +74,9 @@ fun HistoryScreen(
 
 @Composable
 private fun ListPane(
-    rows: List<HistoryDayRow>,
+    days: LazyPagingItems<HistoryDayRow>,
+    streak: Int,
+    capturedCount: Int,
     onBack: () -> Unit,
     cardColor: Color,
     modifier: Modifier = Modifier,
@@ -89,7 +100,7 @@ private fun ListPane(
                 },
             )
         }
-        if (rows.isEmpty()) {
+        if (days.loadState.refresh is LoadState.NotLoading && days.itemCount == 0) {
             item(key = "empty") {
                 Surface(
                     modifier = Modifier
@@ -107,16 +118,75 @@ private fun ListPane(
                 }
             }
         } else {
+            if (capturedCount > 0) {
+                item(key = "streak") {
+                    StreakTeaser(
+                        streak = streak,
+                        captured = capturedCount,
+                        cardColor = cardColor,
+                        modifier = Modifier.padding(horizontal = Spacing.lg),
+                    )
+                }
+            }
             items(
-                items = rows,
-                key = { it.day.toEpochDay() },
+                count = days.itemCount,
+                key = days.itemKey { it.day },
                 contentType = { "row" },
-            ) { row ->
+            ) { index ->
+                val row = days[index] ?: return@items
                 HistoryRowView(
                     row = row,
                     won = false,
                     onClick = {},
                     modifier = Modifier.padding(horizontal = Spacing.lg),
+                )
+            }
+        }
+    }
+}
+
+/** Cached-data-only streak teaser (A8): consecutive captured days up to the newest. */
+@Composable
+private fun StreakTeaser(
+    streak: Int,
+    captured: Int,
+    cardColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("history.streak"),
+        shape = MaterialTheme.shapes.large,
+        color = cardColor,
+    ) {
+        Row(
+            modifier = Modifier.padding(Spacing.xl),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "$streak",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(
+                    text = "Day streak",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = if (captured == 1) "1 day saved on this device" else "$captured days saved on this device",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
