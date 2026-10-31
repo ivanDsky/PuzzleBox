@@ -29,9 +29,6 @@ android {
 
     buildFeatures {
         compose = true
-        // BuildConfig.DEBUG gates the ticket 08 debug style switcher; a release build
-        // takes the constant-false path and resolves the shipped default variants.
-        buildConfig = true
     }
 }
 

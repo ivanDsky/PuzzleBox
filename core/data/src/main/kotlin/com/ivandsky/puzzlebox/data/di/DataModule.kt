@@ -12,15 +12,12 @@ import com.ivandsky.puzzlebox.data.network.PuzzleFeedApi
 import com.ivandsky.puzzlebox.data.network.okHttpClient
 import com.ivandsky.puzzlebox.data.network.retrofit
 import com.ivandsky.puzzlebox.data.repository.DailyPuzzleRepository
-import com.ivandsky.puzzlebox.data.repository.DataStoreDebugStyleRepository
 import com.ivandsky.puzzlebox.data.repository.DataStoreUserPreferencesRepository
-import com.ivandsky.puzzlebox.data.repository.DebugStyleRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstDailyPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
-import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import retrofit2.Retrofit
 
@@ -40,27 +37,10 @@ val dataModule = module {
     // The DataStore owns its file for the whole process, so its scope lives as long
     // as the singleton: I/O dispatcher from the provider, SupervisorJob so one failed
     // write never cancels the scope.
-    //
-    // Both stores are the same Koin type (DataStore<Preferences>), so each binding is
-    // qualified (ticket 09 fix): unqualified, Koin's duplicate-type resolution handed
-    // UserPreferencesRepository the last-registered instance — the DEBUG store —
-    // silently writing theme_mode into debug_style.preferences_pb in debug builds and
-    // creating that file in release too. Qualifiers make every resolve explicit.
-    single(qualifier = named("userPreferencesStore")) {
+    single {
         PreferenceDataStoreFactory.create(
             scope = CoroutineScope(get<DispatcherProvider>().io + SupervisorJob()),
         ) { get<Context>().filesDir.resolve("puzzlebox.preferences_pb") }
     }
-    single<UserPreferencesRepository> {
-        DataStoreUserPreferencesRepository(get(named("userPreferencesStore")))
-    }
-    // Debug-only prototype store (ticket 08) owns a separate file: a release build
-    // never resolves this binding, so the file is never even created there. Koin
-    // singles are lazy, which is what keeps that true without build-type modules.
-    single(qualifier = named("debugStyleStore")) {
-        PreferenceDataStoreFactory.create(
-            scope = CoroutineScope(get<DispatcherProvider>().io + SupervisorJob()),
-        ) { get<Context>().filesDir.resolve("debug_style.preferences_pb") }
-    }
-    single<DebugStyleRepository> { DataStoreDebugStyleRepository(get(named("debugStyleStore"))) }
+    single<UserPreferencesRepository> { DataStoreUserPreferencesRepository(get()) }
 }
