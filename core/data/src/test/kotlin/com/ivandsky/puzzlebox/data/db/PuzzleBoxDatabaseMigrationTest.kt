@@ -57,11 +57,56 @@ class PuzzleBoxDatabaseMigrationTest {
 
     @Test
     fun `fresh v2 database is created by the normal builder path`() {
-        // runMigrationsAndValidate on the latest version proves the committed schema 2.json
+        // runMigrationsAndValidate on the latest version proves the committed schema JSON
         // matches what Room generates from the entities (identity of the migration contract).
         val dbName = "puzzlebox-fresh-v2.db"
         val db = helper.createDatabase(dbName, 2)
         db.query("SELECT COUNT(*) FROM puzzle_dailies").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.getInt(0))
+        }
+        db.close()
+    }
+
+    @Test
+    fun `migrate 2 to 3 keeps v2 rows and opens the completions store`() {
+        val dbName = "puzzlebox-migration-2-3-test.db"
+        val v2 = helper.createDatabase(dbName, 2)
+        v2.execSQL(
+            "INSERT INTO puzzle_dailies (gameId, day, puzzleNumber, variant, formatVersion, payload, fetchedAtMs) " +
+                "VALUES ('zip', '2026-10-31', 592, 'zip/n6', 1, x'00ff', 5000)",
+        )
+        v2.close()
+
+        val db = helper.runMigrationsAndValidate(dbName, 3, true, Migrations.MIGRATION_2_3)
+
+        // v2 exemplar rows survive untouched.
+        db.query("SELECT gameId, day, puzzleNumber FROM puzzle_dailies").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("zip", cursor.getString(0))
+            assertEquals("2026-10-31", cursor.getString(1))
+            assertEquals(592, cursor.getInt(2))
+        }
+        // The v3 completions store takes rows (nullable firstCompletedAtMs on replays).
+        db.execSQL(
+            "INSERT INTO completions (puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord) " +
+                "VALUES ('zip/2026-10-31/592', 95000, 2, 1, '{\"v\":1}', 7000, 7000, 1)",
+        )
+        db.query("SELECT puzzleRef, timeMs, firstCompletedAtMs, isRecord FROM completions").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("zip/2026-10-31/592", cursor.getString(0))
+            assertEquals(95000L, cursor.getLong(1))
+            assertEquals(7000L, cursor.getLong(2))
+            assertEquals(1, cursor.getInt(3))
+        }
+        db.close()
+    }
+
+    @Test
+    fun `fresh v3 database is created by the normal builder path`() {
+        val dbName = "puzzlebox-fresh-v3.db"
+        val db = helper.createDatabase(dbName, 3)
+        db.query("SELECT COUNT(*) FROM completions").use { cursor ->
             assertTrue(cursor.moveToFirst())
             assertEquals(0, cursor.getInt(0))
         }
