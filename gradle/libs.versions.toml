@@ -4,6 +4,12 @@ agp = "9.5.0"
 kotlin = "2.2.10"
 activityCompose = "1.13.0"
 composeBom = "2026.09.00"
+# material-icons-core is upstream-FROZEN at 1.7.8 (the compose BOM no longer carries a
+# real mapping for it, so the versionless entry used to hide which artifact actually
+# resolved). Pinned explicitly so a future BOM change can never silently break or move it.
+# Policy: use the core set only; NEVER add icons-extended (same freeze, ~10x bloat).
+# Glyphs outside the core set come in as Material Symbols SVG imports (drawables).
+materialIconsCore = "1.7.8"
 coroutines = "1.10.2"
 navigation3 = "1.2.0"
 koin = "4.2.2"
@@ -26,7 +32,7 @@ roborazzi = "1.44.0-alpha03"
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
-androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
+androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core", version.ref = "materialIconsCore" }
 androidx-compose-material3-windowsizeclass = { group = "androidx.compose.material3", name = "material3-window-size-class" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
