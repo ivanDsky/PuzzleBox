@@ -51,7 +51,7 @@ class LinkedInZipClientTest {
     fun `handshake GET precedes the POST and its JSESSIONID becomes the csrf token`() = runBlocking {
         server.enqueue(
             MockResponse().setResponseCode(200)
-                .addHeader("Set-Cookie", "JSESSIONID=ajax:1610664273066452141; Path=/")
+                .addHeader("Set-Cookie", "JSESSIONID=ajax:1234567890123456789; Path=/")
                 .setBody("session page, no puzzle data"),
         )
         server.enqueue(ok(fixture("linkedin-zip-rsc-592.txt")))
@@ -65,7 +65,7 @@ class LinkedInZipClientTest {
         val post = server.takeRequest()
         assertEquals("/flagship-web/games/zip/?skipStartScreen=true", post.path)
         assertEquals("POST", post.method)
-        assertEquals("ajax:1610664273066452141", post.getHeader("csrf-token"))
+        assertEquals("ajax:1234567890123456789", post.getHeader("csrf-token"))
         assertEquals("true", post.getHeader("x-li-rsc-stream"))
         assertTrue(post.getHeader("content-type")!!.startsWith("application/json"))
         assertTrue(post.body.readUtf8().contains("GamePlayRouterPage"))
