@@ -12,7 +12,9 @@ import com.ivandsky.puzzlebox.data.network.PuzzleFeedApi
 import com.ivandsky.puzzlebox.data.network.okHttpClient
 import com.ivandsky.puzzlebox.data.network.retrofit
 import com.ivandsky.puzzlebox.data.repository.DailyPuzzleRepository
+import com.ivandsky.puzzlebox.data.repository.DataStoreDebugStyleRepository
 import com.ivandsky.puzzlebox.data.repository.DataStoreUserPreferencesRepository
+import com.ivandsky.puzzlebox.data.repository.DebugStyleRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstDailyPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import kotlinx.coroutines.CoroutineScope
@@ -43,4 +45,13 @@ val dataModule = module {
         ) { get<Context>().filesDir.resolve("puzzlebox.preferences_pb") }
     }
     single<UserPreferencesRepository> { DataStoreUserPreferencesRepository(get()) }
+    // Debug-only prototype store (ticket 08) owns a separate file: a release build
+    // never resolves this binding, so the file is never even created there. Koin
+    // singles are lazy, which is what keeps that true without build-type modules.
+    single {
+        PreferenceDataStoreFactory.create(
+            scope = CoroutineScope(get<DispatcherProvider>().io + SupervisorJob()),
+        ) { get<Context>().filesDir.resolve("debug_style.preferences_pb") }
+    }
+    single<DebugStyleRepository> { DataStoreDebugStyleRepository(get()) }
 }
