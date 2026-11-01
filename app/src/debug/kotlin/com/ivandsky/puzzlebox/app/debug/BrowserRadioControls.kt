@@ -23,11 +23,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-// Compact radio metrics: a 14dp dot with a 2dp ring (selected adds a filled core) —
+// Compact radio metrics: a 16dp dot with a 2dp ring (selected adds a filled core) —
 // the stock M3 RadioButton enforces a 48dp interactive footprint, which would push the
-// seven options far past one row even before the labels. 14dp + 2dp gaps + labelSmall
-// is what gets the whole row to ~360dp.
-private val RadioDotSize = 14.dp
+// seven options far past one row even before the labels. 16dp + 2dp gaps + labelSmall
+// is what keeps the row near one-line width on a narrow phone; the 10dp vertical
+// padding gives each option a ~36dp tap target.
+private val RadioDotSize = 16.dp
 private val RadioRingWidth = 2.dp
 private val RadioCoreSize = 6.dp
 
@@ -97,7 +98,7 @@ private fun RadioOption(
                 role = Role.RadioButton,
                 onClick = onSelect,
             )
-            .padding(vertical = 4.dp),
+            .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
