@@ -33,8 +33,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,7 +41,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -68,7 +65,6 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoard
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -79,9 +75,11 @@ data class HistoryDay(
 )
 
 /**
- * The real Home screen (A12, A15): Today card, history teaser, account placeholder.
+ * The real Home screen (A12, A15): Today card, history teaser, account card.
  * Single-pane on compact widths; list-detail on expanded. The theme choice is hoisted
- * to the composition root — this screen only edits it.
+ * to the composition root — this screen only edits it. Destinations are hoisted to the
+ * app shell (ticket 17): play today's Zip, open the full history, open the account
+ * surface — no in-screen placeholder behavior.
  */
 @Composable
 fun HomeScreen(
@@ -90,16 +88,12 @@ fun HomeScreen(
     onSetThemeMode: (ThemeMode) -> Unit,
     onOpenHistory: () -> Unit = {},
     history: List<HistoryDay>,
+    onPlayToday: () -> Unit,
+    onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showThemeDialog by rememberSaveable { mutableStateOf(false) }
     var selectedDay by rememberSaveable { mutableStateOf<String?>(null) }
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-
-    fun comingSoon(message: String) {
-        scope.launch { snackbarHostState.showSnackbar(message) }
-    }
 
     // Cards float ABOVE the pane in both themes (ticket 11): white on cool paper in
     // light, lighter slate on near-black in dark. The M3 container ramp inverts its
@@ -122,8 +116,8 @@ fun HomeScreen(
                     selectedDay = selectedDay,
                     onDayClick = { selectedDay = it },
                     selectable = true,
-                    onPlayToday = { comingSoon("Zip is coming soon.") },
-                    onSignIn = { comingSoon("Google sign-in arrives with leaderboards.") },
+                    onPlayToday = onPlayToday,
+                    onOpenProfile = onOpenProfile,
                     paneColor = paneColor,
                     cardColor = cardColor,
                     modifier = Modifier
@@ -132,7 +126,7 @@ fun HomeScreen(
                 )
                 DetailPane(
                     selected = selectedDay?.let { iso -> history.firstOrNull { it.isoDay == iso } },
-                    onPlayToday = { comingSoon("Zip is coming soon.") },
+                    onPlayToday = onPlayToday,
                     modifier = Modifier
                         .weight(0.58f)
                         .fillMaxHeight(),
@@ -147,19 +141,13 @@ fun HomeScreen(
                 selectedDay = null,
                 onDayClick = {},
                 selectable = false,
-                onPlayToday = { comingSoon("Zip is coming soon.") },
-                onSignIn = { comingSoon("Google sign-in arrives with leaderboards.") },
+                onPlayToday = onPlayToday,
+                onOpenProfile = onOpenProfile,
                 paneColor = paneColor,
                 cardColor = cardColor,
                 modifier = Modifier.fillMaxSize(),
             )
         }
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = Spacing.xl),
-        )
     }
 
     if (showThemeDialog) {
@@ -182,7 +170,7 @@ private fun ListPane(
     onDayClick: (String) -> Unit,
     selectable: Boolean,
     onPlayToday: () -> Unit,
-    onSignIn: () -> Unit,
+    onOpenProfile: () -> Unit,
     paneColor: Color,
     cardColor: Color,
     modifier: Modifier = Modifier,
@@ -225,7 +213,7 @@ private fun ListPane(
         }
         StaggeredItem(2) {
             AccountCard(
-                onSignIn = onSignIn,
+                onOpenProfile = onOpenProfile,
                 cardColor = cardColor,
                 modifier = Modifier.padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.xl, bottom = Spacing.xxl),
             )
@@ -394,9 +382,10 @@ private fun HistoryRow(
     }
 }
 
+/** The account card: signed-out teaser that opens the Profile account surface (A15). */
 @Composable
 private fun AccountCard(
-    onSignIn: () -> Unit,
+    onOpenProfile: () -> Unit,
     cardColor: Color,
     modifier: Modifier = Modifier,
 ) {
@@ -437,7 +426,7 @@ private fun AccountCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            SecondaryButton(text = "Sign in", onClick = onSignIn)
+            SecondaryButton(text = "Sign in", onClick = onOpenProfile)
         }
     }
 }
@@ -530,7 +519,7 @@ private fun DayDetail(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = "Replays and scores for past days arrive in a future update.",
+            text = "Replay this day from Your history — every captured day stays playable.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
