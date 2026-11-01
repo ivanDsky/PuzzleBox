@@ -65,6 +65,13 @@ data class ProfileUiState(
     val boardUnavailable: Boolean = false,
 )
 
+// Ticket 24 — honest sign-in copy per failure class. "Check your connection" is
+// reserved for the network branches; every other class says what actually failed.
+private const val SIGN_IN_NETWORK_MESSAGE = "Sign-in is unavailable right now. Check your connection."
+private const val SIGN_IN_GOOGLE_UNAVAILABLE_MESSAGE =
+    "Google sign-in isn't available right now. Try again, or try another account."
+private const val SIGN_IN_RETRY_MESSAGE = "Sign-in failed. Please try again."
+
 class ProfileViewModel(
     private val identityService: IdentityService,
     private val idTokenProvider: GoogleIdTokenProvider,
@@ -111,19 +118,18 @@ class ProfileViewModel(
     fun signIn(activityContext: Context) {
         viewModelScope.launch {
             _state.update { it.copy(signingIn = true, signInMessage = null) }
-            val result = when (val token = idTokenProvider.idToken(activityContext)) {
+            // Ticket 24: copy must match the failure class. A credential-provider
+            // failure never reached the backend, so it is not an AuthError.Unavailable
+            // (that class is the backend network path) — it maps straight to copy.
+            val message: String? = when (val token = idTokenProvider.idToken(activityContext)) {
                 is GoogleIdToken.Available ->
-                    identityService.signInWithGoogleIdToken(token.token)
-                GoogleIdToken.Unavailable ->
-                    AuthResult.Err(AuthError.Unavailable("No Google sign-in available"))
+                    when (val result = identityService.signInWithGoogleIdToken(token.token)) {
+                        is AuthResult.Ok -> null
+                        is AuthResult.Err -> friendly(result.error)
+                    }
+                is GoogleIdToken.Unavailable -> friendly(token.reason)
             }
-            _state.update { current ->
-                when (result) {
-                    is AuthResult.Ok -> current.copy(signingIn = false, signInMessage = null)
-                    is AuthResult.Err ->
-                        current.copy(signingIn = false, signInMessage = friendly(result.error))
-                }
-            }
+            _state.update { it.copy(signingIn = false, signInMessage = message) }
         }
     }
 
@@ -132,10 +138,26 @@ class ProfileViewModel(
     }
 
     private fun friendly(error: AuthError): String = when (error) {
-        is AuthError.Unavailable -> "Sign-in is unavailable right now. Check your connection."
-        is AuthError.Rejected -> "Google refused the sign-in. Please try again."
+        // Backend half: FirebaseNetworkException — the only branch allowed to blame
+        // the connection (ticket 24).
+        is AuthError.Unavailable -> SIGN_IN_NETWORK_MESSAGE
+        // Token-exchange failure (invalid/expired token, account blocked): the honest
+        // remediation is retry or another account, not "check your connection".
+        is AuthError.Rejected -> SIGN_IN_GOOGLE_UNAVAILABLE_MESSAGE
         is AuthError.Malformed -> "The account response was unusable. Please try again."
         is AuthError.Unknown -> "Sign-in failed unexpectedly. Please try again."
+    }
+
+    /** Credential Manager half (ticket 24): copy chosen per preserved failure class. */
+    private fun friendly(reason: GoogleIdToken.Unavailable.Reason): String = when (reason) {
+        GoogleIdToken.Unavailable.Reason.NETWORK -> SIGN_IN_NETWORK_MESSAGE
+        GoogleIdToken.Unavailable.Reason.NO_CREDENTIAL,
+        GoogleIdToken.Unavailable.Reason.PROVIDER_UNAVAILABLE,
+        -> SIGN_IN_GOOGLE_UNAVAILABLE_MESSAGE
+        GoogleIdToken.Unavailable.Reason.CANCELLED,
+        GoogleIdToken.Unavailable.Reason.MALFORMED,
+        GoogleIdToken.Unavailable.Reason.OTHER,
+        -> SIGN_IN_RETRY_MESSAGE
     }
 }
 

@@ -3,6 +3,12 @@ package com.ivandsky.puzzlebox.app.screens
 import android.content.Context
 
 import com.ivandsky.puzzlebox.app.auth.GoogleIdToken
+import com.ivandsky.puzzlebox.app.auth.GoogleIdToken.Unavailable.Reason.CANCELLED
+import com.ivandsky.puzzlebox.app.auth.GoogleIdToken.Unavailable.Reason.MALFORMED
+import com.ivandsky.puzzlebox.app.auth.GoogleIdToken.Unavailable.Reason.NETWORK
+import com.ivandsky.puzzlebox.app.auth.GoogleIdToken.Unavailable.Reason.NO_CREDENTIAL
+import com.ivandsky.puzzlebox.app.auth.GoogleIdToken.Unavailable.Reason.OTHER
+import com.ivandsky.puzzlebox.app.auth.GoogleIdToken.Unavailable.Reason.PROVIDER_UNAVAILABLE
 import com.ivandsky.puzzlebox.app.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.AuthResult
@@ -105,32 +111,128 @@ class ProfileViewModelTest {
         assertEquals(deps.identity.currentIdentity, deps.vm.state.value.identity)
     }
 
-    @Test
-    fun `unavailable token degrades to a message, never throws (A7)`() = runTest(dispatcher) {
-        val deps = viewModel(tokens = FakeTokenProvider(next = GoogleIdToken.Unavailable))
+    // ---- Ticket 24: sign-in copy per failure class -------------------------------
+    // Exact strings lock the copy; "Check your connection" may appear on the NETWORK
+    // branches only (provider or backend).
 
+    /** Signs in with the scripted inputs and returns the surfaced message. */
+    private fun TestScope.signInMessage(
+        tokens: FakeTokenProvider = FakeTokenProvider(),
+        identity: FakeIdentityService = FakeIdentityService(initial = null),
+    ): String {
+        val deps = viewModel(tokens = tokens, identity = identity)
         deps.vm.signIn(appContext)
         advanceUntilIdle()
-
-        assertEquals(1, deps.tokens.calls.size)
-        assertTrue(deps.vm.state.value.signInMessage!!.contains("unavailable"))
-        assertNull(deps.vm.state.value.identity)
-        assertTrue(deps.leaderboard.observedBoards.isEmpty())
+        return requireNotNull(deps.vm.state.value.signInMessage)
     }
 
     @Test
-    fun `backend rejection surfaces a friendly message`() = runTest(dispatcher) {
-        val identity = FakeIdentityService(
-            initial = null,
-            signInResult = AuthResult.Err(AuthError.Rejected("bad token")),
+    fun `provider network failure keeps the connection wording`() = runTest(dispatcher) {
+        assertEquals(
+            "Sign-in is unavailable right now. Check your connection.",
+            signInMessage(tokens = FakeTokenProvider(GoogleIdToken.Unavailable(NETWORK))),
         )
-        val deps = viewModel(identity = identity)
+    }
 
-        deps.vm.signIn(appContext)
-        advanceUntilIdle()
+    @Test
+    fun `no credential gets the google-unavailable wording, identity stays null (A7)`() =
+        runTest(dispatcher) {
+            val deps = viewModel(tokens = FakeTokenProvider(GoogleIdToken.Unavailable(NO_CREDENTIAL)))
 
-        assertTrue(deps.vm.state.value.signInMessage!!.contains("refused"))
-        assertNull(deps.vm.state.value.identity)
+            deps.vm.signIn(appContext)
+            advanceUntilIdle()
+
+            assertEquals(
+                "Google sign-in isn't available right now. Try again, or try another account.",
+                deps.vm.state.value.signInMessage,
+            )
+            assertNull(deps.vm.state.value.identity)
+            assertTrue(deps.leaderboard.observedBoards.isEmpty())
+        }
+
+    @Test
+    fun `api availability failure gets the google-unavailable wording`() = runTest(dispatcher) {
+        assertEquals(
+            "Google sign-in isn't available right now. Try again, or try another account.",
+            signInMessage(tokens = FakeTokenProvider(GoogleIdToken.Unavailable(PROVIDER_UNAVAILABLE))),
+        )
+    }
+
+    @Test
+    fun `user cancel gets the generic retry wording`() = runTest(dispatcher) {
+        assertEquals(
+            "Sign-in failed. Please try again.",
+            signInMessage(tokens = FakeTokenProvider(GoogleIdToken.Unavailable(CANCELLED))),
+        )
+    }
+
+    @Test
+    fun `malformed credential gets the generic retry wording`() = runTest(dispatcher) {
+        assertEquals(
+            "Sign-in failed. Please try again.",
+            signInMessage(tokens = FakeTokenProvider(GoogleIdToken.Unavailable(MALFORMED))),
+        )
+    }
+
+    @Test
+    fun `other provider failure gets the generic retry wording`() = runTest(dispatcher) {
+        assertEquals(
+            "Sign-in failed. Please try again.",
+            signInMessage(tokens = FakeTokenProvider(GoogleIdToken.Unavailable(OTHER))),
+        )
+    }
+
+    @Test
+    fun `backend network failure keeps the connection wording`() = runTest(dispatcher) {
+        assertEquals(
+            "Sign-in is unavailable right now. Check your connection.",
+            signInMessage(
+                identity = FakeIdentityService(
+                    initial = null,
+                    signInResult = AuthResult.Err(AuthError.Unavailable("offline")),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `backend token-exchange rejection gets the google-unavailable wording`() =
+        runTest(dispatcher) {
+            assertEquals(
+                "Google sign-in isn't available right now. Try again, or try another account.",
+                signInMessage(
+                    identity = FakeIdentityService(
+                        initial = null,
+                        signInResult = AuthResult.Err(AuthError.Rejected("bad token")),
+                    ),
+                ),
+            )
+        }
+
+    @Test
+    fun `backend malformed answer keeps its wording`() = runTest(dispatcher) {
+        assertEquals(
+            "The account response was unusable. Please try again.",
+            signInMessage(
+                identity = FakeIdentityService(
+                    initial = null,
+                    signInResult = AuthResult.Err(AuthError.Malformed("no uid")),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `backend unknown failure keeps its wording`() = runTest(dispatcher) {
+        assertEquals(
+            "Sign-in failed unexpectedly. Please try again.",
+            signInMessage(
+                identity = FakeIdentityService(
+                    initial = null,
+                    signInResult = AuthResult.Err(AuthError.Unknown(IllegalStateException("boom"))),
+                ),
+            ),
+        )
     }
 
     @Test

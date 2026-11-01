@@ -85,9 +85,16 @@ class ProfileScreenTest {
 
     @Test
     fun `sign-in failure surfaces the friendly message`() {
-        setContent(ProfileUiState(identity = null, signInMessage = "Google refused the sign-in."))
+        setContent(
+            ProfileUiState(
+                identity = null,
+                signInMessage = "Google sign-in isn't available right now. Try again, or try another account.",
+            ),
+        )
 
-        composeRule.onNodeWithText("Google refused the sign-in.").assertExists()
+        composeRule.onNodeWithText(
+            "Google sign-in isn't available right now. Try again, or try another account.",
+        ).assertExists()
     }
 
     @Test
