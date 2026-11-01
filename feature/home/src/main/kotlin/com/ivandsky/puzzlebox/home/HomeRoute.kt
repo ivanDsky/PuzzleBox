@@ -24,6 +24,8 @@ fun HomeRoute(
     layout: HomeLayout,
     themeMode: ThemeMode,
     onSetThemeMode: (ThemeMode) -> Unit,
+    onPlayToday: () -> Unit,
+    onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenHistory: () -> Unit = {},
 ) {
@@ -40,6 +42,8 @@ fun HomeRoute(
         onSetThemeMode = onSetThemeMode,
         onOpenHistory = onOpenHistory,
         history = days,
+        onPlayToday = onPlayToday,
+        onOpenProfile = onOpenProfile,
         modifier = modifier,
     )
 }

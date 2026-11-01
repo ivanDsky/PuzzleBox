@@ -3,10 +3,12 @@ package com.ivandsky.puzzlebox.home
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.data.model.ThemeMode
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import org.junit.Rule
@@ -28,6 +30,8 @@ class HomeScreenTest {
         themeMode: ThemeMode = ThemeMode.SYSTEM,
         history: List<HistoryDay> = emptyList(),
         onSetThemeMode: (ThemeMode) -> Unit = {},
+        onPlayToday: () -> Unit = {},
+        onOpenProfile: () -> Unit = {},
     ) {
         composeRule.setContent {
             PuzzleBoxTheme {
@@ -36,6 +40,8 @@ class HomeScreenTest {
                     themeMode = themeMode,
                     onSetThemeMode = onSetThemeMode,
                     history = history,
+                    onPlayToday = onPlayToday,
+                    onOpenProfile = onOpenProfile,
                     modifier = Modifier,
                 )
             }
@@ -71,6 +77,41 @@ class HomeScreenTest {
 
         composeRule.onNodeWithText("October 30").assertExists()
         composeRule.onNodeWithText("No games yet").assertDoesNotExist()
+    }
+
+    @Test
+    fun `play today fires the play destination from the today card`() {
+        // Ticket 17 regression: the Today card must hoist a REAL play destination —
+        // this is the hook that used to be a "coming soon" snackbar.
+        var played = false
+        setContent(HomeLayout.SinglePane, onPlayToday = { played = true })
+
+        composeRule.onNodeWithText("Play today").performClick()
+        composeRule.runOnIdle { check(played) { "expected onPlayToday" } }
+    }
+
+    @Test
+    fun `play today fires the play destination in the two-pane detail`() {
+        var played = false
+        setContent(HomeLayout.TwoPane, onPlayToday = { played = true })
+
+        // Both the card and the detail-pane CTA are live; the first one suffices.
+        composeRule.onAllNodesWithText("Play today")[0].performClick()
+        composeRule.runOnIdle { check(played) { "expected onPlayToday" } }
+    }
+
+    @Test
+    fun `sign in fires the profile destination`() {
+        // Ticket 17 regression: the account card opens Profile (the real account
+        // surface) instead of showing placeholder copy.
+        var opened = false
+        setContent(HomeLayout.SinglePane, onOpenProfile = { opened = true })
+
+        composeRule
+            .onNodeWithText("Sign in")
+            .performScrollTo()
+            .performClick()
+        composeRule.runOnIdle { check(opened) { "expected onOpenProfile" } }
     }
 
     @Test
