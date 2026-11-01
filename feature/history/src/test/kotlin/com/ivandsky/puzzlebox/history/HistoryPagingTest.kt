@@ -74,24 +74,6 @@ class HistoryPagingTest {
     }
 
     @Test
-    fun `anchored refresh refills backward without duplicate keys`() = runTest {
-        // Jump the anchor deep into the list: the refresh lands its forward page, then
-        // everything before it must come from PREPEND windows (the duplicate-row
-        // regression). How far the final prepend drains is prefetch-dependent by
-        // design — the stable contract is: unique keys, contiguous days, newest-first.
-        val refreshed = historyDays(seededRepo(45)).asSnapshot {
-            scrollTo(30)
-            prependScrollWhile { true }
-        }
-        val days = refreshed.map { it.day }
-        assertTrue("never fewer than the anchor page", refreshed.size >= PAGE_SIZE)
-        assertEquals("every row must have a unique day key", refreshed.size, days.distinct().size)
-        assertEquals("loaded windows must tile contiguously, newest first", days.sortedDescending(), days)
-        assertEquals(firstDay.plusDays(44), days.first())
-        assertTrue("anchor row (index 30) must be loaded", days.contains(firstDay.plusDays(14)))
-    }
-
-    @Test
     fun `first generation is seeded, never an empty flash`() = runTest {
         // No settle step before the first collection: whatever generation arrives
         // first must already carry the seeded rows (the Pager is only ever built
@@ -100,7 +82,15 @@ class HistoryPagingTest {
     }
 }
 
-/** Direct source contracts for the prepend windows the pager-level tests infer. */
+/**
+ * The Prepend branch's real coverage lives HERE: [HistoryPagingSourceTest] drives
+ * `load(Prepend)` directly and fails against a forward-window regression (verified —
+ * both window tests fail against the buggy source). The pager-level asSnapshot API
+ * cannot exercise a genuine Prepend: scrollTo/flingTo are append-served (a full 45-row
+ * fling drain passes even against a forward-window Prepend), and a mid-script
+ * generation switch restarts the presenter unanchored (leading prevKey = null), so
+ * prepend is never reached there.
+ */
 class HistoryPagingSourceTest {
 
     private val firstDay: LocalDate = LocalDate.of(2026, 1, 1)
