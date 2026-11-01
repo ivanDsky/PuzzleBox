@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.history
 
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -53,8 +52,7 @@ class HistoryScreenTest {
         handedToShell = null
         composeRule.setContent {
             PuzzleBoxTheme {
-                val scope = rememberCoroutineScope()
-                val lazyDays = remember(repo) { historyDays(repo, scope) }.collectAsLazyPagingItems()
+                val lazyDays = remember(repo) { historyDays(repo) }.collectAsLazyPagingItems()
                 HistoryScreen(
                     layout = layout,
                     onBack = {},
