@@ -7,10 +7,20 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 /**
  * Pure A3/A5 derivation from the records store to a leaderboard entry (brief §1):
  * records only (A5 — replay rows are never eligible), official-daily shape only, and
- * the same sanity envelope the Firestore rules enforce (timeMs > 0, hints >= 0).
- * Android-free so the rule stays provable without Room or Robolectric.
+ * the same sanity envelope the Firestore rules enforce (timeMs > 0, hints >= 0,
+ * displayName 1..64). Android-free so the rule stays provable without Room or
+ * Robolectric.
  */
 object LeaderboardEntries {
+
+    /**
+     * The rules reject displayName outside 1..64 — an unusable name must never make a
+     * player invisible on every board. Google accounts may carry an empty display
+     * name (FirebaseIdentityService maps null to ""), so empty trims to the stable
+     * fallback; overlong names truncate instead of being rule-rejected.
+     */
+    internal fun normalizeDisplayName(raw: String): String =
+        raw.trim().ifEmpty { "Player" }.take(64)
 
     /** From the Room row. Null when this row may never appear on a board. */
     fun fromEntity(entity: CompletionEntity, uid: String, displayName: String): LeaderboardEntry? {
@@ -19,7 +29,7 @@ object LeaderboardEntries {
         if (entity.timeMs <= 0 || entity.hints < 0) return null // rules sanity envelope
         return LeaderboardEntry(
             uid = uid,
-            displayName = displayName,
+            displayName = normalizeDisplayName(displayName),
             puzzleRef = entity.puzzleRef,
             timeMs = entity.timeMs,
             hints = entity.hints,
@@ -44,7 +54,7 @@ object LeaderboardEntries {
         val completedAtMs = record.firstCompletedAt?.toEpochMilli() ?: return null
         return LeaderboardEntry(
             uid = uid,
-            displayName = displayName,
+            displayName = normalizeDisplayName(displayName),
             puzzleRef = refKey,
             timeMs = record.time,
             hints = record.hints,
