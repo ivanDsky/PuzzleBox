@@ -177,9 +177,9 @@ internal fun puzzleBoxEntryProvider(
                 layout = homeLayout,
                 themeMode = themeMode,
                 onSetThemeMode = onSetThemeMode,
-                onPlayToday = { backStack.add(Play) },
+                onPlayToday = { backStack.pushOnce(Play) },
                 onOpenProfile = { select(Profile, backStack) },
-                onOpenHistory = { backStack.add(History) },
+                onOpenHistory = { backStack.pushOnce(History) },
             )
         }
     }
@@ -227,6 +227,12 @@ internal fun puzzleBoxEntryProvider(
 private fun select(key: NavKey, backStack: NavBackStack<NavKey>) {
     backStack.clear()
     backStack.add(key)
+}
+
+// Double-tap guard: pushing a destination that is already the stack top would need two
+// backs to unwind — add only when it isn't (Rev17).
+private fun NavBackStack<NavKey>.pushOnce(key: NavKey) {
+    if (lastOrNull() != key) add(key)
 }
 
 // Ticket design-previews-08: the "Showkase" button opens the custom flat dark browser
