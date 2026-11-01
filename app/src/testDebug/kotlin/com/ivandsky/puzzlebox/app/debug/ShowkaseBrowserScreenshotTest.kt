@@ -101,6 +101,50 @@ class ShowkaseBrowserScreenshotTest {
         }
     }
 
+    // Ticket 07: the BG chip re-fills every preview backdrop. SecondaryButton is the
+    // transparent-ish case the feedback was about (outlined, no fill): it vanishes into
+    // the checkerboard but reads on the solid styles. One tap = Surface, three = Black;
+    // the chip label always names the active style, so the goldens self-describe.
+    @Test
+    fun `backdrop style switch fills previews with surface`() {
+        capture(name = "browser-backdrop-surface.png") {
+            composeRule.onNodeWithText("BG: Checkerboard").performClick()
+            composeRule.waitForIdle()
+            expandButtons()
+        }
+    }
+
+    @Test
+    fun `backdrop style switch fills previews with black`() {
+        capture(name = "browser-backdrop-black.png") {
+            // Cycle by label — each click lands on the next style, ending on Black.
+            composeRule.onNodeWithText("BG: Checkerboard").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("BG: Surface").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("BG: White").performClick()
+            composeRule.waitForIdle()
+            expandButtons()
+        }
+    }
+
+    // Detail panes ride the same session choice: pick the style on the browser toolbar
+    // (the detail screen hosts no toolbar — it inherits the choice exactly the way the
+    // ticket-06 theme override does), then open a component and capture the re-filled
+    // light+dark pair.
+    @Test
+    fun `detail panes follow the backdrop style switch`() {
+        capture(name = "browser-backdrop-detail-white.png") {
+            composeRule.onNodeWithText("BG: Checkerboard").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("BG: Surface").performClick()
+            composeRule.waitForIdle()
+            expandButtons()
+            composeRule.onNodeWithText("PrimaryButton").performClick()
+            composeRule.waitForIdle()
+        }
+    }
+
     // Ticket 06 bulk actions: one tap expands EVERY group; the trailing chip flips to
     // "Collapse all" exactly when the persisted set covers all keys, so the flip in
     // the golden doubles as the allExpanded assertion.

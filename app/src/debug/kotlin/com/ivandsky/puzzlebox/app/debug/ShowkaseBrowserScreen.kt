@@ -105,6 +105,10 @@ internal enum class BrowserThemeOverride(val label: String) {
 private fun nextThemeOverride(override: BrowserThemeOverride): BrowserThemeOverride =
     BrowserThemeOverride.entries[(override.ordinal + 1) % BrowserThemeOverride.entries.size]
 
+// Same cycle mechanic as the theme chip: the label always names the active position.
+private fun nextBackdropStyle(style: PreviewBackdropStyle): PreviewBackdropStyle =
+    PreviewBackdropStyle.entries[(style.ordinal + 1) % PreviewBackdropStyle.entries.size]
+
 private fun loadShowkaseProvider(): ShowkaseProvider? = try {
     Class.forName(SHOWKASE_CODEGEN_CLASS)
         .getDeclaredConstructor()
@@ -125,6 +129,9 @@ fun ShowkaseBrowserScreen() {
     var expandedGroups by remember { mutableStateOf(prefs.expandedGroups()) }
     // Ticket 06 theme switch: session-scoped override, see [BrowserThemeOverride].
     var themeOverride by rememberSaveable { mutableStateOf(BrowserThemeOverride.System) }
+    // Ticket 07 backdrop fill: same session scope — rotation-safe via rememberSaveable,
+    // deliberately not persisted across launches.
+    var backdropStyle by rememberSaveable { mutableStateOf(PreviewBackdropStyle.Checkerboard) }
     // Transient filter text: survives rotation (rememberSaveable), intentionally not
     // persisted — a fresh launch always starts unfiltered.
     var query by rememberSaveable { mutableStateOf("") }
@@ -141,6 +148,7 @@ fun ShowkaseBrowserScreen() {
         if (selectedComponent != null) {
             ShowkaseComponentDetailScreen(
                 component = selectedComponent,
+                backdropStyle = backdropStyle,
                 onBack = { selectedComponentKey = null },
             )
         } else {
@@ -165,6 +173,8 @@ fun ShowkaseBrowserScreen() {
                 },
                 themeOverride = themeOverride,
                 onThemeOverrideChange = { themeOverride = it },
+                backdropStyle = backdropStyle,
+                onBackdropStyleChange = { backdropStyle = it },
                 query = query,
                 onQueryChange = { query = it },
                 onOpenComponent = { selectedComponentKey = it.componentKey },
@@ -213,6 +223,8 @@ internal fun ShowkaseBrowserContent(
     onSetAllGroupsExpanded: (Boolean) -> Unit,
     themeOverride: BrowserThemeOverride,
     onThemeOverrideChange: (BrowserThemeOverride) -> Unit,
+    backdropStyle: PreviewBackdropStyle,
+    onBackdropStyleChange: (PreviewBackdropStyle) -> Unit,
     query: String,
     onQueryChange: (String) -> Unit,
     onOpenComponent: (ShowkaseBrowserComponent) -> Unit,
@@ -230,6 +242,8 @@ internal fun ShowkaseBrowserContent(
                 onQueryChange = onQueryChange,
                 themeOverride = themeOverride,
                 onThemeOverrideChange = onThemeOverrideChange,
+                backdropStyle = backdropStyle,
+                onBackdropStyleChange = onBackdropStyleChange,
                 allGroupsExpanded = allGroupsExpanded,
                 onSetAllGroupsExpanded = onSetAllGroupsExpanded,
                 groupsActionEnabled = metadata != null,
@@ -261,6 +275,7 @@ internal fun ShowkaseBrowserContent(
                             results = results,
                             expandedGroups = visibleGroups,
                             onToggleGroup = onToggleGroup,
+                            backdropStyle = backdropStyle,
                             onOpenComponent = onOpenComponent,
                         )
                     }
@@ -276,6 +291,8 @@ private fun BrowserHeader(
     onQueryChange: (String) -> Unit,
     themeOverride: BrowserThemeOverride,
     onThemeOverrideChange: (BrowserThemeOverride) -> Unit,
+    backdropStyle: PreviewBackdropStyle,
+    onBackdropStyleChange: (PreviewBackdropStyle) -> Unit,
     allGroupsExpanded: Boolean,
     onSetAllGroupsExpanded: (Boolean) -> Unit,
     groupsActionEnabled: Boolean,
@@ -299,6 +316,8 @@ private fun BrowserHeader(
         ToolbarControls(
             themeOverride = themeOverride,
             onThemeOverrideChange = onThemeOverrideChange,
+            backdropStyle = backdropStyle,
+            onBackdropStyleChange = onBackdropStyleChange,
             allGroupsExpanded = allGroupsExpanded,
             onSetAllGroupsExpanded = onSetAllGroupsExpanded,
             groupsActionEnabled = groupsActionEnabled,
@@ -311,32 +330,49 @@ private fun BrowserHeader(
 /**
  * Ticket 06 toolbar: theme switch (cycles System → Light → Dark; the label always
  * shows the active position) and collapse/expand-all, trailing-aligned under the
- * subtitle. Labeled chips instead of icon buttons on purpose — the project freezes
- * the CORE material icon set (no brightness/unfold glyphs), and the labels keep the
- * three theme positions and the bulk action self-explanatory. The bulk action is
- * meaningless without metadata, so it disables on the error pane.
+ * subtitle. Ticket 07 adds the backdrop-style switch: same labeled-chip cycle mechanic
+ * ("BG: Checkerboard" → Surface → White → Black), on its own trailing-aligned row —
+ * three chips in one row would overflow narrow phones (~400dp of labels on a 360dp
+ * screen), and a second row keeps every control visible without scroll chrome.
+ * Labeled chips instead of icon buttons on purpose — the project freezes the CORE
+ * material icon set (no brightness/unfold/palette glyphs), and the labels keep the
+ * positions self-explanatory. The bulk action is meaningless without metadata, so it
+ * disables on the error pane.
  */
 @Composable
 private fun ToolbarControls(
     themeOverride: BrowserThemeOverride,
     onThemeOverrideChange: (BrowserThemeOverride) -> Unit,
+    backdropStyle: PreviewBackdropStyle,
+    onBackdropStyleChange: (PreviewBackdropStyle) -> Unit,
     allGroupsExpanded: Boolean,
     onSetAllGroupsExpanded: (Boolean) -> Unit,
     groupsActionEnabled: Boolean,
 ) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End),
-    ) {
-        AssistChip(
-            onClick = { onThemeOverrideChange(nextThemeOverride(themeOverride)) },
-            label = { Text("Theme: ${themeOverride.label}") },
-        )
-        AssistChip(
-            onClick = { onSetAllGroupsExpanded(!allGroupsExpanded) },
-            label = { Text(if (allGroupsExpanded) "Collapse all" else "Expand all") },
-            enabled = groupsActionEnabled,
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End),
+        ) {
+            AssistChip(
+                onClick = { onThemeOverrideChange(nextThemeOverride(themeOverride)) },
+                label = { Text("Theme: ${themeOverride.label}") },
+            )
+            AssistChip(
+                onClick = { onSetAllGroupsExpanded(!allGroupsExpanded) },
+                label = { Text(if (allGroupsExpanded) "Collapse all" else "Expand all") },
+                enabled = groupsActionEnabled,
+            )
+        }
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End),
+        ) {
+            AssistChip(
+                onClick = { onBackdropStyleChange(nextBackdropStyle(backdropStyle)) },
+                label = { Text("BG: ${backdropStyle.label}") },
+            )
+        }
     }
 }
 
@@ -401,6 +437,7 @@ private fun GroupList(
     results: SearchResults,
     expandedGroups: Set<String>,
     onToggleGroup: (String) -> Unit,
+    backdropStyle: PreviewBackdropStyle,
     onOpenComponent: (ShowkaseBrowserComponent) -> Unit,
 ) {
     LazyColumn(
@@ -419,7 +456,7 @@ private fun GroupList(
                 onToggleGroup = onToggleGroup,
             ) {
                 // Whole row tappable (name + inline preview) → detail screen (ticket 04).
-                ComponentRow(it, onClick = { onOpenComponent(it) })
+                ComponentRow(it, backdropStyle, onClick = { onOpenComponent(it) })
             }
         }
         if (results.colors.isNotEmpty()) {
@@ -430,7 +467,7 @@ private fun GroupList(
                 keyPrefix = COLOR_KEY_PREFIX,
                 expandedGroups = expandedGroups,
                 onToggleGroup = onToggleGroup,
-            ) { ColorRow(it) }
+            ) { ColorRow(it, backdropStyle) }
         }
         if (results.typography.isNotEmpty()) {
             section(
@@ -440,7 +477,7 @@ private fun GroupList(
                 keyPrefix = TYPOGRAPHY_KEY_PREFIX,
                 expandedGroups = expandedGroups,
                 onToggleGroup = onToggleGroup,
-            ) { TypographyRow(it) }
+            ) { TypographyRow(it, backdropStyle) }
         }
     }
 }
@@ -595,7 +632,11 @@ private fun Chevron(expanded: Boolean) {
 }
 
 @Composable
-private fun ComponentRow(component: ShowkaseBrowserComponent, onClick: () -> Unit) {
+private fun ComponentRow(
+    component: ShowkaseBrowserComponent,
+    backdropStyle: PreviewBackdropStyle,
+    onClick: () -> Unit,
+) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -616,6 +657,7 @@ private fun ComponentRow(component: ShowkaseBrowserComponent, onClick: () -> Uni
         // cap, never stretch; anything taller than 480dp is contained by the backdrop.
         PreviewBackdrop(
             modifier = Modifier.fillMaxWidth(),
+            style = backdropStyle,
             widthHint = component.widthDp?.dp,
             heightHint = component.heightDp?.dp,
         ) {
@@ -625,16 +667,17 @@ private fun ComponentRow(component: ShowkaseBrowserComponent, onClick: () -> Uni
 }
 
 @Composable
-private fun ColorRow(color: ShowkaseBrowserColor) {
+private fun ColorRow(color: ShowkaseBrowserColor, backdropStyle: PreviewBackdropStyle) {
     Row(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // A3: the swatch IS the color's inline preview — the backdrop's checkerboard
-        // doubles as a transparency grid, and the border marks the sampled region.
-        PreviewBackdrop(contentPadding = PaddingValues(Spacing.sm)) {
+        // A3: the swatch IS the color's inline preview — the backdrop doubles as a
+        // transparency grid (checkerboard) or a fixed fill (ticket 07 styles), and the
+        // border marks the sampled region.
+        PreviewBackdrop(contentPadding = PaddingValues(Spacing.sm), style = backdropStyle) {
             Box(Modifier.size(44.dp).background(color.color))
         }
         Spacer(Modifier.width(Spacing.md))
@@ -650,7 +693,7 @@ private fun ColorRow(color: ShowkaseBrowserColor) {
 }
 
 @Composable
-private fun TypographyRow(typography: ShowkaseBrowserTypography) {
+private fun TypographyRow(typography: ShowkaseBrowserTypography, backdropStyle: PreviewBackdropStyle) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -664,7 +707,7 @@ private fun TypographyRow(typography: ShowkaseBrowserTypography) {
         Spacer(Modifier.height(Spacing.xs))
         // A3: sample text on the shared backdrop, so the type specimen reads as a
         // framed sample rather than body copy.
-        PreviewBackdrop(modifier = Modifier.fillMaxWidth()) {
+        PreviewBackdrop(modifier = Modifier.fillMaxWidth(), style = backdropStyle) {
             Text(
                 "Sample text",
                 style = typography.textStyle.resolved(),
@@ -731,6 +774,8 @@ private fun ShowkaseBrowserContentPreview(
             onSetAllGroupsExpanded = {},
             themeOverride = BrowserThemeOverride.System,
             onThemeOverrideChange = {},
+            backdropStyle = PreviewBackdropStyle.Checkerboard,
+            onBackdropStyleChange = {},
             query = "",
             onQueryChange = {},
             onOpenComponent = {},
@@ -753,6 +798,8 @@ private fun ShowkaseBrowserSearchPreview() {
             onSetAllGroupsExpanded = {},
             themeOverride = BrowserThemeOverride.System,
             onThemeOverrideChange = {},
+            backdropStyle = PreviewBackdropStyle.Checkerboard,
+            onBackdropStyleChange = {},
             query = "button",
             onQueryChange = {},
             onOpenComponent = {},
@@ -772,6 +819,8 @@ private fun ShowkaseBrowserErrorPreview() {
             onSetAllGroupsExpanded = {},
             themeOverride = BrowserThemeOverride.System,
             onThemeOverrideChange = {},
+            backdropStyle = PreviewBackdropStyle.Checkerboard,
+            onBackdropStyleChange = {},
             query = "",
             onQueryChange = {},
             onOpenComponent = {},
@@ -796,6 +845,8 @@ private fun ShowkaseBrowserForcedDarkPreview() {
                 onSetAllGroupsExpanded = {},
                 themeOverride = BrowserThemeOverride.Dark,
                 onThemeOverrideChange = {},
+                backdropStyle = PreviewBackdropStyle.Checkerboard,
+                onBackdropStyleChange = {},
                 query = "",
                 onQueryChange = {},
                 onOpenComponent = {},
@@ -817,6 +868,8 @@ private fun ShowkaseBrowserForcedLightPreview() {
                 onSetAllGroupsExpanded = {},
                 themeOverride = BrowserThemeOverride.Light,
                 onThemeOverrideChange = {},
+                backdropStyle = PreviewBackdropStyle.Checkerboard,
+                onBackdropStyleChange = {},
                 query = "",
                 onQueryChange = {},
                 onOpenComponent = {},

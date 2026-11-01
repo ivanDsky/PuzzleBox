@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -26,13 +27,29 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 // height; content shorter than it takes only the height it needs.
 internal val PreviewMaxHeight: Dp = 480.dp
 
+/**
+ * Toolbar backdrop positions (ticket 07). The checkerboard doubles as a transparency
+ * grid but swallows transparent or surface-colored components — Surface paints the
+ * scheme's `surfaceContainer` role, White/Black pin absolute extremes so near-white
+ * and near-black art both read. Session-scoped like the theme override: survives
+ * rotation via rememberSaveable, deliberately not persisted.
+ */
+internal enum class PreviewBackdropStyle(val label: String) {
+    Checkerboard("Checkerboard"),
+    Surface("Surface"),
+    White("White"),
+    Black("Black"),
+}
+
 private val CheckerCell: Dp = 8.dp
 
 /**
  * Shared preview canvas: alternating two-tone checkerboard plus a 1dp outline so the
  * previewed region is unambiguous against the app background in BOTH themes (spec —
- * "contrasting background + 1dp border"). Reused by the browser's inline previews
- * (ticket showkase-v2-02) and the detail panes (ticket 04, A8); no motion of its own.
+ * "contrasting background + 1dp border"). The toolbar's backdrop control (ticket 07)
+ * switches the fill through [PreviewBackdropStyle]; solid styles keep the border and
+ * every containment rule. Reused by the browser's inline previews (ticket
+ * showkase-v2-02) and the detail panes (ticket 04, A8); no motion of its own.
  *
  * Containment (A6): the box wraps content but never grows past [PreviewMaxHeight].
  * Content renders in an internal scroll viewport, so oversized/full-screen components
@@ -47,6 +64,7 @@ private val CheckerCell: Dp = 8.dp
 @Composable
 internal fun PreviewBackdrop(
     modifier: Modifier = Modifier,
+    style: PreviewBackdropStyle = PreviewBackdropStyle.Checkerboard,
     widthHint: Dp? = null,
     heightHint: Dp? = null,
     contentPadding: PaddingValues = PaddingValues(Spacing.md),
@@ -56,26 +74,37 @@ internal fun PreviewBackdrop(
     val shape = MaterialTheme.shapes.small
     val checkerBase = MaterialTheme.colorScheme.surfaceContainerLowest
     val checkerAlt = MaterialTheme.colorScheme.surfaceContainerHigh
+    // Null = checkerboard mode; solid styles fill one rect instead of the cell loop.
+    val solidFill = when (style) {
+        PreviewBackdropStyle.Checkerboard -> null
+        PreviewBackdropStyle.Surface -> MaterialTheme.colorScheme.surfaceContainer
+        PreviewBackdropStyle.White -> Color.White
+        PreviewBackdropStyle.Black -> Color.Black
+    }
     Box(
         modifier
-            // Clip first so checker and border follow the shape; checker draws behind,
+            // Clip first so the fill and border follow the shape; the fill draws behind,
             // border on top of it.
             .clip(shape)
             .drawBehind {
-                drawRect(checkerBase)
-                val cell = CheckerCell.toPx()
-                if (cell < 1f) return@drawBehind
-                val cols = (size.width / cell).toInt() + 1
-                val rows = (size.height / cell).toInt() + 1
-                val cellSize = Size(cell, cell)
-                for (row in 0 until rows) {
-                    // Offset alternate rows by one cell for the checkerboard stagger.
-                    for (col in (row % 2) until cols step 2) {
-                        drawRect(
-                            checkerAlt,
-                            topLeft = Offset(col * cell, row * cell),
-                            size = cellSize,
-                        )
+                if (solidFill != null) {
+                    drawRect(solidFill)
+                } else {
+                    drawRect(checkerBase)
+                    val cell = CheckerCell.toPx()
+                    if (cell < 1f) return@drawBehind
+                    val cols = (size.width / cell).toInt() + 1
+                    val rows = (size.height / cell).toInt() + 1
+                    val cellSize = Size(cell, cell)
+                    for (row in 0 until rows) {
+                        // Offset alternate rows by one cell for the checkerboard stagger.
+                        for (col in (row % 2) until cols step 2) {
+                            drawRect(
+                                checkerAlt,
+                                topLeft = Offset(col * cell, row * cell),
+                                size = cellSize,
+                            )
+                        }
                     }
                 }
             }
