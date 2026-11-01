@@ -25,16 +25,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -63,6 +70,14 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 private const val SHOWKASE_CODEGEN_CLASS =
     "com.ivandsky.puzzlebox.designsystem.PuzzleBoxShowkaseModuleCodegen"
 
+// Group keys are "<prefix>:<group>" — namespaces across sections stay unique. Shared by
+// the list rendering and the search's matching-group computation so the format has one home.
+private const val COMPONENT_KEY_PREFIX = "component"
+private const val COLOR_KEY_PREFIX = "color"
+private const val TYPOGRAPHY_KEY_PREFIX = "typography"
+
+private fun groupKey(prefix: String, group: String) = "$prefix:$group"
+
 private fun loadShowkaseProvider(): ShowkaseProvider? = try {
     Class.forName(SHOWKASE_CODEGEN_CLASS)
         .getDeclaredConstructor()
@@ -81,6 +96,9 @@ fun ShowkaseBrowserScreen() {
     val context = LocalContext.current
     val prefs = remember { ShowkaseBrowserPrefs(context) }
     var expandedGroups by remember { mutableStateOf(prefs.expandedGroups()) }
+    // Transient filter text: survives rotation (rememberSaveable), intentionally not
+    // persisted — a fresh launch always starts unfiltered.
+    var query by rememberSaveable { mutableStateOf("") }
     val metadata = remember { loadShowkaseProvider()?.metadata() }
 
     ShowkaseBrowserContent(
@@ -93,18 +111,23 @@ fun ShowkaseBrowserScreen() {
             // which rememberSaveable alone cannot cover.
             prefs.setExpandedGroups(next)
         },
+        query = query,
+        onQueryChange = { query = it },
     )
 }
 
 /**
- * Stateless body (previewable): metadata arrives as data, expansion as an event, so
- * previews need no provider loading and Layoutlib stays composition-safe.
+ * Stateless body (previewable): metadata, expansion, and the search text arrive as data,
+ * toggles as events, so previews need no provider loading and Layoutlib stays
+ * composition-safe.
  */
 @Composable
 internal fun ShowkaseBrowserContent(
     metadata: ShowkaseElementsMetadata?,
     expandedGroups: Set<String>,
     onToggleGroup: (String) -> Unit,
+    query: String,
+    onQueryChange: (String) -> Unit,
 ) {
     // Surface (not a bare background) so LocalContentColor follows the scheme — default
     // Texts would otherwise inherit an unspecified color and can vanish on dark.
@@ -114,28 +137,44 @@ internal fun ShowkaseBrowserContent(
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Column(Modifier.fillMaxSize()) {
-            BrowserHeader()
+            BrowserHeader(query, onQueryChange)
             when {
                 metadata == null -> ErrorPane(
                     Modifier
                         .weight(1f)
                         .fillMaxWidth(),
                 )
-                else -> GroupList(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    metadata = metadata,
-                    expandedGroups = expandedGroups,
-                    onToggleGroup = onToggleGroup,
-                )
+                else -> {
+                    val results = remember(metadata, query) { SearchResults.of(metadata, query) }
+                    // A7: while a query is active every group holding a match renders
+                    // expanded — the persisted set unioned with the matches — so matches
+                    // are always visible. Clearing drops the union and the persisted
+                    // expansion state shows through untouched.
+                    val visibleGroups = if (results.queryActive) {
+                        expandedGroups + results.matchingGroups
+                    } else {
+                        expandedGroups
+                    }
+                    if (results.queryActive && results.isEmpty) {
+                        NoResults(query, Modifier.weight(1f).fillMaxWidth())
+                    } else {
+                        GroupList(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            results = results,
+                            expandedGroups = visibleGroups,
+                            onToggleGroup = onToggleGroup,
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun BrowserHeader() {
+private fun BrowserHeader(query: String, onQueryChange: (String) -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -147,8 +186,43 @@ private fun BrowserHeader() {
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            "Showkase browser — tap a group to expand it",
+            "Showkase browser — search narrows, tap a group to expand",
             style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(Spacing.sm))
+        SearchField(query, onQueryChange)
+    }
+}
+
+@Composable
+private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = Modifier.fillMaxWidth(),
+        placeholder = { Text("Search components, colors, type") },
+        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Filled.Close, contentDescription = "Clear search")
+                }
+            }
+        },
+        singleLine = true,
+        shape = MaterialTheme.shapes.small,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+    )
+}
+
+// Every section filtered out — say so instead of a silent blank pane.
+@Composable
+private fun NoResults(query: String, modifier: Modifier) {
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Text(
+            "No matches for “${query.trim()}”",
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
@@ -179,7 +253,7 @@ private fun ErrorPane(modifier: Modifier) {
 @Composable
 private fun GroupList(
     modifier: Modifier,
-    metadata: ShowkaseElementsMetadata,
+    results: SearchResults,
     expandedGroups: Set<String>,
     onToggleGroup: (String) -> Unit,
 ) {
@@ -187,35 +261,100 @@ private fun GroupList(
         modifier,
         contentPadding = PaddingValues(bottom = Spacing.xl),
     ) {
-        section(
-            title = "Components",
-            entries = metadata.componentList.sortedBy { it.componentName },
-            groupOf = { it.group },
-            keyPrefix = "component",
-            expandedGroups = expandedGroups,
-            onToggleGroup = onToggleGroup,
-        ) { ComponentRow(it) }
-        section(
-            title = "Colors",
-            entries = metadata.colorList.sortedBy { it.colorName },
-            groupOf = { it.colorGroup },
-            keyPrefix = "color",
-            expandedGroups = expandedGroups,
-            onToggleGroup = onToggleGroup,
-        ) { ColorRow(it) }
-        section(
-            title = "Typography",
-            entries = metadata.typographyList.sortedBy { it.typographyName },
-            groupOf = { it.typographyGroup },
-            keyPrefix = "typography",
-            expandedGroups = expandedGroups,
-            onToggleGroup = onToggleGroup,
-        ) { TypographyRow(it) }
+        // While searching, sections with zero matches drop out entirely (title included)
+        // and the counts reflect the narrowed lists — the honest "filtered" view.
+        if (results.components.isNotEmpty()) {
+            section(
+                title = "Components",
+                entries = results.components.sortedBy { it.componentName },
+                groupOf = { it.group },
+                keyPrefix = COMPONENT_KEY_PREFIX,
+                expandedGroups = expandedGroups,
+                onToggleGroup = onToggleGroup,
+            ) { ComponentRow(it) }
+        }
+        if (results.colors.isNotEmpty()) {
+            section(
+                title = "Colors",
+                entries = results.colors.sortedBy { it.colorName },
+                groupOf = { it.colorGroup },
+                keyPrefix = COLOR_KEY_PREFIX,
+                expandedGroups = expandedGroups,
+                onToggleGroup = onToggleGroup,
+            ) { ColorRow(it) }
+        }
+        if (results.typography.isNotEmpty()) {
+            section(
+                title = "Typography",
+                entries = results.typography.sortedBy { it.typographyName },
+                groupOf = { it.typographyGroup },
+                keyPrefix = TYPOGRAPHY_KEY_PREFIX,
+                expandedGroups = expandedGroups,
+                onToggleGroup = onToggleGroup,
+            ) { TypographyRow(it) }
+        }
     }
 }
 
+/**
+ * Query view of the metadata (A7): the three entry lists filtered by name OR group name,
+ * plus the keys of every group holding at least one match. A blank query is the identity
+ * view — full lists, no forced expansion.
+ */
+private class SearchResults private constructor(
+    val queryActive: Boolean,
+    val components: List<ShowkaseBrowserComponent>,
+    val colors: List<ShowkaseBrowserColor>,
+    val typography: List<ShowkaseBrowserTypography>,
+    val matchingGroups: Set<String>,
+) {
+    val isEmpty: Boolean
+        get() = components.isEmpty() && colors.isEmpty() && typography.isEmpty()
+
+    companion object {
+        fun of(metadata: ShowkaseElementsMetadata, rawQuery: String): SearchResults {
+            val query = rawQuery.trim()
+            if (query.isEmpty()) {
+                return SearchResults(
+                    queryActive = false,
+                    components = metadata.componentList,
+                    colors = metadata.colorList,
+                    typography = metadata.typographyList,
+                    matchingGroups = emptySet(),
+                )
+            }
+            val components = metadata.componentList
+                .matchingEntries(query, { it.componentName }, { it.group })
+            val colors = metadata.colorList
+                .matchingEntries(query, { it.colorName }, { it.colorGroup })
+            val typography = metadata.typographyList
+                .matchingEntries(query, { it.typographyName }, { it.typographyGroup })
+            return SearchResults(
+                queryActive = true,
+                components = components,
+                colors = colors,
+                typography = typography,
+                matchingGroups = buildSet {
+                    components.forEach { add(groupKey(COMPONENT_KEY_PREFIX, it.group)) }
+                    colors.forEach { add(groupKey(COLOR_KEY_PREFIX, it.colorGroup)) }
+                    typography.forEach { add(groupKey(TYPOGRAPHY_KEY_PREFIX, it.typographyGroup)) }
+                },
+            )
+        }
+    }
+}
+
+// Case-insensitive substring on the entry name OR the group name — a group-name hit
+// pulls in every entry of that group.
+private fun <T> List<T>.matchingEntries(
+    query: String,
+    name: (T) -> String,
+    group: (T) -> String,
+): List<T> = filter {
+    name(it).contains(query, ignoreCase = true) || group(it).contains(query, ignoreCase = true)
+}
+
 // Section title, then one collapsible item per Showkase group, alphabetical (A7).
-// Group keys are "<section>:<group>" — namespaces across sections stay unique.
 private fun <T> LazyListScope.section(
     title: String,
     entries: List<T>,
@@ -234,13 +373,13 @@ private fun <T> LazyListScope.section(
         )
     }
     entries.groupBy(groupOf).toSortedMap().forEach { (groupName, groupItems) ->
-        val groupKey = "$keyPrefix:$groupName"
+        val key = groupKey(keyPrefix, groupName)
         item(key = "$keyPrefix-group-$groupName") {
             CollapsibleGroup(
                 title = groupName,
                 count = groupItems.size,
-                expanded = groupKey in expandedGroups,
-                onToggle = { onToggleGroup(groupKey) },
+                expanded = key in expandedGroups,
+                onToggle = { onToggleGroup(key) },
             ) {
                 groupItems.forEach { row(it) }
             }
@@ -434,7 +573,24 @@ private fun ShowkaseBrowserContentPreview(
     @PreviewParameter(ExpandedGroupsProvider::class) expandedGroups: Set<String>,
 ) {
     PuzzleBoxTheme {
-        ShowkaseBrowserContent(previewMetadata(), expandedGroups, onToggleGroup = {})
+        ShowkaseBrowserContent(previewMetadata(), expandedGroups, onToggleGroup = {}, query = "", onQueryChange = {})
+    }
+}
+
+@BrowserThemePreview
+@Composable
+private fun ShowkaseBrowserSearchPreview() {
+    PuzzleBoxTheme {
+        // "button" hits PrimaryButton/GhostButton by name AND their group: Components
+        // narrows to the two buttons, Colors/Typography drop out, and Buttons renders
+        // expanded even though the persisted set is empty (A7 auto-expand).
+        ShowkaseBrowserContent(
+            previewMetadata(),
+            expandedGroups = emptySet(),
+            onToggleGroup = {},
+            query = "button",
+            onQueryChange = {},
+        )
     }
 }
 
@@ -442,7 +598,13 @@ private fun ShowkaseBrowserContentPreview(
 @Composable
 private fun ShowkaseBrowserErrorPreview() {
     PuzzleBoxTheme {
-        ShowkaseBrowserContent(metadata = null, expandedGroups = emptySet(), onToggleGroup = {})
+        ShowkaseBrowserContent(
+            metadata = null,
+            expandedGroups = emptySet(),
+            onToggleGroup = {},
+            query = "",
+            onQueryChange = {},
+        )
     }
 }
 
