@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- ShowkaseBrowserActivity extends AppCompatActivity and crashes under the app's
-     platform Material theme ("must use a Theme.AppCompat theme"). It is no longer the
-     launch target (ticket design-previews-08 replaced it with the custom browser below)
-     but stays merged from the showkase AAR, so it keeps the AppCompat theme override
-     (dark variant, per ticket 07) to remain launchable — e.g. via adb.
-     The custom browser is a plain ComponentActivity and runs under the app theme. -->
+<!-- The showkase AAR's ShowkaseBrowserActivity extends AppCompatActivity and crashes
+     under the app's platform Material theme ("must use a Theme.AppCompat theme").
+     It is no longer a launch target — the Catalog route hosts the custom browser
+     (a plain ComponentActivity that runs under the app theme, ticket
+     design-previews-08; fix round 1 removed the superseded standalone activity) —
+     but the AAR class stays merged from the library, so it keeps the AppCompat
+     theme override (dark variant, per ticket 07) to remain launchable, e.g. via adb. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <application>
@@ -12,9 +13,5 @@
             android:name="com.airbnb.android.showkase.ui.ShowkaseBrowserActivity"
             android:theme="@style/Theme.AppCompat.NoActionBar"
             tools:replace="android:theme" />
-        <activity
-            android:name="com.ivandsky.puzzlebox.app.debug.ShowkaseBrowserActivity"
-            android:exported="false"
-            android:label="Showkase (debug)" />
     </application>
 </manifest>
