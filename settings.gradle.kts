@@ -23,6 +23,7 @@ dependencyResolutionManagement {
 rootProject.name = "PuzzleBox"
 
 include(":app")
+include(":backend:firebase")
 include(":core:designsystem")
 include(":core:common")
 include(":core:data")
