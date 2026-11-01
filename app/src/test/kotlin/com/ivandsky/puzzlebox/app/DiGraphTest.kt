@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.app
 
 import android.app.Application
 import com.ivandsky.puzzlebox.app.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.db.PuzzleBoxDatabase
@@ -52,6 +53,9 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<IdentityService>())
             assertNotNull(koin.get<LeaderboardRepository>())
             assertNotNull(koin.get<GoogleIdTokenProvider>())
+            // C1 regression: ProfileRoute's koinViewModel() needs this definition —
+            // without it the first Profile composition throws NoDefinitionFound.
+            assertNotNull(koin.get<ProfileViewModel>())
         } finally {
             koinApp.close()
         }

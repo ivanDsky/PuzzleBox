@@ -20,7 +20,13 @@ import kotlin.coroutines.cancellation.CancellationException
  * which is exactly what makes the backend swappable.
  */
 interface GoogleIdTokenProvider {
-    suspend fun idToken(): GoogleIdToken
+    /**
+     * [activityContext] must be an Activity context below API 34: the Credential
+     * Manager provider launches its own activity from it, which crashes from an
+     * application context. The application context stays internal (resources,
+     * clearCredentialState).
+     */
+    suspend fun idToken(activityContext: Context): GoogleIdToken
 }
 
 sealed interface GoogleIdToken {
@@ -41,14 +47,15 @@ class CredentialManagerGoogleIdTokenProvider(
     private val context: Context,
 ) : GoogleIdTokenProvider {
 
-    override suspend fun idToken(): GoogleIdToken = try {
+    override suspend fun idToken(activityContext: Context): GoogleIdToken = try {
         val manager = CredentialManager.create(context)
         val option = GetGoogleIdOption.Builder()
             .setServerClientId(context.getString(R.string.default_web_client_id))
             .setFilterByAuthorizedAccounts(false)
             .build()
         val response = manager.getCredential(
-            context,
+            // The provider launches its own activity from this context below API 34.
+            activityContext,
             GetCredentialRequest.Builder().addCredentialOption(option).build(),
         )
         val credential = response.credential

@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app.leaderboard
 
+import android.app.Application
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitError
@@ -25,13 +26,18 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * The submit hook (brief §3): record writes are the only source of entries (A5),
  * submission is deduped per (uid, puzzleRef), and signed-out/offline failures never
- * surface (A7).
+ * surface (A7). Robolectric: the failure path logs through android.util.Log.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], application = Application::class)
 class LeaderboardSubmitWatcherTest {
 
     private val day = LocalDate.of(2026, 10, 31)
@@ -174,5 +180,37 @@ class LeaderboardSubmitWatcherTest {
 
         assertEquals(2, leaderboard.submitted.size)
         assertEquals("u2", leaderboard.submitted.last().uid)
+    }
+
+    @Test
+    fun `unavailable submissions un-mark and retry on the next emission (M5)`() = runTest {
+        val records = FakeRecordsRepo(listOf(record()))
+        val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
+        var attempts = 0
+        val leaderboard = FakeLeaderboardRepository(
+            nextSubmitResult = { entry ->
+                attempts++
+                if (attempts == 1) SubmitResult.Err(SubmitError.Unavailable("offline"))
+                else SubmitResult.Ok(entry)
+            },
+        )
+        val scheduler = TestCoroutineScheduler()
+        val scope = scope(scheduler)
+
+        LeaderboardSubmitWatcher(records, identity, leaderboard, scope).start()
+        scheduler.advanceUntilIdle()
+        assertEquals(1, attempts) // attempted once, failed
+
+        // A records change re-emits the list (Room semantics) and must retry the
+        // failed key — pre-fix it stayed marked. The identical single-record list
+        // would conflate away on the StateFlow, so the write adds another day.
+        records.emit(listOf(record(), record(ref = testZipRef(day, 593))))
+        scheduler.advanceUntilIdle()
+
+        assertEquals(3, attempts) // 592 retried, 593 first attempt
+        assertEquals(
+            listOf("zip/2026-10-31/592", "zip/2026-10-31/593"),
+            leaderboard.submitted.drop(1).map { it.puzzleRef },
+        )
     }
 }

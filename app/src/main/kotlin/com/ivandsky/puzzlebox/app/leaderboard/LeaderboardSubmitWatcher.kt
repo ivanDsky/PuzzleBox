@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntries
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -42,22 +43,36 @@ class LeaderboardSubmitWatcher(
                         uid = me.uid,
                         displayName = me.displayName,
                     ) ?: continue
-                    if (!submitted.add(me.uid to entry.puzzleRef)) continue // in-process dedup
-                    scope.launch { submitQuietly(entry) }
+                    val key = me.uid to entry.puzzleRef
+                    if (!submitted.add(key)) continue // in-process dedup
+                    scope.launch {
+                        // A failed attempt un-marks the key: the next records emission
+                        // retries it, so an offline flap doesn't silence the player
+                        // until process death. Permission rejections retry too, but
+                        // the rules-backed first-write-wins keeps that harmless.
+                        if (!submitQuietly(entry)) submitted.remove(key)
+                    }
                 }
             }
         }
     }
 
-    private suspend fun submitQuietly(entry: LeaderboardEntry) {
-        try {
-            leaderboard.submit(entry)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            // A7: offline/failed submissions never surface; the local record already stands.
-            Log.w(TAG, "leaderboard submit deferred: ${e.message}")
+    /** True when the entry is durably on the board (new or deduped); false = retry later. */
+    private suspend fun submitQuietly(entry: LeaderboardEntry): Boolean = try {
+        when (val result = leaderboard.submit(entry)) {
+            is SubmitResult.Ok, is SubmitResult.Deduped -> true
+            is SubmitResult.Err -> {
+                // A7: offline/failed submissions never surface; the local record already
+                // stands and the watcher retries on the next records emission.
+                Log.w(TAG, "leaderboard submit deferred: ${result.error}")
+                false
+            }
         }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Log.w(TAG, "leaderboard submit deferred: ${e.message}")
+        false
     }
 
     private companion object {
