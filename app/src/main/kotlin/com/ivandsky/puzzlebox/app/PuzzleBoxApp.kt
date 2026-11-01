@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -28,12 +27,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import android.content.Intent
 import android.provider.Settings
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
@@ -49,15 +45,16 @@ import com.ivandsky.puzzlebox.app.nav.Profile
 import com.ivandsky.puzzlebox.app.nav.ReplayZip
 import com.ivandsky.puzzlebox.app.nav.Result
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
+import com.ivandsky.puzzlebox.app.screens.CatalogUnavailableScreen
 import com.ivandsky.puzzlebox.app.screens.ProfileRoute
 import com.ivandsky.puzzlebox.data.model.ThemeMode
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.TokenCatalogScreen
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.playLayoutFor
 import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.HistoryRoute
 import com.ivandsky.puzzlebox.history.historyLayoutFor
+import com.ivandsky.puzzlebox.app.screens.CatalogUnavailableScreen
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.HomeRoute
 import com.ivandsky.puzzlebox.home.homeLayoutFor
@@ -216,8 +213,7 @@ internal fun puzzleBoxEntryProvider(
                 onReplay = { ready ->
                     backStack.add(
                         ReplayZip(Base64.getEncoder().encodeToString(ready.session)),
-                    )
-                },
+                    )                },
             )
         }
     }
@@ -255,7 +251,7 @@ internal fun puzzleBoxEntryProvider(
         SceneCanvas { ProfileRoute(onOpenCatalog = { backStack.add(Catalog) }) }
     }
     entry<Catalog> {
-        SceneCanvas { CatalogScreenWithShowkaseTrial() }
+        SceneCanvas { CatalogScreen() }
     }
 }
 
@@ -265,60 +261,49 @@ private fun select(key: NavKey, backStack: NavBackStack<NavKey>) {
     backStack.add(key)
 }
 
-// Ticket 23 nav contract — solving: everything above Home unwinds and the result takes
-// its place, so the system back (a plain NavDisplay pop) lands on Home — the same
-// surface the flow entered from (senior-UX wayfinding: back never surprises). The Play
-// tab root sits directly on the stack with no Home beneath it; the unwind supplies one
-// so the pop always has somewhere predictable to go.
-internal fun NavBackStack<NavKey>.solveToResult(solved: Result) {
-    if (lastOrNull() == solved) return
-    while (isNotEmpty() && lastOrNull() != Home) removeLastOrNull()
-    if (isEmpty()) add(Home)
-    add(solved)
+// Catalog route (ticket showkase-v2-01): debug builds render the new Showkase browser
+// inline — it follows PuzzleBoxTheme instead of the old pinned-dark activity. Main cannot
+// reference debug-only code at compile time (the debug source set doesn't exist in
+// release), so the browser is registered reflectively: loading CatalogDebugBinding runs
+// its class-init, which assigns DebugCatalogContent. The FLAG_DEBUGGABLE gate keeps
+// release from ever touching the reflection path; anything that can't or shouldn't load
+// the browser (release, non-debuggable) gets the cutover placeholder (showkase-v2-05) —
+// the old screens are gone, not demoted to a fallback.
+internal object DebugCatalogContent {
+    @Volatile
+    var browser: (
+@Composable () -> Unit)? = null
 }
 
-// Ticket 23 nav contract — "Play again": the result pops and a fresh play entry takes
-// its place. The result route has already reset the flow's session to a fresh play of
-// the SAME puzzle (ResultRoute → ZipPlayState.replay), which the play route keeps.
-internal fun NavBackStack<NavKey>.playAgainFromResult() {
-    removeLastOrNull()
-    if (lastOrNull() != Play) add(Play)
+private const val DEBUG_CATALOG_BINDING =
+    "com.ivandsky.puzzlebox.app.debug.CatalogDebugBinding"
+@Composable
+private fun CatalogScreen() {
+    val debugBrowser = debugCatalogBrowser()
+    if (debugBrowser != null) {
+        debugBrowser()
+    } else {
+        CatalogUnavailableScreen()
+    }
 }
-
-// Double-tap guard: pushing a destination that is already the stack top would need two
-// backs to unwind — add only when it isn't (Rev17).
-private fun NavBackStack<NavKey>.pushOnce(key: NavKey) {
-    if (lastOrNull() != key) add(key)
-}
-
-// Ticket design-previews-08: the "Showkase" button opens the custom flat dark browser
-// from :app's debug source set — still launched by class name so :app main keeps no
-// compile-time reference to debug-only code, and the FLAG_DEBUGGABLE gate keeps the
-// button out of release. The stock AAR activity stays merged but is no longer the
-// target; it needs no intent extras from here (that requirement was stock-activity-only).
-private const val SHOWKASE_BROWSER_ACTIVITY =
-    "com.ivandsky.puzzlebox.app.debug.ShowkaseBrowserActivity"
 
 @Composable
-private fun CatalogScreenWithShowkaseTrial() {
-    val context = LocalContext.current
-    val isDebuggable = context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
-    Box(Modifier.fillMaxSize()) {
-        TokenCatalogScreen()
-        if (isDebuggable) {
-            Button(
-                onClick = {
-                    context.startActivity(
-                        Intent().setClassName(context.packageName, SHOWKASE_BROWSER_ACTIVITY),
-                    )
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp),
-            ) {
-                Text("Showkase")
+private fun debugCatalogBrowser(): (
+@Composable () -> Unit)? {
+    val isDebuggable = LocalContext.current.applicationInfo.flags and
+        android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
+    return if (isDebuggable) {
+        remember {
+            try {
+                // Class.forName initializes the class, running the binding's registration.
+                Class.forName(DEBUG_CATALOG_BINDING)
+                DebugCatalogContent.browser
+            } catch (_: Throwable) {
+                null
             }
         }
+    } else {
+        null
     }
 }
 
@@ -355,7 +340,8 @@ private fun resultEnterTransform(reduceMotion: Boolean): EnterTransition =
 // Opaque canvas behind every nav scene: without it the AnimatedContent layers blend and
 // screens read as ghosts of each other during the transition.
 @Composable
-private fun SceneCanvas(content: @Composable () -> Unit) {
+private fun SceneCanvas(content: 
+@Composable () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
