@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -179,6 +180,29 @@ class ShowkaseBrowserScreenshotTest {
             composeRule.onNodeWithText("Collapse all").performClick()
             composeRule.waitForIdle()
             assertTrue(storedExpandedGroups().isEmpty())
+        }
+    }
+
+    // Ticket 08: the detail round trip must return to the SAME list state (hoisted
+    // LazyListState), not reset to the top. Deep-offset restoration itself is proven
+    // on-device (evidence/08-scroll-before-detail.png vs 08-scroll-after-back.png —
+    // byte-identical below the status bar): Robolectric cannot reproduce it because
+    // this stack never applies lazy scroll requests — touch drags, semantics
+    // ScrollBy/ScrollToIndex and even LazyListState(initialFirstVisibleItemIndex)
+    // all render at the top, so the harness can only exercise the round trip at the
+    // initial offset. Still guards: back returns to the LIST (not a dead state) with
+    // expansion and the row intact.
+    @Test
+    fun `detail round trip returns to the browser list intact`() {
+        runBrowser {
+            expandButtons()
+            composeRule.onNodeWithText("PrimaryButton").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithContentDescription("Back to browser").assertExists()
+            composeRule.onNodeWithContentDescription("Back to browser").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("PrimaryButton").assertExists()
+            composeRule.onNodeWithText("BUTTONS").assertExists()
         }
     }
 

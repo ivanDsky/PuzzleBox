@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -140,6 +142,13 @@ fun ShowkaseBrowserScreen() {
     // carries a composable lambda that can't go in a Bundle) — re-resolve it from the
     // metadata after rotation or process restore.
     var selectedComponentKey by rememberSaveable { mutableStateOf<String?>(null) }
+    // Ticket 08: the list's scroll state is hoisted ABOVE the detail switch. Opening a
+    // detail replaces the list branch — with the state created inside [GroupList] that
+    // disposal restarted the list at the top on back. Held here, the same LazyListState
+    // instance survives the round-trip and the list reappears at the exact offset.
+    // rememberSaveable-backed, so rotation and process restore keep working too;
+    // expansion and query already live at this scope and survive untouched.
+    val listState = rememberLazyListState()
     val selectedComponent = metadata?.componentList
         ?.firstOrNull { it.componentKey == selectedComponentKey }
     BackHandler(enabled = selectedComponent != null) { selectedComponentKey = null }
@@ -157,6 +166,7 @@ fun ShowkaseBrowserScreen() {
             val allKeys = remember(metadata) { metadata?.let(::allGroupKeys).orEmpty() }
             ShowkaseBrowserContent(
                 metadata = metadata,
+                listState = listState,
                 expandedGroups = expandedGroups,
                 onToggleGroup = { key ->
                     val next = if (key in expandedGroups) expandedGroups - key else expandedGroups + key
@@ -210,13 +220,15 @@ private fun BrowserThemeHost(
 }
 
 /**
- * Stateless body (previewable): metadata, expansion, and the search text arrive as data,
- * toggles as events, so previews need no provider loading and Layoutlib stays
- * composition-safe.
+ * Previewable body: metadata, expansion, the search text and the list's scroll state
+ * arrive as data/injected state (ticket 08 hoists [listState] above the detail switch
+ * so back from detail restores the offset), toggles as events, so previews need no
+ * provider loading and Layoutlib stays composition-safe.
  */
 @Composable
 internal fun ShowkaseBrowserContent(
     metadata: ShowkaseElementsMetadata?,
+    listState: LazyListState,
     expandedGroups: Set<String>,
     onToggleGroup: (String) -> Unit,
     allGroupsExpanded: Boolean,
@@ -272,6 +284,7 @@ internal fun ShowkaseBrowserContent(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxWidth(),
+                            listState = listState,
                             results = results,
                             expandedGroups = visibleGroups,
                             onToggleGroup = onToggleGroup,
@@ -434,6 +447,7 @@ private fun ErrorPane(modifier: Modifier) {
 @Composable
 private fun GroupList(
     modifier: Modifier,
+    listState: LazyListState,
     results: SearchResults,
     expandedGroups: Set<String>,
     onToggleGroup: (String) -> Unit,
@@ -441,7 +455,8 @@ private fun GroupList(
     onOpenComponent: (ShowkaseBrowserComponent) -> Unit,
 ) {
     LazyColumn(
-        modifier,
+        state = listState,
+        modifier = modifier,
         contentPadding = PaddingValues(bottom = Spacing.xl),
     ) {
         // While searching, sections with zero matches drop out entirely (title included)
@@ -768,7 +783,8 @@ private fun ShowkaseBrowserContentPreview(
     PuzzleBoxTheme {
         ShowkaseBrowserContent(
             previewMetadata(),
-            expandedGroups,
+            listState = rememberLazyListState(),
+            expandedGroups = expandedGroups,
             onToggleGroup = {},
             allGroupsExpanded = false,
             onSetAllGroupsExpanded = {},
@@ -792,6 +808,7 @@ private fun ShowkaseBrowserSearchPreview() {
         // expanded even though the persisted set is empty (A7 auto-expand).
         ShowkaseBrowserContent(
             previewMetadata(),
+            listState = rememberLazyListState(),
             expandedGroups = emptySet(),
             onToggleGroup = {},
             allGroupsExpanded = false,
@@ -813,6 +830,7 @@ private fun ShowkaseBrowserErrorPreview() {
     PuzzleBoxTheme {
         ShowkaseBrowserContent(
             metadata = null,
+            listState = rememberLazyListState(),
             expandedGroups = emptySet(),
             onToggleGroup = {},
             allGroupsExpanded = false,
@@ -839,6 +857,7 @@ private fun ShowkaseBrowserForcedDarkPreview() {
         BrowserThemeHost(BrowserThemeOverride.Dark) {
             ShowkaseBrowserContent(
                 previewMetadata(),
+                listState = rememberLazyListState(),
                 expandedGroups = emptySet(),
                 onToggleGroup = {},
                 allGroupsExpanded = false,
@@ -862,6 +881,7 @@ private fun ShowkaseBrowserForcedLightPreview() {
         BrowserThemeHost(BrowserThemeOverride.Light) {
             ShowkaseBrowserContent(
                 previewMetadata(),
+                listState = rememberLazyListState(),
                 expandedGroups = emptySet(),
                 onToggleGroup = {},
                 allGroupsExpanded = false,
