@@ -9,10 +9,12 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitError
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.retryWhen
 
 /**
  * Firestore implementation of the leaderboard seam (design §3): boards live at
@@ -33,7 +35,19 @@ internal class FirestoreLeaderboardRepository(
             .map<List<Map<String, Any?>>, LeaderboardSnapshot?> { docs ->
                 LeaderboardSnapshot(board = board, entries = docs.mapNotNull(LeaderboardDocCodec::decode))
             }
-            .catch { emit(null) } // listener error (offline, denied) degrades to null (A7)
+            // Transient listener errors (offline flap) retry with backoff; only when
+            // they persist does the flow terminate with the A7 soft null — one hiccup
+            // must not kill the board for the whole session. TERMINAL null (not an
+            // error) stays the contract so callers never surface a failure.
+            .retryWhen { cause, attempt ->
+                if (cause is Exception && attempt < MAX_OBSERVE_RETRIES) {
+                    delay(OBSERVE_RETRY_BASE_MS * (attempt + 1))
+                    true
+                } else {
+                    false
+                }
+            }
+            .catch { emit(null) }
     }
 
     override suspend fun submit(entry: LeaderboardEntry): SubmitResult {
@@ -60,6 +74,11 @@ internal class FirestoreLeaderboardRepository(
         } catch (e: Exception) {
             SubmitResult.Err(SubmitError.Unknown(e))
         }
+    }
+
+    private companion object {
+        const val MAX_OBSERVE_RETRIES = 2
+        const val OBSERVE_RETRY_BASE_MS = 1_000L
     }
 }
 
