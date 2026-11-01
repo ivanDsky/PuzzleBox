@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "790838365078",
+    "project_id": "puzzlebox-f3356",
+    "storage_bucket": "puzzlebox-f3356.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:790838365078:android:f72e195dff19918520abb7",
+        "android_client_info": {
+          "package_name": "com.ivandsky.puzzlebox"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "790838365078-1t50mk0b2hd5efthmv59hjd7hmlhdu4r.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ivandsky.puzzlebox",
+            "certificate_hash": "b935b10e821067d4e44c8705af329fa00922612a"
+          }
+        },
+        {
+          "client_id": "790838365078-nm861vk1tp5dlppt786t6uq5v1b7njei.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAQEhxqicGviWgKeREe220P29zv-lFpFc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "790838365078-nm861vk1tp5dlppt786t6uq5v1b7njei.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

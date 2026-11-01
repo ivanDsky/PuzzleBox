@@ -16,5 +16,11 @@
             android:name="com.ivandsky.puzzlebox.app.debug.ShowkaseBrowserActivity"
             android:exported="false"
             android:label="Showkase (debug)" />
+        <!-- Host activity for Robolectric compose tests (ProfileScreenTest et al.):
+             compose-ui-test-manifest only merges into unit-test manifests, but app-module
+             Robolectric tests parse the app's debug manifest, so register it here too. -->
+        <activity
+            android:name="androidx.activity.ComponentActivity"
+            android:exported="true" />
     </application>
 </manifest>

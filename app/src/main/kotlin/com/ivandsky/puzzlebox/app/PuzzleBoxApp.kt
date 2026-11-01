@@ -41,7 +41,7 @@ import com.ivandsky.puzzlebox.app.nav.Play
 import com.ivandsky.puzzlebox.app.nav.Profile
 import com.ivandsky.puzzlebox.app.nav.ReplayZip
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
-import com.ivandsky.puzzlebox.app.screens.ProfileScreen
+import com.ivandsky.puzzlebox.app.screens.ProfileRoute
 import com.ivandsky.puzzlebox.data.model.ThemeMode
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.TokenCatalogScreen
@@ -181,7 +181,7 @@ fun PuzzleBoxApp(
                         }
                     }
                     entry<Profile> {
-                        SceneCanvas { ProfileScreen(onOpenCatalog = { backStack.add(Catalog) }) }
+                        SceneCanvas { ProfileRoute(onOpenCatalog = { backStack.add(Catalog) }) }
                     }
                     entry<Catalog> {
                         SceneCanvas { CatalogScreenWithShowkaseTrial() }
