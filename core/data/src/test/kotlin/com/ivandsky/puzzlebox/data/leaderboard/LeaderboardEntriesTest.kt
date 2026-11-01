@@ -165,6 +165,32 @@ class LeaderboardEntriesTest {
         assertEquals(1, snapshot.formatVersion)
         assertEquals(1, LeaderboardSnapshot.FORMAT_VERSION)
     }
+
+    @Test
+    fun `empty or blank display names fall back to Player`() {
+        // Google may deliver an empty/blank display name (null maps to "" upstream);
+        // the rules would reject it and the player would be invisible on every board.
+        val blank = LeaderboardEntries.fromRecord(record(), uid = "u1", displayName = "   ")
+        assertEquals("Player", blank!!.displayName)
+
+        val empty = LeaderboardEntries.fromEntity(entity(), uid = "u1", displayName = "")
+        assertEquals("Player", empty!!.displayName)
+    }
+
+    @Test
+    fun `overlong display names truncate to the rules limit`() {
+        val long = LeaderboardEntries.fromRecord(record(), uid = "u1", displayName = "x".repeat(80))
+        assertEquals(64, long!!.displayName.length)
+
+        val entitySide = LeaderboardEntries.fromEntity(entity(), uid = "u1", displayName = "y".repeat(65))
+        assertEquals(64, entitySide!!.displayName.length)
+    }
+
+    @Test
+    fun `normal display names pass through untouched`() {
+        val normal = LeaderboardEntries.fromRecord(record(), uid = "u1", displayName = "Ann")
+        assertEquals("Ann", normal!!.displayName)
+    }
 }
 
 /** A ref shape no registered game ever authors — exercises the preserve-or-drop path. */
