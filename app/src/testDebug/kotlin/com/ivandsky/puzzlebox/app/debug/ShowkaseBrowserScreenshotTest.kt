@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app.debug
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import java.io.File
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -78,6 +80,70 @@ class ShowkaseBrowserScreenshotTest {
         }
     }
 
+    // Ticket 06: the theme switch forces the whole chrome OPPOSITE the ambient app
+    // theme. Two taps cycle System → Light → Dark; the capture must be dark end to
+    // end even though PuzzleBoxTheme here wraps a light app.
+    @Test
+    fun `theme switch forces dark chrome in light app`() {
+        capture(name = "browser-forced-dark-in-light.png") {
+            composeRule.onNodeWithText("Theme: System").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Theme: Light").performClick()
+            composeRule.waitForIdle()
+        }
+    }
+
+    @Test
+    fun `theme switch forces light chrome in dark app`() {
+        capture(darkTheme = true, name = "browser-forced-light-in-dark.png") {
+            composeRule.onNodeWithText("Theme: System").performClick()
+            composeRule.waitForIdle()
+        }
+    }
+
+    // Ticket 06 bulk actions: one tap expands EVERY group; the trailing chip flips to
+    // "Collapse all" exactly when the persisted set covers all keys, so the flip in
+    // the golden doubles as the allExpanded assertion.
+    @Test
+    fun `expand all opens every group`() {
+        capture(name = "browser-all-expanded.png") {
+            composeRule.onNodeWithText("Expand all").performClick()
+            composeRule.waitForIdle()
+        }
+    }
+
+    @Test
+    fun `collapse all closes every opened group`() {
+        capture(name = "browser-all-collapsed.png") {
+            composeRule.onNodeWithText("Expand all").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Collapse all").performClick()
+            composeRule.waitForIdle()
+        }
+    }
+
+    // The bulk action must ride the same write-through path as single toggles so the
+    // state survives process death: assert the pref file after each click (apply() is
+    // disk-backed — the same persistence ticket 01 proved across a restart), not just
+    // pixels.
+    @Test
+    fun `expand all writes through to prefs and collapse all clears them`() {
+        runBrowser {
+            composeRule.onNodeWithText("Expand all").performClick()
+            composeRule.waitForIdle()
+            assertTrue(storedExpandedGroups().isNotEmpty())
+            composeRule.onNodeWithText("Collapse all").performClick()
+            composeRule.waitForIdle()
+            assertTrue(storedExpandedGroups().isEmpty())
+        }
+    }
+
+    private fun storedExpandedGroups(): Set<String> =
+        (RuntimeEnvironment.getApplication() as Context)
+            .getSharedPreferences(ShowkaseBrowserPrefs.PREFERENCES_FILE, Context.MODE_PRIVATE)
+            .getStringSet(ShowkaseBrowserPrefs.KEY_EXPANDED_GROUPS, emptySet())
+            .orEmpty()
+
     private fun expandButtons() {
         // CollapsibleGroup renders the group name uppercased; the whole header row is
         // clickable and merges the text node, so clicking the text hits the toggle.
@@ -85,7 +151,9 @@ class ShowkaseBrowserScreenshotTest {
         composeRule.waitForIdle()
     }
 
-    private fun capture(darkTheme: Boolean = false, name: String, fontScale: Float = 1f, interact: () -> Unit = {}) {
+    // Composition runner shared by capture() and the plain-assertion tests: setContent
+    // on the real entry point, then interact.
+    private fun runBrowser(darkTheme: Boolean = false, fontScale: Float = 1f, interact: () -> Unit = {}) {
         // Must run before setContent: LocalDensity reads the configuration at
         // composition. Robolectric's qualifier strings don't parse a font-scale
         // segment, so the programmatic API is the supported mechanism.
@@ -102,6 +170,10 @@ class ShowkaseBrowserScreenshotTest {
             }
         }
         interact()
+    }
+
+    private fun capture(darkTheme: Boolean = false, name: String, fontScale: Float = 1f, interact: () -> Unit = {}) {
+        runBrowser(darkTheme, fontScale, interact)
         composeRule.onRoot()
             .captureRoboImage(File(SNAPSHOT_DIR, name).absolutePath)
     }

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -79,6 +81,30 @@ private const val TYPOGRAPHY_KEY_PREFIX = "typography"
 
 private fun groupKey(prefix: String, group: String) = "$prefix:$group"
 
+// Every group key the browser can render, across all three sections — what the
+// collapse-all/expand-all toolbar action (ticket 06) writes in one shot.
+private fun allGroupKeys(metadata: ShowkaseElementsMetadata): Set<String> = buildSet {
+    metadata.componentList.forEach { add(groupKey(COMPONENT_KEY_PREFIX, it.group)) }
+    metadata.colorList.forEach { add(groupKey(COLOR_KEY_PREFIX, it.colorGroup)) }
+    metadata.typographyList.forEach { add(groupKey(TYPOGRAPHY_KEY_PREFIX, it.typographyGroup)) }
+}
+
+/**
+ * Toolbar theme positions (ticket showkase-v2-06): [System] removes the override —
+ * the browser follows the app theme the Catalog route already sits in; [Light]/[Dark]
+ * force the whole browser (chrome, backdrops, detail screen) opposite the app while
+ * set. Session-scoped like the search text: survives rotation via rememberSaveable,
+ * deliberately not persisted.
+ */
+internal enum class BrowserThemeOverride(val label: String) {
+    System("System"),
+    Light("Light"),
+    Dark("Dark"),
+}
+
+private fun nextThemeOverride(override: BrowserThemeOverride): BrowserThemeOverride =
+    BrowserThemeOverride.entries[(override.ordinal + 1) % BrowserThemeOverride.entries.size]
+
 private fun loadShowkaseProvider(): ShowkaseProvider? = try {
     Class.forName(SHOWKASE_CODEGEN_CLASS)
         .getDeclaredConstructor()
@@ -97,6 +123,8 @@ fun ShowkaseBrowserScreen() {
     val context = LocalContext.current
     val prefs = remember { ShowkaseBrowserPrefs(context) }
     var expandedGroups by remember { mutableStateOf(prefs.expandedGroups()) }
+    // Ticket 06 theme switch: session-scoped override, see [BrowserThemeOverride].
+    var themeOverride by rememberSaveable { mutableStateOf(BrowserThemeOverride.System) }
     // Transient filter text: survives rotation (rememberSaveable), intentionally not
     // persisted — a fresh launch always starts unfiltered.
     var query by rememberSaveable { mutableStateOf("") }
@@ -109,27 +137,65 @@ fun ShowkaseBrowserScreen() {
         ?.firstOrNull { it.componentKey == selectedComponentKey }
     BackHandler(enabled = selectedComponent != null) { selectedComponentKey = null }
 
-    if (selectedComponent != null) {
-        ShowkaseComponentDetailScreen(
-            component = selectedComponent,
-            onBack = { selectedComponentKey = null },
-        )
-        return
+    BrowserThemeHost(themeOverride) {
+        if (selectedComponent != null) {
+            ShowkaseComponentDetailScreen(
+                component = selectedComponent,
+                onBack = { selectedComponentKey = null },
+            )
+        } else {
+            // All group keys upfront: the expand/collapse-all toolbar action writes
+            // every key at once through the same write-through path as single toggles.
+            val allKeys = remember(metadata) { metadata?.let(::allGroupKeys).orEmpty() }
+            ShowkaseBrowserContent(
+                metadata = metadata,
+                expandedGroups = expandedGroups,
+                onToggleGroup = { key ->
+                    val next = if (key in expandedGroups) expandedGroups - key else expandedGroups + key
+                    expandedGroups = next
+                    // Write-through: SharedPreferences outlives process death and app restarts,
+                    // which rememberSaveable alone cannot cover.
+                    prefs.setExpandedGroups(next)
+                },
+                allGroupsExpanded = allKeys.isNotEmpty() && expandedGroups.containsAll(allKeys),
+                onSetAllGroupsExpanded = { expand ->
+                    val next = if (expand) allKeys else emptySet()
+                    expandedGroups = next
+                    prefs.setExpandedGroups(next)
+                },
+                themeOverride = themeOverride,
+                onThemeOverrideChange = { themeOverride = it },
+                query = query,
+                onQueryChange = { query = it },
+                onOpenComponent = { selectedComponentKey = it.componentKey },
+            )
+        }
     }
+}
 
-    ShowkaseBrowserContent(
-        metadata = metadata,
-        expandedGroups = expandedGroups,
-        onToggleGroup = { key ->
-            val next = if (key in expandedGroups) expandedGroups - key else expandedGroups + key
-            expandedGroups = next
-            // Write-through: SharedPreferences outlives process death and app restarts,
-            // which rememberSaveable alone cannot cover.
-            prefs.setExpandedGroups(next)
+/**
+ * Applies the toolbar's theme override around everything the browser draws: System
+ * keeps the ambient scheme (the app theme the route inherits — MainActivity resolves
+ * SYSTEM/LIGHT/DARK into PuzzleBoxTheme without exposing the result), Light/Dark
+ * re-enter [PuzzleBoxTheme] forced, re-theming chrome, backdrops AND the detail
+ * screen in one move. Ambient darkness is read from the CURRENT scheme's background
+ * BEFORE wrapping — under an override the scheme is already the forced one, so the
+ * read must happen outside. Light/dark backgrounds differ hugely in luminance
+ * (0xFFF2F4F7 vs 0xFF101418), making the scheme a faithful read.
+ */
+@Composable
+private fun BrowserThemeHost(
+    override: BrowserThemeOverride,
+    content: @Composable () -> Unit,
+) {
+    val ambientDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    PuzzleBoxTheme(
+        darkTheme = when (override) {
+            BrowserThemeOverride.System -> ambientDark
+            BrowserThemeOverride.Light -> false
+            BrowserThemeOverride.Dark -> true
         },
-        query = query,
-        onQueryChange = { query = it },
-        onOpenComponent = { selectedComponentKey = it.componentKey },
+        content = content,
     )
 }
 
@@ -143,6 +209,10 @@ internal fun ShowkaseBrowserContent(
     metadata: ShowkaseElementsMetadata?,
     expandedGroups: Set<String>,
     onToggleGroup: (String) -> Unit,
+    allGroupsExpanded: Boolean,
+    onSetAllGroupsExpanded: (Boolean) -> Unit,
+    themeOverride: BrowserThemeOverride,
+    onThemeOverrideChange: (BrowserThemeOverride) -> Unit,
     query: String,
     onQueryChange: (String) -> Unit,
     onOpenComponent: (ShowkaseBrowserComponent) -> Unit,
@@ -155,7 +225,15 @@ internal fun ShowkaseBrowserContent(
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Column(Modifier.fillMaxSize()) {
-            BrowserHeader(query, onQueryChange)
+            BrowserHeader(
+                query = query,
+                onQueryChange = onQueryChange,
+                themeOverride = themeOverride,
+                onThemeOverrideChange = onThemeOverrideChange,
+                allGroupsExpanded = allGroupsExpanded,
+                onSetAllGroupsExpanded = onSetAllGroupsExpanded,
+                groupsActionEnabled = metadata != null,
+            )
             when {
                 metadata == null -> ErrorPane(
                     Modifier
@@ -193,7 +271,15 @@ internal fun ShowkaseBrowserContent(
 }
 
 @Composable
-private fun BrowserHeader(query: String, onQueryChange: (String) -> Unit) {
+private fun BrowserHeader(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    themeOverride: BrowserThemeOverride,
+    onThemeOverrideChange: (BrowserThemeOverride) -> Unit,
+    allGroupsExpanded: Boolean,
+    onSetAllGroupsExpanded: (Boolean) -> Unit,
+    groupsActionEnabled: Boolean,
+) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -210,7 +296,47 @@ private fun BrowserHeader(query: String, onQueryChange: (String) -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(Spacing.sm))
+        ToolbarControls(
+            themeOverride = themeOverride,
+            onThemeOverrideChange = onThemeOverrideChange,
+            allGroupsExpanded = allGroupsExpanded,
+            onSetAllGroupsExpanded = onSetAllGroupsExpanded,
+            groupsActionEnabled = groupsActionEnabled,
+        )
+        Spacer(Modifier.height(Spacing.sm))
         SearchField(query, onQueryChange)
+    }
+}
+
+/**
+ * Ticket 06 toolbar: theme switch (cycles System → Light → Dark; the label always
+ * shows the active position) and collapse/expand-all, trailing-aligned under the
+ * subtitle. Labeled chips instead of icon buttons on purpose — the project freezes
+ * the CORE material icon set (no brightness/unfold glyphs), and the labels keep the
+ * three theme positions and the bulk action self-explanatory. The bulk action is
+ * meaningless without metadata, so it disables on the error pane.
+ */
+@Composable
+private fun ToolbarControls(
+    themeOverride: BrowserThemeOverride,
+    onThemeOverrideChange: (BrowserThemeOverride) -> Unit,
+    allGroupsExpanded: Boolean,
+    onSetAllGroupsExpanded: (Boolean) -> Unit,
+    groupsActionEnabled: Boolean,
+) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End),
+    ) {
+        AssistChip(
+            onClick = { onThemeOverrideChange(nextThemeOverride(themeOverride)) },
+            label = { Text("Theme: ${themeOverride.label}") },
+        )
+        AssistChip(
+            onClick = { onSetAllGroupsExpanded(!allGroupsExpanded) },
+            label = { Text(if (allGroupsExpanded) "Collapse all" else "Expand all") },
+            enabled = groupsActionEnabled,
+        )
     }
 }
 
@@ -597,7 +723,18 @@ private fun ShowkaseBrowserContentPreview(
     @PreviewParameter(ExpandedGroupsProvider::class) expandedGroups: Set<String>,
 ) {
     PuzzleBoxTheme {
-        ShowkaseBrowserContent(previewMetadata(), expandedGroups, onToggleGroup = {}, query = "", onQueryChange = {}, onOpenComponent = {})
+        ShowkaseBrowserContent(
+            previewMetadata(),
+            expandedGroups,
+            onToggleGroup = {},
+            allGroupsExpanded = false,
+            onSetAllGroupsExpanded = {},
+            themeOverride = BrowserThemeOverride.System,
+            onThemeOverrideChange = {},
+            query = "",
+            onQueryChange = {},
+            onOpenComponent = {},
+        )
     }
 }
 
@@ -612,6 +749,10 @@ private fun ShowkaseBrowserSearchPreview() {
             previewMetadata(),
             expandedGroups = emptySet(),
             onToggleGroup = {},
+            allGroupsExpanded = false,
+            onSetAllGroupsExpanded = {},
+            themeOverride = BrowserThemeOverride.System,
+            onThemeOverrideChange = {},
             query = "button",
             onQueryChange = {},
             onOpenComponent = {},
@@ -627,10 +768,60 @@ private fun ShowkaseBrowserErrorPreview() {
             metadata = null,
             expandedGroups = emptySet(),
             onToggleGroup = {},
+            allGroupsExpanded = false,
+            onSetAllGroupsExpanded = {},
+            themeOverride = BrowserThemeOverride.System,
+            onThemeOverrideChange = {},
             query = "",
             onQueryChange = {},
             onOpenComponent = {},
         )
+    }
+}
+
+// Ticket 06 override proofs: both previews render in the LIGHT and DARK configs
+// (BrowserThemePreview) while forcing the OPPOSITE mode, so the light-config render
+// shows dark chrome and the dark-config render light chrome — the toolbar switch
+// re-themes the whole body, not just the panes.
+@BrowserThemePreview
+@Composable
+private fun ShowkaseBrowserForcedDarkPreview() {
+    PuzzleBoxTheme {
+        BrowserThemeHost(BrowserThemeOverride.Dark) {
+            ShowkaseBrowserContent(
+                previewMetadata(),
+                expandedGroups = emptySet(),
+                onToggleGroup = {},
+                allGroupsExpanded = false,
+                onSetAllGroupsExpanded = {},
+                themeOverride = BrowserThemeOverride.Dark,
+                onThemeOverrideChange = {},
+                query = "",
+                onQueryChange = {},
+                onOpenComponent = {},
+            )
+        }
+    }
+}
+
+@BrowserThemePreview
+@Composable
+private fun ShowkaseBrowserForcedLightPreview() {
+    PuzzleBoxTheme {
+        BrowserThemeHost(BrowserThemeOverride.Light) {
+            ShowkaseBrowserContent(
+                previewMetadata(),
+                expandedGroups = emptySet(),
+                onToggleGroup = {},
+                allGroupsExpanded = false,
+                onSetAllGroupsExpanded = {},
+                themeOverride = BrowserThemeOverride.Light,
+                onThemeOverrideChange = {},
+                query = "",
+                onQueryChange = {},
+                onOpenComponent = {},
+            )
+        }
     }
 }
 
