@@ -40,9 +40,14 @@ android {
     }
 
     testOptions {
-        // Robolectric Compose/resource tests (Profile states, DI graph) read merged resources.
+        // Robolectric Compose/resource tests (Profile states, DI graph) and the
+        // ShowkaseBrowserScreenshotTest screenshot suite read merged resources; the
+        // browser suite needs heap headroom (2g).
         unitTests {
             isIncludeAndroidResources = true
+            all { test ->
+                test.maxHeapSize = "2g"
+            }
         }
     }
 }
@@ -91,4 +96,14 @@ dependencies {
     testImplementation(libs.androidx.compose.material.icons.core)
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.androidx.compose.ui.test.manifest)
+
+    // Screenshot tests for the debug-only browser (showkase-v2-05): same Roborazzi
+    // stack as :core:designsystem. ui-test-manifest ALSO sits on the DEBUG APP
+    // classpath — Robolectric's resources mode reads the app's (binary) debug
+    // manifest, and only app-classpath manifest entries land in it, so
+    // testImplementation alone would leave createComposeRule's ComponentActivity
+    // unresolvable. Debug APK only; release unaffected.
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
 }

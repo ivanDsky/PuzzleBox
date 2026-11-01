@@ -1,26 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- ShowkaseBrowserActivity extends AppCompatActivity and crashes under the app's
-     platform Material theme ("must use a Theme.AppCompat theme"). It is no longer the
-     launch target (ticket design-previews-08 replaced it with the custom browser below)
-     but stays merged from the showkase AAR, so it keeps the AppCompat theme override
-     (dark variant, per ticket 07) to remain launchable — e.g. via adb.
-     The custom browser is a plain ComponentActivity and runs under the app theme. -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-    <application>
-        <activity
-            android:name="com.airbnb.android.showkase.ui.ShowkaseBrowserActivity"
-            android:theme="@style/Theme.AppCompat.NoActionBar"
-            tools:replace="android:theme" />
-        <activity
-            android:name="com.ivandsky.puzzlebox.app.debug.ShowkaseBrowserActivity"
-            android:exported="false"
-            android:label="Showkase (debug)" />
         <!-- Host activity for Robolectric compose tests (ProfileScreenTest et al.):
              compose-ui-test-manifest only merges into unit-test manifests, but app-module
              Robolectric tests parse the app's debug manifest, so register it here too. -->
         <activity
             android:name="androidx.activity.ComponentActivity"
             android:exported="true" />
-    </application>
-</manifest>
