@@ -44,113 +44,79 @@ sealed interface ZipValidation : MoveVerdict {
 
 /**
  * Zip rules (F2 §2): O(1) local checks per move (I1–I5, I8), completeness (I6/I7), and
- * solver-backed hints counted by the caller (A3). Pure — never mutates state.
+ * hints counted by the caller (A3). Pure — never mutates state.
+ *
+ * Thin facade over the ordered [pipeline] (A18 addendum §1): each rule is a self-contained
+ * class whose `violated()` is the single truth; this class only composes them (cheap rules
+ * first, one `val` — never per-move allocation), maps the first violation to the
+ * player-visible [ZipValidation.Reason], and delegates completeness + hints. Structural
+ * preconditions that are not board rules stay here: bounds (I8) and the retract target
+ * check.
  */
 class ZipRules(
-    @Suppress("unused") private val variants: Map<com.ivandsky.puzzlebox.game.VariantId, ZipVariant> = ZipVariants.table,
     private val hints: ZipHints = ZipHints(),
 ) : GameRules<ZipState> {
+
+    /** The fixed rule pipeline (A18): a new rule is a new class + one line here. */
+    val pipeline: List<ZipRule> = listOf(
+        StartCellRule(), // O(1), only consulted on the empty trace
+        AdjacencyRule(), // O(1) index math
+        WallCrossingRule(), // O(1) set lookup
+        CellReuseRule(), // O(path) membership
+        WaypointOrderRule(), // O(path) waypoint count
+        CoverageOnCompleteRule(), // completion judges (I7)
+        EndAtLastWaypointRule(), // completion judges (I6)
+    )
+
+    private val moveRules: List<ZipMoveRule> = pipeline.filterIsInstance<ZipMoveRule>()
+    private val completionRules: List<ZipCompletionRule> = pipeline.filterIsInstance<ZipCompletionRule>()
 
     override fun validate(move: Move, state: ZipState): MoveVerdict =
         validateMove(move as ZipMove, state)
 
     fun validateMove(move: ZipMove, state: ZipState): ZipValidation {
-        val board = state.puzzle.board
-        val path = state.path
-        return when (move) {
-            is ZipMove.Reset -> ZipValidation.Valid
+        when (move) {
+            ZipMove.Reset -> return ZipValidation.Valid
 
-            is ZipMove.RetractTo -> {
-                val index = path.indexOf(move.to)
-                when {
-                    index < 0 -> ZipValidation.Invalid(ZipValidation.Reason.NotInPath)
-                    else -> ZipValidation.Valid // trim to the tail itself is a no-op
-                }
+            is ZipMove.RetractTo -> return if (move.to in state.path) {
+                ZipValidation.Valid // trim to the tail itself is a no-op
+            } else {
+                ZipValidation.Invalid(ZipValidation.Reason.NotInPath)
             }
 
             is ZipMove.Extend -> {
-                if (!board.contains(move.to)) return ZipValidation.Invalid(ZipValidation.Reason.OutOfBounds)
-                if (path.isEmpty()) {
-                    return if (move.to == board.waypoints.first()) {
-                        ZipValidation.Valid
-                    } else {
-                        ZipValidation.Invalid(ZipValidation.Reason.WrongStart)
-                    }
+                if (!state.puzzle.board.contains(move.to)) {
+                    return ZipValidation.Invalid(ZipValidation.Reason.OutOfBounds)
                 }
-                val end = path.last()
-                if (!isAdjacent(end, move.to, board.n)) {
-                    return ZipValidation.Invalid(ZipValidation.Reason.NotAdjacent)
+                // I1–I5: the pipeline is the single truth; the first violated rule names the rejection.
+                for (rule in moveRules) {
+                    rule.check(move, state)?.let { return ZipValidation.Invalid(it.reason) }
                 }
-                if (board.blocked(end, move.to)) {
-                    return ZipValidation.Invalid(ZipValidation.Reason.WallBetween)
-                }
-                if (move.to in path) {
-                    return ZipValidation.Invalid(ZipValidation.Reason.CellAlreadyInPath)
-                }
-                val label = board.waypointLabel(move.to)
-                if (label != null) {
-                    val expectedLabel = path.count(board::isWaypoint) + 1
-                    if (label != expectedLabel) {
-                        return ZipValidation.Invalid(
-                            ZipValidation.Reason.WrongWaypointOrder(board.waypoints[expectedLabel - 1]),
-                        )
-                    }
-                }
-                ZipValidation.Valid
+                return ZipValidation.Valid
             }
         }
     }
 
     override fun isComplete(state: ZipState): Boolean {
-        val board = state.puzzle.board
-        val path = state.path
-        if (path.isEmpty() || path.size != board.cellCount) return false
-        if (path.last() != board.waypoints.last()) return false // I6
-        return verifyPath(state.puzzle, path) // I1–I5 + I8
+        // I6/I7 as pipeline judges first (O(1) rejects), then the linear I1–I5 + I8 oracle.
+        if (completionRules.any { it.violated(ZipMove.Reset, state) }) return false
+        return ZipVerifier.verifyPath(state.puzzle, state.path)
     }
 
     /** Solver-backed hint (F2 §5 §3): Step onto the next solution cell, or — when the
      *  trace is provably dead — Backtrack to the longest still-solvable prefix. The trim
-     *  itself is free; the resulting hint counts once (A3, F2 §10). Reads the solver,
-     *  never the stored solution. */
+     *  itself is free; the resulting hint counts once (A3, F2 §10). */
     override fun hint(state: ZipState): Hint = hints.hint(state)
 
     companion object {
-        fun isAdjacent(a: Cell, b: Cell, n: Int): Boolean {
-            val diff = b.idx - a.idx
-            return (diff == 1 && a.idx / n == b.idx / n) ||
-                (diff == -1 && a.idx / n == b.idx / n) ||
-                diff == n ||
-                diff == -n
-        }
+        fun isAdjacent(a: Cell, b: Cell, n: Int): Boolean = ZipVerifier.isAdjacent(a, b, n)
 
         /**
          * Linear verification that [path] satisfies I1–I5 and I8 against [puzzle] — the
          * A16 solution-verification half and the core of [isComplete]. Also implicitly
-         * required of any prefix the hint machinery extends.
+         * required of any prefix the hint machinery extends. Implementation: [ZipVerifier].
          */
-        fun verifyPath(puzzle: ZipPuzzle, path: List<Cell>): Boolean {
-            val board = puzzle.board
-            if (path.isEmpty()) return false
-            if (path.first() != board.waypoints.first()) return false // I4
-            if (path.size > board.cellCount) return false
-            val visited = HashSet<Cell>(path.size * 2)
-            var waypointsSeen = 0
-            for ((index, cell) in path.withIndex()) {
-                if (!board.contains(cell)) return false // I8
-                if (!visited.add(cell)) return false // I3
-                val label = board.waypointLabel(cell)
-                if (label != null) {
-                    if (label != waypointsSeen + 1) return false // I5
-                    waypointsSeen++
-                }
-                if (index > 0) {
-                    val prev = path[index - 1]
-                    if (!isAdjacent(prev, cell, board.n)) return false // I1
-                    if (board.blocked(prev, cell)) return false // I2
-                }
-            }
-            return true
-        }
+        fun verifyPath(puzzle: ZipPuzzle, path: List<Cell>): Boolean =
+            ZipVerifier.verifyPath(puzzle, path)
     }
 }

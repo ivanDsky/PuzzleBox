@@ -10,7 +10,6 @@ import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.codec.ZipSessionCodec
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
-import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import java.time.ZoneId
 import org.koin.core.module.Module
@@ -18,9 +17,10 @@ import org.koin.dsl.module
 
 /**
  * The A16 recipe contract surface: decode the fetch payload, verify the shipped solution
- * against the rules, agree with the solver (count == 1 and found == shipped), THEN trust.
- * Verdicts: VerifySolutionOk -> play; VerifySolutionInvalid -> Untrusted; solver disagrees
- * (0 or >1 solutions) -> Untrusted. Production wiring: ticket 12.
+ * against the rules ([ZipRules.verifyPath]), agree with the solver
+ * ([com.ivandsky.puzzlebox.games.zip.engine.ZipSolver.countSolutions] == 1 and found ==
+ * shipped), THEN trust. A puzzle failing the gate is never playable — the fetch seam
+ * reports it as Untrusted, the codec as [DecodeError]. Production wiring: ticket 12.
  */
 object ZipDefinition : GameDefinition {
 
@@ -55,7 +55,7 @@ object ZipDefinition : GameDefinition {
 val zipPlugin: GamePlugin<com.ivandsky.puzzlebox.games.zip.engine.ZipState, ZipSession, ZipRendererModel> =
     GamePlugin(
         definition = ZipDefinition,
-        rules = ZipRules(ZipVariants.table),
+        rules = ZipRules(),
         session = ZipSessionCodec,
         score = ZipScoreModel(),
         rendererModel = { state, hint -> ZipRendererModel.of(state, hint) },
