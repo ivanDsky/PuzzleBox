@@ -37,7 +37,7 @@ fun HistoryRoute(
 
     val entries by daily.observeHistory().collectAsState(initial = emptyList())
     val records by completions.observeRecords().collectAsState(initial = emptyList())
-    val lazyDays = remember(daily) { historyDays(daily, scope) }.collectAsLazyPagingItems()
+    val lazyDays = remember(daily) { historyDays(daily) }.collectAsLazyPagingItems()
     val recordsByDay = remember(records) {
         records.mapNotNull { record ->
             (record.puzzleRef as? ZipPuzzleRef)?.let { ref -> ref.date to record }
