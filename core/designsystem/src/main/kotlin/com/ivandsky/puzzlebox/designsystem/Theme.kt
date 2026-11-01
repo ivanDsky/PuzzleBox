@@ -16,6 +16,14 @@ import androidx.compose.runtime.staticCompositionLocalOf
 val LocalPrimaryText = staticCompositionLocalOf { LightPrimaryText }
 
 /**
+ * Board color roles (BoardTokens.kt, spec UIUX-01 A5): the board renders from these named
+ * roles, never raw colors. Provided by [PuzzleBoxTheme] so board rendering always follows
+ * the RESOLVED theme — same contract as [LocalPrimaryText], including a forced appearance
+ * opposite the system.
+ */
+val LocalBoardColors = staticCompositionLocalOf { LightBoardTokens }
+
+/**
  * Theme composition root (ticket 10): the promoted style IS the token set — Baloo 2
  * typography, C3 light scheme, C6 dark scheme. The [darkTheme] request picks the
  * scheme; no variant parameters remain.
@@ -25,7 +33,10 @@ fun PuzzleBoxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    CompositionLocalProvider(LocalPrimaryText provides if (darkTheme) DarkPrimaryText else LightPrimaryText) {
+    CompositionLocalProvider(
+        LocalPrimaryText provides if (darkTheme) DarkPrimaryText else LightPrimaryText,
+        LocalBoardColors provides if (darkTheme) DarkBoardTokens else LightBoardTokens,
+    ) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
             typography = AppTypography,

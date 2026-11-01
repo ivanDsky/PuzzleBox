@@ -116,3 +116,29 @@ internal val ShowkaseTypographyLabelLarge: TextStyle = AppTypography.labelLarge
 internal val ShowkaseTypographyLabelMedium: TextStyle = AppTypography.labelMedium
 @ShowkaseTypography(name = "labelSmall", group = "Typography")
 internal val ShowkaseTypographyLabelSmall: TextStyle = AppTypography.labelSmall
+
+// Board roles (ticket 20, values = research U2's primary table), dark values —
+// the app-default look, same aliasing rule as the Material ramp above. Group
+// "Board" keeps them separable from the Material roles; the light counterparts
+// render in the TokenCatalog board section, and the stroke weights show there too
+// (spacing-style rows).
+@ShowkaseColor(name = "boardSurface", group = "Board")
+internal val ShowkaseBoardSurface: Color = DarkBoardTokens.boardSurface
+@ShowkaseColor(name = "boardGridLine", group = "Board")
+internal val ShowkaseBoardGridLine: Color = DarkBoardTokens.boardGridLine
+@ShowkaseColor(name = "boardWall", group = "Board")
+internal val ShowkaseBoardWall: Color = DarkBoardTokens.boardWall
+@ShowkaseColor(name = "waypointDot", group = "Board")
+internal val ShowkaseWaypointDot: Color = DarkBoardTokens.waypointDot
+@ShowkaseColor(name = "waypointLabel", group = "Board")
+internal val ShowkaseWaypointLabel: Color = DarkBoardTokens.waypointLabel
+@ShowkaseColor(name = "waypointDotOnPath", group = "Board")
+internal val ShowkaseWaypointDotOnPath: Color = DarkBoardTokens.waypointDotOnPath
+@ShowkaseColor(name = "onPathLabel", group = "Board")
+internal val ShowkaseOnPathLabel: Color = DarkBoardTokens.onPathLabel
+@ShowkaseColor(name = "pathTrace", group = "Board")
+internal val ShowkasePathTrace: Color = DarkBoardTokens.pathTrace
+@ShowkaseColor(name = "boardSelection", group = "Board")
+internal val ShowkaseBoardSelection: Color = DarkBoardTokens.boardSelection
+@ShowkaseColor(name = "boardRegion", group = "Board")
+internal val ShowkaseBoardRegion: Color = DarkBoardTokens.boardRegion

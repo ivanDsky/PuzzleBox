@@ -17,22 +17,55 @@ class ZipRendererModelTest {
     fun `cells map waypoints, labels, and the start marker`() {
         val model = ZipRendererModel.of(ZipState(puzzle, emptyList()), null)
         assertEquals(25, model.cells.size)
+        // Fresh board: the start cell is the only traced-eligible waypoint and the next
+        // target; every dot is off-path.
         assertEquals(
-            ZipRendererModel.CellRender(numberLabel = 1, isWaypoint = true, isStart = true),
+            ZipRendererModel.CellRender(
+                label = 1, isWaypoint = true, isStart = true,
+                isOnPath = false, isNextTarget = true,
+            ),
             model.cells[0],
         )
         assertEquals(
-            ZipRendererModel.CellRender(numberLabel = 2, isWaypoint = true, isStart = false),
+            ZipRendererModel.CellRender(
+                label = 2, isWaypoint = true, isStart = false,
+                isOnPath = false, isNextTarget = false,
+            ),
             model.cells[12],
         )
         assertEquals(
-            ZipRendererModel.CellRender(numberLabel = 3, isWaypoint = true, isStart = false),
+            ZipRendererModel.CellRender(
+                label = 3, isWaypoint = true, isStart = false,
+                isOnPath = false, isNextTarget = false,
+            ),
             model.cells[24],
         )
         assertEquals(
-            ZipRendererModel.CellRender(numberLabel = null, isWaypoint = false, isStart = false),
+            ZipRendererModel.CellRender(
+                label = null, isWaypoint = false, isStart = false,
+                isOnPath = false, isNextTarget = false,
+            ),
             model.cells[1],
         )
+    }
+
+    @Test
+    fun `on-path cells carry the trace state`() {
+        val model = ZipRendererModel.of(ZipState(puzzle, ZipTestSupport.path(0, 1, 2)), null)
+        assertEquals(listOf(true, true, true), model.cells.take(3).map { it.isOnPath })
+        assertEquals(false, model.cells[3].isOnPath)
+    }
+
+    @Test
+    fun `next target is the lowest untraced waypoint`() {
+        // Fresh: waypoint 1 (cell 0). After tracing through waypoint 1: waypoint 2 (cell 12).
+        val fresh = ZipRendererModel.of(ZipState(puzzle, emptyList()), null)
+        assertEquals(listOf(0), fresh.cells.withIndex().filter { it.value.isNextTarget }.map { it.index })
+        val started = ZipRendererModel.of(ZipState(puzzle, ZipTestSupport.path(0, 1, 2)), null)
+        assertEquals(listOf(12), started.cells.withIndex().filter { it.value.isNextTarget }.map { it.index })
+        // Complete: nothing left to target.
+        val done = ZipRendererModel.of(ZipState(puzzle, ZipTestSupport.n5Solution), null)
+        assertEquals(emptyList<Int>(), done.cells.filter { it.isNextTarget }.map { it.label })
     }
 
     @Test

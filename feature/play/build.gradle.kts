@@ -53,4 +53,17 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+    // T25 gate matrix: Roborazzi runtime API over Robolectric (the designsystem capture
+    // path — the gradle plugin cannot apply on AGP 9), writing review-page PNGs.
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+}
+
+// Screenshot tests default to recording (the T25 matrix test writes straight to the
+// diagrams tree); -Proborazzi.verify mirrors the designsystem goldens contract.
+val verifySnapshots = providers.gradleProperty("roborazzi.verify").isPresent
+
+tasks.withType<Test>().configureEach {
+    systemProperty("roborazzi.test.record", (!verifySnapshots).toString())
+    systemProperty("roborazzi.test.verify", verifySnapshots.toString())
 }
