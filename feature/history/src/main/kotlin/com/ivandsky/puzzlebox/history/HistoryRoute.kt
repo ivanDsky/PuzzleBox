@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -33,7 +32,6 @@ fun HistoryRoute(
 ) {
     val daily = koinInject<ZipDailyRepository>()
     val completions = koinInject<CompletionRepository>()
-    val scope = rememberCoroutineScope()
 
     val entries by daily.observeHistory().collectAsState(initial = emptyList())
     val records by completions.observeRecords().collectAsState(initial = emptyList())
