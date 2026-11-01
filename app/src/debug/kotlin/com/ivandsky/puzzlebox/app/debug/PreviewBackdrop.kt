@@ -35,7 +35,8 @@ internal val PreviewMaxHeight: Dp = 480.dp
  * rotation via rememberSaveable, deliberately not persisted.
  */
 internal enum class PreviewBackdropStyle(val label: String) {
-    Checkerboard("Checkerboard"),
+    // Ticket 09 radio label ("Checker"); the identifier keeps the descriptive name.
+    Checkerboard("Checker"),
     Surface("Surface"),
     White("White"),
     Black("Black"),
