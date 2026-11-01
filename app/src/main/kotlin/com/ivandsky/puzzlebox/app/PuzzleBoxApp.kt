@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import android.content.Intent
 import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -45,6 +46,7 @@ import com.ivandsky.puzzlebox.app.screens.ProfileRoute
 import com.ivandsky.puzzlebox.data.model.ThemeMode
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.TokenCatalogScreen
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.playLayoutFor
 import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.HistoryRoute
@@ -137,58 +139,87 @@ fun PuzzleBoxApp(
                 popTransitionSpec = {
                     screenEnterTransform() togetherWith screenExitTransform()
                 },
-                entryProvider = entryProvider {
-                    entry<Home> {
-                        SceneCanvas {
-                            HomeRoute(
-                                layout = layout,
-                                themeMode = themeMode,
-                                onSetThemeMode = onSetThemeMode,
-                                onOpenHistory = { backStack.add(History) },
-                            )
-                        }
-                    }
-                    entry<History> {
-                        SceneCanvas {
-                            HistoryRoute(
-                                layout = historyLayout,
-                                onBack = { backStack.removeLastOrNull() },
-                                onReplay = { ready ->
-                                    backStack.add(
-                                        ReplayZip(Base64.getEncoder().encodeToString(ready.session)),
-                                    )
-                                },
-                            )
-                        }
-                    }
-                    entry<ReplayZip> { key ->
-                        SceneCanvas {
-                            PlayRoute(
-                                layout = playLayout,
-                                onBack = { backStack.removeLastOrNull() },
-                                restoredSession = runCatching {
-                                    Base64.getDecoder().decode(key.session)
-                                }.getOrNull(),
-                            )
-                        }
-                    }
-                    entry<Play> {
-                        SceneCanvas {
-                            PlayRoute(
-                                layout = playLayout,
-                                onBack = { backStack.removeLastOrNull() },
-                            )
-                        }
-                    }
-                    entry<Profile> {
-                        SceneCanvas { ProfileRoute(onOpenCatalog = { backStack.add(Catalog) }) }
-                    }
-                    entry<Catalog> {
-                        SceneCanvas { CatalogScreenWithShowkaseTrial() }
-                    }
+                entryProvider = puzzleBoxEntryProvider(
+                    backStack = backStack,
+                    homeLayout = layout,
+                    playLayout = playLayout,
+                    historyLayout = historyLayout,
+                    themeMode = themeMode,
+                    onSetThemeMode = onSetThemeMode,
+                ),
+            )
+        }
+    }
+}
+
+/**
+ * The app's route table (ticket 17): one entry per [NavKey], every destination real.
+ * Building it is a plain lookup construction — no composition — so [NavRoutesTest]
+ * resolves each key against it and fails fast if a pushed key ever lacks a route.
+ *
+ * Loop wiring: Home's Today card pushes [Play] (today's board is fetched fresh by the
+ * play route); its history teaser pushes [History]; history rows push [ReplayZip] with
+ * the day's session blob; the account card opens the [Profile] account surface as a tab
+ * root; Profile's catalog link pushes [Catalog] as a deliberate deep page — NavDisplay's
+ * default back pop returns it to Profile, including after process-death restore.
+ */
+internal fun puzzleBoxEntryProvider(
+    backStack: NavBackStack<NavKey>,
+    homeLayout: HomeLayout,
+    playLayout: PlayLayout,
+    historyLayout: HistoryLayout,
+    themeMode: ThemeMode,
+    onSetThemeMode: (ThemeMode) -> Unit,
+): (NavKey) -> NavEntry<NavKey> = entryProvider {
+    entry<Home> {
+        SceneCanvas {
+            HomeRoute(
+                layout = homeLayout,
+                themeMode = themeMode,
+                onSetThemeMode = onSetThemeMode,
+                onPlayToday = { backStack.add(Play) },
+                onOpenProfile = { select(Profile, backStack) },
+                onOpenHistory = { backStack.add(History) },
+            )
+        }
+    }
+    entry<History> {
+        SceneCanvas {
+            HistoryRoute(
+                layout = historyLayout,
+                onBack = { backStack.removeLastOrNull() },
+                onReplay = { ready ->
+                    backStack.add(
+                        ReplayZip(Base64.getEncoder().encodeToString(ready.session)),
+                    )
                 },
             )
         }
+    }
+    entry<ReplayZip> { key ->
+        SceneCanvas {
+            PlayRoute(
+                layout = playLayout,
+                onBack = { backStack.removeLastOrNull() },
+                restoredSession = runCatching {
+                    Base64.getDecoder().decode(key.session)
+                }.getOrNull(),
+            )
+        }
+    }
+    entry<Play> {
+        SceneCanvas {
+            PlayRoute(
+                layout = playLayout,
+                onBack = { backStack.removeLastOrNull() },
+            )
+        }
+    }
+    entry<Profile> {
+        SceneCanvas { ProfileRoute(onOpenCatalog = { backStack.add(Catalog) }) }
+    }
+    entry<Catalog> {
+        SceneCanvas { CatalogScreenWithShowkaseTrial() }
     }
 }
 
