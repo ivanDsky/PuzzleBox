@@ -63,8 +63,9 @@ data class ZipBoard(
 
 /**
  * A Zip puzzle: rules pin + board + the official solution when the daily ships one.
- * The solution is the A16 oracle INPUT (fetch validation compares the solver against it),
- * never a hint source (F2 §5). [unknownTail] preserves bytes a newer reader added —
+ * The solution is the A16 oracle INPUT (fetch validation compares the solver against it)
+ * and, since A18 §6, the play-time hint source ([ZipHints] walks it); boards without one
+ * fall back to the solver. [unknownTail] preserves bytes a newer reader added —
  * re-emitted verbatim by the codec so decode∘encode stays lossless across versions (A19).
  */
 data class ZipPuzzle(

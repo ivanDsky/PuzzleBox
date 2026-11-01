@@ -15,22 +15,39 @@ sealed interface ZipHint : Hint {
 }
 
 /**
- * Smallest-safe-help selector over solver output (F2 §5 §3): a hint never gives the whole
- * path. Solvable trace -> Step(next cell). Provably dead trace -> Backtrack(longest
- * still-solvable prefix). Reads the solver, never the stored `solution` — works for
- * Phase-2 puzzles and post-backtrack states alike. Pure: [hint] never mutates state.
+ * Smallest-safe-help selector (F2 §5 §3): a hint never gives the whole path.
+ *
+ * A18 addendum §6: the stored `solution` is the play-time hint source — `hint(state)`
+ * walks the longest common prefix of trace and solution, then either Steps onto the next
+ * correct segment ([ZipHint.Step]) or Backtracks to the last agreeing cell. Allocation-
+ * free and solver-independent at play time; for uniquely-solvable boards the divergence
+ * point IS the longest still-solvable prefix, so player-visible behavior is unchanged.
+ * Boards without a stored solution fall back to the solver ([ZipSolver]). Pure.
  */
 class ZipHints(private val solver: ZipSolver = ZipSolver()) {
 
     fun hint(state: ZipState): ZipHint {
+        val solution = state.puzzle.solution ?: return solverFallback(state)
+        val path = state.path
+        var diverge = 0
+        val limit = minOf(path.size, solution.size)
+        while (diverge < limit && path[diverge] == solution[diverge]) diverge++
+        return if (diverge == path.size && path.size < solution.size) {
+            ZipHint.Step(solution[path.size]) // next correct segment
+        } else {
+            ZipHint.Backtrack(diverge - 1) // keep path[0..diverge-1]; -1 = empty trace
+        }
+    }
+
+    /** Boards without a stored solution: the solver answers as before. */
+    private fun solverFallback(state: ZipState): ZipHint {
         val puzzle = state.puzzle
         val path = state.path
         return if (solver.canComplete(puzzle, path)) {
             val completion = requireNotNull(solver.completionFrom(puzzle, path))
             ZipHint.Step(completion[path.size])
         } else {
-            val keep = solver.longestSolvablePrefix(puzzle, path)
-            ZipHint.Backtrack(keep - 1) // index of the last cell KEPT; -1 = empty trace
+            ZipHint.Backtrack(solver.longestSolvablePrefix(puzzle, path) - 1)
         }
     }
 }
