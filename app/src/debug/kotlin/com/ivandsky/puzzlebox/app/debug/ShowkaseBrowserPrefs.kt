@@ -23,8 +23,10 @@ internal class ShowkaseBrowserPrefs(context: Context) {
         prefs.edit().putStringSet(KEY_EXPANDED_GROUPS, groups).apply()
     }
 
-    private companion object {
-        const val PREFERENCES_FILE = "showkase_browser"
-        const val KEY_EXPANDED_GROUPS = "expanded_groups"
+    // internal, not private: the screenshot suite asserts the write-through path of
+    // the bulk expand/collapse action against this exact file/keys (ticket 06).
+    internal companion object {
+        internal const val PREFERENCES_FILE = "showkase_browser"
+        internal const val KEY_EXPANDED_GROUPS = "expanded_groups"
     }
 }
