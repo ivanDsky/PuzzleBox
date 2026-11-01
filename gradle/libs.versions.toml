@@ -35,6 +35,15 @@ roborazziRuntime = "1.77.0"
 # with KSP2/Kotlin 2.x support; <1.0.5 crashes under KSP2 (NoSuchMethodError via
 # Room 2.7 xprocessing). design-previews-00 research.
 showkase = "1.0.5"
+# Ticket 16: Firebase backend (the only com.google.* imports live in :backend:firebase)
+# plus the Android-side Google Credential Manager that feeds it ID tokens.
+googleServices = "4.5.0"
+firebaseBom = "34.18.0"
+credentials = "1.5.0"
+googleId = "1.1.1"
+# Backend-firebase unit tests: FirebaseUser has a package-private constructor, so the
+# auth tests mock the SDK type instead of hand-rolling a fake.
+mockito = "5.20.0"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -76,6 +85,15 @@ roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi
 showkase = { group = "com.airbnb.android", name = "showkase", version.ref = "showkase" }
 showkase-annotation = { group = "com.airbnb.android", name = "showkase-annotation", version.ref = "showkase" }
 showkase-processor = { group = "com.airbnb.android", name = "showkase-processor", version.ref = "showkase" }
+# Ticket 16: main modules (not -ktx) per the Firebase BoM guidance.
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
+kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
+androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
+androidx-credentials-play-services = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
+googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleId" }
+mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -87,3 +105,5 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
+# Ticket 16: processes the root google-services.json into app resources (FirebaseInitProvider).
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

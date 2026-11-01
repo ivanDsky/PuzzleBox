@@ -1,0 +1,264 @@
+package com.ivandsky.puzzlebox.backend.firebase
+
+import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.firestore.FirebaseFirestoreException
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitError
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
+import java.time.LocalDate
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/**
+ * Repository behavior over a fake [LeaderboardStore] (brief §4): snapshot decoding,
+ * versioned-envelope guards, submit dedup on (uid, puzzleRef), and typed-error mapping
+ * for REAL Firebase exception types thrown at the seam. Robolectric: constructing real
+ * Firebase exceptions reaches android.* (TextUtils).
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class FirestoreLeaderboardRepositoryTest {
+
+    private class FakeStore : LeaderboardStore {
+        val docs = MutableStateFlow<Map<String, List<Map<String, Any?>>>>(emptyMap())
+        val existing = mutableSetOf<Pair<String, String>>() // boardId to uid
+        var observeError: Exception? = null
+        var submitError: Exception? = null
+        val observed = mutableListOf<String>()
+
+        override fun observeEntries(boardId: String): Flow<List<Map<String, Any?>>> {
+            observed += boardId
+            // Errors surface IN the flow, like the real snapshot listener — never eagerly.
+            return flow {
+                observeError?.let { throw it }
+                // The real store orders server-side by (timeMs, hints); malformed rows
+                // must survive the sort (nulls first) so decode can drop them.
+                val sorted = docs.value[boardId].orEmpty().sortedWith(
+                    compareBy(
+                        { (it["timeMs"] as? Number)?.toLong() ?: 0L },
+                        { (it["hints"] as? Number)?.toInt() ?: 0 },
+                    ),
+                )
+                emit(sorted)
+            }
+        }
+
+        override suspend fun createIfAbsent(
+            boardId: String,
+            uid: String,
+            data: Map<String, Any?>,
+        ): Boolean {
+            submitError?.let { throw it }
+            val key = boardId to uid
+            return if (key in existing) false else {
+                existing += key
+                docs.value = docs.value + (boardId to (docs.value[boardId].orEmpty() + data))
+                true
+            }
+        }
+    }
+
+    private val day = LocalDate.of(2026, 10, 31)
+    private val board = LeaderboardRef("zip", day)
+    private val refKey = "zip/2026-10-31/592"
+
+    private fun entry(
+        uid: String = "u1",
+        timeMs: Long = 95_000,
+        hints: Int = 2,
+        puzzleRef: String = refKey,
+    ) = LeaderboardEntry(
+        uid = uid,
+        displayName = "Player $uid",
+        puzzleRef = puzzleRef,
+        timeMs = timeMs,
+        hints = hints,
+        completedAtMs = 1_700_000_000_000,
+    )
+
+    private fun doc(entry: LeaderboardEntry, extra: Map<String, Any?> = emptyMap()) =
+        LeaderboardDocCodec.encode(entry) + extra
+
+    // ----- observe -----
+
+    @Test
+    fun `signed out observes null without touching the backend`() = runTest {
+        val store = FakeStore()
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { null })
+
+        assertNull(repository.observe(board).first())
+        assertTrue(store.observed.isEmpty())
+    }
+
+    @Test
+    fun `observe delivers a versioned snapshot of valid docs`() = runTest {
+        val store = FakeStore()
+        store.docs.value = mapOf(board.boardId to listOf(doc(entry(uid = "u1")), doc(entry(uid = "u2", timeMs = 80_000))))
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
+
+        val snapshot = repository.observe(board).first()!!
+
+        assertEquals(board, snapshot.board)
+        assertEquals(LeaderboardSnapshot.FORMAT_VERSION, snapshot.formatVersion)
+        assertEquals(listOf("u2", "u1"), snapshot.entries.map { it.uid }) // store-ordered
+    }
+
+    @Test
+    fun `malformed and foreign-version docs are dropped, never reinterpreted (A19)`() = runTest {
+        val store = FakeStore()
+        store.docs.value = mapOf(
+            board.boardId to listOf(
+                doc(entry(uid = "u1")),
+                // Unknown future format version: dropped.
+                doc(entry(uid = "u2")) + mapOf("formatVersion" to 2L),
+                // Missing fields: dropped.
+                mapOf("uid" to "u3"),
+                // Sanity-violating: dropped (matches the rules envelope).
+                doc(entry(uid = "u4")).toMutableMap().apply { put("timeMs", -5L) },
+                // Unknown EXTRA fields are preserved on the doc and simply ignored here.
+                doc(entry(uid = "u5"), extra = mapOf("someFutureField" to "x")),
+            ),
+        )
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
+
+        val snapshot = repository.observe(board).first()!!
+
+        assertEquals(listOf("u1", "u5"), snapshot.entries.map { it.uid })
+    }
+
+    @Test
+    fun `listener errors degrade to a null snapshot (A7)`() = runTest {
+        val store = FakeStore()
+        store.observeError = FirebaseNetworkException("offline")
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
+
+        assertNull(repository.observe(board).first())
+    }
+
+    // ----- submit -----
+
+    @Test
+    fun `signed-out submit is local-only unavailable, no backend touch (A7)`() = runTest {
+        val store = FakeStore()
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { null })
+
+        val result = repository.submit(entry())
+
+        assertTrue(result is SubmitResult.Err)
+        assertTrue((result as SubmitResult.Err).error is SubmitError.Unavailable)
+        assertTrue(store.existing.isEmpty())
+    }
+
+    @Test
+    fun `first submit writes and returns ok`() = runTest {
+        val store = FakeStore()
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "u1" })
+
+        val result = repository.submit(entry())
+
+        assertEquals(SubmitResult.Ok(entry()), result)
+        assertEquals(listOf("u1"), store.docs.value[board.boardId]!!.map { it["uid"] })
+    }
+
+    @Test
+    fun `re-submitting the same (uid, puzzleRef) dedups — first write stands (A4-A5)`() = runTest {
+        val store = FakeStore()
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "u1" })
+        repository.submit(entry(timeMs = 95_000))
+
+        val faster = repository.submit(entry(timeMs = 10_000))
+
+        assertEquals(SubmitResult.Deduped(existing = null), faster)
+        // Only the first write survived — a faster replay can never overwrite the record.
+        assertEquals(95_000L, store.docs.value[board.boardId]!!.single()["timeMs"])
+    }
+
+    @Test
+    fun `same uid on another day writes to that day's board`() = runTest {
+        val store = FakeStore()
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "u1" })
+        repository.submit(entry())
+
+        val nextDay = repository.submit(entry(puzzleRef = "zip/2026-11-01/593"))
+
+        assertTrue(nextDay is SubmitResult.Ok)
+        assertTrue(board.boardId to "u1" in store.existing)
+        assertTrue(LeaderboardRef("zip", LocalDate.of(2026, 11, 1)).boardId to "u1" in store.existing)
+    }
+
+    @Test
+    fun `non-daily puzzleRef is rejected before touching the backend (A5)`() = runTest {
+        val store = FakeStore()
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "u1" })
+
+        val result = repository.submit(entry(puzzleRef = "zip/2026-10-31"))
+
+        assertTrue(result is SubmitResult.Err)
+        assertTrue((result as SubmitResult.Err).error is SubmitError.Rejected)
+        assertTrue(store.existing.isEmpty())
+    }
+
+    @Test
+    fun `permission denied maps to rejected`() = runTest {
+        val store = FakeStore()
+        store.submitError = FirebaseFirestoreException(
+            "denied",
+            FirebaseFirestoreException.Code.PERMISSION_DENIED,
+        )
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "u1" })
+
+        val result = repository.submit(entry())
+
+        assertTrue((result as SubmitResult.Err).error is SubmitError.Rejected)
+    }
+
+    @Test
+    fun `network outage maps to unavailable`() = runTest {
+        val store = FakeStore()
+        store.submitError = FirebaseNetworkException("offline")
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "u1" })
+
+        val result = repository.submit(entry())
+
+        assertTrue((result as SubmitResult.Err).error is SubmitError.Unavailable)
+    }
+
+    @Test
+    fun `firestore unavailable maps to unavailable`() = runTest {
+        val store = FakeStore()
+        store.submitError = FirebaseFirestoreException(
+            "down",
+            FirebaseFirestoreException.Code.UNAVAILABLE,
+        )
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "u1" })
+
+        val result = repository.submit(entry())
+
+        assertTrue((result as SubmitResult.Err).error is SubmitError.Unavailable)
+    }
+
+    @Test
+    fun `unexpected failure maps to unknown`() = runTest {
+        val store = FakeStore()
+        store.submitError = IllegalStateException("boom")
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "u1" })
+
+        val result = repository.submit(entry())
+
+        assertTrue((result as SubmitResult.Err).error is SubmitError.Unknown)
+    }
+}
