@@ -24,7 +24,7 @@ class ZipGenerator(private val random: Random = Random.Default) {
         wallProbability: Double = 0.7,
         waypointCount: Int = 3 + random.nextInt(2),
     ): ZipPuzzle? {
-        require(variant.size in 5..7) { "generator tuned for daily sizes, got ${variant.size}" }
+        require(variant.size in 5..8) { "generator tuned for daily sizes, got ${variant.size}" }
         require(waypointCount >= 2) { "need start + end waypoints at minimum" }
         val n = variant.size
         val path = randomHamiltonianPath(n) ?: return null

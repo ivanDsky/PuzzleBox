@@ -123,11 +123,14 @@ class LinkedInZipDailySourceTest {
 
     @Test
     fun `transport failure is Unavailable`() = runBlocking {
+        // Both ladder steps fail: the flight GET and the page fallback (R-19-1 order).
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
         server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
 
         val result = source.fetchDaily(date)
 
         assertTrue(result is FetchResult.Err && (result as FetchResult.Err).error is FetchError.Unavailable)
+        assertEquals(2, server.requestCount)
     }
 
     @Test

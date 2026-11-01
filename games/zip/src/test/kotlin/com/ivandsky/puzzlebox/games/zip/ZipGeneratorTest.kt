@@ -83,6 +83,24 @@ class ZipGeneratorTest {
         }
     }
 
+    /**
+     * Ticket 19 amendment: LinkedIn escalated the daily to n8 (edition 594). The A16 oracle
+     * path (verify + uniqueness + solve) must stay viable at n8, within a soft 2 s bound —
+     * a pathological n8 blows this test, not production.
+     */
+    @Test
+    fun `n8 oracle sanity - generated board is unique and solves within the soft bound`() {
+        val puzzle = ZipGenerator(Random(594)).nextUnique(ZipTestSupport.variantOf(8))
+            ?: throw AssertionError("no unique n8 board in 200 attempts")
+        val shipped = puzzle.solution!!
+        val start = System.nanoTime()
+        assertTrue(ZipRules.verifyPath(puzzle, shipped))
+        assertEquals(1, solver.countSolutions(puzzle))
+        assertEquals(shipped, solver.solve(puzzle))
+        val elapsedMs = (System.nanoTime() - start) / 1_000_000
+        assertTrue("oracle work took ${elapsedMs}ms at n8 (soft bound 2000ms)", elapsedMs < 2_000)
+    }
+
     /** Exhausted retries surface as null instead of a non-unique board. */
     @Test
     fun `nextUnique gives up cleanly after maxAttempts`() {

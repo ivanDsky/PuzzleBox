@@ -17,12 +17,13 @@ data class ZipVariant(
 enum class Feature { BRIDGE, TELEPORT }
 
 /**
- * The variant table: LinkedIn's daily sizes n=5/6/7 (research 01). A new rule regime is a
- * new entry here — `:core:game` is never edited (F1 §2.1).
+ * The variant table: LinkedIn's daily sizes n=5..8 (research 01; ticket 19 amendment —
+ * edition 594 shipped gridSize 8). A new rule regime is a new entry here — `:core:game`
+ * is never edited (F1 §2.1).
  */
 object ZipVariants {
 
-    val table: Map<VariantId, ZipVariant> = listOf(5, 6, 7)
+    val table: Map<VariantId, ZipVariant> = listOf(5, 6, 7, 8)
         .associate { size ->
             val id = VariantId("zip/n$size")
             id to ZipVariant(id, size)
