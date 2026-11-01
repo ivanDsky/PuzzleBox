@@ -307,6 +307,32 @@ private fun debugCatalogBrowser(): (
     }
 }
 
+// Ticket 23 nav contract — solving: everything above Home unwinds and the result takes
+// its place, so the system back (a plain NavDisplay pop) lands on Home — the same
+// surface the flow entered from (senior-UX wayfinding: back never surprises). The Play
+// tab root sits directly on the stack with no Home beneath it; the unwind supplies one
+// so the pop always has somewhere predictable to go.
+internal fun NavBackStack<NavKey>.solveToResult(solved: Result) {
+    if (lastOrNull() == solved) return
+    while (isNotEmpty() && lastOrNull() != Home) removeLastOrNull()
+    if (isEmpty()) add(Home)
+    add(solved)
+}
+
+// Ticket 23 nav contract — "Play again": the result pops and a fresh play entry takes
+// its place. The result route has already reset the flow's session to a fresh play of
+// the SAME puzzle (ResultRoute → ZipPlayState.replay), which the play route keeps.
+internal fun NavBackStack<NavKey>.playAgainFromResult() {
+    removeLastOrNull()
+    if (lastOrNull() != Play) add(Play)
+}
+
+// Double-tap guard: pushing a destination that is already the stack top would need two
+// backs to unwind — add only when it isn't (Rev17).
+private fun NavBackStack<NavKey>.pushOnce(key: NavKey) {
+    if (lastOrNull() != key) add(key)
+}
+
 // Fade-through screen transition: 90ms accelerated fade-out, then the incoming screen
 // fades in over 200ms (delayed 90ms) with a residual 1/24 slide. Sequencing guarantees
 // only one screen's content is ever visible; every scene root paints an opaque canvas
