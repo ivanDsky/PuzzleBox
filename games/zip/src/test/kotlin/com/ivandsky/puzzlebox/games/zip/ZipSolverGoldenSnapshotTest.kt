@@ -43,7 +43,7 @@ class ZipSolverGoldenSnapshotTest {
 
     private fun serialize(boards: List<GoldenBoard>): String = buildString {
         appendLine("{")
-        appendLine("""  "description": "Pre-A18-refactor solver outputs; re-record only with -Dzip.golden.regen=1",""")
+        appendLine("""  "description": "Pre-A18-refactor solver outputs; re-record only with ZIP_GOLDEN_REGEN=1 (env var)",""")
         appendLine("""  "boards": [""")
         boards.forEachIndexed { i, b ->
             val solve = b.solve?.joinToString(",", "[", "]") ?: "null"

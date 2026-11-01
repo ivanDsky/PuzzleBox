@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.zip.engine
 
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipBoard
-import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
 
 /** I5: waypoints must be entered in label order (1, 2, 3, ...). */
 class WaypointOrderRule : ZipMoveRule {
