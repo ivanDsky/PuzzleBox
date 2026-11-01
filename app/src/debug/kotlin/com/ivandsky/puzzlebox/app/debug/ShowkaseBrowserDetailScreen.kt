@@ -71,11 +71,21 @@ private const val VARIANT_FONT_SCALE = 2f
  * the active chip returns to the base pair. The backdrop FILL arrives from the
  * browser's toolbar (ticket 07) — every pane here follows the same
  * [PreviewBackdropStyle] session choice.
+ *
+ * Ticket showkase-v2-09: the detail screen hosts the SAME theme+BG radio row as the
+ * home toolbar (bound to the same session state), so the variant pane is themeable and
+ * re-fillable on the spot — [variantDarkTheme] (the browser's resolved override) makes
+ * any variant render dark, e.g. RTL in dark. Variant selection stays chips (round-3
+ * ruling); the radio row only themes/refills.
  */
 @Composable
 internal fun ShowkaseComponentDetailScreen(
     component: ShowkaseBrowserComponent,
+    themeOverride: BrowserThemeOverride,
+    onThemeOverrideChange: (BrowserThemeOverride) -> Unit,
     backdropStyle: PreviewBackdropStyle,
+    onBackdropStyleChange: (PreviewBackdropStyle) -> Unit,
+    variantDarkTheme: Boolean,
     onBack: () -> Unit,
 ) {
     // survives rotation; intentionally not persisted — a fresh entry starts on the pair.
@@ -92,6 +102,13 @@ internal fun ShowkaseComponentDetailScreen(
                 selected = variant,
                 onSelect = { picked -> variant = if (picked == variant) null else picked },
             )
+            BrowserRadioControlRow(
+                themeOverride = themeOverride,
+                onThemeOverrideChange = onThemeOverrideChange,
+                backdropStyle = backdropStyle,
+                onBackdropStyleChange = onBackdropStyleChange,
+                modifier = Modifier.padding(horizontal = Spacing.lg),
+            )
             Crossfade(
                 targetState = variant,
                 animationSpec = tween(MotionTokens.DurationShort, easing = MotionTokens.EasingEmphasizedDecelerate),
@@ -103,7 +120,7 @@ internal fun ShowkaseComponentDetailScreen(
                 if (active == null) {
                     BasePanes(component, backdropStyle, Modifier.fillMaxWidth())
                 } else {
-                    VariantPane(component, active, backdropStyle, Modifier.fillMaxWidth())
+                    VariantPane(component, active, backdropStyle, variantDarkTheme, Modifier.fillMaxWidth())
                 }
             }
         }
@@ -182,12 +199,14 @@ private fun BasePanes(
     }
 }
 
-/** The active variant replacing the base pair: one pane, light theme, variant overrides. */
+/** The active variant replacing the base pair: one pane under the browser's theme
+ *  choice ([darkTheme] — ticket 09), with the variant's environment overrides. */
 @Composable
 private fun VariantPane(
     component: ShowkaseBrowserComponent,
     variant: ComponentVariant,
     backdropStyle: PreviewBackdropStyle,
+    darkTheme: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.padding(horizontal = Spacing.lg)) {
@@ -207,7 +226,7 @@ private fun VariantPane(
                 ComponentVariant.Rtl, ComponentVariant.Font2x -> null
             }
             if (canvasWidth == null) {
-                VariantEnvironment(darkTheme = false, variant = variant) {
+                VariantEnvironment(darkTheme = darkTheme, variant = variant) {
                     component.component()
                 }
             } else {
@@ -219,7 +238,7 @@ private fun VariantPane(
                         .horizontalScroll(rememberScrollState()),
                 ) {
                     Box(Modifier.width(canvasWidth)) {
-                        VariantEnvironment(darkTheme = false, variant = variant) {
+                        VariantEnvironment(darkTheme = darkTheme, variant = variant) {
                             component.component()
                         }
                     }
@@ -342,7 +361,11 @@ private fun ShowkaseComponentDetailPreview() {
     PuzzleBoxTheme {
         ShowkaseComponentDetailScreen(
             previewDetailComponent(),
+            themeOverride = BrowserThemeOverride.System,
+            onThemeOverrideChange = {},
             backdropStyle = PreviewBackdropStyle.Checkerboard,
+            onBackdropStyleChange = {},
+            variantDarkTheme = false,
             onBack = {},
         )
     }

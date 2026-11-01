@@ -92,24 +92,17 @@ private fun allGroupKeys(metadata: ShowkaseElementsMetadata): Set<String> = buil
 }
 
 /**
- * Toolbar theme positions (ticket showkase-v2-06): [System] removes the override —
- * the browser follows the app theme the Catalog route already sits in; [Light]/[Dark]
- * force the whole browser (chrome, backdrops, detail screen) opposite the app while
- * set. Session-scoped like the search text: survives rotation via rememberSaveable,
- * deliberately not persisted.
+ * Theme override positions (tickets showkase-v2-06/09, rendered as a radio group on the
+ * home and detail screens): [System] removes the override — the browser follows the app
+ * theme the Catalog route already sits in; [Light]/[Dark] force the whole browser
+ * (chrome, backdrops, detail screen) while set. Session-scoped like the search text:
+ * survives rotation via rememberSaveable, deliberately not persisted.
  */
 internal enum class BrowserThemeOverride(val label: String) {
     System("System"),
     Light("Light"),
     Dark("Dark"),
 }
-
-private fun nextThemeOverride(override: BrowserThemeOverride): BrowserThemeOverride =
-    BrowserThemeOverride.entries[(override.ordinal + 1) % BrowserThemeOverride.entries.size]
-
-// Same cycle mechanic as the theme chip: the label always names the active position.
-private fun nextBackdropStyle(style: PreviewBackdropStyle): PreviewBackdropStyle =
-    PreviewBackdropStyle.entries[(style.ordinal + 1) % PreviewBackdropStyle.entries.size]
 
 private fun loadShowkaseProvider(): ShowkaseProvider? = try {
     Class.forName(SHOWKASE_CODEGEN_CLASS)
@@ -153,11 +146,27 @@ fun ShowkaseBrowserScreen() {
         ?.firstOrNull { it.componentKey == selectedComponentKey }
     BackHandler(enabled = selectedComponent != null) { selectedComponentKey = null }
 
-    BrowserThemeHost(themeOverride) {
+    // Ambient darkness must be read BEFORE the override re-enters PuzzleBoxTheme — under
+    // an override the scheme is already the forced one. Light/dark backgrounds differ
+    // hugely in luminance (0xFFF2F4F7 vs 0xFF101418), making the scheme a faithful read.
+    // The resolved flag themes the whole browser AND drives the detail screen's variant
+    // pane: VariantEnvironment writes the pane's dark request into its uiMode copy, so
+    // "Dark + RTL" renders the RTL pane dark (ticket showkase-v2-09).
+    val ambientDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val browserDark = when (themeOverride) {
+        BrowserThemeOverride.System -> ambientDark
+        BrowserThemeOverride.Light -> false
+        BrowserThemeOverride.Dark -> true
+    }
+    PuzzleBoxTheme(darkTheme = browserDark) {
         if (selectedComponent != null) {
             ShowkaseComponentDetailScreen(
                 component = selectedComponent,
+                themeOverride = themeOverride,
+                onThemeOverrideChange = { themeOverride = it },
                 backdropStyle = backdropStyle,
+                onBackdropStyleChange = { backdropStyle = it },
+                variantDarkTheme = browserDark,
                 onBack = { selectedComponentKey = null },
             )
         } else {
@@ -191,32 +200,6 @@ fun ShowkaseBrowserScreen() {
             )
         }
     }
-}
-
-/**
- * Applies the toolbar's theme override around everything the browser draws: System
- * keeps the ambient scheme (the app theme the route inherits — MainActivity resolves
- * SYSTEM/LIGHT/DARK into PuzzleBoxTheme without exposing the result), Light/Dark
- * re-enter [PuzzleBoxTheme] forced, re-theming chrome, backdrops AND the detail
- * screen in one move. Ambient darkness is read from the CURRENT scheme's background
- * BEFORE wrapping — under an override the scheme is already the forced one, so the
- * read must happen outside. Light/dark backgrounds differ hugely in luminance
- * (0xFFF2F4F7 vs 0xFF101418), making the scheme a faithful read.
- */
-@Composable
-private fun BrowserThemeHost(
-    override: BrowserThemeOverride,
-    content: @Composable () -> Unit,
-) {
-    val ambientDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    PuzzleBoxTheme(
-        darkTheme = when (override) {
-            BrowserThemeOverride.System -> ambientDark
-            BrowserThemeOverride.Light -> false
-            BrowserThemeOverride.Dark -> true
-        },
-        content = content,
-    )
 }
 
 /**
@@ -327,65 +310,43 @@ private fun BrowserHeader(
         )
         Spacer(Modifier.height(Spacing.sm))
         ToolbarControls(
-            themeOverride = themeOverride,
-            onThemeOverrideChange = onThemeOverrideChange,
-            backdropStyle = backdropStyle,
-            onBackdropStyleChange = onBackdropStyleChange,
             allGroupsExpanded = allGroupsExpanded,
             onSetAllGroupsExpanded = onSetAllGroupsExpanded,
             groupsActionEnabled = groupsActionEnabled,
         )
         Spacer(Modifier.height(Spacing.sm))
         SearchField(query, onQueryChange)
+        // Ticket 09 (user addendum): the radio control row sits DIRECTLY under the
+        // search bar — not above it, not in the bulk-action row.
+        BrowserRadioControlRow(
+            themeOverride = themeOverride,
+            onThemeOverrideChange = onThemeOverrideChange,
+            backdropStyle = backdropStyle,
+            onBackdropStyleChange = onBackdropStyleChange,
+        )
     }
 }
 
 /**
- * Ticket 06 toolbar: theme switch (cycles System → Light → Dark; the label always
- * shows the active position) and collapse/expand-all, trailing-aligned under the
- * subtitle. Ticket 07 adds the backdrop-style switch: same labeled-chip cycle mechanic
- * ("BG: Checkerboard" → Surface → White → Black), on its own trailing-aligned row —
- * three chips in one row would overflow narrow phones (~400dp of labels on a 360dp
- * screen), and a second row keeps every control visible without scroll chrome.
- * Labeled chips instead of icon buttons on purpose — the project freezes the CORE
- * material icon set (no brightness/unfold/palette glyphs), and the labels keep the
- * positions self-explanatory. The bulk action is meaningless without metadata, so it
- * disables on the error pane.
+ * The one surviving toolbar chip (ticket 09): collapse/expand-all, trailing-aligned.
+ * Theme/backdrop moved to [BrowserRadioControlRow] under the search bar. The bulk
+ * action is meaningless without metadata, so it disables on the error pane.
  */
 @Composable
 private fun ToolbarControls(
-    themeOverride: BrowserThemeOverride,
-    onThemeOverrideChange: (BrowserThemeOverride) -> Unit,
-    backdropStyle: PreviewBackdropStyle,
-    onBackdropStyleChange: (PreviewBackdropStyle) -> Unit,
     allGroupsExpanded: Boolean,
     onSetAllGroupsExpanded: (Boolean) -> Unit,
     groupsActionEnabled: Boolean,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End),
-        ) {
-            AssistChip(
-                onClick = { onThemeOverrideChange(nextThemeOverride(themeOverride)) },
-                label = { Text("Theme: ${themeOverride.label}") },
-            )
-            AssistChip(
-                onClick = { onSetAllGroupsExpanded(!allGroupsExpanded) },
-                label = { Text(if (allGroupsExpanded) "Collapse all" else "Expand all") },
-                enabled = groupsActionEnabled,
-            )
-        }
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End),
-        ) {
-            AssistChip(
-                onClick = { onBackdropStyleChange(nextBackdropStyle(backdropStyle)) },
-                label = { Text("BG: ${backdropStyle.label}") },
-            )
-        }
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End),
+    ) {
+        AssistChip(
+            onClick = { onSetAllGroupsExpanded(!allGroupsExpanded) },
+            label = { Text(if (allGroupsExpanded) "Collapse all" else "Expand all") },
+            enabled = groupsActionEnabled,
+        )
     }
 }
 
@@ -853,48 +814,44 @@ private fun ShowkaseBrowserErrorPreview() {
 @BrowserThemePreview
 @Composable
 private fun ShowkaseBrowserForcedDarkPreview() {
-    PuzzleBoxTheme {
-        BrowserThemeHost(BrowserThemeOverride.Dark) {
-            ShowkaseBrowserContent(
-                previewMetadata(),
-                listState = rememberLazyListState(),
-                expandedGroups = emptySet(),
-                onToggleGroup = {},
-                allGroupsExpanded = false,
-                onSetAllGroupsExpanded = {},
-                themeOverride = BrowserThemeOverride.Dark,
-                onThemeOverrideChange = {},
-                backdropStyle = PreviewBackdropStyle.Checkerboard,
-                onBackdropStyleChange = {},
-                query = "",
-                onQueryChange = {},
-                onOpenComponent = {},
-            )
-        }
+    PuzzleBoxTheme(darkTheme = true) {
+        ShowkaseBrowserContent(
+            previewMetadata(),
+            listState = rememberLazyListState(),
+            expandedGroups = emptySet(),
+            onToggleGroup = {},
+            allGroupsExpanded = false,
+            onSetAllGroupsExpanded = {},
+            themeOverride = BrowserThemeOverride.Dark,
+            onThemeOverrideChange = {},
+            backdropStyle = PreviewBackdropStyle.Checkerboard,
+            onBackdropStyleChange = {},
+            query = "",
+            onQueryChange = {},
+            onOpenComponent = {},
+        )
     }
 }
 
 @BrowserThemePreview
 @Composable
 private fun ShowkaseBrowserForcedLightPreview() {
-    PuzzleBoxTheme {
-        BrowserThemeHost(BrowserThemeOverride.Light) {
-            ShowkaseBrowserContent(
-                previewMetadata(),
-                listState = rememberLazyListState(),
-                expandedGroups = emptySet(),
-                onToggleGroup = {},
-                allGroupsExpanded = false,
-                onSetAllGroupsExpanded = {},
-                themeOverride = BrowserThemeOverride.Light,
-                onThemeOverrideChange = {},
-                backdropStyle = PreviewBackdropStyle.Checkerboard,
-                onBackdropStyleChange = {},
-                query = "",
-                onQueryChange = {},
-                onOpenComponent = {},
-            )
-        }
+    PuzzleBoxTheme(darkTheme = false) {
+        ShowkaseBrowserContent(
+            previewMetadata(),
+            listState = rememberLazyListState(),
+            expandedGroups = emptySet(),
+            onToggleGroup = {},
+            allGroupsExpanded = false,
+            onSetAllGroupsExpanded = {},
+            themeOverride = BrowserThemeOverride.Light,
+            onThemeOverrideChange = {},
+            backdropStyle = PreviewBackdropStyle.Checkerboard,
+            onBackdropStyleChange = {},
+            query = "",
+            onQueryChange = {},
+            onOpenComponent = {},
+        )
     }
 }
 

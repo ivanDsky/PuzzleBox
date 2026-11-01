@@ -6,7 +6,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -81,15 +86,13 @@ class ShowkaseBrowserScreenshotTest {
         }
     }
 
-    // Ticket 06: the theme switch forces the whole chrome OPPOSITE the ambient app
-    // theme. Two taps cycle System → Light → Dark; the capture must be dark end to
-    // end even though PuzzleBoxTheme here wraps a light app.
+    // Ticket 09: theme/BG controls are radio groups (home row, directly under the
+    // search bar). Direct selection replaces the ticket-06/07 cycle chips: one tap on
+    // the "Dark" option forces the whole chrome dark in this light-app render.
     @Test
     fun `theme switch forces dark chrome in light app`() {
         capture(name = "browser-forced-dark-in-light.png") {
-            composeRule.onNodeWithText("Theme: System").performClick()
-            composeRule.waitForIdle()
-            composeRule.onNodeWithText("Theme: Light").performClick()
+            radio("Dark").performClick()
             composeRule.waitForIdle()
         }
     }
@@ -97,19 +100,18 @@ class ShowkaseBrowserScreenshotTest {
     @Test
     fun `theme switch forces light chrome in dark app`() {
         capture(darkTheme = true, name = "browser-forced-light-in-dark.png") {
-            composeRule.onNodeWithText("Theme: System").performClick()
+            radio("Light").performClick()
             composeRule.waitForIdle()
         }
     }
 
-    // Ticket 07: the BG chip re-fills every preview backdrop. SecondaryButton is the
+    // Ticket 09 radios: one tap lands the style (no cycling); SecondaryButton is the
     // transparent-ish case the feedback was about (outlined, no fill): it vanishes into
-    // the checkerboard but reads on the solid styles. One tap = Surface, three = Black;
-    // the chip label always names the active style, so the goldens self-describe.
+    // the checkerboard but reads on the solid styles.
     @Test
     fun `backdrop style switch fills previews with surface`() {
         capture(name = "browser-backdrop-surface.png") {
-            composeRule.onNodeWithText("BG: Checkerboard").performClick()
+            radio("Surface").performClick()
             composeRule.waitForIdle()
             expandButtons()
         }
@@ -118,30 +120,37 @@ class ShowkaseBrowserScreenshotTest {
     @Test
     fun `backdrop style switch fills previews with black`() {
         capture(name = "browser-backdrop-black.png") {
-            // Cycle by label — each click lands on the next style, ending on Black.
-            composeRule.onNodeWithText("BG: Checkerboard").performClick()
-            composeRule.waitForIdle()
-            composeRule.onNodeWithText("BG: Surface").performClick()
-            composeRule.waitForIdle()
-            composeRule.onNodeWithText("BG: White").performClick()
+            radio("Black").performClick()
             composeRule.waitForIdle()
             expandButtons()
         }
     }
 
-    // Detail panes ride the same session choice: pick the style on the browser toolbar
-    // (the detail screen hosts no toolbar — it inherits the choice exactly the way the
-    // ticket-06 theme override does), then open a component and capture the re-filled
-    // light+dark pair.
+    // Detail panes ride the same session choice: pick the style on the home radio row,
+    // then open a component and capture the re-filled light+dark pair.
     @Test
     fun `detail panes follow the backdrop style switch`() {
         capture(name = "browser-backdrop-detail-white.png") {
-            composeRule.onNodeWithText("BG: Checkerboard").performClick()
-            composeRule.waitForIdle()
-            composeRule.onNodeWithText("BG: Surface").performClick()
+            radio("White").performClick()
             composeRule.waitForIdle()
             expandButtons()
             composeRule.onNodeWithText("PrimaryButton").performClick()
+            composeRule.waitForIdle()
+        }
+    }
+
+    // Ticket 09 DoD: the detail screen's own radio row themes the VARIANT pane — RTL
+    // selected, then Dark → the RTL pane renders dark (VariantEnvironment's uiMode).
+    @Test
+    fun `detail rtl variant renders dark under the dark override`() {
+        capture(name = "browser-detail-rtl-dark.png") {
+            expandButtons()
+            composeRule.onNodeWithText("PrimaryButton").performClick()
+            composeRule.waitForIdle()
+            // Variant selection stays chips (round-3 ruling); the radio row only themes.
+            composeRule.onNodeWithText("RTL").performClick()
+            composeRule.waitForIdle()
+            radio("Dark").performClick()
             composeRule.waitForIdle()
         }
     }
@@ -218,6 +227,15 @@ class ShowkaseBrowserScreenshotTest {
         composeRule.onNodeWithText("BUTTONS").performClick()
         composeRule.waitForIdle()
     }
+
+    // Ticket 09 radio option lookup: the option merges its label into one
+    // Role.RadioButton node. A bare text match would also hit same-named catalog
+    // content (e.g. a Surface color token), so the role disambiguates.
+    private fun radio(label: String) = composeRule.onNode(
+        hasText(label) and SemanticsMatcher("has radio role") { node ->
+            node.config.getOrNull(SemanticsProperties.Role) == Role.RadioButton
+        },
+    )
 
     // Composition runner shared by capture() and the plain-assertion tests: setContent
     // on the real entry point, then interact.
