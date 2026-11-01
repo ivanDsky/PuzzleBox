@@ -11,6 +11,7 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.ivandsky.puzzlebox.app.R
+import java.io.IOException
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
@@ -32,8 +33,45 @@ interface GoogleIdTokenProvider {
 sealed interface GoogleIdToken {
     data class Available(val token: String) : GoogleIdToken
 
-    /** No usable Google credential on this device, user cancelled, or provider down (A7). */
-    data object Unavailable : GoogleIdToken
+    /**
+     * No usable token. [reason] preserves the failure class so the profile UI can
+     * show honest copy (ticket 24) — only [Reason.NETWORK] may blame the connection.
+     */
+    data class Unavailable(val reason: Reason) : GoogleIdToken {
+        enum class Reason {
+            /** No Google account/credential on this device ([NoCredentialException]). */
+            NO_CREDENTIAL,
+
+            /** Credential Manager or its provider down/unsupported ([GetCredentialException], e.g. API availability). */
+            PROVIDER_UNAVAILABLE,
+
+            /** User closed the sign-in sheet ([GetCredentialCancellationException]) — a choice, not an error. */
+            CANCELLED,
+
+            /** Network/IO failure reaching the credential provider. */
+            NETWORK,
+
+            /** Credential arrived but was unusable ([GoogleIdTokenParsingException], empty token). */
+            MALFORMED,
+
+            /** Anything else. */
+            OTHER,
+        }
+    }
+}
+
+/**
+ * Ticket 24: classify a Credential Manager failure before its type is lost — the
+ * profile copy is chosen per class, and only NETWORK may claim a connection problem.
+ * Order matters: cancellation and no-credential extend [GetCredentialException].
+ */
+internal fun unavailableReason(e: Exception): GoogleIdToken.Unavailable.Reason = when (e) {
+    is GetCredentialCancellationException -> GoogleIdToken.Unavailable.Reason.CANCELLED
+    is NoCredentialException -> GoogleIdToken.Unavailable.Reason.NO_CREDENTIAL
+    is GetCredentialException -> GoogleIdToken.Unavailable.Reason.PROVIDER_UNAVAILABLE
+    is GoogleIdTokenParsingException -> GoogleIdToken.Unavailable.Reason.MALFORMED
+    is IOException -> GoogleIdToken.Unavailable.Reason.NETWORK
+    else -> GoogleIdToken.Unavailable.Reason.OTHER
 }
 
 /**
@@ -62,18 +100,12 @@ class CredentialManagerGoogleIdTokenProvider(
         if (credential is GoogleIdTokenCredential && credential.idToken.isNotEmpty()) {
             GoogleIdToken.Available(credential.idToken)
         } else {
-            GoogleIdToken.Unavailable
+            GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.MALFORMED)
         }
     } catch (e: CancellationException) {
         throw e
-    } catch (_: GetCredentialCancellationException) {
-        GoogleIdToken.Unavailable // user closed the sheet — a choice, not an error
-    } catch (_: NoCredentialException) {
-        GoogleIdToken.Unavailable
-    } catch (_: GetCredentialException) {
-        GoogleIdToken.Unavailable
-    } catch (_: GoogleIdTokenParsingException) {
-        GoogleIdToken.Unavailable
+    } catch (e: Exception) {
+        GoogleIdToken.Unavailable(unavailableReason(e))
     }
 
     suspend fun clearCredentialState() {
