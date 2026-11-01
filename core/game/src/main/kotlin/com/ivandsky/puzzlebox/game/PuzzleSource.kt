@@ -23,6 +23,13 @@ sealed interface FetchError {
     /** No puzzle reachable for the date: network/server/parsing. Degrade to cache (A7/A8). */
     data class Unavailable(val detail: String? = null) : FetchError
 
+    /**
+     * LinkedIn's per-IP/edge throttle (R-19-1): an empty 200 with a `location` soft-redirect,
+     * ~100 s cooldown. Retryable after a backoff — deliberately not [Unavailable], which
+     * reads as "no data".
+     */
+    data class Throttled(val detail: String? = null) : FetchError
+
     /** Payload arrived but the engine could not trust it (A16 oracle gate failed). Never playable. */
     data class Untrusted(val detail: String) : FetchError
 }

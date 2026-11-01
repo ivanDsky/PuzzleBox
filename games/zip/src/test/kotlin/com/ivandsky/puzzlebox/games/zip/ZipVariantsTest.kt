@@ -12,7 +12,7 @@ class ZipVariantsTest {
 
     @Test
     fun `table carries the daily sizes`() {
-        assertEquals(setOf("zip/n5", "zip/n6", "zip/n7"), ZipVariants.table.keys.map { it.value }.toSet())
+        assertEquals(setOf("zip/n5", "zip/n6", "zip/n7", "zip/n8"), ZipVariants.table.keys.map { it.value }.toSet())
         ZipVariants.table.values.forEach { variant ->
             assertEquals(variant.id.value.removePrefix("zip/n").toInt(), variant.size)
             assertTrue(variant.features.isEmpty()) // anti-speculation: empty until a consumer exists
@@ -22,7 +22,7 @@ class ZipVariantsTest {
     @Test
     fun `byId returns null for unknown regimes`() {
         assertNull(ZipVariants.byId(VariantId("zip/n4")))
-        assertNull(ZipVariants.byId(VariantId("zip/n8")))
+        assertNull(ZipVariants.byId(VariantId("zip/n9")))
         assertNull(ZipVariants.byId(VariantId("queens/6")))
     }
 

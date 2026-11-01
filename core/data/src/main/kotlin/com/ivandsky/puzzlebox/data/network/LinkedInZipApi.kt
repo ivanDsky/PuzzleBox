@@ -1,51 +1,34 @@
 package com.ivandsky.puzzlebox.data.network
 
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
-import retrofit2.http.Body
+import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Headers
-import retrofit2.http.POST
 import retrofit2.http.Query
 
 /**
- * LinkedIn's unofficial Zip screen endpoints (research 01, anonymous; A7 — no sign-in).
- * Both return opaque bodies: the puzzle rides an RSC flight stream (`application/octet-stream`)
- * or, as fallback, is scanned out of the page HTML. Parsing is [TrailGameExtractor]'s job —
- * never a pinned path.
+ * LinkedIn's unofficial Zip screen endpoints (research R-19-1, anonymous; A7 — no sign-in).
+ * The primary route is the screen-load GET LinkedIn's own web client sends: stateless,
+ * cookieless, csrf-free — gated only by the `x-li-rsc-stream` + `x-li-initial-url` header
+ * pair. The response is a React Flight stream (`application/octet-stream`) carrying a
+ * plain-quoted `trailGamePuzzle`. [daily] returns a [Response] wrapper so the throttle
+ * signature (empty 200 + `location` header) is observable. Parsing is [TrailGameExtractor]'s
+ * job — never a pinned path. (The old SDUI NavigateToScreen POST died under CSRF
+ * enforcement 2026-11-01 and is gone for good.)
  */
 interface LinkedInZipApi {
 
-    /** Primary: the flagship-web SDUI screen POST; response is the RSC flight stream. */
+    /** Primary: the streaming screen-load GET; response is the React Flight stream. */
     @Headers(
         "x-li-rsc-stream: true",
-        "referer: https://www.linkedin.com/games/zip/?skipStartScreen=true",
+        "x-li-initial-url: /games/zip/",
     )
-    @POST("flagship-web/games/zip/")
+    @GET("games/zip/")
     suspend fun daily(
         @Query("skipStartScreen") skipStartScreen: Boolean = true,
-        @Body action: RequestBody = SDUI_ZIP_NAVIGATE_BODY,
-    ): ResponseBody
+    ): Response<ResponseBody>
 
-    /** Fallback scan target: the SPA shell (SSR data if LinkedIn ever inlines it). */
+    /** Opportunistic last scan target: the SPA shell (anonymous SSR carries no puzzle today; R-19-1). */
     @GET("games/zip/")
     suspend fun page(): ResponseBody
-
-    companion object {
-        /**
-         * The SDUI NavigateToScreen action the games page itself sends (research 01,
-         * captured verbatim 2026-10-31). A constant, not a model — the body is LinkedIn's
-         * screen-routing protocol, not our domain.
-         */
-        val SDUI_ZIP_NAVIGATE_BODY: RequestBody =
-            (
-                "{\"\$type\":\"proto.sdui.actions.core.NavigateToScreen\"," +
-                    "\"screenId\":\"com.linkedin.sdui.flagshipnav.games.GamePlayRouterPage\"," +
-                    "\"url\":\"/games/zip/?skipStartScreen=true\"," +
-                    "\"title\":\"Zip\"," +
-                    "\"requestedArguments\":{\"payload\":{\"gameType\":\"zip\",\"skipStartScreen\":true},\"states\":[]}}"
-                ).toRequestBody("application/json; charset=utf-8".toMediaType())
-    }
 }

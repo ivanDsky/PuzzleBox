@@ -49,6 +49,31 @@ class ZipCodecPropertyTest {
         }
     }
 
+    /** Ticket 19 amendment: LinkedIn ships n8 dailies (edition 594) — synthetic n8 survives parse + codec. */
+    @Test
+    fun `C1 - synthetic n8 board parses from the wire and round trips the codec`() {
+        val puzzle = ZipTestSupport.seededGenerator(594).nextUnique(ZipTestSupport.variantOf(8))!!
+        val solution = puzzle.solution!!
+        val waypoints = puzzle.board.waypoints.joinToString(",") { "${it.idx}" }
+        val walls = puzzle.board.walls.joinToString(",") {
+            """{"cellIdx":${it.cell.idx},"direction":"${it.direction}"}"""
+        }
+        val path = solution.joinToString(",") { "${it.idx}" }
+        val wire =
+            """{"gridSize":8,"orderedSequence":[$waypoints],"walls":[$walls],"solution":[$path],"wallHints":[]}"""
+        val parsed = com.ivandsky.puzzlebox.games.zip.codec.ZipWireParser.parse(
+            wire,
+            java.time.LocalDate.of(2026, 11, 1),
+            editionText = "594",
+        ).getOrThrow()
+        assertEquals(com.ivandsky.puzzlebox.game.VariantId("zip/n8"), parsed.puzzle.variant)
+        assertEquals(594, parsed.ref.puzzleNumber)
+        assertEquals(puzzle.board, parsed.puzzle.board)
+        assertEquals(solution, parsed.puzzle.solution)
+        val bytes = ZipCodec.encode(parsed.puzzle)
+        assertEquals(parsed.puzzle, ZipCodec.decode(bytes).getOrThrow())
+    }
+
     /** C2: the §4 layout, pinned byte for byte (u8 fields, wall pairs, flags, solution). */
     @Test
     fun `C2 - byte layout matches the section-4 table exactly`() {
