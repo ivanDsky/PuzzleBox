@@ -31,6 +31,16 @@ internal fun ProfileScreen(modifier: Modifier = Modifier, onOpenCatalog: () -> U
         modifier = modifier,
     )
 
+// Catalog route fallback (ticket showkase-v2-05): the Showkase browser is debug-only,
+// so a build that can't load it — release, or any non-debuggable build — shows a note
+// instead of a catalog. The old catalog-screen fallback was deleted with the cutover.
+@Composable
+internal fun CatalogUnavailableScreen(modifier: Modifier = Modifier) = PlaceholderScreen(
+    title = "Design system catalog",
+    blurb = "The component browser ships in debug builds only.",
+    modifier = modifier,
+)
+
 @Composable
 private fun PlaceholderScreen(
     title: String,
