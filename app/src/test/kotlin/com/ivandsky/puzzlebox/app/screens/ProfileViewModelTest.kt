@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.app.screens
 
+import android.content.Context
+
 import com.ivandsky.puzzlebox.app.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.app.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.AuthError
@@ -36,9 +38,9 @@ class ProfileViewModelTest {
 
     private class FakeTokenProvider(var next: GoogleIdToken = GoogleIdToken.Available("tok")) :
         GoogleIdTokenProvider {
-        val calls = mutableListOf<Unit>()
-        override suspend fun idToken(): GoogleIdToken {
-            calls += Unit
+        val calls = mutableListOf<Context>()
+        override suspend fun idToken(activityContext: Context): GoogleIdToken {
+            calls += activityContext
             return next
         }
     }
@@ -65,6 +67,9 @@ class ProfileViewModelTest {
         return Deps(vm, identity, leaderboard, tokens)
     }
 
+    // Plain JVM test: the fake provider ignores the context, so a mock satisfies the seam.
+    private val appContext: Context = org.mockito.Mockito.mock(Context::class.java)
+
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
@@ -88,7 +93,7 @@ class ProfileViewModelTest {
     fun `successful sign-in sets the identity and starts the today board`() = runTest(dispatcher) {
         val deps = viewModel()
 
-        deps.vm.signIn()
+        deps.vm.signIn(appContext)
         advanceUntilIdle()
 
         assertEquals(
@@ -104,7 +109,7 @@ class ProfileViewModelTest {
     fun `unavailable token degrades to a message, never throws (A7)`() = runTest(dispatcher) {
         val deps = viewModel(tokens = FakeTokenProvider(next = GoogleIdToken.Unavailable))
 
-        deps.vm.signIn()
+        deps.vm.signIn(appContext)
         advanceUntilIdle()
 
         assertEquals(1, deps.tokens.calls.size)
@@ -121,7 +126,7 @@ class ProfileViewModelTest {
         )
         val deps = viewModel(identity = identity)
 
-        deps.vm.signIn()
+        deps.vm.signIn(appContext)
         advanceUntilIdle()
 
         assertTrue(deps.vm.state.value.signInMessage!!.contains("refused"))

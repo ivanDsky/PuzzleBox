@@ -1,5 +1,8 @@
 package com.ivandsky.puzzlebox.app.screens
 
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -105,10 +108,10 @@ class ProfileViewModel(
         }
     }
 
-    fun signIn() {
+    fun signIn(activityContext: Context) {
         viewModelScope.launch {
             _state.update { it.copy(signingIn = true, signInMessage = null) }
-            val result = when (val token = idTokenProvider.idToken()) {
+            val result = when (val token = idTokenProvider.idToken(activityContext)) {
                 is GoogleIdToken.Available ->
                     identityService.signInWithGoogleIdToken(token.token)
                 GoogleIdToken.Unavailable ->
@@ -143,9 +146,12 @@ fun ProfileRoute(
 ) {
     val viewModel: ProfileViewModel = koinViewModel()
     val state by viewModel.state.collectAsState()
+    // The credential sheet launches from the current Activity's context (I2) —
+    // captured in composition; LocalContext is composable-scoped.
+    val activityContext = LocalContext.current
     ProfileContent(
         state = state,
-        onSignIn = viewModel::signIn,
+        onSignIn = { viewModel.signIn(activityContext) },
         onSignOut = viewModel::signOut,
         onOpenCatalog = onOpenCatalog,
         modifier = modifier,
