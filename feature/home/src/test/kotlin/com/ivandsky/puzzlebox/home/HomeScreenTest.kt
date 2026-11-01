@@ -95,8 +95,9 @@ class HomeScreenTest {
         var played = false
         setContent(HomeLayout.TwoPane, onPlayToday = { played = true })
 
-        // Both the card and the detail-pane CTA are live; the first one suffices.
-        composeRule.onAllNodesWithText("Play today")[0].performClick()
+        // Composition order: list pane (TodayCard) first, detail pane second — [1] is
+        // the detail-pane CTA this test names.
+        composeRule.onAllNodesWithText("Play today")[1].performClick()
         composeRule.runOnIdle { check(played) { "expected onPlayToday" } }
     }
 
