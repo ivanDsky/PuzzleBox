@@ -68,11 +68,14 @@ private const val VARIANT_FONT_SCALE = 2f
  * Detail screen for one indexed component (ticket showkase-v2-04): light + dark panes
  * side-by-side on the shared [PreviewBackdrop] by default; the four variant chips each
  * swap the pair for a single pane rendering the component under that variant. Tapping
- * the active chip returns to the base pair.
+ * the active chip returns to the base pair. The backdrop FILL arrives from the
+ * browser's toolbar (ticket 07) — every pane here follows the same
+ * [PreviewBackdropStyle] session choice.
  */
 @Composable
 internal fun ShowkaseComponentDetailScreen(
     component: ShowkaseBrowserComponent,
+    backdropStyle: PreviewBackdropStyle,
     onBack: () -> Unit,
 ) {
     // survives rotation; intentionally not persisted — a fresh entry starts on the pair.
@@ -98,9 +101,9 @@ internal fun ShowkaseComponentDetailScreen(
                     .fillMaxWidth(),
             ) { active ->
                 if (active == null) {
-                    BasePanes(component, Modifier.fillMaxWidth())
+                    BasePanes(component, backdropStyle, Modifier.fillMaxWidth())
                 } else {
-                    VariantPane(component, active, Modifier.fillMaxWidth())
+                    VariantPane(component, active, backdropStyle, Modifier.fillMaxWidth())
                 }
             }
         }
@@ -161,15 +164,19 @@ private fun VariantChipRow(
 
 /** The default view: the component under explicit light and dark themes, side by side. */
 @Composable
-private fun BasePanes(component: ShowkaseBrowserComponent, modifier: Modifier = Modifier) {
+private fun BasePanes(
+    component: ShowkaseBrowserComponent,
+    backdropStyle: PreviewBackdropStyle,
+    modifier: Modifier = Modifier,
+) {
     Row(
         modifier.padding(horizontal = Spacing.lg),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        DetailPane("Light", Modifier.weight(1f), darkTheme = false, variant = null) {
+        DetailPane("Light", Modifier.weight(1f), darkTheme = false, variant = null, backdropStyle = backdropStyle) {
             component.component()
         }
-        DetailPane("Dark", Modifier.weight(1f), darkTheme = true, variant = null) {
+        DetailPane("Dark", Modifier.weight(1f), darkTheme = true, variant = null, backdropStyle = backdropStyle) {
             component.component()
         }
     }
@@ -180,6 +187,7 @@ private fun BasePanes(component: ShowkaseBrowserComponent, modifier: Modifier = 
 private fun VariantPane(
     component: ShowkaseBrowserComponent,
     variant: ComponentVariant,
+    backdropStyle: PreviewBackdropStyle,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.padding(horizontal = Spacing.lg)) {
@@ -188,7 +196,11 @@ private fun VariantPane(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        PreviewBackdrop(modifier = Modifier.fillMaxWidth(), heightHint = component.heightDp?.dp) {
+        PreviewBackdrop(
+            modifier = Modifier.fillMaxWidth(),
+            style = backdropStyle,
+            heightHint = component.heightDp?.dp,
+        ) {
             val canvasWidth = when (variant) {
                 ComponentVariant.TabletWide -> TABLET_SHORT_DP.dp
                 ComponentVariant.Landscape -> TABLET_LONG_DP.dp
@@ -223,6 +235,7 @@ private fun DetailPane(
     modifier: Modifier = Modifier,
     darkTheme: Boolean,
     variant: ComponentVariant?,
+    backdropStyle: PreviewBackdropStyle,
     content: @Composable () -> Unit,
 ) {
     Column(modifier) {
@@ -231,7 +244,7 @@ private fun DetailPane(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        PreviewBackdrop(modifier = Modifier.fillMaxWidth(), heightHint = null) {
+        PreviewBackdrop(modifier = Modifier.fillMaxWidth(), style = backdropStyle, heightHint = null) {
             VariantEnvironment(darkTheme = darkTheme, variant = variant, content = content)
         }
     }
@@ -327,7 +340,11 @@ private annotation class DetailThemePreview
 @Composable
 private fun ShowkaseComponentDetailPreview() {
     PuzzleBoxTheme {
-        ShowkaseComponentDetailScreen(previewDetailComponent(), onBack = {})
+        ShowkaseComponentDetailScreen(
+            previewDetailComponent(),
+            backdropStyle = PreviewBackdropStyle.Checkerboard,
+            onBack = {},
+        )
     }
 }
 
