@@ -37,6 +37,8 @@ class FirestoreLeaderboardRepositoryTest {
         val docs = MutableStateFlow<Map<String, List<Map<String, Any?>>>>(emptyMap())
         val existing = mutableSetOf<Pair<String, String>>() // boardId to uid
         var observeError: Exception? = null
+        /** How many in-flow failures the next observations throw before succeeding. */
+        var observeFailuresLeft = 0
         var submitError: Exception? = null
         val observed = mutableListOf<String>()
 
@@ -44,7 +46,10 @@ class FirestoreLeaderboardRepositoryTest {
             observed += boardId
             // Errors surface IN the flow, like the real snapshot listener — never eagerly.
             return flow {
-                observeError?.let { throw it }
+                if (observeFailuresLeft > 0) {
+                    observeFailuresLeft--
+                    throw observeError ?: error("no error configured")
+                }
                 // The real store orders server-side by (timeMs, hints); malformed rows
                 // must survive the sort (nulls first) so decode can drop them.
                 val sorted = docs.value[boardId].orEmpty().sortedWith(
@@ -144,9 +149,26 @@ class FirestoreLeaderboardRepositoryTest {
     fun `listener errors degrade to a null snapshot (A7)`() = runTest {
         val store = FakeStore()
         store.observeError = FirebaseNetworkException("offline")
+        // More failures than the repository's retries: initial + 2 backoff attempts.
+        store.observeFailuresLeft = 3
         val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
 
+        // Persistent errors exhaust the retries, then terminate at the soft null —
+        // never a thrown error across the seam. runTest's virtual time skips the
+        // retry backoff instantly.
         assertNull(repository.observe(board).first())
+    }
+
+    @Test
+    fun `transient listener errors recover through the retry backoff`() = runTest {
+        val store = FakeStore()
+        store.observeFailuresLeft = 1 // one offline flap, then the listener stabilizes
+        store.docs.value = mapOf(board.boardId to listOf(doc(entry())))
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
+
+        val snapshot = repository.observe(board).first()
+        assertTrue(snapshot != null)
+        assertEquals(listOf("u1"), snapshot!!.entries.map { it.uid })
     }
 
     // ----- submit -----
