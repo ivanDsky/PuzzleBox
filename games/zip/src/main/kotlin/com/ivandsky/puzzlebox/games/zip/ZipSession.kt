@@ -29,7 +29,39 @@ data class ZipSession(
     val timerStarted: Boolean = false,
     val runningSince: Instant? = null,
     val completedAt: Instant? = null,
+    /** Bytes a newer codec version appended (A19): carried by [ZipSessionCodec] and
+     *  re-emitted verbatim so decode∘encode stays lossless across versions. */
+    val unknownTail: ByteArray = ByteArray(0),
 ) : GameSession {
+
+    override fun equals(other: Any?): Boolean =
+        other is ZipSession &&
+            ref == other.ref &&
+            puzzle == other.puzzle &&
+            path == other.path &&
+            hintsUsed == other.hintsUsed &&
+            mistakeCount == other.mistakeCount &&
+            backtrackCount == other.backtrackCount &&
+            elapsedMs == other.elapsedMs &&
+            timerStarted == other.timerStarted &&
+            runningSince == other.runningSince &&
+            completedAt == other.completedAt &&
+            unknownTail.contentEquals(other.unknownTail)
+
+    override fun hashCode(): Int {
+        var h = ref.hashCode()
+        h = 31 * h + puzzle.hashCode()
+        h = 31 * h + path.hashCode()
+        h = 31 * h + hintsUsed
+        h = 31 * h + mistakeCount
+        h = 31 * h + backtrackCount
+        h = 31 * h + elapsedMs.hashCode()
+        h = 31 * h + timerStarted.hashCode()
+        h = 31 * h + (runningSince?.hashCode() ?: 0)
+        h = 31 * h + (completedAt?.hashCode() ?: 0)
+        h = 31 * h + unknownTail.contentHashCode()
+        return h
+    }
 
     val isComplete: Boolean get() = completedAt != null
 

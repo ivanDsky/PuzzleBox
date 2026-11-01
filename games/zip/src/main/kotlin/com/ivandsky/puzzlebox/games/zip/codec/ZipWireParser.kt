@@ -78,7 +78,8 @@ object ZipWireParser {
 
         val walls = HashSet<Wall>()
         (payload["walls"] as? kotlinx.serialization.json.JsonArray)?.forEach { element ->
-            val wall = element.jsonObject
+            val wall = element as? kotlinx.serialization.json.JsonObject
+                ?: return DecodeResult.Err(DecodeError.Malformed("wall entry must be an object"))
             val cellIdx = wall.int("cellIdx")
                 ?: return DecodeResult.Err(DecodeError.Malformed("wall missing cellIdx"))
             if (cellIdx !in 0 until nSquared) {
@@ -114,9 +115,11 @@ object ZipWireParser {
     private fun JsonObject.int(name: String): Int? =
         (this[name] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toIntOrNull()
 
+    /** Throw-free: a non-array field or a non-primitive/non-integer element yields null. */
     private fun JsonObject.array(name: String): List<Int>? =
-        (this[name] as? kotlinx.serialization.json.JsonArray)
-            ?.map { it.jsonPrimitive.content.toIntOrNull() ?: return null }
+        (this[name] as? kotlinx.serialization.json.JsonArray)?.map { element ->
+            (element as? kotlinx.serialization.json.JsonPrimitive)?.content?.toIntOrNull() ?: return null
+        }
 
     private fun JsonObject.primitive(name: String): String? =
         (this[name] as? kotlinx.serialization.json.JsonPrimitive)?.content
