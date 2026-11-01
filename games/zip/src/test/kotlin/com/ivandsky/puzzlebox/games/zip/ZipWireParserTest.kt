@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.games.zip
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import java.time.LocalDate
+import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -95,5 +96,30 @@ class ZipWireParserTest {
         val daily =
             (com.ivandsky.puzzlebox.games.zip.codec.ZipWireParser.parse(json, date) as DecodeResult.Ok).value
         assertEquals(setOf(Wall(Cell(1), WallDirection.DOWN)), daily.puzzle.board.walls)
+    }
+
+    /** D-6: structurally-bad input is a typed error from both overloads — callers branch,
+     *  never catch. A non-primitive waypoint, or a wall entry that is not an object. */
+    @Test
+    fun `structurally bad payloads are Malformed, never thrown`() {
+        listOf(
+            """{"gridSize": 5, "orderedSequence": [0, {"x": 1}, 24]}""",
+            """{"gridSize": 5, "orderedSequence": [0, 12, 24], "walls": ["oops"]}""",
+            """{"gridSize": 5, "orderedSequence": [0, 12, 24], "walls": [7, true]}""",
+            "not json at all",
+        ).forEachIndexed { i, json ->
+            val result = com.ivandsky.puzzlebox.games.zip.codec.ZipWireParser.parse(json, date)
+            assertTrue("case $i: $result", result is DecodeResult.Err)
+            assertTrue((result as DecodeResult.Err).error is DecodeError.Malformed)
+        }
+        // The JsonObject overload is called directly by the fetch seam with pre-parsed JSON.
+        val direct = com.ivandsky.puzzlebox.games.zip.codec.ZipWireParser.parse(
+            kotlinx.serialization.json.Json
+                .parseToJsonElement("""{"gridSize": 5, "orderedSequence": [0, 12, 24], "walls": [true]}""")
+                .jsonObject,
+            date,
+        )
+        assertTrue(direct is DecodeResult.Err)
+        assertTrue((direct as DecodeResult.Err).error is DecodeError.Malformed)
     }
 }

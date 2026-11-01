@@ -14,8 +14,8 @@ import org.junit.Test
 
 /**
  * Session codec v1: the §4 reader rules mirrored for the play state — exact round trip
- * (C1), pinned layout (C2), determinism (C3), tail-free strictness, version guard (C5),
- * and the restore-paused timer rule.
+ * (C1), pinned layout (C2), determinism (C3), unknown-tail preservation (A19/D-3),
+ * version guard (C5), and the restore-paused timer rule.
  */
 class ZipSessionCodecTest {
 
@@ -126,10 +126,32 @@ class ZipSessionCodecTest {
             assertTrue("cut=$cut", result is DecodeResult.Err)
             assertTrue((result as DecodeResult.Err).error is DecodeError.Malformed)
         }
-        // trailing bytes: v1 has no session-level extension yet
+        // trailing bytes: an unknown extension is carried, never rejected (A19/D-3)
         val trailing = full + byteArrayOf(1)
-        assertTrue(ZipSessionCodec.deserialize(trailing) is DecodeResult.Err)
+        val extended = ZipSessionCodec.deserialize(trailing)
+        assertTrue(extended is DecodeResult.Ok)
+        assertArrayEquals(byteArrayOf(1), (extended as DecodeResult.Ok).value.unknownTail)
         assertTrue(ZipSessionCodec.deserialize(ByteArray(0)) is DecodeResult.Err)
+    }
+
+    /** D-3/A19: a tail appended by a newer version survives decode and re-emits verbatim. */
+    @Test
+    fun `unknown session tail is preserved and re-emitted`() {
+        val blob = ZipSessionCodec.serialize(session()) + byteArrayOf(9, 8, 7)
+        val restored = (ZipSessionCodec.deserialize(blob) as DecodeResult.Ok).value
+        assertArrayEquals(byteArrayOf(9, 8, 7), restored.unknownTail)
+        assertArrayEquals(blob, ZipSessionCodec.serialize(restored))
+    }
+
+    /** D-5: counters that would silently truncate at u8 fail fast instead. */
+    @Test
+    fun `u8 counters above 255 fail fast instead of truncating`() {
+        fun trySerialize(build: (ZipSession) -> ZipSession) =
+            runCatching { ZipSessionCodec.serialize(build(session())) }
+        assertTrue(trySerialize { it.copy(hintsUsed = 256) }.isFailure)
+        assertTrue(trySerialize { it.copy(mistakeCount = 256) }.isFailure)
+        assertTrue(trySerialize { it.copy(backtrackCount = 256) }.isFailure)
+        assertTrue(trySerialize { it.copy(hintsUsed = 255, mistakeCount = 255, backtrackCount = 255) }.isSuccess)
     }
 
     /** A corrupted embedded puzzle poisons the session blob (the puzzle rides by value). */

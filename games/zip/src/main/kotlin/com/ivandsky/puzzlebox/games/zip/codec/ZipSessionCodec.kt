@@ -12,7 +12,8 @@ import java.time.Instant
 /**
  * Zip session codec v1 — the §4 reader rules applied to the play session, field set
  * {ref, path, hintsUsed, elapsedMs, completedAt} plus the §10 mistake/backtrack counters
- * and the timerStarted bit (still v1 — pre-release). Layout (little-endian):
+ * and the timerStarted bit (still v1 — pre-release). Layout (i64 fields little-endian,
+ * the u16 puzzle length big-endian):
  *
  * ```
  * 0   u8    formatVersion = 1
@@ -20,7 +21,7 @@ import java.time.Instant
  *                                        in-progress day survives offline replay, F2 §2)
  *     u8    flags                       (bit0 completedAt present, bit1 ref present,
  *                                        bit2 timerStarted)
- *     [bit1] i32 epochDay, u8 numberPresent, i32 puzzleNumber
+ *     [bit1] i64 epochDay, u8 numberPresent, i64 puzzleNumber
  *     u8    pathLen; pathLen x u8 cellIdx
  *     u8    hintsUsed; u8 mistakeCount; u8 backtrackCount
  *     i64   elapsedMs
@@ -36,6 +37,9 @@ object ZipSessionCodec : GameSessionCodec<ZipSession> {
         val puzzleBytes = ZipCodec.encode(session.puzzle) // canonical, self-describing (A19 nesting)
         require(puzzleBytes.size <= 0xFFFF) { "puzzle blob exceeds u16 length" }
         require(session.path.size in 0..255) { "v1 layout carries u8 path length" }
+        require(session.hintsUsed in 0..255) { "v1 layout carries u8 counters" }
+        require(session.mistakeCount in 0..255) { "v1 layout carries u8 counters" }
+        require(session.backtrackCount in 0..255) { "v1 layout carries u8 counters" }
 
         val out = ByteArrayOutputStream(puzzleBytes.size + 32)
         out.write(VERSION)
@@ -67,7 +71,8 @@ object ZipSessionCodec : GameSessionCodec<ZipSession> {
         out.write(session.backtrackCount)
         writeI64(out, session.elapsedMs)
         session.completedAt?.let { writeI64(out, it.toEpochMilli()) }
-        // NOTE: unknownTail extension bytes are a ZipPuzzle concern; the session adds none yet.
+        // A19: the tail a newer reader added travels verbatim so decode∘encode is lossless.
+        out.write(session.unknownTail)
         return out.toByteArray()
     }
 
@@ -120,7 +125,9 @@ object ZipSessionCodec : GameSessionCodec<ZipSession> {
             null
         }
 
-        if (cursor.remaining().isNotEmpty()) return malformed("trailing session bytes are not an extension")
+        // A19: unknown trailing bytes belong to a newer schema version — carry them, never
+        // reject them; serialize re-emits them verbatim.
+        val unknownTail = cursor.remaining()
         // runningSince is a runtime anchor, never persisted: restore paused at elapsedMs.
         return DecodeResult.Ok(
             ZipSession(
@@ -134,6 +141,7 @@ object ZipSessionCodec : GameSessionCodec<ZipSession> {
                 timerStarted = timerStarted,
                 runningSince = null,
                 completedAt = completedAt,
+                unknownTail = unknownTail,
             ),
         )
     }
