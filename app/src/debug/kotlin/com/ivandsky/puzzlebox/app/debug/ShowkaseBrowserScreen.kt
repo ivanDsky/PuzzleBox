@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app.debug
 
 import android.content.res.Configuration
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -100,6 +101,21 @@ fun ShowkaseBrowserScreen() {
     // persisted — a fresh launch always starts unfiltered.
     var query by rememberSaveable { mutableStateOf("") }
     val metadata = remember { loadShowkaseProvider()?.metadata() }
+    // Ticket 04 row→detail: only the component KEY is saveable (the metadata model
+    // carries a composable lambda that can't go in a Bundle) — re-resolve it from the
+    // metadata after rotation or process restore.
+    var selectedComponentKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val selectedComponent = metadata?.componentList
+        ?.firstOrNull { it.componentKey == selectedComponentKey }
+    BackHandler(enabled = selectedComponent != null) { selectedComponentKey = null }
+
+    if (selectedComponent != null) {
+        ShowkaseComponentDetailScreen(
+            component = selectedComponent,
+            onBack = { selectedComponentKey = null },
+        )
+        return
+    }
 
     ShowkaseBrowserContent(
         metadata = metadata,
@@ -113,6 +129,7 @@ fun ShowkaseBrowserScreen() {
         },
         query = query,
         onQueryChange = { query = it },
+        onOpenComponent = { selectedComponentKey = it.componentKey },
     )
 }
 
@@ -128,6 +145,7 @@ internal fun ShowkaseBrowserContent(
     onToggleGroup: (String) -> Unit,
     query: String,
     onQueryChange: (String) -> Unit,
+    onOpenComponent: (ShowkaseBrowserComponent) -> Unit,
 ) {
     // Surface (not a bare background) so LocalContentColor follows the scheme — default
     // Texts would otherwise inherit an unspecified color and can vanish on dark.
@@ -165,6 +183,7 @@ internal fun ShowkaseBrowserContent(
                             results = results,
                             expandedGroups = visibleGroups,
                             onToggleGroup = onToggleGroup,
+                            onOpenComponent = onOpenComponent,
                         )
                     }
                 }
@@ -186,7 +205,7 @@ private fun BrowserHeader(query: String, onQueryChange: (String) -> Unit) {
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            "Showkase browser — search narrows, tap a group to expand",
+            "Showkase browser — search narrows, tap a group to expand, tap a component for variants",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -256,6 +275,7 @@ private fun GroupList(
     results: SearchResults,
     expandedGroups: Set<String>,
     onToggleGroup: (String) -> Unit,
+    onOpenComponent: (ShowkaseBrowserComponent) -> Unit,
 ) {
     LazyColumn(
         modifier,
@@ -271,7 +291,10 @@ private fun GroupList(
                 keyPrefix = COMPONENT_KEY_PREFIX,
                 expandedGroups = expandedGroups,
                 onToggleGroup = onToggleGroup,
-            ) { ComponentRow(it) }
+            ) {
+                // Whole row tappable (name + inline preview) → detail screen (ticket 04).
+                ComponentRow(it, onClick = { onOpenComponent(it) })
+            }
         }
         if (results.colors.isNotEmpty()) {
             section(
@@ -446,10 +469,11 @@ private fun Chevron(expanded: Boolean) {
 }
 
 @Composable
-private fun ComponentRow(component: ShowkaseBrowserComponent) {
+private fun ComponentRow(component: ShowkaseBrowserComponent, onClick: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
     ) {
         Text(component.componentName, style = MaterialTheme.typography.bodyLarge)
@@ -573,7 +597,7 @@ private fun ShowkaseBrowserContentPreview(
     @PreviewParameter(ExpandedGroupsProvider::class) expandedGroups: Set<String>,
 ) {
     PuzzleBoxTheme {
-        ShowkaseBrowserContent(previewMetadata(), expandedGroups, onToggleGroup = {}, query = "", onQueryChange = {})
+        ShowkaseBrowserContent(previewMetadata(), expandedGroups, onToggleGroup = {}, query = "", onQueryChange = {}, onOpenComponent = {})
     }
 }
 
@@ -590,6 +614,7 @@ private fun ShowkaseBrowserSearchPreview() {
             onToggleGroup = {},
             query = "button",
             onQueryChange = {},
+            onOpenComponent = {},
         )
     }
 }
@@ -604,6 +629,7 @@ private fun ShowkaseBrowserErrorPreview() {
             onToggleGroup = {},
             query = "",
             onQueryChange = {},
+            onOpenComponent = {},
         )
     }
 }
