@@ -36,11 +36,11 @@ import com.ivandsky.puzzlebox.app.nav.Home
 import com.ivandsky.puzzlebox.app.nav.Play
 import com.ivandsky.puzzlebox.app.nav.Profile
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
+import com.ivandsky.puzzlebox.app.screens.CatalogUnavailableScreen
 import com.ivandsky.puzzlebox.app.screens.PlayScreen
 import com.ivandsky.puzzlebox.app.screens.ProfileScreen
 import com.ivandsky.puzzlebox.data.model.ThemeMode
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.TokenCatalogScreen
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.HomeRoute
 import com.ivandsky.puzzlebox.home.homeLayoutFor
@@ -146,12 +146,13 @@ private fun select(key: NavKey, backStack: NavBackStack<NavKey>) {
 }
 
 // Catalog route (ticket showkase-v2-01): debug builds render the new Showkase browser
-// inline — it follows PuzzleBoxTheme instead of the old pinned-dark activity — while
-// release keeps the stock token catalog. Main cannot reference debug-only code at
-// compile time (the debug source set doesn't exist in release), so the browser is
-// registered reflectively: loading CatalogDebugBinding runs its class-init, which
-// assigns DebugCatalogContent. The FLAG_DEBUGGABLE gate keeps release from ever
-// touching the reflection path.
+// inline — it follows PuzzleBoxTheme instead of the old pinned-dark activity. Main cannot
+// reference debug-only code at compile time (the debug source set doesn't exist in
+// release), so the browser is registered reflectively: loading CatalogDebugBinding runs
+// its class-init, which assigns DebugCatalogContent. The FLAG_DEBUGGABLE gate keeps
+// release from ever touching the reflection path; anything that can't or shouldn't load
+// the browser (release, non-debuggable) gets the cutover placeholder (showkase-v2-05) —
+// the old screens are gone, not demoted to a fallback.
 internal object DebugCatalogContent {
     @Volatile
     var browser: (@Composable () -> Unit)? = null
@@ -166,7 +167,7 @@ private fun CatalogScreen() {
     if (debugBrowser != null) {
         debugBrowser()
     } else {
-        TokenCatalogScreen()
+        CatalogUnavailableScreen()
     }
 }
 

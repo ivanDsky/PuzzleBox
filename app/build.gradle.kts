@@ -35,6 +35,18 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // Robolectric screenshot tests (ShowkaseBrowserScreenshotTest) need resources on the
+    // unit-test classpath, same as :core:designsystem; the browser renders every indexed
+    // design-system component, so give the suite the same headroom.
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            all { test ->
+                test.maxHeapSize = "2g"
+            }
+        }
+    }
 }
 
 dependencies {
@@ -62,4 +74,25 @@ dependencies {
     testImplementation(libs.koin.test)
     testImplementation(libs.koin.test.junit4)
     testImplementation(libs.robolectric)
+
+    // Screenshot tests for the debug-only browser (showkase-v2-05): same Roborazzi
+    // stack as :core:designsystem. ui-test-manifest sits on the DEBUG APP classpath on
+    // purpose — Robolectric's resources mode reads the app's (binary) debug manifest,
+    // and only app-classpath manifest entries land in it, so testImplementation would
+    // leave createComposeRule's ComponentActivity unresolvable. Debug APK only; release
+    // unaffected.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+}
+
+// Screenshot tests default to recording goldens; run with -Proborazzi.verify to
+// re-capture and fail on any pixel drift against the committed goldens instead.
+val verifySnapshots = providers.gradleProperty("roborazzi.verify").isPresent
+
+tasks.withType<Test>().configureEach {
+    systemProperty("roborazzi.test.record", (!verifySnapshots).toString())
+    systemProperty("roborazzi.test.verify", verifySnapshots.toString())
 }

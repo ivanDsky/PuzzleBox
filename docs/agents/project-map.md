@@ -32,8 +32,9 @@ Gradle root `PuzzleBox`, five modules; dependency direction `:app` → `:feature
 - `core/designsystem/` — `PuzzleBoxTheme` composition root, token vocabulary
   (`ColorTokens` light/dark schemes, `Type` Baloo 2, `Shape`, `Spacing`, `MotionTokens` +
   named `MotionPattern`s), shared `PuzzleBoard`, components (buttons, chips, dialogs,
-  top bars, states), `TokenCatalogScreen` + `ComponentCatalogScreen`; Roborazzi goldens in
-  `snapshots/`, font license in `licenses/`.
+  top bars, states), `ShowkaseTokens` `@ShowkaseColor`/`@ShowkaseTypography` metadata
+  registrations; font license in `licenses/`. The component browser itself is debug-only
+  in `app/src/debug` (Showkase browser screen; goldens in `app/snapshots/`).
 - `feature/home/` — `HomeRoute` (DI-bound entry: observes cached history, never the
   network), `HomeScreen` (single/two-pane arrangement, theme segmented control, history
   teaser), `HomeLayout` + `homeLayoutFor` pure pane policy.
@@ -47,10 +48,11 @@ Gradle root `PuzzleBox`, five modules; dependency direction `:app` → `:feature
   arrives (no light flash), resolves dark theme against the system setting, keeps system
   bar icon appearance in step with the resolved in-app theme, then hosts `PuzzleBoxApp`.
 - `PuzzleBoxApp` route table (Navigation3 `NavDisplay`): Home → `HomeRoute`; Play →
-  placeholder; Profile → placeholder with a detail route to Catalog
-  (`TokenCatalogScreen`); tab selection resets to the tab root. Bottom bar on compact
-  widths, navigation rail on expanded-width landscape (same `homeLayoutFor` decision
-  drives both nav shape and Home's panes).
+  placeholder; Profile → placeholder with a detail route to Catalog — the debug-only
+  Showkase browser (reflective `CatalogDebugBinding` registration, FLAG_DEBUGGABLE-gated;
+  non-debuggable builds get `CatalogUnavailableScreen`); tab selection resets to the tab
+  root. Bottom bar on compact widths, navigation rail on expanded-width landscape (same
+  `homeLayoutFor` decision drives both nav shape and Home's panes).
 - No deep links, widgets, or services.
 
 ## Seams
