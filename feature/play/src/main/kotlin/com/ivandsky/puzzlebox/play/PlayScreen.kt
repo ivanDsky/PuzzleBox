@@ -8,11 +8,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -35,15 +36,19 @@ import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.HintButton
 import com.ivandsky.puzzlebox.gameui.HintController
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.gameui.TimerBar
-import com.ivandsky.puzzlebox.gameui.WinOverlay
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import kotlinx.coroutines.delay
 
 /**
- * The Zip play screen (ticket 13): board + trace gesture + timer + hints + win overlay,
- * arranged by the 07 adaptive policy (two-pane needs Expanded width AND landscape).
- * State flows one way: [state] owns the session; the screen draws and forwards events.
+ * The Zip play screen (ticket 13): board + trace gesture + timer + hints, arranged by
+ * the 07 adaptive policy (two-pane needs Expanded width AND landscape). State flows one
+ * way: [state] owns the session; the screen draws and forwards events.
+ *
+ * Ticket 23: the win moment is a ROUTE handoff, not an overlay — when the session
+ * completes, [onSolved] carries the frozen A3 facts to the result route; this screen
+ * never renders win content itself.
  */
 @Composable
 fun PlayScreen(
@@ -51,6 +56,7 @@ fun PlayScreen(
     layout: PlayLayout,
     registry: GameUiRegistry,
     onBack: () -> Unit,
+    onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Timer readout ticks ONLY while a window is actually running (F2 §2: active
@@ -82,21 +88,19 @@ fun PlayScreen(
         state.rendererModel()
     }
 
+    // The win moment (ticket 23): a one-shot route handoff — the frozen facts go to the
+    // result route while the record write keeps running in the flow, never awaited here.
+    val completed = state.session?.takeIf { it.isComplete }
+    LaunchedEffect(completed) {
+        if (completed != null) onSolved(completed.elapsedMs, completed.hintsUsed)
+    }
+
     Box(modifier.fillMaxSize()) {
         AdaptivePlayScaffold(
             layout = layout,
             modifier = Modifier.fillMaxSize(),
             board = { BoardArea(state, ready, model) },
             side = { SidePanel(state, ready) },
-        )
-        val completed = state.session?.takeIf { it.isComplete }
-        WinOverlay(
-            visible = completed != null,
-            timeMs = completed?.elapsedMs ?: 0L,
-            hintsUsed = completed?.hintsUsed ?: 0,
-            isRecord = state.recordBadge,
-            onReplay = state::replay,
-            onClose = onBack,
         )
     }
 }
@@ -110,7 +114,9 @@ private fun BoxScope.BoardArea(
     Box(
         Modifier
             .fillMaxSize()
-            .testTag("play.board_area"),
+            .testTag("play.board_area")
+            // A4: standard pane margins; the cap below is a max, not a fixed width.
+            .padding(horizontal = Spacing.lg),
         contentAlignment = Alignment.Center,
     ) {
         val screenState = state.screen
@@ -123,8 +129,13 @@ private fun BoxScope.BoardArea(
                 onEvent = state::onDragEvent,
                 edgeOverlays = zipWallOverlays(model),
                 cellContent = { row, col -> ZipCellDecor(model, row, col) },
+                // A4: capped at PlayBoardMaxWidth and centered by the pane; BoardGrid's
+                // aspectRatio keeps the grid exact under these loose constraints. The
+                // outline rides the same modifier (U1 §4 — Zip's outline is gridline-weight).
                 modifier = Modifier
-                    .fillMaxSize()
+                    .widthIn(max = PlayBoardMaxWidth)
+                    .heightIn(max = PlayBoardMaxWidth)
+                    .zipBoardOutline(model.n)
                     .testTag("play.board"),
             )
 
@@ -198,22 +209,6 @@ private fun SidePanel(
 
         TimerBar(elapsedMs = state.displayedElapsedMs())
 
-        if (state.recordWriteFailed) {
-            // Standard error convention for the record write — surfaced, retryable,
-            // never blocking the celebration (F2 §7).
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Couldn't save your record.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(onClick = state::retryRecordWrite) { Text("Retry") }
-            }
-        }
         Spacer(Modifier.padding(bottom = Spacing.xs))
     }
 }

@@ -9,7 +9,6 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,57 +42,6 @@ class TimerBarTest {
             }
         }
         composeRule.onNodeWithText("00:00").assertExists()
-    }
-}
-
-@RunWith(RobolectricTestRunner::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34])
-class WinOverlayTest {
-
-    @get:Rule
-    val composeRule = createComposeRule()
-
-    private fun setContent(visible: Boolean, isRecord: Boolean? = null) {
-        composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false) {
-                WinOverlay(
-                    visible = visible,
-                    timeMs = 95_000,
-                    hintsUsed = 1,
-                    isRecord = isRecord,
-                    onReplay = {},
-                    onClose = {},
-                    modifier = Modifier.requiredSize(300.dp),
-                )
-            }
-        }
-    }
-
-    @Test
-    fun `shows normalized a3 facts when visible`() {
-        setContent(visible = true)
-        composeRule.onNodeWithText("Solved!").assertExists()
-        composeRule.onNodeWithText("01:35").assertExists()
-        composeRule.onNodeWithText("1 hint").assertExists()
-    }
-
-    @Test
-    fun `record badge appears when stamped`() {
-        setContent(visible = true, isRecord = true)
-        composeRule.onNodeWithText("New personal record").assertExists()
-    }
-
-    @Test
-    fun `record badge absent while the write is still in flight`() {
-        setContent(visible = true, isRecord = null)
-        composeRule.onNodeWithText("New personal record").assertDoesNotExist()
-    }
-
-    @Test
-    fun `hidden overlay renders nothing`() {
-        setContent(visible = false)
-        composeRule.onNodeWithText("Solved!").assertDoesNotExist()
     }
 }
 

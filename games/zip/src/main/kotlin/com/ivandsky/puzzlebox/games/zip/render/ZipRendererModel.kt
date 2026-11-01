@@ -25,10 +25,16 @@ data class ZipRendererModel(
     val status: Status,
 ) : RendererModel {
 
+    // Everything the cell decor needs to draw LinkedIn-style waypoint dots (ticket 22):
+    // dot presence + inside label, the visited (on-path) state that switches the dot to
+    // its on-path role, the start marker, and the next-target flag (wave 2's breathing
+    // target reads it; nothing animates today).
     data class CellRender(
-        val numberLabel: Int?, // waypoint label rendered in the cell corner, 1-based
+        val label: Int?, // waypoint label rendered inside the dot, 1-based
         val isWaypoint: Boolean,
         val isStart: Boolean, // waypoint 1: the only legal first cell (I4)
+        val isOnPath: Boolean, // the player's trace covers this cell
+        val isNextTarget: Boolean, // next waypoint in label order not yet traced
     )
 
     data class WallRender(
@@ -55,13 +61,22 @@ data class ZipRendererModel(
         ): ZipRendererModel {
             val board = state.puzzle.board
             val path = state.path
+            val traced = path.mapTo(HashSet()) { it.idx }
             val cells = (0 until board.cellCount).map { idx ->
                 val cell = Cell(idx)
                 val label = board.waypointLabel(cell)
                 CellRender(
-                    numberLabel = label,
+                    label = label,
                     isWaypoint = label != null,
                     isStart = idx == board.waypoints.firstOrNull()?.idx,
+                    isOnPath = idx in traced,
+                    // Waypoint order is a rule (I4), so the target is the lowest-label
+                    // waypoint the trace has not reached; none once every waypoint sits
+                    // on the path.
+                    isNextTarget = label != null && idx !in traced &&
+                        board.waypoints.withIndex().none { (i, wp) ->
+                            i + 1 < label && wp.idx !in traced
+                        },
                 )
             }
             val walls = board.walls

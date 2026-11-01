@@ -2,9 +2,13 @@ package com.ivandsky.puzzlebox.app
 
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
@@ -23,12 +27,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import android.content.Intent
+import android.provider.Settings
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -41,6 +47,7 @@ import com.ivandsky.puzzlebox.app.nav.Home
 import com.ivandsky.puzzlebox.app.nav.Play
 import com.ivandsky.puzzlebox.app.nav.Profile
 import com.ivandsky.puzzlebox.app.nav.ReplayZip
+import com.ivandsky.puzzlebox.app.nav.Result
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.screens.ProfileRoute
 import com.ivandsky.puzzlebox.data.model.ThemeMode
@@ -55,6 +62,7 @@ import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.HomeRoute
 import com.ivandsky.puzzlebox.home.homeLayoutFor
 import com.ivandsky.puzzlebox.play.PlayRoute
+import com.ivandsky.puzzlebox.play.ResultRoute
 import java.util.Base64
 
 @Composable
@@ -88,6 +96,16 @@ fun PuzzleBoxApp(
     )
     val expanded = layout == HomeLayout.TwoPane
     val backStack = rememberNavBackStack(Home)
+    // Accessibility (spec A3): animator scale 0 is the system's reduced-motion signal —
+    // the result fade-through collapses to opacity-only.
+    val context = LocalContext.current
+    val reduceMotion = remember {
+        Settings.Global.getFloat(
+            context.contentResolver,
+            Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f,
+        ) == 0f
+    }
 
     Scaffold(
         modifier = modifier,
@@ -133,8 +151,15 @@ fun PuzzleBoxApp(
                 // one starts, so the two contents never superimpose mid-flight (Nav3's
                 // simultaneous crossfade showed both screens' text over each other).
                 // Slide is a residual 1/24 — tab switches aren't hierarchical.
+                // Ticket 23: entering the RESULT route is the run's only new animation —
+                // opacity 0→1 + scale 0.92→1 on one critically damped ~0.3s spring
+                // (spec A3); reduced motion keeps the opacity half only.
                 transitionSpec = {
-                    screenEnterTransform() togetherWith screenExitTransform()
+                    if (targetState.key == Result) {
+                        resultEnterTransform(reduceMotion) togetherWith screenExitTransform()
+                    } else {
+                        screenEnterTransform() togetherWith screenExitTransform()
+                    }
                 },
                 popTransitionSpec = {
                     screenEnterTransform() togetherWith screenExitTransform()
@@ -201,6 +226,7 @@ internal fun puzzleBoxEntryProvider(
             PlayRoute(
                 layout = playLayout,
                 onBack = { backStack.removeLastOrNull() },
+                onSolved = { timeMs, hintsUsed -> backStack.solveToResult(Result(timeMs, hintsUsed)) },
                 restoredSession = runCatching {
                     Base64.getDecoder().decode(key.session)
                 }.getOrNull(),
@@ -212,6 +238,16 @@ internal fun puzzleBoxEntryProvider(
             PlayRoute(
                 layout = playLayout,
                 onBack = { backStack.removeLastOrNull() },
+                onSolved = { timeMs, hintsUsed -> backStack.solveToResult(Result(timeMs, hintsUsed)) },
+            )
+        }
+    }
+    entry<Result> { key ->
+        SceneCanvas {
+            ResultRoute(
+                timeMs = key.timeMs,
+                hintsUsed = key.hintsUsed,
+                onPlayAgain = { backStack.playAgainFromResult() },
             )
         }
     }
@@ -227,6 +263,26 @@ internal fun puzzleBoxEntryProvider(
 private fun select(key: NavKey, backStack: NavBackStack<NavKey>) {
     backStack.clear()
     backStack.add(key)
+}
+
+// Ticket 23 nav contract — solving: everything above Home unwinds and the result takes
+// its place, so the system back (a plain NavDisplay pop) lands on Home — the same
+// surface the flow entered from (senior-UX wayfinding: back never surprises). The Play
+// tab root sits directly on the stack with no Home beneath it; the unwind supplies one
+// so the pop always has somewhere predictable to go.
+internal fun NavBackStack<NavKey>.solveToResult(solved: Result) {
+    if (lastOrNull() == solved) return
+    while (isNotEmpty() && lastOrNull() != Home) removeLastOrNull()
+    if (isEmpty()) add(Home)
+    add(solved)
+}
+
+// Ticket 23 nav contract — "Play again": the result pops and a fresh play entry takes
+// its place. The result route has already reset the flow's session to a fresh play of
+// the SAME puzzle (ResultRoute → ZipPlayState.replay), which the play route keeps.
+internal fun NavBackStack<NavKey>.playAgainFromResult() {
+    removeLastOrNull()
+    if (lastOrNull() != Play) add(Play)
 }
 
 // Double-tap guard: pushing a destination that is already the stack top would need two
@@ -279,6 +335,22 @@ private fun AnimatedContentTransitionScope<*>.screenEnterTransform() =
 
 private fun AnimatedContentTransitionScope<*>.screenExitTransform() =
     fadeOut(tween(MotionTokens.NavTransitionExit, easing = MotionTokens.EasingEmphasizedAccelerate))
+
+// Ticket 23 — the run's ONLY new animation (spec A3): the result screen enters with a
+// fade-through — opacity 0→1 + scale 0.92→1 on ONE critically damped spring (~0.3s
+// response, MotionTokens.SpringStiffnessDefault). Reduced motion (animator scale 0)
+// keeps the opacity half only. The outgoing screen still fades out in its own 90ms, so
+// the arrival reads as a fade-through, not a crossfade.
+private fun resultEnterTransform(reduceMotion: Boolean): EnterTransition =
+    if (reduceMotion) {
+        fadeIn(tween(MotionTokens.DurationShort, easing = MotionTokens.EasingEmphasizedDecelerate))
+    } else {
+        val enter = spring<Float>(
+            dampingRatio = MotionTokens.SpringDampingDefault,
+            stiffness = MotionTokens.SpringStiffnessDefault,
+        )
+        fadeIn(enter) + scaleIn(initialScale = 0.92f, animationSpec = enter)
+    }
 
 // Opaque canvas behind every nav scene: without it the AnimatedContent layers blend and
 // screens read as ghosts of each other during the transition.

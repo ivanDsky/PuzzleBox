@@ -1,20 +1,29 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.data.repository.ZipDailyEntry
 import com.ivandsky.puzzlebox.data.repository.ZipToday
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.gameui.Board
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GameUiRegistry
 import com.ivandsky.puzzlebox.gameui.GridCell
+import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import java.time.LocalDate
+import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Rule
@@ -24,7 +33,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Robolectric compose coverage for the play screen (A17): states, chrome, win overlay. */
+/**
+ * Robolectric compose coverage for the play screen (A17): states, chrome, and the
+ * ticket-23 solved handoff (the win moment itself lives on the result route now).
+ */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -32,6 +44,9 @@ class PlayScreenTest {
 
     @get:Rule
     val composeRule = createComposeRule()
+
+    /** The (timeMs, hintsUsed) handed to the result route, captured per test. */
+    private var solvedFacts: Pair<Long, Int>? = null
 
     private val day: LocalDate = LocalDate.of(2026, 10, 31)
     private val scope = CoroutineScope(Dispatchers.Unconfined)
@@ -53,6 +68,7 @@ class PlayScreenTest {
             today = { day },
         )
         state.load()
+        solvedFacts = null
         composeRule.setContent {
             PuzzleBoxTheme {
                 PlayScreen(
@@ -60,6 +76,7 @@ class PlayScreenTest {
                     layout = layout,
                     registry = GameUiRegistry().apply { registerZipBoard() },
                     onBack = {},
+                    onSolved = { timeMs, hintsUsed -> solvedFacts = timeMs to hintsUsed },
                 )
             }
         }
@@ -74,9 +91,10 @@ class PlayScreenTest {
     )
 
     private fun setContent(state: ZipPlayState, layout: PlayLayout = PlayLayout.SinglePane, registry: GameUiRegistry = GameUiRegistry().apply { registerZipBoard() }) {
+        solvedFacts = null
         composeRule.setContent {
             PuzzleBoxTheme {
-                PlayScreen(state, layout, registry, onBack = {})
+                PlayScreen(state, layout, registry, onBack = {}, onSolved = { timeMs, hintsUsed -> solvedFacts = timeMs to hintsUsed })
             }
         }
     }
@@ -107,7 +125,9 @@ class PlayScreenTest {
         composeRule.onNodeWithText("Daily · #592").assertExists()
         composeRule.onNodeWithText("Hint").assertExists()
         composeRule.onNodeWithText("00:00").assertExists()
-        // The start waypoint's number label is on the board.
+        // Ticket 22: the start waypoint is a dot with its bold label INSIDE it — bare
+        // corner numbers are gone.
+        composeRule.onNodeWithTag("play.waypoint_dot_0").assertExists()
         composeRule.onNodeWithText("1").assertExists()
         composeRule.onNodeWithText("Solved!").assertDoesNotExist()
     }
@@ -130,30 +150,53 @@ class PlayScreenTest {
     }
 
     @Test
-    fun `win overlay celebrates with the record badge after the write`() {
+    fun `solving hands the frozen facts to the result route once`() {
         val state = readyState()
         composeRule.runOnIdle {
             PlayTestSupport.solution.forEach { cell ->
                 state.onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
             }
         }
-        composeRule.onNodeWithText("Solved!").assertExists()
-        composeRule.onNodeWithText("New personal record").assertExists()
-        composeRule.onNodeWithText("Play again").assertExists()
+        composeRule.waitForIdle()
+        // Ticket 23: the win moment is a route handoff, not an overlay — the screen
+        // carries the frozen A3 facts (time, hints) and never renders win content.
+        val facts = solvedFacts
+        check(facts != null) { "solving did not hand off to the result route" }
+        check(facts.first >= 0) { "negative time handed off" }
+        check(facts.second == 0) { "no hints were used on this solve" }
+        composeRule.onNodeWithText("Solved!").assertDoesNotExist()
+        composeRule.onNodeWithTag("play.board").assertExists()
     }
 
     @Test
-    fun `replay resets to a fresh board`() {
+    fun `a fresh entry does not hand off to the result route`() {
+        readyState()
+        composeRule.waitForIdle()
+        check(solvedFacts == null) { "unsolved session handed off to the result route" }
+    }
+
+    @Test
+    fun `replay resets to a fresh board and can hand off again`() {
         val state = readyState()
         composeRule.runOnIdle {
             PlayTestSupport.solution.forEach { cell ->
                 state.onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
             }
         }
-        composeRule.onNodeWithText("Play again").performClick()
-        composeRule.onNodeWithText("Solved!").assertDoesNotExist()
+        composeRule.waitForIdle()
+        check(solvedFacts != null) { "first solve did not hand off" }
+        composeRule.runOnIdle { state.replay() }
+        composeRule.waitForIdle()
         composeRule.onNodeWithText("00:00").assertExists()
         composeRule.runOnIdle { check(state.session?.path?.isEmpty() == true) }
+
+        composeRule.runOnIdle {
+            PlayTestSupport.solution.forEach { cell ->
+                state.onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
+            }
+        }
+        composeRule.waitForIdle()
+        check(solvedFacts != null) { "second solve did not hand off" }
     }
 
     @Test
@@ -161,6 +204,57 @@ class PlayScreenTest {
         readyState(layout = PlayLayout.TwoPane)
         composeRule.onNodeWithTag("play.board").assertExists()
         composeRule.onNodeWithTag("play.side_panel").assertExists()
+    }
+
+    /** A4: the board is capped at [PlayBoardMaxWidth], centered in its pane, aspect exact. */
+    @Test
+    fun `wide pane caps the board at the max width and centers it`() {
+        val state = bareState(daily())
+        state.load()
+        var density = Density(1f)
+        composeRule.setContent {
+            PuzzleBoxTheme {
+                density = LocalDensity.current
+                Box(Modifier.requiredSize(width = 1200.dp, height = 800.dp)) {
+                    PlayScreen(state, PlayLayout.SinglePane, GameUiRegistry().apply { registerZipBoard() }, onBack = {}, onSolved = { _, _ -> })
+                }
+            }
+        }
+        composeRule.waitForIdle()
+
+        val board = composeRule.onNodeWithTag("play.board").fetchSemanticsNode()
+        val area = composeRule.onNodeWithTag("play.board_area").fetchSemanticsNode()
+        with(density) {
+            val capPx = PlayBoardMaxWidth.roundToPx()
+            check(board.size.width == capPx) { "board not capped: ${board.size.width}px != $capPx" }
+            check(board.size.height == capPx) { "grid aspect not exact: ${board.size.height}px != $capPx" }
+        }
+        val boardCenterX = board.positionInRoot.x + board.size.width / 2f
+        val areaCenterX = area.positionInRoot.x + area.size.width / 2f
+        check(abs(boardCenterX - areaCenterX) < 1f) { "board not centered: $boardCenterX vs $areaCenterX" }
+    }
+
+    /** A4: the cap is a max, not fixed — a phone pane keeps near-full width minus margins. */
+    @Test
+    fun `phone pane keeps near-full board width under standard margins`() {
+        val state = bareState(daily())
+        state.load()
+        var density = Density(1f)
+        composeRule.setContent {
+            PuzzleBoxTheme {
+                density = LocalDensity.current
+                Box(Modifier.requiredSize(width = 411.dp, height = 900.dp)) {
+                    PlayScreen(state, PlayLayout.SinglePane, GameUiRegistry().apply { registerZipBoard() }, onBack = {}, onSolved = { _, _ -> })
+                }
+            }
+        }
+        composeRule.waitForIdle()
+
+        val board = composeRule.onNodeWithTag("play.board").fetchSemanticsNode()
+        with(density) {
+            val expected = (411.dp - Spacing.lg * 2).roundToPx()
+            check(board.size.width == expected) { "board not near-full width: ${board.size.width}px != $expected" }
+        }
     }
 
     @Test
@@ -174,6 +268,7 @@ class PlayScreenTest {
                 registry.Board(gameId = ZipDefinition.id, model = state.rendererModel())
             }
         }
+        composeRule.onNodeWithTag("play.waypoint_dot_0").assertExists()
         composeRule.onNodeWithText("1").assertExists()
     }
 }

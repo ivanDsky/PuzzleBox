@@ -105,6 +105,57 @@ fun TokenCatalogScreen(
             ColorTierRow()
         }
 
+        CatalogSection(title = "Board") {
+            boardRoleSpecs().forEach { role ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                ) {
+                    BoardSwatch(backing = DarkBoardTokens.boardSurface, color = role.dark)
+                    BoardSwatch(backing = LightBoardTokens.boardSurface, color = role.light)
+                    Column {
+                        Text(
+                            text = role.name,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = "dark ${role.dark.toHex6()} · light ${role.light.toHex6()}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            Text(
+                text = "strokes",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            listOf(
+                "boardGridLineWeight" to BoardTokens.boardGridLineWeight,
+                "boardWallWeight" to BoardTokens.boardWallWeight,
+            ).forEach { (name, value) ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(value)
+                            .height(Spacing.lg)
+                            .clip(MaterialTheme.shapes.extraSmall)
+                            .background(MaterialTheme.colorScheme.primary),
+                    )
+                    Text(
+                        text = "$name · ${value.value}dp",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
         CatalogSection(title = "Typography") {
             typographySamples().forEach { (name, style) ->
                 Column {
@@ -278,6 +329,42 @@ private fun ColorTierRow() {
                 )
             }
         }
+    }
+}
+
+private data class BoardRoleSpec(val name: String, val dark: Color, val light: Color)
+
+private fun boardRoleSpecs(): List<BoardRoleSpec> = listOf(
+    BoardRoleSpec("boardSurface", DarkBoardTokens.boardSurface, LightBoardTokens.boardSurface),
+    BoardRoleSpec("boardGridLine", DarkBoardTokens.boardGridLine, LightBoardTokens.boardGridLine),
+    BoardRoleSpec("boardWall", DarkBoardTokens.boardWall, LightBoardTokens.boardWall),
+    BoardRoleSpec("waypointDot", DarkBoardTokens.waypointDot, LightBoardTokens.waypointDot),
+    BoardRoleSpec("waypointLabel", DarkBoardTokens.waypointLabel, LightBoardTokens.waypointLabel),
+    BoardRoleSpec("waypointDotOnPath", DarkBoardTokens.waypointDotOnPath, LightBoardTokens.waypointDotOnPath),
+    BoardRoleSpec("onPathLabel", DarkBoardTokens.onPathLabel, LightBoardTokens.onPathLabel),
+    BoardRoleSpec("pathTrace", DarkBoardTokens.pathTrace, LightBoardTokens.pathTrace),
+    BoardRoleSpec("boardSelection", DarkBoardTokens.boardSelection, LightBoardTokens.boardSelection),
+    BoardRoleSpec("boardRegion", DarkBoardTokens.boardRegion, LightBoardTokens.boardRegion),
+)
+
+// One role, both themes side by side: each swatch sits on ITS OWN boardSurface so
+// the section reads identically whichever theme wraps the catalog.
+@Composable
+private fun BoardSwatch(backing: Color, color: Color) {
+    Box(
+        modifier = Modifier
+            .size(96.dp, 56.dp)
+            .clip(MaterialTheme.shapes.small)
+            .background(backing)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.small),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp, 24.dp)
+                .clip(MaterialTheme.shapes.extraSmall)
+                .background(color),
+        )
     }
 }
 

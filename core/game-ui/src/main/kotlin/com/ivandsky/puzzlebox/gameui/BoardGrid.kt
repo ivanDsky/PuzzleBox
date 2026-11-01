@@ -21,7 +21,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import com.ivandsky.puzzlebox.designsystem.BoardColors
+import com.ivandsky.puzzlebox.designsystem.BoardTokens
+import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 
 /** Which interior edge of a cell the overlay attaches to: toward the right or down neighbor. */
 enum class EdgeSide { RIGHT, DOWN }
@@ -42,6 +45,11 @@ sealed interface EdgeOverlay {
  * and content-agnostic cell slots. The board owns geometry and overlays only — every game
  * decision stays in its engine module (A16). Tap games (Queens/Tango/MiniSudoku) wire
  * [onCellTap]; trace games use [DragTraceBoard] instead.
+ *
+ * Strokes (A5/A10): gridlines, walls, and colorless borders render from the board token
+ * roles with the token stroke weights — [colors]/[gridLineWeight]/[wallWeight] exist only
+ * as call-site overrides; the defaults are the contract. Draw order is fixed: strokes
+ * first, cell content above (A2 — a trace path painted by content never covers a label).
  */
 @Composable
 fun BoardGrid(
@@ -50,10 +58,11 @@ fun BoardGrid(
     modifier: Modifier = Modifier,
     edgeOverlays: List<EdgeOverlay> = emptyList(),
     onCellTap: ((row: Int, col: Int) -> Unit)? = null,
+    colors: BoardColors = LocalBoardColors.current,
+    gridLineWeight: Dp = BoardTokens.boardGridLineWeight,
+    wallWeight: Dp = BoardTokens.boardWallWeight,
     cellContent: @Composable BoxScope.(row: Int, col: Int) -> Unit = { _, _ -> },
 ) {
-    val gridLineColor = MaterialTheme.colorScheme.outlineVariant
-    val wallColor = MaterialTheme.colorScheme.onSurface
     val markColor = MaterialTheme.colorScheme.onSurfaceVariant
     val markStyle = MaterialTheme.typography.labelMedium
     val textMeasurer = rememberTextMeasurer()
@@ -62,11 +71,11 @@ fun BoardGrid(
         modifier = modifier.aspectRatio(ratio = cols.toFloat() / rows.toFloat()),
     ) {
         Canvas(Modifier.fillMaxSize()) {
-            drawGrid(rows, cols, gridLineColor)
+            drawGrid(rows, cols, colors.boardGridLine, gridLineWeight.toPx())
             edgeOverlays.forEach { overlay ->
                 when (overlay) {
-                    is EdgeOverlay.Wall -> drawWall(overlay, rows, cols, wallColor, 4.dp.toPx())
-                    is EdgeOverlay.Border -> drawEdgeLine(overlay, rows, cols, overlay.color ?: gridLineColor, 1.dp.toPx())
+                    is EdgeOverlay.Wall -> drawWall(overlay, rows, cols, colors.boardWall, wallWeight.toPx())
+                    is EdgeOverlay.Border -> drawEdgeLine(overlay, rows, cols, overlay.color ?: colors.boardGridLine, gridLineWeight.toPx())
                     is EdgeOverlay.Mark -> drawEdgeMark(overlay, rows, cols, markColor, textMeasurer, markStyle)
                 }
             }
@@ -109,15 +118,15 @@ private fun Cells(
     }
 }
 
-private fun DrawScope.drawGrid(rows: Int, cols: Int, color: Color) {
+private fun DrawScope.drawGrid(rows: Int, cols: Int, color: Color, widthPx: Float) {
     val geometry = GridGeometry(rows, cols, size.width, size.height)
     for (row in 1 until rows) {
         val y = row * geometry.cellHeight
-        drawLine(color, Offset(0f, y), Offset(size.width, y), strokeWidth = 1.dp.toPx())
+        drawLine(color, Offset(0f, y), Offset(size.width, y), strokeWidth = widthPx)
     }
     for (col in 1 until cols) {
         val x = col * geometry.cellWidth
-        drawLine(color, Offset(x, 0f), Offset(x, size.height), strokeWidth = 1.dp.toPx())
+        drawLine(color, Offset(x, 0f), Offset(x, size.height), strokeWidth = widthPx)
     }
 }
 

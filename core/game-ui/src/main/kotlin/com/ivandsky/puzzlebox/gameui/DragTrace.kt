@@ -67,10 +67,13 @@ fun DragTraceBoard(
     val latestOnEvent by rememberUpdatedState(onEvent)
 
     Box(modifier) {
+        // Plain modifier: BoardGrid's aspectRatio self-sizes the board under the caller's
+        // (possibly only max-bounded) constraints and defines this Box's size — the gesture
+        // layer below matches it. matchParentSize here would collapse the board to 0 when
+        // the caller caps the size with widthIn/heightIn (A4).
         BoardGrid(
             rows = rows,
             cols = cols,
-            modifier = Modifier.matchParentSize(),
             edgeOverlays = edgeOverlays,
             cellContent = cellContent,
         )

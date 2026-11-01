@@ -13,9 +13,17 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 /** Play screen pane arrangement. */
 enum class PlayLayout { SinglePane, TwoPane }
+
+/**
+ * A4 board cap: the widest the play board may render. It is a MAX, not a fixed size —
+ * phones keep near-full width under the pane's standard margins, and a shorter pane
+ * shrinks the board further so the grid aspect stays exact.
+ */
+val PlayBoardMaxWidth = 480.dp
 
 /**
  * The pane decision as a pure function — same policy as home (A12 / ticket 07):
