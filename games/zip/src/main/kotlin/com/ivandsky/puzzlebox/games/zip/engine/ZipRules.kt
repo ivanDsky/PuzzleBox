@@ -103,9 +103,10 @@ class ZipRules(
         return ZipVerifier.verifyPath(state.puzzle, state.path)
     }
 
-    /** Solver-backed hint (F2 §5 §3): Step onto the next solution cell, or — when the
-     *  trace is provably dead — Backtrack to the longest still-solvable prefix. The trim
-     *  itself is free; the resulting hint counts once (A3, F2 §10). */
+    /** Hint (F2 §5 §3, A18 §6): Step onto the next correct segment of the stored
+     *  solution, or — when the trace diverged from it — Backtrack to the last agreeing
+     *  cell. The trim itself is free; the resulting hint counts once (A3, F2 §10).
+     *  Solver-backed only for boards without a stored solution ([ZipHints]). */
     override fun hint(state: ZipState): Hint = hints.hint(state)
 
     companion object {

@@ -37,7 +37,8 @@ class ZipHintsTest {
         assertEquals(ZipHint.Backtrack(3), hint) // keep path[0..3], trim cell 8
     }
 
-    /** Hinting never reads the stored solution: strip it and the answers are identical. */
+    /** Boards without a stored solution take the solver fallback (A18 §6); on unique
+     *  boards both sources agree, so stripping the solution changes no answer. */
     @Test
     fun `hints work without a stored solution`() {
         val withSolution = ZipTestSupport.n5BranchyPuzzle()
@@ -63,5 +64,16 @@ class ZipHintsTest {
         assertTrue(ZipRules.verifyPath(puzzle, trimmed))
         val step = hints.hint(ZipState(puzzle, trimmed))
         assertEquals(ZipHint.Step(Cell(4)), step)
+    }
+
+    /** A18 §6: the stored solution is the play-time source — the Step is solution[path.size]. */
+    @Test
+    fun `step hints read the stored solution lookahead`() {
+        val puzzle = ZipTestSupport.n5BranchyPuzzle()
+        val solution = puzzle.solution!!
+        listOf(0, 1, 5, 12).forEach { k ->
+            val hint = hints.hint(ZipState(puzzle, solution.take(k)))
+            assertEquals("k=$k", ZipHint.Step(solution[k]), hint)
+        }
     }
 }
