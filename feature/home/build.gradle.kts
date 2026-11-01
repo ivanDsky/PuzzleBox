@@ -30,6 +30,10 @@ android {
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:data"))
+    // F1 module map: FEAT → GAMES is a sanctioned edge (same as :feature:history/play) —
+    // test-only here: the route test's ZipDailyRepository fake implements `cached`, whose
+    // signature names the engine's Puzzle type.
+    testImplementation(project(":core:game"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.material.icons.core)
