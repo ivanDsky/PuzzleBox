@@ -49,15 +49,14 @@ import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
-import com.ivandsky.puzzlebox.data.repository.ZipDailyEntry
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
 
 /**
@@ -68,27 +67,29 @@ import kotlinx.coroutines.launch
  * Replay (A4): tapping a day opens its detail; "Replay this day" builds the session
  * blob and hands it to the play route. The record badge on a row/detail is cached-data
  * only (A8): whether a record exists for the day, never its history of replays.
+ * tango-05: rows are game-keyed — Zip and Tango share the calendar, and every identity
+ * (selection, record lookup, replay) is (game, day), never day alone.
  */
 @Composable
 fun HistoryScreen(
     layout: HistoryLayout,
     onBack: () -> Unit,
     days: LazyPagingItems<HistoryDayRow>,
-    entries: List<ZipDailyEntry>,
-    recordsByDay: Map<LocalDate, CompletionRecord>,
+    allRows: List<HistoryDayRow>,
+    recordsByKey: Map<Pair<GameId, LocalDate>, CompletionRecord>,
     streak: Int,
-    replayFor: suspend (LocalDate) -> ReplayLaunch,
+    replayFor: suspend (GameId, LocalDate) -> ReplayLaunch,
     onReplay: (ReplayLaunch.Ready) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var selectedDayIso by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedKey by rememberSaveable { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val selectedEntry = selectedDayIso?.let { iso -> entries.firstOrNull { it.day.toString() == iso } }
+    val selectedRow = selectedKey?.let { key -> allRows.firstOrNull { it.key == key } }
 
-    fun replay(day: LocalDate) {
+    fun replay(game: GameId, day: LocalDate) {
         scope.launch {
-            when (val payload = replayFor(day)) {
+            when (val payload = replayFor(game, day)) {
                 is ReplayLaunch.Ready -> onReplay(payload)
                 ReplayLaunch.Missing ->
                     snackbarHostState.showSnackbar("That day is no longer saved on this device.")
@@ -116,10 +117,10 @@ fun HistoryScreen(
                 ListPane(
                     days = days,
                     streak = streak,
-                    capturedCount = entries.size,
-                    recordsByDay = recordsByDay,
-                    selectedDay = selectedEntry?.day,
-                    onDayClick = { selectedDayIso = it.toString() },
+                    capturedCount = allRows.size,
+                    recordsByKey = recordsByKey,
+                    selectedKey = selectedRow?.key,
+                    onDayClick = { selectedKey = it.key },
                     onBack = onBack,
                     cardColor = cardColor,
                     modifier = Modifier
@@ -127,23 +128,23 @@ fun HistoryScreen(
                         .fillMaxHeight(),
                 )
                 AnimatedContent(
-                    targetState = selectedEntry,
+                    targetState = selectedRow,
                     modifier = Modifier
                         .weight(0.58f)
                         .fillMaxHeight()
                         .testTag("history.detail_pane"),
                     transitionSpec = { detailTransition() },
                     label = "history-detail",
-                    contentKey = { it?.day },
+                    contentKey = { it?.key },
                 ) { selected ->
                     if (selected == null) {
                         DetailHint(cardColor = cardColor, modifier = Modifier.fillMaxSize())
                     } else {
                         DayDetailPane(
-                            entry = selected,
-                            record = recordsByDay[selected.day],
+                            row = selected,
+                            record = recordsByKey[selected.game to selected.day],
                             onBackToDayList = null,
-                            onReplay = { replay(selected.day) },
+                            onReplay = { replay(selected.game, selected.day) },
                             cardColor = cardColor,
                             modifier = Modifier.fillMaxSize(),
                         )
@@ -152,30 +153,30 @@ fun HistoryScreen(
             }
         } else {
             AnimatedContent(
-                targetState = selectedEntry,
+                targetState = selectedRow,
                 modifier = Modifier.fillMaxSize(),
                 transitionSpec = { detailTransition() },
                 label = "history-detail",
-                contentKey = { it?.day },
+                contentKey = { it?.key },
             ) { selected ->
                 if (selected == null) {
                     ListPane(
                         days = days,
                         streak = streak,
-                        capturedCount = entries.size,
-                        recordsByDay = recordsByDay,
-                        selectedDay = null,
-                        onDayClick = { selectedDayIso = it.toString() },
+                        capturedCount = allRows.size,
+                        recordsByKey = recordsByKey,
+                        selectedKey = null,
+                        onDayClick = { selectedKey = it.key },
                         onBack = onBack,
                         cardColor = cardColor,
                         modifier = Modifier.fillMaxSize(),
                     )
                 } else {
                     DayDetailPane(
-                        entry = selected,
-                        record = recordsByDay[selected.day],
-                        onBackToDayList = { selectedDayIso = null },
-                        onReplay = { replay(selected.day) },
+                        row = selected,
+                        record = recordsByKey[selected.game to selected.day],
+                        onBackToDayList = { selectedKey = null },
+                        onReplay = { replay(selected.game, selected.day) },
                         cardColor = cardColor,
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -192,7 +193,7 @@ fun HistoryScreen(
 }
 
 /** Shared-axis pane swap (A12): arriving detail decelerates in, leaving accelerates out. */
-private fun AnimatedContentTransitionScope<ZipDailyEntry?>.detailTransition(): ContentTransform =
+private fun AnimatedContentTransitionScope<HistoryDayRow?>.detailTransition(): ContentTransform =
     (
         fadeIn(tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingEmphasizedDecelerate)) +
             slideInHorizontally(
@@ -207,9 +208,9 @@ private fun ListPane(
     days: LazyPagingItems<HistoryDayRow>,
     streak: Int,
     capturedCount: Int,
-    recordsByDay: Map<LocalDate, CompletionRecord>,
-    selectedDay: LocalDate?,
-    onDayClick: (LocalDate) -> Unit,
+    recordsByKey: Map<Pair<GameId, LocalDate>, CompletionRecord>,
+    selectedKey: String?,
+    onDayClick: (HistoryDayRow) -> Unit,
     onBack: () -> Unit,
     cardColor: Color,
     modifier: Modifier = Modifier,
@@ -263,15 +264,17 @@ private fun ListPane(
             }
             items(
                 count = days.itemCount,
-                key = days.itemKey { it.day },
+                // Game-keyed identity: two games can share a day — the key never
+                // collides (ADR-0004 conventions, tango-05).
+                key = days.itemKey { it.key },
                 contentType = { "row" },
             ) { index ->
                 val row = days[index] ?: return@items
                 HistoryRowView(
                     row = row,
-                    won = recordsByDay.containsKey(row.day),
-                    selected = row.day == selectedDay,
-                    onClick = { onDayClick(row.day) },
+                    won = recordsByKey.containsKey(row.game to row.day),
+                    selected = row.key == selectedKey,
+                    onClick = { onDayClick(row) },
                     modifier = Modifier.padding(horizontal = Spacing.lg),
                 )
             }
@@ -339,7 +342,7 @@ private fun HistoryRowView(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .testTag("history.row.${row.day}"),
+            .testTag("history.row.${row.key}"),
         shape = MaterialTheme.shapes.small,
         color = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
     ) {
@@ -414,7 +417,7 @@ private fun DetailHint(
 /** One captured day: identity, cached record state, and the replay action. */
 @Composable
 private fun DayDetailPane(
-    entry: ZipDailyEntry,
+    row: HistoryDayRow,
     record: CompletionRecord?,
     onBackToDayList: (() -> Unit)?,
     onReplay: () -> Unit,
@@ -427,7 +430,7 @@ private fun DayDetailPane(
             .testTag("history.detail"),
     ) {
         CompactTopBar(
-            title = entry.day.format(DateTimeFormatter.ofPattern("EEEE, MMMM d")),
+            title = row.headline,
             navigationIcon = onBackToDayList?.let {
                 {
                     IconButton(onClick = it) {
@@ -447,12 +450,12 @@ private fun DayDetailPane(
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             Text(
-                text = if (entry.puzzleNumber != null) "Daily Zip · Puzzle #${entry.puzzleNumber}" else "Daily Zip",
+                text = row.label,
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = "Captured ${formatCapturedAt(entry.fetchedAtMs)}",
+                text = "Captured ${formatCapturedAt(row.fetchedAtMs)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

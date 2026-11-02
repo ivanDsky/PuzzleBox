@@ -14,11 +14,13 @@ import org.koin.dsl.module
  *
  * Ticket 23: [PlayFlow] is a single so the play state outlives the play entry's
  * composition across the result route — the record write never gets cancelled by
- * navigation and "Play again" resets in place.
+ * navigation and "Play again" resets in place. tango-05: the flow also takes the
+ * [com.ivandsky.puzzlebox.data.repository.TangoDailyRepository] — the picker (A14)
+ * starts Zip or Tango.
  */
 val playModule = module {
     single {
         GameUiRegistry().apply { registerZipBoard() }
     }
-    single { PlayFlow(daily = get(), completions = get()) }
+    single { PlayFlow(zips = get(), tangos = get(), completions = get()) }
 }
