@@ -213,7 +213,9 @@ private fun SidePanel(
             HintButton(
                 hints = hints,
                 onHint = state::hint,
-                enabled = ready != null && !complete,
+                // Cooldown (2026-11-02): the tick loop recomposes this ~5x/s while a
+                // timer runs, so the button re-enables itself as the window expires.
+                enabled = ready != null && !complete && !state.hintCooldownActive(),
             )
         }
 

@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.ivandsky.puzzlebox.common.result.AppResult
@@ -79,6 +80,13 @@ class ZipPlayState(
     /** Ticket 28: the hint arrow's placed segment (tail → new head), transient — gone on
      *  the next input or after ~2s (the screen fades it via [clearHintArrow]). */
     var hintArrow by mutableStateOf<HintArrow?>(null)
+
+    /** Hint telemetry (user, 2026-11-02): one event per accepted press — the trace head
+     *  when the user asked and the cell the hint placed. In-memory this session;
+     *  persistence is a future call. Cleared on replay (fresh session, fresh log). */
+    val hintHistory = mutableStateListOf<HintEvent>()
+
+    private var lastHintAtMs: Long? = null
         private set
     var rejection by mutableStateOf<ZipRendererModel.RejectedMove?>(null)
         private set
@@ -207,6 +215,8 @@ class ZipPlayState(
         val current = session ?: return
         val ready = screen as? ZipScreen.Ready ?: return
         if (current.isComplete) return
+        if (hintCooldownActive()) return
+        val fromIdx = current.path.lastOrNull()?.idx
         var next = current
         var resolved = rules.hint(ZipState(ready.puzzle, next.path))
         if (resolved is ZipHint.Backtrack) {
@@ -217,10 +227,12 @@ class ZipPlayState(
             resolved = rules.hint(ZipState(ready.puzzle, next.path))
         }
         val step = resolved as? ZipHint.Step
+        var placedIdx: Int? = null
         if (step != null) {
             val move = ZipMove.Extend(step.cell)
             if (rules.validateMove(move, ZipState(ready.puzzle, next.path)) is ZipValidation.Valid) {
                 next = next.withMove(move, now())
+                placedIdx = step.cell.idx
                 next.path.getOrNull(next.path.size - 2)?.let { tail ->
                     hintArrow = HintArrow(headIdx = step.cell.idx, tailIdx = tail.idx)
                 }
@@ -229,6 +241,16 @@ class ZipPlayState(
         next = next.withHintApplied()
         commit(next)
         hintCell = (resolved as? ZipHint.Step)?.cell?.idx
+        val atMs = now().toEpochMilli()
+        lastHintAtMs = atMs
+        hintHistory.add(HintEvent(atMs = atMs, fromIdx = fromIdx, placedIdx = placedIdx))
+    }
+
+    /** User-set hint cooldown (2026-11-02): presses inside the window are no-ops. Runs
+     *  on the injected clock — not the tick-cached nowMs — so it holds without ticks. */
+    fun hintCooldownActive(): Boolean {
+        val last = lastHintAtMs ?: return false
+        return now().toEpochMilli() - last < HINT_COOLDOWN_MS
     }
 
     /** The screen calls this after the hold/fade window (reduced motion: immediately). */
@@ -276,6 +298,8 @@ class ZipPlayState(
         hintArrow = null
         rejection = null
         baselineHadRecord = null
+        lastHintAtMs = null
+        hintHistory.clear()
         refreshBaseline(ready.ref)
         commit(ZipSession(ref = ready.ref, puzzle = ready.puzzle))
     }
@@ -355,6 +379,9 @@ class ZipPlayState(
     private companion object {
         const val REJECTION_CLEAR_MS = 600L
 
+        /** User-set hint cooldown (2026-11-02). */
+        const val HINT_COOLDOWN_MS = 5_000L
+
         /** Zip rolls at midnight PT (research 01; ZipDefinition pins the zone). */
         fun zipCadenceZone() = (ZipDefinition.cadence as Cadence.Daily).zone
     }
@@ -362,6 +389,10 @@ class ZipPlayState(
 
 /** The hint arrow's geometry (ticket 28): the placed segment tail → new head, as row-major indices. */
 data class HintArrow(val headIdx: Int, val tailIdx: Int)
+
+/** Internal hint telemetry (2026-11-02): trace head at request time and the placed
+ *  cell (null = the press trimmed/placed nothing). Wall-clock ms of the state's nowMs. */
+data class HintEvent(val atMs: Long, val fromIdx: Int?, val placedIdx: Int?)
 
 /** Copy for the first-class degrade states. */
 fun unavailableMessage(error: FetchError): String = when (error) {
