@@ -123,8 +123,17 @@ class TangoRulesTest {
     }
 
     @Test
-    fun `hint returns the stub until ticket 02 replaces it`() {
+    fun `the empty sample board opens the ladder with a three-in-a-row deduction`() {
         val state = TangoState(TangoTestSupport.sample, TangoTestSupport.gridOf())
-        assertEquals(TangoHint.NotYet, TangoRules.hint(state))
+        assertEquals(
+            TangoHint.Forced(2, TangoCell.MOON, TangoHint.Why.ThreeInARow(0, 1)),
+            TangoRules.hint(state),
+        )
+    }
+
+    @Test
+    fun `a board with no deduction at all hints stuck`() {
+        val blank = TangoPuzzle(TangoTestSupport.variant, n = 2, givens = emptyMap(), markers = emptyList())
+        assertEquals(TangoHint.Stuck, TangoRules.hint(TangoState(blank, List(4) { null })))
     }
 }

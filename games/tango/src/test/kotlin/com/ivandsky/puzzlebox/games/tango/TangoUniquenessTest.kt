@@ -7,6 +7,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -61,5 +63,23 @@ class TangoUniquenessTest {
             if (idx !in puzzle.givens) s = s.withMove(TangoMove(idx, cell), Instant.now())
         }
         assertNotNull(s.completedAt)
+    }
+
+    @Test
+    fun `the sample is uniquely solvable per the A15 check`() {
+        assertTrue(com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness.isUniquelySolvable(TangoTestSupport.sample))
+    }
+
+    @Test
+    fun `an odd board is rejected as unsolvable by the count rule`() {
+        val odd = TangoPuzzle(TangoTestSupport.variant, n = 3, givens = emptyMap(), markers = emptyList())
+        assertFalse(com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness.isUniquelySolvable(odd))
+    }
+
+    @Test
+    fun `an ambiguous puzzle is rejected, never guessed through`() {
+        // A 4x4 with a single given has multiple solutions — countSolutions finds 2 quickly.
+        val ambiguous = TangoPuzzle(TangoTestSupport.variant, n = 4, givens = mapOf(0 to TangoCell.SUN), markers = emptyList())
+        assertFalse(com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness.isUniquelySolvable(ambiguous))
     }
 }
