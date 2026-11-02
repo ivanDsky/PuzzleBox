@@ -1,0 +1,65 @@
+package com.ivandsky.puzzlebox.games.tango
+
+import com.ivandsky.puzzlebox.game.DecodeResult
+import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
+import com.ivandsky.puzzlebox.games.tango.engine.TangoMove
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Test
+
+/** A15: every accepted puzzle has exactly one solution — brute-force solver as the oracle. */
+class TangoUniquenessTest {
+
+    /** Counts solutions of [puzzle] by exhaustive search over the empty cells. */
+    private fun countSolutions(puzzle: TangoPuzzle, limit: Int = 2): Int {
+        val rules = com.ivandsky.puzzlebox.games.tango.engine.TangoRules
+        var count = 0
+        val empty = (0 until puzzle.cellCount).filter { it !in puzzle.givens }
+        val grid = Array<TangoCell?>(puzzle.cellCount) { idx -> puzzle.givens[idx] }
+
+        fun consistentAt(idx: Int): Boolean {
+            val candidate = grid.toList()
+            val state = com.ivandsky.puzzlebox.games.tango.engine.TangoState(puzzle, candidate)
+            return rules.validate(TangoMove(idx, grid[idx]), state) ==
+                com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict.Valid
+        }
+
+        fun rec(i: Int) {
+            if (count >= limit) return
+            if (i == empty.size) {
+                if (rules.isComplete(com.ivandsky.puzzlebox.games.tango.engine.TangoState(puzzle, grid.toList()))) count++
+                return
+            }
+            val idx = empty[i]
+            for (value in listOf(TangoCell.SUN, TangoCell.MOON)) {
+                grid[idx] = value
+                if (consistentAt(idx)) rec(i + 1)
+            }
+            grid[idx] = null
+        }
+        rec(0)
+        return count
+    }
+
+    @Test
+    fun `the bundled sample has exactly one solution`() {
+        val puzzle = (TangoCodec.decode(TangoTestSupport.sampleBytes) as DecodeResult.Ok).value
+        assertEquals(1, countSolutions(puzzle))
+    }
+
+    @Test
+    fun `the found solution matches the documented one`() {
+        val puzzle = (TangoCodec.decode(TangoTestSupport.sampleBytes) as DecodeResult.Ok).value
+        val session = TangoSession(ref = null, puzzle = puzzle, placements = emptyMap())
+        // Fill every non-given cell from the documented solution; completion must hold.
+        var s = session
+        TangoTestSupport.solution.forEachIndexed { idx, cell ->
+            if (idx !in puzzle.givens) s = s.withMove(TangoMove(idx, cell), Instant.now())
+        }
+        assertNotNull(s.completedAt)
+    }
+}

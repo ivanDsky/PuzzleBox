@@ -8,6 +8,8 @@ import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.games.zip.zipModule
 import com.ivandsky.puzzlebox.games.zipui.zipUiModule
+import com.ivandsky.puzzlebox.games.tango.tangoModule
+import com.ivandsky.puzzlebox.games.tangoui.tangoUiModule
 import com.ivandsky.puzzlebox.play.di.playModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
@@ -26,6 +28,6 @@ class PuzzleBoxApplication : Application() {
 
     companion object {
         val appModules =
-            listOf(commonModule, dataModule, firebaseBackendModule, playModule, zipModule, zipUiModule, appModule)
+            listOf(commonModule, dataModule, firebaseBackendModule, playModule, zipModule, zipUiModule, tangoModule, tangoUiModule, appModule)
     }
 }
