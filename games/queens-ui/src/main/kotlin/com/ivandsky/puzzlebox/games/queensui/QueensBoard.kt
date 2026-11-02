@@ -166,6 +166,7 @@ private fun QueensPlayBoardContent(
                     variants = variants,
                     selected = state.pendingMoveCell?.idx == row * model.n + col,
                     queenMove = state.lastQueenMove,
+                    undoRestoredMove = state.lastUndoRestoredMove,
                     win = state.session.isComplete,
                 )
             },
@@ -229,6 +230,7 @@ private fun QueensCell(
     variants: QueensAbVariants,
     selected: Boolean,
     queenMove: Pair<Int, Int>?,
+    undoRestoredMove: Pair<Int, Int>?,
     win: Boolean,
 ) {
     val n = model.n
@@ -283,9 +285,11 @@ private fun QueensCell(
     }
 
     // §5.3 shared-element queen move: the crown translates from the source cell.
+    // §5.4 crossfade-back: an undone queen MOVE animates the same shared-element
+    // translation in reverse — the restored queen slides back from where it stood.
     val moveProgress = remember { Animatable(1f) }
-    LaunchedEffect(queenMove) {
-        val (from, to) = queenMove ?: return@LaunchedEffect
+    LaunchedEffect(queenMove, undoRestoredMove) {
+        val (from, to) = undoRestoredMove ?: queenMove ?: return@LaunchedEffect
         if (idx == to && !reducedMotion) {
             moveProgress.snapTo(1f)
             moveProgress.animateTo(
@@ -354,7 +358,7 @@ private fun QueensCell(
                     }
                 }
                 QueensCellVisual.QUEEN -> {
-                    val (fromIdx, _) = queenMove ?: (idx to idx)
+                    val (fromIdx, _) = undoRestoredMove ?: queenMove ?: (idx to idx)
                     val dRow = (fromIdx / n - idx / n).toFloat()
                     val dCol = (fromIdx % n - idx % n).toFloat()
                     translate(dCol * size.width * moveProgress.value, dRow * size.height * moveProgress.value) {

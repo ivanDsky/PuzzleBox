@@ -63,50 +63,43 @@ data class QueensSession(
     val requiredQueens: Int get() = puzzle.size * puzzle.queensPerUnit
 
     /**
-     * A10: place a queen on [cell] (must not already hold a queen). Any mark on the cell is
-     * replaced; exclusion marks for the queen's row, column, and region are auto-filled as
-     * AUTO marks sourced by this queen — ONLY on cells that carry no mark at all, so MANUAL
-     * marks are never overwritten and AUTO marks of other queens stand untouched.
+     * A10: place a queen on [cell] (must not already hold a queen). Exclusion marks for
+     * the queen's row, column, and region are auto-filled as AUTO marks sourced by this
+     * queen — ONLY on cells that carry no MANUAL mark. Marks are recompute-derived from
+     * the standing-queen set on every action, so an AUTO mark exists exactly while its
+     * source queen stands (A10's invariant, in both directions).
      */
     fun withQueenPlaced(cell: Cell, now: Instant): QueensSession {
         if (completedAt != null || cell.idx !in 0 until puzzle.cellCount || cell in occupied) return this
-        var marks = this.marks - cell
-        marks = autoFill(marks, source = cell, puzzle = puzzle)
-        return commit(
-            copy(queens = queens + cell, marks = marks),
-            now = now,
-        )
+        return commit(copy(queens = queens + cell), now = now)
     }
 
     /**
-     * A11: move the queen at [from] to the empty cell [to]. The moved queen's AUTO marks are
-     * cleared (and only those — MANUAL marks anywhere are never cleared by a move), any mark
-     * under the target is replaced, and the new position auto-fills its own exclusions under
-     * the same never-overwrite rule.
+     * A11: move the queen at [from] to the empty cell [to]. Marks are recompute-derived
+     * from the standing-queen set afterwards: the moved queen's old AUTO marks vanish,
+     * the target's row/column/region auto-fills, and AUTO marks sourced by OTHER queens
+     * displaced under [to] are restored as soon as their source queens stand — including
+     * when this queen later vacates [to]. MANUAL marks anywhere are never cleared by a
+     * move; a MANUAL mark temporarily hidden under [to] reappears on vacate (A11).
      */
     fun withQueenMoved(from: Cell, to: Cell, now: Instant): QueensSession {
         if (completedAt != null) return this
         if (from !in occupied || to in occupied || from == to) return this
         if (to.idx !in 0 until puzzle.cellCount) return this
-        var marks = dropAutoSourcedBy(this.marks, from) - to
-        marks = autoFill(marks, source = to, puzzle = puzzle)
-        return commit(
-            copy(queens = queens.map { if (it == from) to else it }, marks = marks),
-            now = now,
-        )
+        // [queens] is action-ordered (placement/move sequence); a move re-times the
+        // queen to now. Recompute marks in that order, so the most recent action's
+        // fill wins an overlap — same attribution the incremental auto-fill produced.
+        return commit(copy(queens = (queens - from) + to), now = now)
     }
 
     /**
-     * A10 lifecycle: remove the queen at [cell]; its AUTO marks vanish with it. MANUAL marks
-     * (including ones previously hidden under auto-fill) are never touched.
+     * A10 lifecycle: remove the queen at [cell]; its AUTO marks vanish with it because
+     * marks are recompute-derived from the standing-queen set. MANUAL marks (including
+     * ones previously hidden under auto-fill) are never touched.
      */
     fun withQueenRemoved(cell: Cell, now: Instant): QueensSession {
         if (completedAt != null || cell !in occupied) return this
-        val marks = dropAutoSourcedBy(this.marks, cell)
-        return commit(
-            copy(queens = queens - cell, marks = marks),
-            now = now,
-        )
+        return commit(copy(queens = queens - cell), now = now)
     }
 
     /** Manual tap-cycle cross on a queen-free cell: set, or clear when already MANUAL-marked. */
@@ -127,9 +120,10 @@ data class QueensSession(
         return copy(queens = last.queens, marks = last.marks, undo = undo.dropLast(1))
     }
 
-    /** Shared tail: snapshot the pre-action state, then stamp a win when the board solves. */
+    /** Shared tail: recompute AUTO marks from the standing queens, snapshot, stamp a win. */
     private fun commit(next: QueensSession, now: Instant): QueensSession {
-        val pushed = next.copy(undo = undo + QueensSnapshot(queens, marks))
+        val recomputed = next.copy(marks = recomputeMarks(next.queens, next.marks))
+        val pushed = recomputed.copy(undo = undo + QueensSnapshot(queens, marks))
         return if (QueensVerifier.isSolution(puzzle, pushed.queens.toSet())) {
             pushed.copy(completedAt = now)
         } else {
@@ -137,15 +131,29 @@ data class QueensSession(
         }
     }
 
+    /**
+     * A10, both directions: AUTO marks are DERIVED — exactly the row/column/region
+     * exclusions of the standing queens, on cells that carry no MANUAL mark. MANUAL
+     * marks are the only stored truth (including ones hidden under a standing queen);
+     * everything AUTO is recomputed, so a mark exists precisely while its source
+     * queen stands and reappears the moment that queen does.
+     */
+    private fun recomputeMarks(queens: List<Cell>, marks: Map<Cell, QueensMark>): Map<Cell, QueensMark> {
+        var out = marks.filterValues { it.kind == MarkKind.MANUAL }
+        val occupied = queens.toSet()
+        for (queen in queens) out = autoFill(out, source = queen, occupied = occupied)
+        return out
+    }
+
     private fun autoFill(
         marks: Map<Cell, QueensMark>,
         source: Cell,
-        puzzle: QueensPuzzle,
+        occupied: Set<Cell>,
     ): Map<Cell, QueensMark> {
         val n = puzzle.size
         val row = puzzle.rowOf(source)
         val col = puzzle.colOf(source)
-        val region = puzzle.regionOf(source)
+        val region = puzzle.regions[source.idx]
         var out = marks
         for (idx in 0 until puzzle.cellCount) {
             val cell = Cell(idx)
@@ -155,11 +163,5 @@ data class QueensSession(
             }
         }
         return out
-    }
-
-    private companion object {
-        /** Remove exactly the AUTO marks sourced by [queen]; MANUAL marks are never cleared (A11). */
-        fun dropAutoSourcedBy(marks: Map<Cell, QueensMark>, queen: Cell): Map<Cell, QueensMark> =
-            marks.filterValues { !(it.kind == MarkKind.AUTO && it.source == queen) }
     }
 }

@@ -3,13 +3,13 @@ package com.ivandsky.puzzlebox.play
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -17,14 +17,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.BoardError
 import com.ivandsky.puzzlebox.gameui.BoardLoading
-import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.games.queensui.QueensPlayBoard
 import com.ivandsky.puzzlebox.games.queensui.QueensPlayControls
+import com.ivandsky.puzzlebox.games.queensui.queensBoardSideFor
 
 /**
  * The Queens play screen (queens-10): the queens-08 interactive board + control bar,
@@ -52,23 +53,35 @@ fun QueensPlayScreen(
 
 @Composable
 private fun BoxScope.BoardArea(state: QueensPlayState) {
-    Box(
+    BoxWithConstraints(
         Modifier
             .fillMaxSize()
-            .testTag("queens.board_area")
-            .padding(horizontal = Spacing.lg),
+            .testTag("queens.board_area"),
         contentAlignment = Alignment.Center,
     ) {
         val ready = state.screen as? QueensScreen.Ready
         val boardState = state.board
         when {
-            ready != null && boardState != null -> QueensPlayBoard(
-                state = boardState,
-                modifier = Modifier
-                    .widthIn(max = PlayBoardMaxWidth)
-                    .heightIn(max = PlayBoardMaxWidth)
-                    .testTag("queens.board"),
-            )
+            ready != null && boardState != null -> {
+                // §6 sizing policy: the board side is computed — pane space after chrome,
+                // capped by cellMaxSize per cell, floored by cellMinSize per cell. The
+                // horizontal pane padding is the chrome reserved here; the side panel is
+                // already excluded by the scaffold's board-pane weight.
+                val side = queensBoardSideFor(
+                    paneWidth = maxWidth,
+                    paneHeight = maxHeight,
+                    reservedTop = 0.dp,
+                    reservedBottom = 0.dp,
+                    cellsPerSide = ready.puzzle.size,
+                    panePadding = Spacing.lg * 2,
+                )
+                QueensPlayBoard(
+                    state = boardState,
+                    modifier = Modifier
+                        .size(side) // side already reserves the pane padding via queensBoardSideFor
+                        .testTag("queens.board"),
+                )
+            }
 
             state.screen is QueensScreen.Unavailable -> BoardError(
                 message = (state.screen as QueensScreen.Unavailable).message,

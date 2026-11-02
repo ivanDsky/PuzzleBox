@@ -137,6 +137,43 @@ class QueensBoardUiTest {
         assertTrue(state.session.queens.isEmpty())
     }
 
+    /** Q-2 regression: lastPlacedQueen clears at tap entry — an ordinary X tap after a
+     *  placement must NOT leave the heavy-haptic flag standing. */
+    @Test
+    fun `ordinary tap after a placement does not leave the heavy haptic flag standing`() {
+        val state = setContent(QueensUiFixtures.session())
+        state.onTap(0) // MANUAL X
+        state.onTap(0) // queen placement sets lastPlacedQueen
+        assertNotNull(state.lastPlacedQueen)
+        state.onTap(5) // ordinary tap: X on a cell outside the queen's auto-fill
+        assertNull(state.lastPlacedQueen)
+        assertNull(state.lastRemovedQueen)
+    }
+
+    /** Q-1 regression: undoing a queen MOVE (equal queen counts) sets the §5.4
+     *  crossfade-back pair; undoing a placement does not. */
+    @Test
+    fun `undoing a queen move surfaces the restored move pair`() {
+        val state = setContent(QueensUiFixtures.session())
+        state.onTap(1); state.onTap(1) // X then queen at (0,1)
+        state.onTap(1) // select the queen for the A11 move
+        state.onTap(8) // move to (2,0)
+        assertEquals(listOf(Cell(8)), state.session.queens)
+        state.undo()
+        composeRule.waitForIdle()
+        assertEquals(8 to 1, state.lastUndoRestoredMove)
+    }
+
+    @Test
+    fun `undoing a placement does not surface a restored move`() {
+        val state = setContent(QueensUiFixtures.session())
+        state.onTap(0) // X
+        state.onTap(0) // queen
+        state.undo()
+        composeRule.waitForIdle()
+        assertNull(state.lastUndoRestoredMove)
+    }
+
     @Test
     fun `provenance-aware undo reverts one action with its side effects`() {
         val state = setContent(QueensUiFixtures.session())

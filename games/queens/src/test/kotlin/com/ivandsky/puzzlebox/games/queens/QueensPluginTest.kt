@@ -4,10 +4,15 @@ import com.ivandsky.puzzlebox.game.Cadence
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GamePlugin
+import com.ivandsky.puzzlebox.game.Move
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
+import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
+import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRuleId
+import com.ivandsky.puzzlebox.games.queens.render.QueensRendererModel
 import com.ivandsky.puzzlebox.model.GameId
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import org.junit.Assert.assertArrayEquals
@@ -78,23 +83,48 @@ class QueensPluginTest {
         val session = QueensSession(ref = QueensPuzzleRef(LocalDate.of(2026, 11, 2), 7), puzzle = puzzle)
         assertEquals(QueensState(puzzle), queensPlugin.stateOf(session))
 
+        val placed = session.withQueenPlaced(Cell(0), Instant.now())
+        assertEquals(QueensState(puzzle, setOf(Cell(0))), queensPlugin.stateOf(placed))
+
         val fresh = (queensPlugin.initialSession((QueensDefinition.decode(bytes) as DecodeResult.Ok).value) as DecodeResult.Ok).value
         assertEquals(QueensSession(ref = null, puzzle = puzzle), fresh)
         // foreign envelopes are rejected, never guessed
         assertTrue(queensPlugin.initialSession(Puzzle(GameId("zip"), queensVariantId(8), 1, bytes)) is DecodeResult.Err)
 
-        val model = queensPlugin.rendererModel(QueensState(puzzle, setOf(Cell(0), Cell(9))), QueensHint, null)
+        val model = queensPlugin.rendererModel(QueensState(puzzle, setOf(Cell(0), Cell(9))), QueensHint.None, null)
         assertEquals(8, model.n)
         assertEquals(setOf(0, 9), model.queens)
         assertEquals(puzzle.regions, model.regions)
+        assertEquals(QueensRendererModel.Status.PLAYING, model.status)
     }
 
-    /** Skeleton rules are total: foreign/known moves get a typed rejection, never a throw. */
+    /** Q-4: the plugin exposes the real rules verdict, not the skeleton rejection. */
     @Test
-    fun `skeleton rules reject every move with a typed verdict`() {
-        assertEquals(QueensMoveRejected, QueensRules.validate(QueensMove, QueensState(puzzle)))
-        assertEquals(false, QueensRules.isComplete(QueensState(puzzle)))
-        assertEquals(QueensHint, QueensRules.hint(QueensState(puzzle)))
+    fun `rules validate placements through the engine pipeline`() {
+        val state = QueensState(puzzle, setOf(Cell(0)))
+        // (2,2) shares neither row 0, column 0, nor region ((2+2)%8=4 vs 0), and does
+        // not touch (0,0) — a legal placement.
+        assertEquals(QueensValidation.Valid, QueensGameRules.validate(QueensPlayMove.Place(Cell(18)), state))
+        // (0,1) shares row 0 with (0,0) → RowExclusivity (pipeline order: cheap first).
+        val invalid = QueensGameRules.validate(QueensPlayMove.Place(Cell(1)), state) as QueensValidation.Invalid
+        assertEquals(QueensRuleId.RowExclusivity, invalid.rule)
+        // structural: occupied cell, remove from an empty cell, foreign move.
+        assertEquals(QueensValidation.Invalid(), QueensGameRules.validate(QueensPlayMove.Place(Cell(0)), state))
+        assertEquals(QueensValidation.Invalid(), QueensGameRules.validate(QueensPlayMove.Remove(Cell(3)), state))
+        assertTrue(QueensGameRules.validate(object : Move {}, state) is QueensValidation.Invalid)
+    }
+
+    @Test
+    fun `rules completeness and hints are real`() {
+        assertEquals(false, QueensGameRules.isComplete(QueensState(puzzle, setOf(Cell(0)))))
+        // A rule-clean 8×8 placement for regions = row: one queen per row (hence one
+        // per region), distinct columns, no adjacent diagonals.
+        val rowRegions = (0 until 64).map { it / 8 }
+        val rowPuzzle = QueensPuzzle(8, rowRegions, solution = null)
+        val cleanCols = listOf(1, 3, 5, 7, 0, 2, 4, 6)
+        val clean = cleanCols.mapIndexed { row, col -> Cell(row * 8 + col) }.toSet()
+        assertEquals(true, QueensGameRules.isComplete(QueensState(rowPuzzle, clean)))
+        assertTrue(QueensGameRules.hint(QueensState(puzzle)) is QueensHint)
     }
 
     /** DoD: the DI-graph sees QueensPlugin registered; getAll collects it generically

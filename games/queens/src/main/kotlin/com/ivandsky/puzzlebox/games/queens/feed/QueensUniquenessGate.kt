@@ -17,7 +17,9 @@ import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSolver
  *    ([QueensRules.evaluate] is Valid);
  * 3. the independent exhaustive solve ([QueensSolver], limit 2) must find EXACTLY one
  *    solution (ambiguous boards are rejected outright — A5);
- * 4. that unique solution must equal the shipped coordinates.
+ * 4. that unique solution must equal the shipped coordinates — compared as SETS, never
+ *    list order: the wire `solution` array order is not guaranteed ascending-by-cell,
+ *    and a valid daily must not be rejected over presentation order (A13).
  *
  * Any failure is a typed [DecodeError]; the puzzle never becomes playable and there is
  * NO silent fallback. The caller maps [DecodeError] to `FetchError.Untrusted` at the
@@ -47,7 +49,7 @@ object QueensUniquenessGate {
             return DecodeError.Malformed("independent solve found $count solutions, need exactly 1 (ambiguous board)")
         }
         val found = solver.solve(puzzle)
-        if (found != shipped) {
+        if (found == null || found.toSet() != shipped.toSet()) {
             return DecodeError.Malformed("independent solve disagrees with shipped solution")
         }
         return null

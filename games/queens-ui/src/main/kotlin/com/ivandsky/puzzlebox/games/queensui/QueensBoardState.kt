@@ -83,6 +83,7 @@ class QueensBoardState(
         if (idx !in 0 until current.puzzle.cellCount) return
         hint = null
         lastRemovedQueen = null
+        lastPlacedQueen = null
         lastUndoRestoredMove = null
 
         if (cell in current.queens.toSet()) {
@@ -131,8 +132,9 @@ class QueensBoardState(
         hint = null
         val current = session
         val restored = current.withUndo()
-        // Detect a restored queen move: the undo snapshot had one more queen than the
-        // pre-undo state and the queen set shrank by exactly the source→target pair.
+        // Detect a restored queen move (§5.4): undo restored a snapshot with the SAME
+        // queen count — the queen set differs by exactly the source↔target pair. The
+        // pair is (previous position, restored position).
         lastUndoRestoredMove = detectRestoredMove(current, restored)
         commit(restored)
     }
@@ -168,10 +170,11 @@ class QueensBoardState(
         }
     }
 
+    /** The source↔target pair of an undone queen MOVE, null for placement undo / no-op. */
     private fun detectRestoredMove(before: QueensSession, after: QueensSession): Pair<Int, Int>? {
-        if (before.queens.size - after.queens.size != 1) return null
-        val target = before.queens.firstOrNull { it !in after.queens } ?: return null
-        val source = after.queens.firstOrNull { it !in before.queens } ?: return null
-        return source.idx to target.idx
+        if (before.queens.size != after.queens.size) return null
+        val previous = before.queens.firstOrNull { it !in after.queens } ?: return null
+        val restored = after.queens.firstOrNull { it !in before.queens } ?: return null
+        return previous.idx to restored.idx
     }
 }
