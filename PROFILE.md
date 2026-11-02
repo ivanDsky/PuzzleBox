@@ -28,7 +28,7 @@
 ## Deploy targets (in order; empty list = build-only)
 - local: ./gradlew :app:assembleDebug
 - tailscale: <tailnet>
-  - device: <tab host> @ <tab address>  # interim until Firebase exists; re-verify IP at deploy time
+  - device: <tab host> @ <tab address>  # verified 2026-11-01 (only Android node on tailnet)
 # - firebase: <project id>  # activate once the Firebase project is created; deliver moves off tailscale then
 
 ## Review site publish
