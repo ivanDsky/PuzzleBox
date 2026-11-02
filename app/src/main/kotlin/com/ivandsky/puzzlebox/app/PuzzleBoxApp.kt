@@ -44,6 +44,7 @@ import com.ivandsky.puzzlebox.app.nav.Play
 import com.ivandsky.puzzlebox.app.nav.Profile
 import com.ivandsky.puzzlebox.app.nav.ReplayZip
 import com.ivandsky.puzzlebox.app.nav.Result
+import com.ivandsky.puzzlebox.app.nav.Queens
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.screens.CatalogUnavailableScreen
 import com.ivandsky.puzzlebox.app.screens.ProfileRoute
@@ -58,6 +59,7 @@ import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.HomeRoute
 import com.ivandsky.puzzlebox.home.homeLayoutFor
 import com.ivandsky.puzzlebox.play.PlayRoute
+import com.ivandsky.puzzlebox.play.QueensRoute
 import com.ivandsky.puzzlebox.play.ResultRoute
 import java.util.Base64
 
@@ -243,6 +245,14 @@ internal fun puzzleBoxEntryProvider(
                 timeMs = key.timeMs,
                 hintsUsed = key.hintsUsed,
                 onPlayAgain = { backStack.playAgainFromResult() },
+            )
+        }
+    }
+    entry<Queens> {
+        SceneCanvas {
+            QueensRoute(
+                layout = playLayout,
+                onBack = { backStack.removeLastOrNull() },
             )
         }
     }

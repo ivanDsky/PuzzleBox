@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.data.db
 
+import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -26,8 +27,19 @@ class PuzzleRefKeysTest {
     }
 
     @Test
+    fun `queens refs encode and decode symmetrically under their own game id`() {
+        val numbered = QueensPuzzleRef(day, 42)
+        assertEquals("queens/2026-10-31/42", PuzzleRefKeys.encode(numbered))
+        assertEquals(numbered, PuzzleRefKeys.decode("queens/2026-10-31/42"))
+
+        val unnumbered = QueensPuzzleRef(day, puzzleNumber = null)
+        assertEquals("queens/2026-10-31", PuzzleRefKeys.encode(unnumbered))
+        assertEquals(unnumbered, PuzzleRefKeys.decode("queens/2026-10-31"))
+    }
+
+    @Test
     fun `keys no registered game authored decode to null`() {
-        assertNull(PuzzleRefKeys.decode("queens/2026-10-31/12"))
+        assertNull(PuzzleRefKeys.decode("strands/2026-10-31/12"))
         assertNull(PuzzleRefKeys.decode("zip/not-a-date"))
         assertNull(PuzzleRefKeys.decode("zip/2026-10-31/not-a-number"))
         assertNull(PuzzleRefKeys.decode("zip/2026-10-31/592/extra"))
