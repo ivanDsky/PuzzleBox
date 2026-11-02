@@ -1,5 +1,5 @@
 # PROFILE.md — written by init-profile, read by /start
-# version: 0.5.1 (semver source of truth, per deliver: feature → minor, fix → patch)
+# version: 0.6.0 (semver source of truth, per deliver: feature → minor, fix → patch; 0.6.0 = Tango ships 2026-11-02)
 # 1.0.0 = public release of ALL games (Zip, Queens, Tango, MiniSudoku, Strands) in a
 # good tested state. Until then the app is ALPHA: 0.x.y forever; minor = phase/feature
 # milestone, patch = fix rounds.
