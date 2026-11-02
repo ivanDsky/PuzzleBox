@@ -6,7 +6,11 @@ import com.ivandsky.puzzlebox.data.db.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.data.network.PuzzleFeedApi
 import com.ivandsky.puzzlebox.data.repository.DailyPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.game.GamePlugin
+import com.ivandsky.puzzlebox.gameui.GameUiRegistry
+import com.ivandsky.puzzlebox.model.GameId
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
@@ -44,6 +48,15 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<PuzzleBoxDatabase>())
             assertNotNull(koin.get<DailyPuzzleRepository>())
             assertNotNull(koin.get<UserPreferencesRepository>())
+
+            // Game aggregation (ADR-0001): every game module's plugin lands in the
+            // generic list, the app-level registry resolves, and the featured game's
+            // renderer is registered — a missing entry is a wiring bug, loudly here.
+            val plugins = koin.getAll<GamePlugin<*, *, *>>()
+            assertTrue("expected at least one registered GamePlugin, got none", plugins.isNotEmpty())
+            assertNotNull(koin.get<List<GamePlugin<*, *, *>>>())
+            val registry = koin.get<GameUiRegistry>()
+            assertNotNull("no board renderer registered for zip", registry[GameId("zip")])
         } finally {
             koinApp.close()
         }

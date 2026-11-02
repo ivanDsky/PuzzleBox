@@ -30,9 +30,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -57,8 +54,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.data.model.ThemeMode
-import com.ivandsky.puzzlebox.designsystem.AppDialog
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.LargeTopBar
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
@@ -66,6 +61,8 @@ import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoard
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.ThemeMode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -75,16 +72,26 @@ import java.time.format.DateTimeFormatter
 data class HistoryDay(
     val isoDay: String,
     val headline: String,
+    val gameName: String,
+)
+
+/** Pure projection of one game's identity — HomeRoute builds it from plugin definitions. */
+data class GameSummary(
+    val id: GameId,
+    val displayName: String,
 )
 
 /**
  * The real Home screen (A12, A15): Today card, history teaser, account placeholder.
  * Single-pane on compact widths; list-detail on expanded. The theme choice is hoisted
- * to the composition root — this screen only edits it.
+ * to the composition root — this screen only edits it. [game] is the featured game's
+ * identity; game-title strings render from it and from [HistoryDay.gameName], never
+ * from a hardcoded id.
  */
 @Composable
 fun HomeScreen(
     layout: HomeLayout,
+    game: GameSummary,
     themeMode: ThemeMode,
     onSetThemeMode: (ThemeMode) -> Unit,
     history: List<HistoryDay>,
@@ -113,13 +120,14 @@ fun HomeScreen(
         if (layout == HomeLayout.TwoPane) {
             Row(Modifier.fillMaxSize()) {
                 ListPane(
+                    game = game,
                     themeMode = themeMode,
                     onOpenTheme = { showThemeDialog = true },
                     history = history,
                     selectedDay = selectedDay,
                     onDayClick = { selectedDay = it },
                     selectable = true,
-                    onPlayToday = { comingSoon("Zip is coming soon.") },
+                    onPlayToday = { comingSoon("${game.displayName} is coming soon.") },
                     onSignIn = { comingSoon("Google sign-in arrives with leaderboards.") },
                     paneColor = paneColor,
                     cardColor = cardColor,
@@ -129,7 +137,8 @@ fun HomeScreen(
                 )
                 DetailPane(
                     selected = selectedDay?.let { iso -> history.firstOrNull { it.isoDay == iso } },
-                    onPlayToday = { comingSoon("Zip is coming soon.") },
+                    game = game,
+                    onPlayToday = { comingSoon("${game.displayName} is coming soon.") },
                     modifier = Modifier
                         .weight(0.58f)
                         .fillMaxHeight(),
@@ -137,13 +146,14 @@ fun HomeScreen(
             }
         } else {
             ListPane(
+                game = game,
                 themeMode = themeMode,
                 onOpenTheme = { showThemeDialog = true },
                 history = history,
                 selectedDay = null,
                 onDayClick = {},
                 selectable = false,
-                onPlayToday = { comingSoon("Zip is coming soon.") },
+                onPlayToday = { comingSoon("${game.displayName} is coming soon.") },
                 onSignIn = { comingSoon("Google sign-in arrives with leaderboards.") },
                 paneColor = paneColor,
                 cardColor = cardColor,
@@ -170,6 +180,7 @@ fun HomeScreen(
 /** The left pane and the whole single-pane screen share one stacked content column. */
 @Composable
 private fun ListPane(
+    game: GameSummary,
     themeMode: ThemeMode,
     onOpenTheme: () -> Unit,
     history: List<HistoryDay>,
@@ -202,6 +213,7 @@ private fun ListPane(
         )
         StaggeredItem(0) {
             TodayCard(
+                game = game,
                 onPlayToday = onPlayToday,
                 cardColor = cardColor,
                 modifier = Modifier.padding(horizontal = Spacing.lg),
@@ -230,6 +242,7 @@ private fun ListPane(
 /** The one filled card: today's game, its tagline, and the primary action. */
 @Composable
 private fun TodayCard(
+    game: GameSummary,
     onPlayToday: () -> Unit,
     cardColor: Color,
     modifier: Modifier = Modifier,
@@ -246,12 +259,12 @@ private fun TodayCard(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             Text(
-                text = "Daily · Zip",
+                text = "Daily · ${game.displayName}",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = "Zip",
+                text = game.displayName,
                 style = MaterialTheme.typography.displayMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -347,7 +360,7 @@ private fun HistoryRow(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Daily Zip",
+                    text = "Daily ${day.gameName}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -430,6 +443,7 @@ private fun AccountCard(
 @Composable
 private fun DetailPane(
     selected: HistoryDay?,
+    game: GameSummary,
     onPlayToday: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -450,7 +464,7 @@ private fun DetailPane(
         contentKey = { it?.isoDay },
     ) { day ->
         if (day == null) {
-            TodayDetail(onPlayToday = onPlayToday, modifier = Modifier.fillMaxSize())
+            TodayDetail(game = game, onPlayToday = onPlayToday, modifier = Modifier.fillMaxSize())
         } else {
             DayDetail(day = day, modifier = Modifier.fillMaxSize())
         }
@@ -459,6 +473,7 @@ private fun DetailPane(
 
 @Composable
 private fun TodayDetail(
+    game: GameSummary,
     onPlayToday: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -476,7 +491,7 @@ private fun TodayDetail(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             Text(
-                text = "Today's Zip",
+                text = "Today's ${game.displayName}",
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -509,7 +524,7 @@ private fun DayDetail(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = "Daily Zip",
+            text = "Daily ${day.gameName}",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -592,43 +607,6 @@ private fun ZipPreviewBoard(modifier: Modifier = Modifier) {
                 }
             }
         },
-    )
-}
-
-@Composable
-private fun ThemeDialog(
-    current: ThemeMode,
-    onSelect: (ThemeMode) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AppDialog(
-        title = "Appearance",
-        onDismissRequest = onDismiss,
-        content = {
-            Text(
-                text = "Choose light, dark, or follow your system.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                ThemeMode.entries.forEachIndexed { index, mode ->
-                    SegmentedButton(
-                        selected = current == mode,
-                        onClick = { onSelect(mode) },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = ThemeMode.entries.size),
-                    ) {
-                        Text(
-                            when (mode) {
-                                ThemeMode.SYSTEM -> "System"
-                                ThemeMode.LIGHT -> "Light"
-                                ThemeMode.DARK -> "Dark"
-                            },
-                        )
-                    }
-                }
-            }
-        },
-        actions = { SecondaryButton(text = "Done", onClick = onDismiss) },
     )
 }
 

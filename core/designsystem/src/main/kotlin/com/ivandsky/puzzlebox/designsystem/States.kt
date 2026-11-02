@@ -95,6 +95,30 @@ private fun StateLayout(
     )
 }
 
+/** Catalog demo: the empty and error slots with their actions, in catalog cards. */
+@Composable
+internal fun StatesCatalogSection() {
+    CatalogSection(title = "Empty & error states") {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            CatalogCard {
+                EmptyState(
+                    title = "No games yet",
+                    message = "Finished puzzles and scores will appear here.",
+                    actionLabel = "Browse dailies",
+                    onAction = {},
+                )
+            }
+            CatalogCard {
+                ErrorState(
+                    title = "Couldn't load today's puzzle",
+                    message = "Check your connection and try again.",
+                    onRetry = {},
+                )
+            }
+        }
+    }
+}
+
 // Previews — Studio tooling only, zero public API surface (internal, not private, so
 // Showkase's generated index can access them; ticket 00 visibility findings). Exactly
 // light + dark, always inside PuzzleBoxTheme (spec A1/A5). A8: neither state component

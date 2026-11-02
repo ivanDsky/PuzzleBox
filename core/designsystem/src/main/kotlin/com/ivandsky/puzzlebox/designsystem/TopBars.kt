@@ -91,6 +91,44 @@ fun CompactTopBar(
     }
 }
 
+/** Catalog demo: the screen-opening and detail bars in their catalog cards. */
+@Composable
+internal fun TopBarsCatalogSection() {
+    CatalogSection(title = "Top bars") {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            CatalogCard {
+                LargeTopBar(
+                    title = "Today",
+                    subtitle = "Friday, October 31",
+                    actions = {
+                        IconButton(onClick = {}) {
+                            Icon(
+                                imageVector = Icons.Filled.Settings,
+                                contentDescription = "Settings",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                )
+            }
+            CatalogCard {
+                CompactTopBar(
+                    title = "Daily Zip",
+                    navigationIcon = {
+                        IconButton(onClick = {}) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                )
+            }
+        }
+    }
+}
+
 // Previews — Studio tooling only, zero public API surface (internal, not private, so
 // Showkase's generated index can access them; ticket 00 visibility findings). Exactly
 // light + dark, always inside PuzzleBoxTheme (spec A1/A5). A8: neither top bar animates

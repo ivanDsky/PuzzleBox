@@ -4,16 +4,18 @@ import com.ivandsky.puzzlebox.game.Cadence
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameDefinition
-import com.ivandsky.puzzlebox.game.GameId
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.codec.ZipSessionCodec
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
-import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
+import com.ivandsky.puzzlebox.games.zip.engine.ZipState
+import com.ivandsky.puzzlebox.games.zip.engine.ZipValidation
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.ZoneId
 import org.koin.core.module.Module
+import org.koin.core.qualifier.qualifier
 import org.koin.dsl.module
 
 /**
@@ -52,16 +54,36 @@ object ZipDefinition : GameDefinition {
 }
 
 /** The whole game in one injectable value (A16 §2): definition + rules + codecs + score + renderer model. */
-val zipPlugin: GamePlugin<com.ivandsky.puzzlebox.games.zip.engine.ZipState, ZipSession, ZipRendererModel> =
+val zipPlugin: GamePlugin<ZipState, ZipSession, ZipRendererModel> =
     GamePlugin(
         definition = ZipDefinition,
-        rules = ZipRules(ZipVariants.table),
+        rules = ZipRules,
         session = ZipSessionCodec,
         score = ZipScoreModel(),
-        rendererModel = { state, hint -> ZipRendererModel.of(state, hint) },
+        stateOf = { session -> ZipState(session.puzzle, session.path) },
+        initialSession = { puzzle ->
+            when (val decoded = ZipCodec.decode(puzzle.payload)) {
+                is DecodeResult.Ok -> DecodeResult.Ok(ZipSession(ref = null, puzzle = decoded.value))
+                is DecodeResult.Err -> DecodeResult.Err(decoded.error)
+            }
+        },
+        rendererModel = { state, hint, verdict ->
+            ZipRendererModel.of(
+                state,
+                hint,
+                // rejected verdict -> rejection for the animation; valid/absent -> none
+                (verdict as? ZipValidation.Invalid)?.let {
+                    ZipRendererModel.RejectedMove(it.cell?.idx, it.reason)
+                },
+            )
+        },
     )
 
-/** Koin wiring: feature modules resolve `GamePlugin<*, *, *>` instances generically (F2 §1). */
+/**
+ * Koin wiring: feature modules resolve `GamePlugin<*, *, *>` instances generically (F2 §1).
+ * The id qualifier stops a later game module's `single { ... }` from overwriting Zip's
+ * definition while `getAll` still collects it.
+ */
 val zipModule: Module = module {
-    single { zipPlugin }
+    single(qualifier = qualifier(ZipDefinition.id.value)) { zipPlugin }
 }

@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.gameui
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable

@@ -27,6 +27,9 @@ ksp {
 dependencies {
     api(project(":core:common"))
 
+    // DailyPuzzle/ThemeMode appear in the repository interfaces' public signatures.
+    api(project(":core:model"))
+
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

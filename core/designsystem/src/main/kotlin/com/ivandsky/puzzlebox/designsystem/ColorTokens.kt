@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.designsystem
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 
 // One brand token set (ticket 10): the promoted playful look — saturated Duolingo-
 // family signals on white in light (prototype C3), the same accents tuned brighter
@@ -104,3 +105,7 @@ val DarkColorScheme = darkColorScheme(
     surfaceContainerHigh = Color(0xFF1F242C),
     surfaceContainerHighest = Color(0xFF242A33),
 )
+
+// Catalog-side hex label ("#RRGGBB") for the token screen's color rows; the 0xFFFFFF
+// mask drops the alpha channel so both modes print the pure token color.
+internal fun Color.toHex6(): String = "#%06X".format(toArgb() and 0xFFFFFF)

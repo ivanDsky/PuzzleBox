@@ -1,11 +1,8 @@
-package com.ivandsky.puzzlebox.games.zip.engine
+package com.ivandsky.puzzlebox.games.zip
 
 import com.ivandsky.puzzlebox.game.VariantId
-import com.ivandsky.puzzlebox.games.zip.Cell
-import com.ivandsky.puzzlebox.games.zip.Wall
-import com.ivandsky.puzzlebox.games.zip.WallDirection
-import com.ivandsky.puzzlebox.games.zip.ZipBoard
-import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
+import com.ivandsky.puzzlebox.games.zip.engine.ZipSolver
+import com.ivandsky.puzzlebox.games.zip.engine.ZipVariant
 import kotlin.random.Random
 
 /**
@@ -13,6 +10,9 @@ import kotlin.random.Random
  * Hamiltonian path, walls dropped consistently with it, waypoints placed along the path,
  * then the solver filter — only boards with EXACTLY ONE solution survive. Deterministic
  * for a given [Random] seed, so failures reproduce.
+ *
+ * Test-only (F2 §6): production puzzles come from the daily fetch; random generation is a
+ * property-test instrument, never shipped code.
  */
 class ZipGenerator(private val random: Random = Random.Default) {
 

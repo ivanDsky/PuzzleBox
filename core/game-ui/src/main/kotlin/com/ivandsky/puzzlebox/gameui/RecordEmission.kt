@@ -11,6 +11,9 @@ import kotlinx.coroutines.launch
  * surfaces through [onResult], never by blocking the win overlay (F2 §7). One record per
  * [CompletionRecord.puzzleRef] per emitter instance — recomposition races cannot
  * double-write; a replay (new session) is a new emitter lifetime and emits again.
+ *
+ * Single-threaded by contract: [emit] must be called from the main UI thread only (the
+ * dedup set is a plain [HashSet], not thread-safe), matching the win-overlay call site.
  */
 class CompletionRecordEmitter(
     private val scope: CoroutineScope,

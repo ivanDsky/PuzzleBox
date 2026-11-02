@@ -33,7 +33,7 @@ val dataModule = module {
             .build()
     }
     single { get<PuzzleBoxDatabase>().dailyPuzzleDao() }
-    single<DailyPuzzleRepository> { OfflineFirstDailyPuzzleRepository(get(), get(), get()) }
+    single<DailyPuzzleRepository> { OfflineFirstDailyPuzzleRepository(get(), get(), get(), get()) }
     // The DataStore owns its file for the whole process, so its scope lives as long
     // as the singleton: I/O dispatcher from the provider, SupervisorJob so one failed
     // write never cancels the scope.

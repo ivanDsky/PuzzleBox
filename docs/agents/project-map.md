@@ -34,6 +34,10 @@ Gradle root `PuzzleBox`, five modules; dependency direction `:app` → `:feature
   named `MotionPattern`s), shared `PuzzleBoard`, components (buttons, chips, dialogs,
   top bars, states), `TokenCatalogScreen` + `ComponentCatalogScreen`; Roborazzi goldens in
   `snapshots/`, font license in `licenses/`.
+- `core/model/` — dependency-free shared domain types in package
+  `com.ivandsky.puzzlebox.model` (`GameId`, the opaque `DailyPuzzle` envelope,
+  `ThemeMode`); pure JVM, depends on nothing — `:core:game`, `:core:data`, and the
+  UI/feature layers compile against it.
 - `feature/home/` — `HomeRoute` (DI-bound entry: observes cached history, never the
   network), `HomeScreen` (single/two-pane arrangement, theme segmented control, history
   teaser), `HomeLayout` + `homeLayoutFor` pure pane policy.
