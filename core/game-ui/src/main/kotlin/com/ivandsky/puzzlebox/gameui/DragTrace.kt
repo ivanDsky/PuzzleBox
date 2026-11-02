@@ -67,6 +67,7 @@ fun DragTraceBoard(
     onEvent: (DragEvent) -> Unit,
     modifier: Modifier = Modifier,
     edgeOverlays: List<EdgeOverlay> = emptyList(),
+    underlay: @Composable BoxScope.() -> Unit = {},
     cellContent: @Composable BoxScope.(row: Int, col: Int) -> Unit = { _, _ -> },
 ) {
     val latestPath by rememberUpdatedState(path)
@@ -82,6 +83,7 @@ fun DragTraceBoard(
             rows = rows,
             cols = cols,
             edgeOverlays = edgeOverlays,
+            underlay = underlay,
             cellContent = cellContent,
         )
         Box(

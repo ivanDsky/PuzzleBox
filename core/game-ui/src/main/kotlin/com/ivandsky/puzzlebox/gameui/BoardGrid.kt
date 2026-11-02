@@ -49,7 +49,9 @@ sealed interface EdgeOverlay {
  * Strokes (A5/A10): gridlines, walls, and colorless borders render from the board token
  * roles with the token stroke weights — [colors]/[gridLineWeight]/[wallWeight] exist only
  * as call-site overrides; the defaults are the contract. Draw order is fixed: strokes
- * first, cell content above (A2 — a trace path painted by content never covers a label).
+ * first, [underlay] above them (a trace-game's board-level pipe layer), cell content
+ * above that (A2 — a trace path painted by content never covers a label; the layer split
+ * is what lets a dot's surface hole punch a pipe that passes under it, ticket 28).
  */
 @Composable
 fun BoardGrid(
@@ -61,6 +63,7 @@ fun BoardGrid(
     colors: BoardColors = LocalBoardColors.current,
     gridLineWeight: Dp = BoardTokens.boardGridLineWeight,
     wallWeight: Dp = BoardTokens.boardWallWeight,
+    underlay: @Composable BoxScope.() -> Unit = {},
     cellContent: @Composable BoxScope.(row: Int, col: Int) -> Unit = { _, _ -> },
 ) {
     val markColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -80,6 +83,7 @@ fun BoardGrid(
                 }
             }
         }
+        underlay()
         Cells(rows, cols, cellContent)
         if (onCellTap != null) {
             // Tap layer inside the board box: matchParentSize (DragTrace overlay pattern)
