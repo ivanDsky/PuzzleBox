@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.tango
 
 import com.ivandsky.puzzlebox.games.tango.engine.TangoCountRule
+import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.engine.TangoMarkerRule
 import com.ivandsky.puzzlebox.games.tango.engine.TangoTripleRule
 import org.junit.Assert.assertEquals
@@ -111,9 +112,18 @@ class TangoConstraintsTest {
     }
 
     @Test
-    fun `a gap pattern S_S does not force anything`() {
+    fun `a gap sandwiched between identical cells forces the other value`() {
         val p = puzzle()
-        assertNull(TangoTripleRule.deduction(p, grid(6, "S-S---", "------", "------", "------", "------", "------")))
+        val hint = TangoTripleRule.deduction(p, grid(6, "S-S---", "------", "------", "------", "------", "------"))
+        assertEquals(1, hint?.idx)
+        assertEquals(TangoCell.MOON, hint?.value)
+        assertEquals(TangoHint.Why.ThreeInARow(0, 2), hint?.why)
+    }
+
+    @Test
+    fun `a sandwich of opposite ends forces nothing`() {
+        val p = puzzle()
+        assertNull(TangoTripleRule.deduction(p, grid(6, "S-M---", "------", "------", "------", "------", "------")))
     }
 
     // -- count rule -----------------------------------------------------------

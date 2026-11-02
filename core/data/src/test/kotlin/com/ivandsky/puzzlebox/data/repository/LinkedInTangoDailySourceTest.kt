@@ -84,13 +84,23 @@ class LinkedInTangoDailySourceTest {
         val envelope = (result as? FetchResult.Ok)?.value!!.puzzle
         val puzzle = (TangoCodec.decode(envelope.payload) as com.ivandsky.puzzlebox.game.DecodeResult.Ok).value
         assertEquals(6, puzzle.n)
-        // Givens from the fixture grid (row-major): idx0=S, idx7=M, idx15=S, idx21=S, idx35=M; blanks are non-givens.
+        // Givens from the fixture grid (row-major): idx0=S, 3=S, 7=M, 10=M, 13=S, 15=S,
+        // 16=S, 18=S, 21=M, 27=M, 31=S, 35=M. Fix-round-1: the fixture models a trusted
+        // daily, so its puzzle is uniquely solvable (the old grid was unsatisfiable —
+        // givens 15=S and 21=S sat on the x edge — and is now refused by the A15 gate).
         assertEquals(
             mapOf(
                 0 to TangoCell.SUN,
+                3 to TangoCell.SUN,
                 7 to TangoCell.MOON,
+                10 to TangoCell.MOON,
+                13 to TangoCell.SUN,
                 15 to TangoCell.SUN,
-                21 to TangoCell.SUN,
+                16 to TangoCell.SUN,
+                18 to TangoCell.SUN,
+                21 to TangoCell.MOON,
+                27 to TangoCell.MOON,
+                31 to TangoCell.SUN,
                 35 to TangoCell.MOON,
             ),
             puzzle.givens,
@@ -136,6 +146,21 @@ class LinkedInTangoDailySourceTest {
         val result = source.fetchDaily(date)
 
         assertTrue((result as? FetchResult.Err)?.error is FetchError.Unavailable)
+    }
+
+    @Test
+    fun `ambiguous payload is Untrusted, never Ok (A15 at the source boundary)`() = runBlocking {
+        // Parses cleanly as tango/n6 (valid variant, well-formed wire) but every cell is
+        // free — the solver cannot pin a unique solution. The source must refuse BEFORE
+        // the offline cache ever sees the payload (Zip oracle parity); the play-time
+        // gate stays as defense-in-depth.
+        val ambiguous = """{"tangoGamePuzzle":{"gridSize":6,"variant":"tango/n6","given":[],"constraints":[]}}"""
+        server.enqueue(ok(ambiguous))
+
+        val result = source.fetchDaily(date)
+
+        val error = (result as? FetchResult.Err)?.error as? FetchError.Untrusted
+        assertTrue("expected Untrusted, got $result", error != null)
     }
 
     @Test

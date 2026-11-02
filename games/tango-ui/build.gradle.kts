@@ -65,11 +65,14 @@ ksp {
     arg("requireShowkaseComposableAnnotation", "true")
 }
 
-// Screenshot captures write to the review tree; -Proborazzi.verify mirrors the
-// designsystem goldens contract (feature/play precedent).
+// The golden harness (TangoBoardGoldenTest) pixel-compares every run and records
+// absent goldens; -Proborazzi.verify additionally makes a MISSING golden a failure
+// instead of a silent record (review I6: goldens must actually verify). Roborazzi
+// itself stays in record mode so the capture ALWAYS writes; the harness owns the
+// compare-and-fail logic.
 val verifySnapshots = providers.gradleProperty("roborazzi.verify").isPresent
 
 tasks.withType<Test>().configureEach {
-    systemProperty("roborazzi.test.record", (!verifySnapshots).toString())
-    systemProperty("roborazzi.test.verify", verifySnapshots.toString())
+    systemProperty("roborazzi.test.record", "true")
+    systemProperty("tango.golden.verify", verifySnapshots.toString())
 }

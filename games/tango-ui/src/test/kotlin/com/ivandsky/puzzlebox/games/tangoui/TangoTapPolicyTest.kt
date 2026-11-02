@@ -70,27 +70,19 @@ class TangoTapPolicyTest {
 
     // ---- TalkBack custom actions (§9) ----
 
+    /** I4: both variants commit ONLY the final placement — no spurious transient mistakes. */
     @Test
-    fun `variant a custom actions map to cycle steps`() {
+    fun `variant a custom actions commit the final placement only`() {
         val policy = TangoTapPolicy(TangoPlacementVariant.TapCycle)
         val empty = model(cells = mapOf(4 to null))
         assertEquals(listOf(TangoPlacement(4, TangoCell.SUN)), policy.onCustomAction(empty, 4, "Place sun"))
-        // From empty, "Place moon" cycles through sun first (two cycle steps).
-        assertEquals(
-            listOf(
-                TangoPlacement(4, TangoCell.SUN),
-                TangoPlacement(4, TangoCell.MOON),
-            ),
-            policy.onCustomAction(empty, 4, "Place moon"),
-        )
-        // "Clear" on a sun cycles twice (sun → moon → empty).
-        assertEquals(
-            listOf(
-                TangoPlacement(4, TangoCell.MOON),
-                TangoPlacement(4, null),
-            ),
-            policy.onCustomAction(model(cells = mapOf(4 to TangoCell.SUN)), 4, "Clear"),
-        )
+        // From empty, "Place moon" lands the moon — the transient sun is never committed.
+        assertEquals(listOf(TangoPlacement(4, TangoCell.MOON)), policy.onCustomAction(empty, 4, "Place moon"))
+        // "Clear" on a sun lands only the clear — never the transient moon (the
+        // spurious-mistake regression this pins).
+        assertEquals(listOf(TangoPlacement(4, null)), policy.onCustomAction(model(cells = mapOf(4 to TangoCell.SUN)), 4, "Clear"))
+        // Already-target: no-op, no commits.
+        assertEquals(emptyList<TangoPlacement>(), policy.onCustomAction(model(cells = mapOf(4 to TangoCell.MOON)), 4, "Place moon"))
     }
 
     @Test

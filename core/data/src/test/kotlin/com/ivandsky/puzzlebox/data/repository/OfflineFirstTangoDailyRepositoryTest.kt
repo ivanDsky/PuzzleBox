@@ -124,6 +124,26 @@ class OfflineFirstTangoDailyRepositoryTest {
     }
 
     @Test
+    fun `untrusted fetch degrades to Cached and keeps the trusted row (I1)`() = runTest {
+        source.nextPuzzle = envelope()
+        repository.today()
+
+        // The source-level A15 gate (fix-round-1) surfaces as Untrusted; the repo must
+        // degrade to the saved copy with the sealed error attached and never let the
+        // untrusted payload overwrite the row (design §6 degraded-untrusted).
+        source.nextPuzzle = null
+        source.nextError = FetchError.Untrusted("daily is not uniquely solvable")
+
+        val result = repository.today()
+
+        result as TangoToday.Cached
+        assertTrue(result.error is FetchError.Untrusted)
+        assertEquals("tango", result.puzzle.gameId.value)
+        assertEquals(1, db.puzzleDailyDao().count("tango"))
+        assertEquals(1_000L, db.puzzleDailyDao().get("tango", today.toString())!!.fetchedAtMs)
+    }
+
+    @Test
     fun `fetch failure without cache is Unavailable`() = runTest {
         source.nextPuzzle = null
         source.nextError = FetchError.Throttled("100 s cooldown")

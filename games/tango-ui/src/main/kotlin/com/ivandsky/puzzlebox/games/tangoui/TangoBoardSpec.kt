@@ -67,6 +67,12 @@ object TangoBoardSpec {
     /** Violation tint alpha over the offending cell (Zip rejection precedent). */
     const val violationTintAlpha: Float = 0.7f
 
+    /** HintReveal tint alpha over the hint cell (§2/§7 — highlight without hiding the glyph). */
+    const val hintTintAlpha: Float = 0.9f
+
+    /** Pre-measure fallback for count-rail pips (M3 — replaced by the real pitch on first layout). */
+    val countPipReferencePitch: Dp = 40.dp
+
     /** Caption slot height — fixed one-line slot so text fades, layout never jumps (§4). */
     val captionSlotHeight: Dp = 20.dp
 

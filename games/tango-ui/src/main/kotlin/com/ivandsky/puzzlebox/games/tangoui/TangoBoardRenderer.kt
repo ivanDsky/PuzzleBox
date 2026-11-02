@@ -31,18 +31,21 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -92,11 +95,16 @@ class TangoBoardRenderer(
         val tapPolicy = remember(variants.placement) { TangoTapPolicy(variants.placement) }
         val commit = onPlacement
 
+        // Board pitch, measured in the board's BoxWithConstraints and shared with the
+        // row rail (M3: pip size rides the real pitch, never the 40 dp reference).
+        val pitchState = remember { mutableStateOf(TangoBoardSpec.countPipReferencePitch) }
+
         Column(modifier) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     BoxWithConstraints(Modifier.fillMaxWidth()) {
                         val pitch = maxWidth / tango.n
+                        pitchState.value = pitch
                         BoardGrid(
                             rows = tango.n,
                             cols = tango.n,
@@ -139,14 +147,15 @@ class TangoBoardRenderer(
                             tapPolicy = tapPolicy,
                             onPlacement = commit,
                             pitch = pitch,
+                            n = tango.n,
                         )
                     }
                     if (variants.countIndicators == TangoCountIndicators.On) {
-                        ColumnCountRail(tango)
+                        ColumnCountRail(tango, pitchState.value)
                     }
                 }
                 if (variants.countIndicators == TangoCountIndicators.On) {
-                    RowCountRail(tango)
+                    RowCountRail(tango, pitchState.value)
                 }
             }
             CaptionSlot(tango, variants)
@@ -165,7 +174,9 @@ private fun Cell(
     col: Int,
 ) {
     val render = model.cells.getOrNull(idx)
-    val violating = TangoSemantics.isViolating(model, idx)
+    val violationPhrase = TangoSemantics.violationPhraseAt(model, idx)
+    val violating = violationPhrase != null
+    val hinted = model.hintCell == idx
     val scheme = MaterialTheme.colorScheme
     val boardColors = LocalBoardColors.current
     val gridLineWeight = BoardTokens.boardGridLineWeight
@@ -189,7 +200,6 @@ private fun Cell(
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
-                compositingStrategy = CompositingStrategy.Offscreen
             }
             .then(
                 if (variants.cellTreatment == TangoCellTreatment.RoundedTiles) {
@@ -213,6 +223,14 @@ private fun Cell(
                 // Reference pitch is irrelevant to shape: fractions read the cell box,
                 // dashes read the pitch-equivalent cell size (minDimension = pitch px).
                 val pitchPx = size.minDimension
+                if (hinted) {
+                    // HintReveal (§2/§7): secondaryContainer fill on the hint cell —
+                    // state-driven highlight, persists until the next input clears it.
+                    drawRoundRect(
+                        color = scheme.secondaryContainer.copy(alpha = TangoBoardSpec.hintTintAlpha),
+                        cornerRadius = CornerRadius(pitchPx * 0.04f),
+                    )
+                }
                 if (violating) {
                     // errorContainer tint 0.7 (Zip rejection precedent) + dashed border
                     // in colorScheme.error — the shape signal keeps color from being
@@ -266,8 +284,9 @@ private fun Cell(
         }
 
         // Per-cell TalkBack semantics (§9): one focusable node per cell, row-major;
-        // givens distinguished by words ("given sun"), not visuals (§2).
-        val actionLabels = TangoSemantics.customActions
+        // givens distinguished by words ("given sun"), not visuals (§2), and givens
+        // expose NO custom actions (§2: inert surface must not fake success — M4).
+        val actionLabels = if (render?.isGiven == true) emptyList() else TangoSemantics.customActions
         Box(
             Modifier
                 .fillMaxSize()
@@ -334,22 +353,25 @@ private fun MoonGlyph(modifier: Modifier, style: TangoGlyphStyle, fill: Color, n
         val punch = glyph * TangoBoardSpec.moonPunchDiameterFraction / 2f
         val punchOffset = glyph * TangoBoardSpec.moonPunchOffsetFraction
         val punchCenter = center + Offset(punchOffset, -punchOffset) // toward upper-right; one orientation, never mirrored (§2)
+        val disc = Path().apply { addOval(Rect(center = center, radius = radius)) }
+        val punchShape = Path().apply { addOval(Rect(center = punchCenter, radius = punch)) }
         when (style) {
             TangoGlyphStyle.Solid -> {
-                drawCircle(fill, radius = radius, center = center)
-                drawCircle(Color.Black, radius = punch, center = punchCenter, blendMode = BlendMode.DstOut)
+                // Blend-free crescent: disc minus punch. DstOut inside a scaled
+                // offscreen layer renders the punch OPAQUE (Robolectric RNG — the
+                // violation-scaled moons showed a white disc), so the shape is
+                // subtracted geometrically instead of via a blend mode.
+                val crescent = Path().apply { op(disc, punchShape, PathOperation.Difference) }
+                drawPath(crescent, fill)
             }
             TangoGlyphStyle.Hollow -> {
-                // Zip dot lineage: ring outline, punched by a hollow ring (§8 item 4-B).
+                // Zip dot lineage: ring outline, punched by a hollow ring (§8 item 4-B)
+                // — the punch ring is clipped to the disc, again blend-free.
                 val ring = glyph * TangoBoardSpec.glyphRingStrokeFraction
-                drawCircle(fill, radius = radius, center = center, style = Stroke(ring))
-                drawCircle(
-                    Color.Black,
-                    radius = punch,
-                    center = punchCenter,
-                    style = Stroke(ring),
-                    blendMode = BlendMode.DstOut,
-                )
+                drawPath(disc, fill, style = Stroke(ring))
+                clipPath(disc) {
+                    drawCircle(fill, radius = punch, center = punchCenter, style = Stroke(ring))
+                }
             }
         }
     }
@@ -366,18 +388,19 @@ private fun BoxScope.Chooser(
     tapPolicy: TangoTapPolicy,
     onPlacement: ((TangoPlacement) -> Unit)?,
     pitch: Dp,
+    n: Int,
 ) {
     val pending = if (variants.placement == TangoPlacementVariant.TwoTapChooser) {
         tapPolicy.pendingIdx
     } else {
         null
     } ?: return
-    val target = TangoBoardSpec.chooserTargetSize(pitch, 6)
+    val target = TangoBoardSpec.chooserTargetSize(pitch, n)
     val chooserWidth = target * 2 + Spacing.sm
     val chooserHeight = target + 32.dp // targets + the Cancel row
-    val row = pending / 6
-    val col = pending % 6
-    val below = row < 3 // top half flips below (§5 excludedBounds handling)
+    val row = pending / n
+    val col = pending % n
+    val below = row < n / 2 // top half flips below (§5 excludedBounds handling)
 
     Surface(
         shape = MaterialTheme.shapes.medium,
@@ -405,10 +428,10 @@ private fun BoxScope.Chooser(
                     onClick = { onPlacement?.invoke(tapPolicy.chooserChoose(pending, TangoCell.SUN)) },
                 ) {
                     SunGlyph(
-                        Modifier.fillMaxSize().graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen),
+                        Modifier.fillMaxSize(),
                         style = variants.glyphStyle,
                         fill = LocalBoardColors.current.sunFill,
-                        n = 6,
+                        n = n,
                     )
                 }
                 ChooserTarget(
@@ -417,10 +440,10 @@ private fun BoxScope.Chooser(
                     onClick = { onPlacement?.invoke(tapPolicy.chooserChoose(pending, TangoCell.MOON)) },
                 ) {
                     MoonGlyph(
-                        Modifier.fillMaxSize().graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen),
+                        Modifier.fillMaxSize(),
                         style = variants.glyphStyle,
                         fill = LocalBoardColors.current.moonFill,
-                        n = 6,
+                        n = n,
                     )
                 }
             }
@@ -460,9 +483,9 @@ private fun ChooserTarget(
  * BoardGrid — no BoardGrid change.
  */
 @Composable
-private fun ColumnCountRail(model: TangoRendererModel) {
+private fun ColumnCountRail(model: TangoRendererModel, pitch: Dp) {
     val color = MaterialTheme.colorScheme.onSurfaceVariant
-    val pip = TangoBoardSpec.countPipDiameter(40.dp)
+    val pip = TangoBoardSpec.countPipDiameter(pitch)
     Row(
         Modifier
             .fillMaxWidth()
@@ -489,9 +512,9 @@ private fun ColumnCountRail(model: TangoRendererModel) {
 }
 
 @Composable
-private fun RowCountRail(model: TangoRendererModel) {
+private fun RowCountRail(model: TangoRendererModel, pitch: Dp) {
     val color = MaterialTheme.colorScheme.onSurfaceVariant
-    val pip = TangoBoardSpec.countPipDiameter(40.dp)
+    val pip = TangoBoardSpec.countPipDiameter(pitch)
     Column(
         Modifier
             .padding(start = Spacing.xs, top = Spacing.xs, bottom = Spacing.xs)
@@ -559,19 +582,21 @@ private fun PipGroup(
 }
 
 /**
- * Fixed one-line caption slot (§4, 20 dp): violations announce rule-naming copy
- * (§6, polite liveRegion, once per new violation via the content change), completion
- * announces "Puzzle solved" before the route handoff. Text fades (ViolationFlash
- * exit ≤ entrance); layout never jumps; caption suppressed in the silent A/B variant.
+ * Fixed one-line caption slot (§4, 20 dp): the STATE-DRIVEN violation phrase derived
+ * from the live-grid scan (§6: marks persist until the board is legal again — not the
+ * transient last-rejection), the hint's WHY copy while a hint reveal stands (§6/§7,
+ * review M1 — one caption surface, never a second overlay), completion announces
+ * "Puzzle solved" before the route handoff. Polite liveRegion, once per content
+ * change; text fades (ViolationFlash exit ≤ entrance); layout never jumps; caption
+ * suppressed in the silent A/B variant.
  */
 @Composable
 private fun CaptionSlot(model: TangoRendererModel, variants: TangoAbVariants) {
-    val rejection = model.rejection
-    val violatingIdx = rejection?.idx
     val caption = when {
         model.status == TangoRendererModel.Status.COMPLETE -> "Puzzle solved"
-        variants.violationStrength == TangoViolationStrength.Captioned && violatingIdx != null ->
-            TangoSemantics.violationPhrase(model, violatingIdx)
+        variants.violationStrength == TangoViolationStrength.Captioned ->
+            TangoSemantics.firstViolationPhrase(model)
+                ?: model.hintWhy?.let { why -> TangoSemantics.hintPhrase(model, why) }
         else -> null
     }
     val reducedMotion = rememberReducedMotion()

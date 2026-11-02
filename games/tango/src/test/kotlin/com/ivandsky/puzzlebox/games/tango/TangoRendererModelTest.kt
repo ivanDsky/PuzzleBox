@@ -42,4 +42,18 @@ class TangoRendererModelTest {
         assertNull(model.rejection)
         assertTrue(model.cells.all { it.value != null })
     }
+
+    /** M1: the hint rides the model — highlight cell + WHY for the §4 caption slot. */
+    @Test
+    fun `a forced hint projects onto the model`() {
+        val state = TangoState(TangoTestSupport.sample, TangoTestSupport.gridOf())
+        val hint = TangoRules.hint(state) as TangoHint.Forced
+        val model = TangoRendererModel.of(state, hint)
+        assertEquals(hint.idx, model.hintCell)
+        assertEquals(hint.why, model.hintWhy)
+        // No hint — no payload.
+        val plain = TangoRendererModel.of(state, null)
+        assertNull(plain.hintCell)
+        assertNull(plain.hintWhy)
+    }
 }

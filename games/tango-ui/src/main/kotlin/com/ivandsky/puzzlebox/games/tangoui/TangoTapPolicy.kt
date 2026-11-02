@@ -48,8 +48,10 @@ class TangoTapPolicy(private val variant: TangoPlacementVariant) {
 
     /**
      * TalkBack custom actions (§9): variant A maps "Place sun"/"Place moon"/"Clear"
-     * to cycle steps (repeat the cycle until the target value); variant B maps them
-     * to chooser + erase semantics directly.
+     * to cycle targets — committing ONLY the final placement (review I4; the §9
+     * "maps to cycle steps" copy describes the gesture model, not the commit
+     * sequence). Variant B maps them to chooser + erase semantics directly. Givens
+     * stay inert (empty list, never "handled").
      */
     fun onCustomAction(model: TangoRendererModel, idx: Int, label: String): List<TangoPlacement> {
         val target = when (label) {
@@ -61,19 +63,16 @@ class TangoTapPolicy(private val variant: TangoPlacementVariant) {
         if (model.cells.getOrNull(idx)?.isGiven == true) return emptyList()
         return when (variant) {
             TangoPlacementVariant.TapCycle -> {
-                // Simulate the cycle locally (the policy is pure over the model — the
-                // model still holds the old value between steps).
-                val placements = mutableListOf<TangoPlacement>()
-                var value: TangoCell? = model.cells.getOrNull(idx)?.value
-                while (value != target && placements.size <= 3) {
-                    value = when (value) {
-                        null -> TangoCell.SUN
-                        TangoCell.SUN -> TangoCell.MOON
-                        TangoCell.MOON -> null
-                    }
-                    placements += TangoPlacement(idx, value)
+                // §9 describes the gesture model (repeat-tap cycle), but the commit
+                // sequence must be FINAL-ONLY (review I4): TalkBack "Clear" on a sun
+                // must never land the transient moon as a counted mistake. Simulate
+                // the cycle locally and emit just the end state.
+                val current = model.cells.getOrNull(idx)?.value
+                if (current == target) {
+                    emptyList() // already the target — no-op, no spurious commits
+                } else {
+                    listOf(TangoPlacement(idx, target))
                 }
-                placements
             }
             TangoPlacementVariant.TwoTapChooser -> when {
                 model.cells.getOrNull(idx)?.value == target -> emptyList()

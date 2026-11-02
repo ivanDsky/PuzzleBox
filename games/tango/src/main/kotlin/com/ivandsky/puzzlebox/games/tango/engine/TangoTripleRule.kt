@@ -35,9 +35,10 @@ object TangoTripleRule {
                 val a = grid[line(i)]
                 val b = grid[line(i + 1)]
                 val c = grid[line(i + 2)]
-                // XX_ : the gap completes the run; _XX : the gap opens it.
+                // XX_ : the gap completes the run; _XX : the gap opens it; X_X : the gap fills it.
                 if (a != null && a == b && c == null) return forced(line(i + 2), a.other(), line(i), line(i + 1))
                 if (b != null && b == c && a == null) return forced(line(i), b.other(), line(i + 1), line(i + 2))
+                if (a != null && c != null && a == c && b == null) return forced(line(i + 1), a.other(), line(i), line(i + 2))
             }
         }
         return null

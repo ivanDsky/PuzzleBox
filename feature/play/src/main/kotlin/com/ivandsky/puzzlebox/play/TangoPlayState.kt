@@ -176,7 +176,9 @@ class TangoPlayState(
         }
         val ref = resolveRef()
         screen = TangoScreen.Ready(tango, ref, degraded)
-        session = TangoSession(ref = ref, puzzle = tango)
+        // Round-trip the initial session through the callback too: the route's saveable
+        // must exist from load, not first placement (C1 process-death window).
+        updateSession(TangoSession(ref = ref, puzzle = tango))
         refreshBaseline(ref)
     }
 
@@ -230,16 +232,16 @@ class TangoPlayState(
             is TangoHint.Forced -> {
                 val move = TangoMove(resolved.idx, resolved.value)
                 if (rules.validate(move, TangoState(ready.puzzle, current.grid())) is TangoVerdict.Valid) {
-                    commit(current.withMove(move, now()).withHintApplied())
+                    commit(current.withMove(move, now()).withHintApplied(resolved))
                 } else {
-                    commit(current.withHintApplied())
+                    commit(current.withHintApplied(resolved))
                 }
                 hintCell = resolved.idx
                 hintWhy = resolved.why
             }
 
-            // No forced move exists on this grid — the hint is still counted (Zip parity).
-            TangoHint.Stuck -> commit(current.withHintApplied())
+            // No forced move exists — the ladder answer costs the player nothing (I7).
+            TangoHint.Stuck -> commit(current.withHintApplied(resolved))
         }
     }
 
@@ -351,7 +353,11 @@ class TangoPlayState(
     fun rendererModel(): TangoRendererModel? {
         val current = session ?: return null
         val ready = screen as? TangoScreen.Ready ?: return null
-        return TangoRendererModel.of(TangoState(ready.puzzle, current.grid()), hint = null, verdict = rejection)
+        // The hint rides the renderer model (§7 HintReveal): highlight + §4 caption slot.
+        val hint = hintCell?.let { idx ->
+            hintWhy?.let { why -> current.grid()[idx]?.let { value -> TangoHint.Forced(idx, value, why) } }
+        }
+        return TangoRendererModel.of(TangoState(ready.puzzle, current.grid()), hint = hint, verdict = rejection)
     }
 
     /** Versioned session bytes for the route's rememberSaveable (A19/F2 §2). */
