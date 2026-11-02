@@ -12,6 +12,11 @@ import com.ivandsky.puzzlebox.game.MoveVerdict
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
+import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
+import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHints
+import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRuleId
+import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRules as EngineQueensRules
+import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensVerifier
 import com.ivandsky.puzzlebox.games.queens.render.QueensRendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.ZoneId
@@ -57,48 +62,79 @@ object QueensDefinition : GameDefinition {
 }
 
 /**
- * The rules state — SKELETON (queens-01): the decoded puzzle plus the placed queens.
- * Marks, provenance, and move validation state land with the rules tickets (queens-02+).
+ * The rules state: the decoded puzzle plus the placed queens — the A10–A12 session is
+ * the source of truth; [com.ivandsky.puzzlebox.games.queens.render.QueensRendererModel]
+ * and generic plugin consumers (ADR-0001) read this projection of it.
  */
 data class QueensState(
     val puzzle: QueensPuzzle,
     val queens: Set<Cell> = emptySet(),
 )
 
-/** Move marker for the play loop (zip ZipMove precedent). The real moves are queens-02+. */
-data object QueensMove : Move
+/** Game-authored moves for generic plugin consumers (zip ZipMove precedent). The play
+ *  UI drives the session directly; this seam is the plugin contract surface. */
+sealed interface QueensPlayMove : Move {
+    /** Place a queen on an empty cell (A10; auto-fill is a session side effect). */
+    data class Place(val cell: Cell) : QueensPlayMove
+
+    /** Remove the queen at [cell] (A10 lifecycle). */
+    data class Remove(val cell: Cell) : QueensPlayMove
+
+    /** Clear every placed queen. */
+    data object Reset : QueensPlayMove
+}
 
 /**
- * Typed rejection for every move until the real rules verdict ([QueensRulesVerdict],
- * queens-02's shape) exists. Validation is total: never throws, never unchecked-casts.
+ * Typed validation outcome. [QueensValidation.Invalid.rule] is the first violated rule
+ * id (pipeline order) for a rule-breaking placement; null covers the structural cases
+ * (out of bounds, cell occupied / empty on remove) and foreign moves.
  */
-data object QueensMoveRejected : MoveVerdict
-
-/** Hint marker (game-typed presentation payload, F3). Real hints are queens-02+. */
-data object QueensHint : Hint
+sealed interface QueensValidation : MoveVerdict {
+    data object Valid : QueensValidation
+    data class Invalid(val rule: QueensRuleId? = null) : QueensValidation
+}
 
 /**
- * Rules — SKELETON (queens-01) pinning the [GameRules] seam only. The row/column/region
- * exclusivity + no-adjacency rule set (A1, A9, A10–A12 provenance) is queens-02's
- * deliverable and replaces the bodies below; signatures stay.
+ * Real rules (ADR-0001 seam; the queens-01 skeleton bodies are gone): a thin, stateless
+ * facade over the engine — [EngineQueensRules] pipeline for placements,
+ * [QueensVerifier] for completeness, [QueensHints] for the typed hint payload.
+ * Validation is total: never throws, never unchecked-casts.
  */
-object QueensRules : GameRules<QueensState> {
+object QueensGameRules : GameRules<QueensState> {
 
-    override fun validate(move: Move, state: QueensState): MoveVerdict = QueensMoveRejected
+    private val hints = QueensHints()
 
-    override fun isComplete(state: QueensState): Boolean = false
+    override fun validate(move: Move, state: QueensState): MoveVerdict = when (move) {
+        is QueensPlayMove.Place ->
+            if (move.cell.idx !in 0 until state.puzzle.cellCount || move.cell in state.queens) {
+                QueensValidation.Invalid()
+            } else {
+                EngineQueensRules.placementViolatedBy(move.cell, state.queens, state.puzzle)
+                    ?.let(QueensValidation::Invalid)
+                    ?: QueensValidation.Valid
+            }
+        is QueensPlayMove.Remove ->
+            if (move.cell in state.queens) QueensValidation.Valid else QueensValidation.Invalid()
+        QueensPlayMove.Reset -> QueensValidation.Valid
+        // Foreign move (another game's Move reaching this validate): typed rejection.
+        else -> QueensValidation.Invalid()
+    }
 
-    override fun hint(state: QueensState): Hint = QueensHint
+    override fun isComplete(state: QueensState): Boolean =
+        QueensVerifier.isSolution(state.puzzle, state.queens)
+
+    override fun hint(state: QueensState): Hint = hints.hint(state.puzzle, state.queens.toList())
 }
 
 /** The whole game in one injectable value (ADR-0001 §2, zip zipPlugin shape). */
 val queensPlugin: GamePlugin<QueensState, QueensSession, QueensRendererModel> =
     GamePlugin(
         definition = QueensDefinition,
-        rules = QueensRules,
+        rules = QueensGameRules,
         session = QueensSessionCodec,
         score = QueensScoreModel(),
-        stateOf = { session -> QueensState(session.puzzle) },
+        // The full session state projects in: queens (and thus the real renderer model).
+        stateOf = { session -> QueensState(session.puzzle, session.queens.toSet()) },
         initialSession = { puzzle ->
             if (puzzle.gameId != QueensDefinition.id) {
                 DecodeResult.Err(DecodeError.Malformed("foreign envelope: ${puzzle.gameId}"))
@@ -110,11 +146,7 @@ val queensPlugin: GamePlugin<QueensState, QueensSession, QueensRendererModel> =
             }
         },
         rendererModel = { state, hint, _ ->
-            QueensRendererModel.of(
-                state.puzzle,
-                state.queens.map { it.idx }.toSet(),
-                hint,
-            )
+            QueensRendererModel.of(state.puzzle, state.queens.map { it.idx }.toSet(), hint)
         },
     )
 

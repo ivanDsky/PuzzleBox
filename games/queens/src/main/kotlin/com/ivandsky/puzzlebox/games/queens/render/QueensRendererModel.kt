@@ -2,8 +2,11 @@ package com.ivandsky.puzzlebox.games.queens.render
 
 import com.ivandsky.puzzlebox.game.Hint
 import com.ivandsky.puzzlebox.game.RendererModel
+import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensState
+import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
+import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensVerifier
 
 /**
  * Game-authored paint-by-numbers for :core:game-ui's BoardGrid (zip ZipRendererModel
@@ -24,14 +27,24 @@ data class QueensRendererModel(
 
     companion object {
 
+        /**
+         * [hint] is the game-typed payload ([QueensHint]): a [QueensHint.Region] hint
+         * highlights its forced cell; [QueensHint.Incorrect] carries multiple cells and
+         * reduces to no single highlight. Status derives from the placement: complete
+         * and rule-clean → COMPLETE, anything placed → PLAYING, else IDLE.
+         */
         fun of(puzzle: QueensPuzzle, queens: Set<Int>, hint: Hint? = null): QueensRendererModel =
             QueensRendererModel(
                 n = puzzle.size,
                 regions = puzzle.regions,
                 queens = queens,
-                // Real hints are queens-02's typed payload; nothing to highlight yet.
-                hintHighlight = null,
-                status = Status.IDLE, // completion detection arrives with the rules verdict (queens-02)
+                hintHighlight = (hint as? QueensHint.Region)?.cell?.idx,
+                status = when {
+                    queens.size == puzzle.size * puzzle.queensPerUnit &&
+                        QueensVerifier.isSolution(puzzle, queens.map(::Cell).toSet()) -> Status.COMPLETE
+                    queens.isNotEmpty() -> Status.PLAYING
+                    else -> Status.IDLE
+                },
             )
     }
 }

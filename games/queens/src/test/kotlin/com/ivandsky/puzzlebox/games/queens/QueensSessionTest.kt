@@ -27,6 +27,36 @@ class QueensSessionTest {
 
     // ------------------------------------------------------------------ A10
 
+    /** A-1 regression: a mark displaced by a move TARGET is recompute-derived — the
+     *  other standing queen's AUTO mark survives the move and returns on vacate. */
+    @Test
+    fun `A10 - AUTO marks of other queens survive being moved onto and return on vacate`() {
+        val q1 = cell(0, 1)
+        val q2 = cell(2, 3)
+        val s = session().withQueenPlaced(q1, now).withQueenPlaced(q2, now)
+        // (0,3) is in q1's row → an AUTO mark sourced by q1 stands there.
+        assertEquals(QueensMark(MarkKind.AUTO, q1), s.markAt(cell(0, 3)))
+        val moved = s.withQueenMoved(q2, cell(0, 3), now)
+        // q2 stands ON the cell — the mark is queen-masked while it stands there.
+        assertNull(moved.markAt(cell(0, 3)))
+        val vacated = moved.withQueenMoved(cell(0, 3), cell(2, 0), now)
+        // q2 left: (0,3) is again marked AUTO — recomputed from standing q1.
+        assertEquals(QueensMark(MarkKind.AUTO, q1), vacated.markAt(cell(0, 3)))
+    }
+
+    /** A-1 regression: a MANUAL mark hidden under a move target reappears on vacate. */
+    @Test
+    fun `A10 - MANUAL mark hidden under a move target reappears when the queen vacates`() {
+        val manual = cell(1, 0)
+        val s = session().withCrossToggled(manual, now).withQueenPlaced(cell(0, 3), now)
+        val moved = s.withQueenMoved(cell(0, 3), manual, now)
+        // A11's letter: the MANUAL mark is preserved (hidden under the standing queen,
+        // never rendered — the UI gives the queen precedence).
+        assertEquals(QueensMark(MarkKind.MANUAL), moved.markAt(manual))
+        val vacated = moved.withQueenMoved(manual, cell(2, 2), now)
+        assertEquals(QueensMark(MarkKind.MANUAL), vacated.markAt(manual))
+    }
+
     @Test
     fun `A10 - placing a queen auto-fills its row column and region as AUTO marks sourced by it`() {
         val s = session().withQueenPlaced(cell(0, 0), now)
@@ -116,14 +146,16 @@ class QueensSessionTest {
     }
 
     @Test
-    fun `A11 - move onto a cell carrying a MANUAL mark replaces it and undo restores it`() {
+    fun `A11 - MANUAL mark under a move target is hidden by the standing queen, not cleared`() {
         val target = cell(2, 2)
         val before = session()
             .withQueenPlaced(cell(0, 0), now)
             .withCrossToggled(target, now)
         val moved = before.withQueenMoved(cell(0, 0), target, now)
         assertTrue(moved.queens.contains(target))
-        assertNull(moved.markAt(target)) // the queen's own cell carries no cross mark
+        // A11's letter: the queen's cell renders no cross (markAt is queen-masked by
+        // the UI), and the MANUAL mark itself is preserved — it reappears on vacate.
+        assertEquals(QueensMark(MarkKind.MANUAL), moved.markAt(target))
         val undone = moved.withUndo()
         assertEquals(before, undone)
     }

@@ -38,6 +38,19 @@ class QueensUniquenessGateTest {
         assertNull(QueensUniquenessGate.check(parsed("queens-daily-unique.json")))
     }
 
+    /** A-2 regression: wire `solution` array order is NOT guaranteed ascending-by-cell —
+     *  the gate compares as sets, so a valid non-ascending daily is never falsely
+     *  rejected as Untrusted. */
+    @Test
+    fun `non-ascending shipped solution order still passes the gate`() {
+        val puzzle = parsed("queens-daily-unique.json")
+        val shipped = puzzle.solution!!
+        val reordered = shipped.asReversed()
+        assertTrue("fixture sanity: order actually changed", reordered != shipped)
+        val scrambled = QueensPuzzle(puzzle.size, puzzle.regions, puzzle.queensPerUnit, reordered)
+        assertNull(QueensUniquenessGate.check(scrambled))
+    }
+
     /** DoD: a tampered shipped solution is rejected with a typed decode error. */
     @Test
     fun `tampered solution is rejected`() {
