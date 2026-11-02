@@ -1,19 +1,39 @@
 package com.ivandsky.puzzlebox.games.zip
 
+import com.ivandsky.puzzlebox.game.Cadence
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
-import com.ivandsky.puzzlebox.game.GameId
+import com.ivandsky.puzzlebox.game.GameDefinition
+import com.ivandsky.puzzlebox.game.GamePlugin
+import com.ivandsky.puzzlebox.game.GameRules
+import com.ivandsky.puzzlebox.game.GameSession
+import com.ivandsky.puzzlebox.game.GameSessionCodec
+import com.ivandsky.puzzlebox.game.Hint
+import com.ivandsky.puzzlebox.game.Move
+import com.ivandsky.puzzlebox.game.MoveVerdict
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.RendererModel
+import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.codec.ZipSessionCodec
 import com.ivandsky.puzzlebox.games.zip.codec.ZipWireParser
+import com.ivandsky.puzzlebox.games.zip.engine.ZipMove
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
 import com.ivandsky.puzzlebox.games.zip.engine.ZipSolver
+import com.ivandsky.puzzlebox.games.zip.engine.ZipState
+import com.ivandsky.puzzlebox.games.zip.engine.ZipValidation
+import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.koin.core.qualifier.qualifier
+import org.koin.dsl.module
 
 /** ZipDefinition contract surface + the full A16 recipe demo on the production fixture. */
 class ZipPluginTest {
@@ -85,14 +105,11 @@ class ZipPluginTest {
         // gate 1: the shipped path satisfies I1-I5 + I8
         assertTrue(ZipRules.verifyPath(daily.puzzle, shipped))
         // gate 2: the rules engine also accepts it move by move
-        val rules = com.ivandsky.puzzlebox.games.zip.engine.ZipRules()
-        var state = com.ivandsky.puzzlebox.games.zip.engine.ZipState(daily.puzzle, emptyList())
+        val rules = ZipRules
+        var state = ZipState(daily.puzzle, emptyList())
         shipped.forEach { cell ->
-            val verdict = rules.validateMove(
-                com.ivandsky.puzzlebox.games.zip.engine.ZipMove.Extend(cell),
-                state,
-            )
-            assertTrue("move to $cell rejected: $verdict", verdict is com.ivandsky.puzzlebox.games.zip.engine.ZipValidation.Valid)
+            val verdict = rules.validateMove(ZipMove.Extend(cell), state)
+            assertTrue("move to $cell rejected: $verdict", verdict is ZipValidation.Valid)
             state = state.copy(path = state.path + cell)
         }
         assertTrue(rules.isComplete(state))
@@ -102,17 +119,119 @@ class ZipPluginTest {
         assertEquals(shipped, solver.solve(daily.puzzle))
     }
 
-    /** Plugin wiring carries all five contracts (A16 §2) and koin exposes it generically. */
+    /** Plugin wiring carries all six contracts (A16 §2) and koin exposes it generically. */
     @Test
     fun `plugin carries every contract and registers in koin`() {
         assertEquals(ZipDefinition, zipPlugin.definition)
         assertEquals(ZipSessionCodec, zipPlugin.session)
+
+        // stateOf: session -> rules state carries the decoded puzzle + trace
+        val puzzle = ZipTestSupport.n5Puzzle()
+        val session = ZipSession(ref = null, puzzle = puzzle, path = ZipTestSupport.path(0, 1))
+        assertEquals(ZipState(puzzle, ZipTestSupport.path(0, 1)), zipPlugin.stateOf(session))
+
+        // initialSession: envelope -> fresh paused session over the decoded board
+        val fresh = (zipPlugin.initialSession(decoded(bytes)) as DecodeResult.Ok).value
+        assertEquals(ZipSession(ref = null, puzzle = puzzle), fresh)
+
+        // rendererModel: rejected verdict -> rejection; valid/absent verdict -> none
+        val state = ZipState(puzzle, ZipTestSupport.path(0))
+        assertNull(zipPlugin.rendererModel(state, null, null).rejection)
+        assertNull(zipPlugin.rendererModel(state, null, ZipValidation.Valid).rejection)
+        assertEquals(
+            ZipRendererModel.RejectedMove(Cell(6).idx, ZipValidation.Reason.CellAlreadyInPath),
+            zipPlugin.rendererModel(
+                state,
+                null,
+                ZipValidation.Invalid(ZipValidation.Reason.CellAlreadyInPath, Cell(6)),
+            ).rejection,
+        )
+
         org.koin.core.context.GlobalContext.startKoin { modules(zipModule) }
         try {
-            val plugins = org.koin.core.context.GlobalContext.get().getAll<com.ivandsky.puzzlebox.game.GamePlugin<*, *, *>>()
-            assertEquals(listOf<com.ivandsky.puzzlebox.game.GamePlugin<*, *, *>>(zipPlugin), plugins.toList())
+            // the id qualifier is resolvable...
+            assertEquals(
+                zipPlugin,
+                org.koin.core.context.GlobalContext.get()
+                    .get<GamePlugin<*, *, *>>(qualifier(ZipDefinition.id.value)),
+            )
+            // ...and getAll still collects the qualified definition (F2 §1)
+            assertEquals(
+                listOf<GamePlugin<*, *, *>>(zipPlugin),
+                org.koin.core.context.GlobalContext.get().getAll<GamePlugin<*, *, *>>(),
+            )
+        } finally {
+            org.koin.core.context.GlobalContext.stopKoin()
+        }
+    }
+
+    /** P1: a second game's registration must not overwrite Zip — getAll returns BOTH plugins. */
+    @Test
+    fun `zip registration survives a second game plugin`() {
+        org.koin.core.context.GlobalContext.startKoin { modules(zipModule, otherGameModule) }
+        try {
+            val plugins = org.koin.core.context.GlobalContext.get().getAll<GamePlugin<*, *, *>>()
+            assertEquals(2, plugins.size)
+            assertTrue("zip plugin missing from getAll", zipPlugin in plugins)
+            assertTrue("other plugin missing from getAll", otherPlugin in plugins)
+            // each qualified definition stays individually addressable
+            assertEquals(
+                zipPlugin,
+                org.koin.core.context.GlobalContext.get()
+                    .get<GamePlugin<*, *, *>>(qualifier(ZipDefinition.id.value)),
+            )
         } finally {
             org.koin.core.context.GlobalContext.stopKoin()
         }
     }
 }
+
+/** A second, minimal game plugin: proves qualified registrations coexist under getAll (P1). */
+private val otherPlugin: GamePlugin<OtherGameState, OtherGameSession, OtherRendererModel> =
+    GamePlugin(
+        definition = OtherGameDefinition,
+        rules = OtherGameRules,
+        session = OtherGameSessionCodec,
+        score = OtherGameScore,
+        stateOf = { OtherGameState },
+        initialSession = { DecodeResult.Err(DecodeError.Malformed("no payload")) },
+        rendererModel = { _, _, _ -> OtherRendererModel },
+    )
+
+private val otherGameModule = module {
+    single(qualifier = qualifier(OtherGameDefinition.id.value)) { otherPlugin }
+}
+
+private object OtherGameDefinition : GameDefinition {
+    override val id = GameId("other")
+    override val displayName = "Other"
+    override val cadence: Cadence = Cadence.Daily(java.time.ZoneId.of("UTC"))
+    override fun decode(bytes: ByteArray): DecodeResult<Puzzle> = DecodeResult.Err(DecodeError.Malformed("nope"))
+    override fun encode(puzzle: Puzzle): ByteArray = throw IllegalArgumentException("not encodable")
+}
+
+private object OtherGameState
+
+private object OtherGameSession : GameSession
+
+private object OtherGameRules : GameRules<OtherGameState> {
+    override fun validate(move: Move, state: OtherGameState): MoveVerdict = OtherGameVerdict
+    override fun isComplete(state: OtherGameState): Boolean = false
+    override fun hint(state: OtherGameState): Hint = OtherGameHint
+}
+
+private object OtherGameVerdict : MoveVerdict
+
+private object OtherGameHint : Hint
+
+private object OtherGameSessionCodec : GameSessionCodec<OtherGameSession> {
+    override fun serialize(session: OtherGameSession): ByteArray = ByteArray(0)
+    override fun deserialize(bytes: ByteArray): DecodeResult<OtherGameSession> =
+        DecodeResult.Err(DecodeError.Malformed("nope"))
+}
+
+private object OtherGameScore : ScoreModel<OtherGameSession> {
+    override fun completion(session: OtherGameSession): CompletionRecord? = null
+}
+
+private object OtherRendererModel : RendererModel

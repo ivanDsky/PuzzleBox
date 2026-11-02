@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -23,12 +22,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import android.content.Intent
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -39,14 +34,14 @@ import com.ivandsky.puzzlebox.app.nav.Home
 import com.ivandsky.puzzlebox.app.nav.Play
 import com.ivandsky.puzzlebox.app.nav.Profile
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
+import com.ivandsky.puzzlebox.app.screens.CatalogScreenWithShowkaseTrial
 import com.ivandsky.puzzlebox.app.screens.PlayScreen
 import com.ivandsky.puzzlebox.app.screens.ProfileScreen
-import com.ivandsky.puzzlebox.data.model.ThemeMode
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.TokenCatalogScreen
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.HomeRoute
 import com.ivandsky.puzzlebox.home.homeLayoutFor
+import com.ivandsky.puzzlebox.model.ThemeMode
 
 @Composable
 fun PuzzleBoxApp(
@@ -146,37 +141,6 @@ fun PuzzleBoxApp(
 private fun select(key: NavKey, backStack: NavBackStack<NavKey>) {
     backStack.clear()
     backStack.add(key)
-}
-
-// Ticket design-previews-08: the "Showkase" button opens the custom flat dark browser
-// from :app's debug source set — still launched by class name so :app main keeps no
-// compile-time reference to debug-only code, and the FLAG_DEBUGGABLE gate keeps the
-// button out of release. The stock AAR activity stays merged but is no longer the
-// target; it needs no intent extras from here (that requirement was stock-activity-only).
-private const val SHOWKASE_BROWSER_ACTIVITY =
-    "com.ivandsky.puzzlebox.app.debug.ShowkaseBrowserActivity"
-
-@Composable
-private fun CatalogScreenWithShowkaseTrial() {
-    val context = LocalContext.current
-    val isDebuggable = context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
-    Box(Modifier.fillMaxSize()) {
-        TokenCatalogScreen()
-        if (isDebuggable) {
-            Button(
-                onClick = {
-                    context.startActivity(
-                        Intent().setClassName(context.packageName, SHOWKASE_BROWSER_ACTIVITY),
-                    )
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp),
-            ) {
-                Text("Showkase")
-            }
-        }
-    }
 }
 
 // Fade-through screen transition: 90ms accelerated fade-out, then the incoming screen

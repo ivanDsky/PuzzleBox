@@ -10,9 +10,10 @@ import java.io.ByteArrayOutputStream
 import java.time.Instant
 
 /**
- * Zip session codec v1 — the §4 reader rules applied to the play session, field set
- * {ref, path, hintsUsed, elapsedMs, completedAt} plus the §10 mistake/backtrack counters
- * and the timerStarted bit (still v1 — pre-release). Layout (little-endian):
+ * Zip session codec v1: field set {ref, path, hintsUsed, elapsedMs, completedAt} plus the
+ * §10 mistake/backtrack counters and the timerStarted bit (still v1 — pre-release).
+ * Readers REJECT trailing bytes (`Malformed`) — there is no unknown-extension tail to
+ * preserve. Layout (little-endian):
  *
  * ```
  * 0   u8    formatVersion = 1
@@ -25,7 +26,6 @@ import java.time.Instant
  *     u8    hintsUsed; u8 mistakeCount; u8 backtrackCount
  *     i64   elapsedMs
  *     [bit0] i64 completedAt epochMilli
- *     ...   remaining bytes = unknown extension: preserved verbatim, re-emitted on encode
  * ```
  */
 object ZipSessionCodec : GameSessionCodec<ZipSession> {
@@ -36,6 +36,9 @@ object ZipSessionCodec : GameSessionCodec<ZipSession> {
         val puzzleBytes = ZipCodec.encode(session.puzzle) // canonical, self-describing (A19 nesting)
         require(puzzleBytes.size <= 0xFFFF) { "puzzle blob exceeds u16 length" }
         require(session.path.size in 0..255) { "v1 layout carries u8 path length" }
+        require(session.hintsUsed in 0..255) { "v1 layout carries u8 hintsUsed" }
+        require(session.mistakeCount in 0..255) { "v1 layout carries u8 mistakeCount" }
+        require(session.backtrackCount in 0..255) { "v1 layout carries u8 backtrackCount" }
 
         val out = ByteArrayOutputStream(puzzleBytes.size + 32)
         out.write(VERSION)

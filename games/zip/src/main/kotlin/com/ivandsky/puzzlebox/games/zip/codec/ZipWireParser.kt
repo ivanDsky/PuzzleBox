@@ -13,9 +13,7 @@ import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
 import java.time.LocalDate
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Pure extraction of `trailGamePuzzle` JSON -> typed puzzle (F2 §1; the RSC flight framing
@@ -52,7 +50,9 @@ object ZipWireParser {
         DecodeResult.Err(DecodeError.Malformed("invalid JSON structure: ${e.message}"))
     }
 
-    fun parse(payload: JsonObject, date: LocalDate, editionText: String? = null): DecodeResult<ZipDaily> {
+    /** Internal: [payload] parsing may throw on exotic JSON — the public String overload
+     *  wraps it and keeps the never-throw contract. */
+    internal fun parse(payload: JsonObject, date: LocalDate, editionText: String? = null): DecodeResult<ZipDaily> {
         val gridSize = payload.int("gridSize")
             ?: return DecodeResult.Err(DecodeError.Malformed("missing gridSize"))
         if (gridSize !in 2..16) {
@@ -94,7 +94,14 @@ object ZipWireParser {
             walls += Wall(Cell(cellIdx), dir)
         }
 
-        val solution = payload.array("solution")?.map { Cell(it) }
+        // A MISSING solution stays null (Phase-2 boards ship none); a PRESENT but
+        // unparseable one is Malformed — never silently absent.
+        val solution: List<Cell>? = if (payload.containsKey("solution")) {
+            payload.array("solution")?.map { Cell(it) }
+                ?: return DecodeResult.Err(DecodeError.Malformed("solution present but unparseable"))
+        } else {
+            null
+        }
         if (solution != null && solution.map { it.idx }.distinct().size != nSquared) {
             return DecodeResult.Err(DecodeError.Malformed("solution is not a permutation of the board"))
         }
@@ -116,7 +123,7 @@ object ZipWireParser {
 
     private fun JsonObject.array(name: String): List<Int>? =
         (this[name] as? kotlinx.serialization.json.JsonArray)
-            ?.map { it.jsonPrimitive.content.toIntOrNull() ?: return null }
+            ?.map { (it as? kotlinx.serialization.json.JsonPrimitive)?.content?.toIntOrNull() ?: return null }
 
     private fun JsonObject.primitive(name: String): String? =
         (this[name] as? kotlinx.serialization.json.JsonPrimitive)?.content

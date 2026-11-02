@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.zip
 
+import com.ivandsky.puzzlebox.game.Move
 import com.ivandsky.puzzlebox.games.zip.engine.ZipMove
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
 import com.ivandsky.puzzlebox.games.zip.engine.ZipState
@@ -16,7 +17,7 @@ import org.junit.Test
  */
 class ZipRulesPropertyTest {
 
-    private val rules = ZipRules()
+    private val rules = ZipRules
     private val puzzle = ZipTestSupport.n5Puzzle()
 
     private fun state(path: List<Cell>) = ZipState(puzzle, path)
@@ -28,15 +29,15 @@ class ZipRulesPropertyTest {
     @Test
     fun `I8 - extend off the board is OutOfBounds`() {
         assertEquals(
-            ZipValidation.Invalid(ZipValidation.Reason.OutOfBounds),
+            ZipValidation.Invalid(ZipValidation.Reason.OutOfBounds, Cell(25)),
             extend(Cell(25), listOf(Cell(0))),
         )
         assertEquals(
-            ZipValidation.Invalid(ZipValidation.Reason.OutOfBounds),
+            ZipValidation.Invalid(ZipValidation.Reason.OutOfBounds, Cell(25)),
             extend(Cell(25), emptyList()), // bounds precede the start check
         )
         assertEquals(
-            ZipValidation.Invalid(ZipValidation.Reason.OutOfBounds),
+            ZipValidation.Invalid(ZipValidation.Reason.OutOfBounds, Cell(-1)),
             extend(Cell(-1), emptyList()),
         )
     }
@@ -46,11 +47,11 @@ class ZipRulesPropertyTest {
     fun `I4 - empty trace must start at waypoint 1`() {
         assertEquals(ZipValidation.Valid, extend(Cell(0), emptyList()))
         assertEquals(
-            ZipValidation.Invalid(ZipValidation.Reason.WrongStart),
+            ZipValidation.Invalid(ZipValidation.Reason.WrongStart, Cell(5)),
             extend(Cell(5), emptyList()),
         )
         assertEquals(
-            ZipValidation.Invalid(ZipValidation.Reason.WrongStart),
+            ZipValidation.Invalid(ZipValidation.Reason.WrongStart, Cell(24)),
             extend(Cell(24), emptyList()), // even the end waypoint is not the start
         )
     }
@@ -60,11 +61,11 @@ class ZipRulesPropertyTest {
     fun `I1 - non-adjacent steps are rejected`() {
         val path = ZipTestSupport.path(0, 1)
         assertEquals(
-            ZipValidation.Invalid(ZipValidation.Reason.NotAdjacent),
+            ZipValidation.Invalid(ZipValidation.Reason.NotAdjacent, Cell(7)),
             extend(Cell(7), path), // diagonal
         )
         assertEquals(
-            ZipValidation.Invalid(ZipValidation.Reason.NotAdjacent),
+            ZipValidation.Invalid(ZipValidation.Reason.NotAdjacent, Cell(24)),
             extend(Cell(24), path), // far away
         )
     }
@@ -74,11 +75,11 @@ class ZipRulesPropertyTest {
     @Test
     fun `I2 - moving across a wall is WallBetween`() {
         assertEquals(
-            ZipValidation.Invalid(ZipValidation.Reason.WallBetween),
+            ZipValidation.Invalid(ZipValidation.Reason.WallBetween, Cell(5)),
             extend(Cell(5), listOf(Cell(0))),
         )
         assertEquals(
-            ZipValidation.Invalid(ZipValidation.Reason.WallBetween),
+            ZipValidation.Invalid(ZipValidation.Reason.WallBetween, Cell(6)),
             extend(Cell(6), listOf(Cell(1))), // DOWN wall at 1
         )
     }
@@ -87,11 +88,11 @@ class ZipRulesPropertyTest {
     @Test
     fun `I3 - revisiting a trace cell is CellAlreadyInPath`() {
         assertEquals(
-            ZipValidation.Invalid(ZipValidation.Reason.CellAlreadyInPath),
+            ZipValidation.Invalid(ZipValidation.Reason.CellAlreadyInPath, Cell(0)),
             extend(Cell(0), ZipTestSupport.path(0, 1)),
         )
         assertEquals(
-            ZipValidation.Invalid(ZipValidation.Reason.CellAlreadyInPath),
+            ZipValidation.Invalid(ZipValidation.Reason.CellAlreadyInPath, Cell(3)),
             extend(Cell(3), ZipTestSupport.path(0, 1, 2, 3, 4)),
         )
     }
@@ -107,7 +108,7 @@ class ZipRulesPropertyTest {
         // walk the left column and bottom row: ends adjacent to 24 (label 3) with 7 (label 2) unvisited
         val openState = ZipState(open, ZipTestSupport.path(0, 5, 10, 15, 20, 21, 22, 23))
         assertEquals(
-            ZipValidation.Invalid(ZipValidation.Reason.WrongWaypointOrder(Cell(7))),
+            ZipValidation.Invalid(ZipValidation.Reason.WrongWaypointOrder(Cell(7)), Cell(24)),
             rules.validateMove(ZipMove.Extend(Cell(24)), openState),
         )
     }
@@ -141,9 +142,17 @@ class ZipRulesPropertyTest {
         assertEquals(ZipValidation.Valid, rules.validateMove(ZipMove.RetractTo(Cell(2)), state(path)))
         assertEquals(ZipValidation.Valid, rules.validateMove(ZipMove.RetractTo(Cell(3)), state(path))) // tail: no-op
         assertEquals(
-            ZipValidation.Invalid(ZipValidation.Reason.NotInPath),
+            ZipValidation.Invalid(ZipValidation.Reason.NotInPath, Cell(4)),
             rules.validateMove(ZipMove.RetractTo(Cell(4)), state(path)),
         )
+    }
+
+    // The GameRules contract: a foreign Move is safe-cast into a typed rejection — never an `as` crash.
+    @Test
+    fun `foreign move is a typed rejection, never a ClassCastException`() {
+        val verdict = rules.validate(object : Move {}, state(ZipTestSupport.path(0)))
+        assertEquals(ZipValidation.Invalid(ZipValidation.Reason.ForeignMove), verdict)
+        assertEquals(ZipValidation.Valid, rules.validate(ZipMove.Reset, state(emptyList())))
     }
 
     @Test

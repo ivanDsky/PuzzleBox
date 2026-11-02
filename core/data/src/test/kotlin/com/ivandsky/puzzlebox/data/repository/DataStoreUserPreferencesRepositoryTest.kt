@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import com.ivandsky.puzzlebox.data.model.ThemeMode
+import com.ivandsky.puzzlebox.model.ThemeMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel

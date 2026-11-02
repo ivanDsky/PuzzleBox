@@ -24,10 +24,12 @@ sealed interface ZipMove : Move {
     data object Reset : ZipMove
 }
 
-/** Game-authored validation outcome; [Reason] drives the rejection animation + mistakes. */
+/** Game-authored validation outcome; [Reason] drives the rejection animation + mistakes.
+ *  [cell] is the offending target cell whenever the rejected move had one (null for a
+ *  foreign [Move]) — it feeds the renderer model's rejection highlight. */
 sealed interface ZipValidation : MoveVerdict {
     data object Valid : ZipValidation
-    data class Invalid(val reason: Reason) : ZipValidation
+    data class Invalid(val reason: Reason, val cell: Cell? = null) : ZipValidation
 
     sealed interface Reason {
         data object NotAdjacent : Reason
@@ -39,20 +41,30 @@ sealed interface ZipValidation : MoveVerdict {
 
         /** RetractTo target is not on the trace (defensive; the UI cannot produce it). */
         data object NotInPath : Reason
+
+        /** Core-level [Move] that is not a ZipMove (defensive safe-cast rejection). */
+        data object ForeignMove : Reason
     }
 }
 
 /**
  * Zip rules (F2 §2): O(1) local checks per move (I1–I5, I8), completeness (I6/I7), and
- * solver-backed hints counted by the caller (A3). Pure — never mutates state.
+ * solver-backed hints counted by the caller (A3). Stateless singleton — pure, never
+ * mutates state; rules/solver/hints are single instances shared by every caller.
  */
-class ZipRules(
-    @Suppress("unused") private val variants: Map<com.ivandsky.puzzlebox.game.VariantId, ZipVariant> = ZipVariants.table,
-    private val hints: ZipHints = ZipHints(),
-) : GameRules<ZipState> {
+object ZipRules : GameRules<ZipState> {
 
+    private val hints = ZipHints()
+
+    /**
+     * Core hands us an untyped [Move]: safe-cast, never `as` — a foreign move yields a
+     * typed rejection verdict, never a ClassCastException (GameRules contract).
+     */
     override fun validate(move: Move, state: ZipState): MoveVerdict =
-        validateMove(move as ZipMove, state)
+        when (val zipMove = move as? ZipMove) {
+            is ZipMove -> validateMove(zipMove, state)
+            null -> ZipValidation.Invalid(ZipValidation.Reason.ForeignMove)
+        }
 
     fun validateMove(move: ZipMove, state: ZipState): ZipValidation {
         val board = state.puzzle.board
@@ -63,29 +75,29 @@ class ZipRules(
             is ZipMove.RetractTo -> {
                 val index = path.indexOf(move.to)
                 when {
-                    index < 0 -> ZipValidation.Invalid(ZipValidation.Reason.NotInPath)
+                    index < 0 -> ZipValidation.Invalid(ZipValidation.Reason.NotInPath, move.to)
                     else -> ZipValidation.Valid // trim to the tail itself is a no-op
                 }
             }
 
             is ZipMove.Extend -> {
-                if (!board.contains(move.to)) return ZipValidation.Invalid(ZipValidation.Reason.OutOfBounds)
+                if (!board.contains(move.to)) return ZipValidation.Invalid(ZipValidation.Reason.OutOfBounds, move.to)
                 if (path.isEmpty()) {
                     return if (move.to == board.waypoints.first()) {
                         ZipValidation.Valid
                     } else {
-                        ZipValidation.Invalid(ZipValidation.Reason.WrongStart)
+                        ZipValidation.Invalid(ZipValidation.Reason.WrongStart, move.to)
                     }
                 }
                 val end = path.last()
                 if (!isAdjacent(end, move.to, board.n)) {
-                    return ZipValidation.Invalid(ZipValidation.Reason.NotAdjacent)
+                    return ZipValidation.Invalid(ZipValidation.Reason.NotAdjacent, move.to)
                 }
                 if (board.blocked(end, move.to)) {
-                    return ZipValidation.Invalid(ZipValidation.Reason.WallBetween)
+                    return ZipValidation.Invalid(ZipValidation.Reason.WallBetween, move.to)
                 }
                 if (move.to in path) {
-                    return ZipValidation.Invalid(ZipValidation.Reason.CellAlreadyInPath)
+                    return ZipValidation.Invalid(ZipValidation.Reason.CellAlreadyInPath, move.to)
                 }
                 val label = board.waypointLabel(move.to)
                 if (label != null) {
@@ -93,6 +105,7 @@ class ZipRules(
                     if (label != expectedLabel) {
                         return ZipValidation.Invalid(
                             ZipValidation.Reason.WrongWaypointOrder(board.waypoints[expectedLabel - 1]),
+                            move.to,
                         )
                     }
                 }
@@ -115,8 +128,7 @@ class ZipRules(
      *  never the stored solution. */
     override fun hint(state: ZipState): Hint = hints.hint(state)
 
-    companion object {
-        fun isAdjacent(a: Cell, b: Cell, n: Int): Boolean {
+    fun isAdjacent(a: Cell, b: Cell, n: Int): Boolean {
             val diff = b.idx - a.idx
             return (diff == 1 && a.idx / n == b.idx / n) ||
                 (diff == -1 && a.idx / n == b.idx / n) ||
@@ -151,6 +163,5 @@ class ZipRules(
                 }
             }
             return true
-        }
     }
 }

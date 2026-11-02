@@ -19,6 +19,9 @@ kotlin {
 
 dependencies {
     api(project(":core:game"))
+    // Direct GameId use (ZipDefinition.id); the type already flows to consumers through
+    // :core:game's api, so implementation is enough here.
+    implementation(project(":core:model"))
     // Wire parser: trailGamePuzzle JSON -> typed puzzle (unknown fields ignored).
     implementation(libs.kotlinx.serialization.json)
     // Plugin registration (ADR-0001): one Koin module, collected by `app`.

@@ -73,6 +73,20 @@ private fun ChipSurface(
     }
 }
 
+/** Catalog demo: score and hint pills as they read during play. */
+@Composable
+internal fun ChipsCatalogSection() {
+    CatalogSection(title = "Chips") {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            ScoreChip(value = "1:24", label = "Score")
+            HintChip(count = 3)
+        }
+    }
+}
+
 // Previews — Studio tooling only, zero public API surface (internal, not private, so
 // Showkase's generated index can access them; ticket 00 visibility findings). Exactly
 // light + dark, always inside PuzzleBoxTheme (spec A1/A5). A8: neither chip animates —

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -100,6 +101,33 @@ fun AppDialog(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 actions()
+            }
+        }
+    }
+}
+
+/** Catalog demo: the dialog card with canonical copy and end-aligned actions. */
+@Composable
+internal fun DialogsCatalogSection() {
+    CatalogSection(title = "Dialog") {
+        DialogCard(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Reset puzzle?",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "Your current path and timer clear. This can't be undone.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                Spacer(Modifier.weight(1f))
+                SecondaryButton(text = "Cancel", onClick = {})
+                PrimaryButton(text = "Reset", onClick = {})
             }
         }
     }

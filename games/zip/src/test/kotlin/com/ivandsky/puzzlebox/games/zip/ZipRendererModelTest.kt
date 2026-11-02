@@ -39,8 +39,8 @@ class ZipRendererModelTest {
     fun `walls map sorted with wire directions`() {
         val model = ZipRendererModel.of(ZipState(puzzle, emptyList()), null)
         assertEquals(16, model.walls.size)
-        assertEquals(ZipRendererModel.WallRender(0, ZipRendererModel.WallRender.Direction.DOWN), model.walls.first())
-        assertEquals(ZipRendererModel.WallRender(19, ZipRendererModel.WallRender.Direction.DOWN), model.walls.last())
+        assertEquals(ZipRendererModel.WallRender(0, WallDirection.DOWN), model.walls.first())
+        assertEquals(ZipRendererModel.WallRender(19, WallDirection.DOWN), model.walls.last())
         // sorted by (cellIdx, direction): all cell indices ascend
         assertEquals(model.walls.map { it.cellIdx }, model.walls.map { it.cellIdx }.sorted())
     }

@@ -25,9 +25,11 @@ class ZipHints(private val solver: ZipSolver = ZipSolver()) {
     fun hint(state: ZipState): ZipHint {
         val puzzle = state.puzzle
         val path = state.path
-        return if (solver.canComplete(puzzle, path)) {
-            val completion = requireNotNull(solver.completionFrom(puzzle, path))
-            ZipHint.Step(completion[path.size])
+        // ONE search answers both facts: solutionCount > 0 ⇔ canComplete, and
+        // firstSolution is the completion extending the trace.
+        val search = solver.search(puzzle, path, limit = 1)
+        return if (search.solutionCount > 0) {
+            ZipHint.Step(requireNotNull(search.firstSolution)[path.size])
         } else {
             val keep = solver.longestSolvablePrefix(puzzle, path)
             ZipHint.Backtrack(keep - 1) // index of the last cell KEPT; -1 = empty trace

@@ -41,6 +41,11 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:data"))
+    implementation(project(":core:game"))
+    implementation(project(":core:game-ui"))
+    implementation(project(":core:model"))
+    implementation(project(":games:zip"))
+    implementation(project(":games:zip-ui"))
     implementation(project(":feature:home"))
 
     implementation(platform(libs.androidx.compose.bom))
