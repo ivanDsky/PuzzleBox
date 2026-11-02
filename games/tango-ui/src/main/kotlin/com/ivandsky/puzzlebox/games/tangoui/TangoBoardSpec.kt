@@ -10,7 +10,8 @@ import androidx.compose.ui.unit.dp
  * call-site literals.
  *
  * Measured floors: glyph cap ≥ 10.3 dp at the content worst case (n8 on a 360 dp
- * phone, pitch 41.0 dp → 0.28 × 41.0 = 11.5 dp ✓); mark height ≥ 10.3 dp same case.
+ * phone, pitch 41.0 dp → 0.28 × 41.0 = 11.5 dp ✓); mark height ≥ 10.3 dp same case
+ * (mark fraction 0.30 × 41.0 = 12.3 dp).
  */
 object TangoBoardSpec {
 
@@ -43,8 +44,18 @@ object TangoBoardSpec {
     /** Hollow-glyph ring stroke (A/B item 4, variant B), fraction of the glyph box. */
     const val glyphRingStrokeFraction: Float = 0.10f
 
-    /** `=`/`×` mark size, fraction of cell pitch (n≥8 rescue step). */
-    fun markSizeFraction(n: Int): Float = if (n >= 8) 0.28f else 0.24f
+    /** Given-anchor dot (locked-cell signal, non-color-only): fixed dp, safe at n6..n10. */
+    val givenDotDiameter: Dp = 4.dp
+    val givenDotBottomPadding: Dp = 3.dp
+
+    /** `=`/`×` mark size, fraction of cell pitch (n≥8 rescue step).
+     *  Worst case (§1): n8 mark = 0.30 × 41.0 = 12.3 dp ≥ 10.3 floor. */
+    fun markSizeFraction(n: Int): Float = if (n >= 8) 0.30f else 0.34f
+
+    /** Mark FONT size, fraction of pitch: the `=`/`×` ink is ~0.35 em, so the font
+     *  must overshoot markSize to hit the ink floor (user QA 2026-11-02: marks were
+     *  illegible specks at labelMedium defaults). */
+    fun markTextFraction(n: Int): Float = if (n >= 8) 0.48f else 0.55f
 
     /** Mark bar/stroke thickness, fraction of the mark box. */
     const val markStrokeFraction: Float = 0.14f
