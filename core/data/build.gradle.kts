@@ -39,6 +39,8 @@ dependencies {
     // Wire -> engine seam (ADR-0002): the LinkedIn adapter parses to ZipWireParser's input
     // and stores ZipCodec bytes; games/zip exposes :core:game as api.
     implementation(project(":games:zip"))
+    // Queens feed (queens-06): LinkedInQueensDailySource + QueensUniquenessGate + codec bytes.
+    implementation(project(":games:queens"))
 
     // DailyPuzzle/ThemeMode appear in the repository interfaces' public signatures.
     api(project(":core:model"))

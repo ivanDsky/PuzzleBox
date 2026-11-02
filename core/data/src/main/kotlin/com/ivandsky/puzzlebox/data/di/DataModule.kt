@@ -8,6 +8,8 @@ import com.ivandsky.puzzlebox.data.db.Migrations
 import com.ivandsky.puzzlebox.data.db.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.data.network.AuthHeaderSource
 import com.ivandsky.puzzlebox.data.network.LinkedInSessionCookieJar
+import com.ivandsky.puzzlebox.data.network.LinkedInQueensApi
+import com.ivandsky.puzzlebox.data.network.LinkedInQueensClient
 import com.ivandsky.puzzlebox.data.network.LinkedInZipApi
 import com.ivandsky.puzzlebox.data.network.LinkedInZipClient
 import com.ivandsky.puzzlebox.data.network.LINKEDIN_BASE_URL
@@ -25,10 +27,16 @@ import com.ivandsky.puzzlebox.data.repository.RoomCompletionRepository
 import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
 import com.ivandsky.puzzlebox.data.repository.ZipDailySource
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.data.repository.QueensDailyRepository
+import com.ivandsky.puzzlebox.data.repository.OfflineFirstQueensDailyRepository
+import com.ivandsky.puzzlebox.games.queens.QueensDefinition
+import com.ivandsky.puzzlebox.games.queens.feed.LinkedInQueensDailySource
+import com.ivandsky.puzzlebox.games.queens.feed.QueensDailySource
 import com.ivandsky.puzzlebox.game.PuzzleSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
+import org.koin.core.qualifier.qualifier
 import org.koin.dsl.module
 import retrofit2.Retrofit
 
@@ -51,6 +59,17 @@ val dataModule = module {
     single<ZipDailySource> { get<LinkedInZipDailySource>() }
     single<PuzzleSource> { get<LinkedInZipDailySource>() }
     single<ZipDailyRepository> { OfflineFirstZipDailyRepository(get(), get(), get()) }
+    // Queens daily feed (queens-06): same LinkedIn session seams (cookie jar + csrf echo),
+    // the GraphQL/stream ladder, the A13-gated source, and the offline-first cache.
+    single {
+        retrofit(baseUrl = LINKEDIN_BASE_URL, client = linkedInClient(jar = get()), json = get())
+            .create(LinkedInQueensApi::class.java)
+    }
+    single { LinkedInQueensClient(get()) }
+    single { LinkedInQueensDailySource(get()) }
+    single<QueensDailySource> { get<LinkedInQueensDailySource>() }
+    single<PuzzleSource>(qualifier = qualifier(QueensDefinition.id.value)) { get<LinkedInQueensDailySource>() }
+    single<QueensDailyRepository> { OfflineFirstQueensDailyRepository(get(), get(), get()) }
     single {
         Room.databaseBuilder(get<Context>(), PuzzleBoxDatabase::class.java, PuzzleBoxDatabase.NAME)
             .addMigrations(*Migrations.ALL)
