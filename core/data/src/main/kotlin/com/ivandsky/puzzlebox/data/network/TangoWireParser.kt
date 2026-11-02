@@ -20,15 +20,13 @@ import kotlinx.serialization.json.jsonObject
  * framing and HTTP stay in core/data; research 01-tango-payload, [INFERRED] schema).
  * Unknown JSON fields are ignored — the parser is structural, not a schema.
  *
- * Variant discipline (ADR-0005): the official daily variant is the [VARIANT] constant,
- * never derived from the board size. A payload that names a different variant fails
- * with [DecodeError.UnknownVariant] — ticket 06 validates the live string.
- * Zone discipline (A10): the payload zone when present and parseable, else [FALLBACK_ZONE].
+ * Variant discipline (ADR-0005): the official daily variant is derived from the
+ * payload's gridSize (`tango/n<n>` — dailies ship at any size; 6×6 is just today's),
+ * bounded by [TangoPuzzle.MIN_N]..[TangoPuzzle.MAX_N]. A stored ARTIFACT naming a
+ * variant this build doesn't ship still fails decode as UnknownVariant — never guessed.
+ * with [DecodeError.UnknownVariant] — ticket 06 validates the live string shape.
  */
 object TangoWireParser {
-
-    /** Exact variant-string candidate — ticket 06 validates this live. */
-    const val VARIANT: String = "tango/n6"
 
     /** A10: the daily rolls in LinkedIn's zone; absent/unknown payload zone falls back here. */
     const val FALLBACK_ZONE: String = "America/Los_Angeles"
@@ -67,18 +65,16 @@ object TangoWireParser {
             return DecodeResult.Err(DecodeError.Malformed("gridSize $n outside ${TangoPuzzle.MIN_N}..${TangoPuzzle.MAX_N}"))
         }
 
-        // ADR-0005: the daily is the pinned official variant; a payload naming anything
-        // else is an unknown variant — never guessed from n.
+        // ADR-0005 (user ruling 2026-11-02): dailies ship at ANY size — the variant is
+        // derived from the payload's gridSize. If the payload also names a variant, it
+        // must agree with the derived one; disagreement is a malformed payload, and a
+        // stored artifact naming an unshipped variant still fails decode as UnknownVariant.
         payload.primitive("variant")?.let { wireVariant ->
-            if (wireVariant != VARIANT) {
-                return DecodeResult.Err(DecodeError.UnknownVariant(wireVariant))
+            if (wireVariant != "tango/n$n") {
+                return DecodeResult.Err(DecodeError.Malformed("payload variant '$wireVariant' disagrees with gridSize $n"))
             }
         }
-        val pinnedN = VARIANT.substringAfterLast("/n", "").toIntOrNull()
-        if (n != pinnedN) {
-            return DecodeResult.Err(DecodeError.VariantSizeMismatch(VARIANT, expected = pinnedN!!, actual = n))
-        }
-        val variant = VariantId(VARIANT)
+        val variant = VariantId("tango/n$n")
 
         val givens = LinkedHashMap<Int, TangoCell>()
         (payload["given"] as? kotlinx.serialization.json.JsonArray)?.forEachIndexed { row, rowElement ->

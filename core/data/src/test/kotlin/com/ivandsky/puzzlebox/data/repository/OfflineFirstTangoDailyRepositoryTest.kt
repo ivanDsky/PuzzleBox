@@ -87,7 +87,7 @@ class OfflineFirstTangoDailyRepositoryTest {
         assertEquals(1, dao.count("tango"))
         val row = dao.get("tango", today.toString())!!
         assertEquals(301, row.puzzleNumber)
-        assertEquals(TangoWireParser.VARIANT, row.variant)
+        assertEquals("tango/n6", row.variant)
         assertEquals(TangoCodec.VERSION, row.formatVersion)
         assertEquals(1_000L, row.fetchedAtMs)
         // Round trip: the stored bytes decode back to the playable envelope.
@@ -186,7 +186,7 @@ class OfflineFirstTangoDailyRepositoryTest {
                 gameId = "tango",
                 day = today.toString(),
                 puzzleNumber = 301,
-                variant = TangoWireParser.VARIANT,
+                variant = "tango/n6",
                 formatVersion = 1,
                 payload = byteArrayOf(1, 2, 3),
                 fetchedAtMs = 1L,
