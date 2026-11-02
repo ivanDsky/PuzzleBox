@@ -147,37 +147,12 @@ class ZipPlayStateTest {
     }
 
     @Test
-    fun `release on a far cell is one mistake and a rejection, path untouched`() {
-        val s = readyState()
-        // Gesture 1: a valid tap-extend on the start cell (its release is part of the tap).
-        s.onDragEvent(DragEvent.Extend(GridCell(0, 0)))
-        s.onDragEvent(DragEvent.Release(GridCell(0, 0)))
-        // Gesture 2: release with no steps — the invalid-drop signal.
-        s.onDragEvent(DragEvent.Release(GridCell(4, 4)))
-
-        assertEquals(1, s.session?.mistakeCount)
-        assertEquals(listOf(Cell(0)), s.session?.path)
-        assertEquals(24, s.rejection?.cellIdx)
-        assertTrue(s.rejection?.reason is ZipValidation.Reason.NotAdjacent)
-    }
-
-    @Test
-    fun `release on a trace cell is a no-op`() {
-        val s = readyState()
-        s.onDragEvent(DragEvent.Extend(GridCell(0, 0)))
-        s.onDragEvent(DragEvent.Extend(GridCell(0, 1)))
-        s.onDragEvent(DragEvent.Release(GridCell(0, 1)))
-
-        assertEquals(0, s.session?.mistakeCount)
-    }
-
-    @Test
-    fun `an invalid extend within the gesture is not double counted on release`() {
+    fun `an invalid extend is one mistake and one rejection, path untouched`() {
         val s = readyState()
         s.onDragEvent(DragEvent.Extend(GridCell(2, 2))) // not waypoint 1 → WrongStart
-        s.onDragEvent(DragEvent.Release(GridCell(2, 2)))
 
         assertEquals(1, s.session?.mistakeCount)
+        assertEquals(emptyList<Cell>(), s.session?.path)
         assertTrue(s.rejection?.reason is ZipValidation.Reason.WrongStart)
     }
 
@@ -189,6 +164,21 @@ class ZipPlayStateTest {
 
         assertEquals(listOf(Cell(0)), s.session?.path)
         assertEquals(1, s.session?.backtrackCount)
+    }
+
+    @Test
+    fun `clear event empties the trace to the start state and counts one backtrack`() {
+        val s = readyState()
+        listOf(0, 1, 2).forEach { s.onDragEvent(DragEvent.Extend(GridCell(it / 5, it % 5))) }
+        s.onDragEvent(DragEvent.Clear) // tap on the first traced cell (R1)
+
+        assertEquals(emptyList<Cell>(), s.session?.path)
+        assertEquals(1, s.session?.backtrackCount)
+        assertEquals(ZipRendererModel.Status.IDLE, s.rendererModel()?.status)
+
+        // The emptied trace redraws from the start like a fresh session.
+        s.onDragEvent(DragEvent.Extend(GridCell(0, 0)))
+        assertEquals(listOf(Cell(0)), s.session?.path)
     }
 
     //endregion

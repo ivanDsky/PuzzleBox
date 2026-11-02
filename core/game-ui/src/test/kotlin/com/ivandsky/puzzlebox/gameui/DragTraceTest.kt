@@ -6,7 +6,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.click
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -20,9 +19,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The trace gesture contract, exercised for real (Zip §10 user rulings are the spec):
- * drag extends hook-approved cells in order, dragging back retracts to earlier cells,
- * and a single tap on an extendable adjacent cell extends once.
+ * The trace gesture contract (user gate feedback R1 — ticket 26): drawing never cancels —
+ * hook-approved cells extend, invalid cells are ignored, release keeps the trace as
+ * drawn; only the immediately-previous cell retracts by draw-back; a deliberate tap on a
+ * traced cell retracts to it (the first traced cell empties); a tap never extends and a
+ * tap elsewhere is a no-op.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -32,7 +33,7 @@ class DragTraceTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    /** 5x5 board; hooks mimic Zip: 4-way adjacency + no revisit, drag-back retracts. */
+    /** 5x5 board; hooks mimic Zip: 4-way adjacency + no revisit, first cell = waypoint 1. */
     private class ZipLikeHooks(private val rows: Int = 5, private val cols: Int = 5) : DragTraceHooks {
         override fun canExtend(path: List<GridCell>, next: GridCell): Boolean {
             if (next in path) return false
@@ -42,9 +43,6 @@ class DragTraceTest {
                 (next.row == last.row || next.col == last.col) &&
                 next.row in 0 until rows && next.col in 0 until cols
         }
-
-        override fun retractIndex(path: List<GridCell>, next: GridCell): Int? =
-            path.indexOf(next).takeIf { it >= 0 && it < path.lastIndex }
     }
 
     private val events = mutableListOf<DragEvent>()
@@ -71,7 +69,7 @@ class DragTraceTest {
     }
 
     @Test
-    fun `drag forward extends hook-approved cells in order`() {
+    fun `drag forward extends hook-approved cells in order and release keeps the trace`() {
         setContent()
         composeRule.onNodeWithTag("trace").performTouchInput {
             down(cellCenter(0, 0))
@@ -85,53 +83,94 @@ class DragTraceTest {
                 DragEvent.Extend(GridCell(0, 0)),
                 DragEvent.Extend(GridCell(0, 1)),
                 DragEvent.Extend(GridCell(1, 1)),
-                DragEvent.Release(GridCell(1, 1)),
             ),
             events,
         )
     }
 
     @Test
-    fun `dragging back over the path retracts (zip section-10)`() {
-        setContent(path = listOf(GridCell(0, 0), GridCell(0, 1), GridCell(1, 1)))
+    fun `wandering over invalid cells never extends or cancels`() {
+        setContent()
         composeRule.onNodeWithTag("trace").performTouchInput {
-            down(cellCenter(1, 1))
-            moveTo(cellCenter(0, 1)) // one step back
-            moveTo(cellCenter(0, 0)) // all the way back
+            down(cellCenter(3, 3))
+            moveTo(cellCenter(3, 4))
+            moveTo(cellCenter(4, 4))
+            moveTo(cellCenter(2, 2))
             up()
         }
         composeRule.waitForIdle()
-        assertEquals(
-            listOf(
-                DragEvent.Retract(1),
-                DragEvent.Retract(0),
-                DragEvent.Release(GridCell(0, 0)),
-            ),
-            events,
-        )
+        assertEquals(emptyList<DragEvent>(), events)
     }
 
     @Test
-    fun `single tap on an adjacent cell extends once (zip section-10)`() {
-        setContent(path = listOf(GridCell(0, 0), GridCell(0, 1)))
+    fun `drawing onto the previous cell retracts by one`() {
+        setContent(path = listOf(GridCell(0, 0), GridCell(0, 1), GridCell(1, 1)))
         composeRule.onNodeWithTag("trace").performTouchInput {
-            click(cellCenter(0, 2))
+            down(cellCenter(1, 1)) // the tail
+            moveTo(cellCenter(0, 1)) // one step back
+            up()
         }
         composeRule.waitForIdle()
-        assertEquals(
-            listOf(DragEvent.Extend(GridCell(0, 2)), DragEvent.Release(GridCell(0, 2))),
-            events,
-        )
+        assertEquals(listOf(DragEvent.Retract(1)), events)
     }
 
     @Test
-    fun `tap on a non-adjacent cell emits only the release for authoritative rejection`() {
-        setContent(path = listOf(GridCell(0, 0), GridCell(0, 1)))
+    fun `drawing across an earlier traced cell never slashes the path`() {
+        setContent(path = listOf(GridCell(0, 0), GridCell(0, 1), GridCell(0, 2), GridCell(1, 2)))
         composeRule.onNodeWithTag("trace").performTouchInput {
-            click(cellCenter(4, 4))
+            down(cellCenter(1, 0)) // untraced, non-adjacent to the tail — a fresh wander
+            moveTo(cellCenter(1, 1)) // adjacent to the tail → the only extend of the stroke
+            moveTo(cellCenter(0, 1)) // traced, but not the previous cell → ignored (R1)
+            moveTo(cellCenter(1, 1)) // tail re-entry → no-op
+            up()
         }
         composeRule.waitForIdle()
-        assertEquals(listOf(DragEvent.Release(GridCell(4, 4))), events)
+        assertEquals(listOf(DragEvent.Extend(GridCell(1, 1))), events)
+    }
+
+    @Test
+    fun `a stroke starting on an earlier traced cell retracts only through previous cells`() {
+        setContent(path = listOf(GridCell(2, 1), GridCell(2, 2), GridCell(1, 2), GridCell(0, 2)))
+        composeRule.onNodeWithTag("trace").performTouchInput {
+            down(cellCenter(2, 2)) // traced, NOT the previous cell — touch-down retracts nothing
+            moveTo(cellCenter(1, 1)) // untraced, hook-rejected → ignored
+            moveTo(cellCenter(1, 2)) // previous → retract one
+            moveTo(cellCenter(2, 2)) // previous again → retract one
+            up()
+        }
+        composeRule.waitForIdle()
+        assertEquals(listOf(DragEvent.Retract(2), DragEvent.Retract(1)), events)
+    }
+
+    @Test
+    fun `tap on a mid-trace cell retracts to it`() {
+        setContent(path = listOf(GridCell(0, 0), GridCell(0, 1), GridCell(1, 1)))
+        composeRule.onNodeWithTag("trace").performTouchInput {
+            click(cellCenter(0, 1))
+        }
+        composeRule.waitForIdle()
+        assertEquals(listOf(DragEvent.Retract(1)), events)
+    }
+
+    @Test
+    fun `tap on the start cell empties the trace to the start state`() {
+        setContent(path = listOf(GridCell(0, 0), GridCell(0, 1)))
+        composeRule.onNodeWithTag("trace").performTouchInput {
+            click(cellCenter(0, 0))
+        }
+        composeRule.waitForIdle()
+        assertEquals(listOf(DragEvent.Clear), events)
+    }
+
+    @Test
+    fun `tap on a non-traced cell is a no-op even when the hooks would allow extending`() {
+        setContent(path = listOf(GridCell(0, 0), GridCell(0, 1)))
+        composeRule.onNodeWithTag("trace").performTouchInput {
+            click(cellCenter(0, 2)) // adjacent to the tail — the old contract extended here
+            click(cellCenter(4, 4)) // nowhere near the trace
+        }
+        composeRule.waitForIdle()
+        assertEquals(emptyList<DragEvent>(), events)
     }
 
     @Test
@@ -141,6 +180,18 @@ class DragTraceTest {
             click(cellCenter(0, 1))
         }
         composeRule.waitForIdle()
-        assertEquals(listOf(DragEvent.Release(GridCell(0, 1))), events)
+        assertEquals(emptyList<DragEvent>(), events)
+    }
+
+    @Test
+    fun `movement within the touch slop still counts as a tap`() {
+        setContent(path = listOf(GridCell(0, 0), GridCell(0, 1), GridCell(1, 1)))
+        composeRule.onNodeWithTag("trace").performTouchInput {
+            down(cellCenter(0, 1))
+            moveBy(Offset(3f, 2f)) // under the slop — still a deliberate tap
+            up()
+        }
+        composeRule.waitForIdle()
+        assertEquals(listOf(DragEvent.Retract(1)), events)
     }
 }

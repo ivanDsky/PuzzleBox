@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "PuzzleBox \u2014 One Zip Move, End to End",
+    "output": ".scratch/puzzlebox/design/diagrams/zip-move-sequence.html",
+    "quality_profile": "showcase",
+    "locale": "en"
+  },
+  "participants": [
+    {
+      "id": "finger",
+      "type": "external",
+      "label": "Finger",
+      "sublabel": "player"
+    },
+    {
+      "id": "dt",
+      "type": "frontend",
+      "label": "DragTrace",
+      "sublabel": "core/game-ui"
+    },
+    {
+      "id": "scr",
+      "type": "frontend",
+      "label": "Play screen",
+      "sublabel": "feature/play"
+    },
+    {
+      "id": "rules",
+      "type": "backend",
+      "label": "ZipRules",
+      "sublabel": "games/zip"
+    },
+    {
+      "id": "st",
+      "type": "backend",
+      "label": "ZipSession",
+      "sublabel": "state"
+    },
+    {
+      "id": "mdl",
+      "type": "backend",
+      "label": "RendererModel",
+      "sublabel": "pure drawable"
+    },
+    {
+      "id": "rec",
+      "type": "backend",
+      "label": "core/data",
+      "sublabel": "records"
+    }
+  ],
+  "segments": [
+    {
+      "from": 175,
+      "to": 430,
+      "label": "a move \u2014 valid or rejected"
+    },
+    {
+      "from": 435,
+      "to": 518,
+      "label": "completion"
+    }
+  ],
+  "messages": [
+    {
+      "id": "m1",
+      "from": "finger",
+      "to": "dt",
+      "y": 190,
+      "label": "drag / adjacent tap",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m2",
+      "from": "dt",
+      "to": "scr",
+      "y": 208,
+      "label": "ZipMove"
+    },
+    {
+      "id": "m3",
+      "from": "scr",
+      "to": "rules",
+      "y": 236,
+      "label": "validate(move, state)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m4",
+      "from": "rules",
+      "to": "scr",
+      "y": 264,
+      "label": "Valid",
+      "variant": "return"
+    },
+    {
+      "id": "m5",
+      "from": "scr",
+      "to": "st",
+      "y": 292,
+      "label": "path advances"
+    },
+    {
+      "id": "m6",
+      "from": "scr",
+      "to": "mdl",
+      "y": 320,
+      "label": "rebuild wholesale"
+    },
+    {
+      "id": "m7",
+      "from": "mdl",
+      "to": "scr",
+      "y": 348,
+      "label": "drawable state \u2192 BoardGrid",
+      "variant": "return"
+    },
+    {
+      "id": "m8",
+      "from": "rules",
+      "to": "scr",
+      "y": 376,
+      "label": "Invalid(reason)",
+      "variant": "return"
+    },
+    {
+      "id": "m9",
+      "from": "scr",
+      "to": "finger",
+      "y": 404,
+      "label": "rejection \u2014 state untouched"
+    },
+    {
+      "id": "m10",
+      "from": "scr",
+      "to": "rec",
+      "y": 442,
+      "label": "CompletionRecord + puzzleRef",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m11",
+      "from": "rec",
+      "to": "scr",
+      "y": 470,
+      "label": "firstCompletedAt \u00b7 isRecord stamped",
+      "variant": "return"
+    },
+    {
+      "id": "m12",
+      "from": "scr",
+      "to": "finger",
+      "y": 498,
+      "label": "win overlay (fire-and-observe write)",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "dt",
+      "from": 182,
+      "to": 223,
+      "type": "frontend"
+    },
+    {
+      "participant": "scr",
+      "from": 210,
+      "to": 513,
+      "type": "frontend"
+    },
+    {
+      "participant": "rules",
+      "from": 238,
+      "to": 418,
+      "type": "backend"
+    },
+    {
+      "participant": "st",
+      "from": 294,
+      "to": 310,
+      "type": "backend"
+    },
+    {
+      "participant": "mdl",
+      "from": 322,
+      "to": 363,
+      "type": "backend"
+    },
+    {
+      "participant": "rec",
+      "from": 444,
+      "to": 483,
+      "type": "backend"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Invalid never touches state",
+      "items": [
+        "ZipRules.validate is pure \u2014 Invalid(reason) leaves ZipSession untouched",
+        "Only the animation layer sees the rejection (cell + reason kind)"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Once-only record",
+      "items": [
+        "Extend / RetractTo come from drag steps and adjacent taps (user ruling)",
+        "Emission guarded by completedAt == null \u2014 one write per play-through",
+        "Replays are new sessions and emit again; core/data decides record status (A4/A5)"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "Not shown",
+      "items": [
+        "Hints ride the same channel: hint(state) is pure, caller counts (A3), trim-free rescue = 1 hint",
+        "Timer: starts on first Extend, pauses on app background (user ruling 2026-10-31)"
+      ]
+    }
+  ]
+}

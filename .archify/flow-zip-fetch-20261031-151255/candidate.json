@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "PuzzleBox \u2014 Today's Zip: Fetch \u2192 Trust \u2192 Play",
+    "output": ".scratch/puzzlebox/design/diagrams/zip-fetch-dataflow.html",
+    "quality_profile": "showcase",
+    "locale": "en"
+  },
+  "stages": [
+    {
+      "label": "Source"
+    },
+    {
+      "label": "Ingest"
+    },
+    {
+      "label": "Validate"
+    },
+    {
+      "label": "Store"
+    },
+    {
+      "label": "Consume"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "linkedin",
+      "type": "external",
+      "label": "LinkedIn",
+      "sublabel": "anonymous POST",
+      "stage": 0,
+      "row": 1
+    },
+    {
+      "id": "client",
+      "type": "backend",
+      "label": "core/data client",
+      "sublabel": "cache-first \u00b7 A7/A8",
+      "stage": 1,
+      "row": 1
+    },
+    {
+      "id": "wireparser",
+      "type": "backend",
+      "label": "ZipWireParser",
+      "sublabel": "pure \u00b7 games/zip",
+      "stage": 2,
+      "row": 1
+    },
+    {
+      "id": "solver",
+      "type": "security",
+      "label": "ZipSolver gate",
+      "sublabel": "countSolutions == 1",
+      "stage": 2,
+      "row": 0,
+      "tag": "A16"
+    },
+    {
+      "id": "room",
+      "type": "database",
+      "label": "Room cache",
+      "sublabel": "versioned bytes",
+      "stage": 3,
+      "row": 1
+    },
+    {
+      "id": "ps",
+      "type": "backend",
+      "label": "PuzzleSource",
+      "sublabel": "daily \u00b7 archive \u00b7 custom",
+      "stage": 4,
+      "row": 1
+    },
+    {
+      "id": "play",
+      "type": "frontend",
+      "label": "Play \u00b7 History",
+      "sublabel": "same seam",
+      "stage": 4,
+      "row": 2
+    },
+    {
+      "id": "err",
+      "type": "frontend",
+      "label": "A7/A8 error state",
+      "sublabel": "SealedError",
+      "stage": 4,
+      "row": 0
+    }
+  ],
+  "flows": [
+    {
+      "id": "f1",
+      "from": "linkedin",
+      "to": "client",
+      "label": "octet-stream daily",
+      "classification": "public puzzle payload",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f2",
+      "from": "client",
+      "to": "wireparser",
+      "label": "flight JSON",
+      "classification": "raw wire",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f3",
+      "from": "wireparser",
+      "to": "solver",
+      "label": "ZipPuzzle + shipped path",
+      "classification": "validation input",
+      "variant": "default",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "f4",
+      "from": "solver",
+      "to": "client",
+      "label": "verified \u00b7 unique",
+      "classification": "trust verdict",
+      "variant": "default",
+      "fromSide": "left",
+      "toSide": "top"
+    },
+    {
+      "id": "f5",
+      "from": "client",
+      "to": "room",
+      "label": "trusted bytes only",
+      "classification": "persist",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f6",
+      "from": "room",
+      "to": "ps",
+      "label": "cache-first fetch",
+      "classification": "A8",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f7",
+      "from": "ps",
+      "to": "play",
+      "label": "today's puzzle",
+      "classification": "consume",
+      "variant": "default"
+    },
+    {
+      "id": "f8",
+      "from": "client",
+      "to": "err",
+      "label": "SealedError",
+      "classification": "degrade path",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "A16 trust gate",
+      "items": [
+        "A daily is trusted only when the solver finds exactly one solution and it equals the shipped path",
+        "Untrusted puzzles are never playable \u2014 the UI shows the standard error state"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Cache-first",
+      "items": [
+        "Only trusted bytes reach Room; airplane-mode relaunch serves the cache (A8)",
+        "Failure degrades to cache + SealedError, never a crash"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Archive is this same seam",
+      "items": [
+        "GamesArchive later = a third PuzzleSource adapter \u2014 no new plumbing (ADR-0002)",
+        "History and replay already consume puzzles through PuzzleSource"
+      ]
+    }
+  ]
+}

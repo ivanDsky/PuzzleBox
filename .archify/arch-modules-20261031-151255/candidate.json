@@ -1,0 +1,334 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "PuzzleBox Game Foundations \u2014 Module Map",
+    "output": ".scratch/puzzlebox/design/diagrams/puzzlebox-modules.html",
+    "quality_profile": "showcase",
+    "locale": "en"
+  },
+  "components": [
+    {
+      "id": "app",
+      "type": "frontend",
+      "label": "app",
+      "sublabel": "Nav3 \u00b7 Koin aggregation",
+      "pos": [
+        60,
+        80
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "features",
+      "type": "frontend",
+      "label": "feature screens",
+      "sublabel": "play \u00b7 home \u00b7 history",
+      "pos": [
+        270,
+        80
+      ],
+      "size": [
+        190,
+        64
+      ]
+    },
+    {
+      "id": "gameui",
+      "type": "frontend",
+      "label": "core/game-ui",
+      "sublabel": "BoardGrid \u00b7 DragTrace \u00b7 timer",
+      "pos": [
+        510,
+        80
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "data",
+      "type": "backend",
+      "label": "core/data",
+      "sublabel": "repositories \u00b7 fetch \u00b7 records",
+      "pos": [
+        730,
+        80
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "room",
+      "type": "database",
+      "label": "Room cache",
+      "sublabel": "versioned puzzle bytes",
+      "pos": [
+        920,
+        80
+      ],
+      "size": [
+        150,
+        56
+      ]
+    },
+    {
+      "id": "linkedin",
+      "type": "external",
+      "label": "LinkedIn",
+      "sublabel": "games endpoint",
+      "pos": [
+        900,
+        240
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "coregame",
+      "type": "backend",
+      "label": "core/game",
+      "sublabel": "Definition \u00b7 Rules \u00b7 Session \u00b7 Score \u00b7 PuzzleSource \u00b7 Plugin",
+      "pos": [
+        460,
+        320
+      ],
+      "size": [
+        300,
+        70
+      ]
+    },
+    {
+      "id": "zipengine",
+      "type": "backend",
+      "label": "games/zip engine",
+      "sublabel": "ZipRules \u00b7 Variants \u00b7 Hints \u00b7 Solver",
+      "pos": [
+        280,
+        480
+      ],
+      "size": [
+        200,
+        64
+      ]
+    },
+    {
+      "id": "zipcodec",
+      "type": "backend",
+      "label": "games/zip codec",
+      "sublabel": "versioned bytes \u00b7 wire parser",
+      "pos": [
+        540,
+        480
+      ],
+      "size": [
+        200,
+        64
+      ]
+    },
+    {
+      "id": "ziprender",
+      "type": "backend",
+      "label": "ZipRendererModel",
+      "sublabel": "pure drawable state",
+      "pos": [
+        800,
+        480
+      ],
+      "size": [
+        190,
+        64
+      ]
+    },
+    {
+      "id": "plugin",
+      "type": "backend",
+      "label": "ZipPlugin",
+      "sublabel": "assembly + Koin module",
+      "pos": [
+        540,
+        610
+      ],
+      "size": [
+        200,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Outer \u2014 Android / Compose",
+      "wraps": [
+        "app",
+        "features",
+        "gameui",
+        "data",
+        "room"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Inner \u2014 pure Kotlin, zero Compose/Android \u00b7 arrows point inward only",
+      "wraps": [
+        "coregame",
+        "zipengine",
+        "zipcodec",
+        "ziprender",
+        "plugin"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "app-features",
+      "from": "app",
+      "to": "features",
+      "label": "hosts"
+    },
+    {
+      "id": "features-gameui",
+      "from": "features",
+      "to": "gameui",
+      "label": "composes"
+    },
+    {
+      "id": "data-room",
+      "from": "data",
+      "to": "room",
+      "label": "cache write"
+    },
+    {
+      "id": "li-data",
+      "from": "linkedin",
+      "to": "data",
+      "label": "anonymous POST",
+      "variant": "emphasis"
+    },
+    {
+      "id": "gameui-coregame",
+      "from": "gameui",
+      "to": "coregame",
+      "label": "consumes contracts",
+      "variant": "emphasis"
+    },
+    {
+      "id": "features-coregame",
+      "from": "features",
+      "to": "coregame",
+      "label": "resolves GamePlugin",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "via": [
+        [
+          365,
+          355
+        ]
+      ]
+    },
+    {
+      "id": "data-coregame",
+      "from": "data",
+      "to": "coregame",
+      "label": "PuzzleSource \u00b7 records",
+      "fromSide": "bottom",
+      "toSide": "right",
+      "via": [
+        [
+          815,
+          355
+        ]
+      ]
+    },
+    {
+      "id": "zipengine-coregame",
+      "from": "zipengine",
+      "to": "coregame",
+      "label": "implements GameRules"
+    },
+    {
+      "id": "zipcodec-coregame",
+      "from": "zipcodec",
+      "to": "coregame",
+      "label": "GameDefinition codec"
+    },
+    {
+      "id": "plugin-engine",
+      "from": "plugin",
+      "to": "zipengine",
+      "label": "rules + hints"
+    },
+    {
+      "id": "plugin-codec",
+      "from": "plugin",
+      "to": "zipcodec",
+      "label": "definition + codec"
+    },
+    {
+      "id": "plugin-render",
+      "from": "plugin",
+      "to": "ziprender",
+      "label": "renderer factory"
+    },
+    {
+      "id": "codec-engine",
+      "from": "zipcodec",
+      "to": "zipengine",
+      "label": "typed types"
+    },
+    {
+      "id": "plugin-app",
+      "from": "plugin",
+      "to": "app",
+      "label": "Koin: List<GamePlugin>",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "via": [
+        [
+          640,
+          730
+        ],
+        [
+          140,
+          730
+        ]
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Dependency rule",
+      "items": [
+        "Arrows never leave the inner box \u2014 core/game has zero Compose/Android imports",
+        "Onboarding OR evolving a game never edits core/game (F1 \u00a72.1/\u00a75); a required core edit is an F1 design bug",
+        "Inside games/zip: codec and renderer model depend on the engine's types (ZipPuzzle / ZipState) \u2014 see F2 \u00a71"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "GamePlugin seam",
+      "items": [
+        "app collects List<GamePlugin> from Koin \u2014 one registration line per game",
+        "Plugin = definition + rules + session + score + PURE renderer-model factory (F2-1 amendment: Compose mapping lives in core/game-ui)",
+        "PuzzleSource adapters today: LinkedInDaily (production) + test fake; games-archive later = third, additive (ADR-0002)"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Records",
+      "items": [
+        "CompletionRecord = puzzleRef + time + hints + open stats slot (ADR-0004)",
+        "core/data stamps firstCompletedAt / isRecord \u2014 first win per puzzle is the record (A4/A5)"
+      ]
+    }
+  ]
+}

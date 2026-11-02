@@ -91,8 +91,31 @@ class ZipPlayState(
      *  the A4 badge is derived from this baseline, never from the stored rows. */
     private var baselineHadRecord: Boolean? = null
 
-    /** True between the first accepted step of a gesture and its [DragEvent.Release]. */
-    private var gestureMoved = false
+    //region input (F2 §7: candidate moves in, authoritative validation here)
+
+    fun onDragEvent(event: DragEvent) {
+        val current = session ?: return
+        val ready = screen as? ZipScreen.Ready ?: return
+        if (current.isComplete) return
+        val board = ready.puzzle.board
+        when (event) {
+            is DragEvent.Extend -> {
+                val move = ZipMove.Extend(cellOf(event.cell, board.n))
+                when (val verdict = rules.validateMove(move, ZipState(ready.puzzle, current.path))) {
+                    is ZipValidation.Valid -> commit(current.withMove(move, now()))
+                    is ZipValidation.Invalid -> reject(current, cellOf(event.cell, board.n), verdict.reason)
+                }
+            }
+
+            is DragEvent.Retract -> {
+                val target = current.path.getOrNull(event.index) ?: return
+                commit(current.withMove(ZipMove.RetractTo(target), now()))
+            }
+
+            // R1 tap on the first traced cell: the trace empties to the start state.
+            DragEvent.Clear -> commit(current.withMove(ZipMove.Reset, now()))
+        }
+    }
 
     //region load / restore
 
@@ -164,45 +187,6 @@ class ZipPlayState(
     }
 
     //endregion
-
-    //region input (F2 §7: candidate moves in, authoritative validation here)
-
-    fun onDragEvent(event: DragEvent) {
-        val current = session ?: return
-        val ready = screen as? ZipScreen.Ready ?: return
-        if (current.isComplete) return
-        val board = ready.puzzle.board
-        when (event) {
-            is DragEvent.Extend -> {
-                gestureMoved = true
-                val move = ZipMove.Extend(cellOf(event.cell, board.n))
-                when (val verdict = rules.validateMove(move, ZipState(ready.puzzle, current.path))) {
-                    is ZipValidation.Valid -> commit(current.withMove(move, now()))
-                    is ZipValidation.Invalid -> reject(current, cellOf(event.cell, board.n), verdict.reason)
-                }
-            }
-
-            is DragEvent.Retract -> {
-                gestureMoved = true
-                val target = current.path.getOrNull(event.index) ?: return
-                commit(current.withMove(ZipMove.RetractTo(target), now()))
-            }
-
-            is DragEvent.Release -> {
-                val cell = cellOf(event.cell, board.n)
-                val touchesPath = current.path.any { it == cell }
-                // F2/DragTrace contract: a release whose gesture produced no step onto a
-                // fresh cell is the invalid-drop signal — validate authoritatively.
-                if (!gestureMoved && !touchesPath) {
-                    when (val verdict = rules.validateMove(ZipMove.Extend(cell), ZipState(ready.puzzle, current.path))) {
-                        is ZipValidation.Invalid -> reject(current, cell, verdict.reason)
-                        is ZipValidation.Valid -> Unit // hooks would have emitted the Extend already
-                    }
-                }
-                gestureMoved = false
-            }
-        }
-    }
 
     /** Hint (A3, F2 §10): a provably dead trace is trimmed FREE, then the resulting step
      *  counts as exactly one hint. The highlight survives until the next accepted move. */
