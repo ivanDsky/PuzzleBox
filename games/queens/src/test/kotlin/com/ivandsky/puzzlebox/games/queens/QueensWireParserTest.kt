@@ -58,6 +58,24 @@ class QueensWireParserTest {
         assertEquals(887, daily.ref.puzzleNumber)
     }
 
+    /** User ruling 2026-11-02: any board size in 4..12 decodes — no pinned-size table. */
+    @Test
+    fun `board sizes 4 and 12 decode`() {
+        listOf(4, 12).forEach { n ->
+            val daily = ok(wire(n, List(n) { r -> List(n) { c -> (r + c) % n } }, (0 until n).map { it to (it * 5 + 1) % n }))
+            assertEquals(n, daily.puzzle.size)
+            assertEquals(n, daily.puzzle.solution?.size)
+        }
+    }
+
+    @Test
+    fun `board sizes 3 and 13 are UnknownVariant`() {
+        listOf(3, 13).forEach { n ->
+            val r = parse(wire(n, List(n) { rr -> List(n) { c -> (rr + c) % n } }, (0 until n).map { it to it }))
+            assertTrue("n=$n -> $r", r is DecodeResult.Err && r.error is DecodeError.UnknownVariant)
+        }
+    }
+
     @Test
     fun `unknown JSON fields are ignored`() {
         val withExtras = n8.dropLast(1) + ""","unknownFutureField":1}"""
@@ -94,9 +112,9 @@ class QueensWireParserTest {
         assertTrue(
             err("""{"gridSize": 8, "colorGrid": [{"colors":[8,0,0,0,0,0,0,0]},{"colors":[0,0,0,0,0,0,0,0]},{"colors":[0,0,0,0,0,0,0,0]},{"colors":[0,0,0,0,0,0,0,0]},{"colors":[0,0,0,0,0,0,0,0]},{"colors":[0,0,0,0,0,0,0,0]},{"colors":[0,0,0,0,0,0,0,0]},{"colors":[0,0,0,0,0,0,0,0]}], "solution": [}""") is DecodeError.Malformed,
         )
-        // gridSize without a variant-table entry -> UnknownVariant (never guessed, ADR-0005)
+        // gridSize outside 4..12 -> UnknownVariant (never guessed, ADR-0005; user ruling 2026-11-02)
         assertTrue(
-            err("""{"gridSize": 6, "colorGrid": [[0],[0],[0],[0],[0],[0]], "solution": []}""") is DecodeError.UnknownVariant,
+            err("""{"gridSize": 3, "colorGrid": [[0],[0],[0]], "solution": []}""") is DecodeError.UnknownVariant,
         )
         // wrong queen count for the variant
         assertTrue(
