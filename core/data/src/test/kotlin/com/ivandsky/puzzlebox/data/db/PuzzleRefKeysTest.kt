@@ -26,10 +26,22 @@ class PuzzleRefKeysTest {
     }
 
     @Test
+    fun `tango refs encode and decode symmetrically (tango-05)`() {
+        val numbered = com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef(day, 301)
+        assertEquals("tango/2026-10-31/301", PuzzleRefKeys.encode(numbered))
+        assertEquals(numbered, PuzzleRefKeys.decode("tango/2026-10-31/301"))
+
+        val unnumbered = com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef(day, puzzleNumber = null)
+        assertEquals("tango/2026-10-31", PuzzleRefKeys.encode(unnumbered))
+        assertEquals(unnumbered, PuzzleRefKeys.decode("tango/2026-10-31"))
+    }
+
+    @Test
     fun `keys no registered game authored decode to null`() {
         assertNull(PuzzleRefKeys.decode("queens/2026-10-31/12"))
         assertNull(PuzzleRefKeys.decode("zip/not-a-date"))
         assertNull(PuzzleRefKeys.decode("zip/2026-10-31/not-a-number"))
         assertNull(PuzzleRefKeys.decode("zip/2026-10-31/592/extra"))
+        assertNull(PuzzleRefKeys.decode("tango/not-a-date"))
     }
 }

@@ -39,6 +39,8 @@ dependencies {
     // Wire -> engine seam (ADR-0002): the LinkedIn adapter parses to ZipWireParser's input
     // and stores ZipCodec bytes; games/zip exposes :core:game as api.
     implementation(project(":games:zip"))
+    // Tango daily fetch (ticket 03): wire -> TangoWireParser, storage in TangoCodec bytes.
+    implementation(project(":games:tango"))
 
     // DailyPuzzle/ThemeMode appear in the repository interfaces' public signatures.
     api(project(":core:model"))
@@ -58,6 +60,9 @@ dependencies {
     testImplementation(libs.turbine)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.robolectric)
+    // DI-graph guard (ticket 03): koin-android provides androidContext(); koin-test the KoinTest harness.
+    testImplementation(libs.koin.android)
+    testImplementation(libs.koin.test)
     // Migration harness (ticket-04 deferral): MigrationTestHelper replays committed schemas.
     testImplementation(libs.androidx.room.testing)
 }

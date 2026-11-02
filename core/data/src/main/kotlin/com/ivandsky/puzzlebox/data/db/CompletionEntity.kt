@@ -6,6 +6,8 @@ import androidx.room.PrimaryKey
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.games.tango.TangoDefinition
+import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import java.time.Instant
@@ -21,12 +23,10 @@ object PuzzleRefKeys {
 
     /** Stable string form of the composite identity; [decode] is its only inverse. */
     fun encode(ref: PuzzleRef): String = when (ref) {
-        is ZipPuzzleRef -> buildString {
-            append(ZipDefinition.id.value)
-            append('/')
-            append(ref.date)
-            ref.puzzleNumber?.let { append('/').append(it) }
-        }
+        is ZipPuzzleRef -> keyed(ZipDefinition.id.value, ref.date, ref.puzzleNumber)
+        // Tango ships its ref type together with this registration (ADR-0004
+        // integration convention — same line Zip's onboarding added).
+        is TangoPuzzleRef -> keyed(TangoDefinition.id.value, ref.date, ref.puzzleNumber)
         // A game ships its own ref type only together with this registration — same
         // integration convention as Puzzle.toEntity taking ZipPuzzleRef.
         else -> error("Unregistered PuzzleRef cannot key a completion: $ref")
@@ -36,15 +36,27 @@ object PuzzleRefKeys {
     fun decode(key: String): PuzzleRef? {
         val parts = key.split('/')
         val gameId = parts.getOrNull(0) ?: return null
-        if (gameId != ZipDefinition.id.value) return null
         val date = parts.getOrNull(1)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
             ?: return null
-        return when (parts.size) {
-            2 -> ZipPuzzleRef(date, puzzleNumber = null)
-            3 -> parts[2].toIntOrNull()?.let { ZipPuzzleRef(date, it) }
+        val number = when (parts.size) {
+            2 -> null
+            3 -> parts[2].toIntOrNull() ?: return null
+            else -> return null
+        }
+        return when (gameId) {
+            ZipDefinition.id.value -> ZipPuzzleRef(date, number)
+            TangoDefinition.id.value -> TangoPuzzleRef(date, number)
             else -> null
         }
     }
+
+    private fun keyed(gameId: String, date: LocalDate, puzzleNumber: Int?): String =
+        buildString {
+            append(gameId)
+            append('/')
+            append(date)
+            puzzleNumber?.let { append('/').append(it) }
+        }
 }
 
 /**
