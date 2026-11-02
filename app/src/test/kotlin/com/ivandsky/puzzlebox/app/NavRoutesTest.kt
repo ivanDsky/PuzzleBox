@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.app.nav.History
 import com.ivandsky.puzzlebox.app.nav.Home
 import com.ivandsky.puzzlebox.app.nav.Play
 import com.ivandsky.puzzlebox.app.nav.Profile
+import com.ivandsky.puzzlebox.app.nav.Queens
 import com.ivandsky.puzzlebox.app.nav.ReplayZip
 import com.ivandsky.puzzlebox.app.nav.Result
 import com.ivandsky.puzzlebox.model.ThemeMode
@@ -55,7 +56,7 @@ class NavRoutesTest {
     @Test
     fun `every primary-flow key resolves to a registered entry`() {
         val session = Base64.getEncoder().encodeToString(byteArrayOf(1, 2, 3))
-        val keys = listOf<NavKey>(Home, Play, History, ReplayZip(session), Result(95_000, 1), Profile, Catalog)
+        val keys = listOf<NavKey>(Home, Play, Queens, History, ReplayZip(session), Result(95_000, 1), Profile, Catalog)
 
         keys.forEach { key ->
             val entry = provider().invoke(key)

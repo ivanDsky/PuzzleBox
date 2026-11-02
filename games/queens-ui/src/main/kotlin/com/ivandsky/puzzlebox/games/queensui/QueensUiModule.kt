@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.games.queensui
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.RendererModel
-import com.ivandsky.puzzlebox.gameui.GameBoardRenderer
 import com.ivandsky.puzzlebox.gameui.GameUiRegistry
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.render.QueensRendererModel
@@ -12,7 +11,9 @@ import org.koin.dsl.module
 
 /** Koin wiring (ADR-0001 aggregation): `app` collects this with the other ui modules. */
 val queensUiModule: Module = module {
-    factory<GameBoardRenderer> { QueensBoardRenderer() }
+    // Concrete binding (zip ZipUiModule precedent) so the app-level registry line can
+    // resolve the renderer when it registers the Queens board (queens-10).
+    factory { QueensBoardRenderer() }
 }
 
 /**

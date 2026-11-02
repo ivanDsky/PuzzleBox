@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.gameui.GameUiRegistry
+import com.ivandsky.puzzlebox.games.queensui.QueensBoardRenderer
 import com.ivandsky.puzzlebox.games.zipui.ZipBoardRenderer
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
@@ -61,6 +62,7 @@ val appModule = module {
     single {
         GameUiRegistry().apply {
             register(GameId("zip"), get<ZipBoardRenderer>())
+            register(GameId("queens"), get<QueensBoardRenderer>())
         }
     }
 }

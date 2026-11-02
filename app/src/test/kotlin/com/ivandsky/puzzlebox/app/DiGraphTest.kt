@@ -10,10 +10,12 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.network.PuzzleFeedApi
 import com.ivandsky.puzzlebox.data.repository.DailyPuzzleRepository
+import com.ivandsky.puzzlebox.data.repository.QueensDailyRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.gameui.GameUiRegistry
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.play.QueensPlayFlow
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -74,6 +76,11 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<List<GamePlugin<*, *, *>>>())
             val registry = koin.get<GameUiRegistry>()
             assertNotNull("no board renderer registered for zip", registry[GameId("zip")])
+            // Queens play wiring (queens-10): the tab route's flow resolves off the real
+            // graph and the game's renderer is registered — a missing line is a wiring bug.
+            assertNotNull(koin.get<QueensPlayFlow>())
+            assertNotNull(koin.get<QueensDailyRepository>())
+            assertNotNull("no board renderer registered for queens", registry[GameId("queens")])
         } finally {
             koinApp.close()
         }

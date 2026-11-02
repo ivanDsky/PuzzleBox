@@ -6,6 +6,8 @@ import androidx.room.PrimaryKey
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.games.queens.QueensDefinition
+import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import java.time.Instant
@@ -27,6 +29,15 @@ object PuzzleRefKeys {
             append(ref.date)
             ref.puzzleNumber?.let { append('/').append(it) }
         }
+        // Queens (queens-10): same composite form under its own gameId — a game ships
+        // its ref type only together with this registration (same convention as
+        // Puzzle.toQueensEntity taking QueensPuzzleRef).
+        is QueensPuzzleRef -> buildString {
+            append(QueensDefinition.id.value)
+            append('/')
+            append(ref.date)
+            ref.puzzleNumber?.let { append('/').append(it) }
+        }
         // A game ships its own ref type only together with this registration — same
         // integration convention as Puzzle.toEntity taking ZipPuzzleRef.
         else -> error("Unregistered PuzzleRef cannot key a completion: $ref")
@@ -36,12 +47,19 @@ object PuzzleRefKeys {
     fun decode(key: String): PuzzleRef? {
         val parts = key.split('/')
         val gameId = parts.getOrNull(0) ?: return null
-        if (gameId != ZipDefinition.id.value) return null
         val date = parts.getOrNull(1)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
             ?: return null
-        return when (parts.size) {
-            2 -> ZipPuzzleRef(date, puzzleNumber = null)
-            3 -> parts[2].toIntOrNull()?.let { ZipPuzzleRef(date, it) }
+        return when (gameId) {
+            ZipDefinition.id.value -> when (parts.size) {
+                2 -> ZipPuzzleRef(date, puzzleNumber = null)
+                3 -> parts[2].toIntOrNull()?.let { ZipPuzzleRef(date, it) }
+                else -> null
+            }
+            QueensDefinition.id.value -> when (parts.size) {
+                2 -> QueensPuzzleRef(date, puzzleNumber = null)
+                3 -> parts[2].toIntOrNull()?.let { QueensPuzzleRef(date, it) }
+                else -> null
+            }
             else -> null
         }
     }

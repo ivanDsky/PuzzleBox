@@ -66,6 +66,13 @@ val dataModule = module {
             .create(LinkedInQueensApi::class.java)
     }
     single { LinkedInQueensClient(get()) }
+    // The source consumes the BodyClient seam (fun interface), so the Retrofit client
+    // binds to it explicitly — the queens-06 registration line never resolved without
+    // this binding (exposed by queens-10's DI-graph test).
+    single<LinkedInQueensDailySource.BodyClient> {
+        val client = get<LinkedInQueensClient>()
+        LinkedInQueensDailySource.BodyClient { client.fetchDailyBody() }
+    }
     single { LinkedInQueensDailySource(get()) }
     single<QueensDailySource> { get<LinkedInQueensDailySource>() }
     single<PuzzleSource>(qualifier = qualifier(QueensDefinition.id.value)) { get<LinkedInQueensDailySource>() }
