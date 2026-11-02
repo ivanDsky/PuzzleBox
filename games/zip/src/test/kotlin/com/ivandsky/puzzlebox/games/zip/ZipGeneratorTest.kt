@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.games.zip
 
-import com.ivandsky.puzzlebox.games.zip.engine.ZipGenerator
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
 import com.ivandsky.puzzlebox.games.zip.engine.ZipSolver
 import org.junit.Assert.assertEquals

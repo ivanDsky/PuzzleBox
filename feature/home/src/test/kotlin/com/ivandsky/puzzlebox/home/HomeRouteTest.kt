@@ -3,8 +3,8 @@ package com.ivandsky.puzzlebox.home
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
-import com.ivandsky.puzzlebox.data.model.ThemeMode
 import com.ivandsky.puzzlebox.data.repository.ZipDailyEntry
+import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.Puzzle

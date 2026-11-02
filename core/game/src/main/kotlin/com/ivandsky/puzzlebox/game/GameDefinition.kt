@@ -1,11 +1,15 @@
 package com.ivandsky.puzzlebox.game
 
+import com.ivandsky.puzzlebox.model.GameId
+
 /**
  * Identity + wire format of one game (F1 §2). Symmetric from day one: editors (ADR-0003)
  * and the archive (ADR-0002) depend on decode/encode being inverses over [Puzzle] envelopes.
  *
- * Implementations return [DecodeResult] — they never throw for stored bytes; only a
- * foreign envelope handed to [encode] is a caller bug (and may fail fast).
+ * Implementations return [DecodeResult] — they never throw for stored bytes; [encode] is
+ * the one fail-fast seam for caller bugs: a foreign envelope, or a caller-authored
+ * own-game payload the game cannot decode (ZipDefinition.encode throws
+ * [IllegalArgumentException] for both today).
  */
 interface GameDefinition {
     val id: GameId

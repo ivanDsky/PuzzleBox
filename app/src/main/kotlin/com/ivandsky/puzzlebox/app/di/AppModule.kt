@@ -9,6 +9,10 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.game.GamePlugin
+import com.ivandsky.puzzlebox.gameui.GameUiRegistry
+import com.ivandsky.puzzlebox.games.zipui.ZipBoardRenderer
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -45,5 +49,18 @@ val appModule = module {
             leaderboard = get<LeaderboardRepository>(),
             scope = get<CoroutineScope>(),
         )
+    }
+
+    // Game aggregation (ADR-0001): the composition root owns the seams no game module
+    // may know about. Generic plugin list for consumers that must not know game ids
+    // (Home, play shell). Adding a game means one module line in
+    // [PuzzleBoxApplication.appModules] plus one registry registration here.
+    single<List<GamePlugin<*, *, *>>> { getAll<GamePlugin<*, *, *>>() }
+
+    // One registration line per game — the whole extension point (F2-1).
+    single {
+        GameUiRegistry().apply {
+            register(GameId("zip"), get<ZipBoardRenderer>())
+        }
     }
 }

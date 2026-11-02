@@ -9,6 +9,7 @@ import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -116,6 +117,25 @@ class ZipSessionCodecTest {
         val error = (ZipSessionCodec.deserialize(blob) as DecodeResult.Err).error
         assertTrue(error is DecodeError.UnsupportedVersion)
         assertEquals(7, (error as DecodeError.UnsupportedVersion).found)
+    }
+
+    /** v1 counters are u8 fields: serialize is fail-fast, never silent truncation. */
+    @Test
+    fun `counters beyond u8 are rejected on serialize`() {
+        val overflow = 256
+        assertThrows(IllegalArgumentException::class.java) {
+            ZipSessionCodec.serialize(session().copy(hintsUsed = overflow))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            ZipSessionCodec.serialize(session().copy(mistakeCount = overflow))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            ZipSessionCodec.serialize(session().copy(backtrackCount = overflow))
+        }
+        // the u8 ceiling itself round trips
+        val ceiling = session().copy(hintsUsed = 255, mistakeCount = 255, backtrackCount = 255)
+        val restored = (ZipSessionCodec.deserialize(ZipSessionCodec.serialize(ceiling)) as DecodeResult.Ok).value
+        assertEquals(ceiling.copy(runningSince = null), restored)
     }
 
     @Test

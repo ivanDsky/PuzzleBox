@@ -6,6 +6,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,12 +32,11 @@ class DailyPuzzleDaoTest {
         db.close()
     }
 
-    private fun entity(gameId: String = "zip", day: String, size: Int = 6) =
+    private fun entity(gameId: String = "zip", day: String, payload: ByteArray = byteArrayOf(1, 2, 3)) =
         DailyPuzzleEntity(
             gameId = gameId,
             day = day,
-            size = size,
-            cells = listOf(1, 2, 3),
+            payload = payload,
             fetchedAtMs = 0L,
         )
 
@@ -51,10 +51,10 @@ class DailyPuzzleDaoTest {
     fun `upsert with same key replaces row`() = runTest {
         val dao = db.dailyPuzzleDao()
         dao.upsert(entity(day = "2026-10-31"))
-        dao.upsert(entity(day = "2026-10-31").copy(size = 4))
+        dao.upsert(entity(day = "2026-10-31").copy(payload = byteArrayOf(9, 9)))
 
         assertEquals(1, dao.count())
-        assertEquals(4, dao.get("zip", "2026-10-31")?.size)
+        assertTrue(dao.get("zip", "2026-10-31")!!.payload.contentEquals(byteArrayOf(9, 9)))
     }
 
     @Test

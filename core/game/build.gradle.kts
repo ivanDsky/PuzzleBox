@@ -18,6 +18,9 @@ kotlin {
 }
 
 dependencies {
+    // GameId is part of the public contract surface (GameDefinition.id, Puzzle.gameId).
+    api(project(":core:model"))
+
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 }

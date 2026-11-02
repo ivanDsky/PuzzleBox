@@ -60,6 +60,9 @@ dependencies {
     // The records contract (CompletionRepository) speaks core:game types (CompletionRecord).
     implementation(project(":core:game"))
     implementation(project(":core:game-ui"))
+    implementation(project(":core:model"))
+    implementation(project(":games:zip"))
+    implementation(project(":games:zip-ui"))
     implementation(project(":feature:home"))
     implementation(project(":feature:play"))
     implementation(project(":feature:history"))

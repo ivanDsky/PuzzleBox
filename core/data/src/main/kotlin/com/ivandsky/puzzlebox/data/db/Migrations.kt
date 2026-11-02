@@ -54,5 +54,30 @@ object Migrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+    /**
+     * v4 (rearchitecture): `daily_puzzles` becomes the opaque envelope — the raw fetched
+     * bytes. v1–v3 rows stored parsed columns (size, cells-as-JSON via the deleted
+     * CellsConverter) and never kept the raw payload, so it cannot be reconstructed;
+     * old rows migrate with a zero-byte payload and are refetched on next use.
+     */
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `daily_puzzles_new` (" +
+                    "`gameId` TEXT NOT NULL, " +
+                    "`day` TEXT NOT NULL, " +
+                    "`payload` BLOB NOT NULL, " +
+                    "`fetchedAtMs` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`gameId`, `day`))",
+            )
+            db.execSQL(
+                "INSERT INTO `daily_puzzles_new` (`gameId`, `day`, `payload`, `fetchedAtMs`) " +
+                    "SELECT `gameId`, `day`, X'', `fetchedAtMs` FROM `daily_puzzles`",
+            )
+            db.execSQL("DROP TABLE `daily_puzzles`")
+            db.execSQL("ALTER TABLE `daily_puzzles_new` RENAME TO `daily_puzzles`")
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 }

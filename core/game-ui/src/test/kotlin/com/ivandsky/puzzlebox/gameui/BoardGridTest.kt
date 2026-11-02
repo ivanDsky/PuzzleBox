@@ -2,8 +2,9 @@ package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
@@ -12,7 +13,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -35,15 +35,19 @@ class BoardGridTest {
     private fun setContent(rows: Int, cols: Int) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                BoardGrid(
-                    rows = rows,
-                    cols = cols,
-                    modifier = Modifier.requiredSize(400.dp),
-                    onCellTap = { row, col -> taps += row to col },
-                ) { row, col ->
-                    Box(Modifier.fillMaxSize().testTag("cell-$row-$col"))
-                    if (row == 0 && col == 0) {
-                        Text("waypoint-1")
+                // Column + fillMaxWidth only: the board must derive its own height from
+                // aspectRatio — no requiredSize crutch, so sizing regressions fail here.
+                Column(Modifier.fillMaxWidth()) {
+                    BoardGrid(
+                        rows = rows,
+                        cols = cols,
+                        modifier = Modifier.fillMaxWidth(),
+                        onCellTap = { row, col -> taps += row to col },
+                    ) { row, col ->
+                        Box(Modifier.fillMaxSize().testTag("cell-$row-$col"))
+                        if (row == 0 && col == 0) {
+                            Text("waypoint-1")
+                        }
                     }
                 }
             }

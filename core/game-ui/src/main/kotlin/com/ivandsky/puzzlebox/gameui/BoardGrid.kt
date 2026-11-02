@@ -81,21 +81,22 @@ fun BoardGrid(
             }
         }
         Cells(rows, cols, cellContent)
-    }
-
-    if (onCellTap != null) {
-        // Detached tap layer: the geometry math lives in GridGeometry, tested on the JVM.
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(onCellTap, rows, cols) {
-                    detectTapGestures { offset ->
-                        val cell = GridGeometry(rows, cols, size.width.toFloat(), size.height.toFloat())
-                            .cellAt(offset)
-                        onCellTap(cell.row, cell.col)
-                    }
-                },
-        )
+        if (onCellTap != null) {
+            // Tap layer inside the board box: matchParentSize (DragTrace overlay pattern)
+            // keeps hit-testing geometry aligned with the drawn grid, and the component
+            // stays a single layout node. GridGeometry does the math, tested on the JVM.
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .pointerInput(onCellTap, rows, cols) {
+                        detectTapGestures { offset ->
+                            val cell = GridGeometry(rows, cols, size.width.toFloat(), size.height.toFloat())
+                                .cellAt(offset)
+                            onCellTap(cell.row, cell.col)
+                        }
+                    },
+            )
+        }
     }
 }
 

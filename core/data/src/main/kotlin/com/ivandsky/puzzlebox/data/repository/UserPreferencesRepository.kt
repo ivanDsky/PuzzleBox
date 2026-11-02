@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.data.repository
 
-import com.ivandsky.puzzlebox.data.model.ThemeMode
+import com.ivandsky.puzzlebox.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
 
 /**

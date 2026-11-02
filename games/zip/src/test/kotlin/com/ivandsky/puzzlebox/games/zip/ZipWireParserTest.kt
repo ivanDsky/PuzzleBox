@@ -80,6 +80,26 @@ class ZipWireParserTest {
         assertTrue(daily.puzzle.unknownTail.isEmpty()) // parser output is codec-clean
     }
 
+    /** A PRESENT but unparseable solution is Malformed — never silently treated as absent. */
+    @Test
+    fun `present but unparseable solution is Malformed`() {
+        val notAnArray = """{"gridSize": 5, "orderedSequence": [0, 12, 24], "solution": "0,1,2"}"""
+        val err1 = (
+            com.ivandsky.puzzlebox.games.zip.codec.ZipWireParser.parse(notAnArray, date) as DecodeResult.Err
+            ).error
+        assertTrue("unexpected: $err1", err1 is DecodeError.Malformed)
+        assertEquals("solution present but unparseable", (err1 as DecodeError.Malformed).detail)
+
+        val nonInteger = """{"gridSize": 5, "orderedSequence": [0, 12, 24], "solution": [0, 1, "x"]}"""
+        val err2 = (
+            com.ivandsky.puzzlebox.games.zip.codec.ZipWireParser.parse(nonInteger, date) as DecodeResult.Err
+            ).error
+        assertEquals(
+            DecodeError.Malformed("solution present but unparseable"),
+            err2,
+        )
+    }
+
     @Test
     fun `unknown variant size is UnknownVariant`() {
         val json = """{"gridSize": 4, "orderedSequence": [0, 15]}"""

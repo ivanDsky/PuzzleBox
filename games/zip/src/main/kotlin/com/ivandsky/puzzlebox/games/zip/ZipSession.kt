@@ -132,6 +132,6 @@ data class ZipSession(
         rules.isComplete(ZipState(puzzle, session.path))
 
     private companion object {
-        val rules = ZipRules()
+        val rules = ZipRules
     }
 }

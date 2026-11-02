@@ -29,6 +29,8 @@ android {
 
 dependencies {
     implementation(project(":core:game"))
+    // GameId appears in GameUiRegistry's public registration/lookup API.
+    api(project(":core:model"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:common"))
 

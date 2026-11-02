@@ -9,6 +9,11 @@ interface MoveVerdict
 /**
  * Pure rules for one game (F1 §2). [P] is the game's rules state.
  *
+ * Foreign moves — a [Move] authored by another game reaching [validate] — MUST be
+ * handled by safe-casting (`move is ThisGameMove`) and returning this game's typed
+ * rejection [MoveVerdict]. Never throw, never an unchecked `as` cast: validation is
+ * total over every [Move], and callers branch on verdicts, not exceptions.
+ *
  * Hints are counted by the caller (A3) — rules never track hint usage themselves.
  * A new rule, special case, or mechanic post-release lands as a new variant in the
  * game's own module (A18): these three signatures never grow.

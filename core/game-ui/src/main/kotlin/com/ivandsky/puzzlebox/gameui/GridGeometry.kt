@@ -22,6 +22,10 @@ class GridGeometry(
     widthPx: Float,
     heightPx: Float,
 ) {
+    init {
+        require(rows > 0 && cols > 0) { "board must have rows > 0 and cols > 0, got ${rows}x$cols" }
+    }
+
     val cellWidth: Float = widthPx / cols
     val cellHeight: Float = heightPx / rows
 

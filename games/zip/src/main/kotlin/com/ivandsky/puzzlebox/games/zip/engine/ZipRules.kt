@@ -24,10 +24,12 @@ sealed interface ZipMove : Move {
     data object Reset : ZipMove
 }
 
-/** Game-authored validation outcome; [Reason] drives the rejection animation + mistakes. */
+/** Game-authored validation outcome; [Reason] drives the rejection animation + mistakes.
+ *  [cell] is the offending target cell whenever the rejected move had one (null for a
+ *  foreign [Move]) — it feeds the renderer model's rejection highlight. */
 sealed interface ZipValidation : MoveVerdict {
     data object Valid : ZipValidation
-    data class Invalid(val reason: Reason) : ZipValidation
+    data class Invalid(val reason: Reason, val cell: Cell? = null) : ZipValidation
 
     sealed interface Reason {
         data object NotAdjacent : Reason
@@ -39,23 +41,27 @@ sealed interface ZipValidation : MoveVerdict {
 
         /** RetractTo target is not on the trace (defensive; the UI cannot produce it). */
         data object NotInPath : Reason
+
+        /** Core-level [Move] that is not a ZipMove (defensive safe-cast rejection). */
+        data object ForeignMove : Reason
     }
 }
 
 /**
  * Zip rules (F2 §2): O(1) local checks per move (I1–I5, I8), completeness (I6/I7), and
- * hints counted by the caller (A3). Pure — never mutates state.
+ * solver-backed hints counted by the caller (A3). Stateless singleton — pure, never
+ * mutates state; rules/solver/hints are single instances shared by every caller.
  *
  * Thin facade over the ordered [pipeline] (A18 addendum §1): each rule is a self-contained
- * class whose `violated()` is the single truth; this class only composes them (cheap rules
+ * class whose `violated()` is the single truth; this object only composes them (cheap rules
  * first, one `val` — never per-move allocation), maps the first violation to the
  * player-visible [ZipValidation.Reason], and delegates completeness + hints. Structural
  * preconditions that are not board rules stay here: bounds (I8) and the retract target
  * check.
  */
-class ZipRules(
-    private val hints: ZipHints = ZipHints(),
-) : GameRules<ZipState> {
+object ZipRules : GameRules<ZipState> {
+
+    private val hints = ZipHints()
 
     /** The fixed rule pipeline (A18): a new rule is a new class + one line here. */
     val pipeline: List<ZipRule> = listOf(
@@ -71,8 +77,15 @@ class ZipRules(
     private val moveRules: List<ZipMoveRule> = pipeline.filterIsInstance<ZipMoveRule>()
     private val completionRules: List<ZipCompletionRule> = pipeline.filterIsInstance<ZipCompletionRule>()
 
+    /**
+     * Core hands us an untyped [Move]: safe-cast, never `as` — a foreign move yields a
+     * typed rejection verdict, never a ClassCastException (GameRules contract).
+     */
     override fun validate(move: Move, state: ZipState): MoveVerdict =
-        validateMove(move as ZipMove, state)
+        when (val zipMove = move as? ZipMove) {
+            is ZipMove -> validateMove(zipMove, state)
+            null -> ZipValidation.Invalid(ZipValidation.Reason.ForeignMove)
+        }
 
     fun validateMove(move: ZipMove, state: ZipState): ZipValidation {
         when (move) {
@@ -81,16 +94,18 @@ class ZipRules(
             is ZipMove.RetractTo -> return if (move.to in state.path) {
                 ZipValidation.Valid // trim to the tail itself is a no-op
             } else {
-                ZipValidation.Invalid(ZipValidation.Reason.NotInPath)
+                ZipValidation.Invalid(ZipValidation.Reason.NotInPath, move.to)
             }
 
             is ZipMove.Extend -> {
                 if (!state.puzzle.board.contains(move.to)) {
-                    return ZipValidation.Invalid(ZipValidation.Reason.OutOfBounds)
+                    return ZipValidation.Invalid(ZipValidation.Reason.OutOfBounds, move.to)
                 }
-                // I1–I5: the pipeline is the single truth; the first violated rule names the rejection.
+                // I1–I5: the pipeline is the single truth; the first violated rule names
+                // the rejection. For an Extend the offending cell is always the target,
+                // so the verdict carries it for the renderer's rejection highlight.
                 for (rule in moveRules) {
-                    rule.check(move, state)?.let { return ZipValidation.Invalid(it.reason) }
+                    rule.check(move, state)?.let { return ZipValidation.Invalid(it.reason, move.to) }
                 }
                 return ZipValidation.Valid
             }
@@ -109,15 +124,13 @@ class ZipRules(
      *  Solver-backed only for boards without a stored solution ([ZipHints]). */
     override fun hint(state: ZipState): Hint = hints.hint(state)
 
-    companion object {
-        fun isAdjacent(a: Cell, b: Cell, n: Int): Boolean = ZipVerifier.isAdjacent(a, b, n)
+    fun isAdjacent(a: Cell, b: Cell, n: Int): Boolean = ZipVerifier.isAdjacent(a, b, n)
 
-        /**
-         * Linear verification that [path] satisfies I1–I5 and I8 against [puzzle] — the
-         * A16 solution-verification half and the core of [isComplete]. Also implicitly
-         * required of any prefix the hint machinery extends. Implementation: [ZipVerifier].
-         */
-        fun verifyPath(puzzle: ZipPuzzle, path: List<Cell>): Boolean =
-            ZipVerifier.verifyPath(puzzle, path)
-    }
+    /**
+     * Linear verification that [path] satisfies I1–I5 and I8 against [puzzle] — the
+     * A16 solution-verification half and the core of [isComplete]. Also implicitly
+     * required of any prefix the hint machinery extends. Implementation: [ZipVerifier].
+     */
+    fun verifyPath(puzzle: ZipPuzzle, path: List<Cell>): Boolean =
+        ZipVerifier.verifyPath(puzzle, path)
 }

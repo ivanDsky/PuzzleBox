@@ -50,7 +50,7 @@ data class ZipBoard(
         }
     }
 
-    /** The cell's unblocked 4-neighbors within bounds, in stable (right, left, down, up) order. */
+    /** The cell's in-bounds 4-neighbors, in stable (right, left, down, up) order. */
     fun neighbors(cell: Cell): List<Cell> = buildList(4) {
         val r = rowOf(cell)
         val c = colOf(cell)

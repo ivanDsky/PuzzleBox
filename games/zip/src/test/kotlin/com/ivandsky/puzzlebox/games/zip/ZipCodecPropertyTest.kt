@@ -164,7 +164,7 @@ class ZipCodecPropertyTest {
                     is com.ivandsky.puzzlebox.game.DecodeError.Malformed,
             )
         }
-        // n outside 2..16 is structural garbage
+        // n outside 2..11 is structural garbage (u8 field budget cap)
         val badN = full.copyOf().also { it[8] = 17 }
         assertTrue(ZipCodec.decode(badN) is com.ivandsky.puzzlebox.game.DecodeResult.Err)
         // empty blob

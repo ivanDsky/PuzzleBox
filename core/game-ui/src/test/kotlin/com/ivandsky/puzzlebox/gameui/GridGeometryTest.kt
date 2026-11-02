@@ -40,6 +40,24 @@ class GridGeometryTest {
     }
 
     @Test
+    fun `zero or negative boards fail fast`() {
+        val zeroRows = try {
+            GridGeometry(rows = 0, cols = 8, widthPx = 800f, heightPx = 600f)
+            null
+        } catch (expected: IllegalArgumentException) {
+            expected
+        }
+        val negativeCols = try {
+            GridGeometry(rows = 6, cols = -1, widthPx = 800f, heightPx = 600f)
+            null
+        } catch (expected: IllegalArgumentException) {
+            expected
+        }
+        assertTrue("rows=0 must throw IAE", zeroRows is IllegalArgumentException)
+        assertTrue("cols=-1 must throw IAE", negativeCols is IllegalArgumentException)
+    }
+
+    @Test
     fun `validity check rejects out-of-range cells`() {
         assertTrue(geometry.isValid(GridCell(0, 0)))
         assertTrue(geometry.isValid(GridCell(5, 7)))

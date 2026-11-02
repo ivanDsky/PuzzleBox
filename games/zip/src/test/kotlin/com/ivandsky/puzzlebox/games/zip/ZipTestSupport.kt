@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.games.zip
 
 import com.ivandsky.puzzlebox.game.VariantId
-import com.ivandsky.puzzlebox.games.zip.engine.ZipGenerator
 import com.ivandsky.puzzlebox.games.zip.engine.ZipVariant
 import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
 import kotlin.random.Random

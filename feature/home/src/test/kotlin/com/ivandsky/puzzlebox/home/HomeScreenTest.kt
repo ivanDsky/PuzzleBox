@@ -9,8 +9,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import com.ivandsky.puzzlebox.data.model.ThemeMode
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.ThemeMode
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,6 +30,7 @@ class HomeScreenTest {
         layout: HomeLayout,
         themeMode: ThemeMode = ThemeMode.SYSTEM,
         history: List<HistoryDay> = emptyList(),
+        game: GameSummary = GameSummary(GameId("zip"), "Zip"),
         onSetThemeMode: (ThemeMode) -> Unit = {},
         onPlayToday: () -> Unit = {},
         onOpenProfile: () -> Unit = {},
@@ -37,6 +39,7 @@ class HomeScreenTest {
             PuzzleBoxTheme {
                 HomeScreen(
                     layout = layout,
+                    game = game,
                     themeMode = themeMode,
                     onSetThemeMode = onSetThemeMode,
                     history = history,
@@ -73,7 +76,7 @@ class HomeScreenTest {
 
     @Test
     fun `history rows render a formatted headline per day`() {
-        setContent(HomeLayout.TwoPane, history = listOf(HistoryDay("2026-10-30", "October 30")))
+        setContent(HomeLayout.TwoPane, history = listOf(HistoryDay("2026-10-30", "October 30", "Zip")))
 
         composeRule.onNodeWithText("October 30").assertExists()
         composeRule.onNodeWithText("No games yet").assertDoesNotExist()

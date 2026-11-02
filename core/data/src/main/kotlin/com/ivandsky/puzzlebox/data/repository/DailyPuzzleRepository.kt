@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import com.ivandsky.puzzlebox.common.result.AppResult
-import com.ivandsky.puzzlebox.data.model.DailyPuzzle
+import com.ivandsky.puzzlebox.model.DailyPuzzle
 import kotlinx.coroutines.flow.Flow
 
 /**
