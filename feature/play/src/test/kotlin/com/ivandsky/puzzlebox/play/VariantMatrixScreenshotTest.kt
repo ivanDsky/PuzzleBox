@@ -154,27 +154,6 @@ class VariantMatrixScreenshotTest {
         ZipTraceGradientVsTokenPreview()
     }
 
-    @Test fun `variant on-path filled dark`() =
-        onPathVariant(dark = true)
-
-    @Test fun `variant on-path filled light`() =
-        onPathVariant(dark = false)
-
-    private fun onPathVariant(dark: Boolean) {
-        capture("variant-onpath-filled-vs-hollow-${theme(dark)}.png", dark) {
-            Row(
-                Modifier
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(Spacing.xl),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xl),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OnPathSwatch(hollow = false, label = "current: filled")
-                OnPathSwatch(hollow = true, label = "alternative: hollow")
-            }
-        }
-    }
-
     @Test fun `variant start hollow dark`() = startVariant(dark = true)
 
     @Test fun `variant start hollow light`() = startVariant(dark = false)
@@ -282,67 +261,6 @@ class VariantMatrixScreenshotTest {
         val board = ZipBoardModel(n, emptySet(), waypoints.map(::Cell))
         val state = ZipState(ZipPuzzle(VariantId("zip/n$n"), board, null), path.map(::Cell))
         return ZipRendererModel.of(state, null)
-    }
-
-    /** The on-path dot treatment at identical swatch geometry (pitch 84dp), trace behind, all fractions from [ZipBoardSpec]. */
-    @Composable
-    private fun OnPathSwatch(hollow: Boolean, label: String) {
-        val board = LocalBoardColors.current
-        val pitch = 84.dp
-        val labelSize = with(LocalDensity.current) {
-            (pitch * ZipBoardSpec.waypointDotSizeFraction *
-                ZipBoardSpec.waypointLabelCapFraction * ZipBoardSpec.labelFontPerCap).toSp()
-        }
-        LabeledPane(label, paneSize = 96.dp) {
-            Box(
-                Modifier
-                    .size(pitch)
-                    .drawBehind {
-                        // one straight trace segment passing through the cell (U1 fat rounded stroke)
-                        drawLine(
-                            color = board.pathTrace,
-                            start = Offset(0f, size.height / 2f),
-                            end = Offset(size.width, size.height / 2f),
-                            strokeWidth = size.minDimension * ZipBoardSpec.pathTraceWidthFraction,
-                            cap = StrokeCap.Round,
-                        )
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                // halo ring (boardSurface shows through between trace and dot)
-                Box(
-                    Modifier
-                        .size(
-                            pitch * (ZipBoardSpec.waypointDotSizeFraction +
-                                2 * ZipBoardSpec.waypointHaloFraction),
-                        )
-                        .background(board.boardSurface, CircleShape),
-                )
-                Box(
-                    Modifier
-                        .size(pitch * ZipBoardSpec.waypointDotSizeFraction)
-                        .background(board.waypointDotOnPath, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (hollow) {
-                        // alternative: ring in the on-path color, surface fill, label in
-                        // the ring color (the start-ring idiom — contrast rides the
-                        // dot-color-vs-surface pair, not a fill-on-fill pair)
-                        Box(
-                            Modifier
-                                .size(
-                                    pitch * (ZipBoardSpec.waypointDotSizeFraction -
-                                        2 * ZipBoardSpec.startRingFraction),
-                                )
-                                .background(board.boardSurface, CircleShape),
-                        )
-                        Text("3", fontSize = labelSize, color = board.waypointDotOnPath)
-                    } else {
-                        Text("3", fontSize = labelSize, color = board.onPathLabel)
-                    }
-                }
-            }
-        }
     }
 
     @Composable

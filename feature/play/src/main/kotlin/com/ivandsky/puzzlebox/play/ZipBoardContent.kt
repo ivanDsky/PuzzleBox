@@ -136,7 +136,6 @@ internal object ZipBoardSpec {
     const val pathTraceWidthFraction = 0.54f
 
     /** U1 mobile halo ≈ 3.5px on a 62px pitch: separation ring under dots sitting on the trace. */
-    const val waypointHaloFraction = 0.055f
 
     /** Start waypoint's hollow-variant ring thickness, as a fraction of the pitch. */
     const val startRingFraction = 0.05f
