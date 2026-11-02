@@ -1,0 +1,4 @@
+3:HL["tango",{"zone":"America/Los_Angeles"}]
+4:{"todaysGameEditionText":"301","routeContext":{"initialUrl":"/games/tango/"}}
+5:I[1234,["5678"],["$","div",null,{"props":{"game":{"puzzle":{"tangoGamePuzzle":{"gridSize":6,"given":[["S","","","","",""],["","M","","","",""],["","","","S","",""],["","","","S","",""],["","","","","",""],["","","","","","M"]],"constraints":[{"r1":0,"c1":0,"r2":0,"c2":1,"kind":"="},{"r1":2,"c1":3,"r2":3,"c2":3,"kind":"x"}],"zone":"America/Los_Angeles","edition":"tango/2026-11-02"}}}}},"solution":{"grid":"hidden"}]
+6:T28,game data fetched from the server

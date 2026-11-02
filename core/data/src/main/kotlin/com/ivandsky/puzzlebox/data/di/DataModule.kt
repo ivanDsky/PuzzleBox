@@ -8,6 +8,8 @@ import com.ivandsky.puzzlebox.data.db.Migrations
 import com.ivandsky.puzzlebox.data.db.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.data.network.AuthHeaderSource
 import com.ivandsky.puzzlebox.data.network.LinkedInSessionCookieJar
+import com.ivandsky.puzzlebox.data.network.LinkedInTangoApi
+import com.ivandsky.puzzlebox.data.network.LinkedInTangoClient
 import com.ivandsky.puzzlebox.data.network.LinkedInZipApi
 import com.ivandsky.puzzlebox.data.network.LinkedInZipClient
 import com.ivandsky.puzzlebox.data.network.LINKEDIN_BASE_URL
@@ -18,17 +20,23 @@ import com.ivandsky.puzzlebox.data.network.retrofit
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.DataStoreUserPreferencesRepository
+import com.ivandsky.puzzlebox.data.repository.LinkedInTangoDailySource
 import com.ivandsky.puzzlebox.data.repository.LinkedInZipDailySource
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstDailyPuzzleRepository
+import com.ivandsky.puzzlebox.data.repository.OfflineFirstTangoDailyRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstZipDailyRepository
 import com.ivandsky.puzzlebox.data.repository.RoomCompletionRepository
+import com.ivandsky.puzzlebox.data.repository.TangoDailyRepository
+import com.ivandsky.puzzlebox.data.repository.TangoDailySource
 import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
 import com.ivandsky.puzzlebox.data.repository.ZipDailySource
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.game.PuzzleSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
+import org.koin.core.qualifier.qualifier
 import org.koin.dsl.module
 import retrofit2.Retrofit
 
@@ -51,6 +59,17 @@ val dataModule = module {
     single<ZipDailySource> { get<LinkedInZipDailySource>() }
     single<PuzzleSource> { get<LinkedInZipDailySource>() }
     single<ZipDailyRepository> { OfflineFirstZipDailyRepository(get(), get(), get()) }
+    // Tango daily fetch (ticket 03): same LinkedIn ladder, Tango route; the PuzzleSource
+    // binding carries the game-id qualifier so the archive seam can resolve per game.
+    single {
+        retrofit(baseUrl = LINKEDIN_BASE_URL, client = linkedInClient(jar = get()), json = get())
+            .create(LinkedInTangoApi::class.java)
+    }
+    single { LinkedInTangoClient(get()) }
+    single { LinkedInTangoDailySource(get()) }
+    single<TangoDailySource> { get<LinkedInTangoDailySource>() }
+    single<PuzzleSource>(qualifier = qualifier(TangoDefinition.id.value)) { get<LinkedInTangoDailySource>() }
+    single<TangoDailyRepository> { OfflineFirstTangoDailyRepository(get(), get(), get()) }
     single {
         Room.databaseBuilder(get<Context>(), PuzzleBoxDatabase::class.java, PuzzleBoxDatabase.NAME)
             .addMigrations(*Migrations.ALL)
