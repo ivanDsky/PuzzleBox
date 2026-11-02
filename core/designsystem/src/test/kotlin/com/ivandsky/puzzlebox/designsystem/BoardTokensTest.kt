@@ -57,6 +57,16 @@ class BoardTokensTest {
         }
     }
 
+    // Tango glyph fills (design-direction §3, floor §10.2): silhouette carries the
+    // identity, so the fill needs the 3:1 non-text bar vs boardSurface, not 4.5.
+    @Test
+    fun `tango sun and moon fills clear the non-text bar vs boardSurface in both themes`() {
+        for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
+            assertTrue(contrast(tokens.sunFill, tokens.boardSurface) >= 3f)
+            assertTrue(contrast(tokens.moonFill, tokens.boardSurface) >= 3f)
+        }
+    }
+
     @Test
     fun `dot fills meet AA on boardSurface in both themes`() {
         for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
