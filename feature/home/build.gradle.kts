@@ -30,10 +30,12 @@ android {
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:data"))
-    // F1 module map: FEAT → GAMES is a sanctioned edge (same as :feature:history/play) —
-    // test-only here: the route test's ZipDailyRepository fake implements `cached`, whose
-    // signature names the engine's Puzzle type.
-    testImplementation(project(":core:game"))
+    // F1 module map: FEAT → GAMES is a sanctioned edge (same as :feature:history/play).
+    // HomeRoute consumes the aggregated plugin list (GamePlugin) to build the featured
+    // game's identity, so the edge is a compile dependency, not test-only.
+    implementation(project(":core:game"))
+    // ThemeMode/GameId/DailyPuzzle appear in Home's public composables.
+    api(project(":core:model"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.material.icons.core)

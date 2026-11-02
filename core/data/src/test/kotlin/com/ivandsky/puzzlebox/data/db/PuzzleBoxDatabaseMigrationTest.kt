@@ -112,4 +112,48 @@ class PuzzleBoxDatabaseMigrationTest {
         }
         db.close()
     }
+
+    @Test
+    fun `migrate 3 to 4 reshapes daily_puzzles into the opaque envelope`() {
+        val dbName = "puzzlebox-migration-3-4-test.db"
+        val v3 = helper.createDatabase(dbName, 3)
+        v3.execSQL(
+            "INSERT INTO daily_puzzles (gameId, day, size, cells, fetchedAtMs) " +
+                "VALUES ('zip', '2026-10-30', 4, '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]', 1000)",
+        )
+        v3.close()
+
+        val db = helper.runMigrationsAndValidate(dbName, 4, true, Migrations.MIGRATION_3_4)
+
+        // Identity survives; the parsed projection is dropped for the opaque envelope
+        // (payload starts as zero bytes — the cache refills from the wire, ADR-0002).
+        db.query("SELECT gameId, day, fetchedAtMs, LENGTH(payload) FROM daily_puzzles").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("zip", cursor.getString(0))
+            assertEquals("2026-10-30", cursor.getString(1))
+            assertEquals(1000L, cursor.getLong(2))
+            assertEquals(0, cursor.getInt(3))
+        }
+        // The envelope store accepts real payloads (primary key gameId+day).
+        db.execSQL(
+            "INSERT INTO daily_puzzles (gameId, day, payload, fetchedAtMs) " +
+                "VALUES ('zip', '2026-10-31', x'00ff10', 5000)",
+        )
+        db.query("SELECT payload FROM daily_puzzles WHERE day = '2026-10-31'").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(3, cursor.getBlob(0).size)
+        }
+        db.close()
+    }
+
+    @Test
+    fun `fresh v4 database is created by the normal builder path`() {
+        val dbName = "puzzlebox-fresh-v4.db"
+        val db = helper.createDatabase(dbName, 4)
+        db.query("SELECT COUNT(*) FROM daily_puzzles").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.getInt(0))
+        }
+        db.close()
+    }
 }

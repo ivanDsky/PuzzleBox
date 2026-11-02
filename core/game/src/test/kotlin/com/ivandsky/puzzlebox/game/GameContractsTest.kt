@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.game
 
+import com.ivandsky.puzzlebox.model.GameId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
@@ -30,8 +31,12 @@ class GameContractsTest {
         assertSame(TestGame.Invalid, plugin.rules.validate(TestGame.PlayMove(0), TestGame.State(solved = true)))
 
         // Renderer-model factory is pure: same input, same model, state untouched.
-        val model = plugin.rendererModel(fresh, plugin.rules.hint(fresh))
-        assertEquals(TestGame.Model(solved = false), model)
+        val hint = plugin.rules.hint(fresh)
+        assertEquals(TestGame.Model(solved = false), plugin.rendererModel(fresh, hint, null))
+
+        // The verdict reaches the renderer model unchanged — null, valid, or invalid.
+        assertSame(TestGame.Valid, plugin.rendererModel(fresh, hint, TestGame.Valid).lastVerdict)
+        assertSame(TestGame.Invalid, plugin.rendererModel(fresh, null, TestGame.Invalid).lastVerdict)
 
         // Completion flows session -> record.
         val done = TestGame.Session(moveCount = 2, done = true)
@@ -45,6 +50,32 @@ class GameContractsTest {
 
         // Unfinished sessions emit nothing.
         assertNull(plugin.score.completion(TestGame.Session(moveCount = 1, done = false)))
+    }
+
+    @Test
+    fun `initialSession and stateOf round-trip a puzzle through the play loop`() {
+        val plugin = TestGame.plugin()
+
+        // A fetched puzzle yields a fresh session; stateOf derives the rules state from it.
+        val freshSession = plugin.initialSession(TestGame.Definition.blank()).getOrNull()
+        requireNotNull(freshSession)
+        assertEquals(TestGame.Session(), freshSession)
+        assertEquals(TestGame.State(solved = false), plugin.stateOf(freshSession))
+
+        // A restored session derives the same state it was saved from.
+        val done = TestGame.Session(moveCount = 3, done = true)
+        val restored = TestGame.SessionCodec
+            .deserialize(TestGame.SessionCodec.serialize(done))
+            .getOrNull()
+        requireNotNull(restored)
+        assertEquals(TestGame.State(solved = true), plugin.stateOf(restored))
+
+        // A foreign envelope is a typed rejection, never a throw.
+        val foreign = Puzzle(GameId("other"), VariantId("other/v1"), 1, ByteArray(0))
+        val rejected = plugin.initialSession(foreign)
+        assertTrue(rejected is DecodeResult.Err)
+        assertTrue((rejected as DecodeResult.Err).error is DecodeError.Malformed)
+        assertNull(rejected.getOrNull())
     }
 
     @Test

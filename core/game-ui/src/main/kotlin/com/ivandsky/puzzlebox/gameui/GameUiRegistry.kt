@@ -2,8 +2,8 @@ package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.ivandsky.puzzlebox.game.GameId
 import com.ivandsky.puzzlebox.game.RendererModel
+import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * Maps a game's pure [RendererModel] to its Compose board (finding F2-1: the Compose

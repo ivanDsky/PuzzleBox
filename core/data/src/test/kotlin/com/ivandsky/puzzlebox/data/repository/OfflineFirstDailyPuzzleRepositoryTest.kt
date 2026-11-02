@@ -48,7 +48,7 @@ class OfflineFirstDailyPuzzleRepositoryTest {
             client = okHttpClient(AuthHeaderSource { mapOf("X-Test-Auth" to "fixture") }),
             json = json,
         ).create(PuzzleFeedApi::class.java)
-        repository = OfflineFirstDailyPuzzleRepository(api, db.dailyPuzzleDao(), DefaultDispatcherProvider())
+        repository = OfflineFirstDailyPuzzleRepository(api, db.dailyPuzzleDao(), DefaultDispatcherProvider(), json)
     }
 
     @After
@@ -64,7 +64,8 @@ class OfflineFirstDailyPuzzleRepositoryTest {
 
     @Test
     fun `fixture fetch parses, caches and returns domain puzzle`() = runTest {
-        server.enqueue(ok(fixture("zip-daily-2026-10-31.json")))
+        val body = fixture("zip-daily-2026-10-31.json")
+        server.enqueue(ok(body))
 
         val result = repository.refresh("zip", "2026-10-31")
 
@@ -72,9 +73,10 @@ class OfflineFirstDailyPuzzleRepositoryTest {
         val puzzle = (result as AppResult.Ok).value
         assertEquals("zip", puzzle.gameId)
         assertEquals("2026-10-31", puzzle.day)
-        assertEquals(4, puzzle.size)
-        assertEquals(16, puzzle.cells.size)
+        assertTrue(puzzle.payload.contentEquals(body.encodeToByteArray()))
+        assertTrue(puzzle.fetchedAtMs > 0)
         assertEquals(1, db.dailyPuzzleDao().count())
+        assertEquals(body, db.dailyPuzzleDao().get("zip", "2026-10-31")?.payload?.decodeToString())
 
         val recorded = server.takeRequest()
         assertEquals("/v1/dailies/zip/2026-10-31", recorded.path)

@@ -18,7 +18,7 @@ import java.io.ByteArrayOutputStream
  * ```
  * 0   u8   formatVersion = 1
  * 1   u8   variantKeyLen; UTF-8 bytes        ("zip/n6" stored, never derived from n)
- *     u8   n                                 (2..16 structural; variant must match, I9)
+ *     u8   n                                 (2..11 structural; variant must match, I9)
  *     u8   wallCount; wallCount x (u8 cellIdx, u8 dir)   (dir: 0=RIGHT, 1=DOWN)
  *     u8   k (waypointCount); k x u8 cellIdx             (ascending labels 1..k)
  *     u8   flags                          (bit0 = solution present)
@@ -36,7 +36,10 @@ object ZipCodec {
 
     const val VERSION: Int = 1
     private const val MIN_N = 2
-    private const val MAX_N = 16
+    // u8 field budget: every count/counted index must stay <= 255 — walls <= 2n(n-1)
+    // (12x12 already needs 264 wall slots), cells = n^2 (121 at n=11). n = 11 is the
+    // largest board the v1 layout can carry; larger n would silently truncate a count.
+    private const val MAX_N = 11
 
     fun decode(bytes: ByteArray): DecodeResult<ZipPuzzle> {
         val cursor = Cursor(bytes)

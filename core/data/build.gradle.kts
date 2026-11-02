@@ -40,6 +40,9 @@ dependencies {
     // and stores ZipCodec bytes; games/zip exposes :core:game as api.
     implementation(project(":games:zip"))
 
+    // DailyPuzzle/ThemeMode appear in the repository interfaces' public signatures.
+    api(project(":core:model"))
+
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

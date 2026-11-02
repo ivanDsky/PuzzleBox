@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.games.zip.render
 import com.ivandsky.puzzlebox.game.Hint
 import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.games.zip.Cell
+import com.ivandsky.puzzlebox.games.zip.WallDirection
 import com.ivandsky.puzzlebox.games.zip.engine.ZipHint
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
 import com.ivandsky.puzzlebox.games.zip.engine.ZipState
@@ -39,14 +40,13 @@ data class ZipRendererModel(
 
     data class WallRender(
         val cellIdx: Int,
-        val direction: Direction,
-    ) {
-        enum class Direction { RIGHT, DOWN }
-    }
+        val direction: WallDirection,
+    )
 
-    /** Last invalid drop, for the rejection animation + mistake counter. */
+    /** Last invalid drop, for the rejection animation + mistake counter. [cellIdx] is the
+     *  offending cell, null when the verdict names none (foreign move). */
     data class RejectedMove(
-        val cellIdx: Int,
+        val cellIdx: Int?,
         val reason: ZipValidation.Reason,
     )
 
@@ -79,9 +79,10 @@ data class ZipRendererModel(
                         },
                 )
             }
+            // single rules instance (companion) — never allocated per frame
             val walls = board.walls
                 .sortedWith(compareBy({ it.cell.idx }, { it.direction.ordinal }))
-                .map { WallRender(it.cell.idx, WallRender.Direction.valueOf(it.direction.name)) }
+                .map { WallRender(it.cell.idx, it.direction) }
             return ZipRendererModel(
                 n = board.n,
                 path = path.map(Cell::idx),
@@ -91,7 +92,7 @@ data class ZipRendererModel(
                 rejection = rejection,
                 status = when {
                     path.isEmpty() -> Status.IDLE
-                    ZipRules().isComplete(state) -> Status.COMPLETE
+                    ZipRules.isComplete(state) -> Status.COMPLETE
                     else -> Status.PLAYING
                 },
             )

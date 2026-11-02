@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.gameui
 
-import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -8,7 +9,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -47,23 +47,33 @@ class DragTraceTest {
 
     private val events = mutableListOf<DragEvent>()
 
-    private fun cellCenter(row: Int, col: Int): Offset = Offset(
-        x = (col + 0.5f) * 80f, // 400px board / 5 cells = 80px cells
-        y = (row + 0.5f) * 80f,
-    )
+    /** 5x5 board (see [setContent]); cell centers from the board's MEASURED size — no
+     *  requiredSize crutch, so a sizing regression (e.g. lost aspectRatio collapsing
+     *  the board to zero height) moves the cells and fails the gestures. */
+    private fun cellCenter(row: Int, col: Int): Offset {
+        val size = composeRule.onNodeWithTag("trace").fetchSemanticsNode().size
+        return Offset(
+            x = (col + 0.5f) * size.width / 5f,
+            y = (row + 0.5f) * size.height / 5f,
+        )
+    }
 
     private fun setContent(path: List<GridCell> = emptyList()) {
         events.clear()
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                DragTraceBoard(
-                    rows = 5,
-                    cols = 5,
-                    path = path,
-                    hooks = ZipLikeHooks(),
-                    onEvent = { events += it },
-                    modifier = Modifier.requiredSize(400.dp).testTag("trace"),
-                )
+                // Column + fillMaxWidth only: the board must derive its own height from
+                // aspectRatio — an unsized board would collapse and fail the gestures.
+                Column(Modifier.fillMaxWidth()) {
+                    DragTraceBoard(
+                        rows = 5,
+                        cols = 5,
+                        path = path,
+                        hooks = ZipLikeHooks(),
+                        onEvent = { events += it },
+                        modifier = Modifier.fillMaxWidth().testTag("trace"),
+                    )
+                }
             }
         }
     }

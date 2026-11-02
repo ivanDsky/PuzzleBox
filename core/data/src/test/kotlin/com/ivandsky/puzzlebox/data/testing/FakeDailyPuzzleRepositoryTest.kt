@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.data.testing
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.common.result.AppError
 import com.ivandsky.puzzlebox.common.result.AppResult
-import com.ivandsky.puzzlebox.data.model.DailyPuzzle
+import com.ivandsky.puzzlebox.model.DailyPuzzle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -12,7 +12,7 @@ import java.io.IOException
 
 class FakeDailyPuzzleRepositoryTest {
 
-    private val puzzle = DailyPuzzle("zip", "2026-10-31", size = 6, cells = List(36) { 0 })
+    private val puzzle = DailyPuzzle("zip", "2026-10-31", payload = ByteArray(0), fetchedAtMs = 0L)
 
     @Test
     fun `seed drives observeHistory and cached`() = runTest {

@@ -35,6 +35,10 @@ Gradle root `PuzzleBox`, five modules; dependency direction `:app` → `:feature
   top bars, states), `ShowkaseTokens` `@ShowkaseColor`/`@ShowkaseTypography` metadata
   registrations; font license in `licenses/`. The component browser itself is debug-only
   in `app/src/debug` (Showkase browser screen; goldens in `app/snapshots/`).
+- `core/model/` — dependency-free shared domain types in package
+  `com.ivandsky.puzzlebox.model` (`GameId`, the opaque `DailyPuzzle` envelope,
+  `ThemeMode`); pure JVM, depends on nothing — `:core:game`, `:core:data`, and the
+  UI/feature layers compile against it.
 - `feature/home/` — `HomeRoute` (DI-bound entry: observes cached history, never the
   network), `HomeScreen` (single/two-pane arrangement, theme segmented control, history
   teaser), `HomeLayout` + `homeLayoutFor` pure pane policy.

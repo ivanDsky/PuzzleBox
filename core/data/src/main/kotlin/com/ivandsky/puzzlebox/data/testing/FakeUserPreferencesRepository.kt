@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.data.testing
 
-import com.ivandsky.puzzlebox.data.model.ThemeMode
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow

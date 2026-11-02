@@ -2,8 +2,8 @@ package com.ivandsky.puzzlebox.data.testing
 
 import com.ivandsky.puzzlebox.common.result.AppError
 import com.ivandsky.puzzlebox.common.result.AppResult
-import com.ivandsky.puzzlebox.data.model.DailyPuzzle
 import com.ivandsky.puzzlebox.data.repository.DailyPuzzleRepository
+import com.ivandsky.puzzlebox.model.DailyPuzzle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map

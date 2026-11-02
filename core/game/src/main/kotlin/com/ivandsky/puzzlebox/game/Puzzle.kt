@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.game
 
+import com.ivandsky.puzzlebox.model.GameId
+
 /**
  * Game-agnostic puzzle envelope (finding F2-2): identity, rules pin, and an opaque,
  * versioned payload. Core never opens [payload] — the owning game's plugin exposes the

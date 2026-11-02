@@ -1,8 +1,9 @@
-package com.ivandsky.puzzlebox.data.model
+package com.ivandsky.puzzlebox.model
 
 /**
- * App-wide theme choice (ticket 05). Stays next to [DailyPuzzle] until :core:model
- * lands, then moves there — the same convention as the exemplar domain type.
+ * App-wide theme choice (ticket 05). Lives in :core:model so the preferences contract
+ * (:core:data) and the app/home UI share one definition — the same convention as the
+ * shared domain types above.
  */
 enum class ThemeMode {
     SYSTEM,
