@@ -97,14 +97,22 @@ class CredentialManagerGoogleIdTokenProvider(
             GetCredentialRequest.Builder().addCredentialOption(option).build(),
         )
         val credential = response.credential
+        // Bug C: microG/ReVanced GMS answers the framework without a usable Google ID
+        // token — log what actually came back (type + token presence), then classify.
+        android.util.Log.d("PuzzleBoxAuth", "credential type=${credential.type} class=${credential.javaClass.name} hasIdToken=${(credential as? GoogleIdTokenCredential)?.idToken?.isNotEmpty() == true}")
         if (credential is GoogleIdTokenCredential && credential.idToken.isNotEmpty()) {
             GoogleIdToken.Available(credential.idToken)
         } else {
+            android.util.Log.d("PuzzleBoxAuth", "malformed credential response — returning MALFORMED")
             GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.MALFORMED)
         }
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
+        // Bug C: the classification was invisible in the field — a Samsung freezer
+        // freeze of com.android.credentialmanager produced the NETWORK copy on a
+        // healthy network. DEBUG-level, tagged for one-line logcat diagnosis.
+        android.util.Log.d("PuzzleBoxAuth", "idToken unavailable: ${unavailableReason(e)} (${e.javaClass.simpleName})", e)
         GoogleIdToken.Unavailable(unavailableReason(e))
     }
 
