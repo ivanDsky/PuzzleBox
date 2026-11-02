@@ -28,7 +28,7 @@
 ## Deploy targets (in order; empty list = build-only)
 - local: ./gradlew :app:assembleDebug
 - tailscale: ivandsky.github
-  - device: ivans-tab-s9-ultra @ 100.93.158.113  # interim until Firebase exists; re-verify IP at deploy time
+  - device: ivans-tab-s9-ultra @ 100.93.158.113  # verified 2026-11-01 (only Android node on tailnet)
 # - firebase: <project id>  # activate once the Firebase project is created; deliver moves off tailscale then
 
 ## Review site publish
