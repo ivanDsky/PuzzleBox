@@ -127,6 +127,10 @@ class TangoBoardRenderer(
                                 },
                             ),
                             markColorOverride = MaterialTheme.colorScheme.onSurface,
+                            // LinkedIn chip treatment: opaque disc under the symbol, drawn
+                            // above the cell layer so the mark never hides under glyphs.
+                            markBadge = true,
+                            overlaysAboveCells = true,
                             edgeOverlays = tango.markers.map { marker ->
                                 EdgeOverlay.Mark(
                                     cell = GridCell(

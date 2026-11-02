@@ -141,7 +141,7 @@ class LinkedInTangoDailySourceTest {
 
     @Test
     fun `structurally broken payload is Unavailable (parse family)`() = runBlocking {
-        server.enqueue(ok("""{"tangoGamePuzzle":{"gridSize":3}}"""))
+        server.enqueue(ok("""{"tangoGamePuzzle":{"gridSize":99}}"""))
 
         val result = source.fetchDaily(date)
 
