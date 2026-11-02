@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.app.auth
 import android.content.Context
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
@@ -97,13 +98,21 @@ class CredentialManagerGoogleIdTokenProvider(
             GetCredentialRequest.Builder().addCredentialOption(option).build(),
         )
         val credential = response.credential
-        // Bug C: microG/ReVanced GMS answers the framework without a usable Google ID
-        // token — log what actually came back (type + token presence), then classify.
-        android.util.Log.d("PuzzleBoxAuth", "credential type=${credential.type} class=${credential.javaClass.name} hasIdToken=${(credential as? GoogleIdTokenCredential)?.idToken?.isNotEmpty() == true}")
-        if (credential is GoogleIdTokenCredential && credential.idToken.isNotEmpty()) {
-            GoogleIdToken.Available(credential.idToken)
+        // Bug C (2026-11-02): the type check must be TYPE-first with a manual
+        // `createFrom(data)` — demanding `is GoogleIdTokenCredential` throws away the
+        // token on ReVanced microG (our tab): its provider returns the right type as a
+        // bare CustomCredential whose bundle DOES carry the token; only the androidx
+        // auto-convert to the subclass is missing there. Real GMS passes both checks.
+        if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+            val idToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
+            if (idToken.isNotEmpty()) {
+                GoogleIdToken.Available(idToken)
+            } else {
+                android.util.Log.d("PuzzleBoxAuth", "credential carried an empty idToken — MALFORMED")
+                GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.MALFORMED)
+            }
         } else {
-            android.util.Log.d("PuzzleBoxAuth", "malformed credential response — returning MALFORMED")
+            android.util.Log.d("PuzzleBoxAuth", "unexpected credential ${credential.type} (${credential.javaClass.simpleName}) — MALFORMED")
             GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.MALFORMED)
         }
     } catch (e: CancellationException) {
