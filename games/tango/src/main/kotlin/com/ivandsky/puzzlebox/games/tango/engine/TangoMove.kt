@@ -32,8 +32,3 @@ sealed interface TangoVerdict : MoveVerdict {
     }
 }
 
-/** Tango hint (F3 marker). Skeleton stub — the forced-move ladder lands in ticket 02. */
-sealed interface TangoHint : com.ivandsky.puzzlebox.game.Hint {
-    /** Placeholder until ticket 02 ships the deduction ladder. */
-    data object NotYet : TangoHint
-}
