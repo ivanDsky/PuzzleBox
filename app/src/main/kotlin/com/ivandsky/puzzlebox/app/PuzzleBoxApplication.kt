@@ -6,6 +6,8 @@ import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.backend.firebase.firebaseBackendModule
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.di.dataModule
+import com.ivandsky.puzzlebox.games.queens.queensModule
+import com.ivandsky.puzzlebox.games.queensui.queensUiModule
 import com.ivandsky.puzzlebox.games.zip.zipModule
 import com.ivandsky.puzzlebox.games.zipui.zipUiModule
 import com.ivandsky.puzzlebox.play.di.playModule
@@ -26,6 +28,6 @@ class PuzzleBoxApplication : Application() {
 
     companion object {
         val appModules =
-            listOf(commonModule, dataModule, firebaseBackendModule, playModule, zipModule, zipUiModule, appModule)
+            listOf(commonModule, dataModule, firebaseBackendModule, playModule, zipModule, zipUiModule, queensModule, queensUiModule, appModule)
     }
 }
