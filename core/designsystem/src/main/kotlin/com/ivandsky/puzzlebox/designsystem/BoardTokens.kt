@@ -13,9 +13,11 @@ import androidx.compose.ui.unit.dp
 //
 // VALUES are research U2's primary table (`.scratch/puzzlebox/research/
 // uiux-01-board-palette.md`), adopted by ticket 20: reuse roles alias the live
-// ColorTokens.kt values so scheme re-tunes propagate; only three light values are
-// new (#0F78B4 on-path dot, #1899D6 trace, #D07C00 selection — darkest-hue-family
-// steps chosen as the brightest that clears the bar). Bars: labels & dot fills
+// ColorTokens.kt values so scheme re-tunes propagate; light's three new values
+// (#0F78B4 on-path dot, #1899D6 trace, #D07C00 selection — darkest-hue-family
+// steps chosen as the brightest that clears the bar) and dark's trace pair are
+// literals — ticket 27 softened the dark trace off the scheme's neon secondary.
+// Bars: labels & dot fills
 // >= 4.5:1 vs boardSurface and label-on-its-fill (WCAG 1.4.3); trace/wall/
 // selection >= 3:1 (1.4.11 non-text); gridline >= 2:1 self-imposed "clearly
 // visible" floor. BoardTokensTest pins all of them.
@@ -41,16 +43,19 @@ data class BoardColors(
 
 // Dark values alias the dark scheme (provenance per U2's table; ratios vs
 // boardSurface): gridline 4.59, wall 8.01, dot 9.70, label-on-dot 8.28,
-// on-path dot 6.84, onPathLabel-on-fill 6.02, trace 6.84, selection 10.76.
+// selection 10.76. Ticket 27 retuned the shared trace/on-path dot blue off the
+// scheme: on-path dot 9.89, onPathLabel-on-fill 8.71, trace 9.89 — same hue as
+// #1CB0F6, lighter + desaturated (user: "some lighter shade of blue") after it
+// read as neon glare.
 val DarkBoardTokens = BoardColors(
     boardSurface = DarkColorScheme.surfaceContainer,
     boardGridLine = DarkColorScheme.outline,
     boardWall = DarkColorScheme.onSurfaceVariant,
     waypointDot = DarkColorScheme.primary,
     waypointLabel = DarkColorScheme.onPrimary,
-    waypointDotOnPath = DarkColorScheme.secondary,
+    waypointDotOnPath = Color(0xFFB3CBD6), // T27 gate R1/D1: scheme secondary #1CB0F6 read as neon glare — powder step of the SAME hue (HSL 199°, S 92→30%, L 54→77%; oklch C 0.151→0.030), literal no longer aliases
     onPathLabel = DarkColorScheme.onSecondary,
-    pathTrace = DarkColorScheme.secondary, // = waypointDotOnPath by design: continuity of the passed path
+    pathTrace = Color(0xFFB3CBD6), // = waypointDotOnPath by design: continuity of the passed path
     boardSelection = DarkColorScheme.tertiary,
     boardRegion = DarkColorScheme.surfaceContainerHigh, // future fill tint; stroke its boundary with wall/gridline when built
 )

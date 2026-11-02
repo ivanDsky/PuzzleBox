@@ -23,7 +23,7 @@ enum class PlayLayout { SinglePane, TwoPane }
  * phones keep near-full width under the pane's standard margins, and a shorter pane
  * shrinks the board further so the grid aspect stays exact.
  */
-val PlayBoardMaxWidth = 480.dp
+val PlayBoardMaxWidth = 552.dp // gate round 3: user asked +15% over the original 480dp
 
 /**
  * The pane decision as a pure function — same policy as home (A12 / ticket 07):

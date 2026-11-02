@@ -99,8 +99,20 @@ fun zipWallOverlays(model: ZipRendererModel): List<EdgeOverlay.Wall> =
  * edits are out of ticket 22's scope; promoting them into the token file is a gate decision.
  */
 internal object ZipBoardSpec {
-    /** A6 floor / U1 mobile: waypoint dot Ø as a fraction of the cell pitch. */
+    /** A6 floor / U1 mobile: waypoint dot Ø as a fraction of the cell pitch (n ≤ 7). */
     const val waypointDotSizeFraction = 0.60f
+
+    /**
+     * D5 gate resolution (2026-11-01): at n8 the two-digit labels measured 9.35dp cap —
+     * under the 10.3dp senior-UX comfort floor. 0.66 at n ≥ 8 lands the cap exactly on
+     * the floor; neighbor gap stays ~14dp (no merge). Softer trace blue (ticket 27)
+     * keeps the bigger dots from glaring. Apply via [dotSizeFraction].
+     */
+    const val n8WaypointDotSizeFraction = 0.66f
+
+    /** Dot fraction for a board size: n8+ carries the D5 label-legibility bump. */
+    fun dotSizeFraction(n: Int): Float =
+        if (n >= 8) n8WaypointDotSizeFraction else waypointDotSizeFraction
 
     /** U1 mobile: label cap height as a fraction of the dot Ø, sized from the dot (not sp). */
     const val waypointLabelCapFraction = 0.38f
@@ -155,6 +167,7 @@ private val cellCorner = RoundedCornerShape(10.dp)
 @Composable
 fun ZipCellDecor(model: ZipRendererModel, row: Int, col: Int, modifier: Modifier = Modifier) {
     val idx = row * model.n + col
+    val dotFraction = ZipBoardSpec.dotSizeFraction(model.n)
     val cell = model.cells[idx]
     val pathIndex = model.path.indexOf(idx)
     val inPath = cell.isOnPath
@@ -190,22 +203,28 @@ fun ZipCellDecor(model: ZipRendererModel, row: Int, col: Int, modifier: Modifier
         }
         if (cell.isWaypoint) {
             if (inPath) {
-                // Dots sitting ON the trace get a thin separation halo (U1): boardSurface
-                // shows through the ring between the trace and the dot, luminance-separated
-                // against both in each theme.
+                // D2 gate resolution (round 3): hollow on-path dot — trace-role ring on a
+                // boardSurface hole, label in the trace role's color (dark #B3CBD6 9.89:1 /
+                // light #0F78B4 4.81:1 on surface, both ≥4.5). Replaces the filled dot +
+                // boardSurface halo, whose dark ring read as cuts in the pipe; the hollow
+                // ring needs no halo — the surface hole separates it from the trace by
+                // luminance in both themes. Ring thickness = start ring (visual set).
                 Box(
                     Modifier
-                        .fillMaxSize(
-                            ZipBoardSpec.waypointDotSizeFraction + 2 * ZipBoardSpec.waypointHaloFraction,
-                        )
-                        .background(board.boardSurface, CircleShape),
-                )
-                Box(
-                    Modifier
-                        .fillMaxSize(ZipBoardSpec.waypointDotSizeFraction)
+                        .fillMaxSize(dotFraction)
                         .background(board.waypointDotOnPath, CircleShape)
                         .testTag("play.waypoint_dot_$idx"),
-                )
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxSize(
+                                (dotFraction - 2 * ZipBoardSpec.startRingFraction) /
+                                    dotFraction,
+                            )
+                            .background(board.boardSurface, CircleShape),
+                    )
+                }
             } else if (cell.isStart) {
                 // Start waypoint (U1 evidence is thin — treatment flagged for the T25
                 // gate): hollow variant per U2's alternative pairing — waypointDot ring on
@@ -214,7 +233,7 @@ fun ZipCellDecor(model: ZipRendererModel, row: Int, col: Int, modifier: Modifier
                 // traced, the start reads as any visited dot (on-path role).
                 Box(
                     Modifier
-                        .fillMaxSize(ZipBoardSpec.waypointDotSizeFraction)
+                        .fillMaxSize(dotFraction)
                         .background(board.waypointDot, CircleShape)
                         .testTag("play.waypoint_dot_$idx"),
                     contentAlignment = Alignment.Center,
@@ -222,8 +241,8 @@ fun ZipCellDecor(model: ZipRendererModel, row: Int, col: Int, modifier: Modifier
                     Box(
                         Modifier
                             .fillMaxSize(
-                                (ZipBoardSpec.waypointDotSizeFraction - 2 * ZipBoardSpec.startRingFraction) /
-                                    ZipBoardSpec.waypointDotSizeFraction,
+                                (dotFraction - 2 * ZipBoardSpec.startRingFraction) /
+                                    dotFraction,
                             )
                             .background(board.boardSurface, CircleShape),
                     )
@@ -231,7 +250,7 @@ fun ZipCellDecor(model: ZipRendererModel, row: Int, col: Int, modifier: Modifier
             } else {
                 Box(
                     Modifier
-                        .fillMaxSize(ZipBoardSpec.waypointDotSizeFraction)
+                        .fillMaxSize(dotFraction)
                         .background(board.waypointDot, CircleShape)
                         .testTag("play.waypoint_dot_$idx"),
                 )
@@ -246,7 +265,7 @@ fun ZipCellDecor(model: ZipRendererModel, row: Int, col: Int, modifier: Modifier
                 val fontSize = with(LocalDensity.current) {
                     (
                         pitch *
-                            ZipBoardSpec.waypointDotSizeFraction *
+                            dotFraction *
                             ZipBoardSpec.waypointLabelCapFraction *
                             ZipBoardSpec.labelFontPerCap
                         ).toSp()
@@ -255,7 +274,7 @@ fun ZipCellDecor(model: ZipRendererModel, row: Int, col: Int, modifier: Modifier
                     text = label.toString(),
                     style = TextStyle(fontWeight = FontWeight.Bold, fontSize = fontSize),
                     color = when {
-                        inPath -> board.onPathLabel
+                        inPath -> board.waypointDotOnPath // hollow: label on surface in the ring's color
                         cell.isStart -> board.waypointDot // hollow start: label in the ring's color
                         else -> board.waypointLabel
                     },

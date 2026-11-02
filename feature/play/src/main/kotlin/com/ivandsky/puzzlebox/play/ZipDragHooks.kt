@@ -7,10 +7,12 @@ import com.ivandsky.puzzlebox.games.zip.ZipBoard
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
 
 /**
- * Zip's gesture predicates (finding F3-③): the rules' I1–I5 local checks re-authored as
- * pure look-ahead over the gesture's working trace, so valid drags feel instant. These
- * are a pre-filter only — the screen still validates every emitted move against the
- * committed path via [ZipRules] (F2 §7); the hooks never mutate state.
+ * Zip's gesture predicate (finding F3-③): the rules' I1–I5 local checks re-authored as
+ * pure look-ahead over the gesture's working trace, so valid drags feel instant. This is
+ * a pre-filter only — the screen still validates every emitted move against the
+ * committed path via [ZipRules] (F2 §7); the hook never mutates state. Retraction is
+ * gesture-layer law (ticket 26 R1): draw-back retracts by one, tap retracts deliberately,
+ * and the hook no longer participates in either.
  */
 class ZipDragHooks(private val board: ZipBoard) : DragTraceHooks {
 
@@ -25,9 +27,6 @@ class ZipDragHooks(private val board: ZipBoard) : DragTraceHooks {
         val label = board.waypointLabel(cell)
         return label == null || label == path.count { board.isWaypoint(cellOf(it)) } + 1 // I5
     }
-
-    override fun retractIndex(path: List<GridCell>, next: GridCell): Int? =
-        path.indexOf(next).takeIf { it >= 0 }
 
     private fun cellOf(cell: GridCell) = Cell(cell.row * board.n + cell.col)
 }

@@ -138,6 +138,10 @@ internal val ShowkaseWaypointDotOnPath: Color = DarkBoardTokens.waypointDotOnPat
 internal val ShowkaseOnPathLabel: Color = DarkBoardTokens.onPathLabel
 @ShowkaseColor(name = "pathTrace", group = "Board")
 internal val ShowkasePathTrace: Color = DarkBoardTokens.pathTrace
+// Ticket 27's gate swatch: the rejected neon secondary stays registered next to
+// the shipped powder step (user gate R1, D1) — drop once the user closes the gate.
+@ShowkaseColor(name = "pathTrace before T27 (#1CB0F6)", group = "Board")
+internal val ShowkasePathTraceBeforeT27: Color = Color(0xFF1CB0F6)
 @ShowkaseColor(name = "boardSelection", group = "Board")
 internal val ShowkaseBoardSelection: Color = DarkBoardTokens.boardSelection
 @ShowkaseColor(name = "boardRegion", group = "Board")
