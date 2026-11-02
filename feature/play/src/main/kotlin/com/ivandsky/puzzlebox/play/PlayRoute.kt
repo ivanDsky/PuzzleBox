@@ -26,11 +26,13 @@ import org.koin.compose.koinInject
  * never cancelled by navigation), the badge verdict lands on the result screen, and
  * "Play again" resets the same puzzle in the flow's live state.
  *
- * Rotation/process-death safety (ticket 13 DoD): the session rides `rememberSaveable`
- * as the ACTIVE game's codec bytes (the flow serializes on change), so a live session
- * survives recreation without a refetch. The serialization callback belongs to the
- * entry that STARTED the flow; a re-entered entry finds the session already live in
- * the flow and keeps it.
+ * Rotation/process-death safety (ticket 13 DoD; fix-round-1 C1): the session rides
+ * `rememberSaveable` as a [SessionBlob] envelope naming the game (the flow wraps its
+ * codec bytes on change). The envelope is self-describing, so the restore path works
+ * for BOTH sources the same way — the in-composition saveable and the history replay
+ * blob — including after process death, where the saveable is reborn into a flow with
+ * NO state: [PlayFlow.restore] restarts the named game and adopts there instead of
+ * silently dropping the bytes on the null-state safe call.
  *
  * tango-05 (A14): a fresh entry — no live flow state, no restored replay — shows the
  * GAME PICKER first; picking Zip or Tango starts that game's flow in place. A
@@ -57,28 +59,26 @@ fun PlayRoute(
     val restored = remember(restoredSession) { restoredSession?.let(SessionBlob::decode) }
     var restoredConsumed by remember { mutableStateOf(false) }
 
-    // One-shot per state instance: adopt a persisted session when there is one, else
-    // the replay blob, else fetch the picked game's board. The in-composition saveable
-    // wins (mid-play rotation). A flow state carried over from a FINISHED result flow
-    // (system back never runs app code) is stale: a completed session at a fresh
+    // One-shot per state instance: adopt a persisted session or the replay blob (both
+    // are SessionBlob envelopes naming their game — fix-round-1 C1 unified them), else
+    // fetch the picked game's board. Priority: saveable first (mid-play rotation AND
+    // process death — the saveable outlives the flow singleton, whose restart lives in
+    // PlayFlow.restore), then the replay blob, once per state instance. A flow state
+    // carried over from a FINISHED result flow is stale: a completed session at a fresh
     // non-replay entry means a fresh fetch. The live mid-flow session (result → Play
     // again) is kept untouched.
     LaunchedEffect(flow.state) {
         val saved = savedSession
         savedSession = null
+        val envelope = saved?.let(SessionBlob::decode)
+            ?: restored?.takeIf { !restoredConsumed }?.also { restoredConsumed = true }
         when {
-            saved != null -> flow.state?.adoptRestored(saved)
-
-            restored != null && !restoredConsumed -> {
-                restoredConsumed = true
-                val game = PlayGame.byId(restored.game) ?: return@LaunchedEffect
-                if (flow.state?.game != game) flow.end() // stale other-game flow
-                flow.start(game) { bytes -> savedSession = bytes }.adoptRestored(restored.session)
-            }
+            envelope != null -> flow.restore(envelope) { bytes -> savedSession = bytes }
 
             // A consumed replay adopted its session — never fetch over it (a restored
             // completed replay day must show its win, not today's board).
-            restored == null || !restoredConsumed -> flow.state?.takeIf { it.needsLoad }?.load()
+            saved == null && (restored == null || !restoredConsumed) ->
+                flow.state?.takeIf { it.needsLoad }?.load()
         }
     }
 

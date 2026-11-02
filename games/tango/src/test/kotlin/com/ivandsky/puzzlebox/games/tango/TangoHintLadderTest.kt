@@ -82,6 +82,18 @@ class TangoHintLadderTest {
     }
 
     @Test
+    fun `a sandwich gap outranks count-completion`() {
+        // Blank 6x6: row 0 holds S_S — the sandwich rung fires before any count line reaches half.
+        val puzzle = TangoPuzzle(TangoTestSupport.variant, n = 6, givens = emptyMap(), markers = emptyList())
+        val g = MutableList<TangoCell?>(36) { null }.also {
+            it[0] = TangoCell.SUN
+            it[2] = TangoCell.SUN
+        }
+        val hint = TangoRules.hint(TangoState(puzzle, g))
+        assertEquals(TangoHint.Forced(1, TangoCell.MOON, TangoHint.Why.ThreeInARow(0, 2)), hint)
+    }
+
+    @Test
     fun `hints respect givens and never propose overwriting one`() {
         val puzzle = TangoTestSupport.sample
         var grid = gridOf(puzzle)

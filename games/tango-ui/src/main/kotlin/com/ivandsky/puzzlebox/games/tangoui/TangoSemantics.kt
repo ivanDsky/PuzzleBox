@@ -3,15 +3,148 @@ package com.ivandsky.puzzlebox.games.tangoui
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
+import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 
 /**
- * TalkBack phrasing (design-direction §9, verbatim copy §6) and violation captions —
- * pure functions so the §10.6 redundancy floor is unit-asserted on the JVM: the
- * violation state lives in the semantics stateDescription, never pixels alone.
+ * TalkBack phrasing (design-direction §9) + the STATE-DRIVEN violation projection
+ * (§6: marks "persist until the board is legal again" — derived from the live grid,
+ * never from the transient last-rejection event) + §6-exact violation/hint copy —
+ * pure functions so the §10.6 redundancy floor is unit-asserted on the JVM.
  */
 object TangoSemantics {
+
+    /** One violated constraint on the live grid: which cells, which rule, which edge. */
+    data class Violation(
+        val cells: Set<Int>,
+        val reason: TangoVerdict.Reason,
+        /** The broken `=`/`×` edge, when [reason] is [TangoVerdict.Reason.MarkerConflict]. */
+        val marker: TangoRendererModel.MarkerRender?,
+        val phrase: String,
+    )
+
+    // ---- state-driven violation scan (§6, review I2/I3) ----
+
+    /**
+     * Every violated constraint on the CURRENT grid: broken `=`/`×` edges first, then
+     * three-in-a-row runs, then over-full lines. Empty exactly when the board is
+     * legal — marks derived from this persist while anything is illegal.
+     */
+    fun violations(model: TangoRendererModel): List<Violation> {
+        val n = model.n
+        val found = mutableListOf<Violation>()
+
+        // Broken marker edges — the SPECIFIC edge is carried so satisfied edges never
+        // over-mark and a dual-marked cell captions the actually-broken symbol (I2).
+        for (marker in model.markers) {
+            val a = valueAt(model, marker.cellIdx) ?: continue
+            val b = valueAt(model, neighbor(marker, n) ?: continue) ?: continue
+            val broken = when (marker.kind) {
+                TangoMarkerKind.SAME -> a != b
+                TangoMarkerKind.OPPOSITE -> a == b
+            }
+            if (broken) {
+                found += Violation(
+                    cells = setOf(marker.cellIdx, neighbor(marker, n)!!),
+                    reason = TangoVerdict.Reason.MarkerConflict,
+                    marker = marker,
+                    phrase = markerConflictPhrase(marker),
+                )
+            }
+        }
+
+        // Three-in-a-row runs (rows then columns, row-major order).
+        for (row in 0 until n) {
+            val line = (0 until n).map { row * n + it }
+            found += runsIn(model, line, axis = "row", lineIndex = row)
+        }
+        for (col in 0 until n) {
+            val line = (0 until n).map { col + it * n }
+            found += runsIn(model, line, axis = "column", lineIndex = col)
+        }
+
+        // Over-full lines (§6 count copy names the line, value, and cap).
+        val half = n / 2
+        for (row in 0 until n) {
+            val line = (0 until n).map { row * n + it }
+            found += overFull(model, line, half, isRow = true)
+        }
+        for (col in 0 until n) {
+            val line = (0 until n).map { col + it * n }
+            found += overFull(model, line, half, isRow = false)
+        }
+        return found
+    }
+
+    private fun runsIn(
+        model: TangoRendererModel,
+        line: List<Int>,
+        axis: String,
+        lineIndex: Int,
+    ): List<Violation> {
+        val violations = mutableListOf<Violation>()
+        var run = mutableListOf<Int>()
+        var runValue: TangoCell? = null
+        fun flush() {
+            if (runValue != null && run.size >= 3) {
+                violations += Violation(
+                    cells = run.toSet(),
+                    reason = TangoVerdict.Reason.ThreeInARow,
+                    marker = null,
+                    phrase = "Three ${plural(runValue!!)} in a $axis.",
+                )
+            }
+            run = mutableListOf()
+            runValue = null
+        }
+        for (idx in line) {
+            val value = valueAt(model, idx)
+            if (value == null || value != runValue) flush()
+            if (value != null) {
+                run.add(idx)
+                runValue = value
+            }
+        }
+        flush()
+        return violations
+    }
+
+    private fun overFull(
+        model: TangoRendererModel,
+        line: List<Int>,
+        half: Int,
+        isRow: Boolean,
+    ): List<Violation> {
+        val n = model.n
+        return listOf(TangoCell.SUN, TangoCell.MOON).mapNotNull { value ->
+            val placed = line.filter { valueAt(model, it) == value }
+            if (placed.size > half) {
+                val name = if (isRow) "Row ${line.first() / n + 1}" else "Column ${line.first() % n + 1}"
+                val axis = if (isRow) "row" else "column"
+                Violation(
+                    cells = placed.toSet(),
+                    reason = TangoVerdict.Reason.CountExceeded,
+                    marker = null,
+                    phrase = "$name has ${placed.size} ${plural(value)} — a $axis holds $half.",
+                )
+            } else {
+                null
+            }
+        }
+    }
+
+    private fun neighbor(marker: TangoRendererModel.MarkerRender, n: Int): Int? {
+        val row = marker.cellIdx / n
+        val col = marker.cellIdx % n
+        return when (marker.side) {
+            TangoEdgeSide.RIGHT -> if (col + 1 < n) marker.cellIdx + 1 else null
+            TangoEdgeSide.DOWN -> if (row + 1 < n) marker.cellIdx + n else null
+        }
+    }
+
+    private fun valueAt(model: TangoRendererModel, idx: Int): TangoCell? =
+        model.cells.getOrNull(idx)?.value
 
     // ---- per-cell TalkBack strings (§9) ----
 
@@ -21,7 +154,8 @@ object TangoSemantics {
 
     /**
      * StateDescription: "given sun" / "sun" / "moon" / "empty", prefixed "violates: "
-     * + rule phrase when the cell carries the violation (redundant channel, §10.6).
+     * + rule phrase when the cell carries a violation on the live grid (§10.6
+     * redundancy — the state-driven scan, not the transient rejection).
      */
     fun cellStateDescription(model: TangoRendererModel, idx: Int): String {
         val render = model.cells.getOrNull(idx)
@@ -30,9 +164,31 @@ object TangoSemantics {
             TangoCell.MOON -> if (render.isGiven) "given moon" else "moon"
             null -> "empty"
         }
-        val violation = violationPhrase(model, idx)
+        val violation = violationPhraseAt(model, idx)
         return if (violation == null) value else "violates: $violation"
     }
+
+    /**
+     * The rule-naming phrase for the offending cell on the LIVE grid, or null when
+     * the cell carries no violation (§6: the copy tells the truth about the cause).
+     * Per-cell priority: a broken edge first, then an over-full line, then the run —
+     * a 6-sun row reads as the count truth, not the run consequence.
+     */
+    fun violationPhraseAt(model: TangoRendererModel, idx: Int): String? =
+        violations(model)
+            .filter { idx in it.cells }
+            .minByOrNull {
+                when (it.reason) {
+                    TangoVerdict.Reason.MarkerConflict -> 0
+                    TangoVerdict.Reason.CountExceeded -> 1
+                    else -> 2
+                }
+            }
+            ?.phrase
+
+    /** Caption-slot phrase: the first violation in deterministic scan order, or null. */
+    fun firstViolationPhrase(model: TangoRendererModel): String? =
+        violations(model).firstOrNull()?.phrase
 
     /**
      * Marker phrasing appended to each affected cell's ContentDescription (§9): the
@@ -52,7 +208,24 @@ object TangoSemantics {
             }
         }
 
-    /** Custom action labels (§9): variant A maps to cycle steps, B to chooser + erase. */
+    /** Whether the cell sits on a broken marker edge (renderer tint/border gate). */
+    fun markerInvolved(marker: TangoRendererModel.MarkerRender, idx: Int, n: Int): Boolean {
+        val row = marker.cellIdx / n
+        val col = marker.cellIdx % n
+        return when (marker.side) {
+            TangoEdgeSide.RIGHT -> idx == marker.cellIdx || idx == row * n + col + 1
+            TangoEdgeSide.DOWN -> idx == marker.cellIdx || idx == marker.cellIdx + n
+        }
+    }
+
+    /** "= pair mismatch — these cells must match." / "× pair mismatch — these cells must differ." */
+    private fun markerConflictPhrase(marker: TangoRendererModel.MarkerRender): String {
+        val symbol = if (marker.kind == TangoMarkerKind.SAME) "=" else "×"
+        val requirement = if (symbol == "=") "match" else "differ"
+        return "$symbol pair mismatch — these cells must $requirement."
+    }
+
+    /** Custom action labels (§9): the gesture model; commits are final-only (I4). */
     val customActions = listOf("Place sun", "Place moon", "Clear")
 
     /** Chooser target labels (§9, variant B). */
@@ -67,99 +240,61 @@ object TangoSemantics {
     fun columnCountDescription(col: Int, placed: Int, total: Int): String =
         "Column ${col + 1} has $placed of $total suns"
 
-    // ---- violation copy (§6, exact) ----
+    // ---- hint copy (§6, exact value-naming; review M1) ----
 
     /**
-     * The rule-naming phrase for the offending cell, or null when the cell carries
-     * no violation. Axis/value derived by scanning the grid — the copy tells the
-     * truth about the cause, names the axis/rule.
+     * The hint's WHY as a §6 sentence, value-naming with evidence from the grid:
+     * "Row 3 would hold three moons — this cell is a sun." /
+     * "Column 5 already has three suns — the rest are moons." /
+     * "= links this cell to a sun — it must be a sun."
      */
-    fun violationPhrase(model: TangoRendererModel, idx: Int): String? {
-        val rejection = model.rejection ?: return null
-        val n = model.n
-        val row = idx / n
-        val col = idx % n
-        return when (rejection.reason) {
-            TangoVerdict.Reason.ThreeInARow ->
-                if (rejection.idx == idx) threeInARowPhrase(model, idx) else null
-            TangoVerdict.Reason.CountExceeded ->
-                if (rejection.idx == idx) countExceededPhrase(model, idx) else null
-            TangoVerdict.Reason.MarkerConflict ->
-                // §6: both cells of the broken edge are marked and captioned.
-                if (model.markers.any { markerInvolved(it, idx, n) }) markerConflictPhrase(model, idx) else null
-            TangoVerdict.Reason.LockedGiven ->
-                if (rejection.idx == idx) "This cell is a given." else null
-            TangoVerdict.Reason.ForeignMove -> null
+    fun hintPhrase(model: TangoRendererModel, why: TangoHint.Why): String = when (why) {
+        is TangoHint.Why.MarkerBinding -> {
+            val bound = valueAt(model, why.markerCell)
+                ?: valueAt(model, why.neighborIdx)
+            val word = singular(bound) ?: "cell"
+            when (why.kind) {
+                TangoMarkerKind.SAME -> "= links this cell to a $word — it must be a $word."
+                TangoMarkerKind.OPPOSITE -> {
+                    val other = if (bound == TangoCell.SUN) "moon" else "sun"
+                    "× links this cell to a $word — it must be a $other."
+                }
+            }
+        }
+        is TangoHint.Why.ThreeInARow -> {
+            val value = valueAt(model, why.first)
+            val n = model.n
+            val sameRow = why.first / n == why.second / n
+            val line = if (sameRow) "Row ${why.first / n + 1}" else "Column ${why.first % n + 1}"
+            "$line would hold three ${plural(value ?: TangoCell.SUN)} — " +
+                "this cell is a ${singular(other(value ?: TangoCell.SUN))}."
+        }
+        is TangoHint.Why.LineFull -> {
+            val row = why.row
+            val line = if (row != null) "Row ${row + 1}" else "Column ${(why.col ?: 0) + 1}"
+            val half = numberWord(model.n / 2)
+            "$line already has $half ${plural(why.fullOf)} — the rest are ${plural(other(why.fullOf))}."
         }
     }
 
-    /** Whether the cell carries the rejection's violation (renderer tint/border gate). */
-    fun isViolating(model: TangoRendererModel, idx: Int): Boolean = violationPhrase(model, idx) != null
-
-    /** "Three suns in a row." / "Three moons in a column." — axis named. */
-    private fun threeInARowPhrase(model: TangoRendererModel, idx: Int): String {
-        val value = model.cells.getOrNull(idx)?.value ?: return "Three in a row."
-        val name = if (value == TangoCell.SUN) "suns" else "moons"
-        val n = model.n
-        val row = idx / n
-        val col = idx % n
-        val rowRun = longestRun(model, row * n, 1, n)
-        val colRun = longestRun(model, col, n, n)
-        val axis = if (rowRun >= 3) "row" else "column"
-        return "Three $name in a $axis."
+    private fun numberWord(count: Int): String = when (count) {
+        2 -> "two"
+        3 -> "three"
+        4 -> "four"
+        5 -> "five"
+        else -> count.toString()
     }
 
-    /** "Row 4 has 4 suns — a row holds 3." / column variant. */
-    private fun countExceededPhrase(model: TangoRendererModel, idx: Int): String {
-        val value = model.cells.getOrNull(idx)?.value ?: return "Row count exceeded."
-        val name = if (value == TangoCell.SUN) "suns" else "moons"
-        val n = model.n
-        val row = idx / n
-        val col = idx % n
-        val half = n / 2
-        val rowPlaced = countPlaced(model, row * n, 1, n)
-        val colPlaced = countPlaced(model, col, n, n)
-        return if (rowPlaced > half) {
-            "Row ${row + 1} has $rowPlaced $name — a row holds $half."
-        } else {
-            "Column ${col + 1} has $colPlaced $name — a column holds $half."
-        }
+    private fun singular(value: TangoCell?): String = when (value) {
+        TangoCell.MOON -> "moon"
+        else -> "sun"
     }
 
-    /** "= pair mismatch — these cells must match." / "× pair mismatch — these cells must differ." */
-    private fun markerConflictPhrase(model: TangoRendererModel, idx: Int): String {
-        val symbol = model.markers
-            .firstOrNull { markerInvolved(it, idx, model.n) }
-            ?.let { if (it.kind == TangoMarkerKind.SAME) "=" else "×" } ?: "="
-        val requirement = if (symbol == "=") "match" else "differ"
-        return "$symbol pair mismatch — these cells must $requirement."
-    }
+    private fun plural(value: TangoCell): String = if (value == TangoCell.SUN) "suns" else "moons"
 
-    private fun markerInvolved(marker: TangoRendererModel.MarkerRender, idx: Int, n: Int): Boolean {
-        val row = marker.cellIdx / n
-        val col = marker.cellIdx % n
-        return when (marker.side) {
-            TangoEdgeSide.RIGHT -> idx == marker.cellIdx || idx == row * n + col + 1
-            TangoEdgeSide.DOWN -> idx == marker.cellIdx || idx == marker.cellIdx + n
-        }
-    }
+    private fun other(value: TangoCell): TangoCell = if (value == TangoCell.SUN) TangoCell.MOON else TangoCell.SUN
 
-    /** Longest same-value run along a line; empty cells break runs. */
-    private fun longestRun(model: TangoRendererModel, start: Int, step: Int, count: Int): Int {
-        var best = 0
-        var run = 0
-        var last: TangoCell? = null
-        for (i in 0 until count) {
-            val value = model.cells.getOrNull(start + i * step)?.value
-            run = if (value != null && value == last) run + 1 else if (value != null) 1 else 0
-            last = value
-            best = maxOf(best, run)
-        }
-        return best
-    }
-
-    private fun countPlaced(model: TangoRendererModel, start: Int, step: Int, count: Int): Int =
-        (0 until count).count { model.cells.getOrNull(start + it * step)?.value != null }
+    // ---- count-rail helpers ----
 
     /** Placed suns along a row (count rail semantics + pips). */
     fun sunsInRow(model: TangoRendererModel, row: Int): Int =

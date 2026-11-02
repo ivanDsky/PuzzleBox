@@ -47,6 +47,11 @@ class TangoBoardRendererSemanticsTest {
         labels.all { label -> actions.any { it.label == label } }
     }
 
+    /** M4: givens expose NO custom actions — inert surface must not fake success. */
+    private fun hasNoCustomActions() = SemanticsMatcher("no custom actions") {
+        it.config.getOrNull(SemanticsActions.CustomActions).orEmpty().isEmpty()
+    }
+
     private fun setState(variants: TangoAbVariants = TangoAbVariants()) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
@@ -78,9 +83,13 @@ class TangoBoardRendererSemanticsTest {
     }
 
     @Test
-    fun `cells carry the three custom actions`() {
+    fun `givens carry no custom actions - editable cells do`() {
         setState()
+        // idx 0 is a given: actions disabled (§2, review M4).
         composeRule.onNodeWithContentDescription("Row 1, column 1", substring = true)
+            .assert(hasNoCustomActions())
+        // idx 2 ("Row 1, column 3") is an editable cell: the three actions live there.
+        composeRule.onNodeWithContentDescription("Row 1, column 3", substring = true)
             .assert(hasCustomActions(listOf("Place sun", "Place moon", "Clear")))
     }
 
@@ -116,10 +125,8 @@ class TangoBoardRendererSemanticsTest {
         markers = listOf(
             TangoRendererModel.MarkerRender(3, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME),
         ),
-        rejection = TangoRendererModel.RejectedMove(
-            8,
-            com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict.Reason.ThreeInARow,
-        ),
+        // No rejection: violations come from the live-grid scan (review I3).
+        rejection = null,
         status = TangoRendererModel.Status.PLAYING,
     )
 }

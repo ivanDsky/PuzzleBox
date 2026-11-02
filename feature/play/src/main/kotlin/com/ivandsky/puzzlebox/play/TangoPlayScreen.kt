@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,9 +20,6 @@ import com.ivandsky.puzzlebox.gameui.BoardError
 import com.ivandsky.puzzlebox.gameui.BoardLoading
 import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.games.tango.TangoCell
-import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
-import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 import com.ivandsky.puzzlebox.games.tangoui.TangoBoardRenderer
 
@@ -105,7 +100,6 @@ private fun BoxScope.TangoBoardArea(
                         .zipBoardOutline(model.n)
                         .testTag("play.board"),
                 )
-                HintCaption(state)
             }
 
             screenState is TangoScreen.Unavailable -> BoardError(
@@ -121,43 +115,3 @@ private fun BoxScope.TangoBoardArea(
         }
     }
 }
-
-/** §6 hint caption: names the deduction class while the hint's placement stands. */
-@Composable
-private fun BoxScope.HintCaption(state: TangoPlayState) {
-    val why = state.hintWhy ?: return
-    Text(
-        text = hintPhrase(why),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
-            .padding(bottom = Spacing.md)
-            .testTag("play.hint_caption"),
-    )
-}
-
-/** The hint's WHY as a sentence (§6 hint copy: the reveal names the rule + evidence). */
-internal fun hintPhrase(why: TangoHint.Why): String = when (why) {
-    is TangoHint.Why.MarkerBinding -> when (why.kind) {
-        TangoMarkerKind.SAME -> "= links this cell to its partner — it must match."
-        TangoMarkerKind.OPPOSITE -> "× links this cell to its partner — it must be the opposite."
-    }
-
-    is TangoHint.Why.ThreeInARow ->
-        "This cell would make three of the same in a line — it must be the other value."
-
-    is TangoHint.Why.LineFull -> {
-        val other = if (why.fullOf == TangoCell.SUN) "moons" else "suns"
-        val row = why.row
-        when {
-            row != null -> "Row ${row + 1} already holds all its " +
-                valueWord(why.fullOf) + " — this cell is one of the $other."
-
-            else -> "Column ${(why.col ?: 0) + 1} already holds all its " +
-                valueWord(why.fullOf) + " — this cell is one of the $other."
-        }
-    }
-}
-
-private fun valueWord(value: TangoCell): String = if (value == TangoCell.SUN) "suns" else "moons"

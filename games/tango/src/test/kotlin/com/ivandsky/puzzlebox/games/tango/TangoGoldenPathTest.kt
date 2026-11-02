@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.tango
 
 import com.ivandsky.puzzlebox.game.DecodeResult
+import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.engine.TangoMove
 import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
 import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
@@ -85,6 +86,12 @@ class TangoGoldenPathTest {
 
     @Test
     fun `hints are counted on the session`() {
-        assertEquals(1, freshSession().withHintApplied().hintsUsed)
+        val forced = TangoHint.Forced(2, TangoCell.MOON, TangoHint.Why.ThreeInARow(0, 1))
+        assertEquals(1, freshSession().withHintApplied(forced).hintsUsed)
+    }
+
+    @Test
+    fun `a stuck hint is not consumed`() {
+        assertEquals(0, freshSession().withHintApplied(TangoHint.Stuck).hintsUsed)
     }
 }

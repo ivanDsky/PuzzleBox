@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.data.repository.ZipToday
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.SessionBlob
+import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.games.tango.TangoSession
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
@@ -55,20 +56,25 @@ class PlayRouteTest {
     private val cadenceToday: LocalDate =
         LocalDate.now((com.ivandsky.puzzlebox.games.tango.TangoDefinition.cadence as com.ivandsky.puzzlebox.game.Cadence.Daily).zone)
 
+    private fun dataModule(
+        zips: ZipDailyRepository = FakeZipDailyRepository(ZipToday.Fresh(PlayTestSupport.envelope())),
+        tangos: TangoDailyRepository = FakeTangoDailyRepository(todayResult = TangoToday.Fresh(TangoPlayFixture.envelope())),
+        completions: CompletionRepository = FakeCompletionRepository(),
+    ): org.koin.core.module.Module = module {
+        single { zips }
+        single { tangos }
+        single { completions }
+        // The picker names games from the plugin list (A14) — both games registered.
+        single<List<GamePlugin<*, *, *>>> { listOf(zipPlugin, tangoPlugin) }
+    }
+
     private fun koinWith(
         zips: ZipDailyRepository,
         tangos: TangoDailyRepository,
         completions: CompletionRepository,
     ): KoinApplication {
-        val data = module {
-            single { zips }
-            single { tangos }
-            single { completions }
-            // The picker names games from the plugin list (A14) — both games registered.
-            single<List<GamePlugin<*, *, *>>> { listOf(zipPlugin, tangoPlugin) }
-        }
         stopKoin() // tests share the JVM-global Koin context
-        return startKoin { modules(data, playModule) }
+        return startKoin { modules(dataModule(zips, tangos, completions), playModule) }
     }
 
     private var handedOff: List<Pair<Long, Int>> = emptyList()
@@ -231,4 +237,5 @@ class PlayRouteTest {
             koin.close()
         }
     }
+
 }

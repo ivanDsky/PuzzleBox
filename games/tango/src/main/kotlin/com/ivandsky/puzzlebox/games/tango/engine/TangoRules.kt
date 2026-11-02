@@ -61,7 +61,7 @@ object TangoRules : GameRules<TangoState> {
     }
 
     /** The forced-move ladder: first deduction wins; none found → [TangoHint.Stuck]. */
-    override fun hint(state: TangoState): Hint =
+    override fun hint(state: TangoState): TangoHint =
         TangoMarkerRule.deduction(state.puzzle, state.grid)
             ?: TangoTripleRule.deduction(state.puzzle, state.grid)
             ?: TangoCountRule.deduction(state.puzzle, state.grid)

@@ -67,6 +67,26 @@ class BoardTokensTest {
         }
     }
 
+    // Tango mark glyphs (`=`/`×` strokes + caption text) render in onSurfaceVariant —
+    // floor §10.3: marks are TEXT-sized glyphs, 4.5:1 vs boardSurface, both modes.
+    @Test
+    fun `tango mark color clears AA vs boardSurface in both themes`() {
+        for (scheme in listOf(LightColorScheme, DarkColorScheme)) {
+            val boardSurface = if (scheme === LightColorScheme) scheme.surface else scheme.surfaceContainer
+            assertTrue(contrast(scheme.onSurfaceVariant, boardSurface) >= 4.5f)
+        }
+    }
+
+    // Tango violation border/dash renders in colorScheme.error — floor §10.5:
+    // 3:1 non-text vs boardSurface, both modes.
+    @Test
+    fun `tango error color clears the non-text bar vs boardSurface in both themes`() {
+        for (scheme in listOf(LightColorScheme, DarkColorScheme)) {
+            val boardSurface = if (scheme === LightColorScheme) scheme.surface else scheme.surfaceContainer
+            assertTrue(contrast(scheme.error, boardSurface) >= 3f)
+        }
+    }
+
     @Test
     fun `dot fills meet AA on boardSurface in both themes`() {
         for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
