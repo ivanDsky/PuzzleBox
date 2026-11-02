@@ -77,7 +77,7 @@ class ZipSolverGoldenSnapshotTest {
             com.ivandsky.puzzlebox.game.VariantId("zip/n7"),
         )!!
         for (seed in n7WinnerSeeds) {
-            val puzzle = com.ivandsky.puzzlebox.games.zip.engine.ZipGenerator(kotlin.random.Random(seed))
+            val puzzle = ZipGenerator(kotlin.random.Random(seed))
                 .next(n7, wallProbability = 0.85)
             check(puzzle != null) { "winner seed $seed regressed: not uniquely solvable" }
             check(solver.countSolutions(puzzle) == 1) { "winner seed $seed regressed: not unique" }

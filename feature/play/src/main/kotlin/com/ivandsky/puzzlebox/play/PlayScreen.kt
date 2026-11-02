@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -40,6 +42,10 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.gameui.TimerBar
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import kotlinx.coroutines.delay
+
+/** Ticket 28: the hint arrow's on-screen timing — hold ~2s, then a short fade. */
+private const val HINT_ARROW_HOLD_MS = 2000L
+private const val HINT_ARROW_FADE_MS = 300
 
 /**
  * The Zip play screen (ticket 13): board + trace gesture + timer + hints, arranged by
@@ -121,23 +127,44 @@ private fun BoxScope.BoardArea(
     ) {
         val screenState = state.screen
         when {
-            ready != null && model != null -> DragTraceBoard(
-                rows = model.n,
-                cols = model.n,
-                path = model.path.map { GridCell(it / model.n, it % model.n) },
-                hooks = remember(ready.puzzle) { ZipDragHooks(ready.puzzle.board) },
-                onEvent = state::onDragEvent,
-                edgeOverlays = zipWallOverlays(model),
-                cellContent = { row, col -> ZipCellDecor(model, row, col) },
-                // A4: capped at PlayBoardMaxWidth and centered by the pane; BoardGrid's
-                // aspectRatio keeps the grid exact under these loose constraints. The
-                // outline rides the same modifier (U1 §4 — Zip's outline is gridline-weight).
-                modifier = Modifier
-                    .widthIn(max = PlayBoardMaxWidth)
-                    .heightIn(max = PlayBoardMaxWidth)
-                    .zipBoardOutline(model.n)
-                    .testTag("play.board"),
-            )
+            ready != null && model != null -> {
+                val reducedMotion = rememberReducedMotion()
+                // Ticket 28: the hint arrow lives ~2s at the auto-placed head (or until
+                // the next input, which nulls it), fading out unless motion is reduced.
+                val arrow = state.hintArrow
+                val arrowAlpha = remember(arrow) { Animatable(1f) }
+                LaunchedEffect(arrow) {
+                    if (arrow == null) return@LaunchedEffect
+                    delay(HINT_ARROW_HOLD_MS)
+                    if (!reducedMotion) {
+                        arrowAlpha.animateTo(0f, tween(HINT_ARROW_FADE_MS))
+                    }
+                    state.clearHintArrow()
+                }
+                Box {
+                    DragTraceBoard(
+                        rows = model.n,
+                        cols = model.n,
+                        path = model.path.map { GridCell(it / model.n, it % model.n) },
+                        hooks = remember(ready.puzzle) { ZipDragHooks(ready.puzzle.board) },
+                        onEvent = state::onDragEvent,
+                        edgeOverlays = zipWallOverlays(model),
+                        underlay = { ZipPipes(model) },
+                        cellContent = { row, col ->
+                            ZipCellDecor(model, row, col, animatePulse = !reducedMotion)
+                        },
+                        // A4: capped at PlayBoardMaxWidth and centered by the pane; BoardGrid's
+                        // aspectRatio keeps the grid exact under these loose constraints. The
+                        // outline rides the same modifier (U1 §4 — Zip's outline is gridline-weight).
+                        modifier = Modifier
+                            .widthIn(max = PlayBoardMaxWidth)
+                            .heightIn(max = PlayBoardMaxWidth)
+                            .zipBoardOutline(model.n)
+                            .testTag("play.board"),
+                    )
+                    arrow?.let { HintArrowHead(it, model, arrowAlpha.value, Modifier.matchParentSize()) }
+                }
+            }
 
             screenState is ZipScreen.Unavailable -> BoardError(
                 message = screenState.message,

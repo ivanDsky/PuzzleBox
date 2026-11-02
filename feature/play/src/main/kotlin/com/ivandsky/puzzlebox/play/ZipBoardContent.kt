@@ -1,14 +1,18 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +26,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -34,14 +40,17 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import android.provider.Settings
 import com.ivandsky.puzzlebox.designsystem.BoardTokens
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -58,6 +67,9 @@ import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
 import com.ivandsky.puzzlebox.games.zip.engine.ZipState
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * The F2-1 Compose mapping, owned HERE (the state→model call site is the play feature;
@@ -79,6 +91,7 @@ fun ZipBoard(model: ZipRendererModel, modifier: Modifier = Modifier) {
         cols = model.n,
         modifier = modifier.zipBoardOutline(model.n),
         edgeOverlays = zipWallOverlays(model),
+        underlay = { ZipPipes(model) },
         cellContent = { row, col -> ZipCellDecor(model, row, col) },
     )
 }
@@ -129,6 +142,13 @@ internal object ZipBoardSpec {
     /** Start waypoint's hollow-variant ring thickness, as a fraction of the pitch. */
     const val startRingFraction = 0.05f
 
+    /** Ticket 28: next-target highlight — full color-fade loop duration (ms). */
+    const val nextTargetFadeMs = 1600
+
+    /** Ticket 28: hint chevron — stroke width and wing length, as fractions of the pitch. */
+    const val hintArrowWidthFraction = 0.085f
+    const val hintArrowLengthFraction = 0.15f
+
     /** U1 §4: board outline corner radius, measured 0.35–0.4 cell (midpoint picked). */
     const val boardOutlineRadiusFraction = 0.375f
 }
@@ -159,17 +179,25 @@ internal fun Modifier.zipBoardOutline(n: Int): Modifier {
 private val cellCorner = RoundedCornerShape(10.dp)
 
 /**
- * One cell: the fat rounded trace (A2 — under everything), LinkedIn-style waypoint dots
- * with the bold label INSIDE the dot, the hint ring, and the transient rejection pulse.
- * Sizes come from [ZipBoardSpec] fractions of the cell. Static by contract (A8): the
- * breathing next-target is a wave-2 ticket — the model already carries the flag.
+ * One cell: LinkedIn-style waypoint dots with the bold label INSIDE the dot, the hint
+ * ring, and the transient rejection pulse. The trace is NOT drawn here any more — it
+ * lives in the board-level [ZipPipes] layer (ticket 28) under every cell's content, so
+ * each dot's surface hole punches the pipe globally instead of per-cell caps clipping
+ * into neighbor dots. Sizes come from [ZipBoardSpec] fractions of the cell. Resting by
+ * contract (A8): the next-target breath animates only in the live game — the play screen
+ * passes [animatePulse]; previews and read-only boards keep the static ring.
  */
 @Composable
-fun ZipCellDecor(model: ZipRendererModel, row: Int, col: Int, modifier: Modifier = Modifier) {
+fun ZipCellDecor(
+    model: ZipRendererModel,
+    row: Int,
+    col: Int,
+    modifier: Modifier = Modifier,
+    animatePulse: Boolean = false,
+) {
     val idx = row * model.n + col
     val dotFraction = ZipBoardSpec.dotSizeFraction(model.n)
     val cell = model.cells[idx]
-    val pathIndex = model.path.indexOf(idx)
     val inPath = cell.isOnPath
     val isHint = model.hintHighlight == idx
     val isRejected = model.rejection?.cellIdx == idx
@@ -198,61 +226,47 @@ fun ZipCellDecor(model: ZipRendererModel, row: Int, col: Int, modifier: Modifier
         if (isRejected) {
             Box(Modifier.fillMaxSize().background(scheme.errorContainer.copy(alpha = 0.7f), cellCorner))
         }
-        if (inPath) {
-            Connectors(model, pathIndex)
+        // Ticket 28, hollow EVERYWHERE: one ring renderer for all three states — unvisited
+        // and start in the waypointDot role, a traced dot in the powder on-path role (D2,
+        // round 3). The label always rides the ring's own color on the surface hole (green
+        // 9.70:1 / powder 9.89:1 on boardSurface, both ≥4.5); filled disks are gone. The
+        // next waypoint's ring fades into the tertiary role and back (~1.6s loop) in the
+        // live game only — color beats scale for visibility at dot sizes; reduced motion
+        // and previews render the static ring.
+        var ringColor = if (inPath) board.waypointDotOnPath else board.waypointDot
+        if (animatePulse && cell.isNextTarget) {
+            val phase by rememberInfiniteTransition(label = "zipNextTargetFade").animateFloat(
+                initialValue = 0f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = keyframes {
+                        durationMillis = ZipBoardSpec.nextTargetFadeMs
+                        0f at 0
+                        1f at (ZipBoardSpec.nextTargetFadeMs / 2) using FastOutSlowInEasing
+                        0f at ZipBoardSpec.nextTargetFadeMs using FastOutSlowInEasing
+                    },
+                ),
+                label = "zipNextTargetFadePhase",
+            )
+            ringColor = lerp(ringColor, scheme.tertiary, phase)
         }
         if (cell.isWaypoint) {
-            if (inPath) {
-                // D2 gate resolution (round 3): hollow on-path dot — trace-role ring on a
-                // boardSurface hole, label in the trace role's color (dark #B3CBD6 9.89:1 /
-                // light #0F78B4 4.81:1 on surface, both ≥4.5). Replaces the filled dot +
-                // boardSurface halo, whose dark ring read as cuts in the pipe; the hollow
-                // ring needs no halo — the surface hole separates it from the trace by
-                // luminance in both themes. Ring thickness = start ring (visual set).
+            Box(
+                Modifier
+                    .fillMaxSize(dotFraction)
+                    .background(ringColor, CircleShape)
+                    .testTag("play.waypoint_dot_$idx"),
+                contentAlignment = Alignment.Center,
+            ) {
+                // The surface hole: punch level — hides the pipe inside the dot and
+                // carries the label's ≥4.5 contrast.
                 Box(
                     Modifier
-                        .fillMaxSize(dotFraction)
-                        .background(board.waypointDotOnPath, CircleShape)
-                        .testTag("play.waypoint_dot_$idx"),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(
-                        Modifier
-                            .fillMaxSize(
-                                (dotFraction - 2 * ZipBoardSpec.startRingFraction) /
-                                    dotFraction,
-                            )
-                            .background(board.boardSurface, CircleShape),
-                    )
-                }
-            } else if (cell.isStart) {
-                // Start waypoint (U1 evidence is thin — treatment flagged for the T25
-                // gate): hollow variant per U2's alternative pairing — waypointDot ring on
-                // a boardSurface fill, label in the dot role's own color. Contrast is the
-                // dot-vs-surface pair (dark 9.70:1 / light 6.03:1) in both themes. Once
-                // traced, the start reads as any visited dot (on-path role).
-                Box(
-                    Modifier
-                        .fillMaxSize(dotFraction)
-                        .background(board.waypointDot, CircleShape)
-                        .testTag("play.waypoint_dot_$idx"),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(
-                        Modifier
-                            .fillMaxSize(
-                                (dotFraction - 2 * ZipBoardSpec.startRingFraction) /
-                                    dotFraction,
-                            )
-                            .background(board.boardSurface, CircleShape),
-                    )
-                }
-            } else {
-                Box(
-                    Modifier
-                        .fillMaxSize(dotFraction)
-                        .background(board.waypointDot, CircleShape)
-                        .testTag("play.waypoint_dot_$idx"),
+                        .fillMaxSize(
+                            (dotFraction - 2 * ZipBoardSpec.startRingFraction) /
+                                dotFraction,
+                        )
+                        .background(board.boardSurface, CircleShape),
                 )
             }
         }
@@ -273,46 +287,121 @@ fun ZipCellDecor(model: ZipRendererModel, row: Int, col: Int, modifier: Modifier
                 Text(
                     text = label.toString(),
                     style = TextStyle(fontWeight = FontWeight.Bold, fontSize = fontSize),
-                    color = when {
-                        inPath -> board.waypointDotOnPath // hollow: label on surface in the ring's color
-                        cell.isStart -> board.waypointDot // hollow start: label in the ring's color
-                        else -> board.waypointLabel
-                    },
+                    color = ringColor, // hollow everywhere: the label rides the ring's color
                     maxLines = 1,
                 )
             }
         }
-        if (isHint) {
-            Box(Modifier.fillMaxSize(0.9f).border(2.dp, scheme.tertiary, cellCorner))
-        }
+        // Hint highlight rides the next-target fade + in-path arrow only — no cell
+        // border (it read as a selection box, not a hint).
     }
 }
 
-/** The trace: one fat rounded stroke per step (U1 — cap radius = half stroke, so elbows and the moving head round themselves). Drawn under the dots (A2). */
+/**
+ * The trace, hoisted to ONE board-level layer (ticket 28, the user's layer-level
+ * subtraction): one fat rounded stroke per step, drawn UNDER all cell content as the
+ * [BoardGrid] underlay. Each dot's surface hole then punches the pipe globally — no
+ * per-cell cap can clip into a neighbor dot hole, and the old per-cell double-draw seams
+ * at cell boundaries are gone. ZipBoard and the play screen hang this identically.
+ */
 @Composable
-private fun BoxScope.Connectors(model: ZipRendererModel, pathIndex: Int) {
+fun ZipPipes(model: ZipRendererModel) {
     val board = LocalBoardColors.current
-    val after = model.path.getOrNull(pathIndex + 1)
-    val before = model.path.getOrNull(pathIndex - 1)
-    val here = model.path[pathIndex]
-    Canvas(Modifier.matchParentSize()) {
-        val stroke = size.minDimension * ZipBoardSpec.pathTraceWidthFraction
-        val mid = Offset(size.width / 2f, size.height / 2f)
-        for (neighbor in listOfNotNull(before, after)) {
-            val end = when (neighbor - here) {
-                1 -> Offset(size.width, mid.y) // right neighbor
-                -1 -> Offset(0f, mid.y) // left neighbor
-                model.n -> Offset(mid.x, size.height) // cell below
-                else -> Offset(mid.x, 0f) // cell above
-            }
+    if (model.path.size < 2) return
+    Canvas(Modifier.fillMaxSize()) {
+        val pitchX = size.width / model.n
+        val pitchY = size.height / model.n
+        val stroke = minOf(pitchX, pitchY) * ZipBoardSpec.pathTraceWidthFraction
+        val centers = model.path.map { idx ->
+            Offset((idx % model.n + 0.5f) * pitchX, (idx / model.n + 0.5f) * pitchY)
+        }
+        for (i in 1 until centers.size) {
             drawLine(
                 color = board.pathTrace,
-                start = mid,
-                end = end,
+                start = centers[i - 1],
+                end = centers[i],
                 strokeWidth = stroke,
                 cap = StrokeCap.Round,
             )
         }
+    }
+}
+
+/**
+ * Ticket 28: the hint arrow — a chevron INSIDE the trace pipe at the auto-placed
+ * segment's head pointing along the draw direction, in the trace role's color. Wings sit
+ * on the round cap, tip stays inside the pipe (no overhang past the path). Number cells
+ * get NO arrow — their waypoint ring already carries the next-target fade. The screen
+ * hangs it ABOVE the board (sized to it). [alpha] carries the ~2s fade (reduced motion
+ * removes the arrow instantly).
+ */
+@Composable
+fun HintArrowHead(arrow: HintArrow, model: ZipRendererModel, alpha: Float, modifier: Modifier = Modifier) {
+    val n = model.n
+    // A labeled cell announces itself via its ring's next-target fade — an arrow over the
+    // number reads as clutter (user finding, board-review round 2).
+    if (model.cells[arrow.headIdx].label != null) return
+    val board = LocalBoardColors.current
+    Canvas(modifier.graphicsLayer { this.alpha = alpha }.testTag("play.hint_arrow")) {
+        val headCol = arrow.headIdx % n
+        val headRow = arrow.headIdx / n
+        val dx = headCol - arrow.tailIdx % n
+        val dy = headRow - arrow.tailIdx / n
+        if (dx == 0 && dy == 0) return@Canvas // degenerate first placement: no direction
+        val pitch = minOf(size.width / n, size.height / n)
+        val dir = Offset(dx.toFloat(), dy.toFloat()) // adjacent cells: already unit length
+        val capR = pitch * ZipBoardSpec.pathTraceWidthFraction / 2f
+        val headCenter = Offset(
+            (headCol + 0.5f) * (size.width / n),
+            (headRow + 0.5f) * (size.height / n),
+        )
+        // Arrowhead INSIDE the pipe: wings on the cap circle, tip well inside the trace
+        // stroke — the chevron reads as part of the path, not a marker on top of it.
+        val tip = headCenter + dir * (capR * 0.35f)
+        val theta = 42f * (PI.toFloat() / 180f)
+        fun wing(sign: Float): Offset {
+            val cosA = cos(sign * theta)
+            val sinA = sin(sign * theta)
+            return headCenter + Offset(
+                dir.x * cosA - dir.y * sinA,
+                dir.x * sinA + dir.y * cosA,
+            ) * capR
+        }
+        val w1 = wing(-1f)
+        val w2 = wing(1f)
+        val chevron = Path().apply {
+            moveTo(w1.x, w1.y)
+            lineTo(tip.x, tip.y)
+            lineTo(w2.x, w2.y)
+        }
+        drawPath(
+            chevron,
+            color = board.pathTrace,
+            style = Stroke(
+                width = pitch * ZipBoardSpec.hintArrowWidthFraction,
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round,
+            ),
+        )
+    }
+}
+
+/**
+ * The system's reduced-motion signal (the app-root convention in PuzzleBoxApp): animator
+ * scale 0 collapses the next-target breath and the hint-arrow fade to instant state
+ * changes. Guarded — preview/layoutlib environments have no real settings table.
+ */
+@Composable
+internal fun rememberReducedMotion(): Boolean {
+    val context = LocalContext.current
+    return remember {
+        runCatching {
+            Settings.Global.getFloat(
+                context.contentResolver,
+                Settings.Global.ANIMATOR_DURATION_SCALE,
+                1f,
+            ) == 0f
+        }.getOrDefault(false)
     }
 }
 

@@ -75,6 +75,11 @@ class ZipPlayState(
         private set
     var hintCell by mutableStateOf<Int?>(null)
         private set
+
+    /** Ticket 28: the hint arrow's placed segment (tail → new head), transient — gone on
+     *  the next input or after ~2s (the screen fades it via [clearHintArrow]). */
+    var hintArrow by mutableStateOf<HintArrow?>(null)
+        private set
     var rejection by mutableStateOf<ZipRendererModel.RejectedMove?>(null)
         private set
     var recordBadge by mutableStateOf<Boolean?>(null)
@@ -94,6 +99,7 @@ class ZipPlayState(
     //region input (F2 §7: candidate moves in, authoritative validation here)
 
     fun onDragEvent(event: DragEvent) {
+        hintArrow = null // ticket 28: the arrow dies on the next input, always
         val current = session ?: return
         val ready = screen as? ZipScreen.Ready ?: return
         if (current.isComplete) return
@@ -125,6 +131,7 @@ class ZipPlayState(
         screen = ZipScreen.Loading
         session = null
         hintCell = null
+        hintArrow = null
         rejection = null
         recordBadge = null
         recordWriteFailed = false
@@ -188,8 +195,14 @@ class ZipPlayState(
 
     //endregion
 
-    /** Hint (A3, F2 §10): a provably dead trace is trimmed FREE, then the resulting step
-     *  counts as exactly one hint. The highlight survives until the next accepted move. */
+    /**
+     * Hint (A3, F2 §10, ticket 28): a provably dead trace is trimmed FREE (the longest
+     * solution-consistent prefix), then the ONE counted hint AUTO-PLACES the next
+     * solution-consistent segment and an arrow marks the new head until the next input
+     * or ~2s ([clearHintArrow] — the screen fades it). The highlight survives until the
+     * next accepted move. The degenerate first placement (empty trace) places the start
+     * cell with no arrow — a lone cell has no segment direction.
+     */
     fun hint() {
         val current = session ?: return
         val ready = screen as? ZipScreen.Ready ?: return
@@ -203,9 +216,24 @@ class ZipPlayState(
             )
             resolved = rules.hint(ZipState(ready.puzzle, next.path))
         }
+        val step = resolved as? ZipHint.Step
+        if (step != null) {
+            val move = ZipMove.Extend(step.cell)
+            if (rules.validateMove(move, ZipState(ready.puzzle, next.path)) is ZipValidation.Valid) {
+                next = next.withMove(move, now())
+                next.path.getOrNull(next.path.size - 2)?.let { tail ->
+                    hintArrow = HintArrow(headIdx = step.cell.idx, tailIdx = tail.idx)
+                }
+            }
+        }
         next = next.withHintApplied()
         commit(next)
         hintCell = (resolved as? ZipHint.Step)?.cell?.idx
+    }
+
+    /** The screen calls this after the hold/fade window (reduced motion: immediately). */
+    fun clearHintArrow() {
+        hintArrow = null
     }
 
     //endregion
@@ -245,6 +273,7 @@ class ZipPlayState(
         recordBadge = null
         recordWriteFailed = false
         hintCell = null
+        hintArrow = null
         rejection = null
         baselineHadRecord = null
         refreshBaseline(ready.ref)
@@ -330,6 +359,9 @@ class ZipPlayState(
         fun zipCadenceZone() = (ZipDefinition.cadence as Cadence.Daily).zone
     }
 }
+
+/** The hint arrow's geometry (ticket 28): the placed segment tail → new head, as row-major indices. */
+data class HintArrow(val headIdx: Int, val tailIdx: Int)
 
 /** Copy for the first-class degrade states. */
 fun unavailableMessage(error: FetchError): String = when (error) {

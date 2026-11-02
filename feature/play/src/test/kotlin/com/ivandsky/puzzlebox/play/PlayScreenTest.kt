@@ -150,6 +150,21 @@ class PlayScreenTest {
     }
 
     @Test
+    fun `hint autoplace shows the arrow at the new head`() {
+        val state = readyState()
+        composeRule.runOnIdle { state.onDragEvent(DragEvent.Extend(GridCell(0, 0))) }
+        // Manual clock: apply one frame for the placed arrow, then run out its ~2s hold
+        // + fade and confirm it clears.
+        composeRule.mainClock.autoAdvance = false
+        composeRule.onNodeWithText("Hint").performClick()
+        composeRule.runOnIdle { check(state.hintArrow != null) { "hint did not place an arrow" } }
+        composeRule.mainClock.advanceTimeBy(16)
+        composeRule.onNodeWithTag("play.hint_arrow").assertExists()
+        composeRule.mainClock.advanceTimeBy(5000)
+        composeRule.onNodeWithTag("play.hint_arrow").assertDoesNotExist()
+    }
+
+    @Test
     fun `solving hands the frozen facts to the result route once`() {
         val state = readyState()
         composeRule.runOnIdle {

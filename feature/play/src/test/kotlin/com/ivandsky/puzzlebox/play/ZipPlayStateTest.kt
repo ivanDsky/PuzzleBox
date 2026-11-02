@@ -191,12 +191,15 @@ class ZipPlayStateTest {
         s.hint()
 
         assertEquals(1, s.session?.hintsUsed)
-        // Empty trace: the smallest help is the start cell itself.
+        // Empty trace: the smallest help is the start cell itself — auto-placed (ticket
+        // 28), no arrow because a lone cell has no segment direction.
+        assertEquals(listOf(PlayTestSupport.solution[0]), s.session?.path)
         assertEquals(PlayTestSupport.solution[0].idx, s.hintCell)
+        assertNull(s.hintArrow)
     }
 
     @Test
-    fun `hint on a dead trace trims free and the resulting step is the one hint`() {
+    fun `hint on a dead trace trims free, autoplaces the step, counts one hint`() {
         val branchy = FakeZipDailyRepository(
             todayResult = ZipToday.Fresh(PlayTestSupport.envelope(PlayTestSupport.branchyPuzzle())),
             history = listOf(ZipDailyEntry(day, 592, "zip/n5", 0L)),
@@ -208,15 +211,50 @@ class ZipPlayStateTest {
         s.hint()
 
         assertEquals(1, s.session?.hintsUsed)
-        assertEquals(PlayTestSupport.solution.take(4), s.session?.path) // trimmed to the longest solvable prefix
-        assertEquals(PlayTestSupport.solution[4].idx, s.hintCell) // the ONE counted hint continues from there
+        // Trimmed to the longest solvable prefix, then the ONE counted hint AUTO-PLACES
+        // the next solution segment (ticket 28) with its arrow.
+        assertEquals(PlayTestSupport.solution.take(5), s.session?.path)
+        assertEquals(PlayTestSupport.solution[4].idx, s.hintCell)
+        assertEquals(
+            HintArrow(
+                headIdx = PlayTestSupport.solution[4].idx,
+                tailIdx = PlayTestSupport.solution[3].idx,
+            ),
+            s.hintArrow,
+        )
     }
 
     @Test
-    fun `an accepted move clears the hint highlight`() {
+    fun `an accepted move clears the hint highlight and the arrow`() {
         val s = readyState()
-        s.hint()
+        s.hint() // auto-places the start
+        s.onDragEvent(DragEvent.Extend(GridCell(0, 1))) // solution[1], accepted
+
+        assertNull(s.hintCell)
+        assertNull(s.hintArrow)
+    }
+
+    @Test
+    fun `hint arrow dies on any next input`() {
+        val s = readyState()
         s.onDragEvent(DragEvent.Extend(GridCell(0, 0)))
+        s.hint()
+        assertEquals(HintArrow(headIdx = 1, tailIdx = 0), s.hintArrow)
+
+        // Even a rejected input (a tap that cannot extend) kills the arrow: next input.
+        s.onDragEvent(DragEvent.Extend(GridCell(4, 4)))
+        assertNull(s.hintArrow)
+    }
+
+    @Test
+    fun `replay resets the hint arrow`() {
+        val s = readyState()
+        s.onDragEvent(DragEvent.Extend(GridCell(0, 0)))
+        s.hint()
+        assertEquals(HintArrow(headIdx = 1, tailIdx = 0), s.hintArrow)
+
+        s.replay()
+        assertNull(s.hintArrow)
         assertNull(s.hintCell)
     }
 
@@ -377,7 +415,7 @@ class ZipPlayStateTest {
         s.onDragEvent(DragEvent.Extend(GridCell(0, 0)))
         s.hint()
         val model = s.rendererModel()!!
-        assertEquals(listOf(0), model.path)
+        assertEquals(listOf(0, 1), model.path) // the hint auto-placed solution[1]
         assertEquals(PlayTestSupport.solution[1].idx, model.hintHighlight)
         assertEquals(ZipRendererModel.Status.PLAYING, model.status)
     }
