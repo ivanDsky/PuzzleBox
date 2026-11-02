@@ -26,6 +26,9 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            all { test ->
+                test.maxHeapSize = "2g"
+            }
         }
     }
 }
@@ -38,6 +41,10 @@ dependencies {
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.material3)
+    // @Preview annotations live in main source next to their panes (designsystem
+    // precedent): the annotation artifact compiles in every variant; the heavyweight
+    // Layoutlib renderer stays debug-only via the app module.
+    implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.kotlinx.coroutines.core)
     // Plugin-adjacent Koin wiring (ADR-0001): one ui module, collected by `app`.
     implementation(libs.koin.core)
@@ -49,4 +56,16 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+    testImplementation(project(":core:common"))
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+}
+
+// Golden screenshots (designsystem precedent): record mode by default; run with
+// -Proborazzi.verify to re-capture and fail on pixel drift against committed goldens.
+val verifySnapshots = providers.gradleProperty("roborazzi.verify").isPresent
+
+tasks.withType<Test>().configureEach {
+    systemProperty("roborazzi.test.record", (!verifySnapshots).toString())
+    systemProperty("roborazzi.test.verify", verifySnapshots.toString())
 }
