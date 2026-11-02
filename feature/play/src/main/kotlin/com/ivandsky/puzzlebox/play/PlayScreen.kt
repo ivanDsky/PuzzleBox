@@ -151,7 +151,7 @@ private fun BoxScope.BoardArea(
                         edgeOverlays = zipWallOverlays(model),
                         underlay = { ZipPipes(model) },
                         cellContent = { row, col ->
-                            ZipCellDecor(model, row, col, animatePulse = !reducedMotion)
+                            ZipCellDecor(model, row, col, animateFlash = !reducedMotion)
                         },
                         // A4: capped at PlayBoardMaxWidth and centered by the pane; BoardGrid's
                         // aspectRatio keeps the grid exact under these loose constraints. The
