@@ -39,6 +39,16 @@ data class BoardColors(
     val pathTrace: Color,
     val boardSelection: Color,
     val boardRegion: Color,
+
+    // Tango glyph fills (design-direction §3): sun/moon must clear the 3:1 non-text
+    // bar vs boardSurface in BOTH modes; identity rides the silhouette (disc+rays vs
+    // crescent), so the fill only has to be unmistakably present. Rejected on purpose
+    // (§3): light tertiary #FF9600 (2.18 ✗), light secondary #1CB0F6 (2.44 ✗), light
+    // #D07C00 sun (passes but collides with boardSelection light — selected sun cell
+    // would read as one orange blob), dark secondary #1CB0F6 moon (passes but is the
+    // value ticket 27 retired as neon glare).
+    val sunFill: Color,
+    val moonFill: Color,
 )
 
 // Dark values alias the dark scheme (provenance per U2's table; ratios vs
@@ -58,6 +68,8 @@ val DarkBoardTokens = BoardColors(
     pathTrace = Color(0xFFB3CBD6), // = waypointDotOnPath by design: continuity of the passed path
     boardSelection = DarkColorScheme.tertiary,
     boardRegion = DarkColorScheme.surfaceContainerHigh, // future fill tint; stroke its boundary with wall/gridline when built
+    sunFill = DarkColorScheme.tertiary, // #FFC800, 10.76:1 — dark scheme tertiary already cleared the bar; no new literal
+    moonFill = Color(0xFFB3CBD6), // T27 "powder" literal, 9.89:1 — same hue as secondary, proven non-glaring
 )
 
 // Light mirrors dark role-for-role: reuses plus the three new darker steps (dot
@@ -76,6 +88,8 @@ val LightBoardTokens = BoardColors(
     pathTrace = Color(0xFF1899D6), // new: #1CB0F6 itself is 2.44 on white; this clears the 3:1 non-text bar
     boardSelection = Color(0xFFD07C00), // new: tertiary #FF9600 is 2.18 on white; this clears 3:1
     boardRegion = LightColorScheme.surfaceContainerHigh, // future fill tint
+    sunFill = Color(0xFFC25A00), // new: orange family, darkest step clearing 3:1 with selection headroom — 4.42:1 on white
+    moonFill = Color(0xFF0F78B4), // existing waypointDotOnPath light literal, blue family — 4.81:1
 )
 
 object BoardTokens {
