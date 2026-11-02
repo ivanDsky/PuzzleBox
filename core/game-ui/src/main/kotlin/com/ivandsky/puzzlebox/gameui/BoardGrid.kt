@@ -65,9 +65,12 @@ fun BoardGrid(
     wallWeight: Dp = BoardTokens.boardWallWeight,
     underlay: @Composable BoxScope.() -> Unit = {},
     cellContent: @Composable BoxScope.(row: Int, col: Int) -> Unit = { _, _ -> },
+    /** Edge-mark (`=`/`×`) override — games needing pitch-scaled marks (Tango). Null = shared default. */
+    markStyleOverride: TextStyle? = null,
+    markColorOverride: Color? = null,
 ) {
-    val markColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val markStyle = MaterialTheme.typography.labelMedium
+    val markColor = markColorOverride ?: MaterialTheme.colorScheme.onSurfaceVariant
+    val markStyle = markStyleOverride ?: MaterialTheme.typography.labelMedium
     val textMeasurer = rememberTextMeasurer()
 
     Box(

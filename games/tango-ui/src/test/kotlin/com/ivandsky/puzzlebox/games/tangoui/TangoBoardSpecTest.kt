@@ -44,10 +44,10 @@ class TangoBoardSpecTest {
         }
     }
 
-    /** Computed worst case from §1: n8 mark = 0.28 × 41.0 = 11.5 dp ≥ 10.3. */
+    /** Computed worst case from §1: n8 mark = 0.30 × 41.0 = 12.3 dp ≥ 10.3. */
     @Test
     fun `n8 worst case matches the doc arithmetic`() {
-        assertEquals(11.5f, TangoBoardSpec.markSize(pitchN8, 8).value, 0.05f)
+        assertEquals(12.3f, TangoBoardSpec.markSize(pitchN8, 8).value, 0.05f)
         assertEquals(54.7f, pitchN6.value, 0.1f)
         assertEquals(41.0f, pitchN8.value, 0.1f)
     }

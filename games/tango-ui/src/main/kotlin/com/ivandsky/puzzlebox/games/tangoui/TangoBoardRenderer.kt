@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -47,6 +49,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -108,7 +111,22 @@ class TangoBoardRenderer(
                         BoardGrid(
                             rows = tango.n,
                             cols = tango.n,
-                            modifier = Modifier.aspectRatio(1f),
+                            modifier = Modifier
+                                .aspectRatio(1f)
+                                // Close the mesh: without an outer border the top row reads
+                                // as glyphs floating above the board (user QA 2026-11-02).
+                                .border(
+                                    width = BoardTokens.boardGridLineWeight * 2,
+                                    color = LocalBoardColors.current.boardGridLine,
+                                ),
+                            markStyleOverride = MaterialTheme.typography.labelMedium.copy(
+                                // Ink-corrected mark font (see markTextFraction): the
+                                // drawn `=`/`×` ink lands at markSizeFraction of pitch.
+                                fontSize = with(LocalDensity.current) {
+                                    (pitch * TangoBoardSpec.markTextFraction(tango.n)).toSp()
+                                },
+                            ),
+                            markColorOverride = MaterialTheme.colorScheme.onSurface,
                             edgeOverlays = tango.markers.map { marker ->
                                 EdgeOverlay.Mark(
                                     cell = GridCell(
@@ -281,6 +299,22 @@ private fun Cell(
                 n = model.n,
             )
             null -> Unit
+        }
+
+        // Given identity (user QA 2026-11-02): givens carry a small anchor dot — the
+        // glyph itself is identical (size/color stay contrast-floored), the dot is the
+        // non-color-only "locked" signal. Positioned clear of the glyph cap.
+        if (render?.isGiven == true && render.value != null) {
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = TangoBoardSpec.givenDotBottomPadding)
+                    .size(TangoBoardSpec.givenDotDiameter)
+                    .background(
+                        MaterialTheme.colorScheme.onSurfaceVariant,
+                        CircleShape,
+                    ),
+            )
         }
 
         // Per-cell TalkBack semantics (§9): one focusable node per cell, row-major;
@@ -603,7 +637,7 @@ private fun CaptionSlot(model: TangoRendererModel, variants: TangoAbVariants) {
     Box(
         Modifier
             .fillMaxWidth()
-            .height(TangoBoardSpec.captionSlotHeight)
+            .heightIn(min = TangoBoardSpec.captionSlotHeight)
             .padding(top = Spacing.sm),
         contentAlignment = Alignment.CenterStart,
     ) {
