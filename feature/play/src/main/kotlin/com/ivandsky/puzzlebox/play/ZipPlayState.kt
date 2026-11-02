@@ -67,7 +67,9 @@ class ZipPlayState(
     private val now: () -> Instant = Instant::now,
     private val today: () -> LocalDate = { LocalDate.now(zipCadenceZone()) },
     private val onSessionChanged: (ZipSession?) -> Unit = {},
-) {
+) : ActivePlay, PlayClock {
+
+    override val game: PlayGame get() = PlayGame.Zip
 
     var screen by mutableStateOf<ZipScreen>(ZipScreen.Loading)
         private set
@@ -82,12 +84,16 @@ class ZipPlayState(
         private set
     var rejection by mutableStateOf<ZipRendererModel.RejectedMove?>(null)
         private set
-    var recordBadge by mutableStateOf<Boolean?>(null)
+    override var recordBadge by mutableStateOf<Boolean?>(null)
         private set
-    var recordWriteFailed by mutableStateOf(false)
+    override var recordWriteFailed by mutableStateOf(false)
         private set
     var nowMs by mutableStateOf(0L)
         private set
+
+    /** A fresh entry must fetch: no live session, or the live one already finished. */
+    override val needsLoad: Boolean
+        get() = session == null || session?.isComplete == true
 
     private val rules = zipPlugin.rules as ZipRules // the plugin's rules ARE ZipRules
     private var emitter: CompletionRecordEmitter? = null
@@ -127,7 +133,7 @@ class ZipPlayState(
 
     /** Fetch-today → board (A7/A8): Fresh plays; Cached plays with a degrade banner;
      *  Unavailable is the error state; an untrustable payload is never playable (A16). */
-    fun load() {
+    override fun load() {
         screen = ZipScreen.Loading
         session = null
         hintCell = null
@@ -149,7 +155,7 @@ class ZipPlayState(
     /** Rotation/process-death restore: the session codec carries the puzzle BY VALUE, so
      *  a corrupt save falls back to a normal load; a restored COMPLETED session shows the
      *  win without re-emitting (emission happens on the transition only). */
-    fun adoptRestored(bytes: ByteArray) {
+    override fun adoptRestored(bytes: ByteArray) {
         when (val restored = ZipSessionCodec.deserialize(bytes)) {
             is DecodeResult.Ok -> {
                 val s = restored.value
@@ -240,24 +246,28 @@ class ZipPlayState(
 
     //region timer (F2 §2: active foreground play only)
 
-    fun tick() {
+    override fun tick() {
         nowMs = now().toEpochMilli()
     }
 
-    fun onBackground() {
+    override fun onBackground() {
         val current = session ?: return
         updateSession(current.onBackground(now()))
     }
 
-    fun onForeground() {
+    override fun onForeground() {
         val current = session ?: return
         updateSession(current.onForeground(now()))
     }
 
+    /** The running window's identity — the loop restarts each time it (re)opens. */
+    override val clockWindow: Any?
+        get() = session?.runningSince
+
     /** What TimerBar draws right now (banked + running window). Never negative:
      *  the first frame after the initial Extend observes runningSince before the
      *  tick loop's first tick() advances nowMs. */
-    fun displayedElapsedMs(): Long =
+    override fun displayedElapsedMs(): Long =
         session?.displayedElapsedMs(Instant.ofEpochMilli(nowMs))?.coerceAtLeast(0L) ?: 0L
 
     //endregion
@@ -267,7 +277,7 @@ class ZipPlayState(
     /** Win overlay's "Play again": a fresh session, a new emitter lifetime — replays
      *  emit again (A4), and the badge resets until the new write lands. The A4 baseline
      *  is re-read: whether a record existed BEFORE this new play. */
-    fun replay() {
+    override fun replay() {
         val ready = screen as? ZipScreen.Ready ?: return
         emitter = null
         recordBadge = null
@@ -281,7 +291,7 @@ class ZipPlayState(
     }
 
     /** Retry after a failed record write: a new emitter (the old one deduped this ref). */
-    fun retryRecordWrite() {
+    override fun retryRecordWrite() {
         val completed = session?.takeIf { it.isComplete } ?: return
         emitRecord(record = zipPlugin.score.completion(completed) ?: return)
     }

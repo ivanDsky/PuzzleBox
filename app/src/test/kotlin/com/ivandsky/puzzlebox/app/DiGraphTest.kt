@@ -10,10 +10,14 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.network.PuzzleFeedApi
 import com.ivandsky.puzzlebox.data.repository.DailyPuzzleRepository
+import com.ivandsky.puzzlebox.data.repository.TangoDailyRepository
+import com.ivandsky.puzzlebox.data.repository.TangoDailySource
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.game.GamePlugin
+import com.ivandsky.puzzlebox.game.PuzzleSource
 import com.ivandsky.puzzlebox.gameui.GameUiRegistry
 import com.ivandsky.puzzlebox.model.GameId
+import org.koin.core.qualifier.qualifier
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -57,6 +61,12 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<PuzzleFeedApi>())
             assertNotNull(koin.get<PuzzleBoxDatabase>())
             assertNotNull(koin.get<DailyPuzzleRepository>())
+            // Ticket 03: the Tango daily fetch bindings resolve (qualified archive seam).
+            assertNotNull(koin.get<TangoDailySource>())
+            assertNotNull(koin.get<TangoDailyRepository>())
+            assertNotNull(
+                koin.get<PuzzleSource>(qualifier = qualifier(GameId("tango").value)),
+            )
             assertNotNull(koin.get<UserPreferencesRepository>())
             // Ticket 16: backend bindings resolve against the app-provided scope.
             assertNotNull(koin.get<IdentityService>())

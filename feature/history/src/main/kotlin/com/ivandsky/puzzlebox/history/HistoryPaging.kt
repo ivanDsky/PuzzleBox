@@ -5,38 +5,62 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
+import com.ivandsky.puzzlebox.data.repository.TangoDailyEntry
+import com.ivandsky.puzzlebox.data.repository.TangoDailyRepository
+import com.ivandsky.puzzlebox.data.repository.ZipDailyEntry
 import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 
 /** Page shape: one 20-row load with a 5-row lookahead — laziness visible past 30 days. */
 internal const val PAGE_SIZE = 20
 private const val PREFETCH_DISTANCE = 5
 
 /**
+ * The merged captured-day list (tango-05): BOTH games' rows, newest day first, then
+ * capture recency, then game id for a stable tiebreak. The streak/count/detail path
+ * needs every row in memory; paging pages the same snapshot for the list pane.
+ */
+fun historyRows(
+    zips: ZipDailyRepository,
+    tangos: TangoDailyRepository,
+): Flow<List<HistoryDayRow>> = combine(
+    zips.observeHistory(),
+    tangos.observeHistory(),
+) { zipEntries, tangoEntries ->
+    (zipEntries.map(ZipDailyEntry::toRow) + tangoEntries.map(TangoDailyEntry::toRow))
+        .sortedWith(
+            compareByDescending<HistoryDayRow> { it.day }
+                .thenByDescending { it.fetchedAtMs }
+                .thenBy { it.game.value },
+        )
+}
+
+/**
  * Lazy paging over the captured days (A8: "paginated lazily"), newest first per the
- * repository contract. The repository stays exactly the KDoc contract ticket 14
- * consumes (list flow, no paging types): each history emission switches to a Pager
- * built from that snapshot ([flatMapLatest] — a generation can never be built from a
- * pre-emission empty list), so a freshly captured day appears without rebuilding the
- * screen.
+ * repository contract. The repositories stay exactly the KDoc contract ticket 14
+ * consumes (list flows, no paging types): each merged-history emission switches to a
+ * Pager built from that snapshot ([flatMapLatest] — a generation can never be built
+ * from a pre-emission empty list), so a freshly captured day appears without
+ * rebuilding the screen.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-fun historyDays(daily: ZipDailyRepository): Flow<PagingData<HistoryDayRow>> = daily.observeHistory()
-    .map { entries -> entries.map { it.toRow() } }
-    .flatMapLatest { rows ->
-        Pager(
-            config = PagingConfig(
-                pageSize = PAGE_SIZE,
-                initialLoadSize = PAGE_SIZE,
-                prefetchDistance = PREFETCH_DISTANCE,
-                enablePlaceholders = false,
-            ),
-            pagingSourceFactory = { HistoryPagingSource(rows) },
-        ).flow
-    }
+fun historyDays(
+    zips: ZipDailyRepository,
+    tangos: TangoDailyRepository,
+): Flow<PagingData<HistoryDayRow>> = historyRows(zips, tangos).flatMapLatest { rows ->
+    Pager(
+        config = PagingConfig(
+            pageSize = PAGE_SIZE,
+            initialLoadSize = PAGE_SIZE,
+            prefetchDistance = PREFETCH_DISTANCE,
+            enablePlaceholders = false,
+        ),
+        pagingSourceFactory = { HistoryPagingSource(rows) },
+    ).flow
+}
 
 /** Pages one snapshot of the captured days; replaced wholesale on history change. */
 internal class HistoryPagingSource(
