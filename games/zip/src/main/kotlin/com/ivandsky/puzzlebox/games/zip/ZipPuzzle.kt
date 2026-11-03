@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.zip
 
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.game.VariantId
 import java.time.LocalDate
 
@@ -97,6 +98,8 @@ data class ZipPuzzle(
  * persistence of identity (ADR-0004).
  */
 data class ZipPuzzleRef(
-    val date: LocalDate,
-    val puzzleNumber: Int?,
-) : PuzzleRef
+    override val date: LocalDate,
+    override val puzzleNumber: Int?,
+) : PuzzleRef {
+    override val gameId: GameId get() = ZipDefinition.id
+}

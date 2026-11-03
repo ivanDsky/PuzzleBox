@@ -194,4 +194,9 @@ class LeaderboardEntriesTest {
 }
 
 /** A ref shape no registered game ever authors — exercises the preserve-or-drop path. */
-private class UnregisteredRef : PuzzleRef
+private class UnregisteredRef : PuzzleRef {
+    override val gameId: com.ivandsky.puzzlebox.model.GameId =
+        com.ivandsky.puzzlebox.model.GameId("unregistered")
+    override val date: java.time.LocalDate = java.time.LocalDate.of(2026, 10, 31)
+    override val puzzleNumber: Int? = null
+}

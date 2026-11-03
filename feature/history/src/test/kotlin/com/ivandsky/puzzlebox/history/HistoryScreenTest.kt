@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.history
 
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -9,15 +11,24 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.ivandsky.puzzlebox.data.repository.gameHistoryDays
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
+import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.ZipSession
 import com.ivandsky.puzzlebox.games.zip.codec.ZipSessionCodec
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -31,7 +42,9 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Robolectric compose coverage for the history browser (A17): empty state reuse, lazy
  * day rows, the streak teaser, record-informed detail, and the replay hand-off —
- * Ready reaches the shell, Missing/Unreadable (A16) stay put with a message.
+ * Ready reaches the shell, Missing/Unreadable (A16) stay put with a message. Fix round
+ * 5, defect C: rows are per-game — a solved Queens day lists and details without any
+ * Zip capture, and keeps no replay action (replay rides Zip's cache seam only).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -44,22 +57,54 @@ class HistoryScreenTest {
     private var nextLaunch: ReplayLaunch = ReplayLaunch.Missing
     private var handedToShell: ReplayLaunch.Ready? = null
 
+    /** A ref shape Queens authors — feature-local (no games:queens dependency). */
+    private data class QueensRef(
+        override val date: LocalDate,
+        override val puzzleNumber: Int?,
+    ) : PuzzleRef {
+        override val gameId: GameId = GameId("queens")
+    }
+
+    private fun queensRecord(day: LocalDate) = CompletionRecord(
+        puzzleRef = QueensRef(day, 916),
+        time = 41_000L,
+        hints = 1,
+        stats = RecordStats(schemaVersion = 1, blob = "{}"),
+    )
+
+    private val names = mapOf(ZipDefinition.id to "Zip", GameId("queens") to "Queens")
+
     private fun setContent(
         repo: FakeZipDailyRepository,
         layout: HistoryLayout = HistoryLayout.SinglePane,
-        records: Map<LocalDate, CompletionRecord> = emptyMap(),
+        completions: FakeCompletionRepository = FakeCompletionRepository(),
     ) {
         handedToShell = null
         composeRule.setContent {
             PuzzleBoxTheme {
-                val lazyDays = remember(repo) { historyDays(repo) }.collectAsLazyPagingItems()
+                // The route's exact projection (HistoryRoute), against test fakes.
+                val merged by remember(repo, completions) {
+                    gameHistoryDays(repo, completions)
+                }.collectAsState(initial = emptyList())
+                val rows = remember(merged) {
+                    merged.map { it.toRow(names[it.gameId] ?: it.gameId.value) }
+                }
+                val recordsByRow = remember(merged) {
+                    merged.mapNotNull { day ->
+                        day.record?.let { RowKey(day.gameId, day.day) to it }
+                    }.toMap()
+                }
+                val lazyDays = remember(repo, completions) {
+                    historyDays(repo, completions, names)
+                }.collectAsLazyPagingItems()
                 HistoryScreen(
                     layout = layout,
                     onBack = {},
                     days = lazyDays,
-                    entries = repo.entries,
-                    recordsByDay = records,
-                    streak = streakEndingAtNewest(repo.entries.map { it.day }),
+                    rows = rows,
+                    recordsByRow = recordsByRow,
+                    streak = streakEndingAtNewest(rows.map { it.day }),
+                    zipEntryFor = { day -> repo.entries.firstOrNull { it.day == day } },
                     replayFor = { nextLaunch },
                     onReplay = { ready -> handedToShell = ready },
                 )
@@ -91,7 +136,7 @@ class HistoryScreenTest {
         )
         setContent(FakeZipDailyRepository(history = days.map { HistoryTestSupport.entry(it) }))
 
-        awaitTag("history.row.2026-11-03")
+        awaitTag("history.row.zip.2026-11-03")
         composeRule.onNodeWithText("Tuesday, November 3").assertExists()
         // Every row carries the identity line; all three seeded rows are in the page.
         composeRule.onAllNodesWithText("Daily Zip · Puzzle #${HistoryTestSupport.PUZZLE_NUMBER}").assertCountEquals(3)
@@ -107,10 +152,10 @@ class HistoryScreenTest {
         nextLaunch = ReplayLaunch.Ready(ZipSessionCodec.serialize(HistoryTestSupport.expectedSession(day)))
         setContent(
             repo = FakeZipDailyRepository(history = listOf(HistoryTestSupport.entry(day))),
-            records = mapOf(day to HistoryTestSupport.record(day)),
+            completions = FakeCompletionRepository(listOf(HistoryTestSupport.record(day))),
         )
 
-        composeRule.onNodeWithTag("history.row.$day").performClick()
+        composeRule.onNodeWithTag("history.row.zip.$day").performClick()
         composeRule.onNodeWithText("Your record").assertExists()
         composeRule.onNodeWithText("1:35 · 2 hints").assertExists()
         composeRule.onNodeWithTag("history.replay").performClick()
@@ -133,7 +178,7 @@ class HistoryScreenTest {
         )
         setContent(FakeZipDailyRepository(history = listOf(HistoryTestSupport.entry(day))))
 
-        composeRule.onNodeWithTag("history.row.$day").performClick()
+        composeRule.onNodeWithTag("history.row.zip.$day").performClick()
         composeRule.onNodeWithText("Not finished yet").assertExists()
         composeRule.onNodeWithTag("history.replay").performClick()
 
@@ -146,7 +191,7 @@ class HistoryScreenTest {
         nextLaunch = ReplayLaunch.Missing
         setContent(FakeZipDailyRepository(history = listOf(HistoryTestSupport.entry(day))))
 
-        composeRule.onNodeWithTag("history.row.$day").performClick()
+        composeRule.onNodeWithTag("history.row.zip.$day").performClick()
         composeRule.onNodeWithTag("history.replay").performClick()
 
         assertNull(handedToShell)
@@ -159,11 +204,51 @@ class HistoryScreenTest {
         nextLaunch = ReplayLaunch.Unreadable(DecodeError.Malformed("test"))
         setContent(FakeZipDailyRepository(history = listOf(HistoryTestSupport.entry(day))))
 
-        composeRule.onNodeWithTag("history.row.$day").performClick()
+        composeRule.onNodeWithTag("history.row.zip.$day").performClick()
         composeRule.onNodeWithTag("history.replay").performClick()
 
         assertNull(handedToShell)
         composeRule.onNodeWithText("This puzzle's data couldn't be read, so it can't be replayed.").assertExists()
+    }
+
+    @Test
+    fun `a queens completion lists and details without a capture or replay - fix round 5 defect C`() {
+        val day = LocalDate.of(2026, 11, 3)
+        setContent(
+            repo = FakeZipDailyRepository(),
+            completions = FakeCompletionRepository(listOf(queensRecord(day))),
+        )
+
+        // The record alone lists the day (no Zip capture anywhere) with its game's name.
+        awaitTag("history.row.queens.$day")
+        composeRule.onNodeWithText("Tuesday, November 3").assertExists()
+        composeRule.onNodeWithText("Daily Queens · Puzzle #916").assertExists()
+
+        composeRule.onNodeWithTag("history.row.queens.$day").performClick()
+        composeRule.onNodeWithText("Daily Queens · Puzzle #916").assertExists()
+        composeRule.onNodeWithText("Your record").assertExists()
+        composeRule.onNodeWithText("0:41 · 1 hint").assertExists()
+        // No captured Zip entry for the day: no "Captured" line and no replay action —
+        // the record is visible without pretending the day is replayable.
+        composeRule.onNodeWithText("Captured", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithTag("history.replay").assertDoesNotExist()
+        assertFalse(handedToShell != null)
+    }
+
+    @Test
+    fun `zip completion still lists alongside captures - regression guard`() {
+        val day = LocalDate.of(2026, 11, 3)
+        setContent(
+            repo = FakeZipDailyRepository(history = listOf(HistoryTestSupport.entry(day))),
+            completions = FakeCompletionRepository(listOf(HistoryTestSupport.record(day))),
+        )
+
+        // The solved zip day merges into its captured row: ONE row, record badge on it.
+        awaitTag("history.row.zip.$day")
+        composeRule.onAllNodesWithTag("history.row.zip.$day").assertCountEquals(1)
+        composeRule.onNodeWithTag("history.row.zip.$day").performClick()
+        composeRule.onNodeWithText("Your record").assertExists()
+        composeRule.onNodeWithText("Captured", substring = true).assertExists()
     }
 
     @Test
@@ -175,8 +260,8 @@ class HistoryScreenTest {
 
         awaitTag("history.detail_hint")
         composeRule.onNodeWithText("Select a day").assertExists()
-        awaitTag("history.row.$day")
-        composeRule.onNodeWithTag("history.row.$day").performClick()
-        awaitTag("history.detail")
+        awaitTag("history.row.zip.$day")
+        composeRule.onNodeWithTag("history.row.zip.$day").performClick()
+        awaitTag("history.detail.zip.$day")
     }
 }

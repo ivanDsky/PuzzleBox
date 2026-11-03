@@ -1,13 +1,30 @@
 package com.ivandsky.puzzlebox.game
 
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
+import java.time.LocalDate
 
 /**
  * Per-puzzle identity as the game authors it (finding F2-3 / ADR-0004). Record semantics
  * are per-puzzle, so a record without identity cannot exist. core/data keys and stamps
  * records per game + ref.
+ *
+ * The ref carries its own normalized identity (ADR-0004: `gameId + date/puzzleNumber`,
+ * the same composite `PuzzleRefKeys` encodes): consumers project history per
+ * [GameId] without ever casting to a concrete game's ref type — the fix-round-5
+ * defect-C class (Home/History dropped every non-Zip ref). The ref stays opaque about
+ * PAYLOAD: nothing here parses board data.
  */
-interface PuzzleRef
+interface PuzzleRef {
+    /** Which game authored this ref — identity part 1. */
+    val gameId: GameId
+
+    /** The daily identity's calendar day — identity part 2. */
+    val date: LocalDate
+
+    /** The edition number within the day when the game publishes one; null otherwise. */
+    val puzzleNumber: Int?
+}
 
 /**
  * The open per-game stats slot (ADR-0005 §3): schema-versioned and opaque to core, so new

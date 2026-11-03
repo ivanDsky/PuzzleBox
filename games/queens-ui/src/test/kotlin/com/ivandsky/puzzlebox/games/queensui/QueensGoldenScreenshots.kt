@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.queens.Cell
@@ -124,7 +125,14 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
             }
         }
         composeRule.waitForIdle()
-        composeRule.onRoot().captureRoboImage(out(name, dark))
+        // R-5 (fix round 5): the win presents MODALLY in its own dialog window — the
+        // screen capture includes every window (dialog + the dimmed play surface
+        // behind it); single-window captures keep the old window-cropped path.
+        if (overlay) {
+            captureScreenRoboImage(java.io.File(out(name, dark)))
+        } else {
+            composeRule.onRoot().captureRoboImage(out(name, dark))
+        }
     }
 
     // One method per (state × theme): the fixture board's regions are its rows, so a

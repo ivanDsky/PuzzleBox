@@ -145,10 +145,16 @@ class QueensPlayWiringTest {
         }
         val overlayBounds = composeRule.onAllNodesWithTag("queens/win_overlay")
             .fetchSemanticsNodes().single().size
-        val rootBounds = composeRule.onRoot().fetchSemanticsNode().size
+        // R-5: the win presents MODALLY in its own dialog window — the overlay covers
+        // every window root (the play surface behind it and the modal window itself).
+        val rootBoundsList = composeRule.onAllNodes(
+            androidx.compose.ui.test.isRoot(),
+        ).fetchSemanticsNodes().map { it.size }
         assertTrue(
-            "win overlay covers the window ($overlayBounds vs $rootBounds)",
-            overlayBounds.width >= rootBounds.width && overlayBounds.height >= rootBounds.height,
+            "win overlay covers the window ($overlayBounds vs $rootBoundsList)",
+            rootBoundsList.all {
+                overlayBounds.width >= it.width && overlayBounds.height >= it.height
+            },
         )
 
         // The record write landed through the app's real CompletionRepository. The

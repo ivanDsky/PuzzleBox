@@ -109,17 +109,38 @@ class QueensSessionTest {
         assertEquals(s, s.withQueenPlaced(cell(0, 0), now)) // cell occupied
     }
 
-    /** MANUAL marks hidden under a standing queen reappear when it is removed. */
+    /**
+     * A11 strict closure (fix round 5): a MANUAL mark hidden under a standing queen
+     * stays stored while the queen masks it, and LEAVES WITH the queen on removal —
+     * the cell ends EMPTY and the per-cell cycle closes (empty → X → queen → empty).
+     */
     @Test
-    fun `A11 - MANUAL mark under a standing queen reappears on removal`() {
+    fun `A11 - removal closes the cycle - queen and its stored mark leave together`() {
         val target = cell(2, 2)
         val marked = session().withCrossToggled(target, now)
         // tap-cycle X → queen ON TOP of the manual mark: the queen masks it while it stands
         val placed = marked.withQueenPlaced(target, now)
         assertTrue(placed.queens.contains(target))
         assertEquals(QueensMark(MarkKind.MANUAL), placed.markAt(target))
+        // the cycle's third tap: the queen AND its stored mark leave — the cell is EMPTY
         val removed = placed.withQueenRemoved(target, now)
-        assertEquals(QueensMark(MarkKind.MANUAL), removed.markAt(target))
+        assertTrue(removed.queens.isEmpty())
+        assertNull(removed.markAt(target))
+    }
+
+    /** The strict cycle's full closure on one cell, tap by tap (spec A11 ruling). */
+    @Test
+    fun `A11 - strict tap cycle closes empty - X - queen - empty`() {
+        val target = cell(1, 1)
+        val x = session().withCrossToggled(target, now)
+        assertEquals(QueensMark(MarkKind.MANUAL), x.markAt(target))
+        val queen = x.withQueenPlaced(target, now)
+        assertTrue(queen.queens.contains(target))
+        val empty = queen.withQueenRemoved(target, now)
+        assertTrue(empty.queens.isEmpty())
+        assertNull(empty.markAt(target))
+        // closure leaves the cell exactly as it started
+        assertEquals(session().marks, empty.marks)
     }
 
     // ------------------------------------------------------------------ A12

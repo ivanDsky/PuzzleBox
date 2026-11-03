@@ -6,6 +6,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
@@ -24,6 +25,7 @@ import com.ivandsky.puzzlebox.games.queens.QueensSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -33,6 +35,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowDialog
+import org.robolectric.Shadows
 import java.time.LocalDate
 
 // DoD interaction suite (queens-08): every A10–A12/A14 interaction against the real
@@ -64,8 +68,8 @@ class QueensBoardUiTest {
                     QueensPlayBoard(state, Modifier.fillMaxWidth().testTag(BoardTag))
                     QueensPlayControls(state)
                 }
-                // R-3: the win overlay lives at SCREEN level (fullscreen over the
-                // play surface) — mirror the play screen here so win assertions run.
+                // R-5: the win overlay presents MODALLY (its own fullscreen dialog
+                // window) — mirror the play screen here so win assertions run.
                 QueensWinOverlay(state, onPlayAgain = {})
             }
         }
@@ -83,14 +87,19 @@ class QueensBoardUiTest {
         composeRule.waitForIdle()
     }
 
+    /** Defect B repro (fix round 5): the strict cycle CLOSES — tap 3 on the queen cell
+     *  removes queen AND mark, back to EMPTY (was: the stored MANUAL X resurfaced). */
     @Test
-    fun `tap cycle empty to X to queen with A10 auto-fill`() {
+    fun `tap cycle closes empty to X to queen to empty`() {
         val state = setContent(QueensUiFixtures.session())
-        tap(0, 0)
+        tap(0, 0) // empty → MANUAL X
         assertEquals(MarkKind.MANUAL, state.session.markAt(Cell(0))?.kind)
-        tap(0, 0)
+        tap(0, 0) // X → queen (with A10 auto-fill)
         assertTrue(Cell(0) in state.session.queens)
         assertEquals(MarkKind.AUTO, state.session.markAt(Cell(1))?.kind)
+        tap(0, 0) // queen → EMPTY: queen and its stored mark leave together
+        assertTrue("queen removed", Cell(0) !in state.session.queens)
+        assertNull("cycle closed: the cell is empty, not X", state.session.markAt(Cell(0)))
     }
 
     @Test
@@ -118,16 +127,20 @@ class QueensBoardUiTest {
         assertEquals("drag over an already-X cell changes nothing", marksBefore, state.session.marks.size)
     }
 
+    /** Strict closure (fix round 5): tapping a placed queen removes it AND its stored
+     *  mark — the queen cell ends EMPTY — while MANUAL marks on every other cell
+     *  survive untouched. */
     @Test
-    fun `tap on a queen removes it and its AUTO marks - MANUAL survives`() {
+    fun `tap on a queen removes it and its mark - other MANUAL marks survive`() {
         var session = QueensUiFixtures.session().withCrossToggled(Cell(15), QueensUiFixtures.T0)
         session = session.withQueenPlaced(Cell(1), QueensUiFixtures.T0)
         val state = setContent(session)
 
-        tap(0, 1) // the strict cycle's third state on a queen cell: remove
+        tap(0, 1) // the strict cycle's third state on a queen cell: remove + close
         assertTrue(state.session.queens.isEmpty())
         assertNull(state.session.markAt(Cell(2))) // the removed queen's AUTO mark is gone
-        assertEquals(MarkKind.MANUAL, state.session.markAt(Cell(15))?.kind) // MANUAL survives
+        assertNull("the queen's own cell is EMPTY, not X", state.session.markAt(Cell(1)))
+        assertEquals(MarkKind.MANUAL, state.session.markAt(Cell(15))?.kind) // other cells untouched
     }
 
     /** Q-2 regression: lastPlacedQueen clears at tap entry — an ordinary X tap after a
@@ -224,6 +237,35 @@ class QueensBoardUiTest {
         assertTrue(state.session.queens.isEmpty())
     }
 
+    /** R-5 (fix round 5): the win presents as a TRUE MODAL — a fullscreen dialog in
+     *  its own window, with back/outside dismissal blocked, so nothing behind it (the
+     *  shell's bottom nav included) can be touched and the win state cannot be
+     *  silently abandoned mid-celebration (defect A repro). */
+    @Test
+    fun `win overlay is modal - dialog window with back and outside blocked`() {
+        val state = setContent(QueensUiFixtures.session())
+        QueensUiFixtures.solutionCells.forEach { state.onTap(it.idx); state.onTap(it.idx) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("queens/win_overlay").assertExists()
+
+        // The overlay presents in its own window: a Dialog is up on the window manager.
+        val dialog = ShadowDialog.getLatestDialog()
+        assertNotNull("the win presents in a dialog window (modal)", dialog)
+        assertTrue("the win dialog is showing", dialog.isShowing)
+
+        // Nothing outside can dismiss it: outside taps are blocked…
+        assertFalse(Shadows.shadowOf(dialog).isCancelableOnTouchOutside)
+        // …and the back key is consumed without dismissing (compose's dialog back
+        // callback no-ops under dismissOnBackPress = false): the win state survives.
+        dialog.window!!.decorView.dispatchKeyEvent(
+            android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_BACK),
+        )
+        composeRule.waitForIdle()
+        assertTrue("back cannot abandon the win", state.session.isComplete)
+        assertTrue("the win dialog is still up after back", dialog.isShowing)
+        composeRule.onNodeWithText("Play again").assertExists()
+    }
+
     @Test
     fun `win emits exactly one completion record and shows the banner`() {
         var completions = 0
@@ -248,13 +290,15 @@ class QueensBoardUiTest {
         // F-3 (fix round 3): the win is no longer a dead end — the banner carries the
         // replay action, and the win is final: Undo is locked out.
         composeRule.onNodeWithText("Play again").assertExists()
-        // R-3 (fix round 4): the win overlay is FULLSCREEN — its bounds equal the
-        // window's (no board-pane clipping, no game chrome visible beside it).
+        // R-5 (fix round 5): the win overlay presents in its own fullscreen DIALOG
+        // window — its bounds cover every window root (the play surface behind it and
+        // the modal window itself; no board-pane clipping, no game chrome beside it).
         val overlay = composeRule.onNodeWithTag("queens/win_overlay").fetchSemanticsNode()
-        val root = composeRule.onRoot().fetchSemanticsNode()
+        val roots = composeRule.onAllNodes(isRoot()).fetchSemanticsNodes()
+        assertTrue("win presents modally — two window roots", roots.size >= 2)
         assertTrue(
-            "win overlay covers the window (${overlay.size} vs ${root.size})",
-            overlay.size.width >= root.size.width && overlay.size.height >= root.size.height,
+            "win overlay covers the window (${overlay.size} vs ${roots.map { it.size }})",
+            roots.all { overlay.size.width >= it.size.width && overlay.size.height >= it.size.height },
         )
         composeRule.onNodeWithText("Undo").performClick()
         composeRule.waitForIdle()
