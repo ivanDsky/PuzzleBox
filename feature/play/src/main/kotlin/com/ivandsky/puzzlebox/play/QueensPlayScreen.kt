@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -25,23 +26,29 @@ import com.ivandsky.puzzlebox.gameui.BoardLoading
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.games.queensui.QueensPlayBoard
 import com.ivandsky.puzzlebox.games.queensui.QueensPlayControls
-import com.ivandsky.puzzlebox.games.queensui.QueensWinOverlay
 import com.ivandsky.puzzlebox.games.queensui.queensBoardSideFor
 
 /**
  * The Queens play screen (queens-10): the queens-08 interactive board + control bar,
- * arranged by the same 07 adaptive policy as Zip. No new UI vocabulary — the win
- * presentation is the board's own overlay (§5.6) and the record write already ran in
- * the flow, so there is no result-route handoff here (QueensSession v1 carries no
- * timer/hint counters to freeze onto the result route).
+ * arranged by the same 07 adaptive policy as Zip. The win presentation is Zip's: the
+ * solved transition hands the frozen result facts (time, hints) to the caller's
+ * [onSolved] — the app navigates to the opaque result ROUTE (fix round 6; the modal
+ * overlay is deleted). The record write already ran in the flow.
  */
 @Composable
 fun QueensPlayScreen(
     state: QueensPlayState,
     layout: PlayLayout,
     onBack: () -> Unit,
+    onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Win → result route (Zip's handoff): ONE navigation trigger per completion —
+    // keyed on the completedAt instance so a replay (new completion) hands off again.
+    LaunchedEffect(state.board?.session?.completedAt) {
+        val completed = state.board?.session?.takeIf { it.isComplete } ?: return@LaunchedEffect
+        onSolved(completed.elapsedMs() ?: 0L, completed.hintsUsed)
+    }
     Box(modifier.fillMaxSize()) {
         AdaptivePlayScaffold(
             layout = layout,
@@ -49,14 +56,6 @@ fun QueensPlayScreen(
             board = { BoardArea(state) },
             side = { SidePanel(state) },
         )
-        // R-5 (fix round 5): the solved state presents FULLSCREEN as a true MODAL —
-        // QueensWinOverlay now hosts a fullscreen dialog window, so the scrim + banner
-        // dim and block the whole shell behind it (board pane, side panel, bottom nav);
-        // back/outside cannot abandon the win state. No game chrome shows through.
-        val board = state.board
-        if (board != null && board.session.isComplete) {
-            QueensWinOverlay(state = board, onPlayAgain = { state.replay() })
-        }
     }
 }
 

@@ -53,12 +53,13 @@ object QueensBoardDefaults {
     const val autoMarkStaggerStepMillis: Long = 10L
     const val autoMarkStaggerCapMillis: Long = 80L
 
-    // §5.6 win cascade: queens replay the pop 50ms apart in placement order.
-    const val winCascadeStepMillis: Long = 50L
-
     // §5.5 hint: boardSelection overlay at 25%, two pulse cycles of DurationExpressive.
+    // Stage 2 (fix round 6): the repeat tap points at the forced cell — the overlay
+    // emphasis triples and the cell renders the crown ghost at reduced alpha.
     const val hintOverlayAlpha: Float = 0.25f
     const val hintPulseCycles: Int = 2
+    const val hintPointedAlphaBoost: Float = 3f
+    const val hintGhostAlpha: Float = 0.45f
 
     // §6 upper bound: cell visual size caps at 64dp; larger panes pad instead.
     val cellMaxSize: Dp = 64.dp
@@ -73,13 +74,13 @@ enum class XProvenanceCue { GEOMETRY, SIZE_DOT }
 /** §7 A/B-2 switch payload: scrimmed red stripes vs gated full-cell tint. */
 enum class ViolationCue { STRIPES_SCRIM, TINT }
 
-/** §7 A/B-4 switch payload: win cascade in placement order vs scanline. */
-enum class CascadeOrder { PLACEMENT, SCANLINE }
-
-/** The four §7 toggles queens-08 hands to queens-09 (all default to variant A). */
+/**
+ * The §7 A/B toggles queens-08 hands to queens-09 (all default to variant A). The
+ * former A/B-4 win-cascade pair is gone with the win overlay itself: the solved state
+ * presents as the result ROUTE now (fix round 6), so there is no cascade to vary.
+ */
 data class QueensAbVariants(
     val xProvenanceCue: XProvenanceCue = XProvenanceCue.GEOMETRY,
     val violationCue: ViolationCue = ViolationCue.STRIPES_SCRIM,
     val paletteDensity: PaletteDensity = PaletteDensity.LIGHTNESS_ALTERNATED,
-    val cascadeOrder: CascadeOrder = CascadeOrder.PLACEMENT,
 )

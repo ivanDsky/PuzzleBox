@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.queens
 
 import com.ivandsky.puzzlebox.game.GameSession
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensVerifier
+import java.time.Duration
 import java.time.Instant
 
 /**
@@ -37,14 +38,21 @@ data class QueensSnapshot(
  * Serializable in-progress play (A10–A12; A11 reversed 2026-11-02: queen MOVE is
  * deleted — the interaction is the strict tap cycle empty → X → queen → empty). Every
  * cross mark carries provenance: placing a queen auto-fills exclusion marks over its
- * row/column/region as [MarkKind.AUTO] marks keyed to that queen; they exist only while
- * their source queen stands. MANUAL marks are never cleared by anything but their own
- * cell's cycling. One undo step reverts one user action
+ * row/column/region as [MarkKind.AUTO] marks keyed to that queen — while [autoCross]
+ * is ON (fix round 6); OFF places queens bare, with no system marks. AUTO marks exist
+ * only while their source queen stands AND the setting is ON — they are recompute-
+ * derived on every state change. MANUAL marks are never cleared by anything but their
+ * own cell's cycling — except Clear, which wipes EVERYTHING (queens + AUTO + MANUAL)
+ * as ONE undo unit (round-6 ruling 2026-11-02). One undo step reverts one user action
  * TOGETHER WITH its auto-fill side effects, while manual marks made earlier survive —
  * [undo] holds the pre-action [QueensSnapshot] for exactly that.
  *
  * Win detection (queens-02): all [QueensPuzzle.size] × queensPerUnit queens placed and the
  * placement rule-clean per [QueensVerifier.isSolution]; the moment is stamped [completedAt].
+ *
+ * Result facts (fix round 6, Zip result-route parity): [startedAt] is stamped by the
+ * first committed board action and [hintsUsed] counts presented hints; [elapsedMs]
+ * freezes the play duration for the result route and the score record.
  */
 data class QueensSession(
     val ref: QueensPuzzleRef?,
@@ -53,6 +61,9 @@ data class QueensSession(
     val marks: Map<Cell, QueensMark> = emptyMap(),
     val undo: List<QueensSnapshot> = emptyList(),
     val completedAt: Instant? = null,
+    val startedAt: Instant? = null,
+    val hintsUsed: Int = 0,
+    val autoCross: Boolean = true,
 ) : GameSession {
 
     val isComplete: Boolean get() = completedAt != null
@@ -63,6 +74,13 @@ data class QueensSession(
 
     /** The required total queen count for this board. */
     val requiredQueens: Int get() = puzzle.size * puzzle.queensPerUnit
+
+    /** Play duration frozen for the result route/score record: first action → win stamp. */
+    fun elapsedMs(): Long? {
+        val start = startedAt ?: return null
+        val end = completedAt ?: return null
+        return Duration.between(start, end).toMillis().coerceAtLeast(0L)
+    }
 
     /**
      * A10: place a queen on [cell] (must not already hold a queen). Exclusion marks for
@@ -100,17 +118,60 @@ data class QueensSession(
     /**
      * A12: revert exactly one action together with its auto-fill side effects by restoring
      * the pre-action snapshot; manual marks made before that action are part of earlier
-     * snapshots and survive. No-op when the stack is empty or the game is complete.
+     * snapshots and survive. No-op when the stack is empty or the game is complete. The
+     * restored marks are RECOMPUTED under the current [autoCross] setting, so an undo
+     * after a setting flip can never resurrect system marks the setting turned off.
      */
     fun withUndo(): QueensSession {
         if (completedAt != null || undo.isEmpty()) return this
         val last = undo.last()
-        return copy(queens = last.queens, marks = last.marks, undo = undo.dropLast(1))
+        return copy(
+            queens = last.queens,
+            marks = recomputeMarks(last.queens, last.marks),
+            undo = undo.dropLast(1),
+        )
+    }
+
+    /**
+     * Clear (round-6 ruling 2026-11-02): wipe EVERYTHING — queens, AUTO marks AND
+     * MANUAL marks — as ONE undo unit. The pre-clear snapshot [commit] pushes holds the
+     * full mark map (MANUAL included), so one undo reverts to exactly the pre-clear
+     * board. No-op on a completed session (the win is final; Play again is the way out).
+     */
+    fun withCleared(now: Instant): QueensSession {
+        if (completedAt != null) return this
+        return commit(copy(queens = emptyList(), marks = emptyMap()), now = now)
+    }
+
+    /**
+     * A14 (fix round 6): the Auto-cross setting — ON auto-fills exclusion marks on
+     * placements (A10 as shipped); OFF places queens bare (plain empty→X→queen cycling,
+     * no system marks). A SETTINGS flip, not a board action: no undo unit. The standing
+     * board recomputes immediately, so flipping OFF strips AUTO marks and flipping ON
+     * re-derives them from the standing queens.
+     */
+    fun withAutoCross(enabled: Boolean): QueensSession {
+        if (autoCross == enabled) return this
+        // Recompute UNDER THE NEW setting (the flip's whole point): OFF strips the
+        // system marks, ON re-derives them from the standing queens.
+        val flipped = copy(autoCross = enabled)
+        return flipped.copy(marks = flipped.recomputeMarks(flipped.queens, flipped.marks))
+    }
+
+    /**
+     * One presented hint counts once (fix round 6 result fact). A hint changes no cell,
+     * so it is not an undo unit and does not start the play clock.
+     */
+    fun withHintUsed(): QueensSession {
+        if (completedAt != null) return this
+        return copy(hintsUsed = hintsUsed + 1)
     }
 
     /** Shared tail: recompute AUTO marks from the standing queens, snapshot, stamp a win. */
     private fun commit(next: QueensSession, now: Instant): QueensSession {
-        val recomputed = next.copy(marks = recomputeMarks(next.queens, next.marks))
+        // The play clock starts at the FIRST committed board action (fix round 6).
+        val stamped = if (next.startedAt == null) next.copy(startedAt = now) else next
+        val recomputed = stamped.copy(marks = recomputeMarks(stamped.queens, stamped.marks))
         val pushed = recomputed.copy(undo = undo + QueensSnapshot(queens, marks))
         return if (QueensVerifier.isSolution(puzzle, pushed.queens.toSet())) {
             pushed.copy(completedAt = now)
@@ -121,13 +182,15 @@ data class QueensSession(
 
     /**
      * A10, both directions: AUTO marks are DERIVED — exactly the row/column/region
-     * exclusions of the standing queens, on cells that carry no MANUAL mark. MANUAL
-     * marks are the only stored truth (including ones hidden under a standing queen);
-     * everything AUTO is recomputed, so a mark exists precisely while its source
-     * queen stands and reappears the moment that queen does.
+     * exclusions of the standing queens, on cells that carry no MANUAL mark — while
+     * [autoCross] is ON (fix round 6; OFF leaves queens bare). MANUAL marks are the
+     * only stored truth (including ones hidden under a standing queen); everything
+     * AUTO is recomputed, so a mark exists precisely while its source queen stands
+     * and the setting is ON, and reappears the moment both do.
      */
     private fun recomputeMarks(queens: List<Cell>, marks: Map<Cell, QueensMark>): Map<Cell, QueensMark> {
         var out = marks.filterValues { it.kind == MarkKind.MANUAL }
+        if (!autoCross) return out
         val occupied = queens.toSet()
         for (queen in queens) out = autoFill(out, source = queen, occupied = occupied)
         return out

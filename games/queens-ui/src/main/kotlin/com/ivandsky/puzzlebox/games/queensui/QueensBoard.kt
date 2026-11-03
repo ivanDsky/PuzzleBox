@@ -2,8 +2,6 @@ package com.ivandsky.puzzlebox.games.queensui
 
 import android.provider.Settings
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -60,13 +58,13 @@ internal fun rememberReducedMotion(): Boolean {
 
 /**
  * The full Queens board UI (queens-08): provenance-distinct X marks (§3.2/§3.3),
- * pop-in queens (§3.4), A14 violation stripes, the §5 interaction set on
- * [QueensBoardState], and hint region emphasis (§5.5). The win presentation is NOT
- * here: [QueensWinOverlay] renders at SCREEN level (fix round 4, R-3 — inside the
- * board pane it was clipped to the board's BoxWithConstraints and the game chrome
- * cut it off), so the solved state presents fullscreen over the play surface.
- * Gesture surface is board-level with edge-clamped cell resolution (§6); all game
- * decisions stay in the session/state holder.
+ * pop-in queens (§3.4), the ALWAYS-ON A14 violation stripes (fix round 6), the §5
+ * interaction set on [QueensBoardState], and the §5.5 staged hint (region pulse +
+ * deduction, crown ghost on the repeat). The win presentation is NOT here: the solved
+ * session hands off to the opaque result ROUTE at screen level (fix round 6 — Zip's
+ * ResultScreen presentation; the modal overlay is deleted), so the board never renders
+ * win content. Gesture surface is board-level with edge-clamped cell resolution (§6);
+ * all game decisions stay in the session/state holder.
  */
 @Composable
 fun QueensPlayBoard(
@@ -86,7 +84,7 @@ private fun QueensPlayBoardContent(
     modifier: Modifier,
     variants: QueensAbVariants,
 ) {
-    val model = QueensBoardModel.of(state.session, state.hint, state.autoCheck)
+    val model = QueensBoardModel.of(state.session, state.hint, state.hintPointed)
     val boardTokens = LocalBoardColors.current
     val haptics = LocalHapticFeedback.current
     var pressedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -165,7 +163,6 @@ private fun QueensPlayBoardContent(
                     model = model,
                     idx = row * model.n + col,
                     variants = variants,
-                    win = state.session.isComplete,
                 )
             },
         )
@@ -255,17 +252,16 @@ private fun DrawScope.drawCellEdges(model: QueensBoardModel, hintColor: Color, i
 }
 
 /**
- * One cell: region fill, the state glyph with its §3 entrance/exit motion, the hint
- * overlay + pulse, the A14 violation cue, and the pending-move selection tint.
- * All animation runs through one presence Animatable per cell — reduced motion
- * collapses every transition to an instant state change.
+ * One cell: region fill, the state glyph with its §3 entrance/exit motion, the §5.5
+ * hint overlay + pulse + stage-2 crown ghost, and the A14 violation cue. All animation
+ * runs through one presence Animatable per cell — reduced motion collapses every
+ * transition to an instant state change.
  */
 @Composable
 private fun QueensCell(
     model: QueensBoardModel,
     idx: Int,
     variants: QueensAbVariants,
-    win: Boolean,
 ) {
     val n = model.n
     val dark = currentIsDarkTheme()
@@ -284,7 +280,7 @@ private fun QueensCell(
     // Presence drives glyph alpha; scale is derived per-visual (§3.2 manual scale-in,
     // §3.3 auto fade-only, queen pop §3.4). Exits animate OUT then swap `shown`.
     val presence = remember { Animatable(1f) }
-    LaunchedEffect(visual, win) {
+    LaunchedEffect(visual) {
         when {
             reducedMotion -> {
                 presence.snapTo(1f)
@@ -318,30 +314,6 @@ private fun QueensCell(
         }
     }
 
-    // §5.6 win cascade: queens replay the pop 50ms apart, in placement (or scanline) order.
-    val winPopDelay = remember(win) {
-        if (!win) 0L else {
-            val order = when (variants.cascadeOrder) {
-                CascadeOrder.PLACEMENT -> model.queens.indexOf(idx)
-                CascadeOrder.SCANLINE -> model.queens.sorted().indexOf(idx)
-            }
-            if (order < 0) 0L else order * QueensBoardDefaults.winCascadeStepMillis
-        }
-    }
-    val winScale = remember { Animatable(1f) }
-    LaunchedEffect(win) {
-        if (win && !reducedMotion && visual == QueensCellVisual.QUEEN) {
-            winScale.snapTo(0.6f)
-            kotlinx.coroutines.delay(winPopDelay)
-            winScale.animateTo(
-                1f,
-                spring(MotionTokens.SpringDampingDefault, MotionTokens.SpringStiffnessDefault),
-            )
-        } else {
-            winScale.snapTo(1f)
-        }
-    }
-
     // §5.5 hint pulse: two DurationExpressive cycles, then rests at the static overlay.
     val pulse = remember(model.hintRegion) { Animatable(1f) }
     LaunchedEffect(model.hintRegion) {
@@ -354,6 +326,8 @@ private fun QueensCell(
         }
     }
     val hinted = model.hintCells.contains(idx)
+    // Stage 2 (fix round 6): the pointed forced cell — brighter emphasis + crown ghost.
+    val pointed = model.hintCell == idx
     val violated = model.violations.contains(idx)
 
     Box(Modifier.fillMaxSize()) {
@@ -370,7 +344,7 @@ private fun QueensCell(
             // bounds — unclipped, every violated cell painted stripe wedges INTO its
             // neighbors, covering the neighbor's crown/X (the "queen no longer
             // visible" report). clipRect confines the pattern to this cell.
-            if (violated && !win) {
+            if (violated) {
                 clipRect(0f, 0f, size.width, size.height) {
                     when (variants.violationCue) {
                         ViolationCue.STRIPES_SCRIM -> drawViolationStripes(
@@ -407,20 +381,31 @@ private fun QueensCell(
                         drawCircle(ink, radius = QueensBoardDefaults.xAutoWeight.toPx() * 1.2f, center = Offset(size.width / 2f, size.height * 0.22f), alpha = p)
                     }
                 }
-                QueensCellVisual.QUEEN -> {
-                    drawQueen(ink, QueensBoardDefaults.queenHeightFraction, scale = winScale.value, alpha = p)
-                }
+                QueensCellVisual.QUEEN -> drawQueen(ink, QueensBoardDefaults.queenHeightFraction, alpha = p)
                 QueensCellVisual.EMPTY -> Unit
             }
         }
         if (hinted) {
+            val emphasis = if (pointed) QueensBoardDefaults.hintPointedAlphaBoost else 1f
             Box(
                 Modifier
                     .fillMaxSize()
                     .drawBehind {
-                        drawRect(boardTokens.boardSelection.copy(alpha = QueensBoardDefaults.hintOverlayAlpha * pulse.value))
+                        drawRect(
+                            boardTokens.boardSelection.copy(
+                                alpha = (QueensBoardDefaults.hintOverlayAlpha * pulse.value * emphasis)
+                                    .coerceAtMost(1f),
+                            ),
+                        )
                     },
             )
+        }
+        if (pointed && shown == QueensCellVisual.EMPTY) {
+            // §5.5 stage 2: the crown ghost — the forced cell's silhouette at reduced
+            // alpha, above the emphasized overlay. "This cell, exactly."
+            Canvas(Modifier.fillMaxSize()) {
+                drawQueen(ink, QueensBoardDefaults.queenHeightFraction, alpha = QueensBoardDefaults.hintGhostAlpha)
+            }
         }
     }
 }
@@ -435,8 +420,8 @@ private fun DrawScope.drawX(color: Color, weightPx: Float, lengthFraction: Float
 }
 
 /** Crown silhouette, single path: three points + band base, height = fraction of cell. */
-private fun DrawScope.drawQueen(color: Color, heightFraction: Float, scale: Float, alpha: Float) {
-    val h = size.minDimension * heightFraction * scale
+private fun DrawScope.drawQueen(color: Color, heightFraction: Float, alpha: Float) {
+    val h = size.minDimension * heightFraction
     val w = h * 1.15f
     val left = (size.width - w) / 2f
     val top = (size.height - h) / 2f

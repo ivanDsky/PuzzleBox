@@ -23,6 +23,18 @@ data object Play : NavKey
 data object Queens : NavKey
 
 /**
+ * Solved-Queens result (fix round 6, R-5 parity with [Result]): a proper opaque route,
+ * not the old modal overlay. The frozen facts (elapsed time, hints used) ride the key
+ * so the surface renders even after process death; the record badge is live flow state
+ * — the record write is fire-and-observe, never awaited. Solving unwinds to the Queens
+ * TAB ROOT and pushes this entry over it, so back lands on the Queens board (Play tab),
+ * not Home — Queens IS a tab root here (its solve entry is pushed from the tab, unlike
+ * Zip's Home-pushed daily).
+ */
+@Serializable
+data class QueensResult(val timeMs: Long, val hintsUsed: Int) : NavKey
+
+/**
  * Solved-session result (ticket 23, spec UIUX-01 A3/A9): a proper route, not an overlay.
  * The frozen A3 facts ride the key so the surface renders even after process death; the
  * record badge is live flow state — the record write is fire-and-observe, never awaited.

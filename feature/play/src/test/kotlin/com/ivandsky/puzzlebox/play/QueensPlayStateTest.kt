@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.setMain
@@ -159,6 +160,80 @@ class QueensPlayStateTest {
         assertTrue(restored.board!!.session.isComplete)
         assertFalse(restored.board!!.winEmitted)
         assertEquals(0, runBlocking { freshCompletions.observeRecords().first().size })
+    }
+
+    // --------------------------------- fix round 6: result-route badge/retry plumbing
+
+    /** A4 badge: derived from the session-start baseline — TRUE for a first win, FALSE
+     *  for a replay of an already-recorded puzzle; reset to null while re-baselining. */
+    @Test
+    fun `win derives the record badge from the session-start baseline`() {
+        val (state, completions) = readyBoard()
+        val board = state.board!!
+        for (cell in QueensPlayFixtures.solution) {
+            board.onTap(cell.idx)
+            board.onTap(cell.idx)
+        }
+        assertEquals("first win, no baseline record → badge TRUE", true, state.recordBadge)
+        assertFalse(state.recordWriteFailed)
+
+        state.replay()
+        assertNull("badge resets until the next write lands", state.recordBadge)
+        val board2 = state.board!!
+        for (cell in QueensPlayFixtures.solution) {
+            board2.onTap(cell.idx)
+            board2.onTap(cell.idx)
+        }
+        assertEquals("replay of a recorded puzzle → badge FALSE (A4)", false, state.recordBadge)
+        assertEquals(2, runBlocking { completions.observeRecords().first().size })
+    }
+
+    @Test
+    fun `a failed record write surfaces retryable - retry lands it`() {
+        val flaky = FakeCompletionRepository().apply { fail = true }
+        val (state, _) = readyBoard(completions = flaky)
+        val board = state.board!!
+        for (cell in QueensPlayFixtures.solution) {
+            board.onTap(cell.idx)
+            board.onTap(cell.idx)
+        }
+        assertTrue("the win stands regardless of the write", board.session.isComplete)
+        assertTrue(state.recordWriteFailed)
+        assertNull(state.recordBadge)
+        assertEquals(0, runBlocking { flaky.observeRecords().first().size })
+
+        flaky.fail = false
+        state.retryRecordWrite()
+        assertEquals(1, runBlocking { flaky.observeRecords().first().size })
+        assertFalse(state.recordWriteFailed)
+        assertEquals(true, state.recordBadge)
+    }
+
+    /** Fix round 6 (F-3): the emitted record carries the REAL frozen facts — the play
+     *  duration (first action → win) and the presented-hint count. */
+    @Test
+    fun `the win record carries the real elapsed time and hint count`() {
+        val tick = AtomicLong(0)
+        val completions = FakeCompletionRepository()
+        val s = QueensPlayState(
+            daily = FakeQueensDailyRepository(
+                todayResult = QueensToday.Fresh(QueensPlayFixtures.envelope()),
+                history = listOf(QueensDailyEntry(FakeQueensDailyRepository.today(), 42, "queens/n8", 0L)),
+            ),
+            completions = completions,
+            scope = scope,
+            now = { Instant.ofEpochMilli(tick.getAndAdd(100)) },
+        )
+        s.load()
+        val board = s.board!!
+        board.requestHint() // one presented hint on the empty board (no board action, no clock)
+        for (cell in QueensPlayFixtures.solution) {
+            board.onTap(cell.idx)
+            board.onTap(cell.idx)
+        }
+        val record = runBlocking { completions.observeRecords().first().single() }
+        assertTrue("elapsed is the real play duration, not 0", record.time > 0)
+        assertEquals(1, record.hints)
     }
 
     private fun variantOf(record: com.ivandsky.puzzlebox.game.CompletionRecord): String {

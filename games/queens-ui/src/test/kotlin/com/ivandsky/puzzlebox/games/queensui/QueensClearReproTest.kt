@@ -11,9 +11,9 @@ import org.junit.Test
  * suspected state bug — a queen placed AFTER clear not showing in the renderer model —
  * is exercised here against the real session + model pipeline, no Compose.
  *
- * Test 1 is the assigned repro: place → clearBoard → place on another cell → the
- * renderer model must show QUEEN at the new cell. Tests 2–3 pin the two behaviors the
- * diagnosis identified around it (see .scratch/queens/reports/fix-round-3.md).
+ * Fix round 6 REVERSES test 2's round-3 expectation per the 2026-11-02 ruling: Clear
+ * now wipes EVERYTHING — queens, AUTO marks AND MANUAL marks — as ONE undo unit (one
+ * undo restores the exact pre-clear board, MANUAL marks included).
  */
 class QueensClearReproTest {
 
@@ -28,13 +28,15 @@ class QueensClearReproTest {
 
         state.onTap(8) // empty → MANUAL X
         state.onTap(8) // X → queen at (2,0)
-        val model = QueensBoardModel.of(state.session, state.hint, state.autoCheck)
+        val model = QueensBoardModel.of(state.session, state.hint, state.hintPointed)
         assertEquals(QueensCellVisual.QUEEN, model.visuals[8])
         assertEquals(listOf(8), model.queens)
     }
 
+    /** Round-6 ruling: Clear wipes MANUAL marks too — the board collapses fully; one
+     *  undo restores the whole pre-clear picture (queens + AUTO + MANUAL). */
     @Test
-    fun `clear wipes every derived AUTO mark and keeps MANUAL ones`() {
+    fun `clear wipes everything - one undo restores the pre-clear board`() {
         var session: QueensSession = QueensUiFixtures.session().withCrossToggled(Cell(15), QueensUiFixtures.T0)
         session = session.withQueenPlaced(Cell(1), QueensUiFixtures.T0)
         val state = QueensBoardState(initialSession = session)
@@ -42,6 +44,7 @@ class QueensClearReproTest {
         val before = QueensBoardModel.of(state.session)
         assertEquals(1, before.queens.size)
         assertTrue("pre-clear board is dense with AUTO marks", before.visuals.count { it == QueensCellVisual.X_AUTO } >= 4)
+        assertEquals(QueensCellVisual.X_MANUAL, before.visuals[15])
 
         state.clearBoard()
         val after = QueensBoardModel.of(state.session)
@@ -51,7 +54,18 @@ class QueensClearReproTest {
             0,
             after.visuals.count { it == QueensCellVisual.X_AUTO },
         )
-        assertEquals(QueensCellVisual.X_MANUAL, after.visuals[15])
+        assertEquals(
+            "MANUAL marks are cleared too (round-6 ruling, was: kept)",
+            QueensCellVisual.EMPTY,
+            after.visuals[15],
+        )
+
+        // ONE undo unit: the exact pre-clear board comes back — MANUAL mark included.
+        state.undo()
+        val restored = QueensBoardModel.of(state.session, state.hint, state.hintPointed)
+        assertEquals(before.queens, restored.queens)
+        assertEquals(before.visuals, restored.visuals)
+        assertEquals(QueensCellVisual.X_MANUAL, restored.visuals[15])
     }
 
     @Test

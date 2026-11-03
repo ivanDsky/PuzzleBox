@@ -73,6 +73,15 @@ object QueensRegionPalette {
         return palette[((region % palette.size) + palette.size) % palette.size]
     }
 
+    // §4's fixed hue set, by NAME (§5.5 hint captions: "the blue region's queen…").
+    // Index-aligned with the fill lists above.
+    private val hueNames = listOf(
+        "red", "orange", "amber", "green", "teal", "cyan", "blue", "indigo", "violet", "magenta",
+    )
+
+    /** The spoken color of [region] (palette hue names, cycled by id like the fills). */
+    fun hueName(region: Int): String = hueNames[((region % hueNames.size) + hueNames.size) % hueNames.size]
+
     /**
      * The computed on-ink for [fill] (§4 rule 4): the higher-contrast of the active
      * scheme's `onSurface` vs its `scrim`/`surface` constant. Call once per board

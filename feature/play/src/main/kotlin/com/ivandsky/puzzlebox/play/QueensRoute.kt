@@ -24,6 +24,7 @@ import org.koin.compose.koinInject
 fun QueensRoute(
     layout: PlayLayout,
     onBack: () -> Unit,
+    onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val flow = koinInject<QueensPlayFlow>()
@@ -52,6 +53,7 @@ fun QueensRoute(
         state = state,
         layout = layout,
         onBack = onBack,
+        onSolved = onSolved,
         modifier = modifier,
     )
 }

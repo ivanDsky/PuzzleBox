@@ -9,10 +9,10 @@ import kotlinx.serialization.json.buildJsonObject
 /**
  * Emits the normalized completion (ADR-0004, queens-10 wiring), zip ZipScoreModel
  * conventions: ref-less boards are not record-eligible (ADR-0004: no identity, no
- * record). QueensSession v1 carries no timer or hint counters (the session tickets
- * never landed one), so the indexed time/hints are 0 — the leaderboard sanity envelope
- * (`time <= 0` is never eligible, LeaderboardEntries.fromRecord) keeps such rows
- * local-only history until a session timer lands. The ADR-0005 stats slot v1 carries
+ * record). Fix round 6 landed the session timer + hint counter, so the indexed facts
+ * are the REAL play duration ([QueensSession.elapsedMs], first action → win stamp) and
+ * presented-hint count — the leaderboard sanity envelope (`time <= 0` is never
+ * eligible) now admits genuinely played records. The ADR-0005 stats slot v1 carries
  * the variant, analytics only.
  */
 class QueensScoreModel : ScoreModel<QueensSession> {
@@ -22,8 +22,8 @@ class QueensScoreModel : ScoreModel<QueensSession> {
         val ref = session.ref ?: return null
         return CompletionRecord(
             puzzleRef = ref,
-            time = 0L,
-            hints = 0,
+            time = session.elapsedMs() ?: 0L,
+            hints = session.hintsUsed,
             stats = RecordStats(schemaVersion = 1, blob = statsBlob(session)),
         )
     }

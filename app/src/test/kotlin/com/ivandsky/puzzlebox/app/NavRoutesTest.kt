@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.app.nav.Home
 import com.ivandsky.puzzlebox.app.nav.Play
 import com.ivandsky.puzzlebox.app.nav.Profile
 import com.ivandsky.puzzlebox.app.nav.Queens
+import com.ivandsky.puzzlebox.app.nav.QueensResult
 import com.ivandsky.puzzlebox.app.nav.ReplayZip
 import com.ivandsky.puzzlebox.app.nav.Result
 import com.ivandsky.puzzlebox.model.ThemeMode
@@ -56,7 +57,10 @@ class NavRoutesTest {
     @Test
     fun `every primary-flow key resolves to a registered entry`() {
         val session = Base64.getEncoder().encodeToString(byteArrayOf(1, 2, 3))
-        val keys = listOf<NavKey>(Home, Play, Queens, History, ReplayZip(session), Result(95_000, 1), Profile, Catalog)
+        val keys = listOf<NavKey>(
+            Home, Play, Queens, History, ReplayZip(session), Result(95_000, 1),
+            QueensResult(95_000, 1), Profile, Catalog,
+        )
 
         keys.forEach { key ->
             val entry = provider().invoke(key)
@@ -67,6 +71,54 @@ class NavRoutesTest {
                 entry.contentKey.toString().contains(key.toString()),
             )
         }
+    }
+
+    // Fix round 6 (F-3/R-5): Queens's win is a proper ROUTE over the Queens TAB ROOT.
+
+    @Test
+    fun `queens solving routes to the result with the queens board as the back exit`() {
+        // Queens IS a tab root: the Play tab resolves to the Queens entry, so the
+        // result lands on top of it and a plain pop returns to the BOARD (not Home).
+        val stack = NavBackStack<NavKey>(Queens)
+
+        stack.solveToQueensResult(QueensResult(61_200, 2))
+
+        assertTrue("expected the result on top, got ${stack.lastOrNull()}", stack.lastOrNull() == QueensResult(61_200, 2))
+        stack.removeLastOrNull()
+        assertTrue("expected the Queens board beneath the result, got ${stack.lastOrNull()}", stack.lastOrNull() == Queens)
+    }
+
+    @Test
+    fun `queens solving unwinds deep pushes back to the tab root`() {
+        val stack = NavBackStack<NavKey>(Queens)
+        stack.add(Unregistered) // any transient push above the tab root
+
+        stack.solveToQueensResult(QueensResult(1_000, 0))
+
+        assertTrue(stack.lastOrNull() is QueensResult)
+        stack.removeLastOrNull()
+        assertTrue("everything above the tab root unwound", stack.lastOrNull() == Queens)
+        assertEquals("no result duplicates beneath", 2, stack.size)
+    }
+
+    @Test
+    fun `queens play again pops the result onto the board`() {
+        val stack = NavBackStack<NavKey>(Queens)
+        stack.add(QueensResult(95_000, 1))
+
+        stack.queensPlayAgainFromResult()
+
+        assertTrue("expected the Queens board on top, got ${stack.lastOrNull()}", stack.lastOrNull() == Queens)
+    }
+
+    @Test
+    fun `double queens solve push is idempotent`() {
+        val stack = NavBackStack<NavKey>(Queens)
+
+        stack.solveToQueensResult(QueensResult(61_200, 2))
+        stack.solveToQueensResult(QueensResult(61_200, 2))
+
+        assertEquals(2, stack.size)
     }
 
     @Test

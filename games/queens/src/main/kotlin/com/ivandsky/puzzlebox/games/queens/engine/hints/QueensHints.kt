@@ -15,8 +15,13 @@ import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSolver
  */
 sealed interface QueensHint : Hint {
 
-    /** Highlight [region]: a crown must go at [cell] (the forced position in that region). */
-    data class Region(val region: Int, val cell: Cell) : QueensHint
+    /**
+     * Highlight [region]: a crown must go at [cell] (the forced position in that region).
+     * [reason] is the human-checkable elimination behind the forcing (fix round 6, staged
+     * hint ladder); null when the cell is forced only by exhaustive search — the UI then
+     * renders the neutral fallback so the hint never claims logic it can't show.
+     */
+    data class Region(val region: Int, val cell: Cell, val reason: HintReason? = null) : QueensHint
 
     /** The crowns at [cells] cannot all stay — rule-violating, or provably off the
      *  unique solution. Remove at least one; the caller re-hints after the fix. */
@@ -24,6 +29,16 @@ sealed interface QueensHint : Hint {
 
     /** The board is already complete and correct — nothing to hint. */
     data object None : QueensHint
+}
+
+/**
+ * The elimination a player can verify BY EYE: every OTHER cell of [unit] is directly
+ * blocked by the standing queens — same row/column/region conflict or a diagonal
+ * no-touch — so [QueensHint.Region]'s cell must take that unit's queen. Carries a unit
+ * kind + index only; no solution data ever leaves the engine (A5).
+ */
+data class HintReason(val kind: Kind, val unit: Int) {
+    enum class Kind { ROW, COLUMN, REGION }
 }
 
 /**
@@ -94,6 +109,48 @@ class QueensHints(private val solver: QueensSolver = QueensSolver()) {
 
         // Lowest region id wins: the region highlighted first is stable across calls.
         val cell = forced.minBy { puzzle.regionOf(it) * puzzle.cellCount + it.idx }
-        return QueensHint.Region(puzzle.regionOf(cell), cell)
+        return QueensHint.Region(puzzle.regionOf(cell), cell, directEliminationReason(puzzle, placed.toSet(), cell))
+    }
+
+    /**
+     * The staged ladder's stage-1 payload (fix round 6): the ROW/COLUMN/REGION unit whose
+     * every other cell is DIRECTLY blocked by a standing queen — same row/column/region
+     * conflict or a diagonal no-touch — so the deduction is verifiable on the board
+     * (official-app style: "the {color} region's queen must be in this row — every other
+     * cell there is blocked"). When no unit is directly provable (early boards, or a
+     * placement forced only by exhaustive search) the reason is null and the UI falls
+     * back to the neutral region pulse — the hint never claims logic it cannot show.
+     *
+     * Premises are the PLACED queens only — never the player's X marks (a mis-mark must
+     * not become a false proof). Deterministic priority ROW → COLUMN → REGION.
+     */
+    internal fun directEliminationReason(puzzle: QueensPuzzle, placed: Set<Cell>, cell: Cell): HintReason? {
+        fun blocked(other: Cell): Boolean {
+            if (other in placed) return true
+            for (queen in placed) {
+                if (puzzle.rowOf(other) == puzzle.rowOf(queen)) return true
+                if (puzzle.colOf(other) == puzzle.colOf(queen)) return true
+                if (puzzle.regions[other.idx] == puzzle.regions[queen.idx]) return true
+                val dRow = kotlin.math.abs(puzzle.rowOf(other) - puzzle.rowOf(queen))
+                val dCol = kotlin.math.abs(puzzle.colOf(other) - puzzle.colOf(queen))
+                if (dRow == 1 && dCol == 1) return true // no-touch diagonal adjacency
+            }
+            return false
+        }
+
+        fun unitReason(kind: HintReason.Kind, unit: Int, cells: List<Cell>): HintReason? =
+            if (cells.filter { it != cell }.all(::blocked)) HintReason(kind, unit) else null
+
+        val n = puzzle.size
+        val row = puzzle.rowOf(cell)
+        val col = puzzle.colOf(cell)
+        val region = puzzle.regions[cell.idx]
+        return unitReason(HintReason.Kind.ROW, row, (0 until n).map { Cell(row * n + it) })
+            ?: unitReason(HintReason.Kind.COLUMN, col, (0 until n).map { Cell(it * n + col) })
+            ?: unitReason(
+                HintReason.Kind.REGION,
+                region,
+                puzzle.regions.indices.filter { puzzle.regions[it] == region }.map(::Cell),
+            )
     }
 }

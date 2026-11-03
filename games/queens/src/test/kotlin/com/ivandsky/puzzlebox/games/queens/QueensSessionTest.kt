@@ -165,7 +165,9 @@ class QueensSessionTest {
         val s3 = s2.withCrossToggled(cell(1, 1), now)
         assertEquals(s2, s3.withUndo())
         assertEquals(s1, s2.withUndo())
-        assertEquals(s0, s1.withUndo())
+        // The play CLOCK persists through undo (it started at the first action and keeps
+        // running) — the reverted PLAY STATE matches s0 exactly, modulo the clock.
+        assertEquals(s0, s1.withUndo().copy(startedAt = s0.startedAt))
         assertEquals(s0, s0.withUndo()) // empty stack is a no-op
     }
 
@@ -184,7 +186,9 @@ class QueensSessionTest {
         )
         for (action in script) s = action(s).also { states.add(it) }
         for (i in states.indices.reversed()) {
-            assertEquals("undo step ${states.size - 1 - i}", states[i], s)
+            // Play state must match exactly; the CLOCK persists through undo (round 6),
+            // so normalize it against the recorded state before comparing.
+            assertEquals("undo step ${states.size - 1 - i}", states[i], s.copy(startedAt = states[i].startedAt))
             s = s.withUndo()
         }
     }
@@ -231,5 +235,130 @@ class QueensSessionTest {
         assertEquals(QueensMark(MarkKind.MANUAL), s4.markAt(cell(0, 1)))
         // ... and undo restores the AUTO provenance
         assertEquals(s3, s4.withUndo())
+    }
+
+    // ---------------------------------------- fix round 6 (F-1/F-3/F-4)
+
+    @Test
+    fun `clear - wipes queens AND AUTO AND MANUAL marks as one undo unit`() {
+        val manualCell = cell(3, 3)
+        val played = session()
+            .withCrossToggled(manualCell, now)
+            .withQueenPlaced(cell(0, 0), now)
+        assertEquals(QueensMark(MarkKind.MANUAL), played.markAt(manualCell))
+        assertTrue(played.marks.any { it.value.kind == MarkKind.AUTO })
+
+        val cleared = played.withCleared(now)
+        // EVERYTHING is gone — queens, system marks, and the player's manual marks.
+        assertTrue(cleared.queens.isEmpty())
+        assertTrue(cleared.marks.isEmpty())
+        assertNull(cleared.completedAt)
+
+        // ONE undo unit: a single step reverts to EXACTLY the pre-clear board.
+        val undone = cleared.withUndo()
+        assertEquals(played.queens, undone.queens)
+        assertEquals(played.marks, undone.marks)
+    }
+
+    @Test
+    fun `clear - is a no-op on a completed session`() {
+        val puzzle = n4()
+        val solution = solver.solve(puzzle) ?: error("fixture board must be solvable")
+        var s = session(puzzle)
+        for (c in solution) s = s.withQueenPlaced(c, now)
+        assertTrue(s.isComplete)
+        assertEquals(s, s.withCleared(now))
+    }
+
+    @Test
+    fun `clear - on an empty board leaves the board empty and undoable`() {
+        val cleared = session().withCleared(now)
+        assertTrue(cleared.queens.isEmpty())
+        assertTrue(cleared.marks.isEmpty())
+        assertNull(cleared.completedAt)
+    }
+
+    @Test
+    fun `auto-cross - OFF strips AUTO marks and places queens bare`() {
+        val marked = session().withQueenPlaced(cell(0, 0), now)
+        assertTrue(marked.marks.isNotEmpty()) // A10 auto-fill ON
+        val bare = marked.withAutoCross(false)
+        assertTrue(bare.marks.isEmpty())
+        assertEquals(listOf(cell(0, 0)), bare.queens)
+        // a NEW placement while OFF stays bare
+        val bare2 = bare.withQueenPlaced(cell(2, 3), now)
+        assertTrue(bare2.marks.isEmpty())
+        assertEquals(setOf(cell(0, 0), cell(2, 3)), bare2.queens.toSet())
+    }
+
+    @Test
+    fun `auto-cross - flipping ON re-derives marks from the standing queens`() {
+        val bare = session().withAutoCross(false).withQueenPlaced(cell(0, 0), now)
+        assertTrue(bare.marks.isEmpty())
+        val filled = bare.withAutoCross(true)
+        assertEquals(filled.marks, session().withQueenPlaced(cell(0, 0), now).marks)
+    }
+
+    @Test
+    fun `auto-cross - MANUAL marks survive the OFF flip`() {
+        val manualCell = cell(1, 1)
+        val played = session()
+            .withCrossToggled(manualCell, now)
+            .withQueenPlaced(cell(0, 0), now)
+        val off = played.withAutoCross(false)
+        assertEquals(QueensMark(MarkKind.MANUAL), off.markAt(manualCell))
+        // ... and are the only marks left
+        assertTrue(off.marks.values.all { it.kind == MarkKind.MANUAL })
+    }
+
+    @Test
+    fun `auto-cross - undo after a flip never resurrects OFF-stripped system marks`() {
+        // place with auto-fill ON, strip OFF, undo the placement: the restored snapshot
+        // marks must come back RECOMPUTED under OFF (bare), not as the stale AUTO wave.
+        val placed = session().withQueenPlaced(cell(0, 0), now)
+        val off = placed.withAutoCross(false)
+        val undone = off.withUndo()
+        assertTrue(undone.queens.isEmpty())
+        assertTrue(undone.marks.isEmpty())
+    }
+
+    @Test
+    fun `elapsed - runs from the first committed action to the win stamp`() {
+        val t0 = Instant.ofEpochMilli(1_000_000)
+        assertNull(session().elapsedMs()) // no action yet — no clock
+        val puzzle = n4()
+        val solution = solver.solve(puzzle) ?: error("fixture board must be solvable")
+        var s = session(puzzle).withCrossToggled(cell(0, 3), t0) // the clock starts here
+        assertNull(s.elapsedMs()) // clock started, not finished
+        var at = t0
+        for (c in solution) {
+            at = at.plusMillis(300)
+            s = s.withQueenPlaced(c, at)
+        }
+        assertTrue(s.isComplete)
+        assertEquals(1200L, s.elapsedMs()) // win stamps at the LAST placement (t0 + 4×300)
+    }
+
+    @Test
+    fun `elapsed - never negative for a same-instant win`() {
+        val puzzle = n4()
+        val solution = solver.solve(puzzle) ?: error("fixture board must be solvable")
+        var s = session(puzzle)
+        for (c in solution) s = s.withQueenPlaced(c, now)
+        assertEquals(0L, s.elapsedMs())
+    }
+
+    @Test
+    fun `hints - count once per presentation and are not undo units`() {
+        val s = session().withQueenPlaced(cell(0, 0), now)
+        assertEquals(0, s.hintsUsed)
+        val hinted = s.withHintUsed()
+        assertEquals(1, hinted.hintsUsed)
+        // The hint pushed NO undo unit: undoing still reverts the last BOARD action
+        // (the placement), while the presented-hint counter stays.
+        val undone = hinted.withUndo()
+        assertTrue(undone.queens.isEmpty())
+        assertEquals(1, undone.hintsUsed)
+        assertEquals(2, hinted.withHintUsed().hintsUsed)
     }
 }

@@ -12,33 +12,37 @@ enum class QueensCellVisual { EMPTY, X_MANUAL, X_AUTO, QUEEN }
 
 /**
  * The renderer-model mapping — the queens-ui-side drawable model derived from the
- * session, the hint payload, and the Auto-check toggle (A14). Pure function, no
- * Compose in :games:queens (ADR-0001): the session carries provenance-aware marks,
- * this model flattens them into paint decisions.
+ * session and the hint payload. Pure function, no Compose in :games:queens (ADR-0001):
+ * the session carries provenance-aware marks, this model flattens them into paint
+ * decisions.
  *
- * Violations are computed ONLY when Auto-check is on (A14): the rules pipeline's
- * attributed offending cells (typed verdict from queens-02), so a conflict cue never
- * punishes a player who opted out.
+ * Violations are ALWAYS ON (A14 revised, fix round 6 — the Auto-check toggle is
+ * deleted): the rules pipeline's attributed offending cells (typed verdict from
+ * queens-02) render stripes + caption whenever a conflict is live.
+ *
+ * [hintCell] is the staged ladder's stage 2 (fix round 6): a repeat hint tap on the
+ * same forced cell POINTS at it — a crown ghost renders over the region pulse.
  */
 data class QueensBoardModel(
     val n: Int,
     val regions: List<Int>,
     val visuals: List<QueensCellVisual>, // row-major, n*n entries
     val queens: List<Int>, // row-major indices, PLACEMENT order (win cascade §5.6)
-    val violations: Set<Int>, // row-major indices under active Auto-check
+    val violations: Set<Int>, // row-major indices under the live conflict highlighting
     val hintRegion: Int?,
     val hintCells: Set<Int>, // region cells (Region hint) or offending cells (Incorrect hint)
+    val hintCell: Int?, // stage 2: the pointed forced cell (crown ghost)
     val win: Boolean,
 ) {
     val cellCount: Int get() = n * n
 
     companion object {
 
-        /** state, hint, autoCheck → drawable model (the RendererModel contract shape). */
+        /** state, hint, stage-2 flag → drawable model (the RendererModel contract shape). */
         fun of(
             session: QueensSession,
             hint: QueensHint? = null,
-            autoCheck: Boolean = false,
+            hintPointed: Boolean = false,
         ): QueensBoardModel {
             val puzzle = session.puzzle
             val queenSet = session.queens.toSet()
@@ -50,7 +54,7 @@ data class QueensBoardModel(
                     else -> QueensCellVisual.EMPTY
                 }
             }
-            val violations = if (autoCheck && !session.isComplete) {
+            val violations = if (!session.isComplete) {
                 when (val verdict = QueensRules.evaluate(puzzle, queenSet)) {
                     is QueensRulesVerdict.Invalid -> verdict.violations.map { it.cell.idx }.toSet()
                     else -> emptySet()
@@ -64,6 +68,7 @@ data class QueensBoardModel(
                 is QueensHint.Incorrect -> null to hint.cells.map { it.idx }.toSet()
                 else -> null to emptySet<Int>()
             }
+            val hintCell = (hint as? QueensHint.Region)?.cell?.idx?.takeIf { hintPointed }
             return QueensBoardModel(
                 n = puzzle.size,
                 regions = puzzle.regions,
@@ -72,6 +77,7 @@ data class QueensBoardModel(
                 violations = violations,
                 hintRegion = hintRegion,
                 hintCells = hintCells,
+                hintCell = hintCell,
                 win = session.isComplete,
             )
         }
