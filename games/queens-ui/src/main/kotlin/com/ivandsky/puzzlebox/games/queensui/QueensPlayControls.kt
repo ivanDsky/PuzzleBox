@@ -43,7 +43,13 @@ fun QueensPlayControls(
         OutlinedButton(onClick = { state.requestHint() }, enabled = !state.session.isComplete) {
             Text("Hint")
         }
-        OutlinedButton(onClick = { state.clearBoard() }, enabled = !state.session.isComplete && state.session.queens.isNotEmpty()) {
+        // Round-7 ruling: Clear is live when ANYTHING can be wiped — any queen OR any
+        // mark (a crosses-only board must be clearable).
+        OutlinedButton(
+            onClick = { state.clearBoard() },
+            enabled = !state.session.isComplete &&
+                (state.session.queens.isNotEmpty() || state.session.marks.isNotEmpty()),
+        ) {
             Text("Clear")
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

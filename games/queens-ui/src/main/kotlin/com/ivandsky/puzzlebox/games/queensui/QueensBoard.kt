@@ -374,13 +374,11 @@ private fun QueensCell(
                     QueensBoardDefaults.xManualLengthFraction,
                     scale = 0.7f + 0.3f * p, alpha = p,
                 )
-                QueensCellVisual.X_AUTO -> {
-                    drawX(ink, QueensBoardDefaults.xAutoWeight.toPx(), QueensBoardDefaults.xAutoLengthFraction, alpha = p)
-                    if (variants.xProvenanceCue == XProvenanceCue.SIZE_DOT) {
-                        // A/B-1 variant B: subtle fill-dot above the X.
-                        drawCircle(ink, radius = QueensBoardDefaults.xAutoWeight.toPx() * 1.2f, center = Offset(size.width / 2f, size.height * 0.22f), alpha = p)
-                    }
-                }
+                QueensCellVisual.X_AUTO -> drawX(
+                    ink, QueensBoardDefaults.xManualWeight.toPx(),
+                    QueensBoardDefaults.xManualLengthFraction,
+                    alpha = p,
+                )
                 QueensCellVisual.QUEEN -> drawQueen(ink, QueensBoardDefaults.queenHeightFraction, alpha = p)
                 QueensCellVisual.EMPTY -> Unit
             }

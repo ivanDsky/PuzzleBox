@@ -83,11 +83,12 @@ data class QueensSession(
     }
 
     /**
-     * A10: place a queen on [cell] (must not already hold a queen). Exclusion marks for
-     * the queen's row, column, and region are auto-filled as AUTO marks sourced by this
-     * queen — ONLY on cells that carry no MANUAL mark. Marks are recompute-derived from
-     * the standing-queen set on every action, so an AUTO mark exists exactly while its
-     * source queen stands (A10's invariant, in both directions).
+     * A10 (round-7 ruling 2026-11-03): place a queen on [cell] (must not already hold a
+     * queen). Exclusion marks for the queen's row, column, color region, AND surrounding
+     * 3×3 square (all 8 neighbors — mirroring the no-touch rule) are auto-filled as AUTO
+     * marks sourced by this queen — ONLY on cells that carry no MANUAL mark. Marks are
+     * recompute-derived from the standing-queen set on every action (the union over the
+     * standing queens), so an AUTO mark exists exactly while any source queen stands.
      */
     fun withQueenPlaced(cell: Cell, now: Instant): QueensSession {
         if (completedAt != null || cell.idx !in 0 until puzzle.cellCount || cell in occupied) return this
@@ -169,24 +170,29 @@ data class QueensSession(
 
     /** Shared tail: recompute AUTO marks from the standing queens, snapshot, stamp a win. */
     private fun commit(next: QueensSession, now: Instant): QueensSession {
+        // Stamps are truncated to epochMilli to MATCH the codec's persistence precision
+        // (writeI64 toEpochMilli): an in-memory session must equal its own save/restore
+        // round trip (the rotation-restore regression).
+        val stamp = Instant.ofEpochMilli(now.toEpochMilli())
         // The play clock starts at the FIRST committed board action (fix round 6).
-        val stamped = if (next.startedAt == null) next.copy(startedAt = now) else next
+        val stamped = if (next.startedAt == null) next.copy(startedAt = stamp) else next
         val recomputed = stamped.copy(marks = recomputeMarks(stamped.queens, stamped.marks))
         val pushed = recomputed.copy(undo = undo + QueensSnapshot(queens, marks))
         return if (QueensVerifier.isSolution(puzzle, pushed.queens.toSet())) {
-            pushed.copy(completedAt = now)
+            pushed.copy(completedAt = stamp)
         } else {
             pushed
         }
     }
 
     /**
-     * A10, both directions: AUTO marks are DERIVED — exactly the row/column/region
-     * exclusions of the standing queens, on cells that carry no MANUAL mark — while
-     * [autoCross] is ON (fix round 6; OFF leaves queens bare). MANUAL marks are the
-     * only stored truth (including ones hidden under a standing queen); everything
-     * AUTO is recomputed, so a mark exists precisely while its source queen stands
-     * and the setting is ON, and reappears the moment both do.
+     * A10, both directions (round-7 ruling 2026-11-03): AUTO marks are DERIVED —
+     * exactly the row/column/region/3×3-neighbor exclusions of the standing queens, on
+     * cells that carry no MANUAL mark — while [autoCross] is ON (fix round 6; OFF leaves
+     * queens bare). MANUAL marks are the only stored truth (including ones hidden under
+     * a standing queen); everything AUTO is recomputed as the UNION over the standing
+     * queens, so a mark exists precisely while any source queen stands and the setting
+     * is ON, and reappears the moment both do.
      */
     private fun recomputeMarks(queens: List<Cell>, marks: Map<Cell, QueensMark>): Map<Cell, QueensMark> {
         var out = marks.filterValues { it.kind == MarkKind.MANUAL }
@@ -209,7 +215,14 @@ data class QueensSession(
         for (idx in 0 until puzzle.cellCount) {
             val cell = Cell(idx)
             if (cell == source || cell in occupied) continue
-            if (idx / n == row || idx % n == col || puzzle.regions[idx] == region) {
+            val r = idx / n
+            val c = idx % n
+            val inUnits = r == row || c == col || puzzle.regions[idx] == region
+            // Round-7 ruling (2026-11-03): the fill also covers the surrounding 3×3
+            // square — all 8 neighbors, orthogonal + diagonal — mirroring the no-touch
+            // rule so the exclusion reads visually.
+            val neighbor = kotlin.math.abs(r - row) <= 1 && kotlin.math.abs(c - col) <= 1
+            if (inUnits || neighbor) {
                 if (cell !in out) out = out + (cell to QueensMark(MarkKind.AUTO, source))
             }
         }

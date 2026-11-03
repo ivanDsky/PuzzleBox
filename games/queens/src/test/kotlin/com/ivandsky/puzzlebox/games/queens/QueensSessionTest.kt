@@ -34,10 +34,11 @@ class QueensSessionTest {
         assertEquals(listOf(cell(0, 0)), s.queens)
         val source = cell(0, 0)
         // row 0 ∪ column 0 ∪ region (row) 0 = 7 cells; the queen cell carries no mark
-        assertEquals(6, s.marks.size)
+        assertEquals(7, s.marks.size) // 6 row/col/region cells + the (1,1) 3×3 neighbor
         for (idx in 0 until 16) {
             if (idx == source.idx) continue
-            val inUnits = idx / 4 == 0 || idx % 4 == 0
+            val inUnits = idx / 4 == 0 || idx % 4 == 0 ||
+                (idx / 4 <= 1 && idx % 4 <= 1) // the 3×3 neighbor square (round-7 ruling)
             if (inUnits) {
                 val mark = s.markAt(Cell(idx))!!
                 assertEquals(MarkKind.AUTO, mark.kind)
@@ -66,7 +67,67 @@ class QueensSessionTest {
         assertEquals(setOf(q1, q2), s.queens.toSet())
         assertEquals(q1, s.markAt(cell(0, 3))!!.source) // q1's row
         assertEquals(q2, s.markAt(cell(2, 1))!!.source) // q2's row
-        assertNull(s.markAt(cell(1, 1)))                // in neither queen's units
+        // (1,1) sits in neither queen's row/col/region but IS q1's diagonal neighbor —
+        // round-7 ruling: the 3×3 square is part of the fill set.
+        assertEquals(q1, s.markAt(cell(1, 1))!!.source)
+        assertNull(s.markAt(cell(3, 1)))                // in neither queen's fill set
+    }
+
+    // ---------------------------------------- fix round 7 (G-1): full fill set
+
+    @Test
+    fun `A10 round-7 - a mid-board queen fills EVERY row column region and 3x3-neighbor cell`() {
+        val queen = cell(1, 1)
+        val s = session().withQueenPlaced(queen, now)
+        val n = 4
+        var expected = 0
+        for (idx in 0 until n * n) {
+            val r = idx / n
+            val c = idx % n
+            val inUnits = r == 1 || c == 1 || r == 1 /* region = row fixture */
+            val neighbor = kotlin.math.abs(r - 1) <= 1 && kotlin.math.abs(c - 1) <= 1
+            if (idx == queen.idx) {
+                assertNull("the queen cell stays unmarked", s.markAt(Cell(idx)))
+            } else if (inUnits || neighbor) {
+                assertEquals(QueensMark(MarkKind.AUTO, queen), s.markAt(Cell(idx)))
+                expected++
+            } else {
+                assertNull(s.markAt(Cell(idx)))
+            }
+        }
+        assertEquals(10, expected) // row(3) ∪ col(3) ∪ region(3) ∪ neighbors(8) minus overlaps, no queen cell
+    }
+
+    @Test
+    fun `A10 round-7 - the fill set is the union over standing queens`() {
+        // q1 marks a cell; q2 lands; q1 leaves — every cell either standing queen
+        // covers (row/col/region/neighbors) must STILL be marked (recompute-derived).
+        val q1 = cell(0, 0)
+        val q2 = cell(2, 3)
+        val both = session().withQueenPlaced(q1, now).withQueenPlaced(q2, now)
+        val afterRemoval = both.withQueenRemoved(q1, now)
+        assertEquals(listOf(q2), afterRemoval.queens)
+        for (idx in 0 until 16) {
+            val cell = Cell(idx)
+            if (cell == q2) continue
+            val r = idx / 4
+            val c = idx % 4
+            val covered = r == 2 || c == 3 || r == 2 ||
+                (kotlin.math.abs(r - 2) <= 1 && kotlin.math.abs(c - 3) <= 1)
+            if (covered) assertEquals(QueensMark(MarkKind.AUTO, q2), afterRemoval.markAt(cell))
+            else assertNull(afterRemoval.markAt(cell))
+        }
+    }
+
+    @Test
+    fun `A10 round-7 - MANUAL marks are kept verbatim, AUTO re-derives around them`() {
+        // MANUAL-marked cell inside the queen's fill set keeps MANUAL provenance and is
+        // never re-stamped AUTO; every OTHER fill-set cell still derives AUTO.
+        val manual = cell(1, 0) // in queen (1,1)'s row + 3×3
+        val s = session().withCrossToggled(manual, now).withQueenPlaced(cell(1, 1), now)
+        assertEquals(QueensMark(MarkKind.MANUAL), s.markAt(manual))
+        assertEquals(QueensMark(MarkKind.AUTO, cell(1, 1)), s.markAt(cell(1, 2)))
+        assertEquals(QueensMark(MarkKind.AUTO, cell(1, 1)), s.markAt(cell(0, 0)))
     }
 
     @Test
@@ -150,7 +211,7 @@ class QueensSessionTest {
         val manualCell = cell(3, 3)
         val withManual = session().withCrossToggled(manualCell, now)
         val placed = withManual.withQueenPlaced(cell(0, 0), now)
-        assertEquals(withManual.marks.size + 6, placed.marks.size) // 6 AUTO + the surviving manual mark
+        assertEquals(withManual.marks.size + 7, placed.marks.size) // 7 AUTO + the surviving manual mark
         val undone = placed.withUndo()
         assertEquals(withManual, undone) // manual cross survived; all AUTO marks gone
         assertEquals(QueensMark(MarkKind.MANUAL), undone.markAt(manualCell))
@@ -276,6 +337,20 @@ class QueensSessionTest {
         assertTrue(cleared.queens.isEmpty())
         assertTrue(cleared.marks.isEmpty())
         assertNull(cleared.completedAt)
+    }
+
+    @Test
+    fun `clear round-7 - wipes a MARK-ONLY board`() {
+        val crossesOnly = session()
+            .withCrossToggled(cell(0, 2), now)
+            .withCrossToggled(cell(3, 1), now)
+        assertTrue(crossesOnly.queens.isEmpty())
+        assertEquals(2, crossesOnly.marks.size)
+        val cleared = crossesOnly.withCleared(now)
+        assertTrue(cleared.queens.isEmpty())
+        assertTrue(cleared.marks.isEmpty())
+        // one undo step restores the crosses exactly
+        assertEquals(crossesOnly.marks, cleared.withUndo().marks)
     }
 
     @Test

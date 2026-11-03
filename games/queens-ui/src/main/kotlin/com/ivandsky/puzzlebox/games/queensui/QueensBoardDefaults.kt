@@ -17,13 +17,6 @@ object QueensBoardDefaults {
     val xManualWeight: Dp = 3.5.dp
     const val xManualLengthFraction: Float = 0.55f
 
-    // §3.3 X-AUTO: the SAME shape, visibly smaller and thinner — 45% length, 2.5dp
-    // weight (F-2 recalibration, fix round 3 — was 32%/2dp, which read as broken
-    // rendering). Still the lighter/thinner sibling so provenance reads at a glance.
-    // Distinction by geometry, never opacity (contrast floor must hold identically).
-    val xAutoWeight: Dp = 2.5.dp
-    const val xAutoLengthFraction: Float = 0.45f
-
     // §3.4 Queen crown: 55% of the cell — the dominant glyph.
     const val queenHeightFraction: Float = 0.55f
 
@@ -68,19 +61,16 @@ object QueensBoardDefaults {
     val cellMinSize: Dp = 32.dp
 }
 
-/** §7 A/B-1 switch payload: geometry distinction vs size + subtle fill-dot. */
-enum class XProvenanceCue { GEOMETRY, SIZE_DOT }
-
 /** §7 A/B-2 switch payload: scrimmed red stripes vs gated full-cell tint. */
 enum class ViolationCue { STRIPES_SCRIM, TINT }
 
 /**
  * The §7 A/B toggles queens-08 hands to queens-09 (all default to variant A). The
- * former A/B-4 win-cascade pair is gone with the win overlay itself: the solved state
- * presents as the result ROUTE now (fix round 6), so there is no cascade to vary.
+ * former A/B-1 X-provenance pair is gone (round-7 ruling: one cross shape — AUTO and
+ * MANUAL are geometrically identical), as is the former A/B-4 win-cascade pair: the
+ * solved state presents as the result ROUTE now (fix round 6).
  */
 data class QueensAbVariants(
-    val xProvenanceCue: XProvenanceCue = XProvenanceCue.GEOMETRY,
     val violationCue: ViolationCue = ViolationCue.STRIPES_SCRIM,
     val paletteDensity: PaletteDensity = PaletteDensity.LIGHTNESS_ALTERNATED,
 )

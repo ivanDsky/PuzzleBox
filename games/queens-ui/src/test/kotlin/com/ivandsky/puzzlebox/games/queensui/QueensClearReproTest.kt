@@ -68,6 +68,26 @@ class QueensClearReproTest {
         assertEquals(QueensCellVisual.X_MANUAL, restored.visuals[15])
     }
 
+    /** Round-7 ruling: a crosses-only board (no queens) must be clearable — Clear
+     *  wipes the marks and one undo restores them. */
+    @Test
+    fun `clear wipes a MARK-ONLY board`() {
+        var session: QueensSession = QueensUiFixtures.session()
+            .withCrossToggled(Cell(8), QueensUiFixtures.T0)
+            .withCrossToggled(Cell(13), QueensUiFixtures.T0)
+        assertTrue(session.queens.isEmpty())
+        assertEquals(2, session.marks.size)
+
+        val state = QueensBoardState(initialSession = session)
+        state.clearBoard()
+        assertTrue(state.session.marks.isEmpty())
+        assertTrue(state.session.queens.isEmpty())
+
+        state.undo()
+        assertEquals(2, state.session.marks.size)
+        assertEquals(QueensCellVisual.X_MANUAL, QueensBoardModel.of(state.session).visuals[8])
+    }
+
     @Test
     fun `a completed session cannot be cleared and locks every input`() {
         val solved = QueensUiFixtures.solutionCells.fold(QueensUiFixtures.session()) { acc, c ->

@@ -146,7 +146,7 @@ class QueensBoardUiTest {
         state.onTap(0) // MANUAL X
         state.onTap(0) // queen placement sets lastPlacedQueen
         assertNotNull(state.lastPlacedQueen)
-        state.onTap(5) // ordinary tap: X on a cell outside the queen's auto-fill
+        state.onTap(10) // ordinary tap: X on a cell outside the queen's auto-fill
         assertNull(state.lastPlacedQueen)
         assertNull(state.lastRemovedQueen)
     }

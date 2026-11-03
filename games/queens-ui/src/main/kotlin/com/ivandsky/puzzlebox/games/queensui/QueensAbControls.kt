@@ -28,18 +28,6 @@ internal fun QueensAbControls(
         Text("A/B (queens-09 walk)", style = MaterialTheme.typography.labelLarge)
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             FilterChip(
-                selected = variants.xProvenanceCue == XProvenanceCue.GEOMETRY,
-                onClick = { onChange(variants.copy(xProvenanceCue = XProvenanceCue.GEOMETRY)) },
-                label = { Text("X: geometry") },
-            )
-            FilterChip(
-                selected = variants.xProvenanceCue == XProvenanceCue.SIZE_DOT,
-                onClick = { onChange(variants.copy(xProvenanceCue = XProvenanceCue.SIZE_DOT)) },
-                label = { Text("X: dot") },
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            FilterChip(
                 selected = variants.violationCue == ViolationCue.STRIPES_SCRIM,
                 onClick = { onChange(variants.copy(violationCue = ViolationCue.STRIPES_SCRIM)) },
                 label = { Text("V: stripes") },

@@ -96,9 +96,10 @@ class NavRoutesTest {
         stack.solveToQueensResult(QueensResult(1_000, 0))
 
         assertTrue(stack.lastOrNull() is QueensResult)
+        // the unwind replaced everything above the tab root with the ONE result
+        assertEquals("no result duplicates beneath", 2, stack.size)
         stack.removeLastOrNull()
         assertTrue("everything above the tab root unwound", stack.lastOrNull() == Queens)
-        assertEquals("no result duplicates beneath", 2, stack.size)
     }
 
     @Test
