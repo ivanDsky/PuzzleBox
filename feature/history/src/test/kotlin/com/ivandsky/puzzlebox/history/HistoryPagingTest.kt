@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.history
 
 import androidx.paging.PagingSource
 import androidx.paging.testing.asSnapshot
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import java.time.LocalDate
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -31,7 +33,7 @@ class HistoryPagingTest {
 
     @Test
     fun `initial load is one lazy page, not the whole history`() = runTest {
-        val items = historyDays(seededRepo(45)).asSnapshot()
+        val items = historyDays(seededRepo(45), FakeCompletionRepository(), emptyMap()).asSnapshot()
 
         assertEquals(PAGE_SIZE, items.size)
         assertEquals(firstDay.plusDays(44), items.first().day)
@@ -39,7 +41,7 @@ class HistoryPagingTest {
 
     @Test
     fun `scrolling reaches all 45 seeded days`() = runTest {
-        val items = historyDays(seededRepo(45)).asSnapshot {
+        val items = historyDays(seededRepo(45), FakeCompletionRepository(), emptyMap()).asSnapshot {
             appendScrollWhile { it.day > firstDay }
         }
 
@@ -49,7 +51,7 @@ class HistoryPagingTest {
 
     @Test
     fun `rows arrive newest first`() = runTest {
-        val items = historyDays(seededRepo(PAGE_SIZE)).asSnapshot()
+        val items = historyDays(seededRepo(PAGE_SIZE), FakeCompletionRepository(), emptyMap()).asSnapshot()
 
         assertEquals(
             (PAGE_SIZE - 1 downTo 0).map { firstDay.plusDays(it.toLong()) },
@@ -60,7 +62,7 @@ class HistoryPagingTest {
     @Test
     fun `a newly captured day invalidates to a fresh generation`() = runTest {
         val repo = seededRepo(45)
-        val flow = historyDays(repo)
+        val flow = historyDays(repo, FakeCompletionRepository(), emptyMap())
 
         assertEquals(45, flow.asSnapshot { appendScrollWhile { true } }.size)
 
@@ -78,7 +80,7 @@ class HistoryPagingTest {
         // No settle step before the first collection: whatever generation arrives
         // first must already carry the seeded rows (the Pager is only ever built
         // from mapped rows, so an empty-list generation cannot exist).
-        assertEquals(3, historyDays(seededRepo(3)).asSnapshot().size)
+        assertEquals(3, historyDays(seededRepo(3), FakeCompletionRepository(), emptyMap()).asSnapshot().size)
     }
 }
 
@@ -98,7 +100,7 @@ class HistoryPagingSourceTest {
     private fun source(count: Int): HistoryPagingSource = HistoryPagingSource(
         (0 until count).map { offset ->
             HistoryTestSupport.entry(firstDay.plusDays((count - 1 - offset).toLong()))
-        }.map { it.toRow() },
+        }.map { entry -> HistoryDayRow(entry.day, entry.puzzleNumber, ZipDefinition.id, "Zip") },
     )
 
     private suspend fun prepend(source: HistoryPagingSource, key: Int): PagingSource.LoadResult.Page<Int, HistoryDayRow> {

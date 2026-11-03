@@ -49,11 +49,10 @@ fun QueensPlayScreen(
             board = { BoardArea(state) },
             side = { SidePanel(state) },
         )
-        // R-3 (fix round 4): the solved state presents FULLSCREEN over the play
-        // surface — rendered above the scaffold at this level, the scrim + banner
-        // cover the board pane and the side panel alike (inside the board pane the
-        // overlay inherited the board's BoxWithConstraints size and the game chrome
-        // visibly cut it off). No game chrome shows through or beside it.
+        // R-5 (fix round 5): the solved state presents FULLSCREEN as a true MODAL —
+        // QueensWinOverlay now hosts a fullscreen dialog window, so the scrim + banner
+        // dim and block the whole shell behind it (board pane, side panel, bottom nav);
+        // back/outside cannot abandon the win state. No game chrome shows through.
         val board = state.board
         if (board != null && board.session.isComplete) {
             QueensWinOverlay(state = board, onPlayAgain = { state.replay() })

@@ -18,12 +18,14 @@ import java.time.Instant
  *
  * Interaction semantics (spec A11 ruling reversed 2026-11-02 + direction doc):
  * - STRICT tap cycle on EVERY cell: empty → MANUAL X (withCrossToggled), X → queen
- *   (withQueenPlaced, A10 auto-fill included), queen → empty (withQueenRemoved).
+ *   (withQueenPlaced, A10 auto-fill included), queen → EMPTY (withQueenRemoved — the
+ *   removal takes the queen AND its stored mark, so the cycle closes; fix round 5).
  *   §5.2 haptics are fired by the board.
  * - Drag (drag-start + each newly entered cell): MANUAL X on markless queen-free
  *   cells only — idempotent, no flicker over an already-X cell (§5.1).
- * - Undo: session's provenance-aware one-step revert (A12).
- * - MANUAL marks are cleared by nothing but their own cell's cycling.
+ * - Undo: session's provenance-aware one-step revert (A12; one tap = one undo unit).
+ * - MANUAL marks are cleared only by their own cell's cycle closing (the queen
+ *   removal on the cell that holds them).
  *
  * Win flow (Zip's win→history pattern, F2 §7): the [QueensSession.completedAt]
  * TRANSITION emits ONE [com.ivandsky.puzzlebox.game.CompletionRecord] through the

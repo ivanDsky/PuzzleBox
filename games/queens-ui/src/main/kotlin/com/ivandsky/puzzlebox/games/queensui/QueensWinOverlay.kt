@@ -22,17 +22,22 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import kotlin.math.roundToInt
 
 /**
- * §5.6 win orchestration — rendered at SCREEN level, fullscreen over the play surface
- * (fix round 4, R-3): inside the board pane the overlay inherited the board's
- * BoxWithConstraints size, so the game chrome visibly cut the solved state off. The
- * full-surface scrim + banner now cover everything (no game chrome visible through or
- * beside it). Sequence:
- * 1. board dims 8% via the scheme scrim (Fade, DurationMedium) so the surface reads;
+ * §5.6 win orchestration — presented as a TRUE MODAL (fix round 5, defect A): a
+ * fullscreen dialog in its own window. The screen-level Box of fix round 4 still left
+ * the shell's bottom nav un-dimmed and interactive — tapping Profile mid-celebration
+ * navigated away and silently abandoned the win state. Inside the dialog window
+ * everything behind (board, side panel, bottom nav, system bars) is dimmed by the
+ * platform dim + the §5.6 scrim, and inert; back and outside taps are blocked so the
+ * win state cannot be backed out of mid-celebration — the banner's "Play again" is the
+ * flow's only way forward. Sequence (inside the fullscreen dialog window):
+ * 1. surface dims 8% via the scheme scrim (Fade, DurationMedium) so the state reads;
  * 2. the banner slides in from the bottom (24dp) + fade, DurationMedium,
  *    EasingEmphasizedDecelerate; score line is plain text — no number ticker (§5.6).
  * Reduced motion: static overlay, no slide.
@@ -63,14 +68,26 @@ fun QueensWinOverlay(
     }
     if (!model.win) return
     val winScrim = MaterialTheme.colorScheme.scrim
-    Box(
-        modifier
-            .fillMaxSize()
-            .testTag("queens/win_overlay")
-            .drawBehind {
-                drawRect(winScrim.copy(alpha = scrimAlpha.value))
-            },
+    // Defect A (fix round 5): modal presentation semantics. Back and outside taps are
+    // blocked (the win cannot be silently abandoned); the platform dim covers every
+    // window behind, including the shell's bottom nav (undimmed/interactive before).
+    Dialog(
+        onDismissRequest = { /* blocked: the win state is never dismissed mid-celebration */ },
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+        ),
     ) {
+        Box(
+            modifier
+                .fillMaxSize()
+                .testTag("queens/win_overlay")
+                .drawBehind {
+                    drawRect(winScrim.copy(alpha = scrimAlpha.value))
+                },
+        ) {
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -96,6 +113,7 @@ fun QueensWinOverlay(
             // F-3 (fix round 3): the win previously locked every control with no way
             // forward — the banner now carries the flow's replay as its forward action.
             Button(onClick = onPlayAgain) { Text("Play again") }
+        }
         }
     }
 }

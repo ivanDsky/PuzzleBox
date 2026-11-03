@@ -5,7 +5,10 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
+import com.ivandsky.puzzlebox.data.repository.gameHistoryDays
+import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -16,16 +19,21 @@ internal const val PAGE_SIZE = 20
 private const val PREFETCH_DISTANCE = 5
 
 /**
- * Lazy paging over the captured days (A8: "paginated lazily"), newest first per the
- * repository contract. The repository stays exactly the KDoc contract ticket 14
- * consumes (list flow, no paging types): each history emission switches to a Pager
- * built from that snapshot ([flatMapLatest] — a generation can never be built from a
- * pre-emission empty list), so a freshly captured day appears without rebuilding the
- * screen.
+ * Lazy paging over the merged game-agnostic history (A8: "paginated lazily", fix round
+ * 5 defect C): every game's solved days UNION the Zip captured days, newest first per
+ * the repository contracts. The repositories stay exactly their KDoc contracts (list
+ * flows, no paging types): each merged emission switches to a Pager built from that
+ * snapshot ([flatMapLatest] — a generation can never be built from a pre-emission empty
+ * list), so a freshly captured day or a new completion appears without rebuilding the
+ * screen. [gameNames] resolves each row's display line per GameId (ADR-0001 registry).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-fun historyDays(daily: ZipDailyRepository): Flow<PagingData<HistoryDayRow>> = daily.observeHistory()
-    .map { entries -> entries.map { it.toRow() } }
+fun historyDays(
+    daily: ZipDailyRepository,
+    completions: CompletionRepository,
+    gameNames: Map<GameId, String>,
+): Flow<PagingData<HistoryDayRow>> = gameHistoryDays(daily, completions)
+    .map { days -> days.map { it.toRow(gameNames[it.gameId] ?: it.gameId.value) } }
     .flatMapLatest { rows ->
         Pager(
             config = PagingConfig(

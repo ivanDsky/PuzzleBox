@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.queens
 
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.game.VariantId
 import java.time.LocalDate
 
@@ -85,9 +86,11 @@ data class QueensPuzzle(
  * puzzle number, null for undated boards. Codec bytes stay identity-free.
  */
 data class QueensPuzzleRef(
-    val date: LocalDate,
-    val puzzleNumber: Int?,
-) : PuzzleRef
+    override val date: LocalDate,
+    override val puzzleNumber: Int?,
+) : PuzzleRef {
+    override val gameId: GameId get() = QueensDefinition.id
+}
 
 /** The variant id for a board size, e.g. "queens/n8". Single naming seam for all modules. */
 fun queensVariantId(size: Int): VariantId = VariantId("queens/n$size")

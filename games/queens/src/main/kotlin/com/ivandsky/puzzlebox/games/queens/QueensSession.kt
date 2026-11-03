@@ -77,13 +77,17 @@ data class QueensSession(
     }
 
     /**
-     * A10 lifecycle: remove the queen at [cell]; its AUTO marks vanish with it because
-     * marks are recompute-derived from the standing-queen set. MANUAL marks (including
-     * ones previously hidden under auto-fill) are never touched.
+     * A10 lifecycle + A11 strict closure (fix round 5): remove the queen at [cell] AND
+     * the mark stored on that cell, so the cell ends EMPTY — the tap cycle closes:
+     * empty → X → queen → EMPTY on every cell. The removed queen's AUTO marks vanish
+     * because marks are recompute-derived from the standing-queen set; a MANUAL mark
+     * hidden under the queen leaves WITH the queen (its own cell's cycling is the only
+     * thing that may clear it — spec A11 ruling). MANUAL marks on every other cell are
+     * never touched.
      */
     fun withQueenRemoved(cell: Cell, now: Instant): QueensSession {
         if (completedAt != null || cell !in occupied) return this
-        return commit(copy(queens = queens - cell), now = now)
+        return commit(copy(queens = queens - cell, marks = marks - cell), now = now)
     }
 
     /** Manual tap-cycle cross on a queen-free cell: set, or clear when already MANUAL-marked. */

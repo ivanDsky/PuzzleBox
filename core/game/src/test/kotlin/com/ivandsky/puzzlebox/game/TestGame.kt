@@ -20,7 +20,12 @@ object TestGame {
     data class PlayMove(val cell: Int) : Move
     data class PlayHint(val text: String) : Hint
     data class Session(val moveCount: Int = 0, val done: Boolean = false) : GameSession
-    data class Ref(val label: String) : PuzzleRef
+    data class Ref(
+        val label: String,
+        override val gameId: GameId = TestGame.id,
+        override val date: LocalDate = TestGame.date,
+        override val puzzleNumber: Int? = null,
+    ) : PuzzleRef
     data class Model(val solved: Boolean, val lastVerdict: MoveVerdict? = null) : RendererModel
 
     object Definition : GameDefinition {
