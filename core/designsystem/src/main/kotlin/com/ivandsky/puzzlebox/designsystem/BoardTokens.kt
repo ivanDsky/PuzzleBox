@@ -22,11 +22,9 @@ import androidx.compose.ui.unit.dp
 // selection >= 3:1 (1.4.11 non-text); gridline >= 2:1 self-imposed "clearly
 // visible" floor. BoardTokensTest pins all of them.
 //
-// The labels carry their own per-fill on-colors: waypointLabel on the green
-// waypointDot (onPrimary ink), onPathLabel on the trace-blue waypointDotOnPath
-// (onSecondary ink). No single ink can hold 4.5:1 against both a dot fill and the
-// surface in dark mode — U2 resolves that by hue-separating the on-path state
-// instead of bending one label value across both.
+// Labels ride the ring color: hollow waypoints (gate r3/r4) put every label on
+// boardSurface in its ring's own color — green 9.70:1 / powder 9.89:1, no
+// per-fill on-color needed.
 
 data class BoardColors(
     val boardSurface: Color,
@@ -35,7 +33,6 @@ data class BoardColors(
     val waypointDot: Color,
     val waypointLabel: Color,
     val waypointDotOnPath: Color,
-    val onPathLabel: Color,
     val pathTrace: Color,
     val boardSelection: Color,
     val boardRegion: Color,
@@ -54,7 +51,7 @@ data class BoardColors(
 // Dark values alias the dark scheme (provenance per U2's table; ratios vs
 // boardSurface): gridline 4.59, wall 8.01, dot 9.70, label-on-dot 8.28,
 // selection 10.76. Ticket 27 retuned the shared trace/on-path dot blue off the
-// scheme: on-path dot 9.89, onPathLabel-on-fill 8.71, trace 9.89 — same hue as
+// scheme: on-path dot / trace 9.89 — same hue as
 // #1CB0F6, lighter + desaturated (user: "some lighter shade of blue") after it
 // read as neon glare.
 val DarkBoardTokens = BoardColors(
@@ -64,7 +61,6 @@ val DarkBoardTokens = BoardColors(
     waypointDot = DarkColorScheme.primary,
     waypointLabel = DarkColorScheme.onPrimary,
     waypointDotOnPath = Color(0xFFB3CBD6), // T27 gate R1/D1: scheme secondary #1CB0F6 read as neon glare — powder step of the SAME hue (HSL 199°, S 92→30%, L 54→77%; oklch C 0.151→0.030), literal no longer aliases
-    onPathLabel = DarkColorScheme.onSecondary,
     pathTrace = Color(0xFFB3CBD6), // = waypointDotOnPath by design: continuity of the passed path
     boardSelection = DarkColorScheme.tertiary,
     boardRegion = DarkColorScheme.surfaceContainerHigh, // future fill tint; stroke its boundary with wall/gridline when built
@@ -75,7 +71,7 @@ val DarkBoardTokens = BoardColors(
 // Light mirrors dark role-for-role: reuses plus the three new darker steps (dot
 // fill #58CC02 fails 4.5 on white at 2.09 — the dot is #377000, the existing
 // derived green step). Ratios vs boardSurface: gridline 3.33, wall 8.90, dot 6.03,
-// label-on-dot 6.03, on-path dot 4.81, onPathLabel-on-fill 4.81, trace 3.20,
+// label-on-dot 6.03, on-path dot 4.81, trace 3.20,
 // selection 3.20.
 val LightBoardTokens = BoardColors(
     boardSurface = LightColorScheme.surface,
@@ -84,7 +80,6 @@ val LightBoardTokens = BoardColors(
     waypointDot = LightPrimaryText,
     waypointLabel = LightColorScheme.onError, // white
     waypointDotOnPath = Color(0xFF0F78B4), // new: brightest same-hue step of secondary #1CB0F6 clearing 4.5 on white
-    onPathLabel = LightColorScheme.onError, // white
     pathTrace = Color(0xFF1899D6), // new: #1CB0F6 itself is 2.44 on white; this clears the 3:1 non-text bar
     boardSelection = Color(0xFFD07C00), // new: tertiary #FF9600 is 2.18 on white; this clears 3:1
     boardRegion = LightColorScheme.surfaceContainerHigh, // future fill tint

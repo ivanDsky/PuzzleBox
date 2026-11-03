@@ -27,6 +27,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // Local distribution (tailnet test device): unsigned release APKs
+            // cannot install; the debug key is the distribution key here.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

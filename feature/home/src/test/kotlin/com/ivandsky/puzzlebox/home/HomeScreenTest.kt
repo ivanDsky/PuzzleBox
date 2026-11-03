@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
@@ -31,6 +32,7 @@ class HomeScreenTest {
         themeMode: ThemeMode = ThemeMode.SYSTEM,
         history: List<HistoryDay> = emptyList(),
         game: GameSummary = GameSummary(GameId("zip"), "Zip"),
+        identity: Identity? = null,
         onSetThemeMode: (ThemeMode) -> Unit = {},
         onPlayToday: () -> Unit = {},
         onOpenProfile: () -> Unit = {},
@@ -40,6 +42,7 @@ class HomeScreenTest {
                 HomeScreen(
                     layout = layout,
                     game = game,
+                    identity = identity,
                     themeMode = themeMode,
                     onSetThemeMode = onSetThemeMode,
                     history = history,
@@ -136,5 +139,25 @@ class HomeScreenTest {
         composeRule.onNodeWithContentDescription("Appearance").performClick()
 
         composeRule.onNodeWithText("Light").assertIsSelected()
+    }
+
+    @Test
+    fun `account card reflects signed-out identity as guest`() {
+        setContent(HomeLayout.SinglePane)
+
+        composeRule.onNodeWithText("Guest player").assertExists()
+        composeRule.onNodeWithText("Sign in").assertExists()
+    }
+
+    @Test
+    fun `account card reflects a signed-in identity`() {
+        setContent(
+            HomeLayout.SinglePane,
+            identity = Identity(uid = "u1", displayName = "Ivan D.", photoUrl = null),
+        )
+
+        composeRule.onNodeWithText("Ivan D.").assertExists()
+        composeRule.onNodeWithText("Competing on leaderboards.").assertExists()
+        composeRule.onNodeWithText("Profile").assertExists()
     }
 }
