@@ -2,18 +2,24 @@ package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.repository.QueensDailyEntry
 import com.ivandsky.puzzlebox.data.repository.QueensToday
+import com.ivandsky.puzzlebox.games.queens.Cell
+import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 /** queens-10 wiring contract: DI-shaped fetch → real session → record write on win,
@@ -21,6 +27,17 @@ import org.junit.Test
 class QueensPlayStateTest {
 
     private val scope = CoroutineScope(Dispatchers.Unconfined)
+
+    // QueensPlayFlow owns a Dispatchers.Main.immediate scope — a test Main is required.
+    @Before
+    fun setUpMain() {
+        Dispatchers.setMain(Dispatchers.Unconfined)
+    }
+
+    @After
+    fun tearDownMain() {
+        Dispatchers.resetMain()
+    }
 
     private fun state(
         daily: FakeQueensDailyRepository,
@@ -93,6 +110,34 @@ class QueensPlayStateTest {
         // The fixture fetch succeeds, so the fallback re-fetches and binds a new board.
         assertTrue(state.screen is QueensScreen.Ready)
         assertNotNull(state.board)
+    }
+
+    /** R-4 (fix round 4): a re-entered entry rebinds the saver and backfills it with
+     *  the LIVE session — the old entry's rememberSaveable is dead after rotation. */
+    @Test
+    fun `re-entering the flow rebinds the saver and backfills the live session`() {
+        val flow = QueensPlayFlow(
+            daily = FakeQueensDailyRepository(
+                todayResult = QueensToday.Fresh(QueensPlayFixtures.envelope()),
+                history = listOf(QueensDailyEntry(FakeQueensDailyRepository.today(), 42, "queens/n8", 0L)),
+            ),
+            completions = FakeCompletionRepository(),
+        )
+        val entry1Saves = ArrayList<QueensSession?>()
+        val s1 = flow.start { entry1Saves.add(it) }
+        s1.load() // the route's LaunchedEffect does this on a real entry
+        assertNotNull(s1.board) // Unconfined Main: the fetch completed synchronously
+        s1.board!!.onTap(0) // MANUAL X in entry 1
+        val live = s1.board!!.session
+
+        // Entry 2 (rotation): flow.start must rebind to the NEW saver and backfill it
+        // with the live session; subsequent commits serialize into the new entry only.
+        val entry2Saves = ArrayList<QueensSession?>()
+        val s2 = flow.start { entry2Saves.add(it) }
+        assertEquals("same flow state", s1, s2)
+        assertEquals("live session backfilled into the new saver", listOf(live), entry2Saves)
+        s2.board!!.onTap(1) // MANUAL X in entry 2
+        assertTrue("post-rebind commit lands in the new saver", entry2Saves.last()!!.markAt(Cell(1)) != null)
     }
 
     @Test

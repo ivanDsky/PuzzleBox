@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /**
@@ -53,5 +54,19 @@ fun QueensPlayControls(
         if (state.session.isComplete) {
             Button(onClick = { }, enabled = false) { Text("Solved") }
         }
+    }
+    // R-2 (fix round 4): the stripe cue alone confused players — while any violation
+    // is live under Auto-check, one line names the rule next to the controls. Same
+    // error ink as the §3.5 stripes; reserved line, shown only while live.
+    if (state.autoCheck && QueensBoardModel.of(state.session, state.hint, true).violations.isNotEmpty()) {
+        Text(
+            "Rule conflict — queens can't touch or share a row, column, or region",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("queens/violation_caption")
+                .padding(horizontal = Spacing.lg, vertical = Spacing.xs),
+        )
     }
 }

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -62,8 +63,10 @@ class QueensBoardUiTest {
                 androidx.compose.foundation.layout.Column {
                     QueensPlayBoard(state, Modifier.fillMaxWidth().testTag(BoardTag))
                     QueensPlayControls(state)
-                    QueensArmCaption(state, Modifier.fillMaxWidth())
                 }
+                // R-3: the win overlay lives at SCREEN level (fullscreen over the
+                // play surface) — mirror the play screen here so win assertions run.
+                QueensWinOverlay(state, onPlayAgain = {})
             }
         }
         composeRule.waitForIdle()
@@ -116,26 +119,15 @@ class QueensBoardUiTest {
     }
 
     @Test
-    fun `queen move clears AUTO marks only - MANUAL survives`() {
+    fun `tap on a queen removes it and its AUTO marks - MANUAL survives`() {
         var session = QueensUiFixtures.session().withCrossToggled(Cell(15), QueensUiFixtures.T0)
         session = session.withQueenPlaced(Cell(1), QueensUiFixtures.T0)
         val state = setContent(session)
 
-        tap(0, 1) // select the queen
-        assertEquals(Cell(1), state.pendingMoveCell)
-        tap(2, 0) // move to cell 8 (a solution cell)
-        assertEquals(listOf(Cell(8)), state.session.queens)
-        assertNull(state.session.markAt(Cell(1))) // moved queen's AUTO marks gone
-        assertEquals(MarkKind.MANUAL, state.session.markAt(Cell(15))?.kind) // MANUAL survives
-    }
-
-    @Test
-    fun `repeat tap on the selected queen removes it`() {
-        val session = QueensUiFixtures.session().withQueenPlaced(Cell(1), QueensUiFixtures.T0)
-        val state = setContent(session)
-        tap(0, 1) // select
-        tap(0, 1) // remove — the cycle's third state
+        tap(0, 1) // the strict cycle's third state on a queen cell: remove
         assertTrue(state.session.queens.isEmpty())
+        assertNull(state.session.markAt(Cell(2))) // the removed queen's AUTO mark is gone
+        assertEquals(MarkKind.MANUAL, state.session.markAt(Cell(15))?.kind) // MANUAL survives
     }
 
     /** Q-2 regression: lastPlacedQueen clears at tap entry — an ordinary X tap after a
@@ -151,28 +143,15 @@ class QueensBoardUiTest {
         assertNull(state.lastRemovedQueen)
     }
 
-    /** Q-1 regression: undoing a queen MOVE (equal queen counts) sets the §5.4
-     *  crossfade-back pair; undoing a placement does not. */
     @Test
-    fun `undoing a queen move surfaces the restored move pair`() {
-        val state = setContent(QueensUiFixtures.session())
-        state.onTap(1); state.onTap(1) // X then queen at (0,1)
-        state.onTap(1) // select the queen for the A11 move
-        state.onTap(8) // move to (2,0)
-        assertEquals(listOf(Cell(8)), state.session.queens)
-        state.undo()
-        composeRule.waitForIdle()
-        assertEquals(8 to 1, state.lastUndoRestoredMove)
-    }
-
-    @Test
-    fun `undoing a placement does not surface a restored move`() {
+    fun `undo reverts one action with its side effects`() {
         val state = setContent(QueensUiFixtures.session())
         state.onTap(0) // X
         state.onTap(0) // queen
         state.undo()
         composeRule.waitForIdle()
-        assertNull(state.lastUndoRestoredMove)
+        assertTrue(state.session.queens.isEmpty())
+        assertEquals(MarkKind.MANUAL, state.session.markAt(Cell(0))?.kind)
     }
 
     @Test
@@ -192,7 +171,7 @@ class QueensBoardUiTest {
     fun `auto-check toggle gates the violation cue`() {
         val state = setContent(QueensUiFixtures.session())
         state.onTap(1); state.onTap(1) // X then queen at (0,1)
-        state.onTap(2); state.onTap(2) // AUTO X then queen at (0,2) — same row → conflict
+        state.onTap(2) // AUTO X is a mark: one tap places the queen at (0,2) — same row → conflict
         composeRule.waitForIdle()
         state.autoCheck = true
         composeRule.waitForIdle()
@@ -213,18 +192,36 @@ class QueensBoardUiTest {
         assertTrue(model.hintCells.isNotEmpty())
     }
 
-    /** F-4 (fix round 3): the armed-move state must be legible — the caption names
-     *  both continuations of the two-tap language and clears on any resolution. */
+    /** R-2 (fix round 4): while a violation is live under Auto-check, a one-line
+     *  caption near the controls names the rule; it is gone without the toggle or
+     *  without a live violation. */
     @Test
-    fun `armed queen surfaces the move-or-remove caption`() {
+    fun `violation live under auto-check surfaces the rule caption`() {
+        val state = setContent(QueensUiFixtures.session())
+        state.onTap(1); state.onTap(1) // X then queen at (0,1)
+        state.onTap(2) // AUTO X is a mark: one tap places the queen at (0,2) — same row → conflict
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("queens/violation_caption").assertDoesNotExist()
+        state.autoCheck = true
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("queens/violation_caption").assertExists()
+        composeRule.onNodeWithText(
+            "Rule conflict — queens can't touch or share a row, column, or region",
+        ).assertExists()
+        state.autoCheck = false
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("queens/violation_caption").assertDoesNotExist()
+    }
+
+    /** R-1 (fix round 4): the armed-move two-tap language is gone — no caption, no
+     *  arming; a queen tap removes outright. */
+    @Test
+    fun `a queen tap removes outright - no armed caption exists`() {
         val state = setContent(QueensUiFixtures.session().withQueenPlaced(Cell(1), QueensUiFixtures.T0))
+        composeRule.onNodeWithTag("queens/arm_caption").assertDoesNotExist()
         composeRule.onNodeWithText("Tap a cell to move · tap again to remove").assertDoesNotExist()
-        tap(0, 1) // arm the queen for the A11 move
-        assertEquals(Cell(1), state.pendingMoveCell)
-        composeRule.onNodeWithText("Tap a cell to move · tap again to remove").assertExists()
-        tap(0, 1) // repeat tap removes — the cycle's third state
+        tap(0, 1) // queen → empty, in one tap
         assertTrue(state.session.queens.isEmpty())
-        composeRule.onNodeWithText("Tap a cell to move · tap again to remove").assertDoesNotExist()
     }
 
     @Test
@@ -251,6 +248,14 @@ class QueensBoardUiTest {
         // F-3 (fix round 3): the win is no longer a dead end — the banner carries the
         // replay action, and the win is final: Undo is locked out.
         composeRule.onNodeWithText("Play again").assertExists()
+        // R-3 (fix round 4): the win overlay is FULLSCREEN — its bounds equal the
+        // window's (no board-pane clipping, no game chrome visible beside it).
+        val overlay = composeRule.onNodeWithTag("queens/win_overlay").fetchSemanticsNode()
+        val root = composeRule.onRoot().fetchSemanticsNode()
+        assertTrue(
+            "win overlay covers the window (${overlay.size} vs ${root.size})",
+            overlay.size.width >= root.size.width && overlay.size.height >= root.size.height,
+        )
         composeRule.onNodeWithText("Undo").performClick()
         composeRule.waitForIdle()
         assertTrue("win is final", state.session.isComplete)

@@ -8,7 +8,7 @@ import java.time.Instant
  * Where a cross (exclusion X) mark came from — the provenance the A10–A12 rulings hang on.
  */
 enum class MarkKind {
-    /** Placed by the user (tap-cycle / drag-to-cross). Survives queen moves and auto-fill. */
+    /** Placed by the user (tap-cycle / drag-to-cross). Cleared only by its own cell's cycle. */
     MANUAL,
 
     /** Recompute-derived auto-fill from a standing queen: exists only while that queen stands. */
@@ -34,10 +34,12 @@ data class QueensSnapshot(
 )
 
 /**
- * Serializable in-progress play (A10–A12). Every cross mark carries provenance: placing or
- * moving a queen auto-fills exclusion marks over its row/column/region as [MarkKind.AUTO]
- * marks keyed to that queen; they exist only while their source queen stands. MANUAL marks
- * are never cleared by queen moves or auto-fill. One undo step reverts one user action
+ * Serializable in-progress play (A10–A12; A11 reversed 2026-11-02: queen MOVE is
+ * deleted — the interaction is the strict tap cycle empty → X → queen → empty). Every
+ * cross mark carries provenance: placing a queen auto-fills exclusion marks over its
+ * row/column/region as [MarkKind.AUTO] marks keyed to that queen; they exist only while
+ * their source queen stands. MANUAL marks are never cleared by anything but their own
+ * cell's cycling. One undo step reverts one user action
  * TOGETHER WITH its auto-fill side effects, while manual marks made earlier survive —
  * [undo] holds the pre-action [QueensSnapshot] for exactly that.
  *
@@ -72,24 +74,6 @@ data class QueensSession(
     fun withQueenPlaced(cell: Cell, now: Instant): QueensSession {
         if (completedAt != null || cell.idx !in 0 until puzzle.cellCount || cell in occupied) return this
         return commit(copy(queens = queens + cell), now = now)
-    }
-
-    /**
-     * A11: move the queen at [from] to the empty cell [to]. Marks are recompute-derived
-     * from the standing-queen set afterwards: the moved queen's old AUTO marks vanish,
-     * the target's row/column/region auto-fills, and AUTO marks sourced by OTHER queens
-     * displaced under [to] are restored as soon as their source queens stand — including
-     * when this queen later vacates [to]. MANUAL marks anywhere are never cleared by a
-     * move; a MANUAL mark temporarily hidden under [to] reappears on vacate (A11).
-     */
-    fun withQueenMoved(from: Cell, to: Cell, now: Instant): QueensSession {
-        if (completedAt != null) return this
-        if (from !in occupied || to in occupied || from == to) return this
-        if (to.idx !in 0 until puzzle.cellCount) return this
-        // [queens] is action-ordered (placement/move sequence); a move re-times the
-        // queen to now. Recompute marks in that order, so the most recent action's
-        // fill wins an overlap — same attribution the incremental auto-fill produced.
-        return commit(copy(queens = (queens - from) + to), now = now)
     }
 
     /**

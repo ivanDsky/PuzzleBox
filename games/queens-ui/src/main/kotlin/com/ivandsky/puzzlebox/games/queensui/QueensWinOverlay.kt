@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -26,19 +27,24 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import kotlin.math.roundToInt
 
 /**
- * §5.6 win orchestration (the queens cascade itself runs per-cell in [QueensCell]):
+ * §5.6 win orchestration — rendered at SCREEN level, fullscreen over the play surface
+ * (fix round 4, R-3): inside the board pane the overlay inherited the board's
+ * BoxWithConstraints size, so the game chrome visibly cut the solved state off. The
+ * full-surface scrim + banner now cover everything (no game chrome visible through or
+ * beside it). Sequence:
  * 1. board dims 8% via the scheme scrim (Fade, DurationMedium) so the surface reads;
  * 2. the banner slides in from the bottom (24dp) + fade, DurationMedium,
  *    EasingEmphasizedDecelerate; score line is plain text — no number ticker (§5.6).
- * Reduced motion (provided at board level): static overlay, no slide.
+ * Reduced motion: static overlay, no slide.
  */
 @Composable
-internal fun QueensWinOverlay(
-    model: QueensBoardModel,
-    cascadeOrder: CascadeOrder,
+fun QueensWinOverlay(
+    state: QueensBoardState,
+    modifier: Modifier = Modifier,
     onPlayAgain: () -> Unit = {},
 ) {
-    val reducedMotion = LocalQueensReducedMotion.current
+    val reducedMotion = rememberReducedMotion()
+    val model = QueensBoardModel.of(state.session, state.hint, state.autoCheck)
     val scrimAlpha = remember { Animatable(if (reducedMotion) 0.08f else 0f) }
     val bannerProgress = remember { Animatable(if (reducedMotion) 1f else 0f) }
     LaunchedEffect(model.win) {
@@ -58,8 +64,9 @@ internal fun QueensWinOverlay(
     if (!model.win) return
     val winScrim = MaterialTheme.colorScheme.scrim
     Box(
-        Modifier
+        modifier
             .fillMaxSize()
+            .testTag("queens/win_overlay")
             .drawBehind {
                 drawRect(winScrim.copy(alpha = scrimAlpha.value))
             },

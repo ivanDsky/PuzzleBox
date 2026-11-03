@@ -50,7 +50,7 @@ import com.ivandsky.puzzlebox.gameui.GridGeometry
 val LocalQueensReducedMotion = staticCompositionLocalOf { false }
 
 @Composable
-private fun rememberReducedMotion(): Boolean {
+internal fun rememberReducedMotion(): Boolean {
     if (LocalInspectionMode.current) return false
     val resolver = LocalContext.current.contentResolver
     return remember {
@@ -61,7 +61,10 @@ private fun rememberReducedMotion(): Boolean {
 /**
  * The full Queens board UI (queens-08): provenance-distinct X marks (§3.2/§3.3),
  * pop-in queens (§3.4), A14 violation stripes, the §5 interaction set on
- * [QueensBoardState], hint region emphasis (§5.5), and the win orchestration (§5.6).
+ * [QueensBoardState], and hint region emphasis (§5.5). The win presentation is NOT
+ * here: [QueensWinOverlay] renders at SCREEN level (fix round 4, R-3 — inside the
+ * board pane it was clipped to the board's BoxWithConstraints and the game chrome
+ * cut it off), so the solved state presents fullscreen over the play surface.
  * Gesture surface is board-level with edge-clamped cell resolution (§6); all game
  * decisions stay in the session/state holder.
  */
@@ -70,11 +73,10 @@ fun QueensPlayBoard(
     state: QueensBoardState,
     modifier: Modifier = Modifier,
     variants: QueensAbVariants = QueensAbVariants(),
-    onPlayAgain: () -> Unit = {},
 ) {
     val reducedMotion = rememberReducedMotion()
     CompositionLocalProvider(LocalQueensReducedMotion provides reducedMotion) {
-        QueensPlayBoardContent(state, modifier, variants, onPlayAgain)
+        QueensPlayBoardContent(state, modifier, variants)
     }
 }
 
@@ -83,7 +85,6 @@ private fun QueensPlayBoardContent(
     state: QueensBoardState,
     modifier: Modifier,
     variants: QueensAbVariants,
-    onPlayAgain: () -> Unit,
 ) {
     val model = QueensBoardModel.of(state.session, state.hint, state.autoCheck)
     val boardTokens = LocalBoardColors.current
@@ -164,9 +165,6 @@ private fun QueensPlayBoardContent(
                     model = model,
                     idx = row * model.n + col,
                     variants = variants,
-                    armed = state.pendingMoveCell?.idx == row * model.n + col,
-                    queenMove = state.lastQueenMove,
-                    undoRestoredMove = state.lastUndoRestoredMove,
                     win = state.session.isComplete,
                 )
             },
@@ -196,7 +194,6 @@ private fun QueensPlayBoardContent(
                     },
             )
         }
-        QueensWinOverlay(model = model, cascadeOrder = variants.cascadeOrder, onPlayAgain = onPlayAgain)
     }
 }
 
@@ -268,9 +265,6 @@ private fun QueensCell(
     model: QueensBoardModel,
     idx: Int,
     variants: QueensAbVariants,
-    armed: Boolean,
-    queenMove: Pair<Int, Int>?,
-    undoRestoredMove: Pair<Int, Int>?,
     win: Boolean,
 ) {
     val n = model.n
@@ -321,21 +315,6 @@ private fun QueensCell(
                     tween(MotionTokens.DurationShort, easing = MotionTokens.EasingStandard),
                 )
             }
-        }
-    }
-
-    // §5.3 shared-element queen move: the crown translates from the source cell.
-    // §5.4 crossfade-back: an undone queen MOVE animates the same shared-element
-    // translation in reverse — the restored queen slides back from where it stood.
-    val moveProgress = remember { Animatable(1f) }
-    LaunchedEffect(queenMove, undoRestoredMove) {
-        val (from, to) = undoRestoredMove ?: queenMove ?: return@LaunchedEffect
-        if (idx == to && !reducedMotion) {
-            moveProgress.snapTo(1f)
-            moveProgress.animateTo(
-                0f,
-                spring(MotionTokens.SpringDampingDefault, MotionTokens.SpringStiffnessDefault),
-            )
         }
     }
 
@@ -429,12 +408,7 @@ private fun QueensCell(
                     }
                 }
                 QueensCellVisual.QUEEN -> {
-                    val (fromIdx, _) = undoRestoredMove ?: queenMove ?: (idx to idx)
-                    val dRow = (fromIdx / n - idx / n).toFloat()
-                    val dCol = (fromIdx % n - idx % n).toFloat()
-                    translate(dCol * size.width * moveProgress.value, dRow * size.height * moveProgress.value) {
-                        drawQueen(ink, QueensBoardDefaults.queenHeightFraction, scale = winScale.value, alpha = p)
-                    }
+                    drawQueen(ink, QueensBoardDefaults.queenHeightFraction, scale = winScale.value, alpha = p)
                 }
                 QueensCellVisual.EMPTY -> Unit
             }
@@ -445,25 +419,6 @@ private fun QueensCell(
                     .fillMaxSize()
                     .drawBehind {
                         drawRect(boardTokens.boardSelection.copy(alpha = QueensBoardDefaults.hintOverlayAlpha * pulse.value))
-                    },
-            )
-        }
-        if (armed) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .drawBehind {
-                        // §5.3 armed-move affordance (F-4): a full-alpha boardSelection
-                        // RING — "this queen is selected for move/remove", unmistakably
-                        // distinct from the §5.5 hint's fill of the same token. Inset
-                        // half a stroke so the ring stays inside the cell.
-                        val w = QueensBoardDefaults.armedRingWeight.toPx()
-                        drawRect(
-                            boardTokens.boardSelection,
-                            topLeft = Offset(w / 2f, w / 2f),
-                            size = Size(size.width - w, size.height - w),
-                            style = Stroke(width = w),
-                        )
                     },
             )
         }

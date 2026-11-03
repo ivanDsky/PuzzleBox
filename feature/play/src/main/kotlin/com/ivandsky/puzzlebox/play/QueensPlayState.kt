@@ -56,17 +56,25 @@ class QueensPlayFlow(
     var state: QueensPlayState? by mutableStateOf(null)
         private set
 
-    /** The flow's state, created on first entry and reused until [end]. */
+    /** The flow's state, created on first entry and reused until [end]. A re-entered
+     *  entry (rotation) rebinds the session saver to ITS rememberSaveable and backfills
+     *  it with the live session (R-4), so a process death mid-play still restores. */
     fun start(onSessionChanged: (QueensSession?) -> Unit): QueensPlayState {
-        state?.let { return it }
+        state?.let { existing ->
+            existing.onSessionChanged = onSessionChanged
+            onSessionChanged(existing.board?.session)
+            return existing
+        }
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         flowScope = scope
         return QueensPlayState(
             daily = daily,
             completions = completions,
             scope = scope,
-            onSessionChanged = onSessionChanged,
-        ).also { state = it }
+        ).also {
+            it.onSessionChanged = onSessionChanged
+            state = it
+        }
     }
 
     /** Mid-game exit: the next play entry must fetch fresh, never resume. */
@@ -95,11 +103,20 @@ class QueensPlayState(
     private val completions: CompletionRepository,
     private val scope: CoroutineScope,
     private val now: () -> Instant = Instant::now,
-    private val onSessionChanged: (QueensSession?) -> Unit = {},
 ) {
 
     var screen by mutableStateOf<QueensScreen>(QueensScreen.Loading)
         private set
+
+    /**
+     * The entry's session-persistence callback (R-4, fix round 4): the play entry
+     * serializes every session commit into its `rememberSaveable`. A re-entered entry
+     * (rotation) brings a NEW saveable state, so [QueensPlayFlow.start] REBINDS this
+     * callback to the new entry and backfills it with the live session — otherwise the
+     * board keeps serializing into the dead first composition and a process death
+     * during play loses the session (the "rotation restarts the game" defect).
+     */
+    var onSessionChanged: (QueensSession?) -> Unit = {}
 
     /** The live interaction holder, null until a session is adopted. */
     var board by mutableStateOf<QueensBoardState?>(null)
@@ -169,7 +186,7 @@ class QueensPlayState(
             AppResult.Ok(Unit)
         },
         now = now,
-        onSessionChanged = onSessionChanged,
+        onSessionChanged = { onSessionChanged(it) },
     )
 
     /** Win overlay's "Play again" parity (zip replay): a fresh session, a new emitter

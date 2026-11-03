@@ -38,15 +38,6 @@ object QueensBoardDefaults {
     val regionBorderWeight: Dp = BoardTokens.boardGridLineWeight
     val hintBorderWeight: Dp = 2.dp
 
-    // §5.3 armed-move affordance (F-4, fix round 3): the armed queen wears a
-    // full-alpha boardSelection ring — a ring, not a fill, so "selected for the
-    // A11 move" never reads as the §5.5 hint fill (same token, different shape).
-    val armedRingWeight: Dp = 3.dp
-
-    // §5.3 helper caption under the board while a queen is armed; its slot is always
-    // reserved so arming never shifts the board.
-    val armCaptionHeight: Dp = 28.dp
-
     // §3.5 Violation stripes: 45°, 6dp pitch — F-5 recalibration (fix round 3) so
     // ERROR dominates: a 4dp error band on a 5dp black under-band (1dp under-margin
     // total; the old 3dp/2dp let the black band cover 5 of every 6dp and the cue read
