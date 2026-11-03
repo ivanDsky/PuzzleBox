@@ -51,7 +51,7 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
 
     private fun out(name: String, dark: Boolean): String =
         File(checkNotNull(System.getProperty("user.dir")))
-            .resolve("../../.scratch/queens/design/evidence/goldens/$name-$widthLabel-${if (dark) "dark" else "light"}.png")
+            .resolve("snapshots/$name-$widthLabel-${if (dark) "dark" else "light"}.png")
             .canonicalFile
             .also { checkNotNull(it.parentFile).mkdirs() }
             .absolutePath
