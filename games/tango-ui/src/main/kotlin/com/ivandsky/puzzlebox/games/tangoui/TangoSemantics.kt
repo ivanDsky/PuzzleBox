@@ -74,11 +74,10 @@ object TangoSemantics {
             val line = (0 until n).map { col + it * n }
             found += overFull(model, line, half, isRow = false)
         }
-        // Settle debounce, scoped (user QA 2026-11-02): while a settle window runs, only
-        // violations involving the touched cell are suppressed — errors elsewhere on the
-        // board never blink out when the user changes an unrelated cell.
-        val suppressed = model.suppressedIdx
-        return if (suppressed == null) found else found.filterNot { suppressed in it.cells }
+        // Settle debounce, diff-based (user QA 2026-11-02): only violations newly
+        // introduced by the last placement wait for the settle window; pre-existing
+        // ones stay visible until a grid change actually removes them.
+        return found.filterNot { it.cells in model.suppressedSets }
     }
 
     private fun runsIn(
