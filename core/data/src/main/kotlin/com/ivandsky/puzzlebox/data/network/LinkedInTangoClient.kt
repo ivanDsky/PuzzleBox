@@ -22,10 +22,10 @@ import retrofit2.HttpException
  * Any body carrying the tangoGamePuzzle object wins — the extractor, not the URL,
  * decides. The caller's backstop is degrade-to-cache (A7/A8).
  */
-class LinkedInTangoClient(private val api: LinkedInTangoApi) {
+open class LinkedInTangoClient(private val api: LinkedInTangoApi) {
 
     /** Raw body text that [TangoGameExtractor] can extract from, or a typed failure. */
-    suspend fun fetchDailyBody(): FetchResult<String> {
+    open suspend fun fetchDailyBody(): FetchResult<String> {
         val reasons = mutableListOf<String>()
         var throttled = false
         try {
