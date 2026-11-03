@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.DataStoreUserPreferencesRepository
 import com.ivandsky.puzzlebox.data.repository.LinkedInTangoDailySource
+import com.ivandsky.puzzlebox.data.repository.TangoSeedBackedSource
 import com.ivandsky.puzzlebox.data.repository.LinkedInZipDailySource
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstDailyPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstTangoDailyRepository
@@ -67,8 +68,8 @@ val dataModule = module {
     }
     single { LinkedInTangoClient(get()) }
     single { LinkedInTangoDailySource(get()) }
-    single<TangoDailySource> { get<LinkedInTangoDailySource>() }
-    single<PuzzleSource>(qualifier = qualifier(TangoDefinition.id.value)) { get<LinkedInTangoDailySource>() }
+    single<TangoDailySource> { TangoSeedBackedSource(get<LinkedInTangoDailySource>()) }
+    single<PuzzleSource>(qualifier = qualifier(TangoDefinition.id.value)) { TangoSeedBackedSource(get<LinkedInTangoDailySource>()) }
     single<TangoDailyRepository> { OfflineFirstTangoDailyRepository(get(), get(), get()) }
     single {
         Room.databaseBuilder(get<Context>(), PuzzleBoxDatabase::class.java, PuzzleBoxDatabase.NAME)
