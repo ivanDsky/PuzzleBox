@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.queensui
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.BoardTokens
 
 /**
  * The named constants the direction doc §3/§5 turns into module vocabulary — never
@@ -10,23 +11,49 @@ import androidx.compose.ui.unit.dp
  */
 object QueensBoardDefaults {
 
-    // §3.2 X-MANUAL: two 3dp strokes (≈2× the 1.5dp gridline — content, not structure),
-    // length 50% of the cell, round caps, full-opacity on-ink.
-    val xManualWeight: Dp = 3.dp
-    const val xManualLengthFraction: Float = 0.50f
+    // §3.2 X-MANUAL: two 3.5dp strokes (F-2 recalibration, fix round 3 — was 3dp/50%,
+    // which read as a different family from AUTO on device), length 55% of the cell,
+    // round caps, full-opacity on-ink.
+    val xManualWeight: Dp = 3.5.dp
+    const val xManualLengthFraction: Float = 0.55f
 
-    // §3.3 X-AUTO: the SAME shape, smaller and thinner — 32% length, 2dp weight.
+    // §3.3 X-AUTO: the SAME shape, visibly smaller and thinner — 45% length, 2.5dp
+    // weight (F-2 recalibration, fix round 3 — was 32%/2dp, which read as broken
+    // rendering). Still the lighter/thinner sibling so provenance reads at a glance.
     // Distinction by geometry, never opacity (contrast floor must hold identically).
-    val xAutoWeight: Dp = 2.dp
-    const val xAutoLengthFraction: Float = 0.32f
+    val xAutoWeight: Dp = 2.5.dp
+    const val xAutoLengthFraction: Float = 0.45f
 
     // §3.4 Queen crown: 55% of the cell — the dominant glyph.
     const val queenHeightFraction: Float = 0.55f
 
-    // §3.5 Violation stripes: 45°, 6dp pitch, 3dp error band over a 2dp black scrim band.
+    // §3.1 cell-edge layer (F-1, fix round 3): queens region fills are opaque and sit
+    // ABOVE BoardGrid's under-strokes, so the board draws its own edges over the fills —
+    // a 1dp hairline at low-alpha ink on every cell edge (outline included), and a
+    // heavier full-contrast region-boundary stroke so region shapes read even when
+    // adjacent fills sit close in lightness. The region-boundary weight IS the core
+    // gridline token; the hint boundary is the heaviest edge.
+    val cellGridLineWeight: Dp = 1.dp
+    const val cellGridLineAlpha: Float = 0.25f
+    val regionBorderWeight: Dp = BoardTokens.boardGridLineWeight
+    val hintBorderWeight: Dp = 2.dp
+
+    // §5.3 armed-move affordance (F-4, fix round 3): the armed queen wears a
+    // full-alpha boardSelection ring — a ring, not a fill, so "selected for the
+    // A11 move" never reads as the §5.5 hint fill (same token, different shape).
+    val armedRingWeight: Dp = 3.dp
+
+    // §5.3 helper caption under the board while a queen is armed; its slot is always
+    // reserved so arming never shifts the board.
+    val armCaptionHeight: Dp = 28.dp
+
+    // §3.5 Violation stripes: 45°, 6dp pitch — F-5 recalibration (fix round 3) so
+    // ERROR dominates: a 4dp error band on a 5dp black under-band (1dp under-margin
+    // total; the old 3dp/2dp let the black band cover 5 of every 6dp and the cue read
+    // as a murky dark rectangle over the fill instead of red stripes).
     val violationStripePitch: Dp = 6.dp
-    val violationStripeWidth: Dp = 3.dp
-    val violationScrimWidth: Dp = 2.dp
+    val violationStripeWidth: Dp = 4.dp
+    val violationScrimWidth: Dp = 1.dp
 
     // A/B-2 variant B: full-cell error tint at 30% over a luminance-gated fill list.
     const val violationTintAlpha: Float = 0.30f

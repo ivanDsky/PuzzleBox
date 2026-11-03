@@ -62,6 +62,7 @@ class QueensBoardUiTest {
                 androidx.compose.foundation.layout.Column {
                     QueensPlayBoard(state, Modifier.fillMaxWidth().testTag(BoardTag))
                     QueensPlayControls(state)
+                    QueensArmCaption(state, Modifier.fillMaxWidth())
                 }
             }
         }
@@ -212,6 +213,20 @@ class QueensBoardUiTest {
         assertTrue(model.hintCells.isNotEmpty())
     }
 
+    /** F-4 (fix round 3): the armed-move state must be legible — the caption names
+     *  both continuations of the two-tap language and clears on any resolution. */
+    @Test
+    fun `armed queen surfaces the move-or-remove caption`() {
+        val state = setContent(QueensUiFixtures.session().withQueenPlaced(Cell(1), QueensUiFixtures.T0))
+        composeRule.onNodeWithText("Tap a cell to move · tap again to remove").assertDoesNotExist()
+        tap(0, 1) // arm the queen for the A11 move
+        assertEquals(Cell(1), state.pendingMoveCell)
+        composeRule.onNodeWithText("Tap a cell to move · tap again to remove").assertExists()
+        tap(0, 1) // repeat tap removes — the cycle's third state
+        assertTrue(state.session.queens.isEmpty())
+        composeRule.onNodeWithText("Tap a cell to move · tap again to remove").assertDoesNotExist()
+    }
+
     @Test
     fun `win emits exactly one completion record and shows the banner`() {
         var completions = 0
@@ -233,7 +248,9 @@ class QueensBoardUiTest {
         assertTrue(state.session.isComplete)
         assertEquals("one record per win transition", 1, completions)
         composeRule.onNodeWithText("Solved!").assertExists()
-        // The win is final: Undo is locked out.
+        // F-3 (fix round 3): the win is no longer a dead end — the banner carries the
+        // replay action, and the win is final: Undo is locked out.
+        composeRule.onNodeWithText("Play again").assertExists()
         composeRule.onNodeWithText("Undo").performClick()
         composeRule.waitForIdle()
         assertTrue("win is final", state.session.isComplete)
