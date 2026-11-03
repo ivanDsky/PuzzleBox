@@ -16,6 +16,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -361,5 +362,21 @@ class TangoPlayStateTest {
         assertEquals(45_000L, record.time)
         val stamped = record.copy(isRecord = true, firstCompletedAt = s.session?.completedAt)
         assertNotNull(LeaderboardEntries.fromRecord(stamped, uid = "uid-1", displayName = "Ivan"))
+    }
+    @Test
+    fun `violations stay deferred 0_5s after the last touch, then resume`() {
+        val s = state(FakeCompletionRepository(), tangoDaily())
+        runBlocking { s.load() }
+        assertFalse(s.violationsDeferred)
+        assertFalse(s.rendererModel()!!.violationsDeferred)
+
+        s.onPlacement(TangoPlacement(2, TangoCell.SUN))
+        assertTrue(s.violationsDeferred)
+        assertTrue(s.rendererModel()!!.violationsDeferred)
+
+        // The settle job delays on the state's Unconfined scope — real 500 ms.
+        Thread.sleep(600)
+        assertFalse(s.violationsDeferred)
+        assertFalse(s.rendererModel()!!.violationsDeferred)
     }
 }
