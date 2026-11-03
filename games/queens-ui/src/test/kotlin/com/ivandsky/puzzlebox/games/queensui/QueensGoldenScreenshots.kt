@@ -65,21 +65,61 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
         }
     }
 
-    private fun capture(name: String, dark: Boolean, session: QueensSession, autoCheck: Boolean = false, controls: Boolean = false) {
+    private fun capture(
+        name: String,
+        dark: Boolean,
+        session: QueensSession,
+        autoCheck: Boolean = false,
+        controls: Boolean = false,
+        armCell: Int? = null,
+        caption: Boolean = false,
+    ) {
         val state = QueensBoardState(initialSession = session)
         state.autoCheck = autoCheck
+        // F-4: arm a queen for the A11 move so the ring + §5.3 caption render.
+        armCell?.let { state.onTap(it) }
+        // Deterministic captures: the board's reduced-motion path (§5) snaps every
+        // entrance to its end state — identical pixels, no mid-pop race in the bitmap.
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        android.provider.Settings.Global.putFloat(
+            context.contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+            0f,
+        )
         // §6 sizing policy decides the board side for this pane — computed, never eyeballed.
         val pane = if (widthLabel == "compact") 360 to 640 else 1280 to 900
         val side = queensBoardSideFor(
             paneWidth = pane.first.dp, paneHeight = pane.second.dp,
-            reservedTop = 56.dp, reservedBottom = if (controls) 72.dp else 0.dp,
+            reservedTop = 56.dp,
+            reservedBottom = when {
+                controls -> 72.dp
+                caption -> QueensBoardDefaults.armCaptionHeight
+                else -> 0.dp
+            },
             cellsPerSide = QueensUiFixtures.puzzle().size,
         )
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = dark) {
-                Column {
-                    QueensPlayBoard(state, Modifier.size(side))
-                    if (controls) QueensPlayControls(state)
+            // Fidelity fix (fix round 3): `currentIsDarkTheme()` reads the configuration's
+            // uiMode, so a darkTheme=true capture under the night-less Robolectric
+            // qualifiers painted LIGHT fills under the dark scheme — every "dark" golden
+            // was a light board. Each capture now sets the matching uiMode, as a device
+            // would, so theme and palette agree.
+            val config = android.content.res.Configuration(
+                androidx.compose.ui.platform.LocalConfiguration.current,
+            ).apply {
+                uiMode = (uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK.inv()) or
+                    if (dark) android.content.res.Configuration.UI_MODE_NIGHT_YES
+                    else android.content.res.Configuration.UI_MODE_NIGHT_NO
+            }
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalConfiguration provides config,
+            ) {
+                PuzzleBoxTheme(darkTheme = dark) {
+                    Column {
+                        QueensPlayBoard(state, Modifier.size(side))
+                        if (controls) QueensPlayControls(state)
+                        if (caption) QueensArmCaption(state, Modifier.fillMaxWidth())
+                    }
                 }
             }
         }
@@ -107,4 +147,8 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
 
     @Test fun `win light`() = capture("win", false, solved, controls = true)
     @Test fun `win dark`() = capture("win", true, solved, controls = true)
+
+    // F-4 (fix round 3): the armed-move state — ring on the selected queen + caption.
+    @Test fun `armed light`() = capture("armed", false, state(queens = listOf(1)), armCell = 1, caption = true)
+    @Test fun `armed dark`() = capture("armed", true, state(queens = listOf(1)), armCell = 1, caption = true)
 }

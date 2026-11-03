@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,7 +33,11 @@ import kotlin.math.roundToInt
  * Reduced motion (provided at board level): static overlay, no slide.
  */
 @Composable
-internal fun QueensWinOverlay(model: QueensBoardModel, cascadeOrder: CascadeOrder) {
+internal fun QueensWinOverlay(
+    model: QueensBoardModel,
+    cascadeOrder: CascadeOrder,
+    onPlayAgain: () -> Unit = {},
+) {
     val reducedMotion = LocalQueensReducedMotion.current
     val scrimAlpha = remember { Animatable(if (reducedMotion) 0.08f else 0f) }
     val bannerProgress = remember { Animatable(if (reducedMotion) 1f else 0f) }
@@ -81,6 +86,9 @@ internal fun QueensWinOverlay(model: QueensBoardModel, cascadeOrder: CascadeOrde
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
             )
+            // F-3 (fix round 3): the win previously locked every control with no way
+            // forward — the banner now carries the flow's replay as its forward action.
+            Button(onClick = onPlayAgain) { Text("Play again") }
         }
     }
 }

@@ -23,6 +23,8 @@ import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.BoardError
 import com.ivandsky.puzzlebox.gameui.BoardLoading
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.games.queensui.QueensArmCaption
+import com.ivandsky.puzzlebox.games.queensui.QueensBoardDefaults
 import com.ivandsky.puzzlebox.games.queensui.QueensPlayBoard
 import com.ivandsky.puzzlebox.games.queensui.QueensPlayControls
 import com.ivandsky.puzzlebox.games.queensui.queensBoardSideFor
@@ -66,21 +68,28 @@ private fun BoxScope.BoardArea(state: QueensPlayState) {
                 // §6 sizing policy: the board side is computed — pane space after chrome,
                 // capped by cellMaxSize per cell, floored by cellMinSize per cell. The
                 // horizontal pane padding is the chrome reserved here; the side panel is
-                // already excluded by the scaffold's board-pane weight.
+                // already excluded by the scaffold's board-pane weight. The §5.3 armed
+                // caption's slot is part of that chrome so arming never shifts the board.
                 val side = queensBoardSideFor(
                     paneWidth = maxWidth,
                     paneHeight = maxHeight,
                     reservedTop = 0.dp,
-                    reservedBottom = 0.dp,
+                    reservedBottom = QueensBoardDefaults.armCaptionHeight,
                     cellsPerSide = ready.puzzle.size,
                     panePadding = Spacing.lg * 2,
                 )
-                QueensPlayBoard(
-                    state = boardState,
-                    modifier = Modifier
-                        .size(side) // side already reserves the pane padding via queensBoardSideFor
-                        .testTag("queens.board"),
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    QueensPlayBoard(
+                        state = boardState,
+                        modifier = Modifier
+                            .size(side) // side already reserves the pane padding via queensBoardSideFor
+                            .testTag("queens.board"),
+                        // F-3 (fix round 3): the win banner's forward action — a fresh
+                        // session, a new emitter lifetime; replays emit again.
+                        onPlayAgain = { state.replay() },
+                    )
+                    QueensArmCaption(boardState, Modifier.fillMaxWidth().padding(horizontal = Spacing.lg))
+                }
             }
 
             state.screen is QueensScreen.Unavailable -> BoardError(

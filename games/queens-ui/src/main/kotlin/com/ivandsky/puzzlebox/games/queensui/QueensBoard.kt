@@ -30,6 +30,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -40,9 +42,6 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.gameui.BoardGrid
-import com.ivandsky.puzzlebox.gameui.EdgeOverlay
-import com.ivandsky.puzzlebox.gameui.EdgeSide
-import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.GridGeometry
 
 /** True when system animations are off — every board entrance/exit collapses to an
@@ -71,10 +70,11 @@ fun QueensPlayBoard(
     state: QueensBoardState,
     modifier: Modifier = Modifier,
     variants: QueensAbVariants = QueensAbVariants(),
+    onPlayAgain: () -> Unit = {},
 ) {
     val reducedMotion = rememberReducedMotion()
     CompositionLocalProvider(LocalQueensReducedMotion provides reducedMotion) {
-        QueensPlayBoardContent(state, modifier, variants)
+        QueensPlayBoardContent(state, modifier, variants, onPlayAgain)
     }
 }
 
@@ -83,6 +83,7 @@ private fun QueensPlayBoardContent(
     state: QueensBoardState,
     modifier: Modifier,
     variants: QueensAbVariants,
+    onPlayAgain: () -> Unit,
 ) {
     val model = QueensBoardModel.of(state.session, state.hint, state.autoCheck)
     val boardTokens = LocalBoardColors.current
@@ -158,19 +159,27 @@ private fun QueensPlayBoardContent(
             rows = model.n,
             cols = model.n,
             modifier = Modifier.matchParentSize(),
-            edgeOverlays = hintedRegionBorders(model, boardTokens.boardSelection),
             cellContent = { row, col ->
                 QueensCell(
                     model = model,
                     idx = row * model.n + col,
                     variants = variants,
-                    selected = state.pendingMoveCell?.idx == row * model.n + col,
+                    armed = state.pendingMoveCell?.idx == row * model.n + col,
                     queenMove = state.lastQueenMove,
                     undoRestoredMove = state.lastUndoRestoredMove,
                     win = state.session.isComplete,
                 )
             },
         )
+        // §3.1 cell-edge layer (F-1): the region fills are opaque and sit ABOVE
+        // BoardGrid's under-strokes, so cell boundaries must be drawn over the fills —
+        // a hairline lattice on every cell edge, heavier ink on region boundaries, and
+        // the §5.5 hinted-region boundary on top. Glyphs never reach cell edges, so
+        // the marks stay visually above this layer.
+        val edgeInk = MaterialTheme.colorScheme.onSurface
+        Canvas(Modifier.matchParentSize()) {
+            drawCellEdges(model, boardTokens.boardSelection, edgeInk)
+        }
         // §3.1: instant pressed-cell highlight — touch-down feedback precedes commit.
         val pressHighlight = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
         pressedCell?.let { (row, col) ->
@@ -187,34 +196,65 @@ private fun QueensPlayBoardContent(
                     },
             )
         }
-        QueensWinOverlay(model = model, cascadeOrder = variants.cascadeOrder)
+        QueensWinOverlay(model = model, cascadeOrder = variants.cascadeOrder, onPlayAgain = onPlayAgain)
     }
 }
 
-/** Interior region-boundary borders around the hinted region (§5.5). */
-private fun hintedRegionBorders(model: QueensBoardModel, color: Color): List<EdgeOverlay.Border> {
-    val region = model.hintRegion ?: return emptyList()
-    val overlays = mutableListOf<EdgeOverlay.Border>()
+/**
+ * §3.1 edge layer (F-1), drawn above the opaque region fills: a [QueensBoardDefaults.cellGridLineWeight]
+ * hairline on every cell edge (the lattice plus the board outline) in low-alpha ink,
+ * a full-contrast [QueensBoardDefaults.regionBorderWeight] stroke on every interior edge
+ * between two different regions so region shapes read, and the hinted region's boundary
+ * in [QueensBoardDefaults.hintBorderWeight] boardSelection (§5.5) on top of that.
+ */
+private fun DrawScope.drawCellEdges(model: QueensBoardModel, hintColor: Color, ink: Color) {
     val n = model.n
+    val g = GridGeometry(n, n, size.width, size.height)
+    val hairline = QueensBoardDefaults.cellGridLineWeight.toPx()
+    val regionWeight = QueensBoardDefaults.regionBorderWeight.toPx()
+    val hintWeight = QueensBoardDefaults.hintBorderWeight.toPx()
+    val faint = ink.copy(alpha = QueensBoardDefaults.cellGridLineAlpha)
+
+    fun line(x0: Float, y0: Float, x1: Float, y1: Float, color: Color, width: Float) {
+        drawLine(color, Offset(x0, y0), Offset(x1, y1), strokeWidth = width)
+    }
+    // Hairline lattice: every interior gridline, exactly once.
+    for (i in 1 until n) {
+        line(i * g.cellWidth, 0f, i * g.cellWidth, size.height, faint, hairline)
+        line(0f, i * g.cellHeight, size.width, i * g.cellHeight, faint, hairline)
+    }
+    // Board outline, inset half a stroke so nothing clips outside the canvas.
+    drawRect(
+        faint,
+        topLeft = Offset(hairline / 2f, hairline / 2f),
+        size = Size(size.width - hairline, size.height - hairline),
+        style = Stroke(width = hairline),
+    )
+    // Interior edges toward a different region: region boundary at full-contrast ink
+    // (each interior edge visited once — right/down neighbors only), upgraded to the
+    // §5.5 hint boundary when it separates the hinted region from another.
+    val hintCells = model.hintCells
     for (row in 0 until n) for (col in 0 until n) {
         val idx = row * n + col
-        if (model.regions[idx] != region) continue
-        // Only edges toward a DIFFERENT region need a stroke; the board outline
-        // already borders exterior edges of edge-adjacent regions.
+        val region = model.regions[idx]
+        val hinted = idx in hintCells && model.hintRegion != null
         if (col + 1 < n && model.regions[idx + 1] != region) {
-            overlays += EdgeOverlay.Border(GridCell(row, col), EdgeSide.RIGHT, color)
-        }
-        if (col - 1 >= 0 && model.regions[idx - 1] != region) {
-            overlays += EdgeOverlay.Border(GridCell(row, col - 1), EdgeSide.RIGHT, color)
+            val otherHinted = idx + 1 in hintCells && model.hintRegion != null
+            val x = (col + 1) * g.cellWidth
+            line(x, row * g.cellHeight, x, (row + 1) * g.cellHeight,
+                if (hinted || otherHinted) hintColor else ink,
+                if (hinted || otherHinted) hintWeight else regionWeight,
+            )
         }
         if (row + 1 < n && model.regions[idx + n] != region) {
-            overlays += EdgeOverlay.Border(GridCell(row, col), EdgeSide.DOWN, color)
-        }
-        if (row - 1 >= 0 && model.regions[idx - n] != region) {
-            overlays += EdgeOverlay.Border(GridCell(row - 1, col), EdgeSide.DOWN, color)
+            val otherHinted = idx + n in hintCells && model.hintRegion != null
+            val y = (row + 1) * g.cellHeight
+            line(col * g.cellWidth, y, (col + 1) * g.cellWidth, y,
+                if (hinted || otherHinted) hintColor else ink,
+                if (hinted || otherHinted) hintWeight else regionWeight,
+            )
         }
     }
-    return overlays
 }
 
 /**
@@ -228,7 +268,7 @@ private fun QueensCell(
     model: QueensBoardModel,
     idx: Int,
     variants: QueensAbVariants,
-    selected: Boolean,
+    armed: Boolean,
     queenMove: Pair<Int, Int>?,
     undoRestoredMove: Pair<Int, Int>?,
     win: Boolean,
@@ -344,6 +384,37 @@ private fun QueensCell(
                 .drawBehind { drawRect(fill) },
         ) {
             val p = presence.value
+            // A14 violation cue: stripes render FIRST — fill, then pattern, then the
+            // glyph (§3.5 "glyphs stay readable above the pattern"). Two correctness
+            // fixes (F-3/F-5, fix round 3): the stripe lines span -height..width+height
+            // to cover the 45° corners, and Compose does NOT clip draws to layout
+            // bounds — unclipped, every violated cell painted stripe wedges INTO its
+            // neighbors, covering the neighbor's crown/X (the "queen no longer
+            // visible" report). clipRect confines the pattern to this cell.
+            if (violated && !win) {
+                clipRect(0f, 0f, size.width, size.height) {
+                    when (variants.violationCue) {
+                        ViolationCue.STRIPES_SCRIM -> drawViolationStripes(
+                            error = error,
+                            scrim = scrim,
+                            pitch = QueensBoardDefaults.violationStripePitch.toPx(),
+                            band = QueensBoardDefaults.violationStripeWidth.toPx(),
+                            scrimBand = QueensBoardDefaults.violationScrimWidth.toPx(),
+                        )
+                        ViolationCue.TINT -> if (QueensRegionPalette.cielL(fill) >= 55f) {
+                            drawRect(error.copy(alpha = QueensBoardDefaults.violationTintAlpha))
+                        } else {
+                            drawViolationStripes(
+                                error = error,
+                                scrim = scrim,
+                                pitch = QueensBoardDefaults.violationStripePitch.toPx(),
+                                band = QueensBoardDefaults.violationStripeWidth.toPx(),
+                                scrimBand = QueensBoardDefaults.violationScrimWidth.toPx(),
+                            )
+                        }
+                    }
+                }
+            }
             when (shown) {
                 QueensCellVisual.X_MANUAL -> drawX(
                     ink, QueensBoardDefaults.xManualWeight.toPx(),
@@ -367,30 +438,6 @@ private fun QueensCell(
                 }
                 QueensCellVisual.EMPTY -> Unit
             }
-            // A14 violation cue above the fill, under the glyph is impossible in one
-            // pass — stripes render here, glyphs render after (content above pattern).
-            if (violated && !win) {
-                when (variants.violationCue) {
-                    ViolationCue.STRIPES_SCRIM -> drawViolationStripes(
-                        error = error,
-                        scrim = scrim,
-                        pitch = QueensBoardDefaults.violationStripePitch.toPx(),
-                        band = QueensBoardDefaults.violationStripeWidth.toPx(),
-                        scrimBand = QueensBoardDefaults.violationScrimWidth.toPx(),
-                    )
-                    ViolationCue.TINT -> if (QueensRegionPalette.cielL(fill) >= 55f) {
-                        drawRect(error.copy(alpha = QueensBoardDefaults.violationTintAlpha))
-                    } else {
-                        drawViolationStripes(
-                            error = error,
-                            scrim = scrim,
-                            pitch = QueensBoardDefaults.violationStripePitch.toPx(),
-                            band = QueensBoardDefaults.violationStripeWidth.toPx(),
-                            scrimBand = QueensBoardDefaults.violationScrimWidth.toPx(),
-                        )
-                    }
-                }
-            }
         }
         if (hinted) {
             Box(
@@ -401,12 +448,22 @@ private fun QueensCell(
                     },
             )
         }
-        if (selected) {
+        if (armed) {
             Box(
                 Modifier
                     .fillMaxSize()
                     .drawBehind {
-                        drawRect(boardTokens.boardSelection.copy(alpha = 0.40f))
+                        // §5.3 armed-move affordance (F-4): a full-alpha boardSelection
+                        // RING — "this queen is selected for move/remove", unmistakably
+                        // distinct from the §5.5 hint's fill of the same token. Inset
+                        // half a stroke so the ring stays inside the cell.
+                        val w = QueensBoardDefaults.armedRingWeight.toPx()
+                        drawRect(
+                            boardTokens.boardSelection,
+                            topLeft = Offset(w / 2f, w / 2f),
+                            size = Size(size.width - w, size.height - w),
+                            style = Stroke(width = w),
+                        )
                     },
             )
         }
