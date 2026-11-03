@@ -44,9 +44,9 @@ object TangoBoardSpec {
     /** Hollow-glyph ring stroke (A/B item 4, variant B), fraction of the glyph box. */
     const val glyphRingStrokeFraction: Float = 0.10f
 
-    /** Given-anchor dot (locked-cell signal, non-color-only): fixed dp, safe at n6..n10. */
-    val givenDotDiameter: Dp = 4.dp
-    val givenDotBottomPadding: Dp = 3.dp
+    /** Given-disabled wash (locked-cell signal, user QA 2026-11-02): muted background
+     *  on preplaced cells; violation tint draws above it when they co-occur. */
+    val givenTintAlpha: Float = 0.5f
 
     /** `=`/`×` mark size, fraction of cell pitch (n≥8 rescue step).
      *  Worst case (§1): n8 mark = 0.30 × 41.0 = 12.3 dp ≥ 10.3 floor. */

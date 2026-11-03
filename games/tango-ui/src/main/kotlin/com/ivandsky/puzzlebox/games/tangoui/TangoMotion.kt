@@ -19,11 +19,8 @@ val ViolationFlash = MotionPattern(
     exitEasing = MotionTokens.EasingEmphasizedAccelerate,
 )
 
-/** Cell scale 1→0.86 spring (Zip rejection parity) — the ViolationFlash pulse spec. */
-val ViolationFlashScale = spring<Float>(
-    dampingRatio = Spring.DampingRatioMediumBouncy,
-    stiffness = Spring.StiffnessMediumLow,
-)
+// ViolationFlash cell-scale retired (user QA 2026-11-02): 1→0.86 read as a
+// permanently shrunken glyph. Violations carry through tint + dashed border.
 
 /** Caption fade-in duration for both ViolationFlash and HintReveal (§7). */
 val captionFadeMillis = MotionTokens.DurationShort
