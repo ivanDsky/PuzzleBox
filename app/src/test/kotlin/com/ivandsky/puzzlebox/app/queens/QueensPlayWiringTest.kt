@@ -1,8 +1,10 @@
 package com.ivandsky.puzzlebox.app.queens
 
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.nav.Queens
 import com.ivandsky.puzzlebox.app.puzzleBoxEntryProvider
@@ -134,6 +136,20 @@ class QueensPlayWiringTest {
             }
         }
         composeRule.waitUntil(10_000) { flow.state!!.board!!.session.isComplete }
+
+        // R-3 (fix round 4): on the real screen, the solved state presents fullscreen
+        // over the play surface — overlay bounds cover the whole window, no game chrome
+        // beside it (the old board-pane overlay was cut off by the game content).
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodesWithTag("queens/win_overlay").fetchSemanticsNodes().isNotEmpty()
+        }
+        val overlayBounds = composeRule.onAllNodesWithTag("queens/win_overlay")
+            .fetchSemanticsNodes().single().size
+        val rootBounds = composeRule.onRoot().fetchSemanticsNode().size
+        assertTrue(
+            "win overlay covers the window ($overlayBounds vs $rootBounds)",
+            overlayBounds.width >= rootBounds.width && overlayBounds.height >= rootBounds.height,
+        )
 
         // The record write landed through the app's real CompletionRepository. The
         // emitter is fire-and-observe on the flow's Main scope, so pump the main looper

@@ -58,13 +58,13 @@ class QueensBoardModelTest {
     }
 
     @Test
-    fun `auto marks vanish when their source queen moves`() {
+    fun `auto marks vanish when their source queen is removed`() {
         val placed = QueensUiFixtures.session().withQueenPlaced(Cell(1), QueensUiFixtures.T0)
         assertEquals(QueensCellVisual.X_AUTO, QueensBoardModel.of(placed).visuals[2])
-        val moved = placed.withQueenMoved(Cell(1), Cell(8), QueensUiFixtures.T0)
-        val model = QueensBoardModel.of(moved)
-        assertNull(moved.markAt(Cell(2)))
+        val removed = placed.withQueenRemoved(Cell(1), QueensUiFixtures.T0)
+        val model = QueensBoardModel.of(removed)
+        assertNull(removed.markAt(Cell(2)))
         assertFalse(model.visuals[2] == QueensCellVisual.X_AUTO)
-        assertEquals(QueensCellVisual.QUEEN, model.visuals[8])
+        assertEquals(QueensCellVisual.EMPTY, model.visuals[1])
     }
 }

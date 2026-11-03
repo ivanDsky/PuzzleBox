@@ -71,13 +71,10 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
         session: QueensSession,
         autoCheck: Boolean = false,
         controls: Boolean = false,
-        armCell: Int? = null,
-        caption: Boolean = false,
+        overlay: Boolean = false,
     ) {
         val state = QueensBoardState(initialSession = session)
         state.autoCheck = autoCheck
-        // F-4: arm a queen for the A11 move so the ring + §5.3 caption render.
-        armCell?.let { state.onTap(it) }
         // Deterministic captures: the board's reduced-motion path (§5) snaps every
         // entrance to its end state — identical pixels, no mid-pop race in the bitmap.
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
@@ -91,11 +88,7 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
         val side = queensBoardSideFor(
             paneWidth = pane.first.dp, paneHeight = pane.second.dp,
             reservedTop = 56.dp,
-            reservedBottom = when {
-                controls -> 72.dp
-                caption -> QueensBoardDefaults.armCaptionHeight
-                else -> 0.dp
-            },
+            reservedBottom = if (controls) 72.dp else 0.dp,
             cellsPerSide = QueensUiFixtures.puzzle().size,
         )
         composeRule.setContent {
@@ -115,10 +108,17 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
                 androidx.compose.ui.platform.LocalConfiguration provides config,
             ) {
                 PuzzleBoxTheme(darkTheme = dark) {
-                    Column {
-                        QueensPlayBoard(state, Modifier.size(side))
-                        if (controls) QueensPlayControls(state)
-                        if (caption) QueensArmCaption(state, Modifier.fillMaxWidth())
+                    androidx.compose.foundation.layout.Box(
+                        androidx.compose.ui.Modifier.fillMaxWidth(),
+                    ) {
+                        androidx.compose.foundation.layout.Column {
+                            QueensPlayBoard(state, Modifier.size(side))
+                            if (controls) QueensPlayControls(state)
+                        }
+                        // R-3 (fix round 4): the win is presented FULLSCREEN over the
+                        // play surface — the golden captures the screen-level overlay,
+                        // not a board-pane-clipped banner.
+                        if (overlay) QueensWinOverlay(state, onPlayAgain = {})
                     }
                 }
             }
@@ -145,10 +145,10 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
     @Test fun `violation light`() = capture("violation", false, state(queens = listOf(1, 2)), autoCheck = true)
     @Test fun `violation dark`() = capture("violation", true, state(queens = listOf(1, 2)), autoCheck = true)
 
-    @Test fun `win light`() = capture("win", false, solved, controls = true)
-    @Test fun `win dark`() = capture("win", true, solved, controls = true)
+    @Test fun `win light`() = capture("win", false, solved, controls = true, overlay = true)
+    @Test fun `win dark`() = capture("win", true, solved, controls = true, overlay = true)
 
-    // F-4 (fix round 3): the armed-move state — ring on the selected queen + caption.
-    @Test fun `armed light`() = capture("armed", false, state(queens = listOf(1)), armCell = 1, caption = true)
-    @Test fun `armed dark`() = capture("armed", true, state(queens = listOf(1)), armCell = 1, caption = true)
+    // R-2 (fix round 4): live violation with its self-explanatory caption near the controls.
+    @Test fun `violation caption light`() = capture("violation-caption", false, state(queens = listOf(1, 2)), autoCheck = true, controls = true)
+    @Test fun `violation caption dark`() = capture("violation-caption", true, state(queens = listOf(1, 2)), autoCheck = true, controls = true)
 }
