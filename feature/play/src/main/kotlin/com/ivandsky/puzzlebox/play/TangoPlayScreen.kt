@@ -97,7 +97,8 @@ private fun BoxScope.TangoBoardArea(
                     modifier = Modifier
                         .widthIn(max = PlayBoardMaxWidth)
                         .heightIn(max = PlayBoardMaxWidth)
-                        .zipBoardOutline(model.n)
+                        // No zipBoardOutline here: that's Zip's ROUNDED outline. Tango's
+                        // squared mesh closes itself with a square border (renderer).
                         .testTag("play.board"),
                 )
             }
