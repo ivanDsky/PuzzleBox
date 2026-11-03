@@ -5,7 +5,9 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import com.ivandsky.puzzlebox.data.repository.ZipDailyEntry
 import com.ivandsky.puzzlebox.model.ThemeMode
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
+import com.ivandsky.puzzlebox.data.testing.FakeIdentityService
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.Puzzle
 import java.time.LocalDate
@@ -58,7 +60,8 @@ class HomeRouteTest {
     }
 
     private fun setContent(repo: FakeZipRepo) {
-        startKoin { modules(module { single<ZipDailyRepository> { repo } }) }
+        val fakeIdentity = FakeIdentityService()
+        startKoin { modules(module { single<ZipDailyRepository> { repo }; single<IdentityService> { fakeIdentity } }) }
         composeRule.setContent {
             PuzzleBoxTheme {
                 HomeRoute(

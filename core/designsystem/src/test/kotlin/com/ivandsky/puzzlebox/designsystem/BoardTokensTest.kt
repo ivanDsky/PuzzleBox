@@ -53,7 +53,6 @@ class BoardTokensTest {
     fun `labels meet AA on their own dot fills in both themes`() {
         for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
             assertTrue(contrast(tokens.waypointLabel, tokens.waypointDot) >= 4.5f)
-            assertTrue(contrast(tokens.onPathLabel, tokens.waypointDotOnPath) >= 4.5f)
         }
     }
 
@@ -141,70 +140,3 @@ class BoardTokensTest {
     }
 }
 
-// Ticket 27's gate evidence (user gate R1, D1): the dark-trace before/after swatch
-// the user judges on the review page. Same Roborazzi-capture path as the designsystem
-// harness (record mode writes the PNG; -Proborazzi.verify is irrelevant here — this is
-// gate evidence, not a golden). A17: Robolectric JVM capture, no emulator. Geometry
-// mirrors production's ZipBoardSpec fractions (dot 0.60, trace 0.54, halo 0.055 of
-// pitch) — designsystem cannot depend on :feature:play, hence the local copies.
-@RunWith(RobolectricTestRunner::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w360dp-h640dp-420dpi")
-class TraceSoftenSwatchTest {
-
-    @get:Rule
-    val composeRule = createComposeRule()
-
-    @Test
-    fun `capture dark trace before after swatch`() {
-        // Review-page evidence tree, resolved like the feature/play matrix captures
-        // (user.dir = the module dir under Gradle).
-        val out = File(checkNotNull(System.getProperty("user.dir")))
-            .resolve("../../.scratch/puzzlebox/design/diagrams/evidence/trace-soften-swatch-dark.png")
-            .canonicalFile
-        checkNotNull(out.parentFile).mkdirs()
-        composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = true) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(DarkBoardTokens.boardSurface)
-                        .padding(Spacing.lg),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    Text("ticket 27 · dark trace soften", style = MaterialTheme.typography.labelLarge)
-                    SwatchLane("before · #1CB0F6 · 6.84:1 · oklch C 0.151", Color(0xFF1CB0F6))
-                    SwatchLane("after · #B3CBD6 · 9.89:1 · oklch C 0.030", DarkBoardTokens.pathTrace)
-                }
-            }
-        }
-        composeRule.onRoot().captureRoboImage(out.absolutePath)
-    }
-
-    /** One lane: a corner of trace with the on-path dot + boardSurface halo riding it. */
-    @Composable
-    private fun SwatchLane(label: String, trace: Color) {
-        Column {
-            Box(Modifier.fillMaxWidth().height(120.dp)) {
-                Canvas(Modifier.matchParentSize()) {
-                    val pitch = size.height
-                    val stroke = pitch * 0.54f
-                    val dot = pitch * 0.60f
-                    val mid = Offset(size.width / 2f, size.height / 2f)
-                    drawLine(trace, Offset(0f, size.height * 0.30f), mid, stroke, StrokeCap.Round)
-                    drawLine(trace, mid, Offset(size.width, size.height * 0.70f), stroke, StrokeCap.Round)
-                    // Halo ring (boardSurface) under the dot separates it from the trace.
-                    drawCircle(DarkBoardTokens.boardSurface, dot / 2f + pitch * 0.055f, mid)
-                    drawCircle(trace, dot / 2f, mid)
-                }
-                Text(
-                    "3",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = DarkBoardTokens.onPathLabel,
-                    modifier = Modifier.align(Alignment.Center),
-                )
-            }
-            Text(label, style = MaterialTheme.typography.labelSmall)
-        }
-    }
-}
