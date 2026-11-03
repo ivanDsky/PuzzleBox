@@ -40,9 +40,9 @@ fun TangoPlayScreen(
     PlayClockEffects(state)
 
     val ready = state.screen as? TangoScreen.Ready
-    // suppressedIdx is a key: the settle debounce clears it 0.5 s after the last touch,
-    // and the model must rebuild then or involving violations stay suppressed forever.
-    val model = remember(state.screen, state.session, state.hintCell, state.rejection, state.suppressedIdx) {
+    // suppressedSets is a key: the settle debounce clears it 0.5 s after the last touch,
+    // and the model must rebuild then or newly introduced violations stay hidden forever.
+    val model = remember(state.screen, state.session, state.hintCell, state.rejection, state.suppressedSets) {
         state.rendererModel()
     }
 

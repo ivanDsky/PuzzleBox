@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.gameui.CompletionRecordEmitter
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
+import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.TangoSession
@@ -28,6 +29,7 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
 import com.ivandsky.puzzlebox.games.tangoui.TangoPlacement
+import com.ivandsky.puzzlebox.games.tangoui.TangoSemantics
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -116,46 +118,60 @@ class TangoPlayState(
 
     //region input (placements land; violations are state-driven, §6)
 
-    // Settle debounce, scoped (user QA 2026-11-02): a touch only suppresses violations
-    // that involve the touched cell — errors elsewhere on the board stay visible and
-    // never blink out. Involving violations resume 0.5 s after the last touch.
-    var suppressedIdx by mutableStateOf<Int?>(null)
+    // Settle debounce, diff-based (user QA 2026-11-02): ONLY violations newly introduced
+    // by the last placement are suppressed for 0.5 s. Violations that already existed
+    // stay on screen until the grid change actually fixes them — an unfixed error never
+    // disappears because the user touched elsewhere.
+    var suppressedSets by mutableStateOf<Set<Set<Int>>>(emptySet())
         private set
     private var settleJob: kotlinx.coroutines.Job? = null
+
+    /** The violating cell-sets of a grid, via the shared scan (no suppression applied). */
+    private fun violatingSets(puzzle: TangoPuzzle, grid: List<TangoCell?>): Set<Set<Int>> =
+        TangoSemantics.violations(TangoRendererModel.of(state = TangoState(puzzle, grid), hint = null))
+            .mapTo(mutableSetOf()) { it.cells }
 
     fun onPlacement(placement: TangoPlacement) {
         rejection = null // next input clears the violation caption (Zip hintArrow discipline)
         hintCell = null
         hintWhy = null
         settleJob?.cancel()
-        suppressedIdx = placement.idx
         settleJob = scope.launch {
             kotlinx.coroutines.delay(500)
-            suppressedIdx = null
+            suppressedSets = emptySet()
         }
         val current = session ?: return
         val ready = screen as? TangoScreen.Ready ?: return
         if (current.isComplete) return
         val grid = current.grid()
         if (grid[placement.idx] == placement.value) return // no-op
+        val before = violatingSets(ready.puzzle, grid)
         val move = TangoMove(placement.idx, placement.value)
         when (val verdict = rules.validate(move, TangoState(ready.puzzle, grid))) {
-            is TangoVerdict.Valid -> land(current, move, placedAt = now(), mistake = null)
+            is TangoVerdict.Valid -> land(current, move, placedAt = now(), mistake = null, before = before)
 
             // Inert by policy (the tap policy never emits given/foreign placements).
             is TangoVerdict.Rejected if verdict.reason == TangoVerdict.Reason.LockedGiven ||
                 verdict.reason == TangoVerdict.Reason.ForeignMove -> Unit
 
             // A rule-violating placement LANDS (§6): mistake + rule-naming caption.
-            is TangoVerdict.Rejected -> land(current, move, placedAt = now(), mistake = verdict.reason)
+            is TangoVerdict.Rejected -> land(current, move, placedAt = now(), mistake = verdict.reason, before = before)
         }
     }
 
     /** Commits [move], counting the optional violation, and stamps a first win. */
-    private fun land(current: TangoSession, move: TangoMove, placedAt: Instant, mistake: TangoVerdict.Reason?) {
+    private fun land(
+        current: TangoSession,
+        move: TangoMove,
+        placedAt: Instant,
+        mistake: TangoVerdict.Reason?,
+        before: Set<Set<Int>>,
+    ) {
         val moved = current.withMove(move, placedAt)
         val next = if (mistake != null) moved.withRejection() else moved
         if (next == current) return // nothing changed (e.g. a hinted-equal placement)
+        // Suppress only the NEW violations this move introduced (after − before).
+        suppressedSets = violatingSets(current.puzzle, next.grid()) - before
         if (runningSince == null && !next.isComplete) runningSince = placedAt
         updateSession(if (next.isComplete) foldRunning(next) else next)
         if (mistake != null) rejection = TangoVerdict.Rejected(mistake, move.idx)
@@ -376,7 +392,7 @@ class TangoPlayState(
         val hint = hintCell?.let { idx ->
             hintWhy?.let { why -> current.grid()[idx]?.let { value -> TangoHint.Forced(idx, value, why) } }
         }
-        return TangoRendererModel.of(TangoState(ready.puzzle, current.grid()), hint = hint, verdict = rejection, suppressedIdx = suppressedIdx)
+        return TangoRendererModel.of(TangoState(ready.puzzle, current.grid()), hint = hint, verdict = rejection, suppressedSets = suppressedSets)
     }
 
     /** Versioned session bytes for the route's rememberSaveable (A19/F2 §2). */
