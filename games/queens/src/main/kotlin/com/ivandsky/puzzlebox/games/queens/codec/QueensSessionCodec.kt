@@ -14,14 +14,17 @@ import java.time.Instant
 import java.time.LocalDate
 
 /**
- * Queens session codec v1 (zip ZipSessionCodec shape, A19; still pre-release v1): the
- * puzzle rides BY VALUE so an in-progress day survives offline replay. Layout (i64
+ * Queens session codec (zip ZipSessionCodec shape, A19; pre-release): the puzzle rides
+ * BY VALUE so an in-progress day survives offline replay. v2 (fix round 6) adds the
+ * result facts + the Auto-cross setting; v1 blobs are rejected as UnsupportedVersion
+ * and degrade to a fresh fetch (pre-release, no shipped sessions). Layout (i64
  * little-endian, u16 big-endian):
  *
  * ```
- * 0   u8    formatVersion = 1
+ * 0   u8    formatVersion = 2
  *     u16   puzzleLen; puzzleLen x u8   (QueensCodec bytes)
- *     u8    flags                       (bit0 = completedAt present, bit1 = ref present)
+ *     u8    flags                       (bit0 = completedAt present, bit1 = ref present,
+ *                                       bit2 = startedAt present, bit3 = autoCross OFF)
  *     [bit1] i64 epochDay, u8 numberPresent, i64 puzzleNumber
  *     u8    queensLen; queensLen x u8 cellIdx
  *     u16   marksLen; marksLen x { u8 cellIdx, u8 kind (0 MANUAL / 1 AUTO),
@@ -29,6 +32,8 @@ import java.time.LocalDate
  *     u16   undoLen; per snapshot { u8 queensLen; queensLen x u8 cellIdx,
  *                                   u16 marksLen; marks as above }
  *     [bit0] i64 completedAt epochMilli
+ *     [bit2] i64 startedAt epochMilli
+ *     u8    hintsUsed
  * ```
  *
  * Marks serialize with their PROVENANCE and undo snapshots in stack order (bottom first);
@@ -37,10 +42,12 @@ import java.time.LocalDate
  */
 object QueensSessionCodec : GameSessionCodec<QueensSession> {
 
-    const val VERSION: Int = 1
+    const val VERSION: Int = 2
 
     private const val FLAG_COMPLETED = 1
     private const val FLAG_REF = 2
+    private const val FLAG_STARTED = 4
+    private const val FLAG_AUTO_CROSS_OFF = 8
 
     private const val KIND_MANUAL = 0
     private const val KIND_AUTO = 1
@@ -60,6 +67,8 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
         var flags = 0
         if (session.completedAt != null) flags = flags or FLAG_COMPLETED
         if (session.ref != null) flags = flags or FLAG_REF
+        if (session.startedAt != null) flags = flags or FLAG_STARTED
+        if (!session.autoCross) flags = flags or FLAG_AUTO_CROSS_OFF
         out.write(flags)
 
         session.ref?.let { ref ->
@@ -86,6 +95,8 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
         }
 
         session.completedAt?.let { writeI64(out, it.toEpochMilli()) }
+        session.startedAt?.let { writeI64(out, it.toEpochMilli()) }
+        out.write(session.hintsUsed)
         return out.toByteArray()
     }
 
@@ -153,8 +164,25 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
             null
         }
 
+        val startedAt = if (flags and FLAG_STARTED != 0) {
+            Instant.ofEpochMilli(cursor.i64() ?: return malformed("truncated startedAt"))
+        } else {
+            null
+        }
+        val hintsUsed = cursor.u8() ?: return malformed("truncated hintsUsed")
+
         return DecodeResult.Ok(
-            QueensSession(ref = ref, puzzle = puzzle, queens = queens, marks = marks, undo = undo, completedAt = completedAt),
+            QueensSession(
+                ref = ref,
+                puzzle = puzzle,
+                queens = queens,
+                marks = marks,
+                undo = undo,
+                completedAt = completedAt,
+                startedAt = startedAt,
+                hintsUsed = hintsUsed,
+                autoCross = flags and FLAG_AUTO_CROSS_OFF == 0,
+            ),
         )
     }
 

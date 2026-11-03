@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app.queens
 
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -114,9 +116,14 @@ class QueensPlayWiringTest {
         )
         val flow = koinApp.koin.get<QueensPlayFlow>()
 
+        val solved = ArrayList<Pair<Long, Int>>()
         composeRule.setContent {
             PuzzleBoxTheme {
-                QueensRoute(layout = PlayLayout.SinglePane, onBack = {})
+                QueensRoute(
+                    layout = PlayLayout.SinglePane,
+                    onBack = {},
+                    onSolved = { timeMs, hintsUsed -> solved.add(timeMs to hintsUsed) },
+                )
             }
         }
 
@@ -137,25 +144,14 @@ class QueensPlayWiringTest {
         }
         composeRule.waitUntil(10_000) { flow.state!!.board!!.session.isComplete }
 
-        // R-3 (fix round 4): on the real screen, the solved state presents fullscreen
-        // over the play surface — overlay bounds cover the whole window, no game chrome
-        // beside it (the old board-pane overlay was cut off by the game content).
-        composeRule.waitUntil(10_000) {
-            composeRule.onAllNodesWithTag("queens/win_overlay").fetchSemanticsNodes().isNotEmpty()
-        }
-        val overlayBounds = composeRule.onAllNodesWithTag("queens/win_overlay")
-            .fetchSemanticsNodes().single().size
-        // R-5: the win presents MODALLY in its own dialog window — the overlay covers
-        // every window root (the play surface behind it and the modal window itself).
-        val rootBoundsList = composeRule.onAllNodes(
-            androidx.compose.ui.test.isRoot(),
-        ).fetchSemanticsNodes().map { it.size }
-        assertTrue(
-            "win overlay covers the window ($overlayBounds vs $rootBoundsList)",
-            rootBoundsList.all {
-                overlayBounds.width >= it.width && overlayBounds.height >= it.height
-            },
-        )
+        // Fix round 6 (F-3/R-5): the win is a ROUTE handoff — the play screen invokes
+        // onSolved exactly once with the frozen facts; no win overlay exists anymore.
+        composeRule.waitUntil(10_000) { solved.isNotEmpty() }
+        composeRule.runOnIdle { }
+        assertEquals("one handoff on the win transition", 1, solved.size)
+        assertTrue("frozen elapsed time rides the handoff", solved.single().first >= 0L)
+        assertEquals("zero hints used", 0, solved.single().second)
+        composeRule.onAllNodesWithTag("queens/win_overlay").assertCountEquals(0)
 
         // The record write landed through the app's real CompletionRepository. The
         // emitter is fire-and-observe on the flow's Main scope, so pump the main looper

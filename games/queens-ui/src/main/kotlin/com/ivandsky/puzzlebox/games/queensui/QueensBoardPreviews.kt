@@ -36,14 +36,11 @@ private fun previewSession(): QueensSession = QueensSession(ref = null, puzzle =
 private fun previewState(
     queens: List<Int> = emptyList(),
     manual: List<Int> = emptyList(),
-    autoCheck: Boolean = false,
 ): QueensBoardState {
     var s = previewSession()
     manual.forEach { s = s.withCrossToggled(Cell(it), previewT0) }
     queens.forEach { s = s.withQueenPlaced(Cell(it), previewT0) }
-    val state = QueensBoardState(initialSession = s)
-    state.autoCheck = autoCheck
-    return state
+    return QueensBoardState(initialSession = s)
 }
 
 private val solvedSession: QueensSession by lazy {
@@ -93,21 +90,21 @@ internal fun QueensBoardQueensPreview() {
 @Preview(name = "Compact width", widthDp = 360, heightDp = 420, showBackground = true)
 @Composable
 internal fun QueensBoardViolationPreview() {
-    // A14: red stripes behind the Auto-check ON state — two same-row queens conflict.
+    // A14 revised (fix round 6): violation stripes render ALWAYS ON — two same-row
+    // queens conflict, no toggle involved.
     PuzzleBoxTheme {
-        QueensPlayBoard(previewState(queens = listOf(1, 2), autoCheck = true), Modifier.fillMaxWidth())
+        QueensPlayBoard(previewState(queens = listOf(1, 2)), Modifier.fillMaxWidth())
     }
 }
 
 @PuzzleBoxPreviews
 @Preview(name = "Compact width", widthDp = 360, heightDp = 480, showBackground = true)
 @Composable
-internal fun QueensBoardWinPreview() {
+internal fun QueensBoardSolvedPreview() {
+    // Fix round 6: no win overlay on the board — the solved state hands off to the
+    // result ROUTE at screen level (Zip's presentation). The board just rests.
     PuzzleBoxTheme {
-        Column {
-            QueensPlayBoard(QueensBoardState(initialSession = solvedSession), Modifier.fillMaxWidth())
-            QueensPlayControls(QueensBoardState(initialSession = solvedSession))
-        }
+        QueensPlayBoard(QueensBoardState(initialSession = solvedSession), Modifier.fillMaxWidth())
     }
 }
 
@@ -121,8 +118,8 @@ internal fun QueensBoardExpandedPreview() {
 }
 
 /**
- * §7 A/B switcher (debug): the four toggles queens-08 hands to queens-09, driving the
- * variant matrix in one pane. Losers are deleted after the hardware verdict.
+ * §7 A/B switcher (debug): the remaining toggles queens-08 hands to queens-09, driving
+ * the variant matrix in one pane. Losers are deleted after the hardware verdict.
  */
 @Preview(name = "A/B switcher", widthDp = 360, heightDp = 780, showBackground = true)
 @Composable
@@ -131,7 +128,7 @@ internal fun QueensAbSwitcherPreview() {
     PuzzleBoxTheme {
         Column(Modifier.fillMaxWidth()) {
             QueensPlayBoard(
-                previewState(queens = listOf(1, 2), manual = listOf(15), autoCheck = true),
+                previewState(queens = listOf(1, 2), manual = listOf(15)),
                 Modifier.fillMaxWidth(),
                 variants,
             )

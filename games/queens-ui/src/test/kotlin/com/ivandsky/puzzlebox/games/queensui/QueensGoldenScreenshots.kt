@@ -7,7 +7,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
-import com.github.takahirom.roborazzi.captureScreenRoboImage
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.queens.Cell
@@ -26,6 +25,11 @@ import java.io.File
  * emulator); recorded by default, verified with `-Proborazzi.verify`. Goldens live in
  * `.scratch/queens/design/evidence/goldens/` — the queens-09 HITL walk is
  * preview-first, device-confirm, so the state matrix is walkable from these.
+ *
+ * Fix round 6: the win goldens are GONE (the modal overlay is deleted — the solved
+ * state presents as the result route at app level) and the staged hint ladder is
+ * captured instead: neutral stage 1, the ROW-deduction caption, and the stage-2
+ * pointed ghost.
  *
  * One state per test method: the activity renders exactly one board, so the
  * window-cropped capture is exactly that board (Roborazzi crops the window bitmap).
@@ -60,22 +64,17 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
         return s
     }
 
-    private val solved: QueensSession by lazy {
-        QueensUiFixtures.solutionCells.fold(QueensUiFixtures.session()) { acc, c ->
-            acc.withQueenPlaced(c, QueensUiFixtures.T0)
-        }
-    }
-
     private fun capture(
         name: String,
         dark: Boolean,
         session: QueensSession,
-        autoCheck: Boolean = false,
+        hint: Boolean = false,
+        pointed: Boolean = false,
         controls: Boolean = false,
-        overlay: Boolean = false,
     ) {
         val state = QueensBoardState(initialSession = session)
-        state.autoCheck = autoCheck
+        if (hint) state.requestHint()
+        if (pointed) state.requestHint() // the repeat tap escalates to stage 2
         // Deterministic captures: the board's reduced-motion path (§5) snaps every
         // entrance to its end state — identical pixels, no mid-pop race in the bitmap.
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
@@ -116,23 +115,12 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
                             QueensPlayBoard(state, Modifier.size(side))
                             if (controls) QueensPlayControls(state)
                         }
-                        // R-3 (fix round 4): the win is presented FULLSCREEN over the
-                        // play surface — the golden captures the screen-level overlay,
-                        // not a board-pane-clipped banner.
-                        if (overlay) QueensWinOverlay(state, onPlayAgain = {})
                     }
                 }
             }
         }
         composeRule.waitForIdle()
-        // R-5 (fix round 5): the win presents MODALLY in its own dialog window — the
-        // screen capture includes every window (dialog + the dimmed play surface
-        // behind it); single-window captures keep the old window-cropped path.
-        if (overlay) {
-            captureScreenRoboImage(java.io.File(out(name, dark)))
-        } else {
-            composeRule.onRoot().captureRoboImage(out(name, dark))
-        }
+        composeRule.onRoot().captureRoboImage(out(name, dark))
     }
 
     // One method per (state × theme): the fixture board's regions are its rows, so a
@@ -150,13 +138,23 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
     @Test fun `queens light`() = capture("queens", false, state(queens = listOf(1, 8)))
     @Test fun `queens dark`() = capture("queens", true, state(queens = listOf(1, 8)))
 
-    @Test fun `violation light`() = capture("violation", false, state(queens = listOf(1, 2)), autoCheck = true)
-    @Test fun `violation dark`() = capture("violation", true, state(queens = listOf(1, 2)), autoCheck = true)
-
-    @Test fun `win light`() = capture("win", false, solved, controls = true, overlay = true)
-    @Test fun `win dark`() = capture("win", true, solved, controls = true, overlay = true)
+    // Fix round 6 (A14 revised): the violation stripes render ALWAYS ON — no toggle.
+    @Test fun `violation light`() = capture("violation", false, state(queens = listOf(1, 2)))
+    @Test fun `violation dark`() = capture("violation", true, state(queens = listOf(1, 2)))
 
     // R-2 (fix round 4): live violation with its self-explanatory caption near the controls.
-    @Test fun `violation caption light`() = capture("violation-caption", false, state(queens = listOf(1, 2)), autoCheck = true, controls = true)
-    @Test fun `violation caption dark`() = capture("violation-caption", true, state(queens = listOf(1, 2)), autoCheck = true, controls = true)
+    @Test fun `violation caption light`() = capture("violation-caption", false, state(queens = listOf(1, 2)), controls = true)
+    @Test fun `violation caption dark`() = capture("violation-caption", true, state(queens = listOf(1, 2)), controls = true)
+
+    // Fix round 6 (§5.5 staged ladder): stage 1 neutral (no human reason yet — region
+    // pulse + fallback caption), stage 1 with the ROW deduction, and stage 2's pointed
+    // ghost on the forced cell.
+    @Test fun `hint neutral light`() = capture("hint", false, QueensUiFixtures.session(), hint = true, controls = true)
+    @Test fun `hint neutral dark`() = capture("hint", true, QueensUiFixtures.session(), hint = true, controls = true)
+
+    @Test fun `hint deduction light`() = capture("hint-deduction", false, state(queens = listOf(7, 8, 14)), hint = true, controls = true)
+    @Test fun `hint deduction dark`() = capture("hint-deduction", true, state(queens = listOf(7, 8, 14)), hint = true, controls = true)
+
+    @Test fun `hint point light`() = capture("hint-point", false, state(queens = listOf(7, 8, 14)), hint = true, pointed = true, controls = true)
+    @Test fun `hint point dark`() = capture("hint-point", true, state(queens = listOf(7, 8, 14)), hint = true, pointed = true, controls = true)
 }

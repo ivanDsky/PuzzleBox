@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.QueensDailyRepository
 import com.ivandsky.puzzlebox.data.repository.QueensToday
 import com.ivandsky.puzzlebox.game.Cadence
+import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.FetchError
@@ -90,13 +91,16 @@ class QueensPlayFlow(
  * board (queens-06 offline-first repository) → a real [QueensSession] (queens-04) →
  * the queens-08 [QueensBoardState] interaction holder. The holder owns only the fetch /
  * restore / record wiring — every game decision stays in the session and the board
- * state (A10–A12 provenance, A14 auto-check, §5 interaction set).
+ * state (A10–A12 provenance, A14 Auto-cross, §5 interaction set).
  *
- * Win flow (zip's win→history pattern): the session's completedAt transition emits ONE
- * [com.ivandsky.puzzlebox.game.CompletionRecord] through the plugin's score model via a
- * [CompletionRecordEmitter] — fire-and-observe, deduped per emitter lifetime; a restored
- * completed session never re-emits (the board state is rebuilt with a fresh emitter only
- * on transition, never for a completed session).
+ * Win flow (fix round 6 — zip's win→result-route pattern): the board state hands ONE
+ * [CompletionRecord] (built by the plugin's score model on the completedAt transition)
+ * to [onWinRecord]; the write stays fire-and-observe in the
+ * flow scope — navigation (to the result route) can never cancel it. [recordBadge] is
+ * null while the write is in flight, then the A4 verdict against the session-start
+ * baseline; [recordWriteFailed] surfaces the retry affordance on the result route.
+ * A restored completed session never re-emits (transition-only) and refreshes no
+ * baseline.
  */
 class QueensPlayState(
     private val daily: QueensDailyRepository,
@@ -122,7 +126,20 @@ class QueensPlayState(
     var board by mutableStateOf<QueensBoardState?>(null)
         private set
 
+    /** A4 record badge: null = write in flight (or baseline unknown); true/false = the
+     *  verdict against the session-start baseline (new record vs beat replay). */
+    var recordBadge by mutableStateOf<Boolean?>(null)
+        private set
+
+    /** The record write failed — the result route offers a retry. */
+    var recordWriteFailed by mutableStateOf(false)
+        private set
+
     private var emitter: CompletionRecordEmitter? = null
+
+    /** Whether a record already existed for the current ref BEFORE this session's win —
+     *  the A4 badge is derived from this baseline, never from the stored rows. */
+    private var baselineHadRecord: Boolean? = null
 
     //region load / restore
 
@@ -132,6 +149,9 @@ class QueensPlayState(
         screen = QueensScreen.Loading
         board = null
         emitter = null
+        recordBadge = null
+        recordWriteFailed = false
+        baselineHadRecord = null
         scope.launch {
             when (val today = daily.today()) {
                 is QueensToday.Fresh -> adopt(today.puzzle, degraded = null)
@@ -143,14 +163,18 @@ class QueensPlayState(
 
     /** Process-death/rotation restore: the codec carries the puzzle BY VALUE, so a
      *  corrupt save falls back to a normal load; a restored COMPLETED session shows the
-     *  win without re-emitting (emission happens on the transition only). */
+     *  result without re-emitting (emission happens on the transition only). */
     fun adoptRestored(bytes: ByteArray) {
         when (val restored = QueensSessionCodec.deserialize(bytes)) {
             is DecodeResult.Ok -> {
                 val s = restored.value
                 emitter = null
+                recordBadge = null
+                recordWriteFailed = false
+                baselineHadRecord = null
                 board = boardFor(s)
                 screen = QueensScreen.Ready(s.puzzle, s.ref, degraded = null)
+                if (!s.isComplete) refreshBaseline(s.ref)
             }
 
             is DecodeResult.Err -> load()
@@ -168,6 +192,7 @@ class QueensPlayState(
         val ref = resolveRef()
         screen = QueensScreen.Ready(queens, ref, degraded)
         board = boardFor(QueensSession(ref = ref, puzzle = queens))
+        refreshBaseline(ref)
     }
 
     /** Record identity = gameId queens + day/puzzleNumber (ADR-0004), resolved the same
@@ -178,23 +203,56 @@ class QueensPlayState(
         return QueensPuzzleRef(entry?.day ?: day, entry?.puzzleNumber)
     }
 
+    private fun refreshBaseline(ref: QueensPuzzleRef?) {
+        if (ref == null) return
+        scope.launch {
+            baselineHadRecord = completions.observeRecords().first().any { it.puzzleRef == ref }
+        }
+    }
+
     private fun boardFor(session: QueensSession): QueensBoardState = QueensBoardState(
         initialSession = session,
         score = queensPlugin.score,
-        emitter = CompletionRecordEmitter(scope) { record ->
-            completions.onCompleted(record)
-            AppResult.Ok(Unit)
-        },
+        onWinRecord = { emitRecord(it) },
         now = now,
         onSessionChanged = { onSessionChanged(it) },
     )
 
-    /** Win overlay's "Play again" parity (zip replay): a fresh session, a new emitter
-     *  lifetime — replays emit again. */
+    /** Result route's "Play again" parity (zip replay): a fresh session, a new emitter
+     *  lifetime — replays emit again (A4), and the badge resets until the new write
+     *  lands. The A4 baseline is re-read: whether a record existed BEFORE this new play. */
     fun replay() {
         val ready = screen as? QueensScreen.Ready ?: return
         emitter = null
+        recordBadge = null
+        recordWriteFailed = false
+        baselineHadRecord = null
+        refreshBaseline(ready.ref)
         board = boardFor(QueensSession(ref = ready.ref, puzzle = ready.puzzle))
+    }
+
+    /** Retry after a failed record write: a new emitter (the old one deduped this ref). */
+    fun retryRecordWrite() {
+        val completed = board?.session?.takeIf { it.isComplete } ?: return
+        emitRecord(record = queensPlugin.score.completion(completed) ?: return)
+    }
+
+    private fun emitRecord(record: CompletionRecord) {
+        recordWriteFailed = false
+        recordBadge = null
+        val instance = CompletionRecordEmitter(scope) { r ->
+            completions.onCompleted(r)
+            AppResult.Ok(Unit)
+        }
+        emitter = instance
+        instance.emit(record) { result ->
+            when (result) {
+                // A4 badge for THIS play: true only when no record existed at session
+                // start; unknown baseline (write raced the baseline read) stays null.
+                is AppResult.Ok -> recordBadge = baselineHadRecord?.let { !it }
+                is AppResult.Err -> recordWriteFailed = true
+            }
+        }
     }
 
     //endregion

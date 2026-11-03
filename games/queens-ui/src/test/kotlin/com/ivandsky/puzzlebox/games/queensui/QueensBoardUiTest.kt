@@ -4,26 +4,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.assertIsNotEnabled
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
-import com.ivandsky.puzzlebox.common.result.AppResult
 import com.ivandsky.puzzlebox.game.ScoreModel
-import com.ivandsky.puzzlebox.gameui.CompletionRecordEmitter
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.MarkKind
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.queens.QueensSession
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -35,13 +31,13 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import org.robolectric.shadows.ShadowDialog
-import org.robolectric.Shadows
 import java.time.LocalDate
 
 // DoD interaction suite (queens-08): every A10–A12/A14 interaction against the real
 // session value type driven in-memory (a ref-less play session — the "fake session"),
-// JVM/Robolectric only; on-device checks are queens-09.
+// JVM/Robolectric only; on-device checks are queens-09. Fix round 6: ALWAYS-ON
+// violations (A14 revised), the Auto-cross session toggle, the staged hint ladder,
+// and the win → result-ROUTE handoff (the modal overlay is deleted).
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w840dp-h1000dp-420dpi")
@@ -52,15 +48,15 @@ class QueensBoardUiTest {
 
     private val n = 4
 
+    /** Win records the state holder handed to the (route) callback. */
+    private val winRecords = mutableListOf<CompletionRecord>()
+
     private fun setContent(session: QueensSession, score: ScoreModel<QueensSession>? = null): QueensBoardState {
+        winRecords.clear()
         val state = QueensBoardState(
             initialSession = session,
             score = score,
-            emitter = score?.let {
-                CompletionRecordEmitter(CoroutineScope(Dispatchers.Unconfined)) {
-                    AppResult.Ok(Unit)
-                }
-            },
+            onWinRecord = { winRecords.add(it) },
         )
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
@@ -68,9 +64,8 @@ class QueensBoardUiTest {
                     QueensPlayBoard(state, Modifier.fillMaxWidth().testTag(BoardTag))
                     QueensPlayControls(state)
                 }
-                // R-5: the win overlay presents MODALLY (its own fullscreen dialog
-                // window) — mirror the play screen here so win assertions run.
-                QueensWinOverlay(state, onPlayAgain = {})
+                // Fix round 6: no win overlay HERE — the solved state hands off to the
+                // result ROUTE at screen level (the app navigates; the board just rests).
             }
         }
         composeRule.waitForIdle()
@@ -180,48 +175,33 @@ class QueensBoardUiTest {
         assertNull(state.session.markAt(Cell(1)))
     }
 
+    /** Fix round 6 (A14 revised): conflict highlighting is ALWAYS ON — the Auto-check
+     *  toggle is gone; the stripes are live the moment a conflict is, no setting. */
     @Test
-    fun `auto-check toggle gates the violation cue`() {
+    fun `violations highlight always - no auto-check toggle`() {
         val state = setContent(QueensUiFixtures.session())
         state.onTap(1); state.onTap(1) // X then queen at (0,1)
         state.onTap(2) // AUTO X is a mark: one tap places the queen at (0,2) — same row → conflict
         composeRule.waitForIdle()
-        state.autoCheck = true
-        composeRule.waitForIdle()
-        assertTrue(QueensBoardModel.of(state.session, state.hint, state.autoCheck).violations.isNotEmpty())
-        state.autoCheck = false
-        composeRule.waitForIdle()
-        assertTrue(QueensBoardModel.of(state.session, state.hint, state.autoCheck).violations.isEmpty())
+        assertTrue(QueensBoardModel.of(state.session).violations.isNotEmpty())
     }
 
+    /** R-2 with A14 revised (fix round 6): while a violation is live the one-line rule
+     *  caption shows — with NO toggle involved; it clears when the conflict does. */
     @Test
-    fun `hint action surfaces the region highlight`() {
-        val state = setContent(QueensUiFixtures.session())
-        composeRule.onNodeWithText("Hint").performClick()
-        composeRule.waitForIdle()
-        assertNotNull(state.hint)
-        val model = QueensBoardModel.of(state.session, state.hint, state.autoCheck)
-        assertNotNull(model.hintRegion)
-        assertTrue(model.hintCells.isNotEmpty())
-    }
-
-    /** R-2 (fix round 4): while a violation is live under Auto-check, a one-line
-     *  caption near the controls names the rule; it is gone without the toggle or
-     *  without a live violation. */
-    @Test
-    fun `violation live under auto-check surfaces the rule caption`() {
+    fun `violation surfaces the rule caption always-on`() {
         val state = setContent(QueensUiFixtures.session())
         state.onTap(1); state.onTap(1) // X then queen at (0,1)
-        state.onTap(2) // AUTO X is a mark: one tap places the queen at (0,2) — same row → conflict
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("queens/violation_caption").assertDoesNotExist()
-        state.autoCheck = true
+        state.onTap(2) // AUTO X is a mark: one tap places the queen at (0,2) — same row → conflict
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("queens/violation_caption").assertExists()
         composeRule.onNodeWithText(
             "Rule conflict — queens can't touch or share a row, column, or region",
         ).assertExists()
-        state.autoCheck = false
+        // resolving the conflict clears the caption (undo the second queen)
+        state.undo()
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("queens/violation_caption").assertDoesNotExist()
     }
@@ -237,45 +217,139 @@ class QueensBoardUiTest {
         assertTrue(state.session.queens.isEmpty())
     }
 
-    /** R-5 (fix round 5): the win presents as a TRUE MODAL — a fullscreen dialog in
-     *  its own window, with back/outside dismissal blocked, so nothing behind it (the
-     *  shell's bottom nav included) can be touched and the win state cannot be
-     *  silently abandoned mid-celebration (defect A repro). */
+    // ------------------------------------------------- fix round 6 (F-4): Auto-cross
+
+    /** A14 revised: the Auto-cross toggle drives the session — OFF strips AUTO marks
+     *  from the standing board, ON re-derives them. */
     @Test
-    fun `win overlay is modal - dialog window with back and outside blocked`() {
+    fun `auto-cross toggle strips and re-derives system marks`() {
         val state = setContent(QueensUiFixtures.session())
-        QueensUiFixtures.solutionCells.forEach { state.onTap(it.idx); state.onTap(it.idx) }
+        tap(0, 0) // X then queen → A10 auto-fill
+        tap(0, 0)
+        assertTrue(state.session.marks.any { it.value.kind == MarkKind.AUTO })
+        state.setAutoCross(false)
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("queens/win_overlay").assertExists()
-
-        // The overlay presents in its own window: a Dialog is up on the window manager.
-        val dialog = ShadowDialog.getLatestDialog()
-        assertNotNull("the win presents in a dialog window (modal)", dialog)
-        assertTrue("the win dialog is showing", dialog.isShowing)
-
-        // Nothing outside can dismiss it: outside taps are blocked…
-        assertFalse(Shadows.shadowOf(dialog).isCancelableOnTouchOutside)
-        // …and the back key is consumed without dismissing (compose's dialog back
-        // callback no-ops under dismissOnBackPress = false): the win state survives.
-        dialog.window!!.decorView.dispatchKeyEvent(
-            android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_BACK),
+        assertFalse(state.autoCross)
+        assertTrue(
+            "OFF leaves queens bare (only the MANUAL stored under the standing queen remains)",
+            state.session.marks.values.all { it.kind == MarkKind.MANUAL },
         )
+        assertTrue("queens unaffected", Cell(0) in state.session.queens)
+        state.setAutoCross(true)
         composeRule.waitForIdle()
-        assertTrue("back cannot abandon the win", state.session.isComplete)
-        assertTrue("the win dialog is still up after back", dialog.isShowing)
-        composeRule.onNodeWithText("Play again").assertExists()
+        assertTrue("ON re-derives the exclusions", state.session.marks.any { it.value.kind == MarkKind.AUTO })
     }
 
+    /** A14 revised: the flip is a SETTINGS change — not an undo unit; undo reverts the
+     *  last BOARD action, not the toggle. */
     @Test
-    fun `win emits exactly one completion record and shows the banner`() {
+    fun `auto-cross flip is not an undo unit`() {
+        val state = setContent(QueensUiFixtures.session())
+        tap(0, 0) // X
+        state.setAutoCross(false)
+        composeRule.waitForIdle()
+        state.undo()
+        composeRule.waitForIdle()
+        // undo reverted the X, not the flip: still OFF, cell 0 empty again
+        assertFalse(state.autoCross)
+        assertNull(state.session.markAt(Cell(0)))
+    }
+
+    // ------------------------------------- fix round 6 (F-2): staged hint ladder
+
+    /** Stage 1: with placed queens proving the forcing, the caption NAMES the row
+     *  elimination; a NEW presented hint counts once. */
+    @Test
+    fun `staged hint stage 1 shows the deduction caption and counts once`() {
+        val state = setContent(QueensUiFixtures.session())
+        // queens (1,3), (2,0), (3,2) — row 0's queen is forced to cell 1 (ROW elimination)
+        listOf(7, 8, 14).forEach { idx -> state.onTap(idx); state.onTap(idx) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Hint").performClick()
+        composeRule.waitForIdle()
+        val hint = state.hint
+        assertTrue("unexpected $hint", hint is com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region)
+        hint as com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region
+        assertEquals(HintReason(HintReason.Kind.ROW, 0), hint.reason)
+        assertEquals("one presented hint counts once", 1, state.session.hintsUsed)
+        composeRule.onNodeWithTag("queens/hint_caption").assertExists()
+        composeRule.onNodeWithText(
+            "The red region's queen must be in this row — every other cell there is blocked",
+        ).assertExists()
+    }
+
+    /** Stage 2 (the repeat tap): the same forced cell is POINTED at — the crown ghost
+     *  target — without counting a second hint. */
+    @Test
+    fun `staged hint repeat tap points at the forced cell without recounting`() {
+        val state = setContent(QueensUiFixtures.session())
+        listOf(7, 8, 14).forEach { idx -> state.onTap(idx); state.onTap(idx) }
+        composeRule.onNodeWithText("Hint").performClick()
+        composeRule.waitForIdle()
+        assertFalse(state.hintPointed)
+        composeRule.onNodeWithText("Hint").performClick()
+        composeRule.waitForIdle()
+        assertTrue("stage 2 engaged", state.hintPointed)
+        assertEquals(1, (state.hint as com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region).cell.idx)
+        assertEquals("the repeat is presentation only", 1, state.session.hintsUsed)
+        val model = QueensBoardModel.of(state.session, state.hint, state.hintPointed)
+        assertEquals(1, model.hintCell)
+    }
+
+    /** The neutral fallback: with NO placed premises the engine has no human-checkable
+     *  elimination — the caption stays honest (region named, no deduction claimed). */
+    @Test
+    fun `staged hint without a human reason falls back to the neutral caption`() {
+        val state = setContent(QueensUiFixtures.session())
+        composeRule.onNodeWithText("Hint").performClick()
+        composeRule.waitForIdle()
+        val hint = state.hint
+        assertTrue(hint is com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region)
+        assertNull((hint as com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region).reason)
+        assertEquals("an empty-board hint counts", 1, state.session.hintsUsed)
+        composeRule.onNodeWithText("Hint — the red region").assertExists()
+    }
+
+    /** The Incorrect hint counts too, with its own caption; None never counts. */
+    @Test
+    fun `incorrect hint surfaces its caption and counts`() {
+        val state = setContent(QueensUiFixtures.session())
+        state.onTap(0); state.onTap(0) // misplaced queen at (0,0)
+        composeRule.onNodeWithText("Hint").performClick()
+        composeRule.waitForIdle()
+        assertTrue(state.hint is com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Incorrect)
+        assertEquals(1, state.session.hintsUsed)
+        composeRule.onNodeWithText("Hint — these crowns can't all stay; remove at least one").assertExists()
+    }
+
+    /** Any board action clears the staged hint (caption + ghost). */
+    @Test
+    fun `a board action clears the staged hint`() {
+        val state = setContent(QueensUiFixtures.session())
+        composeRule.onNodeWithText("Hint").performClick()
+        composeRule.waitForIdle()
+        assertNotNull(state.hint)
+        state.onTap(5)
+        composeRule.waitForIdle()
+        assertNull(state.hint)
+        assertFalse(state.hintPointed)
+        composeRule.onNodeWithTag("queens/hint_caption").assertDoesNotExist()
+    }
+
+    // ------------------------------- fix round 6 (F-3): win → result-route handoff
+
+    /** F-3: the solved transition hands ONE frozen record (time + hints facts) to the
+     *  route callback; the modal overlay is deleted — nothing else renders. */
+    @Test
+    fun `win hands exactly one frozen record to the route callback`() {
         var completions = 0
         val score = object : ScoreModel<QueensSession> {
             override fun completion(session: QueensSession): CompletionRecord {
                 completions++
                 return CompletionRecord(
                     puzzleRef = QueensPuzzleRef(LocalDate.parse("2026-11-02"), 1),
-                    time = 0L,
-                    hints = 0,
+                    time = session.elapsedMs() ?: 0L,
+                    hints = session.hintsUsed,
                     stats = RecordStats(schemaVersion = 1, blob = ""),
                 )
             }
@@ -286,22 +360,39 @@ class QueensBoardUiTest {
         composeRule.waitForIdle()
         assertTrue(state.session.isComplete)
         assertEquals("one record per win transition", 1, completions)
-        composeRule.onNodeWithText("Solved!").assertExists()
-        // F-3 (fix round 3): the win is no longer a dead end — the banner carries the
-        // replay action, and the win is final: Undo is locked out.
-        composeRule.onNodeWithText("Play again").assertExists()
-        // R-5 (fix round 5): the win overlay presents in its own fullscreen DIALOG
-        // window — its bounds cover every window root (the play surface behind it and
-        // the modal window itself; no board-pane clipping, no game chrome beside it).
-        val overlay = composeRule.onNodeWithTag("queens/win_overlay").fetchSemanticsNode()
-        val roots = composeRule.onAllNodes(isRoot()).fetchSemanticsNodes()
-        assertTrue("win presents modally — two window roots", roots.size >= 2)
-        assertTrue(
-            "win overlay covers the window (${overlay.size} vs ${roots.map { it.size }})",
-            roots.all { overlay.size.width >= it.size.width && overlay.size.height >= it.size.height },
-        )
-        composeRule.onNodeWithText("Undo").performClick()
-        composeRule.waitForIdle()
+        assertEquals("one handoff to the route callback", 1, winRecords.size)
+        assertEquals("frozen hints fact", 0, winRecords.single().hints) // no hint requested
+        assertTrue("frozen time fact is the play duration", winRecords.single().time >= 0L)
+        // the win is final: Undo is locked out and the session stays complete
+        composeRule.onNodeWithText("Undo").assertIsNotEnabled()
         assertTrue("win is final", state.session.isComplete)
+    }
+
+    /** A restored completed session never re-emits — the emission is transition-only. */
+    @Test
+    fun `restored completed session never re-emits`() {
+        var solved = QueensUiFixtures.session()
+        QueensUiFixtures.solutionCells.forEach { c -> solved = solved.withQueenPlaced(c, QueensUiFixtures.T0) }
+        setContent(solved)
+        composeRule.waitForIdle()
+        assertTrue("no emission for a restored win", winRecords.isEmpty())
+    }
+
+    /** F-1: Clear wipes queens, AUTO and MANUAL marks as ONE undo unit — one undo
+     *  reverts to the exact pre-clear board. */
+    @Test
+    fun `clear wipes everything as one undo unit`() {
+        val state = setContent(QueensUiFixtures.session())
+        state.onTap(15) // MANUAL X
+        tap(0, 0); tap(0, 0) // queen + AUTO fills
+        assertTrue(state.session.marks.isNotEmpty())
+        composeRule.onNodeWithText("Clear").performClick()
+        composeRule.waitForIdle()
+        assertTrue(state.session.queens.isEmpty())
+        assertTrue("MANUAL marks gone too (round-6 ruling)", state.session.marks.isEmpty())
+        state.undo()
+        composeRule.waitForIdle()
+        assertTrue("one undo restores the pre-clear queens", state.session.queens.isNotEmpty())
+        assertEquals("one undo restores the pre-clear MANUAL mark", MarkKind.MANUAL, state.session.markAt(Cell(15))?.kind)
     }
 }

@@ -45,6 +45,7 @@ import com.ivandsky.puzzlebox.app.nav.Profile
 import com.ivandsky.puzzlebox.app.nav.ReplayZip
 import com.ivandsky.puzzlebox.app.nav.Result
 import com.ivandsky.puzzlebox.app.nav.Queens
+import com.ivandsky.puzzlebox.app.nav.QueensResult
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.screens.CatalogUnavailableScreen
 import com.ivandsky.puzzlebox.app.screens.ProfileRoute
@@ -59,6 +60,7 @@ import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.HomeRoute
 import com.ivandsky.puzzlebox.home.homeLayoutFor
 import com.ivandsky.puzzlebox.play.PlayRoute
+import com.ivandsky.puzzlebox.play.QueensResultRoute
 import com.ivandsky.puzzlebox.play.QueensRoute
 import com.ivandsky.puzzlebox.play.ResultRoute
 import java.util.Base64
@@ -153,7 +155,9 @@ fun PuzzleBoxApp(
                 // opacity 0→1 + scale 0.92→1 on one critically damped ~0.3s spring
                 // (spec A3); reduced motion keeps the opacity half only.
                 transitionSpec = {
-                    if (targetState.key == Result) {
+                    // Ticket 23 + fix round 6: BOTH result routes (Zip's Result and
+                    // Queens's QueensResult) take the run's one celebratory entrance.
+                    if (targetState.key == Result || targetState.key is QueensResult) {
                         resultEnterTransform(reduceMotion) togetherWith screenExitTransform()
                     } else {
                         screenEnterTransform() togetherWith screenExitTransform()
@@ -253,6 +257,18 @@ internal fun puzzleBoxEntryProvider(
             QueensRoute(
                 layout = playLayout,
                 onBack = { backStack.removeLastOrNull() },
+                onSolved = { timeMs, hintsUsed ->
+                    backStack.solveToQueensResult(QueensResult(timeMs, hintsUsed))
+                },
+            )
+        }
+    }
+    entry<QueensResult> { key ->
+        SceneCanvas {
+            QueensResultRoute(
+                timeMs = key.timeMs,
+                hintsUsed = key.hintsUsed,
+                onPlayAgain = { backStack.queensPlayAgainFromResult() },
             )
         }
     }
@@ -334,6 +350,26 @@ internal fun NavBackStack<NavKey>.solveToResult(solved: Result) {
 internal fun NavBackStack<NavKey>.playAgainFromResult() {
     removeLastOrNull()
     if (lastOrNull() != Play) add(Play)
+}
+
+// Fix round 6 (R-5) — Queens's solve nav contract: the result is a proper ROUTE over
+// the Queens TAB ROOT (unlike Zip, Queens IS the tab root — the Play tab resolves to
+// the Queens entry). Everything above the Queens entry unwinds, the result takes its
+// place; a plain pop lands on the Queens board, not Home. No result beneath on the
+// stack: back never re-enters the solved presentation (senior-UX wayfinding).
+internal fun NavBackStack<NavKey>.solveToQueensResult(solved: QueensResult) {
+    if (lastOrNull() == solved) return
+    while (isNotEmpty() && lastOrNull() != Queens) removeLastOrNull()
+    if (isEmpty()) add(Queens)
+    add(solved)
+}
+
+// Fix round 6 (R-5) — "Play again" from the Queens result: the result pops onto the
+// Queens tab root (fresh session — QueensResultRoute → QueensPlayState.replay), which
+// the play route keeps.
+internal fun NavBackStack<NavKey>.queensPlayAgainFromResult() {
+    removeLastOrNull()
+    if (lastOrNull() != Queens) add(Queens)
 }
 
 // Double-tap guard: pushing a destination that is already the stack top would need two

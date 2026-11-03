@@ -14,9 +14,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Session codec v1: zip ZipSessionCodecTest conventions — exact round trip (C1) including
- * mark PROVENANCE and the undo stack, pinned layout (C2), determinism (C3), version guard
- * (C5), and malformed-input rejection for every provenance invariant.
+ * Session codec v2 (fix round 6 adds startedAt/hintsUsed/autoCross; v1 blobs are
+ * UnsupportedVersion — pre-release, no shipped saves): zip ZipSessionCodecTest
+ * conventions — exact round trip (C1) including mark PROVENANCE and the undo stack,
+ * pinned layout (C2), determinism (C3), version guard (C5), and malformed-input
+ * rejection for every provenance invariant.
  */
 class QueensSessionCodecTest {
 
@@ -80,22 +82,68 @@ class QueensSessionCodecTest {
         assertNull(restored.ref)
     }
 
-    /** C2: the layout, pinned: version, u16 puzzle length, puzzle bytes, flags, ref, queens, marks, undo, completed. */
+    /** C2: the layout, pinned: version, u16 puzzle length, puzzle bytes, flags, ref, queens, marks, undo, completed, started, hints. */
     @Test
     fun `C2 - byte layout matches the pinned table`() {
         val puzzle = puzzle()
         val puzzleBytes = QueensCodec.encode(puzzle)
         val blob = QueensSessionCodec.serialize(QueensSession(ref = null, puzzle = puzzle))
         val expected = buildList {
-            add(1) // version
+            add(2) // version (fix round 6: v2 adds startedAt/hintsUsed/autoCross)
             add((puzzleBytes.size shr 8) and 0xFF); add(puzzleBytes.size and 0xFF)
             addAll(puzzleBytes.map(Byte::toInt))
-            add(0) // flags: no completedAt, no ref
+            add(0) // flags: no completedAt, no ref, no startedAt, autoCross ON
             add(0) // queensLen
             add(0); add(0) // marksLen u16
             add(0); add(0) // undoLen u16
+            add(0) // hintsUsed
         }.map(Int::toByte).toByteArray()
+        assertEquals(2, QueensSessionCodec.VERSION)
         assertArrayEquals(expected, blob)
+    }
+
+    /** Fix round 6: the v2 fields round trip — play clock, hint counter, Auto-cross OFF. */
+    @Test
+    fun `C1 - v2 fields round trip - startedAt hintsUsed and autoCross`() {
+        val p = puzzle()
+        var s = QueensSession(ref = null, puzzle = p).withAutoCross(false)
+        s = s.withCrossToggled(cell(0, 0), now)
+        s = s.withHintUsed().withHintUsed()
+        s = s.withQueenPlaced(cell(1, 4), now)
+        s = s.withHintUsed()
+        val restored = (QueensSessionCodec.deserialize(QueensSessionCodec.serialize(s)) as DecodeResult.Ok).value
+        assertEquals(s, restored)
+        assertEquals(3, restored.hintsUsed)
+        assertEquals(now, restored.startedAt)
+        assertEquals(false, restored.autoCross)
+    }
+
+    @Test
+    fun `C1 - completed sessions round trip with the elapsed clock`() {
+        val original = session()
+        assertTrue(original.isComplete)
+        val restored = (QueensSessionCodec.deserialize(QueensSessionCodec.serialize(original)) as DecodeResult.Ok).value
+        assertEquals(original.startedAt, restored.startedAt)
+        assertEquals(original.elapsedMs(), restored.elapsedMs())
+        assertEquals(original, restored)
+    }
+
+    @Test
+    fun `autoCross OFF rides a flag, not a sentinel`() {
+        val blob = QueensSessionCodec.serialize(session(completedAt = null).withAutoCross(false))
+        val restored = (QueensSessionCodec.deserialize(blob) as DecodeResult.Ok).value
+        assertEquals(false, restored.autoCross)
+        // and the default (fresh v2 session) decodes ON
+        val onBlob = QueensSessionCodec.serialize(QueensSession(ref = null, puzzle = puzzle()))
+        assertEquals(true, (QueensSessionCodec.deserialize(onBlob) as DecodeResult.Ok).value.autoCross)
+    }
+
+    @Test
+    fun `v1 blobs are rejected as UnsupportedVersion (pre-release, no migrations)`() {
+        // The v2 reader hits byte0=1 where it expects 2 — a stale pre-release save.
+        val blob = QueensSessionCodec.serialize(session()).also { it[0] = 1 }
+        val err = QueensSessionCodec.deserialize(blob)
+        assertTrue(err is DecodeResult.Err && err.error is DecodeError.UnsupportedVersion)
     }
 
     /** C3: canonical serialization — same session, same bytes. */
@@ -130,13 +178,19 @@ class QueensSessionCodecTest {
         assertTrue(QueensSessionCodec.deserialize(full.copyOfRange(0, full.size - 3)) is DecodeResult.Err)
     }
 
+    /** Offset of the FIRST mark triple, walking the pinned front layout (v2 tail shifts the end). */
+    private fun firstMarkPos(blob: ByteArray): Int {
+        val puzzleLen = ((blob[1].toInt() and 0xFF) shl 8) or (blob[2].toInt() and 0xFF)
+        val flagsPos = 3 + puzzleLen
+        val queensLen = blob[flagsPos + 1].toInt()
+        return flagsPos + 2 /* queensLen */ + queensLen /* cells */ + 2 /* marksLen u16 */
+    }
+
     @Test
     fun `malformed - unknown mark kind`() {
-        val p = puzzle()
-        val minimal = QueensSession(ref = null, puzzle = p).withQueenPlaced(cell(0, 0), now)
+        val minimal = QueensSession(ref = null, puzzle = puzzle()).withQueenPlaced(cell(0, 0), now)
         val blob = QueensSessionCodec.serialize(minimal)
-        // trailing layout: marksLen(2) then per mark (cellIdx, kind, sourceIdx), then undoLen(2)
-        val kindPos = blob.size - 4 // trailing: ... (cellIdx, kind, sourceIdx), undoLen(2)
+        val kindPos = firstMarkPos(blob) + 1
         assertEquals(1, blob[kindPos].toInt()) // kind = AUTO before corruption
         val err = QueensSessionCodec.deserialize(blob.copyOf().also { it[kindPos] = 9 })
         assertTrue(err is DecodeResult.Err && err.error is DecodeError.Malformed)
@@ -144,11 +198,9 @@ class QueensSessionCodecTest {
 
     @Test
     fun `malformed - AUTO mark sourced by a non-standing queen`() {
-        val p = puzzle()
-        val s = QueensSession(ref = null, puzzle = p).withQueenPlaced(cell(0, 0), now)
+        val s = QueensSession(ref = null, puzzle = puzzle()).withQueenPlaced(cell(0, 0), now)
         val blob = QueensSessionCodec.serialize(s)
-        // the single AUTO mark is the last: trailing bytes ... (cell, kind=AUTO, source), undoLen(2)
-        val sourcePos = blob.size - 3
+        val sourcePos = firstMarkPos(blob) + 2
         assertEquals(0, blob[sourcePos].toInt()) // source = the standing queen at cell 0
         val err = QueensSessionCodec.deserialize(blob.copyOf().also { it[sourcePos] = 5 })
         assertTrue(err is DecodeResult.Err && err.error is DecodeError.Malformed)

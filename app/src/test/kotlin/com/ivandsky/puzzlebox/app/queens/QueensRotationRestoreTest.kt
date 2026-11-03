@@ -115,7 +115,7 @@ class QueensRotationRestoreTest {
     private fun setContent(activity: ComponentActivity) {
         activity.setContent {
             PuzzleBoxTheme {
-                QueensRoute(layout = PlayLayout.SinglePane, onBack = {})
+                QueensRoute(layout = PlayLayout.SinglePane, onBack = {}, onSolved = { _, _ -> })
             }
         }
     }

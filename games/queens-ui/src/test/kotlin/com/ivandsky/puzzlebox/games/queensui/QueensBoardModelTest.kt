@@ -8,7 +8,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-// Pure renderer-model mapping tests: session + hint + autoCheck → drawable model.
+// Pure renderer-model mapping tests: session + hint + stage-2 flag → drawable model.
 class QueensBoardModelTest {
 
     private fun manualX(session: QueensSession, idx: Int): QueensSession =
@@ -26,13 +26,15 @@ class QueensBoardModelTest {
         assertEquals(QueensCellVisual.EMPTY, model.visuals[4])
     }
 
+    /** Fix round 6 (A14 revised): conflict highlighting is ALWAYS ON — no toggle. */
     @Test
-    fun `violations computed only when auto-check is on`() {
+    fun `violations are computed always - no auto-check gate`() {
         val s = QueensUiFixtures.session()
             .withQueenPlaced(Cell(1), QueensUiFixtures.T0)
             .withQueenPlaced(Cell(2), QueensUiFixtures.T0) // same row → row violation
-        assertTrue(QueensBoardModel.of(s, autoCheck = false).violations.isEmpty())
-        assertTrue(QueensBoardModel.of(s, autoCheck = true).violations.isNotEmpty())
+        assertTrue(QueensBoardModel.of(s).violations.isNotEmpty())
+        // and a clean board maps to none
+        assertTrue(QueensBoardModel.of(QueensUiFixtures.session()).violations.isEmpty())
     }
 
     @Test
@@ -44,6 +46,19 @@ class QueensBoardModelTest {
         val region = (hint as com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region).region
         assertEquals(region, model.hintRegion)
         assertEquals(4, model.hintCells.size) // region = row → 4 cells
+    }
+
+    /** Fix round 6 (§5.5 stage 2): the repeat tap POINTS at the forced cell. */
+    @Test
+    fun `hintPointed surfaces the forced cell as the ghost target`() {
+        val hints = com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHints()
+        val hint = hints.hint(QueensUiFixtures.puzzle(), emptyList()) as
+            com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region
+        assertNull(QueensBoardModel.of(QueensUiFixtures.session(), hint, hintPointed = false).hintCell)
+        assertEquals(hint.cell.idx, QueensBoardModel.of(QueensUiFixtures.session(), hint, hintPointed = true).hintCell)
+        // a non-region hint never points
+        val incorrect = com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Incorrect(listOf(Cell(0)))
+        assertNull(QueensBoardModel.of(QueensUiFixtures.session(), incorrect, hintPointed = true).hintCell)
     }
 
     @Test
