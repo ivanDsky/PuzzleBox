@@ -114,10 +114,22 @@ class TangoPlayState(
 
     //region input (placements land; violations are state-driven, §6)
 
+    // Settle debounce (user ruling 2026-11-02): the violation scan goes silent on each
+    // touch and resumes 0.5 s after the last one — no immediate red on fast play.
+    var violationsDeferred by mutableStateOf(false)
+        private set
+    private var settleJob: kotlinx.coroutines.Job? = null
+
     fun onPlacement(placement: TangoPlacement) {
         rejection = null // next input clears the violation caption (Zip hintArrow discipline)
         hintCell = null
         hintWhy = null
+        settleJob?.cancel()
+        violationsDeferred = true
+        settleJob = scope.launch {
+            kotlinx.coroutines.delay(500)
+            violationsDeferred = false
+        }
         val current = session ?: return
         val ready = screen as? TangoScreen.Ready ?: return
         if (current.isComplete) return
@@ -357,7 +369,7 @@ class TangoPlayState(
         val hint = hintCell?.let { idx ->
             hintWhy?.let { why -> current.grid()[idx]?.let { value -> TangoHint.Forced(idx, value, why) } }
         }
-        return TangoRendererModel.of(TangoState(ready.puzzle, current.grid()), hint = hint, verdict = rejection)
+        return TangoRendererModel.of(TangoState(ready.puzzle, current.grid()), hint = hint, verdict = rejection, violationsDeferred = violationsDeferred)
     }
 
     /** Versioned session bytes for the route's rememberSaveable (A19/F2 §2). */

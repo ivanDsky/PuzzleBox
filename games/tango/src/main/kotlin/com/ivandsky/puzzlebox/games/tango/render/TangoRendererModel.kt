@@ -27,6 +27,9 @@ data class TangoRendererModel(
     /** Hint reveal payload (§7 HintReveal): highlight cell + WHY for the caption slot. */
     val hintCell: Int? = null,
     val hintWhy: TangoHint.Why? = null,
+    /** True while the settle debounce runs (user ruling 2026-11-02): the state-driven
+     *  violation scan stays silent until 0.5 s after the last touch. */
+    val violationsDeferred: Boolean = false,
 ) : RendererModel {
 
     data class CellRender(
@@ -50,7 +53,12 @@ data class TangoRendererModel(
 
     companion object {
 
-        fun of(state: TangoState, hint: Hint?, verdict: MoveVerdict? = null): TangoRendererModel {
+        fun of(
+            state: TangoState,
+            hint: Hint?,
+            verdict: MoveVerdict? = null,
+            violationsDeferred: Boolean = false,
+        ): TangoRendererModel {
             val merged = state.grid
             val forced = hint as? TangoHint.Forced
             return TangoRendererModel(
@@ -69,6 +77,7 @@ data class TangoRendererModel(
                 },
                 hintCell = forced?.idx,
                 hintWhy = forced?.why,
+                violationsDeferred = violationsDeferred,
             )
         }
     }
