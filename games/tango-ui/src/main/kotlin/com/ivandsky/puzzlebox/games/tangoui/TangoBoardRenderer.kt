@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.games.tangoui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -48,7 +47,6 @@ import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -203,26 +201,12 @@ private fun Cell(
     val boardColors = LocalBoardColors.current
     val gridLineWeight = BoardTokens.boardGridLineWeight
     val reducedMotion = rememberReducedMotion()
-
-    // ViolationFlash (§7): scale 1→0.86 spring on the offending cell; reduced motion
-    // snaps instantly — no pulse, tint + border carry the state.
-    val scale by animateFloatAsState(
-        targetValue = if (violating && !reducedMotion) 0.86f else 1f,
-        animationSpec = if (violating && !reducedMotion) {
-            ViolationFlashScale
-        } else {
-            tween(durationMillis = MotionTokens.NavTransitionExit)
-        },
-        label = "violationFlashScale",
-    )
+    // ViolationFlash retired (user QA 2026-11-02): the 1→0.86 cell scale read as a
+    // permanently shrunken glyph. Tint + dashed border carry the state (§6).
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
             .then(
                 if (variants.cellTreatment == TangoCellTreatment.RoundedTiles) {
                     // Discrete rounded tile (A/B item 6-B): fill only — the gridline
@@ -245,6 +229,15 @@ private fun Cell(
                 // Reference pitch is irrelevant to shape: fractions read the cell box,
                 // dashes read the pitch-equivalent cell size (minDimension = pitch px).
                 val pitchPx = size.minDimension
+                // Given identity (user QA 2026-11-02): preplaced cells read as DISABLED —
+                // a muted background wash, not a dot. Drawn before the violation tint so
+                // a given caught in a violating line still shows the error state above it.
+                if (render?.isGiven == true && render.value != null) {
+                    drawRoundRect(
+                        color = scheme.surfaceVariant.copy(alpha = TangoBoardSpec.givenTintAlpha),
+                        cornerRadius = CornerRadius(pitchPx * 0.04f),
+                    )
+                }
                 if (hinted) {
                     // HintReveal (§2/§7): secondaryContainer fill on the hint cell —
                     // state-driven highlight, persists until the next input clears it.
@@ -303,22 +296,6 @@ private fun Cell(
                 n = model.n,
             )
             null -> Unit
-        }
-
-        // Given identity (user QA 2026-11-02): givens carry a small anchor dot — the
-        // glyph itself is identical (size/color stay contrast-floored), the dot is the
-        // non-color-only "locked" signal. Positioned clear of the glyph cap.
-        if (render?.isGiven == true && render.value != null) {
-            Box(
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = TangoBoardSpec.givenDotBottomPadding)
-                    .size(TangoBoardSpec.givenDotDiameter)
-                    .background(
-                        MaterialTheme.colorScheme.onSurfaceVariant,
-                        CircleShape,
-                    ),
-            )
         }
 
         // Per-cell TalkBack semantics (§9): one focusable node per cell, row-major;
