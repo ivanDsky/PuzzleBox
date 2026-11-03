@@ -23,7 +23,8 @@ class QueensBoardModelTest {
         assertEquals(QueensCellVisual.QUEEN, model.visuals[1])
         // AUTO exclusion on the same row as the queen, where no manual mark stands.
         assertEquals(QueensCellVisual.X_AUTO, model.visuals[2]) // same ROW as the queen (region = row)
-        assertEquals(QueensCellVisual.EMPTY, model.visuals[4])
+        assertEquals(QueensCellVisual.X_AUTO, model.visuals[4]) // diagonal 3×3 neighbor (round-7 ruling)
+        assertEquals(QueensCellVisual.EMPTY, model.visuals[10]) // outside every fill unit
     }
 
     /** Fix round 6 (A14 revised): conflict highlighting is ALWAYS ON — no toggle. */

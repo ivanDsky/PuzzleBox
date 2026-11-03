@@ -146,7 +146,13 @@ class QueensPlayWiringTest {
 
         // Fix round 6 (F-3/R-5): the win is a ROUTE handoff — the play screen invokes
         // onSolved exactly once with the frozen facts; no win overlay exists anymore.
-        composeRule.waitUntil(10_000) { solved.isNotEmpty() }
+        composeRule.waitUntil(10_000) {
+            // A bare waitUntil on a non-Compose condition doesn't drive a frame in the
+            // Robolectric idling scheduler — pump one so the completedAt-keyed effect
+            // can run (device recomposes via the choreographer; the test must poke it).
+            composeRule.runOnIdle { }
+            solved.isNotEmpty()
+        }
         composeRule.runOnIdle { }
         assertEquals("one handoff on the win transition", 1, solved.size)
         assertTrue("frozen elapsed time rides the handoff", solved.single().first >= 0L)
