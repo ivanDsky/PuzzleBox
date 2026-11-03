@@ -40,7 +40,9 @@ fun TangoPlayScreen(
     PlayClockEffects(state)
 
     val ready = state.screen as? TangoScreen.Ready
-    val model = remember(state.screen, state.session, state.hintCell, state.rejection) {
+    // violationsDeferred is a key: the settle debounce flips it 0.5 s after the last
+    // touch, and the model must rebuild then or violations stay suppressed forever.
+    val model = remember(state.screen, state.session, state.hintCell, state.rejection, state.violationsDeferred) {
         state.rendererModel()
     }
 

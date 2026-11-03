@@ -204,6 +204,10 @@ class TangoPlayState(
                 emitter = null
                 session = s
                 screen = TangoScreen.Ready(s.puzzle, s.ref, degraded = null)
+                // The running clock is process-local (runningSince ≠ session state): a
+                // restored in-progress session restarts its window now, or the timer
+                // reads 0 forever (user QA 2026-11-02).
+                if (!s.isComplete && s.placements.isNotEmpty()) runningSince = now()
                 if (!s.isComplete) refreshBaseline(s.ref)
             }
 
