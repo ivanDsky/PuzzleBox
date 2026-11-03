@@ -32,8 +32,6 @@ object TangoSemantics {
      * legal — marks derived from this persist while anything is illegal.
      */
     fun violations(model: TangoRendererModel): List<Violation> {
-        // Settle debounce (user ruling 2026-11-02): silent until 0.5 s after the last touch.
-        if (model.violationsDeferred) return emptyList()
         val n = model.n
         val found = mutableListOf<Violation>()
 
@@ -76,7 +74,11 @@ object TangoSemantics {
             val line = (0 until n).map { col + it * n }
             found += overFull(model, line, half, isRow = false)
         }
-        return found
+        // Settle debounce, scoped (user QA 2026-11-02): while a settle window runs, only
+        // violations involving the touched cell are suppressed — errors elsewhere on the
+        // board never blink out when the user changes an unrelated cell.
+        val suppressed = model.suppressedIdx
+        return if (suppressed == null) found else found.filterNot { suppressed in it.cells }
     }
 
     private fun runsIn(

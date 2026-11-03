@@ -105,8 +105,10 @@ class TangoPlayState(
     private val rules = TangoRules
     private var emitter: CompletionRecordEmitter? = null
 
-    /** The running timer window; folds into [TangoSession.elapsedMs] on pause/background. */
-    private var runningSince: Instant? = null
+    /** The running timer window; folds into [TangoSession.elapsedMs] on pause/background.
+     *  Compose state on purpose: the clock loop keys off [clockWindow], so every change
+     *  here must be observable — the timer lives and dies by reactivity. */
+    private var runningSince: Instant? by mutableStateOf(null)
 
     /** Whether a record already existed for the current ref BEFORE this session's win —
      *  the A4 badge is derived from this baseline, never from the stored rows. */
@@ -114,9 +116,10 @@ class TangoPlayState(
 
     //region input (placements land; violations are state-driven, §6)
 
-    // Settle debounce (user ruling 2026-11-02): the violation scan goes silent on each
-    // touch and resumes 0.5 s after the last one — no immediate red on fast play.
-    var violationsDeferred by mutableStateOf(false)
+    // Settle debounce, scoped (user QA 2026-11-02): a touch only suppresses violations
+    // that involve the touched cell — errors elsewhere on the board stay visible and
+    // never blink out. Involving violations resume 0.5 s after the last touch.
+    var suppressedIdx by mutableStateOf<Int?>(null)
         private set
     private var settleJob: kotlinx.coroutines.Job? = null
 
@@ -125,10 +128,10 @@ class TangoPlayState(
         hintCell = null
         hintWhy = null
         settleJob?.cancel()
-        violationsDeferred = true
+        suppressedIdx = placement.idx
         settleJob = scope.launch {
             kotlinx.coroutines.delay(500)
-            violationsDeferred = false
+            suppressedIdx = null
         }
         val current = session ?: return
         val ready = screen as? TangoScreen.Ready ?: return
@@ -373,7 +376,7 @@ class TangoPlayState(
         val hint = hintCell?.let { idx ->
             hintWhy?.let { why -> current.grid()[idx]?.let { value -> TangoHint.Forced(idx, value, why) } }
         }
-        return TangoRendererModel.of(TangoState(ready.puzzle, current.grid()), hint = hint, verdict = rejection, violationsDeferred = violationsDeferred)
+        return TangoRendererModel.of(TangoState(ready.puzzle, current.grid()), hint = hint, verdict = rejection, suppressedIdx = suppressedIdx)
     }
 
     /** Versioned session bytes for the route's rememberSaveable (A19/F2 §2). */

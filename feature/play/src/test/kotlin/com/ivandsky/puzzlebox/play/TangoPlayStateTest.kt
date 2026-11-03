@@ -367,16 +367,16 @@ class TangoPlayStateTest {
     fun `violations stay deferred 0_5s after the last touch, then resume`() {
         val s = state(FakeCompletionRepository(), tangoDaily())
         runBlocking { s.load() }
-        assertFalse(s.violationsDeferred)
-        assertFalse(s.rendererModel()!!.violationsDeferred)
+        assertNull(s.suppressedIdx)
+        assertNull(s.rendererModel()!!.suppressedIdx)
 
         s.onPlacement(TangoPlacement(2, TangoCell.SUN))
-        assertTrue(s.violationsDeferred)
-        assertTrue(s.rendererModel()!!.violationsDeferred)
+        assertEquals(2, s.suppressedIdx)
+        assertEquals(2, s.rendererModel()!!.suppressedIdx)
 
         // The settle job delays on the state's Unconfined scope — real 500 ms.
         Thread.sleep(600)
-        assertFalse(s.violationsDeferred)
-        assertFalse(s.rendererModel()!!.violationsDeferred)
+        assertNull(s.suppressedIdx)
+        assertNull(s.rendererModel()!!.suppressedIdx)
     }
 }
