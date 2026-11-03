@@ -53,9 +53,9 @@ object TangoBoardSpec {
     fun markSizeFraction(n: Int): Float = if (n >= 8) 0.30f else 0.34f
 
     /** Mark FONT size, fraction of pitch: the `=`/`×` ink is ~0.35 em, so the font
-     *  must overshoot markSize to hit the ink floor (user QA 2026-11-02: marks were
-     *  illegible specks at labelMedium defaults). */
-    fun markTextFraction(n: Int): Float = if (n >= 8) 0.48f else 0.55f
+     *  must overshoot markSize to hit the ink floor. 0.44 after user QA (was 0.55 —
+     *  chips read oversized). */
+    fun markTextFraction(n: Int): Float = if (n >= 8) 0.38f else 0.44f
 
     /** Mark bar/stroke thickness, fraction of the mark box. */
     const val markStrokeFraction: Float = 0.14f

@@ -196,10 +196,10 @@ private fun DrawScope.drawEdgeMark(
     val measured = textMeasurer.measure(mark.symbol, style.copy(color = color))
     if (badge) {
         // LinkedIn-style chip: an opaque disc seats the symbol ON the shared gridline,
-        // visually above the mesh. Diameter is pitch-derived (~40% of a cell) — a font
-        // box is line-height sized and wildly overstates the symbol ink.
+        // visually above the mesh. Diameter pitch-derived (~32% of a cell), tuned down
+        // with the font in the user-QA round (was 0.20 — oversized next to glyphs).
         val pitchPx = size.width / cols
-        val radius = pitchPx * 0.20f
+        val radius = pitchPx * 0.16f
         drawCircle(color = badgeColor, radius = radius, center = mid)
         drawCircle(
             color = color.copy(alpha = 0.35f),

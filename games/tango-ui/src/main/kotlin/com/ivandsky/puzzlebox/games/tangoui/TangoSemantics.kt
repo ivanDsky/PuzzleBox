@@ -32,6 +32,8 @@ object TangoSemantics {
      * legal — marks derived from this persist while anything is illegal.
      */
     fun violations(model: TangoRendererModel): List<Violation> {
+        // Settle debounce (user ruling 2026-11-02): silent until 0.5 s after the last touch.
+        if (model.violationsDeferred) return emptyList()
         val n = model.n
         val found = mutableListOf<Violation>()
 

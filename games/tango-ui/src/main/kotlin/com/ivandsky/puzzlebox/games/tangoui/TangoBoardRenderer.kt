@@ -229,13 +229,20 @@ private fun Cell(
                 // Reference pitch is irrelevant to shape: fractions read the cell box,
                 // dashes read the pitch-equivalent cell size (minDimension = pitch px).
                 val pitchPx = size.minDimension
+                // Square corners in mesh mode (user QA 2026-11-02): the board is a
+                // squared gridline mesh — state washes follow the cells, not tiles.
+                val stateRadius = if (variants.cellTreatment == TangoCellTreatment.RoundedTiles) {
+                    CornerRadius(pitchPx * 0.04f)
+                } else {
+                    CornerRadius.Zero
+                }
                 // Given identity (user QA 2026-11-02): preplaced cells read as DISABLED —
                 // a muted background wash, not a dot. Drawn before the violation tint so
                 // a given caught in a violating line still shows the error state above it.
                 if (render?.isGiven == true && render.value != null) {
                     drawRoundRect(
                         color = scheme.surfaceVariant.copy(alpha = TangoBoardSpec.givenTintAlpha),
-                        cornerRadius = CornerRadius(pitchPx * 0.04f),
+                        cornerRadius = stateRadius,
                     )
                 }
                 if (hinted) {
@@ -243,7 +250,7 @@ private fun Cell(
                     // state-driven highlight, persists until the next input clears it.
                     drawRoundRect(
                         color = scheme.secondaryContainer.copy(alpha = TangoBoardSpec.hintTintAlpha),
-                        cornerRadius = CornerRadius(pitchPx * 0.04f),
+                        cornerRadius = stateRadius,
                     )
                 }
                 if (violating) {
@@ -252,11 +259,11 @@ private fun Cell(
                     // the sole carrier (§2; tint alone is 1.29:1 on white, by design).
                     drawRoundRect(
                         color = scheme.errorContainer.copy(alpha = TangoBoardSpec.violationTintAlpha),
-                        cornerRadius = CornerRadius(pitchPx * 0.04f),
+                        cornerRadius = stateRadius,
                     )
                     drawRoundRect(
                         color = scheme.error,
-                        cornerRadius = CornerRadius(pitchPx * 0.04f),
+                        cornerRadius = stateRadius,
                         style = Stroke(
                             width = gridLineWeight.toPx(),
                             pathEffect = PathEffect.dashPathEffect(
@@ -275,7 +282,7 @@ private fun Cell(
                 ) {
                     drawRoundRect(
                         color = boardColors.boardSelection,
-                        cornerRadius = CornerRadius(pitchPx * 0.04f),
+                        cornerRadius = stateRadius,
                         style = Stroke(width = gridLineWeight.toPx()),
                     )
                 }
