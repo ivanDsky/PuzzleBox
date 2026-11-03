@@ -16,7 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -65,26 +67,50 @@ fun BoardGrid(
     wallWeight: Dp = BoardTokens.boardWallWeight,
     underlay: @Composable BoxScope.() -> Unit = {},
     cellContent: @Composable BoxScope.(row: Int, col: Int) -> Unit = { _, _ -> },
+    /** Edge-mark (`=`/`×`) override — games needing pitch-scaled marks (Tango). Null = shared default. */
+    markStyleOverride: TextStyle? = null,
+    markColorOverride: Color? = null,
+    /** Draw marks as badges: filled disc behind the symbol so it floats over the gridline. */
+    markBadge: Boolean = false,
+    /** Draw the overlay canvas ABOVE the cell layer (marks never hidden by cell content). */
+    overlaysAboveCells: Boolean = false,
 ) {
-    val markColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val markStyle = MaterialTheme.typography.labelMedium
+    val markColor = markColorOverride ?: MaterialTheme.colorScheme.onSurfaceVariant
+    val markStyle = markStyleOverride ?: MaterialTheme.typography.labelMedium
+    val badgeFill = MaterialTheme.colorScheme.surface
     val textMeasurer = rememberTextMeasurer()
 
     Box(
         modifier = modifier.aspectRatio(ratio = cols.toFloat() / rows.toFloat()),
     ) {
-        Canvas(Modifier.fillMaxSize()) {
-            drawGrid(rows, cols, colors.boardGridLine, gridLineWeight.toPx())
-            edgeOverlays.forEach { overlay ->
-                when (overlay) {
-                    is EdgeOverlay.Wall -> drawWall(overlay, rows, cols, colors.boardWall, wallWeight.toPx())
-                    is EdgeOverlay.Border -> drawEdgeLine(overlay, rows, cols, overlay.color ?: colors.boardGridLine, gridLineWeight.toPx())
-                    is EdgeOverlay.Mark -> drawEdgeMark(overlay, rows, cols, markColor, textMeasurer, markStyle)
+        val gridCanvas: @Composable () -> Unit = {
+            Canvas(Modifier.fillMaxSize()) {
+                drawGrid(rows, cols, colors.boardGridLine, gridLineWeight.toPx())
+                if (!overlaysAboveCells) {
+                    edgeOverlays.forEach { overlay ->
+                        when (overlay) {
+                            is EdgeOverlay.Wall -> drawWall(overlay, rows, cols, colors.boardWall, wallWeight.toPx())
+                            is EdgeOverlay.Border -> drawEdgeLine(overlay, rows, cols, overlay.color ?: colors.boardGridLine, gridLineWeight.toPx())
+                            is EdgeOverlay.Mark -> drawEdgeMark(overlay, rows, cols, markColor, textMeasurer, markStyle, markBadge, badgeFill)
+                        }
+                    }
                 }
             }
         }
+        val marksCanvas: @Composable () -> Unit = {
+            Canvas(Modifier.fillMaxSize()) {
+                edgeOverlays.forEach { overlay ->
+                    when (overlay) {
+                        is EdgeOverlay.Mark -> drawEdgeMark(overlay, rows, cols, markColor, textMeasurer, markStyle, markBadge, badgeFill)
+                        else -> Unit
+                    }
+                }
+            }
+        }
+        gridCanvas()
         underlay()
         Cells(rows, cols, cellContent)
+        if (overlaysAboveCells) marksCanvas()
         if (onCellTap != null) {
             // Tap layer inside the board box: matchParentSize (DragTrace overlay pattern)
             // keeps hit-testing geometry aligned with the drawn grid, and the component
@@ -158,6 +184,8 @@ private fun DrawScope.drawEdgeMark(
     color: Color,
     textMeasurer: androidx.compose.ui.text.TextMeasurer,
     style: TextStyle,
+    badge: Boolean = false,
+    badgeColor: Color = Color.White,
 ) {
     val geometry = GridGeometry(rows, cols, size.width, size.height)
     val rect = geometry.cellRect(mark.cell)
@@ -166,6 +194,19 @@ private fun DrawScope.drawEdgeMark(
         EdgeSide.DOWN -> Offset(rect.center.x, rect.bottom)
     }
     val measured = textMeasurer.measure(mark.symbol, style.copy(color = color))
+    if (badge) {
+        // LinkedIn-style chip: an opaque disc seats the symbol ON the shared gridline.
+        // Diameter 26% of a cell (user QA round 4: 32% still read oversized).
+        val pitchPx = size.width / cols
+        val radius = pitchPx * 0.13f
+        drawCircle(color = badgeColor, radius = radius, center = mid)
+        drawCircle(
+            color = color.copy(alpha = 0.35f),
+            radius = radius,
+            center = mid,
+            style = Stroke(width = 1.5.dp.toPx()),
+        )
+    }
     drawText(
         textLayoutResult = measured,
         topLeft = Offset(

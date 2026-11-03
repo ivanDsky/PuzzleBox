@@ -154,7 +154,8 @@ class PlayScreenTest {
         val state = readyState()
         composeRule.runOnIdle { state.onDragEvent(DragEvent.Extend(GridCell(0, 0))) }
         // Manual clock: apply one frame for the placed arrow, then run out its ~2s hold
-        // + fade and confirm it clears.
+        // + fade and confirm it clears. Representation: the plain centered arrowhead
+        // glyph (ticket 28 r5) under the play.hint_arrow tag.
         composeRule.mainClock.autoAdvance = false
         composeRule.onNodeWithText("Hint").performClick()
         composeRule.runOnIdle { check(state.hintArrow != null) { "hint did not place an arrow" } }

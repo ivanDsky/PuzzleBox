@@ -41,6 +41,8 @@ dependencies {
     implementation(project(":games:zip"))
     // Queens feed (queens-06): LinkedInQueensDailySource + QueensUniquenessGate + codec bytes.
     implementation(project(":games:queens"))
+    // Tango daily fetch (ticket 03): wire -> TangoWireParser, storage in TangoCodec bytes.
+    implementation(project(":games:tango"))
 
     // DailyPuzzle/ThemeMode appear in the repository interfaces' public signatures.
     api(project(":core:model"))
@@ -60,6 +62,9 @@ dependencies {
     testImplementation(libs.turbine)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.robolectric)
+    // DI-graph guard (ticket 03): koin-android provides androidContext(); koin-test the KoinTest harness.
+    testImplementation(libs.koin.android)
+    testImplementation(libs.koin.test)
     // Migration harness (ticket-04 deferral): MigrationTestHelper replays committed schemas.
     testImplementation(libs.androidx.room.testing)
 }

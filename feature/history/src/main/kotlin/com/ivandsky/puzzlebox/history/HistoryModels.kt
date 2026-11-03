@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.history
 
 import com.ivandsky.puzzlebox.data.repository.GameHistoryDay
+import com.ivandsky.puzzlebox.data.repository.TangoDailyEntry
+import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import java.time.LocalDate
@@ -27,20 +29,27 @@ data class RowKey(val gameId: GameId, val day: LocalDate) : Comparable<RowKey> {
 }
 
 /**
- * One rendered history row: a captured day and its identity (A8), per game (ADR-0004) —
- * rows render their game's display name instead of assuming Zip (fix round 5, defect C).
+ * One rendered history row: a captured day and its identity (A8), per game (ADR-0004;
+ * tango-05: Zip and Tango share the calendar — every consumer keys by game+day). Rows
+ * render their game's display name instead of assuming Zip (fix round 5, defect C).
+ * [fetchedAtMs] is 0 for rows that came only from a completion record (never captured
+ * as a replayable day) — the "Captured" line hides for those.
  */
 data class HistoryDayRow(
     val day: LocalDate,
     val puzzleNumber: Int?,
     val gameId: GameId,
     val gameName: String,
+    val fetchedAtMs: Long = 0L,
 ) {
     /** "Saturday, November 1" — the same date voice home's teaser uses. */
     val headline: String = day.format(DAY_FORMAT)
 
     val label: String
         get() = if (puzzleNumber != null) "Daily $gameName · Puzzle #$puzzleNumber" else "Daily $gameName"
+
+    /** List/detail identity: `zip/2026-10-31` — stable across recomposition and pages. */
+    val key: String get() = "${gameId.value}/$day"
 
     private companion object {
         val DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d")
@@ -53,6 +62,15 @@ internal fun GameHistoryDay.toRow(gameName: String) = HistoryDayRow(
     puzzleNumber = puzzleNumber,
     gameId = gameId,
     gameName = gameName,
+    fetchedAtMs = fetchedAtMs,
+)
+
+internal fun TangoDailyEntry.toRow(gameName: String) = HistoryDayRow(
+    day = day,
+    puzzleNumber = puzzleNumber,
+    gameId = TangoDefinition.id,
+    gameName = gameName,
+    fetchedAtMs = fetchedAtMs,
 )
 
 /** Score contract (A3): time + hints only. "1:35", hours only when they exist. */

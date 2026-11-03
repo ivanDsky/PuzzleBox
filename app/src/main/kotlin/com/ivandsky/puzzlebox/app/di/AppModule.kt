@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.gameui.GameUiRegistry
 import com.ivandsky.puzzlebox.games.queensui.QueensBoardRenderer
 import com.ivandsky.puzzlebox.games.zipui.ZipBoardRenderer
+import com.ivandsky.puzzlebox.games.tangoui.TangoBoardRenderer
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -63,6 +64,7 @@ val appModule = module {
         GameUiRegistry().apply {
             register(GameId("zip"), get<ZipBoardRenderer>())
             register(GameId("queens"), get<QueensBoardRenderer>())
+            register(GameId("tango"), get<TangoBoardRenderer>())
         }
     }
 }

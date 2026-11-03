@@ -35,7 +35,10 @@ dependencies {
     // F1 module map: FEAT → GAMES is a sanctioned edge, same as :feature:play — the
     // replay payload is a ZipSession carrying this day's ref, built from the plugin's
     // public codecs, never engine internals.
+    // History needs the game codecs to pack replay envelopes (ADR-0005) — same
+    // sanctioned FEAT → GAMES edge as feature/play.
     implementation(project(":games:zip"))
+    implementation(project(":games:tango"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.material.icons.core)

@@ -21,6 +21,9 @@ data class GameHistoryDay(
     val puzzleNumber: Int?,
     /** The day's record row when solved — null for a captured-but-unfinished day. */
     val record: CompletionRecord?,
+    /** Capture recency when the day was fetched into a compete-loop cache (Zip/Tango);
+     *  0 for rows that exist only as a completion record. */
+    val fetchedAtMs: Long = 0L,
 )
 
 /**
@@ -60,6 +63,7 @@ fun gameHistoryDays(
             day = entry.day,
             puzzleNumber = entry.puzzleNumber ?: solved?.puzzleNumber,
             record = solved?.record,
+            fetchedAtMs = entry.fetchedAtMs,
         )
     }
 

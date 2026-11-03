@@ -247,6 +247,32 @@ class ZipPlayStateTest {
     }
 
     @Test
+    fun `hint cooldown no-ops rapid presses and telemetry records placements`() {
+        var clockMs = 0L
+        val s = readyState(now = { Instant.ofEpochMilli(clockMs) })
+        s.hint() // places the start (empty trace, no arrow)
+        assertEquals(1, s.session?.hintsUsed)
+        assertEquals(
+            listOf(HintEvent(atMs = 0L, fromIdx = null, placedIdx = PlayTestSupport.solution[0].idx)),
+            s.hintHistory,
+        )
+
+        s.hint() // inside the 5s cooldown: a no-op — not counted, not recorded
+        assertEquals(1, s.session?.hintsUsed)
+        assertEquals(1, s.hintHistory.size)
+
+        clockMs += 5_000L
+        s.hint() // cooldown expired: places the next solution segment
+        assertEquals(2, s.session?.hintsUsed)
+        assertEquals(
+            listOf(
+                HintEvent(atMs = 5_000L, fromIdx = 0, placedIdx = PlayTestSupport.solution[1].idx),
+            ),
+            s.hintHistory.drop(1),
+        )
+    }
+
+    @Test
     fun `replay resets the hint arrow`() {
         val s = readyState()
         s.onDragEvent(DragEvent.Extend(GridCell(0, 0)))

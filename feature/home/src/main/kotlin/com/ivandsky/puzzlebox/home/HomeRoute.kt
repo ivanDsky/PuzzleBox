@@ -5,6 +5,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
 import com.ivandsky.puzzlebox.data.repository.gameDisplayName
@@ -36,6 +37,7 @@ fun HomeRoute(
     modifier: Modifier = Modifier,
     onOpenHistory: () -> Unit = {},
 ) {
+    val identityService = koinInject<IdentityService>()
     val koin = getKoin()
     val zip = koinInject<ZipDailyRepository>()
     val completions = koinInject<CompletionRepository>()
@@ -45,6 +47,7 @@ fun HomeRoute(
     }
     val days by remember(zip, completions) { gameHistoryDays(zip, completions) }
         .collectAsState(initial = emptyList())
+    val identity by identityService.current.collectAsState()
 
     // The Today card teases the featured game: the first registered plugin. Every
     // current game is daily; cadence-driven selection lands with a second cadence.
@@ -69,6 +72,7 @@ fun HomeRoute(
     HomeScreen(
         layout = layout,
         game = featured,
+        identity = identity,
         themeMode = themeMode,
         onSetThemeMode = onSetThemeMode,
         onOpenHistory = onOpenHistory,

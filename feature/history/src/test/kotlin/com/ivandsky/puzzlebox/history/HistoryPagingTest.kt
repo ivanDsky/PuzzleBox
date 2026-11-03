@@ -5,6 +5,7 @@ import androidx.paging.testing.asSnapshot
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import java.time.LocalDate
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -18,6 +19,9 @@ import org.junit.Test
  * the whole history, and a newly captured day must invalidate to a fresh generation.
  * (Mid-way counts are prefetch-dependent by design, so only the two stable states —
  * untouched and fully scrolled — are asserted.)
+ *
+ * tango-05: the pager pages the MERGED both-games row list — the merge order (day
+ * desc, capture recency, game tiebreak) is covered in the dedicated merge tests.
  */
 class HistoryPagingTest {
 
@@ -33,7 +37,7 @@ class HistoryPagingTest {
 
     @Test
     fun `initial load is one lazy page, not the whole history`() = runTest {
-        val items = historyDays(seededRepo(45), FakeCompletionRepository(), emptyMap()).asSnapshot()
+        val items = historyDays(seededRepo(45), FakeTangoDailyRepository(), FakeCompletionRepository(), emptyMap()).asSnapshot()
 
         assertEquals(PAGE_SIZE, items.size)
         assertEquals(firstDay.plusDays(44), items.first().day)
@@ -41,7 +45,7 @@ class HistoryPagingTest {
 
     @Test
     fun `scrolling reaches all 45 seeded days`() = runTest {
-        val items = historyDays(seededRepo(45), FakeCompletionRepository(), emptyMap()).asSnapshot {
+        val items = historyDays(seededRepo(45), FakeTangoDailyRepository(), FakeCompletionRepository(), emptyMap()).asSnapshot {
             appendScrollWhile { it.day > firstDay }
         }
 
@@ -51,7 +55,7 @@ class HistoryPagingTest {
 
     @Test
     fun `rows arrive newest first`() = runTest {
-        val items = historyDays(seededRepo(PAGE_SIZE), FakeCompletionRepository(), emptyMap()).asSnapshot()
+        val items = historyDays(seededRepo(PAGE_SIZE), FakeTangoDailyRepository(), FakeCompletionRepository(), emptyMap()).asSnapshot()
 
         assertEquals(
             (PAGE_SIZE - 1 downTo 0).map { firstDay.plusDays(it.toLong()) },
@@ -62,7 +66,7 @@ class HistoryPagingTest {
     @Test
     fun `a newly captured day invalidates to a fresh generation`() = runTest {
         val repo = seededRepo(45)
-        val flow = historyDays(repo, FakeCompletionRepository(), emptyMap())
+        val flow = historyDays(repo, FakeTangoDailyRepository(), FakeCompletionRepository(), emptyMap())
 
         assertEquals(45, flow.asSnapshot { appendScrollWhile { true } }.size)
 
@@ -80,7 +84,51 @@ class HistoryPagingTest {
         // No settle step before the first collection: whatever generation arrives
         // first must already carry the seeded rows (the Pager is only ever built
         // from mapped rows, so an empty-list generation cannot exist).
-        assertEquals(3, historyDays(seededRepo(3), FakeCompletionRepository(), emptyMap()).asSnapshot().size)
+        assertEquals(3, historyDays(seededRepo(3), FakeTangoDailyRepository(), FakeCompletionRepository(), emptyMap()).asSnapshot().size)
+    }
+
+    // ------------------------------------------------------------------
+    // tango-05: the merged both-games list.
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `merged rows sort day first, capture recency second, game third`() = runTest {
+        val zips = FakeZipDailyRepository(
+            history = listOf(
+                HistoryTestSupport.entry(LocalDate.parse("2026-10-31"), fetchedAtMs = 100L),
+                HistoryTestSupport.entry(LocalDate.parse("2026-10-30"), fetchedAtMs = 50L),
+            ),
+        )
+        val tangos = FakeTangoDailyRepository(
+            history = listOf(
+                HistoryTestSupport.tangoEntry(LocalDate.parse("2026-10-31"), fetchedAtMs = 200L),
+                HistoryTestSupport.tangoEntry(LocalDate.parse("2026-10-29"), fetchedAtMs = 10L),
+            ),
+        )
+
+        val rows = historyRows(zips, tangos, FakeCompletionRepository(), emptyMap()).first()
+
+        // Day desc: 10-31 (both games, recency: tango 200 > zip 100), then 10-30, then 10-29.
+        assertEquals(
+            listOf(
+                "tango/2026-10-31",
+                "zip/2026-10-31",
+                "zip/2026-10-30",
+                "tango/2026-10-29",
+            ),
+            rows.map { it.key },
+        )
+    }
+
+    @Test
+    fun `merged rows keep both games on the same day and the streak sees the union`() = runTest {
+        val zips = FakeZipDailyRepository(history = listOf(HistoryTestSupport.entry(firstDay.plusDays(1))))
+        val tangos = FakeTangoDailyRepository(history = listOf(HistoryTestSupport.tangoEntry(firstDay)))
+
+        val rows = historyRows(zips, tangos, FakeCompletionRepository(), emptyMap()).first()
+
+        assertEquals(2, rows.size) // two games, two distinct days, no rows lost
+        assertEquals(2, streakEndingAtNewest(rows.map { it.day })) // consecutive captured days
     }
 }
 

@@ -29,6 +29,8 @@ android {
 
 dependencies {
     implementation(project(":core:designsystem"))
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
     implementation(project(":core:data"))
     // F1 module map: FEAT → GAMES is a sanctioned edge (same as :feature:history/play).
     // HomeRoute consumes the aggregated plugin list (GamePlugin) to build the featured
