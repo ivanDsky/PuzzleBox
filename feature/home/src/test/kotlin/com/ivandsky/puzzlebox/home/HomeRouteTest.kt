@@ -6,7 +6,9 @@ import androidx.compose.ui.test.onNodeWithText
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.ZipDailyEntry
 import com.ivandsky.puzzlebox.model.ThemeMode
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
+import com.ivandsky.puzzlebox.data.testing.FakeIdentityService
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
@@ -91,11 +93,13 @@ class HomeRouteTest {
     }
 
     private fun setContent(repo: FakeZipRepo, completions: CompletionRepository) {
+        val fakeIdentity = FakeIdentityService()
         startKoin {
             modules(
                 module {
                     single<ZipDailyRepository> { repo }
                     single<CompletionRepository> { completions }
+                    single<IdentityService> { fakeIdentity }
                 },
             )
         }

@@ -16,8 +16,11 @@ import org.koin.dsl.module
  * [com.ivandsky.puzzlebox.data.repository.CompletionRepository] comes from :core:data's
  * dataModule (pinned ticket-15 contract); this module adds no data bindings.
  *
- * Ticket 23: [QueensPlayFlow] mirrors [PlayFlow] as a single so the play state outlives
- * the play entry's composition — the record write never gets cancelled by navigation.
+ * Ticket 23: [PlayFlow] and [QueensPlayFlow] are singles so the play state outlives the
+ * play entry's composition across the result route — the record write never gets
+ * cancelled by navigation and "Play again" resets in place. tango-05: the flow also
+ * takes the [com.ivandsky.puzzlebox.data.repository.TangoDailyRepository] — the picker
+ * (A14) starts Zip or Tango.
  */
 val playModule = module {
     single {
@@ -26,6 +29,6 @@ val playModule = module {
             registerQueensBoard()
         }
     }
-    single { PlayFlow(daily = get(), completions = get()) }
+    single { PlayFlow(zips = get(), tangos = get(), completions = get()) }
     single { QueensPlayFlow(daily = get<QueensDailyRepository>(), completions = get()) }
 }

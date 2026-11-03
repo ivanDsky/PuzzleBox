@@ -6,13 +6,16 @@ import androidx.paging.PagingData
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.repository.TangoDailyEntry
+import com.ivandsky.puzzlebox.data.repository.TangoDailyRepository
 import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
 import com.ivandsky.puzzlebox.data.repository.gameHistoryDays
+import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 
 /** Page shape: one 20-row load with a 5-row lookahead — laziness visible past 30 days. */
 internal const val PAGE_SIZE = 20
@@ -20,31 +23,49 @@ private const val PREFETCH_DISTANCE = 5
 
 /**
  * Lazy paging over the merged game-agnostic history (A8: "paginated lazily", fix round
- * 5 defect C): every game's solved days UNION the Zip captured days, newest first per
- * the repository contracts. The repositories stay exactly their KDoc contracts (list
- * flows, no paging types): each merged emission switches to a Pager built from that
- * snapshot ([flatMapLatest] — a generation can never be built from a pre-emission empty
- * list), so a freshly captured day or a new completion appears without rebuilding the
- * screen. [gameNames] resolves each row's display line per GameId (ADR-0001 registry).
+ * 5 defect C; tango-05): every game's solved days UNION the Zip AND Tango captured
+ * days, newest day first, then capture recency, then game id for a stable tiebreak.
+ * The repositories stay exactly their KDoc contracts (list flows, no paging types):
+ * each merged emission switches to a Pager built from that snapshot ([flatMapLatest] —
+ * a generation can never be built from a pre-emission empty list), so a freshly
+ * captured day or a new completion appears without rebuilding the screen. [gameNames]
+ * resolves each row's display line per GameId (ADR-0001 registry).
  */
-@OptIn(ExperimentalCoroutinesApi::class)
-fun historyDays(
-    daily: ZipDailyRepository,
+fun historyRows(
+    zips: ZipDailyRepository,
+    tangos: TangoDailyRepository,
     completions: CompletionRepository,
     gameNames: Map<GameId, String>,
-): Flow<PagingData<HistoryDayRow>> = gameHistoryDays(daily, completions)
-    .map { days -> days.map { it.toRow(gameNames[it.gameId] ?: it.gameId.value) } }
-    .flatMapLatest { rows ->
-        Pager(
-            config = PagingConfig(
-                pageSize = PAGE_SIZE,
-                initialLoadSize = PAGE_SIZE,
-                prefetchDistance = PREFETCH_DISTANCE,
-                enablePlaceholders = false,
-            ),
-            pagingSourceFactory = { HistoryPagingSource(rows) },
-        ).flow
-    }
+): Flow<List<HistoryDayRow>> = combine(
+    gameHistoryDays(zips, completions),
+    tangos.observeHistory(),
+) { merged, tangoEntries ->
+    val name: (GameId) -> String = { gameNames[it] ?: it.value }
+    (merged.map { it.toRow(name(it.gameId)) } + tangoEntries.map { it.toRow(name(TangoDefinition.id)) })
+        .sortedWith(
+            compareByDescending<HistoryDayRow> { it.day }
+                .thenByDescending { it.fetchedAtMs }
+                .thenBy { it.gameId.value },
+        )
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+fun historyDays(
+    zips: ZipDailyRepository,
+    tangos: TangoDailyRepository,
+    completions: CompletionRepository,
+    gameNames: Map<GameId, String>,
+): Flow<PagingData<HistoryDayRow>> = historyRows(zips, tangos, completions, gameNames).flatMapLatest { rows ->
+    Pager(
+        config = PagingConfig(
+            pageSize = PAGE_SIZE,
+            initialLoadSize = PAGE_SIZE,
+            prefetchDistance = PREFETCH_DISTANCE,
+            enablePlaceholders = false,
+        ),
+        pagingSourceFactory = { HistoryPagingSource(rows) },
+    ).flow
+}
 
 /** Pages one snapshot of the captured days; replaced wholesale on history change. */
 internal class HistoryPagingSource(

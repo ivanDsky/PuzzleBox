@@ -205,7 +205,10 @@ internal fun puzzleBoxEntryProvider(
                 themeMode = themeMode,
                 onSetThemeMode = onSetThemeMode,
                 onPlayToday = { backStack.pushOnce(Play) },
-                onOpenProfile = { select(Profile, backStack) },
+                // Bug (2026-11-02, user report): select() clears the stack — correct for
+                // bar/rail tab switches, but this is a content affordance; clearing left
+                // [Profile] as the sole entry, so back exited the app. Push, don't clear.
+                onOpenProfile = { backStack.pushOnce(Profile) },
                 onOpenHistory = { backStack.pushOnce(History) },
             )
         }

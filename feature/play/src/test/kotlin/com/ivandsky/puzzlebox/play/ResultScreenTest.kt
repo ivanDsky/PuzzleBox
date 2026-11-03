@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.data.repository.ZipDailyEntry
+import com.ivandsky.puzzlebox.data.repository.TangoToday
 import com.ivandsky.puzzlebox.data.repository.ZipToday
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.DragEvent
@@ -16,6 +17,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -119,7 +121,8 @@ class ResultScreenTest {
             listOf(ZipDailyEntry(day, 592, "zip/n5", 0L)),
         )
         val completions = FakeCompletionRepository()
-        val flow = PlayFlow(daily = repo, completions = completions)
+        val flow = PlayFlow(zips = repo, tangos = FakeTangoDailyRepository(todayResult = TangoToday.Fresh(TangoPlayFixture.envelope())), completions = completions)
+        stopKoin() // tests share the JVM-global Koin context
         val koin = startKoin { modules(module { single { flow } }) }
         try {
             var replayed = false
@@ -135,13 +138,14 @@ class ResultScreenTest {
 
             // Bring the flow to a solved state the way a play-through would.
             composeRule.runOnIdle {
-                val state = flow.start(onSessionChanged = {})
+                val state = flow.start(PlayGame.Zip, onSessionChanged = {})
                 state.load()
             }
             composeRule.waitForIdle()
             composeRule.runOnIdle {
+                val playState = flow.state as ZipPlayState
                 PlayTestSupport.solution.forEach { cell ->
-                    flow.state?.onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
+                    playState.onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
                 }
             }
             composeRule.waitForIdle()
@@ -152,9 +156,9 @@ class ResultScreenTest {
             composeRule.onNodeWithTag("result.play_again").performClick()
             composeRule.runOnIdle {
                 assertTrue(replayed)
-                val state = flow.state
-                assertTrue(state?.session?.path?.isEmpty() == true)
-                assertTrue(state?.session?.isComplete == false)
+                val state = flow.state as ZipPlayState
+                assertTrue(state.session?.path?.isEmpty() == true)
+                assertTrue(state.session?.isComplete == false)
             }
         } finally {
             koin.close()

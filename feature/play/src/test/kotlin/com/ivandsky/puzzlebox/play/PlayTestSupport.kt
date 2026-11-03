@@ -1,6 +1,9 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.repository.TangoDailyEntry
+import com.ivandsky.puzzlebox.data.repository.TangoDailyRepository
+import com.ivandsky.puzzlebox.data.repository.TangoToday
 import com.ivandsky.puzzlebox.data.repository.ZipDailyEntry
 import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
 import com.ivandsky.puzzlebox.data.repository.ZipToday
@@ -8,6 +11,15 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.games.tango.TangoCell
+import com.ivandsky.puzzlebox.games.tango.TangoDefinition
+import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
+import com.ivandsky.puzzlebox.games.tango.TangoMarker
+import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
+import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
+import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
+import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
+import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.Wall
 import com.ivandsky.puzzlebox.games.zip.WallDirection
@@ -20,6 +32,7 @@ import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -92,6 +105,100 @@ class FakeZipDailyRepository(
     override suspend fun cached(day: LocalDate): Puzzle? = null
 
     override fun observeHistory(): Flow<List<ZipDailyEntry>> = kotlinx.coroutines.flow.flowOf(history)
+}
+
+// ---------------------------------------------------------------------------
+// Tango fixtures (tango-05): the games/tango test suite's proven-unique 6x6 sample,
+// re-declared here (test fixtures do not cross module boundaries), gated through the
+// A15 solver so a fixture drift fails loudly instead of silently changing semantics.
+// ---------------------------------------------------------------------------
+
+/** Scriptable TangoDailyRepository fake for the Tango play state tests. */
+class FakeTangoDailyRepository(
+    private var todayResult: TangoToday,
+    private val history: List<TangoDailyEntry> = emptyList(),
+) : TangoDailyRepository {
+
+    var todayCalls = 0
+        private set
+
+    fun setToday(result: TangoToday) {
+        todayResult = result
+    }
+
+    override suspend fun today(): TangoToday {
+        todayCalls++
+        return todayResult
+    }
+
+    override suspend fun cached(day: LocalDate): Puzzle? = null
+
+    override fun observeHistory(): Flow<List<TangoDailyEntry>> = flowOf(history)
+}
+
+/** Tango side of [PlayTestSupport]: a uniquely solvable 6x6 daily and its solution. */
+object TangoPlayFixture {
+
+    val variant = VariantId("tango/n6")
+
+    /** The bundled fixture's full solution (proven unique by games/tango's suite). */
+    val solution: List<TangoCell> = listOf(
+        "SSMSMM",
+        "SSMSMM",
+        "MMSMSS",
+        "SSMMSM",
+        "MMSSMS",
+        "MMSMSS",
+    ).flatMap { row -> row.map { if (it == 'S') TangoCell.SUN else TangoCell.MOON } }
+
+    val puzzle: TangoPuzzle = run {
+        val p = TangoPuzzle(
+            variant = variant,
+            n = 6,
+            givens = mapOf(
+                0 to TangoCell.SUN,
+                1 to TangoCell.SUN,
+                6 to TangoCell.SUN,
+                7 to TangoCell.SUN,
+                14 to TangoCell.SUN,
+                16 to TangoCell.SUN,
+                22 to TangoCell.SUN,
+                29 to TangoCell.SUN,
+                32 to TangoCell.SUN,
+                33 to TangoCell.MOON,
+            ),
+            markers = listOf(
+                TangoMarker(3, TangoEdgeSide.DOWN, TangoMarkerKind.SAME),
+                TangoMarker(18, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME),
+                TangoMarker(18, TangoEdgeSide.DOWN, TangoMarkerKind.OPPOSITE),
+                TangoMarker(34, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME),
+            ),
+        )
+        check(TangoUniqueness.isUniquelySolvable(p)) { "tango fixture must be uniquely solvable (A15)" }
+        p
+    }
+
+    /** Player-authored cells only (the givens are already on the puzzle). */
+    val placements: List<Pair<Int, TangoCell>> =
+        (0 until 36).filter { idx -> puzzle.givens[idx] == null }.map { idx -> idx to solution[idx] }
+
+    /** Envelope as TangoDailyRepository hands it to the UI (payload = codec bytes). */
+    fun envelope(puzzle: TangoPuzzle = this.puzzle): Puzzle = Puzzle(
+        gameId = TangoDefinition.id,
+        variant = puzzle.variant,
+        formatVersion = TangoCodec.VERSION,
+        payload = TangoCodec.encode(puzzle),
+    )
+
+    /** Decodable but NOT uniquely solvable — the A15 gate must refuse it. */
+    val ambiguous: TangoPuzzle = TangoPuzzle(
+        variant = variant,
+        n = 6,
+        givens = emptyMap(),
+        markers = emptyList(),
+    )
+
+    fun ref(day: LocalDate, puzzleNumber: Int? = 301) = TangoPuzzleRef(day, puzzleNumber)
 }
 
 /**

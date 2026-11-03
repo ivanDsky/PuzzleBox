@@ -43,12 +43,13 @@ class BoardGridTest {
                         cols = cols,
                         modifier = Modifier.fillMaxWidth(),
                         onCellTap = { row, col -> taps += row to col },
-                    ) { row, col ->
-                        Box(Modifier.fillMaxSize().testTag("cell-$row-$col"))
-                        if (row == 0 && col == 0) {
-                            Text("waypoint-1")
-                        }
-                    }
+                        cellContent = { row, col ->
+                            Box(Modifier.fillMaxSize().testTag("cell-$row-$col"))
+                            if (row == 0 && col == 0) {
+                                Text("waypoint-1")
+                            }
+                        },
+                    )
                 }
             }
         }

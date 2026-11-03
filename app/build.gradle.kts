@@ -15,8 +15,8 @@ android {
         applicationId = "com.ivandsky.puzzlebox"
         minSdk = 26
         targetSdk = 37
-        versionCode = 6
-        versionName = "0.6.0"
+        versionCode = 7
+        versionName = "0.7.0"
     }
 
     buildTypes {
@@ -27,6 +27,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // Local distribution (tailnet test device): unsigned release APKs
+            // cannot install; the debug key is the distribution key here.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -65,6 +68,8 @@ dependencies {
     implementation(project(":games:zip-ui"))
     implementation(project(":games:queens"))
     implementation(project(":games:queens-ui"))
+    implementation(project(":games:tango"))
+    implementation(project(":games:tango-ui"))
     implementation(project(":feature:home"))
     implementation(project(":feature:play"))
     implementation(project(":feature:history"))

@@ -9,6 +9,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,12 +53,20 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.EmptyState
+import coil3.compose.AsyncImage
 import com.ivandsky.puzzlebox.designsystem.LargeTopBar
+import coil3.compose.AsyncImage
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import coil3.compose.AsyncImage
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
+import coil3.compose.AsyncImage
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoard
+import coil3.compose.AsyncImage
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
+import coil3.compose.AsyncImage
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
@@ -91,6 +100,7 @@ data class GameSummary(
 fun HomeScreen(
     layout: HomeLayout,
     game: GameSummary,
+    identity: Identity? = null,
     themeMode: ThemeMode,
     onSetThemeMode: (ThemeMode) -> Unit,
     onOpenHistory: () -> Unit = {},
@@ -117,6 +127,7 @@ fun HomeScreen(
             Row(Modifier.fillMaxSize()) {
                 ListPane(
                     game = game,
+                    identity = identity,
                     themeMode = themeMode,
                     onOpenTheme = { showThemeDialog = true },
                     onOpenHistory = onOpenHistory,
@@ -144,6 +155,7 @@ fun HomeScreen(
         } else {
             ListPane(
                 game = game,
+                identity = identity,
                 themeMode = themeMode,
                 onOpenTheme = { showThemeDialog = true },
                 onOpenHistory = onOpenHistory,
@@ -173,6 +185,7 @@ fun HomeScreen(
 @Composable
 private fun ListPane(
     game: GameSummary,
+    identity: Identity?,
     themeMode: ThemeMode,
     onOpenTheme: () -> Unit,
     onOpenHistory: () -> Unit,
@@ -225,6 +238,7 @@ private fun ListPane(
         }
         StaggeredItem(2) {
             AccountCard(
+                identity = identity,
                 onOpenProfile = onOpenProfile,
                 cardColor = cardColor,
                 modifier = Modifier.padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.xl, bottom = Spacing.xxl),
@@ -398,6 +412,7 @@ private fun HistoryRow(
 /** The account card: signed-out teaser that opens the Profile account surface (A15). */
 @Composable
 private fun AccountCard(
+    identity: Identity?,
     onOpenProfile: () -> Unit,
     cardColor: Color,
     modifier: Modifier = Modifier,
@@ -418,28 +433,45 @@ private fun AccountCard(
                     .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
+                if (identity?.photoUrl != null) {
+                    // Google account avatar (user ask, 2026-11-02); Person stays as the
+                    // fallback while the image loads or when no photoUrl exists.
+                    AsyncImage(
+                        model = identity.photoUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize().clip(CircleShape),
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.Person,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
             }
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 Text(
-                    text = "Guest player",
+                    text = identity?.displayName?.takeIf { it.isNotBlank() } ?: "Guest player",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Sign in with Google to compete on leaderboards.",
+                    text = if (identity == null) {
+                        "Sign in with Google to compete on leaderboards."
+                    } else {
+                        "Competing on leaderboards."
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            SecondaryButton(text = "Sign in", onClick = onOpenProfile)
+            SecondaryButton(
+                text = if (identity == null) "Sign in" else "Profile",
+                onClick = onOpenProfile,
+            )
         }
     }
 }

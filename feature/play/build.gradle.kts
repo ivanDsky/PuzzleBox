@@ -33,14 +33,16 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:game"))
     implementation(project(":core:game-ui"))
-    // F1 module map: FEAT → GAMES is a sanctioned edge — this is Zip's play screen, it
-    // consumes the plugin surface (rules/score/renderer model), never engine internals.
+    // F1 module map: FEAT → GAMES is a sanctioned edge — the play screens consume the
+    // plugin surfaces (rules/score/renderer models, codecs), never engine internals.
     implementation(project(":games:zip"))
     // Queens play wiring (queens-10): session/codec/plugin from :games:queens, the
     // interactive board + controls from :games:queens-ui — the same plugin-surface edge
     // Zip's play screen uses (F1 module map FEAT → GAMES).
     implementation(project(":games:queens"))
     implementation(project(":games:queens-ui"))
+    implementation(project(":games:tango"))
+    implementation(project(":games:tango-ui"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.material.icons.core)

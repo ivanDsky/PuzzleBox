@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.ivandsky.puzzlebox.common.result.AppResult
@@ -67,7 +68,9 @@ class ZipPlayState(
     private val now: () -> Instant = Instant::now,
     private val today: () -> LocalDate = { LocalDate.now(zipCadenceZone()) },
     private val onSessionChanged: (ZipSession?) -> Unit = {},
-) {
+) : ActivePlay, PlayClock {
+
+    override val game: PlayGame get() = PlayGame.Zip
 
     var screen by mutableStateOf<ZipScreen>(ZipScreen.Loading)
         private set
@@ -79,15 +82,26 @@ class ZipPlayState(
     /** Ticket 28: the hint arrow's placed segment (tail → new head), transient — gone on
      *  the next input or after ~2s (the screen fades it via [clearHintArrow]). */
     var hintArrow by mutableStateOf<HintArrow?>(null)
+
+    /** Hint telemetry (user, 2026-11-02): one event per accepted press — the trace head
+     *  when the user asked and the cell the hint placed. In-memory this session;
+     *  persistence is a future call. Cleared on replay (fresh session, fresh log). */
+    val hintHistory = mutableStateListOf<HintEvent>()
+
+    private var lastHintAtMs: Long? = null
         private set
     var rejection by mutableStateOf<ZipRendererModel.RejectedMove?>(null)
         private set
-    var recordBadge by mutableStateOf<Boolean?>(null)
+    override var recordBadge by mutableStateOf<Boolean?>(null)
         private set
-    var recordWriteFailed by mutableStateOf(false)
+    override var recordWriteFailed by mutableStateOf(false)
         private set
     var nowMs by mutableStateOf(0L)
         private set
+
+    /** A fresh entry must fetch: no live session, or the live one already finished. */
+    override val needsLoad: Boolean
+        get() = session == null || session?.isComplete == true
 
     private val rules = zipPlugin.rules as ZipRules // the plugin's rules ARE ZipRules
     private var emitter: CompletionRecordEmitter? = null
@@ -127,7 +141,7 @@ class ZipPlayState(
 
     /** Fetch-today → board (A7/A8): Fresh plays; Cached plays with a degrade banner;
      *  Unavailable is the error state; an untrustable payload is never playable (A16). */
-    fun load() {
+    override fun load() {
         screen = ZipScreen.Loading
         session = null
         hintCell = null
@@ -149,7 +163,7 @@ class ZipPlayState(
     /** Rotation/process-death restore: the session codec carries the puzzle BY VALUE, so
      *  a corrupt save falls back to a normal load; a restored COMPLETED session shows the
      *  win without re-emitting (emission happens on the transition only). */
-    fun adoptRestored(bytes: ByteArray) {
+    override fun adoptRestored(bytes: ByteArray) {
         when (val restored = ZipSessionCodec.deserialize(bytes)) {
             is DecodeResult.Ok -> {
                 val s = restored.value
@@ -207,6 +221,8 @@ class ZipPlayState(
         val current = session ?: return
         val ready = screen as? ZipScreen.Ready ?: return
         if (current.isComplete) return
+        if (hintCooldownActive()) return
+        val fromIdx = current.path.lastOrNull()?.idx
         var next = current
         var resolved = rules.hint(ZipState(ready.puzzle, next.path))
         if (resolved is ZipHint.Backtrack) {
@@ -217,10 +233,12 @@ class ZipPlayState(
             resolved = rules.hint(ZipState(ready.puzzle, next.path))
         }
         val step = resolved as? ZipHint.Step
+        var placedIdx: Int? = null
         if (step != null) {
             val move = ZipMove.Extend(step.cell)
             if (rules.validateMove(move, ZipState(ready.puzzle, next.path)) is ZipValidation.Valid) {
                 next = next.withMove(move, now())
+                placedIdx = step.cell.idx
                 next.path.getOrNull(next.path.size - 2)?.let { tail ->
                     hintArrow = HintArrow(headIdx = step.cell.idx, tailIdx = tail.idx)
                 }
@@ -229,6 +247,16 @@ class ZipPlayState(
         next = next.withHintApplied()
         commit(next)
         hintCell = (resolved as? ZipHint.Step)?.cell?.idx
+        val atMs = now().toEpochMilli()
+        lastHintAtMs = atMs
+        hintHistory.add(HintEvent(atMs = atMs, fromIdx = fromIdx, placedIdx = placedIdx))
+    }
+
+    /** User-set hint cooldown (2026-11-02): presses inside the window are no-ops. Runs
+     *  on the injected clock — not the tick-cached nowMs — so it holds without ticks. */
+    fun hintCooldownActive(): Boolean {
+        val last = lastHintAtMs ?: return false
+        return now().toEpochMilli() - last < HINT_COOLDOWN_MS
     }
 
     /** The screen calls this after the hold/fade window (reduced motion: immediately). */
@@ -240,24 +268,28 @@ class ZipPlayState(
 
     //region timer (F2 §2: active foreground play only)
 
-    fun tick() {
+    override fun tick() {
         nowMs = now().toEpochMilli()
     }
 
-    fun onBackground() {
+    override fun onBackground() {
         val current = session ?: return
         updateSession(current.onBackground(now()))
     }
 
-    fun onForeground() {
+    override fun onForeground() {
         val current = session ?: return
         updateSession(current.onForeground(now()))
     }
 
+    /** The running window's identity — the loop restarts each time it (re)opens. */
+    override val clockWindow: Any?
+        get() = session?.runningSince
+
     /** What TimerBar draws right now (banked + running window). Never negative:
      *  the first frame after the initial Extend observes runningSince before the
      *  tick loop's first tick() advances nowMs. */
-    fun displayedElapsedMs(): Long =
+    override fun displayedElapsedMs(): Long =
         session?.displayedElapsedMs(Instant.ofEpochMilli(nowMs))?.coerceAtLeast(0L) ?: 0L
 
     //endregion
@@ -267,7 +299,7 @@ class ZipPlayState(
     /** Win overlay's "Play again": a fresh session, a new emitter lifetime — replays
      *  emit again (A4), and the badge resets until the new write lands. The A4 baseline
      *  is re-read: whether a record existed BEFORE this new play. */
-    fun replay() {
+    override fun replay() {
         val ready = screen as? ZipScreen.Ready ?: return
         emitter = null
         recordBadge = null
@@ -276,12 +308,14 @@ class ZipPlayState(
         hintArrow = null
         rejection = null
         baselineHadRecord = null
+        lastHintAtMs = null
+        hintHistory.clear()
         refreshBaseline(ready.ref)
         commit(ZipSession(ref = ready.ref, puzzle = ready.puzzle))
     }
 
     /** Retry after a failed record write: a new emitter (the old one deduped this ref). */
-    fun retryRecordWrite() {
+    override fun retryRecordWrite() {
         val completed = session?.takeIf { it.isComplete } ?: return
         emitRecord(record = zipPlugin.score.completion(completed) ?: return)
     }
@@ -355,6 +389,9 @@ class ZipPlayState(
     private companion object {
         const val REJECTION_CLEAR_MS = 600L
 
+        /** User-set hint cooldown (2026-11-02). */
+        const val HINT_COOLDOWN_MS = 5_000L
+
         /** Zip rolls at midnight PT (research 01; ZipDefinition pins the zone). */
         fun zipCadenceZone() = (ZipDefinition.cadence as Cadence.Daily).zone
     }
@@ -362,6 +399,10 @@ class ZipPlayState(
 
 /** The hint arrow's geometry (ticket 28): the placed segment tail → new head, as row-major indices. */
 data class HintArrow(val headIdx: Int, val tailIdx: Int)
+
+/** Internal hint telemetry (2026-11-02): trace head at request time and the placed
+ *  cell (null = the press trimmed/placed nothing). Wall-clock ms of the state's nowMs. */
+data class HintEvent(val atMs: Long, val fromIdx: Int?, val placedIdx: Int?)
 
 /** Copy for the first-class degrade states. */
 fun unavailableMessage(error: FetchError): String = when (error) {
