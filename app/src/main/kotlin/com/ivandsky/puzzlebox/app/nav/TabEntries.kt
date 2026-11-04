@@ -1,0 +1,70 @@
+package com.ivandsky.puzzlebox.app.nav
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavEntryDecorator
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.rememberDecoratedNavEntries
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import com.ivandsky.puzzlebox.navigation.NavigationState
+
+/**
+ * Metadata key naming the tab whose stack an entry belongs to; its value is that tab's root
+ * [NavKey]. Published contract: shell motion reads it to tell a tab switch from a push.
+ */
+internal const val OWNER_TAB = "puzzlebox.ownerTab"
+
+/**
+ * The app's only Navigation3 adapter: decorates EVERY tab's stack (saveable state, a
+ * per-entry ViewModel store, then the opaque scene canvas), so an off-screen tab keeps its
+ * screens' state and a popped entry releases its own. Content keys are namespaced by tab
+ * (the same key on two stacks is two entries) and each entry carries [OWNER_TAB].
+ *
+ * Returns the entries NavDisplay renders: [NavigationState.visibleKeys]' entries, in order.
+ */
+@Composable
+internal fun rememberTabEntries(
+    state: NavigationState,
+    entryProvider: (NavKey) -> NavEntry<NavKey>,
+): List<NavEntry<NavKey>> {
+    val saveableState = rememberSaveableStateHolderNavEntryDecorator<NavKey>()
+    val viewModelStore = rememberViewModelStoreNavEntryDecorator<NavKey>()
+    val sceneCanvas = remember { NavEntryDecorator<NavKey> { entry -> SceneCanvas { entry.Content() } } }
+    val decorators = remember(saveableState, viewModelStore, sceneCanvas) {
+        listOf(saveableState, viewModelStore, sceneCanvas)
+    }
+    val decorated = state.tabs.associateWith { tab ->
+        key(tab) {
+            rememberDecoratedNavEntries(
+                backStack = state.stackOf(tab),
+                entryDecorators = decorators,
+                entryProvider = { navKey -> ownedBy(tab, entryProvider(navKey), navKey) },
+            )
+        }
+    }
+    return state.visibleTabs.flatMap { decorated.getValue(it) }
+}
+
+private fun ownedBy(tab: NavKey, entry: NavEntry<NavKey>, navKey: NavKey): NavEntry<NavKey> =
+    NavEntry(navKey, "$tab/${entry.contentKey}", entry.metadata + (OWNER_TAB to tab)) { entry.Content() }
+
+// Opaque canvas behind every nav scene: without it the AnimatedContent layers blend and
+// screens read as ghosts of each other during the transition.
+@Composable
+private fun SceneCanvas(content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+    ) {
+        content()
+    }
+}

@@ -2,17 +2,10 @@ package com.ivandsky.puzzlebox.app.nav
 
 import android.provider.Settings
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.navigation3.runtime.NavEntryDecorator
-import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
@@ -22,8 +15,10 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.ResultKey
 
 /**
- * Hosts [NavDisplay] over [navigator]'s back stack with the shell decorators (saveable
- * state outermost, then the opaque scene canvas) and the NavTransitions.kt specs.
+ * Hosts [NavDisplay] over [navigator]'s visible per-tab entries (decorated by
+ * [rememberTabEntries]) with the NavTransitions.kt specs. System back is [Navigator.pop]:
+ * it pops the current tab, returns a Play/Profile root to Home, and at the Home root
+ * returns false so the back press falls through and the app exits.
  */
 @Composable
 internal fun PuzzleBoxNavShell(
@@ -35,15 +30,21 @@ internal fun PuzzleBoxNavShell(
     onSetThemeMode: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Every scene root paints an opaque canvas (SceneCanvas) — applied once here as an
-    // entry decorator so feature entries stay shell-agnostic. The saveable-state holder
-    // stays outermost (NavDisplay's default), the same tree each entry had wrapping itself.
-    val sceneCanvas = remember { NavEntryDecorator<NavKey> { entry -> SceneCanvas { entry.Content() } } }
     val reduceMotion = rememberReduceMotion()
+    val entries = rememberTabEntries(
+        state = navigator.state,
+        entryProvider = puzzleBoxEntryProvider(
+            navigator = navigator,
+            homeLayout = homeLayout,
+            playLayout = playLayout,
+            historyLayout = historyLayout,
+            themeMode = themeMode,
+            onSetThemeMode = onSetThemeMode,
+        ),
+    )
     NavDisplay(
-        backStack = navigator.backStack,
+        entries = entries,
         modifier = modifier,
-        entryDecorators = listOf(rememberSaveableStateHolderNavEntryDecorator(), sceneCanvas),
         // Fade-through: the outgoing screen fades out in 90ms BEFORE the incoming
         // one starts, so the two contents never superimpose mid-flight (Nav3's
         // simultaneous crossfade showed both screens' text over each other).
@@ -63,14 +64,7 @@ internal fun PuzzleBoxNavShell(
         popTransitionSpec = {
             screenEnterTransform() togetherWith screenExitTransform()
         },
-        entryProvider = puzzleBoxEntryProvider(
-            navigator = navigator,
-            homeLayout = homeLayout,
-            playLayout = playLayout,
-            historyLayout = historyLayout,
-            themeMode = themeMode,
-            onSetThemeMode = onSetThemeMode,
-        ),
+        onBack = { navigator.pop() },
     )
 }
 
@@ -85,18 +79,5 @@ private fun rememberReduceMotion(): Boolean {
             Settings.Global.ANIMATOR_DURATION_SCALE,
             1f,
         ) == 0f
-    }
-}
-
-// Opaque canvas behind every nav scene: without it the AnimatedContent layers blend and
-// screens read as ghosts of each other during the transition.
-@Composable
-private fun SceneCanvas(content: @Composable () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-    ) {
-        content()
     }
 }

@@ -10,26 +10,29 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.navigation3.runtime.rememberNavBackStack
 import com.ivandsky.puzzlebox.app.nav.PuzzleBoxNavShell
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
-import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavKeys
+import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.screens.CatalogUnavailableScreen
 import com.ivandsky.puzzlebox.gameui.playLayoutFor
 import com.ivandsky.puzzlebox.history.historyLayoutFor
 import com.ivandsky.puzzlebox.home.HomeLayout
-import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.home.homeLayoutFor
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.Navigator
 
+/**
+ * The app shell: tab bar (or rail) over [PuzzleBoxNavShell]. The highlight is the
+ * [navigator]'s selected tab, so it always names the tab that owns the screen on top.
+ */
 @Composable
 fun PuzzleBoxApp(
     windowWidthSizeClass: WindowWidthSizeClass,
     themeMode: ThemeMode,
     onSetThemeMode: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,
+    navigator: Navigator = rememberNavigator(),
 ) {
     // Two-pane needs width AND height: a large tablet in portrait still measures
     // Expanded by width class, so the orientation comes from the current window
@@ -54,16 +57,14 @@ fun PuzzleBoxApp(
         isLandscape = isLandscape,
     )
     val expanded = layout == HomeLayout.TwoPane
-    val backStack = rememberNavBackStack(puzzleBoxNavKeys, HomeKey)
-    val navigator = remember(backStack) { Navigator(backStack) }
-    val selected = navigator.currentKey ?: HomeKey
+    val selected = navigator.state.tab
 
     Scaffold(
         modifier = modifier,
         bottomBar = {
             // Two-pane moves navigation to a rail; the bottom bar is every other shape.
             if (!expanded) {
-                TopLevelNavBar(selected = selected, onSelect = navigator::navigateToTopLevel)
+                TopLevelNavBar(selected = selected, onSelect = navigator::selectTab)
             }
         },
     ) { innerPadding ->
@@ -73,7 +74,7 @@ fun PuzzleBoxApp(
                 .padding(innerPadding),
         ) {
             if (expanded) {
-                TopLevelNavRail(selected = selected, onSelect = navigator::navigateToTopLevel)
+                TopLevelNavRail(selected = selected, onSelect = navigator::selectTab)
             }
             PuzzleBoxNavShell(
                 navigator = navigator,

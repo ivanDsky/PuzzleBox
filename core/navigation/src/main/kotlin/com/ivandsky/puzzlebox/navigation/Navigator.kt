@@ -1,43 +1,53 @@
 package com.ivandsky.puzzlebox.navigation
 
-import androidx.navigation3.runtime.NavBackStack
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.navigation3.runtime.NavKey
 
 /**
- * The app's one navigation surface over its single [NavBackStack] (NiA's per-tab stacks are
- * deliberately not adopted: tab back behaviour is product, and it stays one stack).
+ * The app's one navigation surface: observable [state] over the pure [NavigationState]
+ * reducer, one back stack per tab.
  *
- * Feature entries receive a Navigator, never the raw stack, for the shared moves; a feature
- * with its own stack contract (play's result unwind) builds it as an extension over
- * [backStack] in its impl module.
+ * Feature entries receive a Navigator, never the state's stacks, and each verb applies the
+ * reducer verb of the same name. Every rule (reselect pops to the root, back at a non-start
+ * root selects the start tab, roots can't be pushed) lives in [NavigationState].
  */
-class Navigator(val backStack: NavBackStack<NavKey>) {
+@Stable
+class Navigator(initial: NavigationState) {
 
-    /** The destination on top of the stack — the one on screen. */
-    val currentKey: NavKey?
-        get() = backStack.lastOrNull()
+    /** The current tab and stacks; snapshot state, so readers recompose on every move. */
+    var state: NavigationState by mutableStateOf(initial)
+        private set
 
-    /** Push [key] unconditionally (deep pages, replays). */
-    fun navigate(key: NavKey) {
-        backStack.add(key)
+    /** Selects [tab]; reselecting the current tab pops it to its root. */
+    fun selectTab(tab: NavKey) {
+        state = state.selectTab(tab)
+    }
+
+    /** Pushes [key] on the current tab's stack. */
+    fun push(key: NavKey) {
+        state = state.push(key)
+    }
+
+    /** [push], but a double tap on a destination already on top is ignored. */
+    fun pushOnce(key: NavKey) {
+        state = state.pushOnce(key)
     }
 
     /**
-     * Double-tap guard for content affordances: pushing a destination that is already the
-     * stack top would need two backs to unwind — add only when it isn't (Rev17).
+     * Back: pops the current stack, or at a non-start root selects the start tab. Returns
+     * false, leaving [state] unchanged, at the start root, where the app exits.
      */
-    fun navigateOnce(key: NavKey) {
-        if (backStack.lastOrNull() != key) backStack.add(key)
+    fun pop(): Boolean {
+        val next = state.pop() ?: return false
+        state = next
+        return true
     }
 
-    /** Tab selection resets to that tab's root — no cross-tab back stacking. */
-    fun navigateToTopLevel(key: NavKey) {
-        backStack.clear()
-        backStack.add(key)
-    }
-
-    /** Pop the top entry; a no-op on an empty stack. */
-    fun goBack() {
-        backStack.removeLastOrNull()
+    /** Replaces the current stack's top key; a no-op at a root. */
+    fun replaceTop(key: NavKey) {
+        state = state.replaceTop(key)
     }
 }

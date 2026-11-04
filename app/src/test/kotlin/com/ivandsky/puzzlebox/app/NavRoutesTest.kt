@@ -1,11 +1,12 @@
 package com.ivandsky.puzzlebox.app
 
 import android.app.Application
-import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.nav.CatalogKey
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxEntryProvider
+import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
+import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.api.HistoryKey
@@ -18,6 +19,7 @@ import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import java.util.Base64
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -29,9 +31,9 @@ import org.robolectric.annotation.Config
  * Ticket 17 nav-route regression: [puzzleBoxEntryProvider] builds the route table as a
  * plain key→entry lookup, so these tests resolve every key the wired flow pushes and
  * fail on a missing entry — the exact gap that would strand a tap on an unregistered
- * destination (Home→Play, Home→History, history→Replay, Home account→Profile,
- * Profile→Catalog) with no composition or Koin graph needed. The result-route stack
- * contract (ticket 23) lives with its owner, play's PlayBackStackTest.
+ * destination (Home→History, history→Replay, Play→Result, Profile→Catalog, and every
+ * tab root) with no composition or Koin graph needed. Stack behaviour (per-tab stacks,
+ * back, reselect) is pinned by NavigationStateTest and PerTabShellTest.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = Application::class)
@@ -42,7 +44,7 @@ class NavRoutesTest {
 
     private fun provider(): (NavKey) -> NavEntry<NavKey> =
         puzzleBoxEntryProvider(
-            navigator = Navigator(NavBackStack(HomeKey)),
+            navigator = Navigator(puzzleBoxNavigationState()),
             homeLayout = HomeLayout.SinglePane,
             playLayout = PlayLayout.SinglePane,
             historyLayout = HistoryLayout.SinglePane,
@@ -65,6 +67,16 @@ class NavRoutesTest {
                 "expected entry for $key, got contentKey=${entry.contentKey}",
                 entry.contentKey.toString().contains(key.toString()),
             )
+        }
+    }
+
+    @Test
+    fun `every tab root resolves to a registered entry`() {
+        val roots = puzzleBoxNavigationState().tabs
+
+        assertEquals(topLevelDestinations.map { it.key }, roots)
+        roots.forEach { root ->
+            assertTrue(provider().invoke(root).contentKey.toString().contains(root.toString()))
         }
     }
 

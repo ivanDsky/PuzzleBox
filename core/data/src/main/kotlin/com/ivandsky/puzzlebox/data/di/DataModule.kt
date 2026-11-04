@@ -5,6 +5,8 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstDailyRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineUserPreferencesRepository
 import com.ivandsky.puzzlebox.data.repository.RoomCompletionRepository
+import com.ivandsky.puzzlebox.data.repository.RoomSavedPlayRepository
+import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.database.di.databaseModule
 import com.ivandsky.puzzlebox.datastore.di.datastoreModule
@@ -32,4 +34,6 @@ val dataModule = module {
     // feature modules consume the interface only (pinned ticket-15 contract).
     single<CompletionRepository> { RoomCompletionRepository(get(), get(), get()) }
     single<UserPreferencesRepository> { OfflineUserPreferencesRepository(get()) }
+    // Saved in-progress plays (A10); the slot cap is private to the Room adapter.
+    single<SavedPlayRepository> { RoomSavedPlayRepository(get()) }
 }
