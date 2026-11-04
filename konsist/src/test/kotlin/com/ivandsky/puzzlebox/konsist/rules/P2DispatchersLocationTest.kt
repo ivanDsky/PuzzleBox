@@ -25,6 +25,7 @@ class P2DispatchersLocationTest {
                 Violation("$dir/ImportBad.kt", null, ""),
                 Violation("$dir/MemberImportBad.kt", null, ""),
                 Violation("$dir/InlineBad.kt", null, ""),
+                Violation("$dir/TemplateBad.kt", null, ""),
                 Violation("$dir/common/dispatcher/ElsewhereBad.kt", null, ""),
             ),
         )

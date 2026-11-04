@@ -188,10 +188,10 @@ Every production file's package is under its module's package root.
 
 - **Scope:** production, except `:core:testing` and files in `:core:common` whose package ends in
   `.common.dispatcher`.
-- **Detection:** the text `kotlinx.coroutines.Dispatchers` or `Dispatchers.` after comments are
-  removed. One pattern covers the import, the member import and the inline use.
-- **Accepted misses:** a string literal that contains `kotlinx.coroutines.Dispatchers` matches
-  (false positive). Only comments are stripped, not strings.
+- **Detection:** the text `kotlinx.coroutines.Dispatchers` or `Dispatchers.` in the file's code
+  (comments and string contents removed; `${...}` templates are code). One pattern covers the
+  import, the member import and the inline use.
+- **Accepted misses:** `Dispatchers` reached through a typealias or an import alias is not seen.
 - **How to fix:** inject a `DispatcherProvider`.
 
 ## P3

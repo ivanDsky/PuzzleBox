@@ -15,6 +15,7 @@ object P2DispatchersLocation : Rule {
     private const val PROVIDER_PACKAGE_SUFFIX = ".common.dispatcher"
 
     // Import, member-import and inline forms all contain one of these two tokens, so one pattern covers them.
+    // Matched in codeText: a mention inside a string is not a reference, a `${…}` template is.
     private val reference = Regex("""\bkotlinx\.coroutines\.Dispatchers\b|\bDispatchers\.""")
 
     override fun check(tree: SourceTree): RuleResult {
@@ -23,7 +24,7 @@ object P2DispatchersLocation : Rule {
             it.module.path == TESTING_MODULE ||
                 (it.module.path == COMMON_MODULE && it.packageName.endsWith(PROVIDER_PACKAGE_SUFFIX))
         }
-        val violations = files.filter { reference.containsMatchIn(it.strippedText) }
+        val violations = files.filter { reference.containsMatchIn(it.codeText) }
             .map { Violation(it.path, null, HINT) }
         return RuleResult(files.size, violations)
     }
