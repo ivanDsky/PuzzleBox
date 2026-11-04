@@ -24,7 +24,7 @@ dependencies {
     // Tango daily fetch (ticket 03): wire -> TangoWireParser, storage in TangoCodec bytes.
     implementation(projects.games.tango)
 
-    // DailyPuzzle/ThemeMode appear in the repository interfaces' public signatures.
+    // ThemeMode/GameId appear in the repositories' public signatures.
     api(projects.core.model)
 
     implementation(libs.kotlinx.serialization.json)

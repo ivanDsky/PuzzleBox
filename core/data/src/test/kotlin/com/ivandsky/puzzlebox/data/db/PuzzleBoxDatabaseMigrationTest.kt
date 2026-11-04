@@ -156,4 +156,56 @@ class PuzzleBoxDatabaseMigrationTest {
         }
         db.close()
     }
+
+    @Test
+    fun `migrate 4 to 5 drops daily_puzzles and keeps dailies and completions`() {
+        val dbName = "puzzlebox-migration-4-5-test.db"
+        val v4 = helper.createDatabase(dbName, 4)
+        v4.execSQL(
+            "INSERT INTO daily_puzzles (gameId, day, payload, fetchedAtMs) " +
+                "VALUES ('zip', '2026-10-30', x'00ff10', 1000)",
+        )
+        v4.execSQL(
+            "INSERT INTO puzzle_dailies (gameId, day, puzzleNumber, variant, formatVersion, payload, fetchedAtMs) " +
+                "VALUES ('zip', '2026-10-31', 592, 'zip/n6', 1, x'00ff', 5000)",
+        )
+        v4.execSQL(
+            "INSERT INTO completions (puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord) " +
+                "VALUES ('zip/2026-10-31/592', 95000, 2, 1, '{\"v\":1}', 7000, 7000, 1)",
+        )
+        v4.close()
+
+        val db = helper.runMigrationsAndValidate(dbName, 5, true, Migrations.MIGRATION_4_5)
+
+        // The legacy exemplar table is gone.
+        db.query("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'daily_puzzles'").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.getInt(0))
+        }
+        // Daily envelopes and completions survive untouched.
+        db.query("SELECT gameId, day, puzzleNumber FROM puzzle_dailies").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("zip", cursor.getString(0))
+            assertEquals("2026-10-31", cursor.getString(1))
+            assertEquals(592, cursor.getInt(2))
+        }
+        db.query("SELECT puzzleRef, timeMs, isRecord FROM completions").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("zip/2026-10-31/592", cursor.getString(0))
+            assertEquals(95000L, cursor.getLong(1))
+            assertEquals(1, cursor.getInt(2))
+        }
+        db.close()
+    }
+
+    @Test
+    fun `fresh v5 database is created by the normal builder path`() {
+        val dbName = "puzzlebox-fresh-v5.db"
+        val db = helper.createDatabase(dbName, 5)
+        db.query("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'daily_puzzles'").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.getInt(0))
+        }
+        db.close()
+    }
 }

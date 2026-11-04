@@ -10,7 +10,7 @@ import okhttp3.Response
  * Anonymous LinkedIn session mechanics (research 01 §2): a GET of the games page sets
  * `JSESSIONID = ajax:<digits>`, and the game POST must echo that value as `csrf-token`.
  * The jar is in-memory on purpose — anonymous means the session is per-process and never
- * persisted (A7); [AuthHeaderSource] stays the seam for a future signed-in phase.
+ * persisted (A7).
  */
 class LinkedInSessionCookieJar : CookieJar {
 

@@ -6,7 +6,6 @@ import androidx.room.Room
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.db.Migrations
 import com.ivandsky.puzzlebox.data.db.PuzzleBoxDatabase
-import com.ivandsky.puzzlebox.data.network.AuthHeaderSource
 import com.ivandsky.puzzlebox.data.network.LinkedInSessionCookieJar
 import com.ivandsky.puzzlebox.data.network.LinkedInQueensApi
 import com.ivandsky.puzzlebox.data.network.LinkedInQueensClient
@@ -15,17 +14,13 @@ import com.ivandsky.puzzlebox.data.network.LinkedInTangoClient
 import com.ivandsky.puzzlebox.data.network.LinkedInZipApi
 import com.ivandsky.puzzlebox.data.network.LinkedInZipClient
 import com.ivandsky.puzzlebox.data.network.LINKEDIN_BASE_URL
-import com.ivandsky.puzzlebox.data.network.PuzzleFeedApi
 import com.ivandsky.puzzlebox.data.network.linkedInClient
-import com.ivandsky.puzzlebox.data.network.okHttpClient
 import com.ivandsky.puzzlebox.data.network.retrofit
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.repository.DailyPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.DataStoreUserPreferencesRepository
 import com.ivandsky.puzzlebox.data.repository.LinkedInTangoDailySource
 import com.ivandsky.puzzlebox.data.repository.TangoSeedBackedSource
 import com.ivandsky.puzzlebox.data.repository.LinkedInZipDailySource
-import com.ivandsky.puzzlebox.data.repository.OfflineFirstDailyPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstTangoDailyRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstZipDailyRepository
 import com.ivandsky.puzzlebox.data.repository.RoomCompletionRepository
@@ -46,17 +41,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
 import org.koin.core.qualifier.qualifier
 import org.koin.dsl.module
-import retrofit2.Retrofit
 
 val dataModule = module {
     single { Json { ignoreUnknownKeys = true } }
-    single<AuthHeaderSource> { AuthHeaderSource.NONE }
-    single { okHttpClient(authSource = get()) }
-    single { retrofit(baseUrl = LINKEDIN_BASE_URL, client = get(), json = get()) }
-    single { get<Retrofit>().create(PuzzleFeedApi::class.java) }
-    // Anonymous LinkedIn session (A7): per-process cookie jar + csrf echo; the
-    // AuthHeaderSource seam stays unused until a signed-in phase needs it. The client
-    // stays private to the LinkedIn Retrofit (the exemplar OkHttpClient binding is untouched).
+    // Anonymous LinkedIn session (A7): per-process cookie jar + csrf echo; each LinkedIn
+    // Retrofit builds its own client from it.
     single { LinkedInSessionCookieJar() }
     single {
         retrofit(baseUrl = LINKEDIN_BASE_URL, client = linkedInClient(jar = get()), json = get())
@@ -101,13 +90,11 @@ val dataModule = module {
             .addMigrations(*Migrations.ALL)
             .build()
     }
-    single { get<PuzzleBoxDatabase>().dailyPuzzleDao() }
     single { get<PuzzleBoxDatabase>().puzzleDailyDao() }
     single { get<PuzzleBoxDatabase>().completionDao() }
     // Records/replays store (ADR-0004): the A4 first-win record is enforced here, so
     // feature modules consume the interface only (pinned ticket-15 contract).
     single<CompletionRepository> { RoomCompletionRepository(get(), get()) }
-    single<DailyPuzzleRepository> { OfflineFirstDailyPuzzleRepository(get(), get(), get(), get()) }
     // The DataStore owns its file for the whole process, so its scope lives as long
     // as the singleton: I/O dispatcher from the provider, SupervisorJob so one failed
     // write never cancels the scope.

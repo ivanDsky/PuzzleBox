@@ -8,8 +8,6 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.db.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
-import com.ivandsky.puzzlebox.data.network.PuzzleFeedApi
-import com.ivandsky.puzzlebox.data.repository.DailyPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.QueensDailyRepository
 import com.ivandsky.puzzlebox.data.repository.TangoDailyRepository
 import com.ivandsky.puzzlebox.data.repository.TangoDailySource
@@ -60,9 +58,7 @@ class DiGraphTest : KoinTest {
         try {
             val koin = koinApp.koin
             assertNotNull(koin.get<DispatcherProvider>())
-            assertNotNull(koin.get<PuzzleFeedApi>())
             assertNotNull(koin.get<PuzzleBoxDatabase>())
-            assertNotNull(koin.get<DailyPuzzleRepository>())
             // Ticket 03: the Tango daily fetch bindings resolve (qualified archive seam).
             assertNotNull(koin.get<TangoDailySource>())
             assertNotNull(koin.get<TangoDailyRepository>())

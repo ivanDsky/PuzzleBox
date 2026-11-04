@@ -14,6 +14,6 @@ dependencies {
     // HomeRoute consumes the aggregated plugin list (GamePlugin) to build the featured
     // game's identity, so the edge is a compile dependency, not test-only.
     implementation(projects.core.game)
-    // ThemeMode/GameId/DailyPuzzle appear in Home's public composables.
+    // ThemeMode/GameId appear in Home's public composables.
     api(projects.core.model)
 }
