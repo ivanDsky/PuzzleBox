@@ -41,6 +41,15 @@ class ComponentInteractionTest {
     }
 
     @Test
+    fun `text button commits on click`() {
+        var clicks = 0
+        composeRule.setContent { PuzzleBoxTheme { AppTextButton("See all", onClick = { clicks++ }) } }
+        composeRule.onNodeWithText("See all").performClick()
+        composeRule.waitForIdle()
+        assertEquals(1, clicks)
+    }
+
+    @Test
     fun `disabled buttons do not commit`() {
         var clicks = 0
         composeRule.setContent { PuzzleBoxTheme { PrimaryButton("Disabled", onClick = { clicks++ }, enabled = false) } }

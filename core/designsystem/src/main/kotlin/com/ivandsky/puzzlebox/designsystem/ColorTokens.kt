@@ -18,11 +18,18 @@ import androidx.compose.ui.graphics.toArgb
 // character; only the neutral ramp changed.
 
 // The primary hue's TEXT role. #58CC02 is a fill/background green — as text on white it
-// holds only 2.09:1 — so text-bearing components (SecondaryButton) render this darker
+// holds only 2.09:1 — so text-bearing components (SecondaryButton, AppTextButton) render this darker
 // same-family step: 6.03:1 on white, 5.15:1 on the dialog surface. Dark mode's primary
 // already clears AA as text (10.3:1), so it doubles as the dark text role.
 val LightPrimaryText = Color(0xFF377000)
 val DarkPrimaryText = Color(0xFF6BDF17)
+
+// The timer bar's FILL role (spec A8: non-text fills >= 3:1 against their track). The
+// track is `surfaceVariant`; the light fill green #58CC02 held only 1.68:1 on it, so
+// light renders this deeper same-family step (3.86:1). Dark primary already clears
+// 7.8:1 on the dark track and doubles as the dark fill.
+val LightTimerFill = Color(0xFF3A8200)
+val DarkTimerFill = Color(0xFF6BDF17)
 
 
 val LightColorScheme = lightColorScheme(
@@ -51,7 +58,9 @@ val LightColorScheme = lightColorScheme(
     onSurface = Color(0xFF33363D),
     surfaceVariant = Color(0xFFE2E7EE),
     onSurfaceVariant = Color(0xFF454A54),
-    outline = Color(0xFF878D99),
+    // Spec A8: `outline` is the >= 3:1 boundary role (SecondaryButton's border); this
+    // step holds >= 3.2:1 on every light surface up to surfaceContainerHighest.
+    outline = Color(0xFF7A808C),
     outlineVariant = Color(0xFFD9DCE0),
     scrim = Color(0xFF000000),
     inverseSurface = Color(0xFF2F3134),
