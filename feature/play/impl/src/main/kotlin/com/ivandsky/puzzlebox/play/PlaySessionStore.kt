@@ -99,15 +99,17 @@ class PlaySessionStore(
      * The one session-restore path for saves, history replays and kept sessions (all
      * [SessionBlob] envelopes naming their game). A live same-game play adopts in
      * place — and keeps its controller when the envelope is the session it already
-     * holds (rotation); a stale other-game play is kept and released; and after PROCESS
-     * DEATH — the saveable outlived this single while [active] is null — the saved game's
-     * play is restarted here, so a mid-play day is never dropped (fix-round-1 C1). The
-     * play publishes only once adopted. An unparseable or unplayable envelope names
-     * nothing: null, store untouched.
+     * holds (rotation); any OTHER envelope replaces the live session, so that session
+     * is kept first (a same-game history replay over today's play); a stale other-game
+     * play is kept and released; and after PROCESS DEATH — the saveable outlived this
+     * single while [active] is null — the saved game's play is restarted here, so a
+     * mid-play day is never dropped (fix-round-1 C1). The play publishes only once
+     * adopted. An unparseable or unplayable envelope names nothing: null, store untouched.
      */
     fun restore(envelope: SessionBlob.Decoded?, onSessionChanged: (ByteArray) -> Unit): ActivePlay? {
         envelope ?: return null
         val play = open(envelope.game, onSessionChanged) ?: return null
+        if (!play.holds(envelope.session)) keepLive()
         play.adoptRestored(envelope.session)
         _active.value = play
         // The saveable was consumed on the way in: hand the adopted blob back so the

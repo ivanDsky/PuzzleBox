@@ -164,7 +164,7 @@ class ActivePlay internal constructor(
      * record; another puzzle starts a new one.
      */
     internal fun adoptRestored(bytes: ByteArray) {
-        if (held?.contentEquals(bytes) == true) return
+        if (holds(bytes)) return
         val controller = newController()
         val restored = controller.adoptRestored(bytes) ?: return load(controller)
         held = bytes
@@ -173,6 +173,9 @@ class ActivePlay internal constructor(
         _board.value = Board(controller, PlayBoardStatus.Ready(banner = null))
         if (newPuzzle && !controller.isComplete) refreshBaseline(restored.ref)
     }
+
+    /** True when the live controller already holds exactly [bytes] (rotation's restore). */
+    internal fun holds(bytes: ByteArray): Boolean = held?.contentEquals(bytes) == true
 
     /** Result's "Play again": a fresh session of the SAME puzzle (A9) — the verdict resets
      *  until the new write lands and the A10 baseline is re-read. The banner stays. */

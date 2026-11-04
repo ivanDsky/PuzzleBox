@@ -21,8 +21,11 @@ the game left behind. The picker could not say which games were started, solved 
    then releases the play (scope cancelled, sink dropped). Opening another game leaves the
    live one first, so switching games keeps both, one per game.
 3. **Amends ADR-0007 §4: persistence.**
-   - Writes happen on `leave()`, on `background()` (the play route's `ON_STOP`; process
-     death always follows `ON_STOP`) and when another game's play replaces the live one.
+   - Writes happen on `leave()`, on `background()` (the play route's `ON_STOP`, plus the
+     route leaving composition — a tab switch never reaches `ON_STOP`; process death
+     always follows `ON_STOP`), when another game's play replaces the live one, and when
+     a restore replaces the live session with one it does not already hold (a same-game
+     history replay over today's play).
      They never happen per move. They run in the store's own keep scope, because leave
      cancels the play's scope.
    - A write first folds the clock through the controller's `PlayClock.onBackground()`.

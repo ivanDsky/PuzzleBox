@@ -218,4 +218,17 @@ class KeptSessionsTest {
 
         assertEquals(today, kept.current.getValue(alpha))
     }
+
+    @Test
+    fun `a same-game history replay over today's live play keeps today's session first`() {
+        val store = store()
+        store.played(alpha, runningMs = 21_000L)
+
+        // Home → History → a past day of the same game while today's play is still live.
+        store.restore(FakeController.envelope(alpha, moves = 4, day = day.minusDays(30), number = 12)) {}
+
+        assertEquals(day, kept.current.getValue(alpha).day)
+        assertEquals(21_000L, kept.current.getValue(alpha).elapsedMs)
+        assertEquals(4, fakes[alpha].latest.moves)
+    }
 }
