@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import com.ivandsky.puzzlebox.gameui.PlayFeedback
 import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
@@ -44,7 +45,7 @@ import java.time.Instant
 class QueensPlayController(
     private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
-) : GamePlayController, PlayClock, PlayHints, PlayUndo {
+) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback {
 
     /** The live interaction holder, null until a session is adopted. */
     var board by mutableStateOf<QueensBoardState?>(null)
@@ -182,6 +183,16 @@ class QueensPlayController(
     /** The §5.5 deduction caption, shown by the shared chrome until the next board action. */
     override val hintCaption: String? get() = board?.hintCaption
 
+    /** A14 always-on conflict line (R-2): live while any rule break stands; derived from
+     *  the observable board session, so the shared caption slot recomposes with it. */
+    override val violation: String?
+        get() = board?.let { b ->
+            RULE_CONFLICT.takeIf { QueensBoardModel.of(b.session, b.hint, b.hintPointed).violations.isNotEmpty() }
+        }
+
+    /** Queens refuses no input: every tap is a legal mark/queen cycle step. */
+    override val rejection: String? get() = null
+
     override fun requestHint() {
         board?.requestHint()
     }
@@ -198,4 +209,8 @@ class QueensPlayController(
     }
 
     //endregion
+
+    private companion object {
+        const val RULE_CONFLICT = "Rule conflict — queens can't touch or share a row, column, or region"
+    }
 }
