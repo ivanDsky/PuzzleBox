@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.ivandsky.puzzlebox.gameui.ResultScreen
 import org.koin.compose.koinInject
 
 /**
@@ -11,7 +12,7 @@ import org.koin.compose.koinInject
  * here, it completes async as today (F2 §7).
  *
  * "Play again" resets the session to a fresh play of the SAME puzzle via
- * [ZipPlayState.replay] before handing navigation back to the app callback, which pops
+ * [ActivePlay.replay] before handing navigation back to the app callback, which pops
  * the result and pushes a fresh play entry over the flow's live state.
  */
 @Composable
@@ -36,5 +37,6 @@ fun ResultRoute(
         isRecord = state?.recordBadge,
         writeFailed = state?.recordWriteFailed == true,
         onRetryWrite = { state?.retryRecordWrite() },
+        label = state?.resultLabel,
     )
 }

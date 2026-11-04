@@ -1,11 +1,13 @@
 package com.ivandsky.puzzlebox.games.tango
 
+import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
 import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -46,9 +48,121 @@ class TangoSessionCodecTest {
     fun `a newer session version is dropped as unsupported`() {
         val bytes = TangoSessionCodec.serialize(session).clone().also { it[0] = 9 }
         assertEquals(
-            DecodeError.UnsupportedVersion(found = 9, maxKnown = 1),
+            DecodeError.UnsupportedVersion(found = 9, maxKnown = 2),
             (TangoSessionCodec.deserialize(bytes) as DecodeResult.Err).error,
         )
+    }
+
+    // ---- v2: undo/redo history ----
+
+    private val history = CommandHistory<TangoPlacements, TangoPlace>(
+        done = listOf(
+            TangoPlace(2, TangoCell.MOON, previous = null),
+            TangoPlace(15, TangoCell.SUN, previous = null),
+            TangoPlace(15, null, previous = TangoCell.SUN),
+        ),
+        undone = listOf(
+            TangoPlace(4, TangoCell.SUN, previous = TangoCell.MOON),
+            TangoPlace(9, TangoCell.MOON, previous = null),
+        ),
+    )
+
+    private fun decode(bytes: ByteArray) = TangoSessionCodec.deserialize(bytes)
+
+    @Test
+    fun `history round-trips with undo and redo stacks in order`() {
+        val withHistory = session.copy(history = history)
+
+        val restored = (decode(TangoSessionCodec.serialize(withHistory)) as DecodeResult.Ok).value
+
+        assertEquals(history, restored.history)
+        assertEquals(withHistory.copy(unknownTail = ByteArray(0)), restored)
+    }
+
+    @Test
+    fun `a restored session can keep undoing and redoing`() {
+        val board = mapOf(2 to TangoCell.MOON, 4 to TangoCell.MOON)
+        val live = session.copy(
+            placements = board,
+            history = CommandHistory(
+                done = listOf(TangoPlace(2, TangoCell.MOON, null), TangoPlace(4, TangoCell.MOON, null)),
+            ),
+        ).withUndo()
+
+        val restored = (decode(TangoSessionCodec.serialize(live)) as DecodeResult.Ok).value
+
+        assertEquals(mapOf(2 to TangoCell.MOON), restored.placements)
+        assertEquals(board, restored.withRedo().placements)
+    }
+
+    @Test
+    fun `a v1 blob still decodes with an empty history`() {
+        // v1 = v2 minus the two u16 history counts (no tail here, so they are the last 4 bytes).
+        val v2 = TangoSessionCodec.serialize(session)
+        val v1 = v2.copyOfRange(0, v2.size - 4).also { it[0] = 1 }
+
+        val restored = (decode(v1) as DecodeResult.Ok).value
+
+        assertEquals(session, restored)
+        assertEquals(CommandHistory<TangoPlacements, TangoPlace>(), restored.history)
+    }
+
+    @Test
+    fun `a v1 unknown tail survives and is not mistaken for history`() {
+        val v2 = TangoSessionCodec.serialize(session)
+        val v1 = v2.copyOfRange(0, v2.size - 4).also { it[0] = 1 } + byteArrayOf(7, 8, 9)
+
+        val restored = (decode(v1) as DecodeResult.Ok).value
+
+        assertTrue(restored.unknownTail.contentEquals(byteArrayOf(7, 8, 9)))
+        assertFalse(restored.history.canUndo)
+    }
+
+    @Test
+    fun `unknown tail survives after the history`() {
+        val both = session.copy(history = history, unknownTail = byteArrayOf(4, 5))
+
+        val restored = (decode(TangoSessionCodec.serialize(both)) as DecodeResult.Ok).value
+
+        assertEquals(history, restored.history)
+        assertTrue(restored.unknownTail.contentEquals(byteArrayOf(4, 5)))
+    }
+
+    @Test
+    fun `a history longer than the cap is corrupt`() {
+        val bytes = TangoSessionCodec.serialize(session) // empty history: [.., 0,0 (done), 0,0 (undone)]
+        val count = TangoSessionCodec.MAX_HISTORY + 1
+        val oversized = bytes.copyOf(bytes.size - 4) + byteArrayOf((count shr 8).toByte(), count.toByte()) +
+            ByteArray(count * 3) + byteArrayOf(0, 0)
+
+        assertTrue(decode(oversized) is DecodeResult.Err)
+    }
+
+    @Test
+    fun `serialize keeps only the newest commands past the cap`() {
+        val flips = List(TangoSessionCodec.MAX_HISTORY + 5) { n ->
+            if (n % 2 == 0) TangoPlace(2, TangoCell.MOON, null) else TangoPlace(2, null, TangoCell.MOON)
+        }
+
+        val restored = (decode(TangoSessionCodec.serialize(session.copy(history = CommandHistory(done = flips)))) as DecodeResult.Ok).value
+
+        assertEquals(TangoSessionCodec.MAX_HISTORY, restored.history.done.size)
+        assertEquals(flips.takeLast(TangoSessionCodec.MAX_HISTORY), restored.history.done)
+    }
+
+    @Test
+    fun `corrupt history commands are malformed`() {
+        val base = TangoSessionCodec.serialize(session.copy(history = CommandHistory(done = listOf(TangoPlace(2, TangoCell.MOON, null)))))
+        // Layout tail: [0,1 count][idx,value,previous][0,0 undone count].
+        val cmd = base.size - 5
+
+        fun corrupt(mutate: (ByteArray) -> Unit) =
+            decode(base.clone().also(mutate)) is DecodeResult.Err
+
+        assertTrue("index out of range", corrupt { it[cmd] = 36 })
+        assertTrue("unknown cell byte", corrupt { it[cmd + 1] = 7 })
+        assertTrue("no-op command", corrupt { it[cmd + 2] = it[cmd + 1] })
+        assertTrue("truncated", decode(base.copyOf(base.size - 3)) is DecodeResult.Err)
     }
 
     @Test

@@ -37,6 +37,7 @@ class PlayFlowRestoreTest {
         tangos = FakeTangoDailyRepository(
             todayResult = com.ivandsky.puzzlebox.data.repository.TangoToday.Fresh(TangoPlayFixture.envelope()),
         ),
+        queens = FakeQueensDailyRepository(todayResult = com.ivandsky.puzzlebox.data.repository.QueensToday.Fresh(QueensPlayFixtures.envelope())),
         completions = FakeCompletionRepository(),
         tangoToday = { day },
     )

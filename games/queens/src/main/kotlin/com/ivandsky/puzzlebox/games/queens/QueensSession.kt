@@ -1,8 +1,8 @@
 package com.ivandsky.puzzlebox.games.queens
 
+import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.GameSession
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensVerifier
-import java.time.Duration
 import java.time.Instant
 
 /**
@@ -28,12 +28,6 @@ data class QueensMark(val kind: MarkKind, val source: Cell? = null) {
     }
 }
 
-/** A full board state captured before one user action — the A12 undo unit. */
-data class QueensSnapshot(
-    val queens: List<Cell>,
-    val marks: Map<Cell, QueensMark>,
-)
-
 /**
  * Serializable in-progress play (A10–A12; A11 reversed 2026-11-02: queen MOVE is
  * deleted — the interaction is the strict tap cycle empty → X → queen → empty). Every
@@ -43,25 +37,30 @@ data class QueensSnapshot(
  * only while their source queen stands AND the setting is ON — they are recompute-
  * derived on every state change. MANUAL marks are never cleared by anything but their
  * own cell's cycling — except Clear, which wipes EVERYTHING (queens + AUTO + MANUAL)
- * as ONE undo unit (round-6 ruling 2026-11-02). One undo step reverts one user action
- * TOGETHER WITH its auto-fill side effects, while manual marks made earlier survive —
- * [undo] holds the pre-action [QueensSnapshot] for exactly that.
+ * as ONE undo unit (round-6 ruling 2026-11-02).
+ *
+ * Undo/redo (command pattern, 2026-11-03): the BOARD ([QueensBoard]: queens + MANUAL
+ * marks — the only stored truth) is edited by [QueensCommand]s kept in [history]; AUTO
+ * marks are re-derived after every apply/revert, so one undo step reverts one user
+ * action TOGETHER WITH its auto-fill side effects while earlier manual marks survive.
+ * [autoCross], [hintsUsed], [elapsedMs] and [completedAt] live OUTSIDE the history:
+ * undoing never rewinds a setting, a hint count or the clock.
  *
  * Win detection (queens-02): all [QueensPuzzle.size] × queensPerUnit queens placed and the
  * placement rule-clean per [QueensVerifier.isSolution]; the moment is stamped [completedAt].
  *
- * Result facts (fix round 6, Zip result-route parity): [startedAt] is stamped by the
- * first committed board action and [hintsUsed] counts presented hints; [elapsedMs]
- * freezes the play duration for the result route and the score record.
+ * Result facts: [hintsUsed] counts presented hints; [elapsedMs] is the BANKED play time
+ * (Tango parity) — the play state owns the running window and folds it in on pause/win,
+ * so this is the frozen duration for the result route and the score record.
  */
 data class QueensSession(
     val ref: QueensPuzzleRef?,
     val puzzle: QueensPuzzle,
     val queens: List<Cell> = emptyList(),
     val marks: Map<Cell, QueensMark> = emptyMap(),
-    val undo: List<QueensSnapshot> = emptyList(),
+    val history: CommandHistory<QueensBoard, QueensCommand> = CommandHistory(),
     val completedAt: Instant? = null,
-    val startedAt: Instant? = null,
+    val elapsedMs: Long = 0L,
     val hintsUsed: Int = 0,
     val autoCross: Boolean = true,
 ) : GameSession {
@@ -75,12 +74,17 @@ data class QueensSession(
     /** The required total queen count for this board. */
     val requiredQueens: Int get() = puzzle.size * puzzle.queensPerUnit
 
-    /** Play duration frozen for the result route/score record: first action → win stamp. */
-    fun elapsedMs(): Long? {
-        val start = startedAt ?: return null
-        val end = completedAt ?: return null
-        return Duration.between(start, end).toMillis().coerceAtLeast(0L)
-    }
+    /** The stored-truth board the commands edit: queens plus MANUAL marks (AUTO is derived). */
+    val board: QueensBoard
+        get() = QueensBoard(queens, marks.filterValues { it.kind == MarkKind.MANUAL }.keys.toSet())
+
+    /** Whether play has begun — the clock's restart rule after a restore/foreground. */
+    val hasStarted: Boolean
+        get() = elapsedMs > 0L || hintsUsed > 0 || history.canUndo || history.canRedo ||
+            queens.isNotEmpty() || marks.isNotEmpty()
+
+    val canUndo: Boolean get() = !isComplete && history.canUndo
+    val canRedo: Boolean get() = !isComplete && history.canRedo
 
     /**
      * A10 (round-7 ruling 2026-11-03): place a queen on [cell] (must not already hold a
@@ -92,7 +96,7 @@ data class QueensSession(
      */
     fun withQueenPlaced(cell: Cell, now: Instant): QueensSession {
         if (completedAt != null || cell.idx !in 0 until puzzle.cellCount || cell in occupied) return this
-        return commit(copy(queens = queens + cell), now = now)
+        return commit(QueensCommand.PlaceQueen(cell), now)
     }
 
     /**
@@ -106,42 +110,47 @@ data class QueensSession(
      */
     fun withQueenRemoved(cell: Cell, now: Instant): QueensSession {
         if (completedAt != null || cell !in occupied) return this
-        return commit(copy(queens = queens - cell, marks = marks - cell), now = now)
+        val hadMark = marks[cell]?.kind == MarkKind.MANUAL
+        return commit(QueensCommand.RemoveQueen(cell, index = queens.indexOf(cell), hadMark = hadMark), now)
     }
 
     /** Manual tap-cycle cross on a queen-free cell: set, or clear when already MANUAL-marked. */
     fun withCrossToggled(cell: Cell, now: Instant): QueensSession {
         if (completedAt != null || cell in occupied || cell.idx !in 0 until puzzle.cellCount) return this
-        val marks = if (marks[cell]?.kind == MarkKind.MANUAL) marks - cell else marks + (cell to QueensMark(MarkKind.MANUAL))
-        return commit(copy(marks = marks), now = now)
-    }
-
-    /**
-     * A12: revert exactly one action together with its auto-fill side effects by restoring
-     * the pre-action snapshot; manual marks made before that action are part of earlier
-     * snapshots and survive. No-op when the stack is empty or the game is complete. The
-     * restored marks are RECOMPUTED under the current [autoCross] setting, so an undo
-     * after a setting flip can never resurrect system marks the setting turned off.
-     */
-    fun withUndo(): QueensSession {
-        if (completedAt != null || undo.isEmpty()) return this
-        val last = undo.last()
-        return copy(
-            queens = last.queens,
-            marks = recomputeMarks(last.queens, last.marks),
-            undo = undo.dropLast(1),
-        )
+        return commit(QueensCommand.ToggleCross(cell, wasMarked = marks[cell]?.kind == MarkKind.MANUAL), now)
     }
 
     /**
      * Clear (round-6 ruling 2026-11-02): wipe EVERYTHING — queens, AUTO marks AND
-     * MANUAL marks — as ONE undo unit. The pre-clear snapshot [commit] pushes holds the
-     * full mark map (MANUAL included), so one undo reverts to exactly the pre-clear
-     * board. No-op on a completed session (the win is final; Play again is the way out).
+     * MANUAL marks — as ONE undo unit; the command keeps the wiped queens + manual marks
+     * so one undo restores exactly the pre-clear board. No-op on an already-empty board
+     * (nothing to wipe, nothing to undo) and on a completed session (the win is final;
+     * Play again is the way out).
      */
     fun withCleared(now: Instant): QueensSession {
+        if (completedAt != null || (queens.isEmpty() && marks.isEmpty())) return this
+        val before = board
+        return commit(QueensCommand.Clear(before.queens, before.manual), now)
+    }
+
+    /**
+     * A12: revert exactly one action together with its auto-fill side effects; manual
+     * marks made before that action survive. No-op when the history is empty or the game
+     * is complete. Marks are re-derived under the CURRENT [autoCross] setting, so an undo
+     * after a setting flip can never resurrect system marks the setting turned off.
+     * Hint count, clock and completion are never touched.
+     */
+    fun withUndo(): QueensSession {
         if (completedAt != null) return this
-        return commit(copy(queens = emptyList(), marks = emptyMap()), now = now)
+        val step = history.undo(board) ?: return this
+        return withBoard(step.state).copy(history = step.history)
+    }
+
+    /** Re-apply the most recently undone action; same guards and derivations as [withUndo]. */
+    fun withRedo(): QueensSession {
+        if (completedAt != null) return this
+        val step = history.redo(board) ?: return this
+        return withBoard(step.state).copy(history = step.history)
     }
 
     /**
@@ -153,37 +162,37 @@ data class QueensSession(
      */
     fun withAutoCross(enabled: Boolean): QueensSession {
         if (autoCross == enabled) return this
-        // Recompute UNDER THE NEW setting (the flip's whole point): OFF strips the
-        // system marks, ON re-derives them from the standing queens.
-        val flipped = copy(autoCross = enabled)
-        return flipped.copy(marks = flipped.recomputeMarks(flipped.queens, flipped.marks))
+        // Derive UNDER THE NEW setting (the flip's whole point): OFF strips the system
+        // marks, ON re-derives them from the standing queens.
+        return copy(autoCross = enabled).withBoard(board)
     }
 
     /**
      * One presented hint counts once (fix round 6 result fact). A hint changes no cell,
-     * so it is not an undo unit and does not start the play clock.
+     * so it is not an undo unit.
      */
     fun withHintUsed(): QueensSession {
         if (completedAt != null) return this
         return copy(hintsUsed = hintsUsed + 1)
     }
 
-    /** Shared tail: recompute AUTO marks from the standing queens, snapshot, stamp a win. */
-    private fun commit(next: QueensSession, now: Instant): QueensSession {
+    /** Shared tail: apply [command], record it, re-derive AUTO marks, stamp a win. */
+    private fun commit(command: QueensCommand, now: Instant): QueensSession {
         // Stamps are truncated to epochMilli to MATCH the codec's persistence precision
         // (writeI64 toEpochMilli): an in-memory session must equal its own save/restore
         // round trip (the rotation-restore regression).
         val stamp = Instant.ofEpochMilli(now.toEpochMilli())
-        // The play clock starts at the FIRST committed board action (fix round 6).
-        val stamped = if (next.startedAt == null) next.copy(startedAt = stamp) else next
-        val recomputed = stamped.copy(marks = recomputeMarks(stamped.queens, stamped.marks))
-        val pushed = recomputed.copy(undo = undo + QueensSnapshot(queens, marks))
-        return if (QueensVerifier.isSolution(puzzle, pushed.queens.toSet())) {
-            pushed.copy(completedAt = stamp)
+        val next = withBoard(command.apply(board)).copy(history = history.record(command))
+        return if (QueensVerifier.isSolution(puzzle, next.queens.toSet())) {
+            next.copy(completedAt = stamp)
         } else {
-            pushed
+            next
         }
     }
+
+    /** This session over [board], with the derived AUTO marks recomputed. */
+    private fun withBoard(board: QueensBoard): QueensSession =
+        copy(queens = board.queens, marks = derivedMarks(board))
 
     /**
      * A10, both directions (round-7 ruling 2026-11-03): AUTO marks are DERIVED —
@@ -194,11 +203,11 @@ data class QueensSession(
      * queens, so a mark exists precisely while any source queen stands and the setting
      * is ON, and reappears the moment both do.
      */
-    private fun recomputeMarks(queens: List<Cell>, marks: Map<Cell, QueensMark>): Map<Cell, QueensMark> {
-        var out = marks.filterValues { it.kind == MarkKind.MANUAL }
+    private fun derivedMarks(board: QueensBoard): Map<Cell, QueensMark> {
+        var out: Map<Cell, QueensMark> = board.manual.associateWith { QueensMark(MarkKind.MANUAL) }
         if (!autoCross) return out
-        val occupied = queens.toSet()
-        for (queen in queens) out = autoFill(out, source = queen, occupied = occupied)
+        val occupied = board.queens.toSet()
+        for (queen in board.queens) out = autoFill(out, source = queen, occupied = occupied)
         return out
     }
 
@@ -227,5 +236,30 @@ data class QueensSession(
             }
         }
         return out
+    }
+
+    companion object {
+        /**
+         * The codec's way in: a session over a stored [board] with AUTO marks derived
+         * under [autoCross], so a save never has to persist (or be trusted on) them.
+         */
+        internal fun restore(
+            ref: QueensPuzzleRef?,
+            puzzle: QueensPuzzle,
+            board: QueensBoard,
+            history: CommandHistory<QueensBoard, QueensCommand>,
+            completedAt: Instant?,
+            elapsedMs: Long,
+            hintsUsed: Int,
+            autoCross: Boolean,
+        ): QueensSession = QueensSession(
+            ref = ref,
+            puzzle = puzzle,
+            history = history,
+            completedAt = completedAt,
+            elapsedMs = elapsedMs,
+            hintsUsed = hintsUsed,
+            autoCross = autoCross,
+        ).withBoard(board)
     }
 }

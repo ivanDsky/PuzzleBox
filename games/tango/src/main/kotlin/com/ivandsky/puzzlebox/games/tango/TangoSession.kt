@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.tango
 
+import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.GameSession
 import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
@@ -10,16 +11,18 @@ import java.time.Instant
  * Serializable in-progress play (ZipSession shape, thinned to the walking-skeleton field
  * set): puzzle + player placements, the counters the record path needs, and [completedAt]
  * as the one-completion guard (A4). Givens live only on [puzzle]; [placements] is the
- * player-authored overlay keyed by row-major index.
+ * player-authored overlay keyed by row-major index. [history] is the undo/redo stack of
+ * [TangoPlace] commands over [placements]; it never touches the counters or the clock.
  */
 data class TangoSession(
     val ref: TangoPuzzleRef?,
     val puzzle: TangoPuzzle,
-    val placements: Map<Int, TangoCell> = emptyMap(),
+    val placements: TangoPlacements = emptyMap(),
     val hintsUsed: Int = 0,
     val mistakeCount: Int = 0,
     val elapsedMs: Long = 0,
     val completedAt: Instant? = null,
+    val history: CommandHistory<TangoPlacements, TangoPlace> = CommandHistory(),
     /** Bytes a newer codec version appended (A19), re-emitted verbatim by [TangoSessionCodec]. */
     val unknownTail: ByteArray = ByteArray(0),
 ) : GameSession {
@@ -33,6 +36,7 @@ data class TangoSession(
             mistakeCount == other.mistakeCount &&
             elapsedMs == other.elapsedMs &&
             completedAt == other.completedAt &&
+            history == other.history &&
             unknownTail.contentEquals(other.unknownTail)
 
     override fun hashCode(): Int {
@@ -43,6 +47,7 @@ data class TangoSession(
         h = 31 * h + mistakeCount
         h = 31 * h + elapsedMs.hashCode()
         h = 31 * h + completedAt.hashCode()
+        h = 31 * h + history.hashCode()
         h = 31 * h + unknownTail.contentHashCode()
         return h
     }
@@ -50,23 +55,39 @@ data class TangoSession(
     val isComplete: Boolean get() = completedAt != null
 
     /**
-     * Applies an ALREADY-VALIDATED move (the caller runs [TangoRules.validate] first).
+     * Applies an ALREADY-VALIDATED move (the caller runs [TangoRules.validate] first) as one
+     * recorded [TangoPlace]; a move that changes nothing records nothing (and keeps redo).
      * Stamps [completedAt] the moment the grid becomes a full solution (A4: one play-through,
      * one completion); timer accrual rides [elapsedMs] — the clock mechanism is ticket-05 scope.
      */
     fun withMove(move: com.ivandsky.puzzlebox.games.tango.engine.TangoMove, now: Instant): TangoSession {
         if (completedAt != null) return this
-        val value = move.value
-        if (value == placements[move.idx]) return this
-        val next = if (value == null) {
-            copy(placements = placements - move.idx)
-        } else {
-            copy(placements = placements + (move.idx to value))
-        }
+        val place = TangoPlace(move.idx, move.value, previous = placements[move.idx])
+        if (place.value == place.previous) return this
+        val next = copy(placements = place.apply(placements), history = history.record(place))
         if (TangoRules.isComplete(TangoState(puzzle, next.grid()))) {
             return next.copy(completedAt = now)
         }
         return next
+    }
+
+    /**
+     * Reverts the newest command. Not allowed once complete (the win is final) or with
+     * nothing to undo. Counters and the clock are session facts, not board state: untouched.
+     * Redo needs no completion check — completion freezes the history, so no redo path can
+     * end on a board that was not already seen incomplete.
+     */
+    fun withUndo(): TangoSession {
+        if (completedAt != null) return this
+        val step = history.undo(placements) ?: return this
+        return copy(placements = step.state, history = step.history)
+    }
+
+    /** Re-applies the most recently undone command; same guards as [withUndo]. */
+    fun withRedo(): TangoSession {
+        if (completedAt != null) return this
+        val step = history.redo(placements) ?: return this
+        return copy(placements = step.state, history = step.history)
     }
 
     /** Invalid-drop rejection: a mistake for analytics, never scored (A3). */

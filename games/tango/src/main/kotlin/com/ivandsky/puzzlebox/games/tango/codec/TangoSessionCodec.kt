@@ -1,20 +1,22 @@
 package com.ivandsky.puzzlebox.games.tango.codec
 
+import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameSessionCodec
 import com.ivandsky.puzzlebox.games.tango.TangoCell
+import com.ivandsky.puzzlebox.games.tango.TangoPlace
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.TangoSession
 import java.io.ByteArrayOutputStream
 import java.time.Instant
 
 /**
- * Tango session codec v1 (A19): self-describing version byte, canonical encode, the
+ * Tango session codec v2 (A19): self-describing version byte, canonical encode, the
  * puzzle riding by value so an in-progress day survives offline replay (Zip precedent).
  *
  * ```
- * 0   u8    formatVersion = 1
+ * 0   u8    formatVersion = 2
  *     u16   puzzleLen (BE); puzzleLen x u8   (TangoCodec bytes)
  *     u8    flags                            (bit0 completedAt present, bit1 ref present)
  *     [bit1] i64 epochDay, u8 numberPresent, i64 puzzleNumber
@@ -22,12 +24,20 @@ import java.time.Instant
  *     u8    hintsUsed; u8 mistakeCount
  *     i64   elapsedMs
  *     [bit0] i64 completedAt epochMilli
+ *     u16   doneCount;   doneCount   x (u8 idx, u8 value, u8 previous)   oldest first
+ *     u16   undoneCount; undoneCount x (u8 idx, u8 value, u8 previous)   last = next redo
  *     ...   unknown tail carried verbatim (A19)
  * ```
+ * A history cell byte is 0 for "empty", else the [TangoCell] wire byte. v1 is the same
+ * layout without the two history lists; it still decodes (empty history) so saves and
+ * archived replays written before undo existed keep working.
  */
 object TangoSessionCodec : GameSessionCodec<TangoSession> {
 
-    const val VERSION: Int = 1
+    const val VERSION: Int = 2
+
+    /** Decode bound on each history list; [serialize] keeps only the newest this many. */
+    const val MAX_HISTORY: Int = 10_000
 
     override fun serialize(session: TangoSession): ByteArray {
         val puzzleBytes = TangoCodec.encode(session.puzzle) // canonical, self-describing (A19 nesting)
@@ -68,6 +78,8 @@ object TangoSessionCodec : GameSessionCodec<TangoSession> {
         out.write(session.mistakeCount)
         writeI64(out, session.elapsedMs)
         session.completedAt?.let { writeI64(out, it.toEpochMilli()) }
+        writeHistory(out, session.history.done)
+        writeHistory(out, session.history.undone)
         out.write(session.unknownTail)
         return out.toByteArray()
     }
@@ -75,7 +87,7 @@ object TangoSessionCodec : GameSessionCodec<TangoSession> {
     override fun deserialize(bytes: ByteArray): DecodeResult<TangoSession> {
         val cursor = Cursor(bytes)
         val version = cursor.u8() ?: return malformed("empty session blob")
-        if (version != VERSION) {
+        if (version !in 1..VERSION) {
             return DecodeResult.Err(DecodeError.UnsupportedVersion(found = version, maxKnown = VERSION))
         }
 
@@ -121,6 +133,13 @@ object TangoSessionCodec : GameSessionCodec<TangoSession> {
             null
         }
 
+        var done = emptyList<TangoPlace>()
+        var undone = emptyList<TangoPlace>()
+        if (version >= 2) {
+            done = readHistory(cursor, puzzle.cellCount) ?: return malformed("bad done history")
+            undone = readHistory(cursor, puzzle.cellCount) ?: return malformed("bad undone history")
+        }
+
         val unknownTail = cursor.remaining()
         return DecodeResult.Ok(
             TangoSession(
@@ -131,10 +150,44 @@ object TangoSessionCodec : GameSessionCodec<TangoSession> {
                 mistakeCount = mistakes,
                 elapsedMs = elapsedMs,
                 completedAt = completedAt,
+                history = CommandHistory(done, undone),
                 unknownTail = unknownTail,
             ),
         )
     }
+
+    private fun writeHistory(out: ByteArrayOutputStream, commands: List<TangoPlace>) {
+        val kept = commands.takeLast(MAX_HISTORY) // oldest fall off: undo depth shrinks, state never changes
+        out.write((kept.size shr 8) and 0xFF)
+        out.write(kept.size and 0xFF)
+        kept.forEach { cmd ->
+            out.write(cmd.idx)
+            out.write(cmd.value?.toByte() ?: 0)
+            out.write(cmd.previous?.toByte() ?: 0)
+        }
+    }
+
+    /** Null on truncation, an out-of-range index, an unknown cell byte, a no-op command or an over-long list. */
+    private fun readHistory(cursor: Cursor, cellCount: Int): List<TangoPlace>? {
+        val count = cursor.u16() ?: return null
+        if (count > MAX_HISTORY) return null
+        val commands = ArrayList<TangoPlace>(count)
+        repeat(count) {
+            val idx = cursor.u8() ?: return null
+            if (idx >= cellCount) return null
+            val valueByte = cursor.u8() ?: return null
+            val previousByte = cursor.u8() ?: return null
+            if (!isCellOrEmpty(valueByte) || !isCellOrEmpty(previousByte)) return null
+            val value = TangoCell.fromByte(valueByte)
+            val previous = TangoCell.fromByte(previousByte)
+            if (value == previous) return null // a no-op is never recorded: corrupt
+            commands += TangoPlace(idx, value, previous)
+        }
+        return commands
+    }
+
+    /** 0 = empty cell; otherwise a known [TangoCell] wire byte. */
+    private fun isCellOrEmpty(byte: Int): Boolean = byte == 0 || TangoCell.fromByte(byte) != null
 
     private const val FLAG_COMPLETED = 1
     private const val FLAG_REF = 2

@@ -44,12 +44,14 @@ class TangoPlayStateTest {
     private fun state(
         completions: CompletionRepository,
         daily: TangoDailyRepository,
+        onSessionChanged: (TangoSession?) -> Unit = {},
     ) = TangoPlayState(
         daily = daily,
         completions = completions,
         scope = CoroutineScope(Dispatchers.Unconfined),
         now = { fakeNow },
         today = { today },
+        onSessionChanged = onSessionChanged,
     )
 
     private fun tangoDaily(
@@ -197,11 +199,12 @@ class TangoPlayStateTest {
         val s = state(FakeCompletionRepository(), tangoDaily())
         s.load()
 
-        s.hint()
+        s.requestHint()
 
         assertEquals(1, s.session?.hintsUsed)
         assertNotNull(s.hintCell)
         assertNotNull(s.hintWhy)
+        assertNotNull(s.hintCaption)
     }
 
     @Test
@@ -379,5 +382,150 @@ class TangoPlayStateTest {
         Thread.sleep(600)
         assertEquals(emptySet<Set<Int>>(), s.suppressedSets)
         assertEquals(emptySet<Set<Int>>(), s.rendererModel()!!.suppressedSets)
+    }
+
+    // ---- undo / redo (command history) ----
+
+    @Test
+    fun `undo and redo move the board and persist while counters and clock stay put`() = runTest {
+        val saved = mutableListOf<TangoSession?>()
+        val s = state(FakeCompletionRepository(), tangoDaily(), onSessionChanged = { saved += it })
+        s.load()
+        s.onPlacement(TangoPlacement(2, TangoCell.MOON))
+        s.onPlacement(TangoPlacement(3, TangoCell.MOON))
+        s.onPlacement(TangoPlacement(4, TangoCell.MOON)) // violating: lands, one mistake
+        fakeNow = fakeNow.plusMillis(5_000)
+        s.onBackground() // banks 5 s and stops the clock
+        assertNull(s.clockWindow)
+
+        s.undo()
+
+        assertNull(s.session?.placements?.get(4))
+        assertEquals(1, s.session?.mistakeCount)
+        assertEquals(0, s.session?.hintsUsed)
+        assertEquals(5_000L, s.session?.elapsedMs)
+        assertNotNull(s.clockWindow) // undoing is play: a stopped clock reopens, never rewinds
+        assertEquals(s.session, saved.last())
+        assertTrue(s.canRedo)
+
+        s.redo()
+
+        assertEquals(TangoCell.MOON, s.session?.placements?.get(4))
+        assertEquals(1, s.session?.mistakeCount)
+        assertEquals(5_000L, s.session?.elapsedMs)
+        assertEquals(s.session, saved.last())
+        assertFalse(s.canRedo)
+    }
+
+    @Test
+    fun `a hint placement is undoable but the hint stays counted`() = runTest {
+        val s = state(FakeCompletionRepository(), tangoDaily())
+        s.load()
+        s.requestHint()
+        assertTrue(s.session!!.placements.isNotEmpty())
+
+        s.undo()
+
+        assertTrue(s.session!!.placements.isEmpty())
+        assertEquals(1, s.session?.hintsUsed)
+        assertNull(s.hintCell) // the reveal goes with the input
+        assertNull(s.hintCaption)
+
+        s.redo()
+        assertTrue(s.session!!.placements.isNotEmpty())
+        assertEquals(1, s.session?.hintsUsed)
+    }
+
+    @Test
+    fun `a new placement after an undo drops redo`() = runTest {
+        val s = state(FakeCompletionRepository(), tangoDaily())
+        s.load()
+        s.onPlacement(TangoPlacement(2, TangoCell.MOON))
+        s.onPlacement(TangoPlacement(3, TangoCell.MOON))
+        s.undo()
+        assertTrue(s.canRedo)
+
+        s.onPlacement(TangoPlacement(5, TangoCell.MOON))
+
+        assertFalse(s.canRedo)
+        s.redo()
+        assertNull(s.session?.placements?.get(3))
+    }
+
+    @Test
+    fun `undoing a violating placement clears the rejection caption`() = runTest {
+        val s = state(FakeCompletionRepository(), tangoDaily())
+        s.load()
+        s.onPlacement(TangoPlacement(2, TangoCell.MOON))
+        s.onPlacement(TangoPlacement(3, TangoCell.MOON))
+        s.onPlacement(TangoPlacement(4, TangoCell.MOON))
+        assertNotNull(s.rejection)
+
+        s.undo()
+
+        assertNull(s.rejection)
+    }
+
+    @Test
+    fun `a redo that restores a violation waits out the settle window like a placement`() {
+        val s = state(FakeCompletionRepository(), tangoDaily())
+        runBlocking { s.load() }
+        s.onPlacement(TangoPlacement(2, TangoCell.MOON))
+        s.onPlacement(TangoPlacement(3, TangoCell.MOON))
+        s.onPlacement(TangoPlacement(4, TangoCell.MOON)) // violation, hidden while settling
+        assertTrue(s.suppressedSets.isNotEmpty())
+
+        s.undo() // the violation is gone: nothing left to hide
+        assertEquals(emptySet<Set<Int>>(), s.suppressedSets)
+
+        s.redo() // and it is a NEW violation again
+        assertTrue(s.suppressedSets.isNotEmpty())
+        assertEquals(s.suppressedSets, s.rendererModel()!!.suppressedSets)
+
+        Thread.sleep(600)
+        assertEquals(emptySet<Set<Int>>(), s.suppressedSets)
+    }
+
+    @Test
+    fun `undo and redo are refused once the board is solved`() = runTest {
+        val s = state(FakeCompletionRepository(), tangoDaily())
+        s.load()
+        playAll(s)
+        val solved = s.session
+        assertTrue(solved!!.isComplete)
+
+        assertFalse(s.canUndo)
+        s.undo()
+        s.redo()
+
+        assertEquals(solved, s.session)
+    }
+
+    @Test
+    fun `a restored session keeps its undo and redo history`() = runTest {
+        val s = state(FakeCompletionRepository(), tangoDaily())
+        s.load()
+        s.onPlacement(TangoPlacement(2, TangoCell.MOON))
+        s.onPlacement(TangoPlacement(3, TangoCell.MOON))
+        s.undo()
+
+        val restored = state(FakeCompletionRepository(), tangoDaily())
+        restored.adoptRestored(s.persist()!!)
+
+        assertTrue(restored.canUndo)
+        assertTrue(restored.canRedo)
+        restored.redo()
+        assertEquals(TangoCell.MOON, restored.session?.placements?.get(3))
+    }
+
+    @Test
+    fun `result label names the puzzle number when known`() = runTest {
+        val numbered = state(FakeCompletionRepository(), tangoDaily())
+        numbered.load()
+        assertEquals("Tango · #301", numbered.resultLabel)
+
+        val unnumbered = state(FakeCompletionRepository(), tangoDaily(history = listOf(entry(puzzleNumber = null))))
+        unnumbered.load()
+        assertEquals("Tango", unnumbered.resultLabel)
     }
 }

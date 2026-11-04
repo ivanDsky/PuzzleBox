@@ -5,10 +5,8 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
-import com.ivandsky.puzzlebox.app.nav.Queens
-import com.ivandsky.puzzlebox.app.puzzleBoxEntryProvider
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.QueensDailyEntry
 import com.ivandsky.puzzlebox.data.repository.QueensDailyRepository
@@ -22,8 +20,9 @@ import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.queensVariantId
-import com.ivandsky.puzzlebox.play.QueensPlayFlow
-import com.ivandsky.puzzlebox.play.QueensRoute
+import com.ivandsky.puzzlebox.play.PlayFlow
+import com.ivandsky.puzzlebox.play.PlayRoute
+import com.ivandsky.puzzlebox.play.QueensPlayState
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import java.time.LocalDate
 import java.time.ZoneId
@@ -89,7 +88,8 @@ class QueensPlayWiringTest {
     }
 
     @Test
-    fun `queens route renders the DI-bound board and a completion records a history entry`() {
+    fun `the play tab offers queens, and a completed queens game records a history entry`() {
+        stopKoin() // tests share the JVM-global Koin context
         val koinApp = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
             modules(PuzzleBoxApplication.appModules)
@@ -114,12 +114,12 @@ class QueensPlayWiringTest {
             ),
             allowOverride = true,
         )
-        val flow = koinApp.koin.get<QueensPlayFlow>()
+        val flow = koinApp.koin.get<PlayFlow>()
 
         val solved = ArrayList<Pair<Long, Int>>()
         composeRule.setContent {
             PuzzleBoxTheme {
-                QueensRoute(
+                PlayRoute(
                     layout = PlayLayout.SinglePane,
                     onBack = {},
                     onSolved = { timeMs, hintsUsed -> solved.add(timeMs to hintsUsed) },
@@ -127,12 +127,15 @@ class QueensPlayWiringTest {
             }
         }
 
-        composeRule.onNodeWithText("Queens").assertExists()
+        // The Play tab lands on the shared game picker, Queens among its games — never
+        // straight on a Queens board.
+        composeRule.onNodeWithTag("play.picker").assertExists()
+        composeRule.onNodeWithTag("play.picker_queens").performClick()
         composeRule.onNodeWithTag("queens.board").assertExists()
 
         // The board is bound to a real session off the graph, with today's ref.
-        composeRule.waitUntil(10_000) { flow.state?.board != null }
-        val board = flow.state!!.board!!
+        composeRule.waitUntil(10_000) { (flow.state as? QueensPlayState)?.board != null }
+        val board = (flow.state as QueensPlayState).board!!
         assertNotNull(board.session.ref)
 
         // Complete the game through the board's §5 tap cycle (two taps per queen).
@@ -142,7 +145,7 @@ class QueensPlayWiringTest {
                 board.onTap(idx)
             }
         }
-        composeRule.waitUntil(10_000) { flow.state!!.board!!.session.isComplete }
+        composeRule.waitUntil(10_000) { (flow.state as QueensPlayState).board!!.session.isComplete }
 
         // Fix round 6 (F-3/R-5): the win is a ROUTE handoff — the play screen invokes
         // onSolved exactly once with the frozen facts; no win overlay exists anymore.
@@ -174,18 +177,5 @@ class QueensPlayWiringTest {
             if (records.isNotEmpty()) return@repeat
         }
         assertTrue("expected a recorded completion, got none", records.isNotEmpty())
-    }
-
-    @Test
-    fun `the queens nav key resolves in the route table`() {
-        val entry = puzzleBoxEntryProvider(
-            backStack = androidx.navigation3.runtime.NavBackStack(Queens),
-            homeLayout = com.ivandsky.puzzlebox.home.HomeLayout.SinglePane,
-            playLayout = PlayLayout.SinglePane,
-            historyLayout = com.ivandsky.puzzlebox.history.HistoryLayout.SinglePane,
-            themeMode = com.ivandsky.puzzlebox.model.ThemeMode.SYSTEM,
-            onSetThemeMode = {},
-        ).invoke(Queens)
-        assertTrue(entry.contentKey.toString().contains("Queens"))
     }
 }

@@ -35,7 +35,7 @@ import org.koin.compose.koinInject
  * silently dropping the bytes on the null-state safe call.
  *
  * tango-05 (A14): a fresh entry — no live flow state, no restored replay — shows the
- * GAME PICKER first; picking Zip or Tango starts that game's flow in place. A
+ * GAME PICKER first; picking a game starts that game's flow in place. A
  * nav-carried replay blob (history) is a [SessionBlob] envelope that names its game:
  * a stale other-game flow is released and the blob's game starts, restoring through
  * its own codec. The adopt-vs-load priority is the ticket-13 one: saved session →
@@ -109,6 +109,14 @@ fun PlayRoute(
         )
 
         is TangoPlayState -> TangoPlayScreen(
+            state = state,
+            layout = layout,
+            onBack = onBack,
+            onSolved = onSolved,
+            modifier = modifier,
+        )
+
+        is QueensPlayState -> QueensPlayScreen(
             state = state,
             layout = layout,
             onBack = onBack,

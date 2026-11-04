@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.model.GameId
@@ -11,7 +12,8 @@ import com.ivandsky.puzzlebox.model.GameId
  */
 enum class PlayGame(val id: GameId) {
     Zip(ZipDefinition.id),
-    Tango(TangoDefinition.id);
+    Tango(TangoDefinition.id),
+    Queens(QueensDefinition.id);
 
     companion object {
         fun byId(id: GameId): PlayGame? = entries.firstOrNull { it.id == id }

@@ -4,9 +4,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.repository.QueensDailyRepository
 import com.ivandsky.puzzlebox.data.repository.TangoDailyRepository
 import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
 import com.ivandsky.puzzlebox.game.SessionBlob
+import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
 import com.ivandsky.puzzlebox.games.zip.ZipSession
 import com.ivandsky.puzzlebox.games.zip.codec.ZipSessionCodec
@@ -18,7 +20,7 @@ import java.time.LocalDate
 
 /**
  * The surface every game's play state shares with the route shell (tango-05: the play
- * tab drives Zip OR Tango behind one seam; the screens stay game-specific where the
+ * tab drives every game behind one seam; the screens stay game-specific where the
  * boards differ). The record surface is what the result route reads; [adoptRestored]
  * is the one session-restore path for saves AND history replays (A4 semantics shared).
  */
@@ -27,6 +29,9 @@ interface ActivePlay {
 
     /** A fresh entry must fetch: no live session, or the live one is finished. */
     val needsLoad: Boolean
+
+    /** The result screen's game line ("Zip · #123"): the game's own voice on the shared shell. Null = none. */
+    val resultLabel: String?
 
     /** The A4 verdict for THIS play while the write is in flight/unknown: null. */
     val recordBadge: Boolean?
@@ -46,26 +51,13 @@ interface ActivePlay {
 }
 
 /**
- * The play screen's clock seam (F2 §2: active foreground play only; the loop lives in
- * [PlayScreenKt.PlayClockEffects]). [clockWindow] is a per-window identity that changes
- * each time the running window (re)opens — null while paused/not started.
- */
-interface PlayClock {
-    val clockWindow: Any?
-    fun tick()
-    fun onBackground()
-    fun onForeground()
-    fun displayedElapsedMs(): Long
-}
-
-/**
  * Owner of the play flow's active [ActivePlay] (ticket 23). The state must outlive the
  * play entry's composition once the result route replaces it: the record write is
  * fire-and-observe (a navigation must not cancel it), the badge verdict lands on the
  * result screen, and "Play again" resets in place. A Koin single is the process
  * lifetime; [end] releases the scope on a mid-game exit.
  *
- * tango-05: the flow starts per GAME — the picker (A14) picks Zip or Tango and the
+ * tango-05: the flow starts per GAME — the picker (A14) picks Zip, Tango or Queens and the
  * matching state holder owns the session. The session-changed callback receives the
  * session serialized through THAT game's codec and wrapped in a [SessionBlob]
  * envelope naming the game, so the route's saveable is self-describing: after process
@@ -75,6 +67,7 @@ interface PlayClock {
 class PlayFlow(
     private val zips: ZipDailyRepository,
     private val tangos: TangoDailyRepository,
+    private val queens: QueensDailyRepository,
     private val completions: CompletionRepository,
     private val zipToday: () -> LocalDate = {
         LocalDate.now((com.ivandsky.puzzlebox.games.zip.ZipDefinition.cadence as com.ivandsky.puzzlebox.game.Cadence.Daily).zone)
@@ -82,8 +75,24 @@ class PlayFlow(
     private val tangoToday: () -> LocalDate = {
         LocalDate.now((com.ivandsky.puzzlebox.games.tango.TangoDefinition.cadence as com.ivandsky.puzzlebox.game.Cadence.Daily).zone)
     },
+    private val queensToday: () -> LocalDate = {
+        LocalDate.now((com.ivandsky.puzzlebox.games.queens.QueensDefinition.cadence as com.ivandsky.puzzlebox.game.Cadence.Daily).zone)
+    },
 ) {
     private var flowScope: CoroutineScope? = null
+
+    // The entry's session saver (rememberSaveable) and the newest blob it was handed.
+    // A re-entered entry (rotation) brings a NEW saveable, so every start/restore REBINDS
+    // the sink and backfills it with the live blob — otherwise the state keeps writing
+    // into the dead first composition and a process death after a rotation loses the
+    // session (queens fix round 4 R-4, now shared by every game).
+    private var sink: (ByteArray?) -> Unit = {}
+    private var latest: ByteArray? = null
+
+    private fun publish(blob: ByteArray?) {
+        latest = blob
+        sink(blob)
+    }
 
     // Snapshot-backed: the result route composes BEFORE the flow may have started
     // (fresh entry) and must recompose when the state appears — a plain var would
@@ -93,7 +102,11 @@ class PlayFlow(
 
     /** The flow's state for [game], created on first entry and reused until [end]. */
     fun start(game: PlayGame, onSessionChanged: (ByteArray?) -> Unit): ActivePlay {
-        state?.let { return it }
+        sink = onSessionChanged
+        state?.let { existing ->
+            latest?.let(onSessionChanged)
+            return existing
+        }
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         flowScope = scope
         return when (game) {
@@ -103,7 +116,7 @@ class PlayFlow(
                 scope = scope,
                 today = zipToday,
                 onSessionChanged = { session ->
-                    onSessionChanged(session?.let { SessionBlob.encode(game.id, ZipSessionCodec.serialize(it)) })
+                    publish(session?.let { SessionBlob.encode(game.id, ZipSessionCodec.serialize(it)) })
                 },
             )
 
@@ -113,7 +126,17 @@ class PlayFlow(
                 scope = scope,
                 today = tangoToday,
                 onSessionChanged = { session ->
-                    onSessionChanged(session?.let { SessionBlob.encode(game.id, TangoSessionCodec.serialize(it)) })
+                    publish(session?.let { SessionBlob.encode(game.id, TangoSessionCodec.serialize(it)) })
+                },
+            )
+
+            PlayGame.Queens -> QueensPlayState(
+                daily = queens,
+                completions = completions,
+                scope = scope,
+                today = queensToday,
+                onSessionChanged = { session ->
+                    publish(session?.let { SessionBlob.encode(game.id, QueensSessionCodec.serialize(it)) })
                 },
             )
         }.also { state = it }
@@ -130,13 +153,19 @@ class PlayFlow(
     fun restore(envelope: SessionBlob.Decoded?, onSessionChanged: (ByteArray?) -> Unit): ActivePlay? {
         val game = envelope?.let { PlayGame.byId(it.game) } ?: return null
         if (state?.game != game) end() // stale other-game flow, or dead flow (no-op)
-        return start(game, onSessionChanged).also { it.adoptRestored(envelope.session) }
+        return start(game, onSessionChanged).also {
+            it.adoptRestored(envelope.session)
+            // The saveable was consumed on the way in: hand the adopted blob back so the
+            // restored session survives the NEXT process death even before a move.
+            publish(SessionBlob.encode(game.id, envelope.session))
+        }
     }
 
     /** Mid-game exit: the next play entry shows the picker again (A14), never resumes. */
     fun end() {
         flowScope?.cancel()
         flowScope = null
+        latest = null
         state = null
     }
 }

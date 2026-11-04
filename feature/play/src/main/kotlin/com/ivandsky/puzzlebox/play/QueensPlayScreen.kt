@@ -1,18 +1,12 @@
 package com.ivandsky.puzzlebox.play
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -23,6 +17,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.BoardError
 import com.ivandsky.puzzlebox.gameui.BoardLoading
+import com.ivandsky.puzzlebox.gameui.PlayChrome
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.games.queensui.QueensPlayBoard
 import com.ivandsky.puzzlebox.games.queensui.QueensPlayControls
@@ -47,7 +42,7 @@ fun QueensPlayScreen(
     // keyed on the completedAt instance so a replay (new completion) hands off again.
     LaunchedEffect(state.board?.session?.completedAt) {
         val completed = state.board?.session?.takeIf { it.isComplete } ?: return@LaunchedEffect
-        onSolved(completed.elapsedMs() ?: 0L, completed.hintsUsed)
+        onSolved(completed.elapsedMs, completed.hintsUsed)
     }
     Box(modifier.fillMaxSize()) {
         AdaptivePlayScaffold(
@@ -108,53 +103,15 @@ private fun BoxScope.BoardArea(state: QueensPlayState) {
 @Composable
 private fun SidePanel(state: QueensPlayState) {
     val ready = state.screen as? QueensScreen.Ready
-    val boardState = state.board
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md)
-            .testTag("queens.side_panel"),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    PlayChrome(
+        title = "Queens",
+        subtitle = ready?.ref?.puzzleNumber?.let { "Daily · #$it" } ?: "Daily",
+        clock = state,
+        hints = state,
+        undo = state,
+        banner = ready?.degraded?.let(::degradeBannerMessage),
+        modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = "Queens",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = subtitle(ready),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-
-        ready?.degraded?.let { error ->
-            Surface(
-                color = MaterialTheme.colorScheme.tertiaryContainer,
-                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("queens.degrade_banner"),
-            ) {
-                Text(
-                    text = degradeBannerMessage(error),
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                )
-            }
-        }
-
-        if (boardState != null) {
-            QueensPlayControls(state = boardState)
-        }
+        state.board?.let { QueensPlayControls(state = it) }
     }
-}
-
-private fun subtitle(ready: QueensScreen.Ready?): String = when {
-    ready == null -> "Daily"
-    else -> ready.ref?.puzzleNumber?.let { number -> "Daily · #$number" } ?: "Daily"
 }

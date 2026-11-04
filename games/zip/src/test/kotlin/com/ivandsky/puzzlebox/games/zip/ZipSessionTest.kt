@@ -113,4 +113,111 @@ class ZipSessionTest {
         assertEquals(0, s.elapsedMs)
         assertNull(s.runningSince)
     }
+
+    private fun played(vararg cells: Int, at: Instant = t0): ZipSession =
+        cells.fold(session()) { s, idx -> s.withMove(ZipMove.Extend(Cell(idx)), at) }
+
+    @Test
+    fun `undo and redo walk the trace one command at a time`() {
+        val s = played(0, 1, 2, 3).withMove(ZipMove.RetractTo(Cell(1)), t0)
+        assertEquals(path(0, 1), s.path)
+
+        val undoneRetract = s.withUndo()
+        assertEquals(path(0, 1, 2, 3), undoneRetract.path) // one drag-back = one undo
+        assertEquals(path(0, 1, 2), undoneRetract.withUndo().path) // extends undo per cell
+        assertEquals(path(0, 1), undoneRetract.withRedo().path)
+
+        val reset = s.withMove(ZipMove.Reset, t0)
+        assertTrue(reset.path.isEmpty())
+        assertEquals(path(0, 1), reset.withUndo().path)
+        assertTrue(reset.withUndo().withRedo().path.isEmpty())
+    }
+
+    @Test
+    fun `undoing everything and redoing everything returns to the same session`() {
+        val s = played(0, 1, 2).withMove(ZipMove.RetractTo(Cell(0)), t0).withMove(ZipMove.Extend(Cell(1)), t0)
+        var undone = s
+        while (undone.history.canUndo) undone = undone.withUndo()
+        assertTrue(undone.path.isEmpty())
+        var redone = undone
+        while (redone.history.canRedo) redone = redone.withRedo()
+        assertEquals(s, redone)
+    }
+
+    @Test
+    fun `a new move clears the redo stack but a no-op move does not`() {
+        val undone = played(0, 1, 2).withUndo()
+        assertTrue(undone.history.canRedo)
+
+        // retract to the tail and reset-on-nothing record nothing; redo survives
+        assertEquals(undone, undone.withMove(ZipMove.RetractTo(Cell(1)), t0))
+        assertEquals(undone, undone.withMove(ZipMove.RetractTo(Cell(24)), t0))
+
+        val forked = undone.withMove(ZipMove.Extend(Cell(6)), t0)
+        assertFalse(forked.history.canRedo)
+        assertEquals(forked, forked.withRedo())
+        assertEquals(path(0, 1, 6), forked.path)
+    }
+
+    @Test
+    fun `undo and redo with nothing to move are no-ops`() {
+        assertEquals(session(), session().withUndo())
+        assertEquals(session(), session().withRedo())
+    }
+
+    @Test
+    fun `undo never rewinds the timer, hints, mistakes or backtracks`() {
+        val base = played(0, 1, 2, 3)
+            .withMove(ZipMove.RetractTo(Cell(1)), t0.plusSeconds(4))
+            .withRejection()
+            .withHintApplied()
+            .onBackground(t0.plusSeconds(9))
+        fun assertCountersKept(after: ZipSession) {
+            assertEquals(base.hintsUsed, after.hintsUsed)
+            assertEquals(base.mistakeCount, after.mistakeCount)
+            assertEquals(base.backtrackCount, after.backtrackCount)
+            assertEquals(base.elapsedMs, after.elapsedMs)
+            assertEquals(base.timerStarted, after.timerStarted)
+            assertEquals(base.runningSince, after.runningSince)
+        }
+        val undone = base.withUndo()
+        assertEquals(path(0, 1, 2, 3), undone.path)
+        assertCountersKept(undone)
+        assertCountersKept(undone.withRedo())
+        // even undoing back to the empty trace keeps the started clock
+        var all = base
+        while (all.history.canUndo) all = all.withUndo()
+        assertTrue(all.path.isEmpty())
+        assertCountersKept(all)
+    }
+
+    @Test
+    fun `a hint-placed step is an ordinary extend that undoes`() {
+        val s = played(0, 1).withHintApplied().withMove(ZipMove.Extend(Cell(2)), t0) // hint auto-places cell 2
+        val undone = s.withUndo()
+        assertEquals(path(0, 1), undone.path)
+        assertEquals(1, undone.hintsUsed) // the hint stays counted
+    }
+
+    @Test
+    fun `a completed session is frozen against undo and redo`() {
+        var s = session()
+        ZipTestSupport.n5Solution.forEach { s = s.withMove(ZipMove.Extend(it), t0.plusSeconds(1)) }
+        assertTrue(s.isComplete)
+        assertTrue(s.history.canUndo)
+        assertEquals(s, s.withUndo())
+        assertEquals(s, s.withRedo())
+    }
+
+    @Test
+    fun `history keeps only the newest MAX_HISTORY commands`() {
+        // reset <-> extend 0 cycles: two recorded commands each, far past the cap
+        var s = played(0)
+        repeat(ZipSession.MAX_HISTORY) {
+            s = s.withMove(ZipMove.Reset, t0).withMove(ZipMove.Extend(Cell(0)), t0)
+        }
+        assertEquals(ZipSession.MAX_HISTORY, s.history.done.size)
+        assertEquals(path(0), s.path)
+        assertEquals(emptyList<Cell>(), s.withUndo().path) // the newest command is still undoable
+    }
 }

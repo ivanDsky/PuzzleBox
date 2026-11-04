@@ -14,6 +14,9 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.gameui.CompletionRecordEmitter
+import com.ivandsky.puzzlebox.gameui.PlayClock
+import com.ivandsky.puzzlebox.gameui.PlayHints
+import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.queens.QueensSession
@@ -21,12 +24,11 @@ import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
 import com.ivandsky.puzzlebox.games.queens.queensPlugin
 import com.ivandsky.puzzlebox.games.queensui.QueensBoardState
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -43,99 +45,68 @@ sealed interface QueensScreen {
 }
 
 /**
- * Owner of the Queens play flow's [QueensPlayState] (zip [PlayFlow] precedent, ticket 23):
- * the state must outlive the play entry's composition so the record write is
- * fire-and-observe, never cancelled by navigation. A Koin single is the process
- * lifetime; [end] releases the scope on a mid-game exit.
- */
-class QueensPlayFlow(
-    private val daily: QueensDailyRepository,
-    private val completions: CompletionRepository,
-) {
-    private var flowScope: CoroutineScope? = null
-
-    var state: QueensPlayState? by mutableStateOf(null)
-        private set
-
-    /** The flow's state, created on first entry and reused until [end]. A re-entered
-     *  entry (rotation) rebinds the session saver to ITS rememberSaveable and backfills
-     *  it with the live session (R-4), so a process death mid-play still restores. */
-    fun start(onSessionChanged: (QueensSession?) -> Unit): QueensPlayState {
-        state?.let { existing ->
-            existing.onSessionChanged = onSessionChanged
-            onSessionChanged(existing.board?.session)
-            return existing
-        }
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-        flowScope = scope
-        return QueensPlayState(
-            daily = daily,
-            completions = completions,
-            scope = scope,
-        ).also {
-            it.onSessionChanged = onSessionChanged
-            state = it
-        }
-    }
-
-    /** Mid-game exit: the next play entry must fetch fresh, never resume. */
-    fun end() {
-        flowScope?.cancel()
-        flowScope = null
-        state = null
-    }
-}
-
-/**
  * The Queens play state holder (queens-10 wiring; zip [ZipPlayState] shape): today's
  * board (queens-06 offline-first repository) → a real [QueensSession] (queens-04) →
  * the queens-08 [QueensBoardState] interaction holder. The holder owns only the fetch /
- * restore / record wiring — every game decision stays in the session and the board
- * state (A10–A12 provenance, A14 Auto-cross, §5 interaction set).
+ * restore / record / clock wiring — every game decision stays in the session and the
+ * board state (A10–A12 provenance, A14 Auto-cross, §5 interaction set, command undo).
  *
  * Win flow (fix round 6 — zip's win→result-route pattern): the board state hands ONE
  * [CompletionRecord] (built by the plugin's score model on the completedAt transition)
- * to [onWinRecord]; the write stays fire-and-observe in the
- * flow scope — navigation (to the result route) can never cancel it. [recordBadge] is
+ * to the record emitter; the write stays fire-and-observe in the flow scope —
+ * navigation (to the result route) can never cancel it. [recordBadge] is
  * null while the write is in flight, then the A4 verdict against the session-start
  * baseline; [recordWriteFailed] surfaces the retry affordance on the result route.
  * A restored completed session never re-emits (transition-only) and refreshes no
  * baseline.
+ *
+ * Timer (Tango parity): the session banks [QueensSession.elapsedMs]; this state owns the
+ * process-local running window, so undo/redo never touch it.
  */
 class QueensPlayState(
     private val daily: QueensDailyRepository,
     private val completions: CompletionRepository,
     private val scope: CoroutineScope,
     private val now: () -> Instant = Instant::now,
-) {
+    private val today: () -> LocalDate = { LocalDate.now(queensCadenceZone) },
+    /**
+     * The entry's session-persistence callback (R-4): the play route serializes every
+     * committed session into its `rememberSaveable`; it also receives the initial session
+     * of a fresh load/replay so a process death before the first move still restores.
+     */
+    private val onSessionChanged: (QueensSession?) -> Unit = {},
+) : ActivePlay, PlayClock, PlayHints, PlayUndo {
+
+    override val game: PlayGame get() = PlayGame.Queens
 
     var screen by mutableStateOf<QueensScreen>(QueensScreen.Loading)
         private set
-
-    /**
-     * The entry's session-persistence callback (R-4, fix round 4): the play entry
-     * serializes every session commit into its `rememberSaveable`. A re-entered entry
-     * (rotation) brings a NEW saveable state, so [QueensPlayFlow.start] REBINDS this
-     * callback to the new entry and backfills it with the live session — otherwise the
-     * board keeps serializing into the dead first composition and a process death
-     * during play loses the session (the "rotation restarts the game" defect).
-     */
-    var onSessionChanged: (QueensSession?) -> Unit = {}
 
     /** The live interaction holder, null until a session is adopted. */
     var board by mutableStateOf<QueensBoardState?>(null)
         private set
 
+    /** A fresh entry must fetch: no live board, or the live one already finished. */
+    override val needsLoad: Boolean
+        get() = board?.session?.isComplete != false
+
     /** A4 record badge: null = write in flight (or baseline unknown); true/false = the
      *  verdict against the session-start baseline (new record vs beat replay). */
-    var recordBadge by mutableStateOf<Boolean?>(null)
+    override var recordBadge by mutableStateOf<Boolean?>(null)
         private set
 
     /** The record write failed — the result route offers a retry. */
-    var recordWriteFailed by mutableStateOf(false)
+    override var recordWriteFailed by mutableStateOf(false)
         private set
 
     private var emitter: CompletionRecordEmitter? = null
+
+    /** The open running window's start: null = clock stopped (not started, backgrounded, or won). */
+    private var runningSince: Instant? by mutableStateOf(null)
+
+    /** Last [tick]; the window's displayed length is measured against it so the timer recomposes. */
+    var nowMs by mutableStateOf(0L)
+        private set
 
     /** Whether a record already existed for the current ref BEFORE this session's win —
      *  the A4 badge is derived from this baseline, never from the stored rows. */
@@ -145,13 +116,14 @@ class QueensPlayState(
 
     /** Fetch-today → board (A7/A8): Fresh plays; Cached plays with a degrade banner;
      *  Unavailable is the error state; an untrustable payload is never playable (A16). */
-    fun load() {
+    override fun load() {
         screen = QueensScreen.Loading
         board = null
         emitter = null
         recordBadge = null
         recordWriteFailed = false
         baselineHadRecord = null
+        runningSince = null
         scope.launch {
             when (val today = daily.today()) {
                 is QueensToday.Fresh -> adopt(today.puzzle, degraded = null)
@@ -164,7 +136,7 @@ class QueensPlayState(
     /** Process-death/rotation restore: the codec carries the puzzle BY VALUE, so a
      *  corrupt save falls back to a normal load; a restored COMPLETED session shows the
      *  result without re-emitting (emission happens on the transition only). */
-    fun adoptRestored(bytes: ByteArray) {
+    override fun adoptRestored(bytes: ByteArray) {
         when (val restored = QueensSessionCodec.deserialize(bytes)) {
             is DecodeResult.Ok -> {
                 val s = restored.value
@@ -172,8 +144,13 @@ class QueensPlayState(
                 recordBadge = null
                 recordWriteFailed = false
                 baselineHadRecord = null
+                runningSince = null
                 board = boardFor(s)
                 screen = QueensScreen.Ready(s.puzzle, s.ref, degraded = null)
+                // The running clock is process-local (runningSince is not session state):
+                // a restored in-progress session restarts its window now, or the timer
+                // reads frozen forever (Tango parity, user QA 2026-11-02).
+                if (!s.isComplete && s.hasStarted) openWindow()
                 if (!s.isComplete) refreshBaseline(s.ref)
             }
 
@@ -191,7 +168,9 @@ class QueensPlayState(
         }
         val ref = resolveRef()
         screen = QueensScreen.Ready(queens, ref, degraded)
-        board = boardFor(QueensSession(ref = ref, puzzle = queens))
+        val fresh = QueensSession(ref = ref, puzzle = queens)
+        board = boardFor(fresh)
+        onSessionChanged(fresh)
         refreshBaseline(ref)
     }
 
@@ -216,23 +195,26 @@ class QueensPlayState(
         onWinRecord = { emitRecord(it) },
         now = now,
         onSessionChanged = { onSessionChanged(it) },
+        settle = this::settle,
     )
 
-    /** Result route's "Play again" parity (zip replay): a fresh session, a new emitter
-     *  lifetime — replays emit again (A4), and the badge resets until the new write
-     *  lands. The A4 baseline is re-read: whether a record existed BEFORE this new play. */
-    fun replay() {
+    /** Result's "Play again" parity (zip replay): a fresh session, a new emitter lifetime —
+     *  replays emit again (A4), and the badge resets until the new write lands. The A4
+     *  baseline is re-read: whether a record existed BEFORE this new play. */
+    override fun replay() {
         val ready = screen as? QueensScreen.Ready ?: return
         emitter = null
         recordBadge = null
         recordWriteFailed = false
         baselineHadRecord = null
+        runningSince = null
         refreshBaseline(ready.ref)
-        board = boardFor(QueensSession(ref = ready.ref, puzzle = ready.puzzle))
+        val fresh = QueensSession(ref = ready.ref, puzzle = ready.puzzle)
+        board = boardFor(fresh)
+        onSessionChanged(fresh)
     }
 
-    /** Retry after a failed record write: a new emitter (the old one deduped this ref). */
-    fun retryRecordWrite() {
+    override fun retryRecordWrite() {
         val completed = board?.session?.takeIf { it.isComplete } ?: return
         emitRecord(record = queensPlugin.score.completion(completed) ?: return)
     }
@@ -254,11 +236,98 @@ class QueensPlayState(
             }
         }
     }
+    //endregion
+
+    //region PlayClock (F2 §2: active foreground play only)
+
+    /**
+     * The board's hook on every committed session, BEFORE it is stored and the win record
+     * built: the first committed action (or counted hint) opens the running window, and
+     * the win folds it into the banked [QueensSession.elapsedMs] so the frozen result and
+     * the record carry the real duration.
+     */
+    private fun settle(next: QueensSession): QueensSession {
+        if (next.isComplete) return foldRunning(next)
+        if (runningSince == null) openWindow()
+        return next
+    }
+
+    private fun openWindow() {
+        val start = now()
+        nowMs = start.toEpochMilli()
+        runningSince = start
+    }
+
+    /** Folds the running window into [target]'s banked elapsed and stops the clock. */
+    private fun foldRunning(target: QueensSession): QueensSession {
+        val rs = runningSince ?: return target
+        runningSince = null
+        return target.copy(elapsedMs = target.elapsedMs + Duration.between(rs, now()).toMillis())
+    }
+
+    override fun tick() {
+        nowMs = now().toEpochMilli()
+    }
+
+    override fun onBackground() {
+        val rs = runningSince ?: return
+        runningSince = null
+        board?.bankElapsed(Duration.between(rs, now()).toMillis())
+    }
+
+    override fun onForeground() {
+        val current = board?.session ?: return
+        if (runningSince == null && !current.isComplete && current.hasStarted) openWindow()
+    }
+
+    /** The running window's identity — the loop restarts each time it (re)opens. */
+    override val clockWindow: Any?
+        get() = runningSince
+
+    /** What TimerBar draws right now (banked + running window). Never negative. */
+    override fun displayedElapsedMs(): Long {
+        val banked = board?.session?.elapsedMs ?: return 0L
+        val window = runningSince?.let { Duration.between(it, Instant.ofEpochMilli(nowMs)).toMillis() } ?: 0L
+        return (banked + window).coerceAtLeast(0L)
+    }
 
     //endregion
 
-    private companion object {
-        fun unavailableMessage(error: FetchError): String = when (error) {
+    //region PlayHints / PlayUndo / result copy
+
+    override val hintsUsed: Int get() = board?.session?.hintsUsed ?: 0
+
+    override val hintEnabled: Boolean
+        get() = screen is QueensScreen.Ready && board?.session?.isComplete == false
+
+    /** The §5.5 deduction caption, shown by the shared chrome until the next board action. */
+    override val hintCaption: String? get() = board?.hintCaption
+
+    override fun requestHint() {
+        board?.requestHint()
+    }
+
+    override val canUndo: Boolean get() = board?.canUndo ?: false
+    override val canRedo: Boolean get() = board?.canRedo ?: false
+
+    override fun undo() {
+        board?.undo()
+    }
+
+    override fun redo() {
+        board?.redo()
+    }
+
+    override val resultLabel: String?
+        get() = (screen as? QueensScreen.Ready)?.ref?.puzzleNumber?.let { "Queens · #$it" } ?: "Queens"
+
+    //endregion
+
+    companion object {
+        /** Queens rolls at midnight PT (QueensDefinition pins the zone). */
+        val queensCadenceZone: ZoneId = (QueensDefinition.cadence as Cadence.Daily).zone
+
+        private fun unavailableMessage(error: FetchError): String = when (error) {
             is FetchError.Unavailable -> "Couldn't reach LinkedIn, and no copy of today's puzzle is saved yet. Check your connection and try again."
             is FetchError.Throttled -> "LinkedIn is rate-limiting requests right now. Give it a minute and try again."
             is FetchError.Untrusted -> "Today's puzzle failed verification, so it can't be played. Try again later."
@@ -266,8 +335,5 @@ class QueensPlayState(
 
         private fun untrustedMessage(error: DecodeError): String =
             "The saved puzzle couldn't be read (${error::class.simpleName}). Try refreshing."
-
-        /** Queens rolls at midnight PT (QueensDefinition pins the zone). */
-        fun today(): LocalDate = LocalDate.now((QueensDefinition.cadence as Cadence.Daily).zone)
     }
 }
