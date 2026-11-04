@@ -14,7 +14,7 @@ import java.time.LocalDate
  * whose ref is the day's identity — the play entry starts the named game's flow and
  * restores through its own codec, unchanged. A restored completed day shows its win
  * without emitting; a fresh completion of an already-won day lands as a replay row with
- * the day's baseline, never a second record (A4 — owned and tested in :feature:play /
+ * the day's baseline, never a second record (A4 — owned and tested in :feature:play:impl /
  * :core:data).
  */
 sealed interface ReplayOutcome {

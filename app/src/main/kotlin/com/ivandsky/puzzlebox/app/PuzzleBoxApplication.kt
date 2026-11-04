@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.games.tangoui.tangoUiModule
 import com.ivandsky.puzzlebox.history.di.historyModule
 import com.ivandsky.puzzlebox.home.di.homeModule
 import com.ivandsky.puzzlebox.play.di.playModule
+import com.ivandsky.puzzlebox.profile.di.profileModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
@@ -33,6 +34,6 @@ class PuzzleBoxApplication : Application() {
 
     companion object {
         val appModules =
-            listOf(commonModule, dataModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, appModule)
+            listOf(commonModule, dataModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, profileModule(R.string.default_web_client_id), zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, appModule)
     }
 }

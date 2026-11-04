@@ -1,9 +1,6 @@
 package com.ivandsky.puzzlebox.app.di
 
-import com.ivandsky.puzzlebox.app.auth.CredentialManagerGoogleIdTokenProvider
-import com.ivandsky.puzzlebox.app.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
-import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -14,8 +11,6 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import org.koin.android.ext.koin.androidContext
-import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 /** App-process wiring: the application scope and the platform seams. */
@@ -25,18 +20,6 @@ val appModule = module {
     // default dispatcher from the provider — same posture as the DataStore scope.
     single<CoroutineScope> {
         CoroutineScope(SupervisorJob() + get<DispatcherProvider>().default)
-    }
-    single<GoogleIdTokenProvider> {
-        CredentialManagerGoogleIdTokenProvider(androidContext())
-    }
-    // ProfileRoute's koinViewModel(). Today's board is the featured game's
-    // (domainModule's ObserveTodayLeaderboard).
-    viewModel {
-        ProfileViewModel(
-            identityService = get<IdentityService>(),
-            idTokenProvider = get<GoogleIdTokenProvider>(),
-            observeTodayLeaderboard = get(),
-        )
     }
     single {
         LeaderboardSubmitWatcher(

@@ -43,7 +43,7 @@ dependencies {
     implementation(projects.core.common)
     implementation(projects.core.designsystem)
     implementation(projects.core.data)
-    // domainModule's use cases; ProfileViewModel observes today's board through them.
+    // domainModule's use cases (Home, History and Profile observe through them).
     implementation(projects.core.domain)
     // The records contract (CompletionRepository) speaks core:game types (CompletionRecord).
     implementation(projects.core.game)
@@ -55,22 +55,24 @@ dependencies {
     implementation(projects.games.queensUi)
     implementation(projects.games.tango)
     implementation(projects.games.tangoUi)
-    implementation(projects.feature.home)
-    implementation(projects.feature.play)
-    implementation(projects.feature.history)
+    implementation(projects.core.navigation)
+    // The shell composes every feature's entries and registers every feature's keys.
+    implementation(projects.feature.home.api)
+    implementation(projects.feature.home.impl)
+    implementation(projects.feature.play.api)
+    implementation(projects.feature.play.impl)
+    implementation(projects.feature.history.api)
+    implementation(projects.feature.history.impl)
+    implementation(projects.feature.profile.api)
+    implementation(projects.feature.profile.impl)
 
     implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.compose.material3.windowsizeclass)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
-    // Ticket 16: Credential Manager Google sign-in feeds the backend an ID token.
-    implementation(libs.androidx.credentials)
-    implementation(libs.androidx.credentials.play.services)
-    implementation(libs.googleid)
 
     // Ticket design-previews-08: the debug-only custom Showkase browser compiles
     // against Showkase models; the debug source set never enters release builds.
@@ -85,6 +87,4 @@ dependencies {
     testImplementation(projects.core.testing)
     testImplementation(libs.koin.test)
     testImplementation(libs.koin.test.junit4)
-    testImplementation(libs.turbine)
-    testImplementation(libs.mockito.core)
 }

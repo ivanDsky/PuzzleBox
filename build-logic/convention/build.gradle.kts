@@ -48,9 +48,13 @@ gradlePlugin {
             id = libs.plugins.puzzlebox.android.library.compose.get().pluginId
             implementationClass = "AndroidLibraryComposeConventionPlugin"
         }
-        register("androidFeature") {
-            id = libs.plugins.puzzlebox.android.feature.get().pluginId
-            implementationClass = "AndroidFeatureConventionPlugin"
+        register("androidFeatureApi") {
+            id = libs.plugins.puzzlebox.android.feature.api.get().pluginId
+            implementationClass = "AndroidFeatureApiConventionPlugin"
+        }
+        register("androidFeatureImpl") {
+            id = libs.plugins.puzzlebox.android.feature.impl.get().pluginId
+            implementationClass = "AndroidFeatureImplConventionPlugin"
         }
         register("androidRoom") {
             id = libs.plugins.puzzlebox.android.room.get().pluginId

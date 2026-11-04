@@ -16,23 +16,33 @@ schema version and rule changes are data (`Puzzle.variant`).
 
 ## Layout
 
-Gradle root `PuzzleBox`, twelve modules. Dependency direction: `:app` → `:feature:*` →
-`:core:*`; `:games:zip`/`:games:zip-ui` plug in through Koin; `:backend:firebase` implements
+Gradle root `PuzzleBox`. Dependency direction: `:app` → `:feature:*:impl` → `:feature:*:api` →
+`:core:navigation`, with every impl also on `:core:*`; a feature impl reaches another feature
+only through its `api` (keys), never its impl, and no feature module depends on `games:*`;
+`:games:*` plug in through Koin; `:backend:firebase` implements
 seams declared in `:core:data`; `:core:model` is the dependency-free base. Three modules are
 pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
 
 - `app/` (`:app`) — `PuzzleBoxApplication` (starts Koin, then starts `LeaderboardSubmitWatcher`),
   `MainActivity` (Compose host, theme resolution, edge-to-edge), `PuzzleBoxApp` (Navigation3
-  shell: Home/Play/Profile tabs, pushed History/ReplayZip/Result/Catalog entries, SceneCanvas,
-  fade-through transitions honoring system reduce-motion, special Result enter transition),
-  NavKey routes in `nav/TopLevelDestination.kt`, `auth/GoogleIdTokenProvider` (Credential
-  Manager with a typed `Unavailable.Reason` taxonomy), `leaderboard/LeaderboardSubmitWatcher`
-  (auto-submits records when signed in), `screens/ProfileScreen` (`ProfileViewModel` over
-  `ObserveTodayLeaderboard`: sealed `ProfileUiState` SignedOut/SignedIn, `onSignIn(context)`/
-  `onSignOut`, today's board), `di/AppModule` (app scope, `List<GamePlugin>` aggregation in
+  shell: Home/Play/Profile tabs over one `NavBackStack` driven through a `Navigator`, the
+  feature-contributed entries plus the app-owned Catalog page, `SceneCanvas` as a
+  `NavEntryDecorator`, fade-through transitions honoring system reduce-motion, special Result
+  enter transition), `nav/TopLevelDestination.kt` (tab table over the features' keys),
+  `nav/CatalogKey.kt`, `nav/PuzzleBoxNavKeys.kt` (`puzzleBoxNavKeys`: the back stack's
+  polymorphic `SavedStateConfiguration` over every feature's keys),
+  `leaderboard/LeaderboardSubmitWatcher` (auto-submits records when signed in),
+  `di/AppModule` (app scope, `List<GamePlugin>` aggregation in
   the app's picker order zip → tango → queens, `GamePlayRegistry(getAll())` over every game's
   `GamePlayUi`), debug-only Showkase browser (`CatalogDebugBinding`,
   `PreviewBackdrop`, `BrowserRadioControls`; goldens in `app/snapshots/`).
+- `core/navigation/` — `Navigator` (`currentKey`, `navigate`, `navigateOnce` double-tap guard,
+  `navigateToTopLevel` tab reset, `goBack`) over the app's single `NavBackStack<NavKey>`, and
+  `navKeySavedStateConfiguration` (open `NavKey` polymorphism for back-stack saved state).
+- `feature/{home,play,history,profile}/api/` — each feature's `@Serializable` NavKeys
+  (`HomeKey`; `PlayKey`, `ResultKey`, `ReplayKey`; `HistoryKey`; `ProfileKey`) and a
+  `*NavKeys()` polymorphic registration; serial names stay pinned to the pre-split
+  `com.ivandsky.puzzlebox.app.nav.*` class names so older saved stacks restore.
 - `core/common/` — `DispatcherProvider` seam (+ default impl), `AppResult`/`AppError` and
   `resultOf` convention (typed errors, never thrown surprises), Koin `commonModule`.
 - `core/data/` — Room v4 (`PuzzleBoxDatabase` with the legacy `DailyPuzzleDao`/`DailyPuzzleEntity`
@@ -105,11 +115,12 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   one `*PlayController : GamePlayController` (session, hint machinery, win → record),
   one `*PlayUi : GamePlayUi` (board area + `PlayChrome`), the board composables, and
   `*UiModule` (the game's `GamePlayUi` single, qualified by game id).
-- `feature/home/` — `HomeRoute` (DI-bound entry: collects `HomeViewModel` — featured game,
+- `feature/home/impl/` — `navigation/HomeEntry` (`homeEntry`: pushes Play/Profile/History via
+  `navigateOnce`), `HomeRoute` (DI-bound entry: collects `HomeViewModel` — featured game,
   identity, the cache-only merged history teaser via `ObserveGameHistory`; never the
   network; `di/HomeModule`), `HomeScreen` (single/two-pane, play/history destinations,
   appearance via `ThemeDialog`), `HomeLayout` + `homeLayoutFor` pure pane policy.
-- `feature/play/` — the one game-agnostic play surface (ADR-0006, ADR-0007; no `games:*`
+- `feature/play/impl/` — the one game-agnostic play surface (ADR-0006, ADR-0007; no `games:*`
   dependency): `PlaySessionStore` (Koin single: the live `ActivePlay`, `start`/`restore`/
   `end`, rebindable session sink emitting game-named `SessionBlob` envelopes),
   `ActivePlay` (daily load → adopt, board/record `StateFlow`s incl. the record badge and
@@ -117,17 +128,26 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   `PlayViewModel`/`PlayUiState` + `ResultViewModel`,
   `PlayRoute` (game picker → restore-adopt-load through the rememberSaveable envelope;
   `BackHandler` ends the play), `GamePicker`, `ResultRoute` (shared `ResultScreen` + the
-  live play's label), `di/PlayModule`.
+  live play's label), `di/PlayModule`; `navigation/PlayEntries` (`playEntry`, `replayEntry`
+  decoding the base64 session, `resultEntry`) and `navigation/PlayBackStack` (the ticket-23
+  stack contract as `Navigator` extensions: `solveToResult`, `playAgainFromResult`, `leavePlay`).
 - `core/game/` `Command`/`CommandHistory` — undo/redo as per-move commands over the game's
   board state; `core/game-ui/` `PlayChrome` (title, timer, hint button+count, undo/redo,
   game-controls slot), `HintButton`, `ResultScreen` (label + `gameSection` slot).
 - Session codecs persist the command history: `ZipSessionCodec` v2, `TangoSessionCodec` v2,
   `QueensSessionCodec` v3 (each still reads its previous version with empty history).
-- `feature/history/` — `HistoryRoute`/`HistoryScreen` (paged day list with streak header)
+- `feature/history/impl/` — `navigation/HistoryEntry` (`historyEntry`: back pops, a replay pushes
+  `ReplayKey`), `HistoryRoute`/`HistoryScreen` (paged day list with streak header)
   over `HistoryViewModel` (`HistoryUiState` rows/records/streak, `pagedDays` PagingData,
   one-shot `HistoryEvent` replay answers via `GetReplaySession`; `di/HistoryModule`),
   `HistoryPaging` (`historyPager`, `HistoryPagingSource`, PAGE_SIZE 20), `HistoryLayout` +
   `historyLayoutFor` — replay rides the same PlayRoute with a restored session.
+- `feature/profile/impl/` — Kotlin packages kept from the app: `app/screens/ProfileScreen`
+  (`ProfileViewModel` over `ObserveTodayLeaderboard`: sealed `ProfileUiState`
+  SignedOut/SignedIn, `onSignIn(context)`/`onSignOut`, today's board),
+  `app/auth/GoogleIdTokenProvider` (Credential Manager with a typed `Unavailable.Reason`
+  taxonomy; the app passes its google-services `default_web_client_id` resource id),
+  `profile/di/ProfileModule` (`profileModule(serverClientIdRes)`), `profile/navigation/ProfileEntry`.
 - `backend/firebase/` — implements the `core/data` seams: `FirebaseIdentityService`
   (`IdentityService`) over an internal `AuthGateway`/`FirebaseAuthGateway` (Google ID-token
   sign-in), `FirestoreLeaderboardStore` + `FirestoreLeaderboardRepository`
@@ -142,20 +162,22 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
 
 - `PuzzleBoxApplication.onCreate` — `startKoin` with `appModules` = `commonModule` +
   `dataModule` + `firebaseBackendModule` + `domainModule` + `homeModule` + `historyModule` +
-  `playModule` + each game's `*Module` and
+  `playModule` + `profileModule(R.string.default_web_client_id)` + each game's `*Module` and
   `*UiModule` (zip, queens, tango) + `appModule` (the whole object graph), then
   `LeaderboardSubmitWatcher.start()`.
 - `MainActivity` — sole activity; holds composition until the persisted `ThemeMode` arrives
   (no light flash), resolves dark theme against the system setting, keeps system bar icon
   appearance in step with the resolved in-app theme, then hosts `PuzzleBoxApp` with the width
   size class, `ThemeMode`, and the set-theme callback.
-- `PuzzleBoxApp` route table (Navigation3 `NavDisplay`): tabs Home → `HomeRoute`, Play →
-  `PlayRoute`, Profile → `ProfileRoute` (real identity + leaderboard screen now). Pushed
-  entries: History → `HistoryRoute` (Home's history teaser), ReplayZip(session bytes) →
-  `PlayRoute` with a restored session, Result(timeMs, hintsUsed) → `ResultRoute` (solved only
-  from Play, distinct enter transition), Catalog → the debug-only Showkase browser (reflective
+- `PuzzleBoxApp` route table (Navigation3 `NavDisplay`, entries contributed by each feature
+  impl's `*Entry` builder): tabs HomeKey → `HomeRoute`, PlayKey →
+  `PlayRoute`, ProfileKey → `ProfileRoute` (real identity + leaderboard screen now). Pushed
+  entries: HistoryKey → `HistoryRoute` (Home's history teaser), ReplayKey(session bytes) →
+  `PlayRoute` with a restored session, ResultKey(timeMs, hintsUsed) → `ResultRoute` (solved only
+  from Play, distinct enter transition), CatalogKey → the debug-only Showkase browser (reflective
   `CatalogDebugBinding` registration, FLAG_DEBUGGABLE-gated; non-debuggable builds get the
-  cutover placeholder). Tab selection resets to the tab root; `pushOnce` guards double-push.
+  cutover placeholder). Tab selection resets to the tab root (`Navigator.navigateToTopLevel`);
+  `Navigator.navigateOnce` guards double-push.
   Bottom bar on compact widths, navigation rail on expanded-width landscape (the
   `homeLayoutFor`/`playLayoutFor`/`historyLayoutFor` decisions drive nav shape and each
   screen's panes).
@@ -172,9 +194,10 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   `firebaseBackendModule` (`AuthGateway`, `IdentityService`, `LeaderboardStore`,
   `LeaderboardRepository`) + `domainModule` (the five use cases) + `homeModule`
   (`HomeViewModel`) + `historyModule` (`HistoryViewModel`) + `playModule` (`PlaySessionStore`, `PlayViewModel`,
-  `ResultViewModel`) + per game `*Module` (the plugin, qualified by id) and `*UiModule` (the
-  `GamePlayUi`, qualified by id) + `appModule` (`CoroutineScope`, `GoogleIdTokenProvider`,
-  `ProfileViewModel`, `LeaderboardSubmitWatcher`, ordered `List<GamePlugin>` via `getAll`,
+  `ResultViewModel`) + `profileModule` (`GoogleIdTokenProvider`, `ProfileViewModel`) + per game
+  `*Module` (the plugin, qualified by id) and `*UiModule` (the
+  `GamePlayUi`, qualified by id) + `appModule` (`CoroutineScope`,
+  `LeaderboardSubmitWatcher`, ordered `List<GamePlugin>` via `getAll`,
   `GamePlayRegistry` via `getAll`). Graph completeness is asserted by `DiGraphTest`
   under Robolectric.
 - **`GamePlugin`/`GameDefinition` contracts** (ADR-0001, `core/game`) — onboarding a game is
@@ -229,8 +252,11 @@ SDK lives at `~/Library/Android/sdk` here; Gradle toolchain is pinned to JVM 25 
 `gradle/gradle-daemon-jvm.properties`. Android modules run `testDebugUnitTest`; the pure-JVM
 modules (`:core:game`, `:games:zip`) run plain `test`; `:core:model` has no test sources.
 
-- `./gradlew :app:testDebugUnitTest` — 61 tests (DI graph, nav routes, auth reason mapping,
-  submit watcher, profile screen/viewmodel, 16 browser screenshots)
+- `./gradlew :app:testDebugUnitTest` — DI graph, nav routes, back-stack saved-state restore,
+  submit watcher, real-games play/result routes, 16 browser screenshots (39 tests executed
+  2026-11-04)
+- `./gradlew :core:navigation:testDebugUnitTest` — `Navigator` stack moves (4 tests
+  executed 2026-11-04)
 - `./gradlew :backend:firebase:testDebugUnitTest` — 32 tests (identity service, leaderboard
   repository, doc codec)
 - `./gradlew :core:common:testDebugUnitTest` — 8 tests (AppResult/resultOf)
@@ -242,11 +268,13 @@ modules (`:core:game`, `:games:zip`) run plain `test`; `:core:model` has no test
 - `./gradlew :core:game:test` — 6 tests (contract-conformance suite)
 - `./gradlew :core:game-ui:testDebugUnitTest` — 37 tests (grid geometry, drag trace, registry,
   clock formatting, layout policy, record emitter, compose component checks)
-- `./gradlew :feature:home:testDebugUnitTest` — 14 tests (layout policy, home screen/route)
-- `./gradlew :feature:history:testDebugUnitTest` — 30 tests (paging, layout policy, streak,
+- `./gradlew :feature:home:impl:testDebugUnitTest` — 14 tests (layout policy, home screen/route)
+- `./gradlew :feature:history:impl:testDebugUnitTest` — 30 tests (paging, layout policy, streak,
   replay launch, screen)
-- `./gradlew :feature:play:testDebugUnitTest` — 75 tests (play state machine, screens,
-  33-case board/variant matrix)
+- `./gradlew :feature:play:impl:testDebugUnitTest` — 75 tests (play state machine, screens,
+  33-case board/variant matrix; plus the result-route back-stack contract)
+- `./gradlew :feature:profile:impl:testDebugUnitTest` — auth reason mapping, profile
+  screen/viewmodel (28 tests executed 2026-11-04)
 - `./gradlew :games:zip:test` — 122 tests (rule pipeline, property tests, codec fixtures +
   property + golden snapshot, solver uniqueness/benchmark, generator, session, plugin, score)
 - `./gradlew :games:zip-ui:testDebugUnitTest` — 2 tests (board renderer)

@@ -26,7 +26,9 @@ Multi-module Gradle project, Kotlin + Compose (Material 3):
 
 ```
 app                  # navigation shell, MainActivity
-├── feature/home     # home / daily games UI
+├── feature/*/impl   # feature screens + nav entries: home, play, history, profile
+├── feature/*/api    # each feature's NavKeys (the only cross-feature edge)
+├── core/navigation  # Navigator over the single back stack, NavKey saved-state config
 ├── games/zip        # Zip game (plugin module)
 ├── core/game        # game engine contracts
 ├── core/game-ui     # shared game UI components

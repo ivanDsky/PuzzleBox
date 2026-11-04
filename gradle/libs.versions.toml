@@ -124,7 +124,8 @@ puzzlebox-android-application = { id = "puzzlebox.android.application" }
 puzzlebox-android-application-compose = { id = "puzzlebox.android.application.compose" }
 puzzlebox-android-library = { id = "puzzlebox.android.library" }
 puzzlebox-android-library-compose = { id = "puzzlebox.android.library.compose" }
-puzzlebox-android-feature = { id = "puzzlebox.android.feature" }
+puzzlebox-android-feature-api = { id = "puzzlebox.android.feature.api" }
+puzzlebox-android-feature-impl = { id = "puzzlebox.android.feature.impl" }
 puzzlebox-android-room = { id = "puzzlebox.android.room" }
 puzzlebox-android-roborazzi = { id = "puzzlebox.android.roborazzi" }
 puzzlebox-jvm-library = { id = "puzzlebox.jvm.library" }
