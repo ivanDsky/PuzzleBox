@@ -5,7 +5,7 @@ import com.ivandsky.puzzlebox.konsist.core.Violation
 import org.junit.Test
 
 /**
- * P2: `Dispatchers` may be referenced only in a `.common.dispatcher` package or module `:core:testing`.
+ * P2: `Dispatchers` may be referenced only in the `.common.dispatcher` package of `:core:common` or in module `:core:testing`.
  * Contract and allowlist rules: ADR-0009 (docs/adr/0009-in-module-structure-rules.md).
  */
 class P2DispatchersLocationTest {
@@ -25,6 +25,7 @@ class P2DispatchersLocationTest {
                 Violation("$dir/ImportBad.kt", null, ""),
                 Violation("$dir/MemberImportBad.kt", null, ""),
                 Violation("$dir/InlineBad.kt", null, ""),
+                Violation("$dir/common/dispatcher/ElsewhereBad.kt", null, ""),
             ),
         )
     }

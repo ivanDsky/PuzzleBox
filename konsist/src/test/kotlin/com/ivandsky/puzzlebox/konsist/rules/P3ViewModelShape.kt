@@ -37,18 +37,31 @@ object P3ViewModelShape : Rule {
         if (extends && !named) add("${cls.name} extends ViewModel but is not named *ViewModel")
         if (named && !extends) add("${cls.name} is named *ViewModel but does not extend ViewModel")
         if (!IMPL_MODULE.matches(modulePath)) add("${cls.name} lives in $modulePath, not :feature:<x>:impl")
-        cls.properties(includeNested = false).filter(::exposesMutableState).forEach {
+        val properties = cls.properties(includeNested = false)
+        val mutableNames = properties.filter(::isMutableByShape).map { it.name }.toSet()
+        properties.filter { exposesMutableState(it, mutableNames) }.forEach {
             add("${cls.name}.${it.name} is public mutable state: expose a read-only type, keep the Mutable* private")
         }
     }
 
     /** Lowercase factories (`mutableStateOf`) count as well as `MutableStateFlow(...)`: Compose state leaks the same way. */
-    private fun exposesMutableState(property: KoPropertyDeclaration): Boolean {
+    private fun exposesMutableState(property: KoPropertyDeclaration, mutableNames: Set<String>): Boolean {
         if (property.hasPrivateModifier) return false
-        if (property.isVar) return true
-        val head = property.text.substringBefore('=')
-        val declared = if (':' in head) head.substringAfter(':').trim() else null
-        if (declared != null) return declared.startsWith("Mutable")
-        return MUTABLE_FACTORY.containsMatchIn(property.text.substringAfter('=', "").trim())
+        if (property.isVar || isMutableByShape(property)) return true
+        // `val state = _state` and `val state get() = _state` hand out the private Mutable* under another name.
+        return declaredType(property) == null && initializer(property) in mutableNames
     }
+
+    private fun isMutableByShape(property: KoPropertyDeclaration): Boolean {
+        val declared = declaredType(property)
+        if (declared != null) return declared.startsWith("Mutable")
+        return MUTABLE_FACTORY.containsMatchIn(initializer(property))
+    }
+
+    private fun declaredType(property: KoPropertyDeclaration): String? {
+        val head = property.text.substringBefore('=')
+        return if (':' in head) head.substringAfter(':').trim() else null
+    }
+
+    private fun initializer(property: KoPropertyDeclaration) = property.text.substringAfter('=', "").trim()
 }

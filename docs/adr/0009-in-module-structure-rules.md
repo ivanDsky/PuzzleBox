@@ -179,7 +179,7 @@ Every production file's package is under its module's package root.
 ## P2
 `Dispatchers` is referenced only in the dispatcher provider and in `:core:testing`.
 
-- **Scope:** production, except `:core:testing` and files whose package ends in
+- **Scope:** production, except `:core:testing` and files in `:core:common` whose package ends in
   `.common.dispatcher`.
 - **Detection:** the text `kotlinx.coroutines.Dispatchers` or `Dispatchers.` after comments are
   removed. One pattern covers the import, the member import and the inline use.
@@ -196,7 +196,9 @@ ViewModels are named `*ViewModel`, live in `:feature:<x>:impl`, and expose no pu
   `ViewModel`, or the reverse; when its module is not a feature `impl` module; or when it has a
   non-private property that is a `var`, is declared with a `Mutable...` type, or is initialized
   by a `Mutable...(` or `mutable...(` factory (so `MutableStateFlow(...)` and `mutableStateOf(...)`
-  both count). One violation per file, joining the problems.
+  both count), or is typeless with an initializer or getter that is just the name of a class property
+  declared `Mutable...` or initialized by such a factory (`val state = _state`, `val state get() = _state`).
+  A declared read-only type (`val state: StateFlow<T> = _state`) passes. One violation per file, joining the problems.
 - **Accepted misses:** properties declared in the primary constructor are not judged. Nested
   classes are not judged.
 - **How to fix:** keep the `Mutable*` private and expose a read-only type; rename or move the class.
