@@ -82,7 +82,7 @@ class CensusTest {
     }
 
     private fun walk(includeKonsist: Boolean): Set<String> {
-        val skippedAnywhere = setOf(".git", ".gradle", "build", "generated")
+        val skippedAnywhere = setOf(".git", ".gradle", "build")
         val skippedAtRoot = if (includeKonsist) setOf("build-logic") else setOf("build-logic", "konsist")
         val sourceFile = Regex("""(.*/)?src/[^/]+/(kotlin|java)/.+\.kt""")
         return root.walkTopDown()

@@ -64,13 +64,14 @@ class SourceTreeTest {
     }
 
     @Test
-    fun buildAndGeneratedSegmentsAreExcludedAndHeadersAreStripped() {
+    fun buildSegmentsAreExcludedGeneratedPackagesAreScannedAndHeadersAreStripped() {
         val dir = Files.createTempDirectory("tree-copy").toFile()
         try {
             tree.root.copyRecursively(dir)
             fun add(path: String, text: String) = File(dir, path).apply { parentFile.mkdirs() }.writeText(text)
             add("games/a/src/main/kotlin/build/B.kt", "package x\n")
             add("games/a/src/main/kotlin/generated/G.kt", "package x\n")
+            add("core/model/src/main/kotlin/build/generated/Gb.kt", "package x\n")
             add("core/model/src/main/kotlin/p/build/B2.kt", "package x\n")
             add("games/a/src/main/kotlin/builder/Keep.kt", "package com.keep\n")
             add("games/a/src/main/kotlin/NoPkg.kt", "// package com.fake\nclass NoPkg\n")
@@ -80,13 +81,14 @@ class SourceTreeTest {
             val loaded = SourceTree.load(dir)
             val paths = loaded.files(SourceSetKind.PRODUCTION).map { it.path }
 
-            assertTrue(paths.toString(), paths.none { it.contains("/build/") || it.contains("/generated/") })
+            assertTrue(paths.toString(), paths.none { it.contains("/build/") })
+            assertTrue(paths.toString(), "games/a/src/main/kotlin/generated/G.kt" in paths)
             assertTrue(paths.toString(), "games/a/src/main/kotlin/builder/Keep.kt" in paths)
             assertEquals("", loaded.files(SourceSetKind.PRODUCTION).single { it.path.endsWith("NoPkg.kt") }.packageName)
             val java = loaded.files(SourceSetKind.PRODUCTION).single { it.path.endsWith("Java.kt") }
             assertEquals("com.java", java.packageName)
             assertTrue(java.strippedText.contains("package com.java") && !java.strippedText.contains("c */"))
-            assertEquals(5 + 3, paths.size)
+            assertEquals(5 + 4, paths.size)
         } finally {
             dir.deleteRecursively()
         }

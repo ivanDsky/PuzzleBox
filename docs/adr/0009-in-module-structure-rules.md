@@ -73,6 +73,19 @@ returns these findings:
 Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1.
 S0, P3, P4 and P7 have none.
 
+### Payload cross-reference
+The `design-architecture` payload (`references/rules-architecture.md`) states four of these as
+prose rules; the tests are their mechanical form and add no stricter bar:
+- Rule 17, file discipline (one task per file, short, split by responsibility): S2 (300 lines).
+- Rule 18, dispatchers injected, `Dispatchers.*` only in the composition root that builds the
+  provider: P2.
+- Rule 19, ViewModels expose read-only state: P3.
+- Rule 20, one public top-level type per file (private helpers, extensions, typealiases and
+  previews excepted): S1.
+
+The other rules (S0, S4, S5, P1, P4–P7) have no payload twin. Dependency direction between
+modules stays in ADR-0008.
+
 ### Adding a rule
 1. Add `konsist/src/test/kotlin/com/ivandsky/puzzlebox/konsist/rules/<ID><Name>.kt`, an
    `object` implementing `Rule`, and `<ID><Name>Test.kt` next to it. Test class and test

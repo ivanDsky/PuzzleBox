@@ -5,7 +5,7 @@ import java.io.File
 object SourceWalker {
     private val SOURCE_DIRS = listOf("kotlin", "java")
     private val EXCLUDED_ROOT_DIRS = setOf("konsist", "build-logic")
-    private val EXCLUDED_ANYWHERE = setOf("build", "generated")
+    private val EXCLUDED_ANYWHERE = setOf("build")
     private val PACKAGE_HEADER = Regex("""(?m)^[ \t]*package[ \t]+([^\s;]+)""")
 
     /** Kotlin files of every module's src/<set>/{kotlin,java}, sorted by path; each file has exactly one module. */
