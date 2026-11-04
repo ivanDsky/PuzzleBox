@@ -14,7 +14,9 @@ future `PuzzleSource` adapter, ADR-0003 per-game editors only after that game sh
 records normalized in `core:data` with `CompletionRecord` emitted by games, ADR-0005 every
 persisted artifact self-describes its schema version and rule changes are data
 (`Puzzle.variant`), ADR-0006 command history and the shared core play chrome, ADR-0007 the
-play session store, ADR-0008 the module graph and its enforced forbidden edges.
+play session store, ADR-0008 the module graph and its enforced forbidden edges, ADR-0009 the
+in-module structure rules (`:konsist`, 12 Konsist-backed rules with shrink-only allowlists;
+each failure links to its section).
 
 ## Layout
 
@@ -28,7 +30,8 @@ through Koin. `:core:data` exposes `:core:common`/`:core:game`/`:core:model` and
 `:backend:firebase` implements seams declared in `:core:data`. Every module except app/backend
 tests via `testImplementation(projects.core.testing)`. Pure JVM modules
 (`puzzlebox.jvm.library`): `:core:model`, `:core:game`, `:core:network`, `:games:zip`,
-`:games:tango`, `:games:queens`.
+`:games:tango`, `:games:queens`, plus `:konsist` (test-only `jvm.library`, zero project
+edges; reads the repo's sources as files).
 
 Forbidden edges (ADR-0008, [docs/adr/0008-module-graph.md](../adr/0008-module-graph.md)),
 checked over ALL configurations incl. test by `./gradlew checkModuleGraph` (build-logic
@@ -37,7 +40,8 @@ convention plugins; `check`, `preBuild` and `classes` depend on it, so `./gradle
 it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*` → non-core;
 `feature:*` → `games:*`; `feature:*:api` → anything but `:core:navigation`/`:core:model`;
 `feature:a:impl` → `feature:b:impl`; `games:*` → `feature:*`; `games:x` → `games:y` except
-`games:x-ui` → `games:x`.
+`games:x-ui` → `games:x`. Two more arms guard the verification module `:konsist` (ADR-0009):
+`:konsist` → any module, and any module → `:konsist` (test configurations too).
 
 - `app/` (`:app`) — `PuzzleBoxApplication` (starts Koin, then starts `LeaderboardSubmitWatcher`),
   `MainActivity` (Compose host, theme resolution, edge-to-edge), `PuzzleBoxApp` (Navigation3
@@ -52,6 +56,10 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `GAME_ORDER` zip → tango → queens; `GamePlayRegistry(getAll())` over every game's
   `GamePlayUi`), debug-only Showkase browser (`CatalogDebugBinding`, `ShowkaseBrowserScreen`,
   `PreviewBackdrop`, `BrowserRadioControls`; goldens in `app/snapshots/`).
+- `konsist/` (`:konsist`, test-only `puzzlebox.jvm.library`, no project dependencies) — the
+  in-module structure rule suite (ADR-0009): `core/` engine (`SourceTree`, `Allowlist`, `judge`,
+  `RuleCheck`, `CensusTest`), `rules/` one `<ID><Name>.kt` + test per rule, resources
+  `allowlists/<ID>.txt` and `fixtures/<ID>/` (incl. `add-a-game`).
 - `core/navigation/` (`:core:navigation`) — `Navigator` (`currentKey`, `navigate`,
   `navigateOnce` double-tap guard, `navigateToTopLevel` tab reset, `goBack`) over the app's
   single `NavBackStack<NavKey>`, and `navKeySavedStateConfiguration` (open `NavKey`
@@ -236,6 +244,10 @@ modules run `test`. Full suite:
 `./gradlew assembleDebug testDebugUnitTest :core:game:test :games:zip:test :games:queens:test
 :games:tango:test :core:model:test :core:network:test -Proborazzi.verify=true --continue` —
 P9 full-suite run: 1036 tests, 0 failures.
+
+Structure rules (ADR-0009): `./gradlew :konsist:test` — runs the 12 in-module rules, the
+census and the engine tests over the whole repo's sources (not in the count above; reruns
+when any source, build script or allowlist changes).
 
 - `:app:testDebugUnitTest` — 39 (DI graph, nav routes, saved-state restore, submit watcher,
   browser screenshots)

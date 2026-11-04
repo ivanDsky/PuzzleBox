@@ -53,8 +53,13 @@ the build instead of a review.
    - `feature:*:api` → anything but `:core:navigation` / `:core:model`;
    - `feature:a:impl` → `feature:b:impl`;
    - `games:*` → `feature:*`;
-   - `games:x` → `games:y`, except `games:x-ui` → `games:x`.
+   - `games:x` → `games:y`, except `games:x-ui` → `games:x`;
+   - `:konsist` → any module, and any module → `:konsist`, in every configuration (test
+     configurations included).
 
+   `:konsist` is a verification-only family (ADR-0009, [in-module structure rules](0009-in-module-structure-rules.md)):
+   it reads sources as files and has zero edges, so it never joins the app's graph. Two arms of
+   `forbiddenEdgeReason` guard it, placed before the `:core:testing` test-configuration exemption.
    `:backend:*` is otherwise unconstrained (it implements `core:data` seams).
 
 ## Adding a game
@@ -79,3 +84,5 @@ No `core:*` or `feature:*` module changes; `checkModuleGraph` rejects any shortc
 - The guard reads declared project dependencies, not the resolved graph: transitive `api`
   exposure is allowed by design (e.g. `core:domain` re-exporting `core:data`).
 - New module families need a rule in `forbiddenEdgeReason` and an update here.
+- What is inside a module (file size, one type per file, package and naming rules) is guarded by
+  the `:konsist` suite, not by this task: see ADR-0009.

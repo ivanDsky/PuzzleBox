@@ -38,6 +38,7 @@ always  # user ruling 2026-10-31: every review gate publishes a localhost HTML r
 - runner: ./gradlew :app:testDebugUnitTest   # JVM unit tests against fakes
 - approach: tdd-fakes
 - seams: repository/use-case interfaces (+ fakes), dispatcher provider
+- structure: ./gradlew :konsist:test   # in-module structure rules (ADR-0009)
 
 ## Integrations (facts for spec/research)
 - NYT Strands: public API exists — no scraping needed
