@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.history
 
 import com.ivandsky.puzzlebox.data.repository.GameHistoryDay
-import com.ivandsky.puzzlebox.data.repository.TangoDailyEntry
-import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import java.time.LocalDate
@@ -61,14 +59,6 @@ internal fun GameHistoryDay.toRow(gameName: String) = HistoryDayRow(
     day = day,
     puzzleNumber = puzzleNumber,
     gameId = gameId,
-    gameName = gameName,
-    fetchedAtMs = fetchedAtMs,
-)
-
-internal fun TangoDailyEntry.toRow(gameName: String) = HistoryDayRow(
-    day = day,
-    puzzleNumber = puzzleNumber,
-    gameId = TangoDefinition.id,
     gameName = gameName,
     fetchedAtMs = fetchedAtMs,
 )

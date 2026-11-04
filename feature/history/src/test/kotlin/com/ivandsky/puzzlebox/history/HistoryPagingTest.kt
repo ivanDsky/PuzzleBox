@@ -3,6 +3,8 @@ package com.ivandsky.puzzlebox.history
 import androidx.paging.PagingSource
 import androidx.paging.testing.asSnapshot
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
+import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
@@ -27,17 +29,21 @@ class HistoryPagingTest {
 
     private val firstDay: LocalDate = LocalDate.of(2026, 1, 1)
 
-    /** [count] captured days, newest first (the repository contract). */
-    private fun seededRepo(count: Int): FakeZipDailyRepository =
-        FakeZipDailyRepository(
-            history = (0 until count).map { offset ->
+    private val games = listOf(ZipDefinition.id, TangoDefinition.id)
+
+    /** [count] captured Zip days, newest first (the repository contract). */
+    private fun seededRepo(count: Int): FakeDailyRepository = FakeDailyRepository().apply {
+        setHistory(
+            ZipDefinition.id,
+            (0 until count).map { offset ->
                 HistoryTestSupport.entry(firstDay.plusDays((count - 1 - offset).toLong()))
             },
         )
+    }
 
     @Test
     fun `initial load is one lazy page, not the whole history`() = runTest {
-        val items = historyDays(seededRepo(45), FakeTangoDailyRepository(), FakeCompletionRepository(), emptyMap()).asSnapshot()
+        val items = historyDays(seededRepo(45), games, FakeCompletionRepository(), emptyMap()).asSnapshot()
 
         assertEquals(PAGE_SIZE, items.size)
         assertEquals(firstDay.plusDays(44), items.first().day)
@@ -45,7 +51,7 @@ class HistoryPagingTest {
 
     @Test
     fun `scrolling reaches all 45 seeded days`() = runTest {
-        val items = historyDays(seededRepo(45), FakeTangoDailyRepository(), FakeCompletionRepository(), emptyMap()).asSnapshot {
+        val items = historyDays(seededRepo(45), games, FakeCompletionRepository(), emptyMap()).asSnapshot {
             appendScrollWhile { it.day > firstDay }
         }
 
@@ -55,7 +61,7 @@ class HistoryPagingTest {
 
     @Test
     fun `rows arrive newest first`() = runTest {
-        val items = historyDays(seededRepo(PAGE_SIZE), FakeTangoDailyRepository(), FakeCompletionRepository(), emptyMap()).asSnapshot()
+        val items = historyDays(seededRepo(PAGE_SIZE), games, FakeCompletionRepository(), emptyMap()).asSnapshot()
 
         assertEquals(
             (PAGE_SIZE - 1 downTo 0).map { firstDay.plusDays(it.toLong()) },
@@ -66,7 +72,7 @@ class HistoryPagingTest {
     @Test
     fun `a newly captured day invalidates to a fresh generation`() = runTest {
         val repo = seededRepo(45)
-        val flow = historyDays(repo, FakeTangoDailyRepository(), FakeCompletionRepository(), emptyMap())
+        val flow = historyDays(repo, games, FakeCompletionRepository(), emptyMap())
 
         assertEquals(45, flow.asSnapshot { appendScrollWhile { true } }.size)
 
@@ -84,7 +90,7 @@ class HistoryPagingTest {
         // No settle step before the first collection: whatever generation arrives
         // first must already carry the seeded rows (the Pager is only ever built
         // from mapped rows, so an empty-list generation cannot exist).
-        assertEquals(3, historyDays(seededRepo(3), FakeTangoDailyRepository(), FakeCompletionRepository(), emptyMap()).asSnapshot().size)
+        assertEquals(3, historyDays(seededRepo(3), games, FakeCompletionRepository(), emptyMap()).asSnapshot().size)
     }
 
     // ------------------------------------------------------------------
@@ -93,20 +99,24 @@ class HistoryPagingTest {
 
     @Test
     fun `merged rows sort day first, capture recency second, game third`() = runTest {
-        val zips = FakeZipDailyRepository(
-            history = listOf(
-                HistoryTestSupport.entry(LocalDate.parse("2026-10-31"), fetchedAtMs = 100L),
-                HistoryTestSupport.entry(LocalDate.parse("2026-10-30"), fetchedAtMs = 50L),
-            ),
-        )
-        val tangos = FakeTangoDailyRepository(
-            history = listOf(
-                HistoryTestSupport.tangoEntry(LocalDate.parse("2026-10-31"), fetchedAtMs = 200L),
-                HistoryTestSupport.tangoEntry(LocalDate.parse("2026-10-29"), fetchedAtMs = 10L),
-            ),
-        )
+        val daily = FakeDailyRepository().apply {
+            setHistory(
+                ZipDefinition.id,
+                listOf(
+                    HistoryTestSupport.entry(LocalDate.parse("2026-10-31"), fetchedAtMs = 100L),
+                    HistoryTestSupport.entry(LocalDate.parse("2026-10-30"), fetchedAtMs = 50L),
+                ),
+            )
+            setHistory(
+                TangoDefinition.id,
+                listOf(
+                    HistoryTestSupport.tangoEntry(LocalDate.parse("2026-10-31"), fetchedAtMs = 200L),
+                    HistoryTestSupport.tangoEntry(LocalDate.parse("2026-10-29"), fetchedAtMs = 10L),
+                ),
+            )
+        }
 
-        val rows = historyRows(zips, tangos, FakeCompletionRepository(), emptyMap()).first()
+        val rows = historyRows(daily, games, FakeCompletionRepository(), emptyMap()).first()
 
         // Day desc: 10-31 (both games, recency: tango 200 > zip 100), then 10-30, then 10-29.
         assertEquals(
@@ -122,10 +132,12 @@ class HistoryPagingTest {
 
     @Test
     fun `merged rows keep both games on the same day and the streak sees the union`() = runTest {
-        val zips = FakeZipDailyRepository(history = listOf(HistoryTestSupport.entry(firstDay.plusDays(1))))
-        val tangos = FakeTangoDailyRepository(history = listOf(HistoryTestSupport.tangoEntry(firstDay)))
+        val daily = FakeDailyRepository().apply {
+            setHistory(ZipDefinition.id, listOf(HistoryTestSupport.entry(firstDay.plusDays(1))))
+            setHistory(TangoDefinition.id, listOf(HistoryTestSupport.tangoEntry(firstDay)))
+        }
 
-        val rows = historyRows(zips, tangos, FakeCompletionRepository(), emptyMap()).first()
+        val rows = historyRows(daily, games, FakeCompletionRepository(), emptyMap()).first()
 
         assertEquals(2, rows.size) // two games, two distinct days, no rows lost
         assertEquals(2, streakEndingAtNewest(rows.map { it.day })) // consecutive captured days

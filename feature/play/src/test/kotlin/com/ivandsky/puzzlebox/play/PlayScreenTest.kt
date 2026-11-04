@@ -10,8 +10,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.data.repository.ZipDailyEntry
-import com.ivandsky.puzzlebox.data.repository.ZipToday
+import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.FetchError
@@ -52,13 +53,13 @@ class PlayScreenTest {
     private val scope = CoroutineScope(Dispatchers.Unconfined)
 
     private fun daily(
-        result: ZipToday = ZipToday.Fresh(PlayTestSupport.envelope()),
-        history: List<ZipDailyEntry> = listOf(ZipDailyEntry(day, 592, "zip/n5", 0L)),
-    ) = FakeZipDailyRepository(result, history)
+        result: DailyToday = DailyToday.Fresh(PlayTestSupport.envelope()),
+        history: List<DailyEntry> = listOf(PlayTestSupport.entry(day)),
+    ) = PlayTestSupport.daily(result, history)
 
     private fun readyState(
         layout: PlayLayout = PlayLayout.SinglePane,
-        repo: FakeZipDailyRepository = daily(),
+        repo: FakeDailyRepository = daily(),
         completions: com.ivandsky.puzzlebox.data.repository.CompletionRepository = FakeCompletionRepository(),
     ): ZipPlayState {
         val state = ZipPlayState(
@@ -83,7 +84,7 @@ class PlayScreenTest {
         return state
     }
 
-    private fun bareState(repo: FakeZipDailyRepository): ZipPlayState = ZipPlayState(
+    private fun bareState(repo: FakeDailyRepository): ZipPlayState = ZipPlayState(
         daily = repo,
         completions = FakeCompletionRepository(),
         scope = scope,
@@ -110,13 +111,13 @@ class PlayScreenTest {
     @Config(sdk = [34], qualifiers = "w411dp-h891dp")
     @Test
     fun `unavailable state renders the error with a working retry`() {
-        val repo = daily(result = ZipToday.Unavailable(FetchError.Unavailable("no net")))
+        val repo = daily(result = DailyToday.Unavailable(FetchError.Unavailable("no net")))
         val state = bareState(repo)
         state.load()
         setContent(state)
         composeRule.onNodeWithTag("play.error").assertExists()
         composeRule.onNodeWithText("Try again").performClick()
-        composeRule.runOnIdle { check(repo.todayCalls >= 2) { "retry did not refetch" } }
+        composeRule.runOnIdle { check(repo.todayCalls(ZipDefinition.id) >= 2) { "retry did not refetch" } }
     }
 
     @Test
@@ -137,7 +138,7 @@ class PlayScreenTest {
 
     @Test
     fun `degraded ready shows the banner but stays playable`() {
-        readyState(repo = daily(result = ZipToday.Cached(PlayTestSupport.envelope(), FetchError.Unavailable("offline"))))
+        readyState(repo = daily(result = DailyToday.Cached(PlayTestSupport.envelope(), FetchError.Unavailable("offline"))))
         composeRule.onNodeWithTag("play.degrade_banner").assertExists()
         composeRule.onNodeWithText("Offline — playing today's saved puzzle.").assertExists()
         composeRule.onNodeWithTag("play.board").assertExists()

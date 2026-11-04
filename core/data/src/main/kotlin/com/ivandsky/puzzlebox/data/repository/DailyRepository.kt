@@ -1,0 +1,49 @@
+package com.ivandsky.puzzlebox.data.repository
+
+import com.ivandsky.puzzlebox.game.FetchError
+import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.model.GameId
+import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
+
+/**
+ * UI-state contract for "today's puzzle" of one game (A7/A8). The fetch outcome and the
+ * cache are combined so the UI never has to: [Fresh] is a new official daily; [Cached] is
+ * today's previously captured puzzle plus the sealed fetch error (banner state, board
+ * still playable); [Unavailable] is nothing captured yet.
+ */
+sealed interface DailyToday {
+    data class Fresh(val puzzle: Puzzle) : DailyToday
+    data class Cached(val puzzle: Puzzle, val error: FetchError) : DailyToday
+    data class Unavailable(val error: FetchError) : DailyToday
+}
+
+/** One captured day of one game (History rows, streak/analytics teaser data). */
+data class DailyEntry(
+    val gameId: GameId,
+    val day: LocalDate,
+    val puzzleNumber: Int?,
+    val variant: String,
+    val fetchedAtMs: Long,
+)
+
+/**
+ * The daily compete loop's data for every registered game, keyed by [GameId]. Fetch is
+ * anonymous LinkedIn (A7); every fetched day is cached in Room; history and replay are
+ * cache-only (A8 — LinkedIn serves today only).
+ *
+ * The player's record (first in-app completion, A4) is written against `Puzzle.gameId` +
+ * the day/puzzleNumber identity surfaced here — records live in their own store
+ * (ADR-0004), this repository never owns scores.
+ */
+interface DailyRepository {
+
+    /** Fetch-today → cache; on any fetch failure degrade to today's cache + the sealed error. */
+    suspend fun today(game: GameId): DailyToday
+
+    /** Cache-only read for replay; null when the day wasn't captured (or the game isn't registered). */
+    suspend fun cached(game: GameId, day: LocalDate): Puzzle?
+
+    /** [game]'s captured days, newest first (A8). Never touches the network. */
+    fun observeHistory(game: GameId): Flow<List<DailyEntry>>
+}

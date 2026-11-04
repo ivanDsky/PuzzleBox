@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.data.network
+package com.ivandsky.puzzlebox.games.zip.feed
 
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.games.zip.codec.ZipWireParser

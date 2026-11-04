@@ -25,5 +25,5 @@ val playModule = module {
             registerQueensBoard()
         }
     }
-    single { PlayFlow(zips = get(), tangos = get(), queens = get(), completions = get()) }
+    single { PlayFlow(daily = get(), completions = get()) }
 }

@@ -4,16 +4,19 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.repository.ZipDailyEntry
+import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.data.identity.IdentityService
-import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
+import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
 import com.ivandsky.puzzlebox.data.testing.FakeIdentityService
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
-import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.games.zip.ZipDefinition
+import com.ivandsky.puzzlebox.games.zip.zipPlugin
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
@@ -33,10 +36,10 @@ import org.robolectric.annotation.Config
 /**
  * Route-level regression (controller device walk 2026-11-01; fix round 5, defect C):
  * HomeRoute must observe the GAME-AGNOSTIC merged history — every game's completion
- * records UNION the Zip captured days. The teaser first showed "No games yet" forever
- * watching an unfed legacy table; after the Zip fix it still dropped every non-Zip
- * record. The fakes are local because the shared fakes live in other modules' test
- * source sets, which :feature:home cannot import.
+ * records UNION every registered game's captured days. The teaser first showed "No
+ * games yet" forever watching an unfed legacy table; after the Zip fix it still dropped
+ * every non-Zip record. Only Zip is registered here, so Queens rows exercise the
+ * registry-name fallback.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -44,17 +47,6 @@ class HomeRouteTest {
 
     @get:Rule
     val composeRule = createComposeRule()
-
-    private class FakeZipRepo(history: List<ZipDailyEntry> = emptyList()) : ZipDailyRepository {
-        val flow = MutableStateFlow(history)
-
-        override suspend fun today() =
-            error("the home teaser is cache-only (A8) — it must never call today()")
-
-        override suspend fun cached(day: LocalDate): Puzzle? = null
-
-        override fun observeHistory(): Flow<List<ZipDailyEntry>> = flow
-    }
 
     private class FakeCompletions(records: List<CompletionRecord> = emptyList()) :
         CompletionRepository {
@@ -92,12 +84,13 @@ class HomeRouteTest {
         stopKoin()
     }
 
-    private fun setContent(repo: FakeZipRepo, completions: CompletionRepository) {
+    private fun setContent(daily: FakeDailyRepository, completions: CompletionRepository) {
         val fakeIdentity = FakeIdentityService()
         startKoin {
             modules(
                 module {
-                    single<ZipDailyRepository> { repo }
+                    single<DailyRepository> { daily }
+                    single { GameRegistry(listOf(zipPlugin)) }
                     single<CompletionRepository> { completions }
                     single<IdentityService> { fakeIdentity }
                 },
@@ -118,15 +111,15 @@ class HomeRouteTest {
 
     @Test
     fun `teaser tracks zip daily repository emissions`() {
-        val repo = FakeZipRepo()
-        setContent(repo, FakeCompletions())
+        val daily = FakeDailyRepository()
+        setContent(daily, FakeCompletions())
 
         // Nothing captured yet: the honest empty state.
         composeRule.onNodeWithText("No games yet").assertExists()
 
         // A day lands in the compete loop's store (Play fetches/History captures) —
         // the teaser must follow, formatted like the rows the user knows.
-        repo.flow.value = listOf(ZipDailyEntry(LocalDate.of(2026, 10, 31), 592, "zip/n5", 0L))
+        daily.addEntry(DailyEntry(ZipDefinition.id, LocalDate.of(2026, 10, 31), 592, "zip/n5", 0L))
 
         composeRule.waitUntil(5_000) {
             composeRule.onAllNodesWithText("October 31").fetchSemanticsNodes().isNotEmpty()
@@ -138,12 +131,12 @@ class HomeRouteTest {
     @Test
     fun `a queens completion surfaces in the teaser - fix round 5 defect C`() = kotlinx.coroutines.test.runTest {
         val completions = FakeCompletions()
-        setContent(FakeZipRepo(), completions)
+        setContent(FakeDailyRepository(), completions)
         composeRule.onNodeWithText("No games yet").assertExists()
 
         // A solved Queens game writes its record (no Zip capture anywhere) — the teaser
-        // must surface it; the row names the game by its id (no plugin registry in this
-        // test's Koin graph, so the registry fallback applies).
+        // must surface it; the row names the game by its id (Queens is not registered in
+        // this test's Koin graph, so the registry fallback applies).
         completions.onCompleted(queensRecord(LocalDate.of(2026, 11, 1)))
 
         composeRule.waitUntil(5_000) {

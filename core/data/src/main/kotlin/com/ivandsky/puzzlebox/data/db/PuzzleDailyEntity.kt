@@ -1,10 +1,9 @@
 package com.ivandsky.puzzlebox.data.db
 
 import androidx.room.Entity
+import com.ivandsky.puzzlebox.game.GameDefinition
 import com.ivandsky.puzzlebox.game.Puzzle
-import com.ivandsky.puzzlebox.games.tango.TangoDefinition
-import com.ivandsky.puzzlebox.games.zip.ZipDefinition
-import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
+import com.ivandsky.puzzlebox.game.PuzzleRef
 
 /**
  * The real daily store (schema v2, ticket 12): one row per (gameId, day) — the Puzzle
@@ -47,11 +46,11 @@ data class PuzzleDailyEntity(
 }
 
 /** Cache read: decode through the owning game's definition — one decode path for every reader. */
-fun PuzzleDailyEntity.toPuzzle(): Puzzle? = ZipDefinition.decode(payload).getOrNull()
+fun PuzzleDailyEntity.toPuzzle(definition: GameDefinition): Puzzle? = definition.decode(payload).getOrNull()
 
 /** Cache write: identity + envelope in one row (the wire carries no date; ref comes from the fetch day). */
 fun Puzzle.toEntity(
-    ref: ZipPuzzleRef,
+    ref: PuzzleRef,
     fetchedAtMs: Long,
 ): PuzzleDailyEntity = PuzzleDailyEntity(
     gameId = gameId.value,
@@ -62,20 +61,3 @@ fun Puzzle.toEntity(
     payload = payload,
     fetchedAtMs = fetchedAtMs,
 )
-
-/** Tango row identity (ticket 03): the same puzzle_dailies store, Tango decode path. */
-fun Puzzle.toTangoEntity(
-    ref: com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef,
-    fetchedAtMs: Long,
-): PuzzleDailyEntity = PuzzleDailyEntity(
-    gameId = gameId.value,
-    day = ref.date.toString(),
-    puzzleNumber = ref.puzzleNumber,
-    variant = variant.value,
-    formatVersion = formatVersion,
-    payload = payload,
-    fetchedAtMs = fetchedAtMs,
-)
-
-/** Cache read: decode through the owning game's definition — one decode path for every reader. */
-fun PuzzleDailyEntity.toTangoPuzzle(): Puzzle? = TangoDefinition.decode(payload).getOrNull()

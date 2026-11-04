@@ -8,13 +8,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.repository.QueensDailyEntry
-import com.ivandsky.puzzlebox.data.repository.QueensDailyRepository
-import com.ivandsky.puzzlebox.data.repository.QueensToday
+import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.game.Cadence
-import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
@@ -24,11 +24,7 @@ import com.ivandsky.puzzlebox.play.PlayFlow
 import com.ivandsky.puzzlebox.play.PlayRoute
 import com.ivandsky.puzzlebox.play.QueensPlayState
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import java.time.LocalDate
-import java.time.ZoneId
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -81,12 +77,6 @@ class QueensPlayWiringTest {
         )
     }
 
-    private class FakeQueensRepository(private val fresh: QueensToday, private val history: List<QueensDailyEntry>) : QueensDailyRepository {
-        override suspend fun today(): QueensToday = fresh
-        override suspend fun cached(day: LocalDate): Puzzle? = null
-        override fun observeHistory(): Flow<List<QueensDailyEntry>> = flowOf(history)
-    }
-
     @Test
     fun `the play tab offers queens, and a completed queens game records a history entry`() {
         stopKoin() // tests share the JVM-global Koin context
@@ -97,18 +87,14 @@ class QueensPlayWiringTest {
         koinApp.koin.loadModules(
             listOf(
                 module {
-                    single<QueensDailyRepository> {
-                        FakeQueensRepository(
-                            fresh = QueensToday.Fresh(envelope()),
-                            history = listOf(
-                                QueensDailyEntry(
-                                    LocalDate.now((QueensDefinition.cadence as Cadence.Daily).zone),
-                                    42,
-                                    "queens/n8",
-                                    0L,
-                                ),
-                            ),
-                        )
+                    single<DailyRepository> {
+                        FakeDailyRepository().apply {
+                            setToday(QueensDefinition.id, DailyToday.Fresh(envelope()))
+                            setHistory(
+                                QueensDefinition.id,
+                                listOf(DailyEntry(QueensDefinition.id, QueensDefinition.cadence.today(), 42, "queens/n8", 0L)),
+                            )
+                        }
                     }
                 },
             ),

@@ -1,16 +1,14 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.repository.TangoDailyEntry
-import com.ivandsky.puzzlebox.data.repository.TangoDailyRepository
-import com.ivandsky.puzzlebox.data.repository.TangoToday
-import com.ivandsky.puzzlebox.data.repository.ZipDailyEntry
-import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
-import com.ivandsky.puzzlebox.data.repository.ZipToday
+import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
@@ -30,9 +28,9 @@ import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.ZipSession
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -66,7 +64,7 @@ object PlayTestSupport {
         return ZipPuzzle(variant = ZipVariants.byId(VariantId("zip/n5"))!!.id, board = ZipBoard(5, walls, waypoints), solution = solution)
     }
 
-    /** Envelope as ZipDailyRepository hands it to the UI (payload = codec bytes). */
+    /** Envelope as DailyRepository hands it to the UI (payload = codec bytes). */
     fun envelope(puzzle: ZipPuzzle = puzzle()): Puzzle = Puzzle(
         gameId = ZipDefinition.id,
         variant = puzzle.variant,
@@ -82,29 +80,16 @@ object PlayTestSupport {
     fun ref(day: LocalDate) = ZipPuzzleRef(day, 592)
 
     fun session(ref: ZipPuzzleRef? = null) = ZipSession(ref = ref, puzzle = puzzle())
-}
 
-/** Scriptable ZipDailyRepository fake for the play state tests. */
-class FakeZipDailyRepository(
-    private var todayResult: ZipToday,
-    private val history: List<ZipDailyEntry> = emptyList(),
-) : ZipDailyRepository {
+    /** [day]'s captured Zip entry (#592). */
+    fun entry(day: LocalDate, puzzleNumber: Int? = 592) =
+        DailyEntry(ZipDefinition.id, day, puzzleNumber, "zip/n5", 0L)
 
-    var todayCalls = 0
-        private set
-
-    fun setToday(result: ZipToday) {
-        todayResult = result
-    }
-
-    override suspend fun today(): ZipToday {
-        todayCalls++
-        return todayResult
-    }
-
-    override suspend fun cached(day: LocalDate): Puzzle? = null
-
-    override fun observeHistory(): Flow<List<ZipDailyEntry>> = kotlinx.coroutines.flow.flowOf(history)
+    /** A daily repository scripted for Zip only: [result] and its captured days. */
+    fun daily(
+        result: DailyToday = DailyToday.Fresh(envelope()),
+        history: List<DailyEntry> = emptyList(),
+    ): FakeDailyRepository = FakeDailyRepository().script(ZipDefinition.id, result, history)
 }
 
 // ---------------------------------------------------------------------------
@@ -112,29 +97,6 @@ class FakeZipDailyRepository(
 // re-declared here (test fixtures do not cross module boundaries), gated through the
 // A15 solver so a fixture drift fails loudly instead of silently changing semantics.
 // ---------------------------------------------------------------------------
-
-/** Scriptable TangoDailyRepository fake for the Tango play state tests. */
-class FakeTangoDailyRepository(
-    private var todayResult: TangoToday,
-    private val history: List<TangoDailyEntry> = emptyList(),
-) : TangoDailyRepository {
-
-    var todayCalls = 0
-        private set
-
-    fun setToday(result: TangoToday) {
-        todayResult = result
-    }
-
-    override suspend fun today(): TangoToday {
-        todayCalls++
-        return todayResult
-    }
-
-    override suspend fun cached(day: LocalDate): Puzzle? = null
-
-    override fun observeHistory(): Flow<List<TangoDailyEntry>> = flowOf(history)
-}
 
 /** Tango side of [PlayTestSupport]: a uniquely solvable 6x6 daily and its solution. */
 object TangoPlayFixture {
@@ -182,7 +144,7 @@ object TangoPlayFixture {
     val placements: List<Pair<Int, TangoCell>> =
         (0 until 36).filter { idx -> puzzle.givens[idx] == null }.map { idx -> idx to solution[idx] }
 
-    /** Envelope as TangoDailyRepository hands it to the UI (payload = codec bytes). */
+    /** Envelope as DailyRepository hands it to the UI (payload = codec bytes). */
     fun envelope(puzzle: TangoPuzzle = this.puzzle): Puzzle = Puzzle(
         gameId = TangoDefinition.id,
         variant = puzzle.variant,
@@ -199,7 +161,33 @@ object TangoPlayFixture {
     )
 
     fun ref(day: LocalDate, puzzleNumber: Int? = 301) = TangoPuzzleRef(day, puzzleNumber)
+
+    /** [day]'s captured Tango entry. */
+    fun entry(day: LocalDate, puzzleNumber: Int? = 301, fetchedAtMs: Long = 0L) =
+        DailyEntry(TangoDefinition.id, day, puzzleNumber, "tango/n6", fetchedAtMs)
+
+    /** A daily repository scripted for Tango only: [result] and its captured days. */
+    fun daily(
+        result: DailyToday = DailyToday.Fresh(envelope()),
+        history: List<DailyEntry> = emptyList(),
+    ): FakeDailyRepository = FakeDailyRepository().script(TangoDefinition.id, result, history)
 }
+
+/** Scripts [game] on this fake: its [today] outcome and its captured days. */
+fun FakeDailyRepository.script(
+    game: GameId,
+    today: DailyToday,
+    history: List<DailyEntry> = emptyList(),
+): FakeDailyRepository = apply {
+    setToday(game, today)
+    setHistory(game, history)
+}
+
+/** A daily repository serving every game's fixture fresh (the flow/route default). */
+fun freshDailyForAllGames(): FakeDailyRepository = FakeDailyRepository()
+    .script(ZipDefinition.id, DailyToday.Fresh(PlayTestSupport.envelope()))
+    .script(TangoDefinition.id, DailyToday.Fresh(TangoPlayFixture.envelope()))
+    .script(QueensDefinition.id, DailyToday.Fresh(QueensPlayFixtures.envelope()))
 
 /**
  * In-memory [CompletionRepository] fake over the REAL :core:data interface, with a

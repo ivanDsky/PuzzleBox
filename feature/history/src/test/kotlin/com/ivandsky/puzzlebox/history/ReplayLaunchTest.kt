@@ -42,7 +42,7 @@ class ReplayLaunchTest {
         assertEquals(
             ReplayLaunch.Missing,
             replayLaunch(
-                com.ivandsky.puzzlebox.model.GameId("queens"),
+                com.ivandsky.puzzlebox.model.GameId("not-a-game"),
                 day,
                 cached = HistoryTestSupport.envelope(),
                 puzzleNumber = 1,

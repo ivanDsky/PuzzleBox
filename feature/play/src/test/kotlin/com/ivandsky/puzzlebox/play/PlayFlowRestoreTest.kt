@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.game.SessionBlob
+import com.ivandsky.puzzlebox.game.today
+import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.TangoSession
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
@@ -32,15 +34,7 @@ class PlayFlowRestoreTest {
 
     private val day = LocalDate.parse("2026-10-31")
 
-    private fun flow() = PlayFlow(
-        zips = FakeZipDailyRepository(PlayTestSupport.envelope().let { com.ivandsky.puzzlebox.data.repository.ZipToday.Fresh(it) }),
-        tangos = FakeTangoDailyRepository(
-            todayResult = com.ivandsky.puzzlebox.data.repository.TangoToday.Fresh(TangoPlayFixture.envelope()),
-        ),
-        queens = FakeQueensDailyRepository(todayResult = com.ivandsky.puzzlebox.data.repository.QueensToday.Fresh(QueensPlayFixtures.envelope())),
-        completions = FakeCompletionRepository(),
-        tangoToday = { day },
-    )
+    private fun flow() = PlayFlow(daily = freshDailyForAllGames(), completions = FakeCompletionRepository())
 
     private fun zipEnvelope(path: List<Int> = emptyList()): ByteArray {
         val session = ZipSession(
@@ -107,7 +101,7 @@ class PlayFlowRestoreTest {
 
         (flow.state as TangoPlayState).load()
         val session = (flow.state as TangoPlayState).session
-        assertEquals(TangoPuzzleRef(day, null), session?.ref)
+        assertEquals(TangoPuzzleRef(TangoDefinition.cadence.today(), null), session?.ref)
 
         // The route's saveable carries the envelope, not bare codec bytes — this is
         // what lets a process-dead flow recover WHICH game to restart (C1).

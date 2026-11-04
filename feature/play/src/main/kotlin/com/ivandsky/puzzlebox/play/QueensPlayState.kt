@@ -5,14 +5,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.ivandsky.puzzlebox.common.result.AppResult
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.repository.QueensDailyRepository
-import com.ivandsky.puzzlebox.data.repository.QueensToday
-import com.ivandsky.puzzlebox.game.Cadence
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.CompletionRecordEmitter
 import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayHints
@@ -27,7 +27,6 @@ import com.ivandsky.puzzlebox.games.queensui.QueensBoardState
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -64,11 +63,11 @@ sealed interface QueensScreen {
  * process-local running window, so undo/redo never touch it.
  */
 class QueensPlayState(
-    private val daily: QueensDailyRepository,
+    private val daily: DailyRepository,
     private val completions: CompletionRepository,
     private val scope: CoroutineScope,
     private val now: () -> Instant = Instant::now,
-    private val today: () -> LocalDate = { LocalDate.now(queensCadenceZone) },
+    private val today: () -> LocalDate = { QueensDefinition.cadence.today() },
     /**
      * The entry's session-persistence callback (R-4): the play route serializes every
      * committed session into its `rememberSaveable`; it also receives the initial session
@@ -125,10 +124,10 @@ class QueensPlayState(
         baselineHadRecord = null
         runningSince = null
         scope.launch {
-            when (val today = daily.today()) {
-                is QueensToday.Fresh -> adopt(today.puzzle, degraded = null)
-                is QueensToday.Cached -> adopt(today.puzzle, degraded = today.error)
-                is QueensToday.Unavailable -> screen = QueensScreen.Unavailable(unavailableMessage(today.error))
+            when (val today = daily.today(QueensDefinition.id)) {
+                is DailyToday.Fresh -> adopt(today.puzzle, degraded = null)
+                is DailyToday.Cached -> adopt(today.puzzle, degraded = today.error)
+                is DailyToday.Unavailable -> screen = QueensScreen.Unavailable(unavailableMessage(today.error))
             }
         }
     }
@@ -178,7 +177,7 @@ class QueensPlayState(
      *  way Zip's play resolves its ref: today's cached row IS the board we just loaded. */
     private suspend fun resolveRef(): QueensPuzzleRef? {
         val day = today()
-        val entry = daily.observeHistory().first().firstOrNull { it.day == day }
+        val entry = daily.observeHistory(QueensDefinition.id).first().firstOrNull { it.day == day }
         return QueensPuzzleRef(entry?.day ?: day, entry?.puzzleNumber)
     }
 
@@ -324,9 +323,6 @@ class QueensPlayState(
     //endregion
 
     companion object {
-        /** Queens rolls at midnight PT (QueensDefinition pins the zone). */
-        val queensCadenceZone: ZoneId = (QueensDefinition.cadence as Cadence.Daily).zone
-
         private fun unavailableMessage(error: FetchError): String = when (error) {
             is FetchError.Unavailable -> "Couldn't reach LinkedIn, and no copy of today's puzzle is saved yet. Check your connection and try again."
             is FetchError.Throttled -> "LinkedIn is rate-limiting requests right now. Give it a minute and try again."

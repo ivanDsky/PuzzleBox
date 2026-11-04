@@ -1,39 +1,37 @@
-package com.ivandsky.puzzlebox.data.repository
+package com.ivandsky.puzzlebox.games.zip.feed
 
+import com.ivandsky.puzzlebox.game.DailyFetch
+import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.DecodeResult
+import com.ivandsky.puzzlebox.game.FeedRequest
+import com.ivandsky.puzzlebox.game.FeedTransport
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.FetchResult
 import com.ivandsky.puzzlebox.game.Puzzle
-import com.ivandsky.puzzlebox.game.PuzzleSource
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.codec.ZipWireParser
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
 import com.ivandsky.puzzlebox.games.zip.engine.ZipSolver
-import com.ivandsky.puzzlebox.data.network.LinkedInZipClient
-import com.ivandsky.puzzlebox.data.network.TrailGameExtractor
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
 /**
  * The ADR-0002 LinkedInDaily adapter (ticket 12): wire body -> [ZipWireParser] -> the
- * A16 oracle gate -> canonical [ZipCodec] bytes in a [Puzzle] envelope. Implements
- * [PuzzleSource] for the archive seam; [fetchDaily] additionally carries the fetch-time
- * identity ([ZipPuzzleRef]) that core/data persists per ADR-0004.
+ * A16 oracle gate -> canonical [ZipCodec] bytes in a [Puzzle] envelope, with the
+ * fetch-time identity ([ZipPuzzleRef]) core/data persists per ADR-0004. The body comes
+ * through the generic [FeedTransport] ([REQUEST]: stream GET, then the page-shell scan).
  *
  * Error split per the FetchError contract: transport/parse failures are [FetchError.Unavailable];
  * a payload the engine cannot trust is [FetchError.Untrusted] — never playable (A16).
  */
-class LinkedInZipDailySource(private val client: LinkedInZipClient) : PuzzleSource, ZipDailySource {
+class LinkedInZipDailySource(private val transport: FeedTransport) : DailySource {
 
-    override suspend fun fetch(date: LocalDate): FetchResult<Puzzle> =
-        when (val result = fetchDaily(date)) {
-            is FetchResult.Ok -> FetchResult.Ok(result.value.puzzle)
-            is FetchResult.Err -> result
-        }
+    override val gameId: GameId = ZipDefinition.id
 
-    override suspend fun fetchDaily(date: LocalDate): FetchResult<ZipDailySource.Daily> {
-        val body = when (val fetched = client.fetchDailyBody()) {
+    override suspend fun fetchDaily(date: LocalDate): FetchResult<DailyFetch> {
+        val body = when (val fetched = transport.fetch(REQUEST)) {
             is FetchResult.Ok -> fetched.value
             is FetchResult.Err -> return FetchResult.Err(fetched.error)
         }
@@ -50,7 +48,7 @@ class LinkedInZipDailySource(private val client: LinkedInZipClient) : PuzzleSour
             formatVersion = ZipCodec.VERSION,
             payload = ZipCodec.encode(daily.puzzle), // canonical bytes: storage + dedup (A19)
         )
-        return FetchResult.Ok(ZipDailySource.Daily(envelope, daily.ref))
+        return FetchResult.Ok(DailyFetch(envelope, daily.ref))
     }
 
     /**
@@ -70,5 +68,15 @@ class LinkedInZipDailySource(private val client: LinkedInZipClient) : PuzzleSour
         val found = solver.solve(puzzle)
         if (found != shipped) return FetchError.Untrusted("solver disagrees with shipped solution")
         return null
+    }
+
+    companion object {
+        /** Zip's feed: the stream GET, then the page-shell scan (no GraphQL rung). */
+        val REQUEST = FeedRequest(
+            path = "games/zip/",
+            objectName = "trailGamePuzzle",
+            accepts = { TrailGameExtractor.extract(it) != null },
+            scanPageShell = true,
+        )
     }
 }

@@ -2,9 +2,10 @@ package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntries
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.repository.TangoDailyEntry
-import com.ivandsky.puzzlebox.data.repository.TangoDailyRepository
-import com.ivandsky.puzzlebox.data.repository.TangoToday
+import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.games.tango.TangoCell
@@ -43,7 +44,7 @@ class TangoPlayStateTest {
 
     private fun state(
         completions: CompletionRepository,
-        daily: TangoDailyRepository,
+        daily: DailyRepository,
         onSessionChanged: (TangoSession?) -> Unit = {},
     ) = TangoPlayState(
         daily = daily,
@@ -55,12 +56,12 @@ class TangoPlayStateTest {
     )
 
     private fun tangoDaily(
-        todayResult: TangoToday = TangoToday.Fresh(puzzle = TangoPlayFixture.envelope()),
-        history: List<TangoDailyEntry> = listOf(entry()),
-    ) = FakeTangoDailyRepository(todayResult = todayResult, history = history)
+        todayResult: DailyToday = DailyToday.Fresh(puzzle = TangoPlayFixture.envelope()),
+        history: List<DailyEntry> = listOf(entry()),
+    ): FakeDailyRepository = TangoPlayFixture.daily(todayResult, history)
 
     private fun entry(day: LocalDate = today, puzzleNumber: Int? = 301) =
-        TangoDailyEntry(day = day, puzzleNumber = puzzleNumber, variant = "tango/n6", fetchedAtMs = 1_000L)
+        TangoPlayFixture.entry(day, puzzleNumber, fetchedAtMs = 1_000L)
 
     /** Places every player-owned cell (the fixture solution) in order. */
     private fun playAll(s: TangoPlayState) {
@@ -88,7 +89,7 @@ class TangoPlayStateTest {
         val s = state(
             FakeCompletionRepository(),
             tangoDaily(
-                todayResult = TangoToday.Cached(puzzle = TangoPlayFixture.envelope(), error = FetchError.Unavailable()),
+                todayResult = DailyToday.Cached(puzzle = TangoPlayFixture.envelope(), error = FetchError.Unavailable()),
             ),
         )
 
@@ -104,7 +105,7 @@ class TangoPlayStateTest {
     fun `unavailable fetch shows the error screen, no session`() = runTest {
         val s = state(
             FakeCompletionRepository(),
-            tangoDaily(todayResult = TangoToday.Unavailable(FetchError.Throttled()), history = emptyList()),
+            tangoDaily(todayResult = DailyToday.Unavailable(FetchError.Throttled()), history = emptyList()),
         )
 
         s.load()
@@ -118,7 +119,7 @@ class TangoPlayStateTest {
         val s = state(
             FakeCompletionRepository(),
             tangoDaily(
-                todayResult = TangoToday.Fresh(
+                todayResult = DailyToday.Fresh(
                     puzzle = Puzzle(
                         gameId = TangoDefinition.id,
                         variant = TangoPlayFixture.variant,
@@ -139,7 +140,7 @@ class TangoPlayStateTest {
     fun `ambiguous puzzle is refused by the A15 gate (A16)`() = runTest {
         val s = state(
             FakeCompletionRepository(),
-            tangoDaily(todayResult = TangoToday.Fresh(puzzle = TangoPlayFixture.envelope(TangoPlayFixture.ambiguous))),
+            tangoDaily(todayResult = DailyToday.Fresh(puzzle = TangoPlayFixture.envelope(TangoPlayFixture.ambiguous))),
         )
 
         s.load()
@@ -295,7 +296,7 @@ class TangoPlayStateTest {
         s.adoptRestored(ByteArray(9))
 
         assertTrue(s.screen is TangoScreen.Ready)
-        assertEquals(1, daily.todayCalls)
+        assertEquals(1, daily.todayCalls(TangoDefinition.id))
     }
 
     @Test

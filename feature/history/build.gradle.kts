@@ -15,6 +15,7 @@ dependencies {
     // internals.
     implementation(projects.games.zip)
     implementation(projects.games.tango)
+    implementation(projects.games.queens)
 
     implementation(libs.androidx.paging.compose)
     implementation(libs.kotlinx.coroutines.core)

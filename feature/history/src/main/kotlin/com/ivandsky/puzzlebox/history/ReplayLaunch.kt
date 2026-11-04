@@ -5,6 +5,11 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.games.queens.QueensDefinition
+import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
+import com.ivandsky.puzzlebox.games.queens.QueensSession
+import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
+import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.TangoSession
@@ -53,6 +58,7 @@ fun replayLaunch(
     return when (game.value) {
         ZipDefinition.id.value -> zipLaunch(day, puzzleNumber, cached)
         TangoDefinition.id.value -> tangoLaunch(day, puzzleNumber, cached)
+        QueensDefinition.id.value -> queensLaunch(day, puzzleNumber, cached)
         else -> ReplayLaunch.Missing // a game no registration authored is never replayed
     }
 }
@@ -98,6 +104,24 @@ private fun tangoLaunch(day: LocalDate, puzzleNumber: Int?, cached: Puzzle): Rep
                     ),
                 )
             }
+
+        is DecodeResult.Err -> ReplayLaunch.Unreadable(decoded.error)
+    }
+
+/** Queens branch: same shape as Zip — the play state trusts any payload the codec decodes. */
+private fun queensLaunch(day: LocalDate, puzzleNumber: Int?, cached: Puzzle): ReplayLaunch =
+    when (val decoded = QueensCodec.decode(cached.payload)) {
+        is DecodeResult.Ok -> ReplayLaunch.Ready(
+            session = SessionBlob.encode(
+                QueensDefinition.id,
+                QueensSessionCodec.serialize(
+                    QueensSession(
+                        ref = QueensPuzzleRef(date = day, puzzleNumber = puzzleNumber),
+                        puzzle = decoded.value,
+                    ),
+                ),
+            ),
+        )
 
         is DecodeResult.Err -> ReplayLaunch.Unreadable(decoded.error)
     }

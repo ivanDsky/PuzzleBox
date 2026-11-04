@@ -9,13 +9,17 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.gameHistoryDays
+import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
-import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.SessionBlob
+import com.ivandsky.puzzlebox.games.queens.QueensDefinition
+import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.TangoSession
@@ -60,16 +64,8 @@ class HistoryScreenTest {
     private var nextLaunch: ReplayLaunch = ReplayLaunch.Missing
     private var handedToShell: ReplayLaunch.Ready? = null
 
-    /** A ref shape Queens authors — feature-local (no games:queens dependency). */
-    private data class QueensRef(
-        override val date: LocalDate,
-        override val puzzleNumber: Int?,
-    ) : PuzzleRef {
-        override val gameId: GameId = GameId("queens")
-    }
-
     private fun queensRecord(day: LocalDate) = CompletionRecord(
-        puzzleRef = QueensRef(day, 916),
+        puzzleRef = QueensPuzzleRef(day, 916),
         time = 41_000L,
         hints = 1,
         stats = RecordStats(schemaVersion = 1, blob = "{}"),
@@ -78,30 +74,35 @@ class HistoryScreenTest {
     private val names = mapOf(
         ZipDefinition.id to "Zip",
         TangoDefinition.id to "Tango",
-        GameId("queens") to "Queens",
+        QueensDefinition.id to "Queens",
     )
 
     private fun setContent(
-        zips: FakeZipDailyRepository,
-        tangos: FakeTangoDailyRepository = FakeTangoDailyRepository(),
+        zips: List<DailyEntry> = emptyList(),
+        tangos: List<DailyEntry> = emptyList(),
         layout: HistoryLayout = HistoryLayout.SinglePane,
         completions: FakeCompletionRepository = FakeCompletionRepository(),
         records: Map<Pair<GameId, LocalDate>, CompletionRecord>? = null,
     ) {
         handedToShell = null
+        val daily = FakeDailyRepository().apply {
+            setHistory(ZipDefinition.id, zips)
+            setHistory(TangoDefinition.id, tangos)
+        }
+        val games = names.keys.toList()
         val effectiveRecords = records ?: runBlocking {
-            com.ivandsky.puzzlebox.data.repository.gameHistoryDays(zips, completions).first()
+            gameHistoryDays(daily, games, completions).first()
                 .mapNotNull { day -> day.record?.let { (day.gameId to day.day) to it } }
                 .toMap()
         }
         composeRule.setContent {
             PuzzleBoxTheme {
                 // The route's exact projection (HistoryRoute), against test fakes.
-                val lazyDays = remember(zips, tangos, completions) {
-                    historyDays(zips, tangos, completions, names)
+                val lazyDays = remember(daily, completions) {
+                    historyDays(daily, games, completions, names)
                 }.collectAsLazyPagingItems()
-                val allRows = remember(zips, tangos, completions) {
-                    runBlocking { historyRows(zips, tangos, completions, names).first() }
+                val allRows = remember(daily, completions) {
+                    runBlocking { historyRows(daily, games, completions, names).first() }
                 }
                 HistoryScreen(
                     layout = layout,
@@ -125,7 +126,7 @@ class HistoryScreenTest {
 
     @Test
     fun `empty cache shows the captured-nothing empty state`() {
-        setContent(FakeZipDailyRepository())
+        setContent()
 
         awaitTag("history.empty")
         composeRule.onNodeWithText("Nothing captured yet").assertExists()
@@ -139,7 +140,7 @@ class HistoryScreenTest {
             LocalDate.of(2026, 11, 2),
             LocalDate.of(2026, 11, 3),
         )
-        setContent(FakeZipDailyRepository(history = days.map { HistoryTestSupport.entry(it) }))
+        setContent(days.map { HistoryTestSupport.entry(it) })
 
         awaitTag("history.row.zip/2026-11-03")
         composeRule.onNodeWithText("Tuesday, November 3").assertExists()
@@ -155,8 +156,8 @@ class HistoryScreenTest {
     fun `tango rows carry the tango label and never collide with a zip row on the same day`() {
         val day = LocalDate.of(2026, 11, 3)
         setContent(
-            zips = FakeZipDailyRepository(history = listOf(HistoryTestSupport.entry(day))),
-            tangos = FakeTangoDailyRepository(history = listOf(HistoryTestSupport.tangoEntry(day))),
+            zips = listOf(HistoryTestSupport.entry(day)),
+            tangos = listOf(HistoryTestSupport.tangoEntry(day)),
         )
 
         awaitTag("history.row.zip/$day")
@@ -173,7 +174,7 @@ class HistoryScreenTest {
         val day = LocalDate.of(2026, 11, 3)
         nextLaunch = ReplayLaunch.Ready(ZipSessionCodec.serialize(HistoryTestSupport.expectedSession(day)))
         setContent(
-            zips = FakeZipDailyRepository(history = listOf(HistoryTestSupport.entry(day))),
+            zips = listOf(HistoryTestSupport.entry(day)),
             records = mapOf(ZipDefinition.id to day to HistoryTestSupport.record(day)),
         )
 
@@ -205,8 +206,7 @@ class HistoryScreenTest {
             ),
         )
         setContent(
-            zips = FakeZipDailyRepository(),
-            tangos = FakeTangoDailyRepository(history = listOf(HistoryTestSupport.tangoEntry(day))),
+            tangos = listOf(HistoryTestSupport.tangoEntry(day)),
             records = mapOf(TangoDefinition.id to day to HistoryTestSupport.tangoRecord(day)),
         )
 
@@ -235,7 +235,7 @@ class HistoryScreenTest {
                 ZipSession(ref = ZipPuzzleRef(day, HistoryTestSupport.PUZZLE_NUMBER), puzzle = HistoryTestSupport.puzzle()),
             ),
         )
-        setContent(FakeZipDailyRepository(history = listOf(HistoryTestSupport.entry(day))))
+        setContent(listOf(HistoryTestSupport.entry(day)))
 
         composeRule.onNodeWithTag("history.row.zip/$day").performClick()
         composeRule.onNodeWithText("Not finished yet").assertExists()
@@ -248,7 +248,7 @@ class HistoryScreenTest {
     fun `stale day blocks replay with a message`() {
         val day = LocalDate.of(2026, 11, 3)
         nextLaunch = ReplayLaunch.Missing
-        setContent(FakeZipDailyRepository(history = listOf(HistoryTestSupport.entry(day))))
+        setContent(listOf(HistoryTestSupport.entry(day)))
 
         composeRule.onNodeWithTag("history.row.zip/$day").performClick()
         composeRule.onNodeWithTag("history.replay").performClick()
@@ -261,7 +261,7 @@ class HistoryScreenTest {
     fun `unreadable payload blocks replay with a message (A16)`() {
         val day = LocalDate.of(2026, 11, 3)
         nextLaunch = ReplayLaunch.Unreadable(DecodeError.Malformed("test"))
-        setContent(FakeZipDailyRepository(history = listOf(HistoryTestSupport.entry(day))))
+        setContent(listOf(HistoryTestSupport.entry(day)))
 
         composeRule.onNodeWithTag("history.row.zip/$day").performClick()
         composeRule.onNodeWithTag("history.replay").performClick()
@@ -274,7 +274,6 @@ class HistoryScreenTest {
     fun `a queens completion lists and details without a capture - fix round 5 defect C`() {
         val day = LocalDate.of(2026, 11, 3)
         setContent(
-            zips = FakeZipDailyRepository(),
             completions = FakeCompletionRepository(listOf(queensRecord(day))),
         )
 
@@ -297,7 +296,7 @@ class HistoryScreenTest {
     fun `zip completion still lists alongside captures - regression guard`() {
         val day = LocalDate.of(2026, 11, 3)
         setContent(
-            zips = FakeZipDailyRepository(history = listOf(HistoryTestSupport.entry(day, fetchedAtMs = fetchedAtMs(day)))),
+            zips = listOf(HistoryTestSupport.entry(day, fetchedAtMs = fetchedAtMs(day))),
             completions = FakeCompletionRepository(listOf(HistoryTestSupport.record(day))),
             records = mapOf(ZipDefinition.id to day to HistoryTestSupport.record(day)),
         )
@@ -314,8 +313,7 @@ class HistoryScreenTest {
     @Config(sdk = [34], qualifiers = "w800dp-h1000dp") // two-pane is the expanded policy (07)
     fun `two-pane shows the detail hint until a day is selected`() {
         val day = LocalDate.of(2026, 11, 3)
-        val repo = FakeZipDailyRepository(history = listOf(HistoryTestSupport.entry(day)))
-        setContent(repo, layout = HistoryLayout.TwoPane)
+        setContent(listOf(HistoryTestSupport.entry(day)), layout = HistoryLayout.TwoPane)
 
         awaitTag("history.detail_hint")
         composeRule.onNodeWithText("Select a day").assertExists()

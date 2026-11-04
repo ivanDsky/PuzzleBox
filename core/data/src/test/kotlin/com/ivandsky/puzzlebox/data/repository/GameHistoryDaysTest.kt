@@ -1,12 +1,12 @@
 package com.ivandsky.puzzlebox.data.repository
 
+import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
+import com.ivandsky.puzzlebox.data.testing.TestGames.Ref
+import com.ivandsky.puzzlebox.data.testing.TestGames.alpha
+import com.ivandsky.puzzlebox.data.testing.TestGames.beta
 import com.ivandsky.puzzlebox.game.CompletionRecord
-import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
-import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
-import com.ivandsky.puzzlebox.games.zip.ZipDefinition
-import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
@@ -19,18 +19,10 @@ import org.junit.Test
 
 /**
  * The game-agnostic merged history (fix round 5, defect C): records from EVERY game
- * surface in one projection next to the Zip captured days — no `as? ZipPuzzleRef`
- * casting anywhere on the path.
+ * surface in one projection next to every listed game's captured days — no casting to a
+ * concrete ref anywhere on the path.
  */
 class GameHistoryDaysTest {
-
-    private class FakeZipDailyRepository(history: List<ZipDailyEntry> = emptyList()) :
-        ZipDailyRepository {
-        val historyFlow = MutableStateFlow(history)
-        override suspend fun today() = error("cache-only (A8)")
-        override suspend fun cached(day: LocalDate): Puzzle? = null
-        override fun observeHistory(): Flow<List<ZipDailyEntry>> = historyFlow
-    }
 
     private class FakeCompletionRepository(records: List<CompletionRecord> = emptyList()) :
         CompletionRepository {
@@ -43,70 +35,75 @@ class GameHistoryDaysTest {
             recordsFlow.map { rows -> rows.filter { it.puzzleRef == puzzleRef } }
     }
 
-    private fun queensRecord(day: LocalDate, puzzleNumber: Int? = 916) = CompletionRecord(
-        puzzleRef = QueensPuzzleRef(day, puzzleNumber),
+    private val games = listOf(alpha, beta)
+
+    private fun record(game: GameId, day: LocalDate, puzzleNumber: Int? = 916) = CompletionRecord(
+        puzzleRef = Ref(game, day, puzzleNumber),
         time = 41_000L,
         hints = 1,
         stats = RecordStats(schemaVersion = 1, blob = "{}"),
     )
 
-    private fun zipRecord(day: LocalDate) = CompletionRecord(
-        puzzleRef = ZipPuzzleRef(day, 592),
-        time = 95_000L,
-        hints = 2,
-        stats = RecordStats(schemaVersion = 1, blob = "{}"),
-    )
+    private fun entry(game: GameId, day: LocalDate, puzzleNumber: Int? = 592, fetchedAtMs: Long = 0L) =
+        DailyEntry(game, day, puzzleNumber, "${game.value}/v1", fetchedAtMs)
+
+    private fun daily(vararg entries: DailyEntry) = FakeDailyRepository().apply { entries.forEach(::addEntry) }
 
     @Test
-    fun `a queens completion surfaces like a zip completion`() = runTest {
+    fun `a completion surfaces without a captured day`() = runTest {
         val day = LocalDate.of(2026, 11, 1)
         val rows = gameHistoryDays(
-            zip = FakeZipDailyRepository(),
-            completions = FakeCompletionRepository(listOf(queensRecord(day))),
+            daily = daily(),
+            games = games,
+            completions = FakeCompletionRepository(listOf(record(beta, day))),
         ).first()
 
-        assertEquals(listOf(GameHistoryDay(GameId("queens"), day, 916, queensRecord(day))), rows)
+        assertEquals(listOf(GameHistoryDay(beta, day, 916, record(beta, day))), rows)
     }
 
     @Test
-    fun `a zip completion still surfaces - regression guard`() = runTest {
+    fun `a captured-but-unfinished day keeps its row for every game`() = runTest {
         val day = LocalDate.of(2026, 11, 1)
         val rows = gameHistoryDays(
-            zip = FakeZipDailyRepository(),
-            completions = FakeCompletionRepository(listOf(zipRecord(day))),
-        ).first()
-
-        assertEquals(1, rows.size)
-        assertEquals(ZipDefinition.id, rows.single().gameId)
-        assertEquals(zipRecord(day), rows.single().record)
-    }
-
-    @Test
-    fun `a captured-but-unfinished zip day keeps its row`() = runTest {
-        val day = LocalDate.of(2026, 11, 1)
-        val rows = gameHistoryDays(
-            zip = FakeZipDailyRepository(listOf(ZipDailyEntry(day, 592, "zip/n5", 0L))),
+            daily = daily(entry(alpha, day, fetchedAtMs = 5L), entry(beta, day, 301, fetchedAtMs = 7L)),
+            games = games,
             completions = FakeCompletionRepository(),
         ).first()
 
         assertEquals(
-            listOf(GameHistoryDay(ZipDefinition.id, day, 592, record = null)),
+            listOf(
+                GameHistoryDay(alpha, day, 592, record = null, fetchedAtMs = 5L),
+                GameHistoryDay(beta, day, 301, record = null, fetchedAtMs = 7L),
+            ),
             rows,
         )
     }
 
     @Test
-    fun `a solved zip day merges into its captured row - no duplicate`() = runTest {
+    fun `a solved day merges into its captured row - no duplicate`() = runTest {
         val day = LocalDate.of(2026, 11, 1)
         val rows = gameHistoryDays(
-            zip = FakeZipDailyRepository(listOf(ZipDailyEntry(day, 592, "zip/n5", 0L))),
-            completions = FakeCompletionRepository(listOf(zipRecord(day))),
+            daily = daily(entry(alpha, day, 592)),
+            games = games,
+            completions = FakeCompletionRepository(listOf(record(alpha, day, puzzleNumber = null))),
         ).first()
 
         assertEquals(1, rows.size)
-        assertEquals(ZipDefinition.id, rows.single().gameId)
+        assertEquals(alpha, rows.single().gameId)
         assertEquals(592, rows.single().puzzleNumber)
-        assertEquals(zipRecord(day), rows.single().record)
+        assertEquals(record(alpha, day, puzzleNumber = null), rows.single().record)
+    }
+
+    @Test
+    fun `games outside the list contribute records but no captured days`() = runTest {
+        val day = LocalDate.of(2026, 11, 1)
+        val rows = gameHistoryDays(
+            daily = daily(entry(beta, day)),
+            games = listOf(alpha),
+            completions = FakeCompletionRepository(),
+        ).first()
+
+        assertEquals(emptyList<GameHistoryDay>(), rows)
     }
 
     @Test
@@ -115,19 +112,14 @@ class GameHistoryDaysTest {
         val mid = LocalDate.of(2026, 10, 30)
         val oldest = LocalDate.of(2026, 10, 29)
         val rows = gameHistoryDays(
-            zip = FakeZipDailyRepository(listOf(ZipDailyEntry(mid, 590, "zip/n5", 0L))),
+            daily = daily(entry(alpha, mid, 590)),
+            games = games,
             completions = FakeCompletionRepository(
-                listOf(queensRecord(newest), zipRecord(oldest)),
+                listOf(record(beta, newest), record(alpha, oldest)),
             ),
         ).first()
 
-        assertEquals(
-            listOf(newest, mid, oldest),
-            rows.map { it.day },
-        )
-        assertEquals(
-            listOf(GameId("queens"), ZipDefinition.id, ZipDefinition.id),
-            rows.map { it.gameId },
-        )
+        assertEquals(listOf(newest, mid, oldest), rows.map { it.day })
+        assertEquals(listOf(beta, alpha, alpha), rows.map { it.gameId })
     }
 }

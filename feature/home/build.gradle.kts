@@ -16,4 +16,6 @@ dependencies {
     implementation(projects.core.game)
     // ThemeMode/GameId appear in Home's public composables.
     api(projects.core.model)
+    // HomeRouteTest registers the real Zip plugin so its captured days reach the teaser.
+    testImplementation(projects.games.zip)
 }

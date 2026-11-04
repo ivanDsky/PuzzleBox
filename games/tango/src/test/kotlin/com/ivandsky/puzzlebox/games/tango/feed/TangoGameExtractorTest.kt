@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.data.network
+package com.ivandsky.puzzlebox.games.tango.feed
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

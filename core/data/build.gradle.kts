@@ -16,13 +16,9 @@ android {
 
 dependencies {
     api(projects.core.common)
-    // Wire -> engine seam (ADR-0002): the LinkedIn adapter parses to ZipWireParser's input
-    // and stores ZipCodec bytes; games/zip exposes :core:game as api.
-    implementation(projects.games.zip)
-    // Queens feed (queens-06): LinkedInQueensDailySource + QueensUniquenessGate + codec bytes.
-    implementation(projects.games.queens)
-    // Tango daily fetch (ticket 03): wire -> TangoWireParser, storage in TangoCodec bytes.
-    implementation(projects.games.tango)
+    // Game contracts (DailySource, GameRegistry, Puzzle, FeedTransport) appear in the
+    // repositories' public signatures; no game module is ever a dependency (ADR-0001).
+    api(projects.core.game)
 
     // ThemeMode/GameId appear in the repositories' public signatures.
     api(projects.core.model)

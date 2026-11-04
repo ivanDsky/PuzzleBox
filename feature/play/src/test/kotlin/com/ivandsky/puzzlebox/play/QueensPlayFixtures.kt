@@ -1,19 +1,17 @@
 package com.ivandsky.puzzlebox.play
 
-import com.ivandsky.puzzlebox.data.repository.QueensDailyEntry
-import com.ivandsky.puzzlebox.data.repository.QueensDailyRepository
-import com.ivandsky.puzzlebox.data.repository.QueensToday
-import com.ivandsky.puzzlebox.game.Cadence
+import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.queensVariantId
 import java.time.LocalDate
-import java.time.ZoneId
-import kotlinx.coroutines.flow.Flow
 
 /** Deterministic 8×8 fixture (queens-10 wiring tests): one queen per row/column/region
  *  on the main diagonal; row = region, so each row-region holds exactly one queen. */
@@ -28,34 +26,28 @@ object QueensPlayFixtures {
         solution = solution,
     )
 
-    /** Envelope as QueensDailyRepository hands it to the UI (payload = codec bytes). */
+    /** Envelope as DailyRepository hands it to the UI (payload = codec bytes). */
     fun envelope(): Puzzle = Puzzle(
         gameId = QueensDefinition.id,
         variant = queensVariantId(8),
         formatVersion = QueensCodec.VERSION,
         payload = QueensCodec.encode(puzzle()),
     )
-}
 
-class FakeQueensDailyRepository(
-    private val todayResult: QueensToday,
-    private val history: List<QueensDailyEntry> = emptyList(),
-) : QueensDailyRepository {
+    /** Today in Queens' cadence zone — the identity of the loaded board. */
+    fun today(): LocalDate = QueensDefinition.cadence.today()
 
-    override suspend fun today(): QueensToday = todayResult
+    /** Today's captured Queens day (#42). */
+    fun entry(day: LocalDate = today()) = DailyEntry(QueensDefinition.id, day, 42, "queens/n8", 0L)
 
-    override suspend fun cached(day: LocalDate): Puzzle? = null
+    /** A daily repository serving [envelope] fresh for Queens. */
+    fun fresh(history: List<DailyEntry> = emptyList()) =
+        FakeDailyRepository().script(QueensDefinition.id, DailyToday.Fresh(envelope()), history)
 
-    override fun observeHistory(): Flow<List<QueensDailyEntry>> =
-        kotlinx.coroutines.flow.flowOf(history)
-
-    companion object {
-        /** Today in Queens' cadence zone — the identity of the loaded board. */
-        fun today(): LocalDate = LocalDate.now((QueensDefinition.cadence as Cadence.Daily).zone)
-
-        fun unavailable() = FakeQueensDailyRepository(
-            todayResult = QueensToday.Unavailable(FetchError.Unavailable("offline")),
-            history = listOf(QueensDailyEntry(today(), 42, "queens/n8", 0L)),
-        )
-    }
+    /** A daily repository whose Queens fetch fails with no cache. */
+    fun unavailable() = FakeDailyRepository().script(
+        QueensDefinition.id,
+        DailyToday.Unavailable(FetchError.Unavailable("offline")),
+        listOf(entry()),
+    )
 }

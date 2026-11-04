@@ -79,6 +79,21 @@ class GameContractsTest {
     }
 
     @Test
+    fun `registry looks plugins up by id in registration order and refOf rebuilds refs`() {
+        val plugin = TestGame.plugin()
+        val registry = GameRegistry(listOf(plugin))
+
+        assertEquals(listOf(plugin), registry.all)
+        assertSame(plugin, registry[TestGame.id])
+        assertNull(registry[GameId("unregistered")])
+
+        val ref = plugin.refOf(TestGame.date, 7)
+        assertEquals(TestGame.id, ref.gameId)
+        assertEquals(TestGame.date, ref.date)
+        assertEquals(7, ref.puzzleNumber)
+    }
+
+    @Test
     fun `definition decode-encode is symmetric over envelopes`() {
         val definition = TestGame.Definition
         val bytes = byteArrayOf(7, 7, 7)

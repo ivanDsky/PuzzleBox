@@ -103,5 +103,6 @@ object TestGame {
         Score,
         stateOf = { session -> stateOf(session) },
         initialSession = { puzzle -> initialSession(puzzle) },
+        refOf = { date, number -> Ref("t-$date", date = date, puzzleNumber = number) },
     ) { state, _, lastVerdict -> Model(state.solved, lastVerdict) }
 }

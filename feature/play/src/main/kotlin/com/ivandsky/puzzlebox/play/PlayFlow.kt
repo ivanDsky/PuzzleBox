@@ -4,9 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.repository.QueensDailyRepository
-import com.ivandsky.puzzlebox.data.repository.TangoDailyRepository
-import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
@@ -16,7 +14,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import java.time.LocalDate
 
 /**
  * The surface every game's play state shares with the route shell (tango-05: the play
@@ -65,19 +62,8 @@ interface ActivePlay {
  * fresh flow know WHICH game to restart.
  */
 class PlayFlow(
-    private val zips: ZipDailyRepository,
-    private val tangos: TangoDailyRepository,
-    private val queens: QueensDailyRepository,
+    private val daily: DailyRepository,
     private val completions: CompletionRepository,
-    private val zipToday: () -> LocalDate = {
-        LocalDate.now((com.ivandsky.puzzlebox.games.zip.ZipDefinition.cadence as com.ivandsky.puzzlebox.game.Cadence.Daily).zone)
-    },
-    private val tangoToday: () -> LocalDate = {
-        LocalDate.now((com.ivandsky.puzzlebox.games.tango.TangoDefinition.cadence as com.ivandsky.puzzlebox.game.Cadence.Daily).zone)
-    },
-    private val queensToday: () -> LocalDate = {
-        LocalDate.now((com.ivandsky.puzzlebox.games.queens.QueensDefinition.cadence as com.ivandsky.puzzlebox.game.Cadence.Daily).zone)
-    },
 ) {
     private var flowScope: CoroutineScope? = null
 
@@ -111,30 +97,27 @@ class PlayFlow(
         flowScope = scope
         return when (game) {
             PlayGame.Zip -> ZipPlayState(
-                daily = zips,
+                daily = daily,
                 completions = completions,
                 scope = scope,
-                today = zipToday,
                 onSessionChanged = { session ->
                     publish(session?.let { SessionBlob.encode(game.id, ZipSessionCodec.serialize(it)) })
                 },
             )
 
             PlayGame.Tango -> TangoPlayState(
-                daily = tangos,
+                daily = daily,
                 completions = completions,
                 scope = scope,
-                today = tangoToday,
                 onSessionChanged = { session ->
                     publish(session?.let { SessionBlob.encode(game.id, TangoSessionCodec.serialize(it)) })
                 },
             )
 
             PlayGame.Queens -> QueensPlayState(
-                daily = queens,
+                daily = daily,
                 completions = completions,
                 scope = scope,
-                today = queensToday,
                 onSessionChanged = { session ->
                     publish(session?.let { SessionBlob.encode(game.id, QueensSessionCodec.serialize(it)) })
                 },

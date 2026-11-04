@@ -1,10 +1,7 @@
 package com.ivandsky.puzzlebox.history
 
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.repository.TangoDailyEntry
-import com.ivandsky.puzzlebox.data.repository.TangoDailyRepository
-import com.ivandsky.puzzlebox.data.repository.ZipDailyEntry
-import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
+import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
@@ -60,7 +57,7 @@ object HistoryTestSupport {
             solution = solution,
         )
 
-    /** Envelope as ZipDailyRepository hands it to the UI (payload = codec bytes). */
+    /** Envelope as DailyRepository hands it to the UI (payload = codec bytes). */
     fun envelope(puzzle: ZipPuzzle = puzzle()): Puzzle = Puzzle(
         gameId = ZipDefinition.id,
         variant = puzzle.variant,
@@ -68,8 +65,13 @@ object HistoryTestSupport {
         payload = ZipCodec.encode(puzzle),
     )
 
-    fun entry(day: LocalDate, puzzleNumber: Int? = PUZZLE_NUMBER, fetchedAtMs: Long = 0L) =
-        ZipDailyEntry(day = day, puzzleNumber = puzzleNumber, variant = "zip/n5", fetchedAtMs = fetchedAtMs)
+    fun entry(day: LocalDate, puzzleNumber: Int? = PUZZLE_NUMBER, fetchedAtMs: Long = 0L) = DailyEntry(
+        gameId = ZipDefinition.id,
+        day = day,
+        puzzleNumber = puzzleNumber,
+        variant = "zip/n5",
+        fetchedAtMs = fetchedAtMs,
+    )
 
     fun record(day: LocalDate, timeMs: Long = 95_000, hints: Int = 2) = CompletionRecord(
         puzzleRef = ZipPuzzleRef(day, PUZZLE_NUMBER),
@@ -133,7 +135,7 @@ object HistoryTestSupport {
     /** Decodable but NOT uniquely solvable — the A15 gate must refuse it. */
     val ambiguousTangoPuzzle = TangoPuzzle(variant = tangoVariant, n = 6, givens = emptyMap(), markers = emptyList())
 
-    /** Envelope as TangoDailyRepository hands it to the UI (payload = codec bytes). */
+    /** Envelope as DailyRepository hands it to the UI (payload = codec bytes). */
     fun tangoEnvelope(puzzle: TangoPuzzle = tangoPuzzle): Puzzle = Puzzle(
         gameId = TangoDefinition.id,
         variant = puzzle.variant,
@@ -141,8 +143,13 @@ object HistoryTestSupport {
         payload = TangoCodec.encode(puzzle),
     )
 
-    fun tangoEntry(day: LocalDate, puzzleNumber: Int? = TANGO_PUZZLE_NUMBER, fetchedAtMs: Long = 0L) =
-        TangoDailyEntry(day = day, puzzleNumber = puzzleNumber, variant = "tango/n6", fetchedAtMs = fetchedAtMs)
+    fun tangoEntry(day: LocalDate, puzzleNumber: Int? = TANGO_PUZZLE_NUMBER, fetchedAtMs: Long = 0L) = DailyEntry(
+        gameId = TangoDefinition.id,
+        day = day,
+        puzzleNumber = puzzleNumber,
+        variant = "tango/n6",
+        fetchedAtMs = fetchedAtMs,
+    )
 
     fun tangoRecord(day: LocalDate, timeMs: Long = 61_000, hints: Int = 0) = CompletionRecord(
         puzzleRef = TangoPuzzleRef(day, TANGO_PUZZLE_NUMBER),
@@ -150,53 +157,6 @@ object HistoryTestSupport {
         hints = hints,
         stats = RecordStats(schemaVersion = 1, blob = """{"v":1,"mistakes":0}"""),
     )
-}
-
-/** Scriptable cache-only ZipDailyRepository fake: history emissions + a cached map. */
-class FakeZipDailyRepository(
-    history: List<ZipDailyEntry> = emptyList(),
-    private val cachedByDay: Map<LocalDate, Puzzle> = emptyMap(),
-) : ZipDailyRepository {
-
-    val historyFlow = MutableStateFlow(history)
-
-    /** The current snapshot, for tests that compose [HistoryScreen] directly. */
-    val entries: List<ZipDailyEntry> get() = historyFlow.value
-
-    override suspend fun today() =
-        error("history is cache-only (A8) — the browser must never call today()")
-
-    override suspend fun cached(day: LocalDate): Puzzle? = cachedByDay[day]
-
-    override fun observeHistory(): Flow<List<ZipDailyEntry>> = historyFlow
-
-    fun addEntry(entry: ZipDailyEntry) {
-        // Repository contract: newest first.
-        historyFlow.value = (listOf(entry) + historyFlow.value).sortedByDescending { it.day }
-    }
-}
-
-/** Scriptable cache-only TangoDailyRepository fake (mirror of the Zip fake). */
-class FakeTangoDailyRepository(
-    history: List<TangoDailyEntry> = emptyList(),
-    private val cachedByDay: Map<LocalDate, Puzzle> = emptyMap(),
-) : TangoDailyRepository {
-
-    val historyFlow = MutableStateFlow(history)
-
-    val entries: List<TangoDailyEntry> get() = historyFlow.value
-
-    override suspend fun today() =
-        error("history is cache-only (A8) — the browser must never call today()")
-
-    override suspend fun cached(day: LocalDate): Puzzle? = cachedByDay[day]
-
-    override fun observeHistory(): Flow<List<TangoDailyEntry>> = historyFlow
-
-    fun addEntry(entry: TangoDailyEntry) {
-        // Repository contract: newest first.
-        historyFlow.value = (listOf(entry) + historyFlow.value).sortedByDescending { it.day }
-    }
 }
 
 /** In-memory CompletionRepository fake: stores verbatim what callers write. */

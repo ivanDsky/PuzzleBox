@@ -5,23 +5,21 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.repository.TangoDailyEntry
-import com.ivandsky.puzzlebox.data.repository.TangoDailyRepository
-import com.ivandsky.puzzlebox.data.repository.TangoToday
-import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
-import com.ivandsky.puzzlebox.data.repository.ZipToday
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.game.GamePlugin
+import com.ivandsky.puzzlebox.game.FetchError
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.SessionBlob
-import com.ivandsky.puzzlebox.gameui.DragEvent
+import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.data.repository.QueensDailyRepository
-import com.ivandsky.puzzlebox.data.repository.QueensToday
 import com.ivandsky.puzzlebox.games.queens.queensPlugin
-import com.ivandsky.puzzlebox.games.tango.TangoSession
+import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
+import com.ivandsky.puzzlebox.games.tango.TangoSession
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
+import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.codec.ZipSessionCodec
 import com.ivandsky.puzzlebox.games.zip.zipPlugin
 import com.ivandsky.puzzlebox.play.di.playModule
@@ -56,30 +54,24 @@ class PlayRouteTest {
 
     /** Production [TangoPlayState.today] is the REAL cadence date — the history row it
      *  resolves must name that same day (the repository rows the day it captures). */
-    private val cadenceToday: LocalDate =
-        LocalDate.now((com.ivandsky.puzzlebox.games.tango.TangoDefinition.cadence as com.ivandsky.puzzlebox.game.Cadence.Daily).zone)
+    private val cadenceToday: LocalDate = TangoDefinition.cadence.today()
 
     private fun dataModule(
-        zips: ZipDailyRepository = FakeZipDailyRepository(ZipToday.Fresh(PlayTestSupport.envelope())),
-        tangos: TangoDailyRepository = FakeTangoDailyRepository(todayResult = TangoToday.Fresh(TangoPlayFixture.envelope())),
-        completions: CompletionRepository = FakeCompletionRepository(),
-        queens: QueensDailyRepository = FakeQueensDailyRepository(todayResult = QueensToday.Fresh(QueensPlayFixtures.envelope())),
+        daily: DailyRepository,
+        completions: CompletionRepository,
     ): org.koin.core.module.Module = module {
-        single { zips }
-        single { tangos }
-        single { queens }
+        single { daily }
         single { completions }
-        // The picker names games from the plugin list (A14) — every game registered.
-        single<List<GamePlugin<*, *, *>>> { listOf(zipPlugin, tangoPlugin, queensPlugin) }
+        // The picker names games from the registry (A14) — every game registered.
+        single { GameRegistry(listOf(zipPlugin, tangoPlugin, queensPlugin)) }
     }
 
     private fun koinWith(
-        zips: ZipDailyRepository,
-        tangos: TangoDailyRepository,
-        completions: CompletionRepository,
+        daily: DailyRepository = freshDailyForAllGames(),
+        completions: CompletionRepository = FakeCompletionRepository(),
     ): KoinApplication {
         stopKoin() // tests share the JVM-global Koin context
-        return startKoin { modules(dataModule(zips, tangos, completions), playModule) }
+        return startKoin { modules(dataModule(daily, completions), playModule) }
     }
 
     private var handedOff: List<Pair<Long, Int>> = emptyList()
@@ -100,11 +92,7 @@ class PlayRouteTest {
 
     @Test
     fun `fresh entry shows the picker with every registered game`() {
-        val koin = koinWith(
-            FakeZipDailyRepository(ZipToday.Fresh(PlayTestSupport.envelope())),
-            FakeTangoDailyRepository(todayResult = TangoToday.Fresh(TangoPlayFixture.envelope())),
-            FakeCompletionRepository(),
-        )
+        val koin = koinWith()
         try {
             setContent(koin)
             composeRule.onNodeWithTag("play.picker").assertExists()
@@ -122,15 +110,10 @@ class PlayRouteTest {
 
     @Test
     fun `picking tango starts the tango screen in place`() {
-        val tangoRepo = FakeTangoDailyRepository(
-            todayResult = TangoToday.Fresh(TangoPlayFixture.envelope()),
-            history = listOf(TangoDailyEntry(cadenceToday, 301, "tango/n6", 0L)),
-        )
-        val koin = koinWith(
-            FakeZipDailyRepository(ZipToday.Fresh(PlayTestSupport.envelope())),
-            tangoRepo,
-            FakeCompletionRepository(),
-        )
+        val daily = freshDailyForAllGames().apply {
+            setHistory(TangoDefinition.id, listOf(TangoPlayFixture.entry(cadenceToday)))
+        }
+        val koin = koinWith(daily)
         try {
             setContent(koin)
             composeRule.onNodeWithTag("play.picker_tango").performClick()
@@ -159,13 +142,13 @@ class PlayRouteTest {
             completedAt = java.time.Instant.parse("2026-03-09T12:00:00Z"),
         )
         val blob = SessionBlob.encode(
-            com.ivandsky.puzzlebox.games.tango.TangoDefinition.id,
+            TangoDefinition.id,
             TangoSessionCodec.serialize(session),
         )
         val koin = koinWith(
-            FakeZipDailyRepository(ZipToday.Fresh(PlayTestSupport.envelope())),
-            FakeTangoDailyRepository(todayResult = TangoToday.Unavailable(com.ivandsky.puzzlebox.game.FetchError.Throttled())),
-            FakeCompletionRepository(),
+            freshDailyForAllGames().apply {
+                setToday(TangoDefinition.id, DailyToday.Unavailable(FetchError.Throttled()))
+            },
         )
         try {
             setContent(koin, restoredSession = blob)
@@ -199,22 +182,18 @@ class PlayRouteTest {
             puzzle = PlayTestSupport.puzzle(),
         )
         val blob = SessionBlob.encode(
-            com.ivandsky.puzzlebox.games.zip.ZipDefinition.id,
+            ZipDefinition.id,
             ZipSessionCodec.serialize(zipSession),
         )
-        val zipRepo = FakeZipDailyRepository(ZipToday.Fresh(PlayTestSupport.envelope()))
-        val koin = koinWith(
-            zipRepo,
-            FakeTangoDailyRepository(todayResult = TangoToday.Fresh(TangoPlayFixture.envelope())),
-            FakeCompletionRepository(),
-        )
+        val daily = freshDailyForAllGames()
+        val koin = koinWith(daily)
         try {
             setContent(koin, restoredSession = blob)
             composeRule.waitForIdle()
 
             composeRule.onNodeWithText("Zip").assertExists()
             composeRule.onNodeWithTag("play.picker").assertDoesNotExist()
-            assertEquals(0, zipRepo.todayCalls) // restored, not fetched
+            assertEquals(0, daily.todayCalls(ZipDefinition.id)) // restored, not fetched
         } finally {
             koin.close()
         }
@@ -222,11 +201,7 @@ class PlayRouteTest {
 
     @Test
     fun `back from a mid-game play releases the flow to the picker`() {
-        val koin = koinWith(
-            FakeZipDailyRepository(ZipToday.Fresh(PlayTestSupport.envelope())),
-            FakeTangoDailyRepository(todayResult = TangoToday.Fresh(TangoPlayFixture.envelope())),
-            FakeCompletionRepository(),
-        )
+        val koin = koinWith()
         try {
             var back = 0
             setContent(koin, onBack = { back++ })

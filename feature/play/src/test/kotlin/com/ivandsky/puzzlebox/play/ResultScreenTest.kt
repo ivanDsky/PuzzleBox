@@ -4,13 +4,11 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.ivandsky.puzzlebox.data.repository.ZipDailyEntry
-import com.ivandsky.puzzlebox.data.repository.TangoToday
-import com.ivandsky.puzzlebox.data.repository.ZipToday
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.ResultScreen
+import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -117,12 +115,11 @@ class ResultScreenTest {
      */
     @Test
     fun `result route reads the flow's live state and replays the same puzzle`() {
-        val repo = FakeZipDailyRepository(
-            ZipToday.Fresh(PlayTestSupport.envelope()),
-            listOf(ZipDailyEntry(day, 592, "zip/n5", 0L)),
-        )
+        val daily = freshDailyForAllGames().apply {
+            setHistory(ZipDefinition.id, listOf(PlayTestSupport.entry(day)))
+        }
         val completions = FakeCompletionRepository()
-        val flow = PlayFlow(zips = repo, tangos = FakeTangoDailyRepository(todayResult = TangoToday.Fresh(TangoPlayFixture.envelope())), queens = FakeQueensDailyRepository(todayResult = com.ivandsky.puzzlebox.data.repository.QueensToday.Fresh(QueensPlayFixtures.envelope())), completions = completions)
+        val flow = PlayFlow(daily = daily, completions = completions)
         stopKoin() // tests share the JVM-global Koin context
         val koin = startKoin { modules(module { single { flow } }) }
         try {

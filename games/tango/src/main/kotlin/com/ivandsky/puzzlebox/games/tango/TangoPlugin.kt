@@ -13,8 +13,12 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoState
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.ZoneId
+import com.ivandsky.puzzlebox.game.DailySource
+import com.ivandsky.puzzlebox.games.tango.feed.LinkedInTangoDailySource
+import com.ivandsky.puzzlebox.games.tango.feed.TangoSeedBackedSource
 import org.koin.core.module.Module
 import org.koin.core.qualifier.qualifier
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 /** ZipDefinition shape (A16 recipe): decode the fetch payload into a typed [Puzzle] envelope. */
@@ -61,10 +65,16 @@ val tangoPlugin: GamePlugin<TangoState, TangoSession, TangoRendererModel> =
                 is DecodeResult.Err -> DecodeResult.Err(decoded.error)
             }
         },
+        refOf = { date, puzzleNumber -> TangoPuzzleRef(date, puzzleNumber) },
         rendererModel = { state, hint, verdict -> TangoRendererModel.of(state, hint, verdict) },
     )
 
-/** Koin wiring (ADR-0001): the id qualifier stops cross-game `single` overwrites. */
+/**
+ * Koin wiring (ADR-0001): the id qualifier stops cross-game `single` overwrites. The
+ * daily source is the seed-backed LinkedIn adapter (Tango-only fallback) over the shared
+ * [com.ivandsky.puzzlebox.game.FeedTransport].
+ */
 val tangoModule: Module = module {
     single(qualifier = qualifier(TangoDefinition.id.value)) { tangoPlugin }
+    single { TangoSeedBackedSource(LinkedInTangoDailySource(get())) } bind DailySource::class
 }

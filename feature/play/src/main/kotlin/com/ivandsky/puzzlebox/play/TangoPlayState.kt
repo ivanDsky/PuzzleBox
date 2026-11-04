@@ -5,13 +5,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.ivandsky.puzzlebox.common.result.AppResult
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.repository.TangoDailyRepository
-import com.ivandsky.puzzlebox.data.repository.TangoToday
-import com.ivandsky.puzzlebox.game.Cadence
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.CompletionRecordEmitter
 import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayHints
@@ -74,11 +74,11 @@ sealed interface TangoScreen {
  * [recordBadge] is null while the write is in flight, then the A4 verdict for THIS play.
  */
 class TangoPlayState(
-    private val daily: TangoDailyRepository,
+    private val daily: DailyRepository,
     private val completions: CompletionRepository,
     private val scope: CoroutineScope,
     private val now: () -> Instant = Instant::now,
-    private val today: () -> LocalDate = { LocalDate.now(tangoCadenceZone()) },
+    private val today: () -> LocalDate = { TangoDefinition.cadence.today() },
     private val onSessionChanged: (TangoSession?) -> Unit = {},
 ) : ActivePlay, PlayClock, PlayHints, PlayUndo {
 
@@ -217,10 +217,10 @@ class TangoPlayState(
     override fun load() {
         resetTransient()
         scope.launch {
-            when (val t = daily.today()) {
-                is TangoToday.Fresh -> adopt(t.puzzle, degraded = null)
-                is TangoToday.Cached -> adopt(t.puzzle, degraded = t.error)
-                is TangoToday.Unavailable -> screen = TangoScreen.Unavailable(unavailableMessage(t.error))
+            when (val t = daily.today(TangoDefinition.id)) {
+                is DailyToday.Fresh -> adopt(t.puzzle, degraded = null)
+                is DailyToday.Cached -> adopt(t.puzzle, degraded = t.error)
+                is DailyToday.Unavailable -> screen = TangoScreen.Unavailable(unavailableMessage(t.error))
             }
         }
     }
@@ -272,7 +272,7 @@ class TangoPlayState(
      *  cadence zone) is the identity of the board we just loaded. */
     private suspend fun resolveRef(): TangoPuzzleRef? {
         val day = today()
-        val entry = daily.observeHistory().first().firstOrNull { it.day == day }
+        val entry = daily.observeHistory(TangoDefinition.id).first().firstOrNull { it.day == day }
         return TangoPuzzleRef(entry?.day ?: day, entry?.puzzleNumber)
     }
 
@@ -501,8 +501,5 @@ class TangoPlayState(
         val UNTRUSTED_COPY = "Today's puzzle failed verification, so it can't be played. Try again later."
 
         val REPLAY_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d")
-
-        /** A10: Tango rolls in LinkedIn's zone; TangoDefinition pins America/Los_Angeles. */
-        fun tangoCadenceZone() = (TangoDefinition.cadence as Cadence.Daily).zone
     }
 }

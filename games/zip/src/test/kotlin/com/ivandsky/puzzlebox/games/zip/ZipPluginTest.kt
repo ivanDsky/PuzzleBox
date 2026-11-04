@@ -134,6 +134,11 @@ class ZipPluginTest {
         val fresh = (zipPlugin.initialSession(decoded(bytes)) as DecodeResult.Ok).value
         assertEquals(ZipSession(ref = null, puzzle = puzzle), fresh)
 
+        // refOf: persisted identity -> Zip's typed ref (storage round-trips refs generically)
+        val day = LocalDate.of(2026, 10, 31)
+        assertEquals(ZipPuzzleRef(day, 592), zipPlugin.refOf(day, 592))
+        assertEquals(ZipPuzzleRef(day, null), zipPlugin.refOf(day, null))
+
         // rendererModel: rejected verdict -> rejection; valid/absent verdict -> none
         val state = ZipState(puzzle, ZipTestSupport.path(0))
         assertNull(zipPlugin.rendererModel(state, null, null).rejection)
@@ -147,7 +152,12 @@ class ZipPluginTest {
             ).rejection,
         )
 
-        org.koin.core.context.GlobalContext.startKoin { modules(zipModule) }
+        val transport = com.ivandsky.puzzlebox.game.FeedTransport {
+            com.ivandsky.puzzlebox.game.FetchResult.Err(com.ivandsky.puzzlebox.game.FetchError.Unavailable())
+        }
+        org.koin.core.context.GlobalContext.startKoin {
+            modules(zipModule, module { single { transport } })
+        }
         try {
             // the id qualifier is resolvable...
             assertEquals(
@@ -159,6 +169,12 @@ class ZipPluginTest {
             assertEquals(
                 listOf<GamePlugin<*, *, *>>(zipPlugin),
                 org.koin.core.context.GlobalContext.get().getAll<GamePlugin<*, *, *>>(),
+            )
+            // ...and the module contributes Zip's daily source to the generic stack
+            assertEquals(
+                listOf(ZipDefinition.id),
+                org.koin.core.context.GlobalContext.get()
+                    .getAll<com.ivandsky.puzzlebox.game.DailySource>().map { it.gameId },
             )
         } finally {
             org.koin.core.context.GlobalContext.stopKoin()
@@ -195,6 +211,7 @@ private val otherPlugin: GamePlugin<OtherGameState, OtherGameSession, OtherRende
         score = OtherGameScore,
         stateOf = { OtherGameState },
         initialSession = { DecodeResult.Err(DecodeError.Malformed("no payload")) },
+        refOf = { _, _ -> error("no refs") },
         rendererModel = { _, _, _ -> OtherRendererModel },
     )
 

@@ -4,14 +4,10 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
-import com.ivandsky.puzzlebox.games.queens.QueensDefinition
-import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
-import com.ivandsky.puzzlebox.games.tango.TangoDefinition
-import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
-import com.ivandsky.puzzlebox.games.zip.ZipDefinition
-import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import java.time.LocalDate
 
@@ -19,25 +15,16 @@ import java.time.LocalDate
  * Normalized record identity (ADR-0004; binding ticket-12 contract): `gameId +
  * day/puzzleNumber` encoded as one stable string key — `zip/2026-10-31/592`, or
  * `zip/2026-10-31` for a ref without a puzzle number. Identity never rides the codec
- * bytes (A19): the key is derived from the [PuzzleRef] the game's ScoreModel emits.
+ * bytes (A19): the key is derived from the [PuzzleRef] the game's ScoreModel emits, and
+ * decoded back through the authoring game's [com.ivandsky.puzzlebox.game.GamePlugin.refOf].
  */
 object PuzzleRefKeys {
 
     /** Stable string form of the composite identity; [decode] is its only inverse. */
-    fun encode(ref: PuzzleRef): String = when (ref) {
-        is ZipPuzzleRef -> keyed(ZipDefinition.id.value, ref.date, ref.puzzleNumber)
-        // Queens (queens-10) and Tango ship their ref types together with this
-        // registration (ADR-0004 integration convention — same line Zip's
-        // onboarding added).
-        is QueensPuzzleRef -> keyed(QueensDefinition.id.value, ref.date, ref.puzzleNumber)
-        is TangoPuzzleRef -> keyed(TangoDefinition.id.value, ref.date, ref.puzzleNumber)
-        // A game ships its own ref type only together with this registration — same
-        // integration convention as Puzzle.toEntity taking ZipPuzzleRef.
-        else -> error("Unregistered PuzzleRef cannot key a completion: $ref")
-    }
+    fun encode(ref: PuzzleRef): String = keyed(ref.gameId.value, ref.date, ref.puzzleNumber)
 
-    /** Inverse of [encode]; null for keys no registered game authored (never reinterpreted). */
-    fun decode(key: String): PuzzleRef? {
+    /** Inverse of [encode]; null for keys no game in [registry] authored (never reinterpreted). */
+    fun decode(key: String, registry: GameRegistry): PuzzleRef? {
         val parts = key.split('/')
         val gameId = parts.getOrNull(0) ?: return null
         val date = parts.getOrNull(1)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
@@ -47,12 +34,7 @@ object PuzzleRefKeys {
             3 -> parts[2].toIntOrNull() ?: return null
             else -> return null
         }
-        return when (gameId) {
-            ZipDefinition.id.value -> ZipPuzzleRef(date, number)
-            QueensDefinition.id.value -> QueensPuzzleRef(date, number)
-            TangoDefinition.id.value -> TangoPuzzleRef(date, number)
-            else -> null
-        }
+        return registry[GameId(gameId)]?.refOf?.invoke(date, number)
     }
 
     private fun keyed(gameId: String, date: LocalDate, puzzleNumber: Int?): String =
@@ -92,8 +74,8 @@ data class CompletionEntity(
 )
 
 /** Cache read: decode through the composite-identity key — one decode path for every reader. */
-fun CompletionEntity.toModel(): CompletionRecord? {
-    val ref = PuzzleRefKeys.decode(puzzleRef) ?: return null
+fun CompletionEntity.toModel(registry: GameRegistry): CompletionRecord? {
+    val ref = PuzzleRefKeys.decode(puzzleRef, registry) ?: return null
     return CompletionRecord(
         puzzleRef = ref,
         time = timeMs,

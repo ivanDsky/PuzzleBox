@@ -1,7 +1,8 @@
 package com.ivandsky.puzzlebox.play
 
-import com.ivandsky.puzzlebox.data.repository.ZipDailyEntry
-import com.ivandsky.puzzlebox.data.repository.ZipToday
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
@@ -14,8 +15,6 @@ import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.engine.ZipValidation
 import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
-import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-
 import java.time.Instant
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicLong
@@ -37,7 +36,7 @@ class ZipPlayStateTest {
     private val scope = CoroutineScope(Dispatchers.Unconfined)
 
     private fun state(
-        daily: FakeZipDailyRepository,
+        daily: FakeDailyRepository,
         completions: CompletionRepository = FakeCompletionRepository(),
         now: () -> Instant = Instant::now,
     ) = ZipPlayState(
@@ -48,14 +47,13 @@ class ZipPlayStateTest {
         today = { day },
     )
 
-    private fun freshDaily(history: Boolean = true) = FakeZipDailyRepository(
-        todayResult = ZipToday.Fresh(PlayTestSupport.envelope()),
-        history = if (history) listOf(ZipDailyEntry(day, 592, "zip/n5", 0L)) else emptyList(),
+    private fun freshDaily(history: Boolean = true) = PlayTestSupport.daily(
+        history = if (history) listOf(PlayTestSupport.entry(day)) else emptyList(),
     )
 
     /** Loads the fixture synchronously (Unconfined scope) and returns the ready state. */
     private fun readyState(
-        daily: FakeZipDailyRepository = freshDaily(),
+        daily: FakeDailyRepository = freshDaily(),
         completions: CompletionRepository = FakeCompletionRepository(),
         now: () -> Instant = Instant::now,
     ): ZipPlayState = state(daily, completions, now).also {
@@ -92,9 +90,9 @@ class ZipPlayStateTest {
 
     @Test
     fun `cached degrade plays the saved puzzle with the banner flag`() {
-        val daily = FakeZipDailyRepository(
-            todayResult = ZipToday.Cached(PlayTestSupport.envelope(), FetchError.Unavailable("offline")),
-            history = listOf(ZipDailyEntry(day, 592, "zip/n5", 0L)),
+        val daily = PlayTestSupport.daily(
+            result = DailyToday.Cached(PlayTestSupport.envelope(), FetchError.Unavailable("offline")),
+            history = listOf(PlayTestSupport.entry(day)),
         )
         val s = state(daily)
         s.load()
@@ -106,7 +104,7 @@ class ZipPlayStateTest {
 
     @Test
     fun `unavailable with nothing captured is a retryable error and retry refetches`() {
-        val daily = FakeZipDailyRepository(todayResult = ZipToday.Unavailable(FetchError.Unavailable("no net")))
+        val daily = PlayTestSupport.daily(result = DailyToday.Unavailable(FetchError.Unavailable("no net")))
         val s = state(daily)
         s.load()
         assertTrue(s.screen is ZipScreen.Unavailable)
@@ -114,7 +112,7 @@ class ZipPlayStateTest {
         assertTrue(unavailableMessage(FetchError.Unavailable(null)).isNotEmpty())
 
         s.load()
-        assertEquals(2, daily.todayCalls)
+        assertEquals(2, daily.todayCalls(ZipDefinition.id))
     }
 
     @Test
@@ -125,7 +123,7 @@ class ZipPlayStateTest {
             formatVersion = 1,
             payload = byteArrayOf(99),
         )
-        val s = state(FakeZipDailyRepository(ZipToday.Fresh(garbage)))
+        val s = state(PlayTestSupport.daily(result = DailyToday.Fresh(garbage)))
         s.load()
         assertTrue(s.screen is ZipScreen.Unavailable)
         assertNull(s.session)
@@ -318,9 +316,9 @@ class ZipPlayStateTest {
 
     @Test
     fun `hint on a dead trace trims free, autoplaces the step, counts one hint`() {
-        val branchy = FakeZipDailyRepository(
-            todayResult = ZipToday.Fresh(PlayTestSupport.envelope(PlayTestSupport.branchyPuzzle())),
-            history = listOf(ZipDailyEntry(day, 592, "zip/n5", 0L)),
+        val branchy = PlayTestSupport.daily(
+            result = DailyToday.Fresh(PlayTestSupport.envelope(PlayTestSupport.branchyPuzzle())),
+            history = listOf(PlayTestSupport.entry(day)),
         )
         val s = readyState(daily = branchy)
         PlayTestSupport.deadTrace().forEach { s.onDragEvent(DragEvent.Extend(GridCell(it.idx / 5, it.idx % 5))) }
@@ -542,7 +540,7 @@ class ZipPlayStateTest {
         val s = state(daily)
         s.adoptRestored(byteArrayOf(1, 2, 3))
         assertTrue(s.screen is ZipScreen.Ready)
-        assertEquals(1, daily.todayCalls)
+        assertEquals(1, daily.todayCalls(ZipDefinition.id))
     }
 
     //endregion

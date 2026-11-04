@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
-import com.ivandsky.puzzlebox.data.repository.QueensDailyEntry
-import com.ivandsky.puzzlebox.data.repository.QueensToday
+import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
@@ -28,7 +27,7 @@ class QueensPlayStateTest {
     private var clockMs = 1_000L
 
     private fun state(
-        daily: FakeQueensDailyRepository,
+        daily: FakeDailyRepository,
         completions: FakeCompletionRepository = FakeCompletionRepository(),
     ) = QueensPlayState(
         daily = daily,
@@ -39,10 +38,7 @@ class QueensPlayStateTest {
 
     /** Loads the fixture synchronously (Unconfined scope) and returns the ready state. */
     private fun readyBoard(
-        daily: FakeQueensDailyRepository = FakeQueensDailyRepository(
-            todayResult = QueensToday.Fresh(QueensPlayFixtures.envelope()),
-            history = listOf(QueensDailyEntry(FakeQueensDailyRepository.today(), 42, "queens/n8", 0L)),
-        ),
+        daily: FakeDailyRepository = QueensPlayFixtures.fresh(history = listOf(QueensPlayFixtures.entry())),
         completions: FakeCompletionRepository = FakeCompletionRepository(),
     ): Pair<QueensPlayState, FakeCompletionRepository> {
         val (state, fake) = state(daily, completions)
@@ -59,7 +55,7 @@ class QueensPlayStateTest {
         assertEquals(QueensPlayFixtures.puzzle(), ready!!.puzzle)
         val board = state.board
         assertNotNull(board)
-        assertEquals(QueensPuzzleRef(FakeQueensDailyRepository.today(), 42), board!!.session.ref)
+        assertEquals(QueensPuzzleRef(QueensPlayFixtures.today(), 42), board!!.session.ref)
         assertFalse(board.session.isComplete)
     }
 
@@ -79,13 +75,13 @@ class QueensPlayStateTest {
         val records = runBlocking { completions.observeRecords().first() }
         assertEquals(1, records.size)
         val record = records.single()
-        assertEquals(QueensPuzzleRef(FakeQueensDailyRepository.today(), 42), record.puzzleRef)
+        assertEquals(QueensPuzzleRef(QueensPlayFixtures.today(), 42), record.puzzleRef)
         assertEquals("queens/n8", variantOf(record))
     }
 
     @Test
     fun `unavailable fetch is a first-class error state`() {
-        val (state, _) = state(FakeQueensDailyRepository.unavailable())
+        val (state, _) = state(QueensPlayFixtures.unavailable())
         state.load()
         assertTrue(state.screen is QueensScreen.Unavailable)
         assertNull(state.board)
@@ -106,10 +102,7 @@ class QueensPlayStateTest {
     fun `the saver sees the fresh session and every committed move`() {
         val saves = ArrayList<QueensSession?>()
         val state = QueensPlayState(
-            daily = FakeQueensDailyRepository(
-                todayResult = QueensToday.Fresh(QueensPlayFixtures.envelope()),
-                history = listOf(QueensDailyEntry(FakeQueensDailyRepository.today(), 42, "queens/n8", 0L)),
-            ),
+            daily = QueensPlayFixtures.fresh(history = listOf(QueensPlayFixtures.entry())),
             completions = FakeCompletionRepository(),
             scope = scope,
             now = { Instant.ofEpochMilli(clockMs) },
@@ -142,9 +135,7 @@ class QueensPlayStateTest {
         val bytes = QueensSessionCodec.serialize(board.session)
 
         // A fresh entry adopts the same completed session — no second write (A4).
-        val (restored, freshCompletions) = state(
-            FakeQueensDailyRepository(QueensToday.Fresh(QueensPlayFixtures.envelope())),
-        )
+        val (restored, freshCompletions) = state(QueensPlayFixtures.fresh())
         restored.adoptRestored(bytes)
         assertTrue(restored.board!!.session.isComplete)
         assertFalse(restored.board!!.winEmitted)
@@ -271,7 +262,7 @@ class QueensPlayStateTest {
         state.onBackground()
         val bytes = QueensSessionCodec.serialize(state.board!!.session)
 
-        val (restored, _) = state(FakeQueensDailyRepository(QueensToday.Fresh(QueensPlayFixtures.envelope())))
+        val (restored, _) = state(QueensPlayFixtures.fresh())
         restored.adoptRestored(bytes)
         assertNotNull(restored.clockWindow)
         clockMs = 6_000L
@@ -315,7 +306,7 @@ class QueensPlayStateTest {
 
     @Test
     fun `hint and load availability follow the screen and the win`() {
-        val (state, _) = state(FakeQueensDailyRepository.unavailable())
+        val (state, _) = state(QueensPlayFixtures.unavailable())
         assertTrue(state.needsLoad)
         assertFalse(state.hintEnabled)
         state.load()

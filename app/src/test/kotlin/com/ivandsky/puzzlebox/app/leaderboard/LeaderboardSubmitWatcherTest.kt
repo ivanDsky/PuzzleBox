@@ -11,7 +11,7 @@ import com.ivandsky.puzzlebox.data.testing.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
-import com.ivandsky.puzzlebox.data.testing.testZipRef
+import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -61,7 +61,7 @@ class LeaderboardSubmitWatcherTest {
     }
 
     private fun record(
-        ref: PuzzleRef = testZipRef(day, 592),
+        ref: PuzzleRef = ZipPuzzleRef(day, 592),
         timeMs: Long = 95_000,
         hints: Int = 2,
         isRecord: Boolean = true,
@@ -122,7 +122,7 @@ class LeaderboardSubmitWatcherTest {
         scheduler.advanceUntilIdle()
 
         // Room re-emits the whole records list on any write.
-        records.emit(listOf(record(), record(ref = testZipRef(day, 593))))
+        records.emit(listOf(record(), record(ref = ZipPuzzleRef(day, 593))))
         scheduler.advanceUntilIdle()
 
         assertEquals(2, leaderboard.submitted.size)
@@ -135,7 +135,7 @@ class LeaderboardSubmitWatcherTest {
     @Test
     fun `replays and non-daily records never submit (A5)`() = runTest {
         val records = FakeRecordsRepo(
-            listOf(record(isRecord = false), record(ref = testZipRef(day, puzzleNumber = null))),
+            listOf(record(isRecord = false), record(ref = ZipPuzzleRef(day, puzzleNumber = null))),
         )
         val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
         val leaderboard = FakeLeaderboardRepository()
@@ -204,7 +204,7 @@ class LeaderboardSubmitWatcherTest {
         // A records change re-emits the list (Room semantics) and must retry the
         // failed key — pre-fix it stayed marked. The identical single-record list
         // would conflate away on the StateFlow, so the write adds another day.
-        records.emit(listOf(record(), record(ref = testZipRef(day, 593))))
+        records.emit(listOf(record(), record(ref = ZipPuzzleRef(day, 593))))
         scheduler.advanceUntilIdle()
 
         assertEquals(3, attempts) // 592 retried, 593 first attempt

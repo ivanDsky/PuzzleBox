@@ -1,14 +1,16 @@
-package com.ivandsky.puzzlebox.data.repository
+package com.ivandsky.puzzlebox.games.tango.feed
 
-import com.ivandsky.puzzlebox.data.network.TangoWireParser
+import com.ivandsky.puzzlebox.game.DailyFetch
+import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.FetchResult
 import com.ivandsky.puzzlebox.game.Puzzle
-import com.ivandsky.puzzlebox.game.PuzzleSource
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
+import com.ivandsky.puzzlebox.games.tango.codec.TangoWireParser
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
 /**
@@ -23,15 +25,11 @@ import java.time.LocalDate
  * the seed's ref carries the requested date, never a LinkedIn edition string.
  * Zip/Queens keep their real anonymous fetches — this wrapper is Tango-only.
  */
-class TangoSeedBackedSource(private val primary: LinkedInTangoDailySource) : PuzzleSource, TangoDailySource {
+class TangoSeedBackedSource(private val primary: LinkedInTangoDailySource) : DailySource {
 
-    override suspend fun fetch(date: LocalDate): FetchResult<Puzzle> =
-        when (val result = fetchDaily(date)) {
-            is FetchResult.Ok -> FetchResult.Ok(result.value.puzzle)
-            is FetchResult.Err -> result
-        }
+    override val gameId: GameId = TangoDefinition.id
 
-    override suspend fun fetchDaily(date: LocalDate): FetchResult<TangoDailySource.Daily> {
+    override suspend fun fetchDaily(date: LocalDate): FetchResult<DailyFetch> {
         when (val primaryResult = primary.fetchDaily(date)) {
             is FetchResult.Ok -> return primaryResult
             is FetchResult.Err -> {
@@ -42,7 +40,7 @@ class TangoSeedBackedSource(private val primary: LinkedInTangoDailySource) : Puz
         return seedDaily(date)
     }
 
-    private fun seedDaily(date: LocalDate): FetchResult<TangoDailySource.Daily> {
+    private fun seedDaily(date: LocalDate): FetchResult<DailyFetch> {
         val daily = when (val parsed = TangoWireParser.parse(SEED_PAYLOAD, date)) {
             is DecodeResult.Ok -> parsed.value
             is DecodeResult.Err ->
@@ -57,7 +55,7 @@ class TangoSeedBackedSource(private val primary: LinkedInTangoDailySource) : Puz
             formatVersion = TangoCodec.VERSION,
             payload = TangoCodec.encode(daily.puzzle),
         )
-        return FetchResult.Ok(TangoDailySource.Daily(envelope, daily.ref))
+        return FetchResult.Ok(DailyFetch(envelope, daily.ref))
     }
 
     companion object {

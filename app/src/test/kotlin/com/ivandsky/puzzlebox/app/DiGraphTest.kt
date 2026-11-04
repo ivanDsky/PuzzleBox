@@ -8,18 +8,15 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.db.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
-import com.ivandsky.puzzlebox.data.repository.QueensDailyRepository
-import com.ivandsky.puzzlebox.data.repository.TangoDailyRepository
-import com.ivandsky.puzzlebox.data.repository.TangoDailySource
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
-import com.ivandsky.puzzlebox.game.GamePlugin
-import com.ivandsky.puzzlebox.game.PuzzleSource
+import com.ivandsky.puzzlebox.game.DailySource
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GameUiRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.PlayFlow
-import org.koin.core.qualifier.qualifier
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
@@ -60,11 +57,11 @@ class DiGraphTest : KoinTest {
             val koin = koinApp.koin
             assertNotNull(koin.get<DispatcherProvider>())
             assertNotNull(koin.get<PuzzleBoxDatabase>())
-            // Ticket 03: the Tango daily fetch bindings resolve (qualified archive seam).
-            assertNotNull(koin.get<TangoDailySource>())
-            assertNotNull(koin.get<TangoDailyRepository>())
-            assertNotNull(
-                koin.get<PuzzleSource>(qualifier = qualifier(GameId("tango").value)),
+            // The generic daily stack: one repository over every game's DailySource.
+            assertNotNull(koin.get<DailyRepository>())
+            assertEquals(
+                setOf(GameId("zip"), GameId("tango"), GameId("queens")),
+                koin.getAll<DailySource>().map { it.gameId }.toSet(),
             )
             assertNotNull(koin.get<UserPreferencesRepository>())
             // Ticket 16: backend bindings resolve against the app-provided scope.
@@ -76,18 +73,15 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<ProfileViewModel>())
 
             // Game aggregation (ADR-0001): every game module's plugin lands in the
-            // generic list, the app-level registry resolves, and the featured game's
-            // renderer is registered — a missing entry is a wiring bug, loudly here.
-            val plugins = koin.getAll<GamePlugin<*, *, *>>()
-            assertTrue("expected at least one registered GamePlugin, got none", plugins.isNotEmpty())
-            assertNotNull(koin.get<List<GamePlugin<*, *, *>>>())
+            // registry and the featured game's renderer is registered — a missing entry
+            // is a wiring bug, loudly here.
+            val games = koin.get<GameRegistry>().all.map { it.definition.id }.toSet()
+            assertEquals(setOf(GameId("zip"), GameId("tango"), GameId("queens")), games)
             val registry = koin.get<GameUiRegistry>()
             assertNotNull("no board renderer registered for zip", registry[GameId("zip")])
-            // Queens play wiring: the one shared flow resolves off the real graph (it takes
-            // the queens repository) and the game's renderer is registered — a missing
-            // line is a wiring bug.
+            // Queens play wiring: the one shared flow resolves off the real graph and the
+            // game's renderer is registered — a missing line is a wiring bug.
             assertNotNull(koin.get<PlayFlow>())
-            assertNotNull(koin.get<QueensDailyRepository>())
             assertNotNull("no board renderer registered for queens", registry[GameId("queens")])
         } finally {
             stopKoin() // close() alone leaves the JVM-global context registered for later tests

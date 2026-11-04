@@ -6,13 +6,13 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
-import com.ivandsky.puzzlebox.data.repository.QueensDailyEntry
-import com.ivandsky.puzzlebox.data.repository.QueensDailyRepository
-import com.ivandsky.puzzlebox.data.repository.QueensToday
+import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.game.Cadence
-import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
@@ -23,10 +23,6 @@ import com.ivandsky.puzzlebox.games.queens.queensVariantId
 import com.ivandsky.puzzlebox.play.PlayFlow
 import com.ivandsky.puzzlebox.play.PlayRoute
 import com.ivandsky.puzzlebox.play.QueensPlayState
-import java.time.LocalDate
-import java.time.ZoneId
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import org.junit.After
 import org.junit.Rule
 import org.junit.Assert.assertEquals
@@ -80,42 +76,22 @@ class QueensRotationRestoreTest {
         )
     }
 
-    private class CountingFakeRepository(
-        private val fresh: QueensToday,
-        private val history: List<QueensDailyEntry>,
-    ) : QueensDailyRepository {
-        var todayCalls = 0
-            private set
-
-        override suspend fun today(): QueensToday {
-            todayCalls++
-            return fresh
-        }
-
-        override suspend fun cached(day: LocalDate): Puzzle? = null
-        override fun observeHistory(): Flow<List<QueensDailyEntry>> = flowOf(history)
-    }
-
     private lateinit var koinApp: org.koin.core.KoinApplication
 
-    private fun startGraph(): CountingFakeRepository {
-        val repo = CountingFakeRepository(
-            fresh = QueensToday.Fresh(envelope()),
-            history = listOf(
-                QueensDailyEntry(
-                    LocalDate.now((QueensDefinition.cadence as Cadence.Daily).zone),
-                    42,
-                    "queens/n4",
-                    0L,
-                ),
-            ),
-        )
+    private fun startGraph(): FakeDailyRepository {
+        val repo = FakeDailyRepository().apply {
+            setToday(QueensDefinition.id, DailyToday.Fresh(envelope()))
+            setHistory(
+                QueensDefinition.id,
+                listOf(DailyEntry(QueensDefinition.id, QueensDefinition.cadence.today(), 42, "queens/n4", 0L)),
+            )
+        }
         koinApp = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
             modules(PuzzleBoxApplication.appModules)
         }
         koinApp.koin.loadModules(
-            listOf(module { single<QueensDailyRepository> { repo } }),
+            listOf(module { single<DailyRepository> { repo } }),
             allowOverride = true,
         )
         return repo
@@ -176,7 +152,7 @@ class QueensRotationRestoreTest {
         board.undo() // back to: MANUAL X + queen
         idle()
         val before = queens(flow).board!!.session
-        assertEquals(1, repo.todayCalls)
+        assertEquals(1, repo.todayCalls(QueensDefinition.id))
 
         // The rotation: real save-instance-state → recreate.
         controller.get().recreate()
@@ -187,7 +163,7 @@ class QueensRotationRestoreTest {
 
         val after = queens(flow).board!!.session
         assertSameButClock("marks, queens, undo history, provenance identical", before, after)
-        assertEquals("no refetch on recreation", 1, repo.todayCalls)
+        assertEquals("no refetch on recreation", 1, repo.todayCalls(QueensDefinition.id))
 
         // Progress made AFTER a restored entry must also persist — the serialization
         // callback belongs to the restored entry now (R-4: stale-bytes regression).
@@ -207,7 +183,7 @@ class QueensRotationRestoreTest {
         val final = queens(flow).board!!.session
         assertSameButClock("post-restore progress survives the next recreation", mid, final)
         assertTrue("second-rotation marks present", final.markAt(Cell(5)) != null && Cell(6) in final.queens)
-        assertEquals("still no refetch", 1, repo.todayCalls)
+        assertEquals("still no refetch", 1, repo.todayCalls(QueensDefinition.id))
 
         // The critical leg (R-4): a process death while the entry is live — the Koin
         // graph is gone, so the ONLY restore path is the persisted codec bytes. The
@@ -221,6 +197,6 @@ class QueensRotationRestoreTest {
         idle()
         awaitBoard(freshFlow)
         assertSameButClock("process death restores the exact live session", mid, queens(freshFlow).board!!.session)
-        assertEquals("no refetch after process death — restore came from codec bytes", 0, freshRepo.todayCalls)
+        assertEquals("no refetch after process death — restore came from codec bytes", 0, freshRepo.todayCalls(QueensDefinition.id))
     }
 }

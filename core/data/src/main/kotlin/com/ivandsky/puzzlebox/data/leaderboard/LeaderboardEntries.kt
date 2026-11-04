@@ -40,13 +40,11 @@ object LeaderboardEntries {
     /**
      * From the model [com.ivandsky.puzzlebox.data.repository.CompletionRepository]
      * emits (the submit-watcher path). Null when this completion may never appear on
-     * a board; a ref no registered game authored decodes to null (A19 preserve-or-drop).
+     * a board (not official-daily-shaped, a replay, or outside the rules envelope).
      */
     fun fromRecord(record: CompletionRecord, uid: String, displayName: String): LeaderboardEntry? {
         if (!record.isRecord) return null // A5: replays are never leaderboard-eligible
-        // A ref no registered game authored cannot key a completion (A19 preserve-or-drop).
-        val refKey = runCatching { PuzzleRefKeys.encode(record.puzzleRef) }.getOrNull()
-            ?: return null
+        val refKey = PuzzleRefKeys.encode(record.puzzleRef)
         if (LeaderboardRef.fromPuzzleRefKey(refKey) == null) return null
         if (record.time <= 0 || record.hints < 0) return null // rules sanity envelope
         // A record row always carries the A4 first-win stamp; without it there is no

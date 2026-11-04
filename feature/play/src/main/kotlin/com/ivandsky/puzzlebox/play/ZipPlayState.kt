@@ -6,14 +6,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.ivandsky.puzzlebox.common.result.AppResult
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.repository.ZipDailyRepository
-import com.ivandsky.puzzlebox.data.repository.ZipToday
-import com.ivandsky.puzzlebox.game.Cadence
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.CompletionRecordEmitter
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
@@ -65,11 +65,11 @@ sealed interface ZipScreen {
  * verdict for THIS play (true = first in-app completion, false = replay).
  */
 class ZipPlayState(
-    private val daily: ZipDailyRepository,
+    private val daily: DailyRepository,
     private val completions: CompletionRepository,
     private val scope: CoroutineScope,
     private val now: () -> Instant = Instant::now,
-    private val today: () -> LocalDate = { LocalDate.now(zipCadenceZone()) },
+    private val today: () -> LocalDate = { ZipDefinition.cadence.today() },
     private val onSessionChanged: (ZipSession?) -> Unit = {},
 ) : ActivePlay, PlayClock, PlayHints, PlayUndo {
 
@@ -181,10 +181,10 @@ class ZipPlayState(
         baselineHadRecord = null
         emitter = null
         scope.launch {
-            when (val today = daily.today()) {
-                is ZipToday.Fresh -> adopt(today.puzzle, degraded = null)
-                is ZipToday.Cached -> adopt(today.puzzle, degraded = today.error)
-                is ZipToday.Unavailable -> screen = ZipScreen.Unavailable(unavailableMessage(today.error))
+            when (val today = daily.today(ZipDefinition.id)) {
+                is DailyToday.Fresh -> adopt(today.puzzle, degraded = null)
+                is DailyToday.Cached -> adopt(today.puzzle, degraded = today.error)
+                is DailyToday.Unavailable -> screen = ZipScreen.Unavailable(unavailableMessage(today.error))
             }
         }
     }
@@ -225,7 +225,7 @@ class ZipPlayState(
      *  zone) is the identity of the board we just loaded. */
     private suspend fun resolveRef(): ZipPuzzleRef? {
         val day = today()
-        val entry = daily.observeHistory().first().firstOrNull { it.day == day }
+        val entry = daily.observeHistory(ZipDefinition.id).first().firstOrNull { it.day == day }
         return ZipPuzzleRef(entry?.day ?: day, entry?.puzzleNumber)
     }
 
@@ -436,9 +436,6 @@ class ZipPlayState(
 
         /** User-set hint cooldown (2026-11-02). */
         const val HINT_COOLDOWN_MS = 5_000L
-
-        /** Zip rolls at midnight PT (research 01; ZipDefinition pins the zone). */
-        fun zipCadenceZone() = (ZipDefinition.cadence as Cadence.Daily).zone
     }
 }
 

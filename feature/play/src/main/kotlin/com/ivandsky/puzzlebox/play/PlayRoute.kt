@@ -10,7 +10,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import com.ivandsky.puzzlebox.game.GamePlugin
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.GameUiRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -51,7 +51,7 @@ fun PlayRoute(
 ) {
     val flow = koinInject<PlayFlow>()
     val registry = koinInject<GameUiRegistry>()
-    val plugins = koinInject<List<GamePlugin<*, *, *>>>()
+    val gameRegistry = koinInject<GameRegistry>()
 
     var savedSession by rememberSaveable { mutableStateOf<ByteArray?>(null) }
 
@@ -93,7 +93,7 @@ fun PlayRoute(
     when (val state = flow.state) {
         null -> GamePicker(
             games = PlayGame.entries.mapNotNull { game ->
-                plugins.firstOrNull { it.definition.id == game.id }?.let { game to it.definition.displayName }
+                gameRegistry[game.id]?.let { game to it.definition.displayName }
             },
             onPick = { game -> flow.start(game) { bytes -> savedSession = bytes } },
             modifier = modifier,

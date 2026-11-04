@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.data.network
+package com.ivandsky.puzzlebox.games.tango.codec
 
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
@@ -17,7 +17,7 @@ import kotlinx.serialization.json.jsonObject
 
 /**
  * Pure extraction of `tangoGamePuzzle` JSON -> typed [TangoPuzzle] (the RSC flight
- * framing and HTTP stay in core/data; research 01-tango-payload, [INFERRED] schema).
+ * framing and HTTP stay in the feed transport; research 01-tango-payload, [INFERRED] schema).
  * Unknown JSON fields are ignored — the parser is structural, not a schema.
  *
  * Variant discipline (ADR-0005): the official daily variant is derived from the

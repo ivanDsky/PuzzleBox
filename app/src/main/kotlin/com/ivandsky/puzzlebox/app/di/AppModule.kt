@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.game.GamePlugin
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GameUiRegistry
 import com.ivandsky.puzzlebox.games.queensui.QueensBoardRenderer
 import com.ivandsky.puzzlebox.games.zipui.ZipBoardRenderer
@@ -54,10 +55,10 @@ val appModule = module {
     }
 
     // Game aggregation (ADR-0001): the composition root owns the seams no game module
-    // may know about. Generic plugin list for consumers that must not know game ids
-    // (Home, play shell). Adding a game means one module line in
-    // [PuzzleBoxApplication.appModules] plus one registry registration here.
-    single<List<GamePlugin<*, *, *>>> { getAll<GamePlugin<*, *, *>>() }
+    // may know about. The registry is the one lookup for consumers that must not know
+    // game ids (Home, History, play shell, data decode). Adding a game means one module
+    // line in [PuzzleBoxApplication.appModules] plus one UI registration here.
+    single { GameRegistry(getAll<GamePlugin<*, *, *>>()) }
 
     // One registration line per game — the whole extension point (F2-1).
     single {

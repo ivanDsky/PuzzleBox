@@ -61,4 +61,26 @@ class TangoPluginTest {
         assertEquals(TangoCell.MOON, state.grid[2])
         assertEquals(TangoCell.SUN, state.grid[0]) // given
     }
+
+    @Test
+    fun `refOf rebuilds the typed ref and the module registers the seed-backed daily source`() {
+        val day = LocalDate.of(2026, 11, 2)
+        assertEquals(TangoPuzzleRef(day, 301), tangoPlugin.refOf(day, 301))
+        assertEquals(TangoPuzzleRef(day, null), tangoPlugin.refOf(day, null))
+
+        val transport = com.ivandsky.puzzlebox.game.FeedTransport {
+            com.ivandsky.puzzlebox.game.FetchResult.Err(com.ivandsky.puzzlebox.game.FetchError.Unavailable())
+        }
+        org.koin.core.context.GlobalContext.startKoin {
+            modules(tangoModule, org.koin.dsl.module { single { transport } })
+        }
+        try {
+            val sources = org.koin.core.context.GlobalContext.get()
+                .getAll<com.ivandsky.puzzlebox.game.DailySource>()
+            assertEquals(listOf(TangoDefinition.id), sources.map { it.gameId })
+            assertTrue(sources.single() is com.ivandsky.puzzlebox.games.tango.feed.TangoSeedBackedSource)
+        } finally {
+            org.koin.core.context.GlobalContext.stopKoin()
+        }
+    }
 }
