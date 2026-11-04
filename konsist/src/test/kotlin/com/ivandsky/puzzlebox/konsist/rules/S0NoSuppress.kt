@@ -16,6 +16,7 @@ object S0NoSuppress : Rule {
     /**
      * Any `Suppress(` in code: `@Suppress`, `@kotlin.Suppress`, every use-site target (`@file:`, `@get:`, …) and the
      * bracket form `@file:[A Suppress(…)]`. Matched in [SourceFile.codeText], so a mention inside a string is not one.
+     * Text, not Konsist annotations: those miss `@Suppress` on a getter, a function parameter and an expression.
      */
     private val suppress = Regex("""(?<![\w.])(?:kotlin\s*\.\s*)?Suppress\s*\(""")
     private val literal = Regex(""""((?:\\.|[^"\\])*)"""")

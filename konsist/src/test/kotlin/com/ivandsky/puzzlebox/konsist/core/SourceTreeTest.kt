@@ -57,7 +57,7 @@ class SourceTreeTest {
     fun konsistDirIsExcludedEvenWhenItIsAModule() {
         val root = tree.root
         val konsistModule = Module(":konsist", "konsist", "p", emptySet())
-        val files = SourceWalker.walk(root, tree.modules + konsistModule)
+        val files = SourceWalker.walk(root, tree.modules + konsistModule).files
         assertTrue(files.isNotEmpty())
         assertTrue(files.none { it.path.startsWith("konsist/") })
         assertEquals(6, files.size)

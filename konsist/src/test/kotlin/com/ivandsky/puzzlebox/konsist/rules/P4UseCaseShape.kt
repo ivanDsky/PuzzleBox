@@ -6,6 +6,12 @@ import com.ivandsky.puzzlebox.konsist.core.SourceSetKind
 import com.ivandsky.puzzlebox.konsist.core.SourceTree
 import com.ivandsky.puzzlebox.konsist.core.Violation
 import com.lemonappdev.konsist.api.declaration.combined.KoClassAndObjectDeclaration
+import com.lemonappdev.konsist.api.ext.list.modifierprovider.withOperatorModifier
+import com.lemonappdev.konsist.api.ext.list.modifierprovider.withPublicOrDefaultModifier
+import com.lemonappdev.konsist.api.ext.list.modifierprovider.withoutDataModifier
+import com.lemonappdev.konsist.api.ext.list.modifierprovider.withoutEnumModifier
+import com.lemonappdev.konsist.api.ext.list.modifierprovider.withoutSealedModifier
+import com.lemonappdev.konsist.api.ext.list.withName
 
 /** Data classes and objects, enums and sealed classes are the results use cases return, not use cases. */
 class P4UseCaseShape(val verbs: Set<String> = DEFAULT_VERBS) : Rule {
@@ -13,10 +19,11 @@ class P4UseCaseShape(val verbs: Set<String> = DEFAULT_VERBS) : Rule {
 
     override fun check(tree: SourceTree): RuleResult {
         val scope = tree.scope(SourceSetKind.PRODUCTION)
-        val classes = scope.classes(includeNested = false).filterNot { it.hasEnumModifier || it.hasSealedModifier }
+        val classes = scope.classes(includeNested = false).withoutEnumModifier().withoutSealedModifier()
         val objects = scope.objects(includeNested = false)
         val subjects = (classes + objects)
-            .filter { it.hasPublicOrDefaultModifier && !it.hasDataModifier }
+            .withPublicOrDefaultModifier()
+            .withoutDataModifier()
             .map { it to tree.fileFor(it.containingFile) }
             .filter { (_, file) -> file.module.path == MODULE && file.packageName.substringAfterLast('.') != "di" }
         val violations = subjects.groupBy({ it.second.path }, { it.first }).mapNotNull { (path, declarations) ->
@@ -32,12 +39,13 @@ class P4UseCaseShape(val verbs: Set<String> = DEFAULT_VERBS) : Rule {
         if (verb == null) return "$name: start with a verb (${verbs.sorted().joinToString()}) followed by an uppercase letter"
         // Every public `invoke` is an entry point; exactly one, and it must be the operator.
         val invokes = declaration.functions(includeNested = false, includeLocal = false)
-            .filter { it.name == "invoke" && it.hasPublicOrDefaultModifier }
+            .withName("invoke")
+            .withPublicOrDefaultModifier()
         return if (invokes.size == 1 && invokes.single().hasOperatorModifier) {
             null
         } else {
             "$name: needs exactly one public invoke, an operator fun; found ${invokes.size} " +
-                "(${invokes.count { it.hasOperatorModifier }} operator)"
+                "(${invokes.withOperatorModifier().size} operator)"
         }
     }
 

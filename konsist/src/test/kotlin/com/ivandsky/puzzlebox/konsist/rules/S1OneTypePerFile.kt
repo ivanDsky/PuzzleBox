@@ -7,7 +7,7 @@ import com.ivandsky.puzzlebox.konsist.core.SourceSetKind
 import com.ivandsky.puzzlebox.konsist.core.SourceTree
 import com.ivandsky.puzzlebox.konsist.core.Violation
 import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
-import com.lemonappdev.konsist.api.provider.modifier.KoVisibilityModifierProvider
+import com.lemonappdev.konsist.api.ext.list.modifierprovider.withPublicOrDefaultModifier
 
 object S1OneTypePerFile : Rule {
     override val id = "S1"
@@ -31,10 +31,8 @@ object S1OneTypePerFile : Rule {
     private fun publicTypeNames(file: KoFileDeclaration, previewAnnotations: Set<String>): List<String> {
         val types = file.classes(includeNested = false) + file.interfaces(includeNested = false) + file.objects(includeNested = false)
         val composables = file.functions(includeNested = false, includeLocal = false).filter { fn ->
-            isPublic(fn) && fn.annotations.any { it.name == "Composable" } && !Previews.isPreview(fn, previewAnnotations)
+            fn.hasPublicOrDefaultModifier && fn.hasAnnotationWithName("Composable") && !Previews.isPreview(fn, previewAnnotations)
         }
-        return (types.filter(::isPublic).map { it.name } + composables.map { it.name })
+        return types.withPublicOrDefaultModifier().map { it.name } + composables.map { it.name }
     }
-
-    private fun isPublic(declaration: KoVisibilityModifierProvider): Boolean = !declaration.hasPrivateModifier && !declaration.hasInternalModifier && !declaration.hasProtectedModifier
 }
