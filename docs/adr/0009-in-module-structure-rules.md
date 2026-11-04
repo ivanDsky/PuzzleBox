@@ -95,8 +95,12 @@ modules stays in ADR-0008.
 3. Add a section named `## <ID>` to this file. The failure message links to its lowercase anchor.
 4. There is no registry. A rule is a test class, so JUnit finds it.
 5. A new game or Android module needs no suite edit. Modules are read from `settings.gradle.kts`
-   and each module's `build.gradle.kts`. A JVM module's package root is derived from its path
-   with hyphens removed. A JVM module family the fallback does not know fails loudly.
+   and each module's `build.gradle.kts` (plugin ids from its `plugins { }` block). Values must be
+   string literals, joined with `+` if needed; a variable or `$` template in an `include`, plugin
+   id or `namespace` fails loudly rather than being skipped. An Android module's package root is
+   its `namespace`, and an Android module without one fails loudly. A JVM module's package root is
+   derived from its path with hyphens removed. A JVM module family the fallback does not know
+   fails loudly.
 
 ## Rules
 The rules below are numbered as in the spec. There is no S3.
