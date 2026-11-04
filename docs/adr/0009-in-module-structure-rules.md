@@ -244,10 +244,14 @@ Naming conventions for types.
     `Source`, `Gateway`, `Store`, `Service` or `Provider` must be named `<Qualifier><Interface>`,
     longer than the interface name and ending in it.
   One violation per file, joining the problems.
-- **Accepted misses:** objects are judged like classes. A type with several such interfaces
-  passes if any one of them fits its name. Interfaces get only the banned-suffix check, not the
-  Fake or qualifier checks. `Fake` followed by a lowercase letter or nothing is not a Fake.
-  Supertypes are compared by simple name.
+- **Decision (intended, not misses):** objects are judged like classes, so
+  `object InMemoryGameRepository : GameRepository` follows the same naming as a class. A type
+  with several such interfaces passes if its name fits any one of them
+  (`class RoomGameStore : GameRepository, Store`): a name carries only one suffix. Both are
+  pinned by clean fixture cases.
+- **Accepted misses:** interfaces get only the banned-suffix check, not the Fake or qualifier
+  checks. `Fake` followed by a lowercase letter or nothing is not a Fake. Supertypes are
+  compared by simple name.
 - **How to fix:** rename the type (`OfflineFirstDailyRepository`, not `DailyRepositoryImpl`), or
   make the Fake implement the type it fakes.
 
