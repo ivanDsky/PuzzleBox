@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.gameui
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** Spec A10: "New best" only on a strictly lower time; "First solve" when no best existed. */
+/** Spec A10: "New best" only on a strictly lower SHOWN time; "First solve" when no best existed. */
 class RecordVerdictTest {
 
     @Test
@@ -19,6 +19,12 @@ class RecordVerdictTest {
     @Test
     fun `an equal time is not a new best`() {
         assertEquals(RecordVerdict.NotBest, RecordVerdict.of(previousBestMs = 95_000, timeMs = 95_000))
+    }
+
+    @Test
+    fun `a few milliseconds faster that shows the same time is not a new best`() {
+        // Device case: 3.826 s after a 3.862 s best — both read 00:03 on the result.
+        assertEquals(RecordVerdict.NotBest, RecordVerdict.of(previousBestMs = 3_862, timeMs = 3_826))
     }
 
     @Test
