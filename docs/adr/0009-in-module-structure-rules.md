@@ -210,15 +210,17 @@ ViewModels are named `*ViewModel`, live in `:feature:<x>:impl`, and expose no pu
 ## P4
 Use cases in `:core:domain` start with a verb and have one public `operator fun invoke`.
 
-- **Scope:** production, module `:core:domain`, top-level public or default-visibility classes,
-  except data classes and classes in a `di` package.
+- **Scope:** production, module `:core:domain`, top-level public or default-visibility classes and
+  objects, except data classes, data objects, enum classes, sealed classes and declarations in a
+  `di` package.
 - **Detection:** the name must start with one of Get, Observe, Compute, Submit, Save, Load, Delete,
-  Update, Create, Sync, Validate, Record, Start, Finish, followed by an uppercase letter. The class
-  must declare exactly one public `operator fun invoke`.
+  Update, Create, Sync, Validate, Record, Start, Finish, followed by an uppercase letter. The
+  declaration must have exactly one public function named `invoke`, and that function must be an
+  `operator fun`. An extra public non-operator `invoke` overload is a violation.
 - **Accepted misses:** only `operator fun invoke` counts as the entry point; a use case with a
-  differently named method fails. Data classes in use-case files are skipped (Ruling: they are
-  result models such as `GameSummary`, not use cases), so a data class posing as a use case
-  escapes. The verb list is closed.
+  differently named method fails. Data classes and objects, enums and sealed classes in use-case
+  files are skipped (Ruling: they are result models such as `GameSummary`, not use cases), so one
+  posing as a use case escapes. The verb list is closed.
 - **How to fix:** rename the class with a listed verb and give it one `operator fun invoke`. A
   new verb is added to the rule by a ledgered `Ruling:`.
 
