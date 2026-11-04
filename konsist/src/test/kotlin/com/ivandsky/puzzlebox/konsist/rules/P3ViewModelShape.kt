@@ -25,36 +25,21 @@ object P3ViewModelShape : Rule {
     private val WORD = Regex("""\w+""")
 
     override fun check(tree: SourceTree): RuleResult {
-        val scope = tree.scope(SourceSetKind.PRODUCTION)
-        val parentsByClass = scope.classes(includeNested = false)
-            .groupBy({ it.name }, { cls -> cls.parents().map { it.name.substringBefore('<').trim() } })
-            .mapValues { (_, lists) -> lists.flatten().toSet() }
-        val subjects = scope.files.toList().flatMap { ko ->
-            ko.classes(includeNested = false).filter { isSubject(it, parentsByClass) }.map { tree.fileFor(ko) to it }
-        }
+        val subjects = tree.scope(SourceSetKind.PRODUCTION).classes(includeNested = false)
+            .filter { extendsViewModel(it) || it.name.endsWith(VIEW_MODEL) }
+            .map { tree.fileFor(it.containingFile) to it }
         val violations = subjects.groupBy({ it.first }, { it.second }).mapNotNull { (file, classes) ->
-            val problems = classes.flatMap { problems(it, file.module.path, parentsByClass) }
+            val problems = classes.flatMap { problems(it, file.module.path) }
             if (problems.isEmpty()) null else Violation(file.path, null, problems.joinToString("; "))
         }
         return RuleResult(subjects.size, violations)
     }
 
-    private fun isSubject(cls: KoClassDeclaration, parentsByClass: Map<String, Set<String>>) =
-        extendsViewModel(cls.name, parentsByClass) || cls.name.endsWith(VIEW_MODEL)
+    /** Konsist resolves project base classes, so `class X : BaseViewModel()` extends ViewModel when the base does. */
+    private fun extendsViewModel(cls: KoClassDeclaration) = cls.hasParentWithName(VIEW_MODEL, indirectParents = true)
 
-    /** Through project classes by simple name, so `class X : BaseViewModel()` extends ViewModel when the base does. */
-    private fun extendsViewModel(name: String, parentsByClass: Map<String, Set<String>>): Boolean {
-        val seen = mutableSetOf(name)
-        var frontier = parentsByClass[name].orEmpty()
-        while (frontier.isNotEmpty()) {
-            if (VIEW_MODEL in frontier) return true
-            frontier = frontier.filter(seen::add).flatMap { parentsByClass[it].orEmpty() }.toSet()
-        }
-        return false
-    }
-
-    private fun problems(cls: KoClassDeclaration, modulePath: String, parentsByClass: Map<String, Set<String>>) = buildList {
-        val extends = extendsViewModel(cls.name, parentsByClass)
+    private fun problems(cls: KoClassDeclaration, modulePath: String) = buildList {
+        val extends = extendsViewModel(cls)
         val named = cls.name.endsWith(VIEW_MODEL)
         if (extends && !named) add("${cls.name} extends ViewModel but is not named *ViewModel")
         if (named && !extends) add("${cls.name} is named *ViewModel but does not extend ViewModel")
@@ -81,12 +66,11 @@ object P3ViewModelShape : Rule {
         return MUTABLE_FACTORY.containsMatchIn(property.value.orEmpty().trim())
     }
 
-    private fun declaredType(property: KoPropertyDeclaration): String? = property.type?.text?.trim()
+    /** The type's simple name without arguments or `?`, so `kotlinx.coroutines.flow.MutableStateFlow<T>?` reads `MutableStateFlow`. */
+    private fun declaredType(property: KoPropertyDeclaration): String? = property.type?.bareSourceType
 
-    private fun getterExpression(property: KoPropertyDeclaration): String? {
-        val getter = property.getter ?: return null
-        return if (getter.hasExpressionBody) getter.text.substringAfter('=').trim() else null
-    }
+    private fun getterExpression(property: KoPropertyDeclaration): String? =
+        property.getter?.takeIf { it.hasExpressionBody }?.body
 
     /** The property an expression is just a name of, through `this.` and receiver-returning calls; null otherwise. */
     private fun aliasTarget(expression: String): String? {
