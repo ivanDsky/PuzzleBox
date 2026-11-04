@@ -6,12 +6,15 @@ import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.backend.firebase.firebaseBackendModule
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.di.dataModule
+import com.ivandsky.puzzlebox.domain.di.domainModule
 import com.ivandsky.puzzlebox.games.queens.queensModule
 import com.ivandsky.puzzlebox.games.queensui.queensUiModule
 import com.ivandsky.puzzlebox.games.zip.zipModule
 import com.ivandsky.puzzlebox.games.zipui.zipUiModule
 import com.ivandsky.puzzlebox.games.tango.tangoModule
 import com.ivandsky.puzzlebox.games.tangoui.tangoUiModule
+import com.ivandsky.puzzlebox.history.di.historyModule
+import com.ivandsky.puzzlebox.home.di.homeModule
 import com.ivandsky.puzzlebox.play.di.playModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
@@ -30,6 +33,6 @@ class PuzzleBoxApplication : Application() {
 
     companion object {
         val appModules =
-            listOf(commonModule, dataModule, firebaseBackendModule, playModule, zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, appModule)
+            listOf(commonModule, dataModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, appModule)
     }
 }

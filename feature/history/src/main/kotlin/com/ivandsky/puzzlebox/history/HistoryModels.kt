@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.history
 
-import com.ivandsky.puzzlebox.data.repository.GameHistoryDay
+import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import java.time.LocalDate

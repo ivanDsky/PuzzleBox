@@ -9,14 +9,13 @@ android {
 dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(projects.core.data)
-    // F1 module map: FEAT → GAMES is a sanctioned edge (same as :feature:history/play).
-    // HomeRoute consumes the aggregated plugin list (GamePlugin) to build the featured
-    // game's identity, so the edge is a compile dependency, not test-only.
+    // HomeViewModel resolves per-game names against the app's GameRegistry.
     implementation(projects.core.game)
+    // GameSummary (the featured game) appears in HomeScreen's public signature.
+    api(projects.core.domain)
     // ThemeMode/GameId appear in Home's public composables.
     api(projects.core.model)
-    // HomeRouteTest registers the real Zip plugin so its captured days reach the teaser.
-    testImplementation(projects.games.zip)
     testImplementation(projects.core.testing)
 }

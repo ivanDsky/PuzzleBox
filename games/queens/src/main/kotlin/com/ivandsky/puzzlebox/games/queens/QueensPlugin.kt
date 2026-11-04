@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.game.Hint
 import com.ivandsky.puzzlebox.game.Move
 import com.ivandsky.puzzlebox.game.MoveVerdict
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
@@ -149,6 +150,24 @@ val queensPlugin: GamePlugin<QueensState, QueensSession, QueensRendererModel> =
             }
         },
         refOf = { date, puzzleNumber -> QueensPuzzleRef(date, puzzleNumber) },
+        // Replay hand-off: zip's shape — the play state trusts any payload the codec decodes.
+        replaySession = { cached, day, puzzleNumber ->
+            when (val decoded = QueensCodec.decode(cached.payload)) {
+                is DecodeResult.Ok -> DecodeResult.Ok(
+                    SessionBlob.encode(
+                        QueensDefinition.id,
+                        QueensSessionCodec.serialize(
+                            QueensSession(
+                                ref = QueensPuzzleRef(date = day, puzzleNumber = puzzleNumber),
+                                puzzle = decoded.value,
+                            ),
+                        ),
+                    ),
+                )
+
+                is DecodeResult.Err -> DecodeResult.Err(decoded.error)
+            }
+        },
         rendererModel = { state, hint, _ ->
             QueensRendererModel.of(state.puzzle, state.queens.map { it.idx }.toSet(), hint)
         },

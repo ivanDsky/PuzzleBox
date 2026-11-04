@@ -8,15 +8,13 @@ android {
 
 dependencies {
     implementation(projects.core.data)
-    // The A16/A19 decode gate: a replay only launches from a payload the engine trusts.
+    // HistoryViewModel resolves per-game names against the app's GameRegistry.
     implementation(projects.core.game)
-    // F1 module map: FEAT → GAMES is a sanctioned edge (same as :feature:play) — history
-    // packs replay envelopes (ADR-0005) with the plugins' public codecs, never engine
-    // internals.
-    implementation(projects.games.zip)
-    implementation(projects.games.tango)
-    implementation(projects.games.queens)
+    // ADR-0001: history is game-agnostic — replay sessions come from each game's plugin
+    // through GetReplaySession, never a games:* edge.
+    implementation(projects.core.domain)
 
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.paging.compose)
     implementation(libs.kotlinx.coroutines.core)
 

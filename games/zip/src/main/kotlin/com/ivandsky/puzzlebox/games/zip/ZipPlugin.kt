@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameDefinition
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.codec.ZipSessionCodec
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
@@ -72,6 +73,25 @@ val zipPlugin: GamePlugin<ZipState, ZipSession, ZipRendererModel> =
             }
         },
         refOf = { date, puzzleNumber -> ZipPuzzleRef(date, puzzleNumber) },
+        // Replay hand-off (ticket-14 semantics): the game-named envelope (ADR-0005) carries
+        // a fresh session whose ref is the replayed day's identity (ADR-0004).
+        replaySession = { cached, day, puzzleNumber ->
+            when (val decoded = ZipCodec.decode(cached.payload)) {
+                is DecodeResult.Ok -> DecodeResult.Ok(
+                    SessionBlob.encode(
+                        ZipDefinition.id,
+                        ZipSessionCodec.serialize(
+                            ZipSession(
+                                ref = ZipPuzzleRef(date = day, puzzleNumber = puzzleNumber),
+                                puzzle = decoded.value,
+                            ),
+                        ),
+                    ),
+                )
+
+                is DecodeResult.Err -> DecodeResult.Err(decoded.error)
+            }
+        },
         rendererModel = { state, hint, verdict ->
             ZipRendererModel.of(
                 state,

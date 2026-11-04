@@ -10,9 +10,16 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
+import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.domain.GetFeaturedGame
+import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.history.HistoryViewModel
+import com.ivandsky.puzzlebox.home.HomeViewModel
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import org.junit.Assert.assertEquals
@@ -71,6 +78,15 @@ class DiGraphTest : KoinTest {
             // C1 regression: ProfileRoute's koinViewModel() needs this definition —
             // without it the first Profile composition throws NoDefinitionFound.
             assertNotNull(koin.get<ProfileViewModel>())
+            // Home/History routes' koinViewModel() and their domain use cases.
+            assertNotNull(koin.get<HomeViewModel>())
+            assertNotNull(koin.get<HistoryViewModel>())
+            assertNotNull(koin.get<ObserveGameHistory>())
+            assertNotNull(koin.get<ComputeStreak>())
+            assertNotNull(koin.get<GetReplaySession>())
+            assertNotNull(koin.get<ObserveTodayLeaderboard>())
+            // Today's featured game (Home's hero, Profile's board) is the registry's first.
+            assertEquals(GameId("zip"), koin.get<GetFeaturedGame>()().id)
 
             // Game aggregation (ADR-0001): every game module's plugin lands in the
             // registry in picker order, and every game's play UI is registered — a

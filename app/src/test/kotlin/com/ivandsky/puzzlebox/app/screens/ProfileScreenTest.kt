@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -64,7 +65,7 @@ class ProfileScreenTest {
 
     @Test
     fun `signed out shows the sign-in prompt, no leaderboard (A7)`() {
-        setContent(ProfileUiState(identity = null))
+        setContent(ProfileUiState.SignedOut())
 
         composeRule.onNodeWithTag("profile-signed-out").assertExists()
         composeRule.onNodeWithText("Sign in with Google").assertExists()
@@ -77,7 +78,7 @@ class ProfileScreenTest {
 
     @Test
     fun `signing-in state disables the button with a label`() {
-        setContent(ProfileUiState(identity = null, signingIn = true))
+        setContent(ProfileUiState.SignedOut(signingIn = true))
 
         composeRule.onNodeWithText("Signing in…").assertExists()
         composeRule.onNodeWithText("Sign in with Google").assertDoesNotExist()
@@ -86,8 +87,7 @@ class ProfileScreenTest {
     @Test
     fun `sign-in failure surfaces the friendly message`() {
         setContent(
-            ProfileUiState(
-                identity = null,
+            ProfileUiState.SignedOut(
                 signInMessage = "Google sign-in isn't available right now. Try again, or try another account.",
             ),
         )
@@ -100,9 +100,9 @@ class ProfileScreenTest {
     @Test
     fun `signed in shows the display name and sign-out`() {
         setContent(
-            ProfileUiState(
+            ProfileUiState.SignedIn(
                 identity = me,
-                board = LeaderboardSnapshot(boardRef, entries),
+                board = TodayLeaderboard.Board.Loaded(LeaderboardSnapshot(boardRef, entries)),
             ),
         )
 
@@ -119,9 +119,9 @@ class ProfileScreenTest {
     @Test
     fun `leaderboard renders rank, name, time and hints`() {
         setContent(
-            ProfileUiState(
+            ProfileUiState.SignedIn(
                 identity = me,
-                board = LeaderboardSnapshot(boardRef, entries),
+                board = TodayLeaderboard.Board.Loaded(LeaderboardSnapshot(boardRef, entries)),
             ),
         )
 
@@ -135,9 +135,9 @@ class ProfileScreenTest {
     @Test
     fun `empty board shows the first-entry invitation`() {
         setContent(
-            ProfileUiState(
+            ProfileUiState.SignedIn(
                 identity = me,
-                board = LeaderboardSnapshot(boardRef, emptyList()),
+                board = TodayLeaderboard.Board.Loaded(LeaderboardSnapshot(boardRef, emptyList())),
             ),
         )
 
@@ -149,10 +149,9 @@ class ProfileScreenTest {
     @Test
     fun `unobservable board degrades to a soft state, never an error (A7)`() {
         setContent(
-            ProfileUiState(
+            ProfileUiState.SignedIn(
                 identity = me,
-                board = null,
-                boardUnavailable = true,
+                board = TodayLeaderboard.Board.Unavailable,
             ),
         )
 

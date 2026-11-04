@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.domain.GameSummary
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
 import org.junit.Rule

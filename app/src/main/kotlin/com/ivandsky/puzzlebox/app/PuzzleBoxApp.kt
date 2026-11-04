@@ -214,9 +214,9 @@ internal fun puzzleBoxEntryProvider(
             HistoryRoute(
                 layout = historyLayout,
                 onBack = { backStack.removeLastOrNull() },
-                onReplay = { ready ->
+                onReplay = { session ->
                     backStack.add(
-                        ReplayZip(Base64.getEncoder().encodeToString(ready.session)),
+                        ReplayZip(Base64.getEncoder().encodeToString(session)),
                     )                },
             )
         }

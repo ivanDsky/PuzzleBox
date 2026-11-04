@@ -43,6 +43,8 @@ dependencies {
     implementation(projects.core.common)
     implementation(projects.core.designsystem)
     implementation(projects.core.data)
+    // domainModule's use cases; ProfileViewModel observes today's board through them.
+    implementation(projects.core.domain)
     // The records contract (CompletionRepository) speaks core:game types (CompletionRecord).
     implementation(projects.core.game)
     implementation(projects.core.gameUi)
@@ -58,6 +60,7 @@ dependencies {
     implementation(projects.feature.history)
 
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.compose.material3.windowsizeclass)
     implementation(libs.androidx.navigation3.runtime)

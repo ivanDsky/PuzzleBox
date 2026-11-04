@@ -68,7 +68,7 @@ import coil3.compose.AsyncImage
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import coil3.compose.AsyncImage
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.domain.GameSummary
 import com.ivandsky.puzzlebox.model.ThemeMode
 import kotlinx.coroutines.delay
 import java.time.LocalDate
@@ -79,12 +79,6 @@ data class HistoryDay(
     val isoDay: String,
     val headline: String,
     val gameName: String,
-)
-
-/** Pure projection of one game's identity — HomeRoute builds it from plugin definitions. */
-data class GameSummary(
-    val id: GameId,
-    val displayName: String,
 )
 
 /**
@@ -673,8 +667,3 @@ private fun StaggeredItem(
 
 private fun todayHeadline(): String =
     LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM d"))
-
-/** ISO day ("2026-10-31") to a display headline, with the raw day as fallback. */
-internal fun formatDay(isoDay: String): String =
-    runCatching { LocalDate.parse(isoDay).format(DateTimeFormatter.ofPattern("MMMM d")) }
-        .getOrDefault(isoDay)

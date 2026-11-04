@@ -13,12 +13,13 @@ import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.domain.di.domainModule
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
-import com.ivandsky.puzzlebox.games.zip.ZipDefinition
-import com.ivandsky.puzzlebox.games.zip.zipPlugin
+import com.ivandsky.puzzlebox.home.di.homeModule
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.testing.game.TestGames
 import java.time.LocalDate
 import org.junit.After
 import org.junit.Before
@@ -36,8 +37,9 @@ import org.robolectric.annotation.Config
  * HomeRoute must observe the GAME-AGNOSTIC merged history — every game's completion
  * records UNION every registered game's captured days. The teaser first showed "No
  * games yet" forever watching an unfed legacy table; after the Zip fix it still dropped
- * every non-Zip record. Only Zip is registered here, so Queens rows exercise the
- * registry-name fallback.
+ * every non-Zip record. Only a Zip-id test plugin is registered here, so Queens rows
+ * exercise the registry-name fallback. The graph is the production one: domainModule's
+ * use cases and homeModule's ViewModel over fakes.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -77,10 +79,12 @@ class HomeRouteTest {
             modules(
                 module {
                     single<DailyRepository> { daily }
-                    single { GameRegistry(listOf(zipPlugin)) }
+                    single<GameRegistry> { TestGames.registry(listOf(GameId("zip"))) }
                     single<CompletionRepository> { completions }
                     single<IdentityService> { fakeIdentity }
                 },
+                domainModule,
+                homeModule,
             )
         }
         composeRule.setContent {
@@ -106,7 +110,7 @@ class HomeRouteTest {
 
         // A day lands in the compete loop's store (Play fetches/History captures) —
         // the teaser must follow, formatted like the rows the user knows.
-        daily.addEntry(DailyEntry(ZipDefinition.id, LocalDate.of(2026, 10, 31), 592, "zip/n5", 0L))
+        daily.addEntry(DailyEntry(GameId("zip"), LocalDate.of(2026, 10, 31), 592, "zip/n5", 0L))
 
         composeRule.waitUntil(5_000) {
             composeRule.onAllNodesWithText("October 31").fetchSemanticsNodes().isNotEmpty()

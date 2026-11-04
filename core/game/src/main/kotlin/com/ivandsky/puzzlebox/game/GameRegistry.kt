@@ -16,4 +16,7 @@ class GameRegistry(plugins: List<GamePlugin<*, *, *>>) {
 
     /** The registered plugin for [id]; null for a game this build does not ship. */
     operator fun get(id: GameId): GamePlugin<*, *, *>? = byId[id]
+
+    /** [id]'s display name; the raw id for a game this build does not ship. */
+    fun displayName(id: GameId): String = this[id]?.definition?.displayName ?: id.value
 }

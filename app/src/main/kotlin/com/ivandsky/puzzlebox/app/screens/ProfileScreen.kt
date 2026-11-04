@@ -22,7 +22,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.app.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.app.auth.GoogleIdTokenProvider
@@ -39,13 +39,13 @@ import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
-import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
-import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
-import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
-import kotlinx.coroutines.Job
+import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
+import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -55,15 +55,19 @@ import org.koin.androidx.compose.koinViewModel
  * Signed out is a first-class, clearly-prompted state (A7/A15) — nothing else in the
  * app is gated on identity.
  */
-data class ProfileUiState(
-    val identity: Identity? = null,
-    val signingIn: Boolean = false,
-    val signInMessage: String? = null,
-    /** Null while no board is observable — see [boardUnavailable] for the distinction. */
-    val board: LeaderboardSnapshot? = null,
-    val boardLoading: Boolean = false,
-    val boardUnavailable: Boolean = false,
-)
+sealed interface ProfileUiState {
+    /** The sign-in prompt; [signingIn] while the credential flow runs, then its outcome copy. */
+    data class SignedOut(
+        val signingIn: Boolean = false,
+        val signInMessage: String? = null,
+    ) : ProfileUiState
+
+    /** The player and today's board ([TodayLeaderboard.Board]: loading, loaded, or unavailable). */
+    data class SignedIn(
+        val identity: Identity,
+        val board: TodayLeaderboard.Board,
+    ) : ProfileUiState
+}
 
 // Ticket 24 — honest sign-in copy per failure class. "Check your connection" is
 // reserved for the network branches; every other class says what actually failed.
@@ -72,52 +76,36 @@ private const val SIGN_IN_GOOGLE_UNAVAILABLE_MESSAGE =
     "Google sign-in isn't available right now. Try again, or try another account."
 private const val SIGN_IN_RETRY_MESSAGE = "Sign-in failed. Please try again."
 
+/**
+ * Profile's state holder: today's identity-gated board ([ObserveTodayLeaderboard]) plus
+ * the sign-in flow's own progress/outcome, shown while signed out. The activity context
+ * the credential sheet needs (I2) is passed per call and never stored.
+ */
 class ProfileViewModel(
     private val identityService: IdentityService,
     private val idTokenProvider: GoogleIdTokenProvider,
-    private val leaderboard: LeaderboardRepository,
-    private val todayBoard: () -> LeaderboardRef,
+    observeTodayLeaderboard: ObserveTodayLeaderboard,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(ProfileUiState())
-    val state: StateFlow<ProfileUiState> = _state.asStateFlow()
+    private val signIn = MutableStateFlow(ProfileUiState.SignedOut())
 
-    private var boardJob: Job? = null
-
-    init {
-        viewModelScope.launch {
-            identityService.current.collect { identity ->
-                _state.update {
-                    it.copy(
-                        identity = identity,
-                        board = null,
-                        boardLoading = identity != null,
-                        boardUnavailable = false,
-                    )
-                }
-                boardJob?.cancel()
-                if (identity != null) {
-                    boardJob = viewModelScope.launch {
-                        leaderboard.observe(todayBoard()).collect { snapshot ->
-                            _state.update {
-                                it.copy(
-                                    board = snapshot,
-                                    boardLoading = false,
-                                    // A7: a null snapshot is the graceful "not right now",
-                                    // shown as a soft state, never an error.
-                                    boardUnavailable = snapshot == null,
-                                )
-                            }
-                        }
-                    }
-                }
+    val uiState: StateFlow<ProfileUiState> =
+        combine(observeTodayLeaderboard(), signIn) { today, prompt ->
+            when (today) {
+                TodayLeaderboard.SignedOut -> prompt
+                is TodayLeaderboard.SignedIn -> ProfileUiState.SignedIn(today.identity, today.board)
             }
-        }
-    }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = identityService.current.value
+                ?.let { ProfileUiState.SignedIn(it, TodayLeaderboard.Board.Loading) }
+                ?: signIn.value,
+        )
 
-    fun signIn(activityContext: Context) {
+    fun onSignIn(activityContext: Context) {
         viewModelScope.launch {
-            _state.update { it.copy(signingIn = true, signInMessage = null) }
+            signIn.update { it.copy(signingIn = true, signInMessage = null) }
             // Ticket 24: copy must match the failure class. A credential-provider
             // failure never reached the backend, so it is not an AuthError.Unavailable
             // (that class is the backend network path) — it maps straight to copy.
@@ -129,11 +117,11 @@ class ProfileViewModel(
                     }
                 is GoogleIdToken.Unavailable -> friendly(token.reason)
             }
-            _state.update { it.copy(signingIn = false, signInMessage = message) }
+            signIn.update { it.copy(signingIn = false, signInMessage = message) }
         }
     }
 
-    fun signOut() {
+    fun onSignOut() {
         viewModelScope.launch { identityService.signOut() }
     }
 
@@ -167,14 +155,14 @@ fun ProfileRoute(
     modifier: Modifier = Modifier,
 ) {
     val viewModel: ProfileViewModel = koinViewModel()
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     // The credential sheet launches from the current Activity's context (I2) —
-    // captured in composition; LocalContext is composable-scoped.
+    // read in composition (LocalContext is composable-scoped), handed per call.
     val activityContext = LocalContext.current
     ProfileContent(
         state = state,
-        onSignIn = { viewModel.signIn(activityContext) },
-        onSignOut = viewModel::signOut,
+        onSignIn = { viewModel.onSignIn(activityContext) },
+        onSignOut = viewModel::onSignOut,
         onOpenCatalog = onOpenCatalog,
         modifier = modifier,
     )
@@ -195,11 +183,9 @@ internal fun ProfileContent(
             .padding(horizontal = 24.dp, vertical = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        val identity = state.identity
-        if (identity == null) {
-            SignedOutSection(state, onSignIn)
-        } else {
-            SignedInSection(state, identity, onSignOut)
+        when (state) {
+            is ProfileUiState.SignedOut -> SignedOutSection(state, onSignIn)
+            is ProfileUiState.SignedIn -> SignedInSection(state, onSignOut)
         }
         HorizontalDivider()
         OutlinedButton(onClick = onOpenCatalog, modifier = Modifier.fillMaxWidth()) {
@@ -209,7 +195,7 @@ internal fun ProfileContent(
 }
 
 @Composable
-private fun SignedOutSection(state: ProfileUiState, onSignIn: () -> Unit) {
+private fun SignedOutSection(state: ProfileUiState.SignedOut, onSignIn: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth().testTag("profile-signed-out"),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -242,10 +228,10 @@ private fun SignedOutSection(state: ProfileUiState, onSignIn: () -> Unit) {
 
 @Composable
 private fun SignedInSection(
-    state: ProfileUiState,
-    identity: Identity,
+    state: ProfileUiState.SignedIn,
     onSignOut: () -> Unit,
 ) {
+    val identity = state.identity
     Column(
         modifier = Modifier.fillMaxWidth().testTag("profile-signed-in"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -269,13 +255,13 @@ private fun SignedInSection(
             TextButton(onClick = onSignOut) { Text("Sign out") }
         }
 
-        LeaderboardSection(state, myUid = identity.uid)
+        LeaderboardSection(state.board, myUid = identity.uid)
     }
 }
 
 /** Leaderboard v1 (brief §3): today's board, name + time + hints, own row highlighted. */
 @Composable
-private fun LeaderboardSection(state: ProfileUiState, myUid: String) {
+private fun LeaderboardSection(board: TodayLeaderboard.Board, myUid: String) {
     Column(
         modifier = Modifier.fillMaxWidth().testTag("leaderboard"),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -285,32 +271,29 @@ private fun LeaderboardSection(state: ProfileUiState, myUid: String) {
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        when {
-            state.boardLoading -> {
+        when (board) {
+            TodayLeaderboard.Board.Loading -> {
                 CircularProgressIndicator(
                     modifier = Modifier.size(28.dp).testTag("leaderboard-loading"),
                 )
             }
-            state.board == null -> {
+            // A7: a null snapshot is the graceful "not right now", shown as a soft
+            // state, never an error.
+            TodayLeaderboard.Board.Unavailable -> {
                 Text(
-                    text = if (state.boardUnavailable) {
-                        "Leaderboard unavailable right now."
-                    } else {
-                        "Leaderboard not loaded yet."
-                    },
+                    text = "Leaderboard unavailable right now.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            state.board.entries.isEmpty() -> {
+            is TodayLeaderboard.Board.Loaded -> if (board.snapshot.entries.isEmpty()) {
                 Text(
                     text = "No entries yet today — finish today's Zip to be first.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-            else -> {
-                state.board.entries.forEachIndexed { index, entry ->
+            } else {
+                board.snapshot.entries.forEachIndexed { index, entry ->
                     LeaderboardRow(
                         rank = index + 1,
                         entry = entry,

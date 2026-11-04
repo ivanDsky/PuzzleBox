@@ -27,8 +27,9 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   fade-through transitions honoring system reduce-motion, special Result enter transition),
   NavKey routes in `nav/TopLevelDestination.kt`, `auth/GoogleIdTokenProvider` (Credential
   Manager with a typed `Unavailable.Reason` taxonomy), `leaderboard/LeaderboardSubmitWatcher`
-  (auto-submits records when signed in), `screens/ProfileScreen` (ProfileViewModel: identity,
-  sign-in/out, today's board), `di/AppModule` (app scope, `List<GamePlugin>` aggregation in
+  (auto-submits records when signed in), `screens/ProfileScreen` (`ProfileViewModel` over
+  `ObserveTodayLeaderboard`: sealed `ProfileUiState` SignedOut/SignedIn, `onSignIn(context)`/
+  `onSignOut`, today's board), `di/AppModule` (app scope, `List<GamePlugin>` aggregation in
   the app's picker order zip → tango → queens, `GamePlayRegistry(getAll())` over every game's
   `GamePlayUi`), debug-only Showkase browser (`CatalogDebugBinding`,
   `PreviewBackdrop`, `BrowserRadioControls`; goldens in `app/snapshots/`).
@@ -58,6 +59,13 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
 - `core/model/` — dependency-free shared types in package `com.ivandsky.puzzlebox.model`
   (`GameId`, the `DailyPuzzle` envelope: gameId/day/payload bytes/fetchedAtMs, `ThemeMode`);
   pure JVM.
+- `core/domain/` — use cases (package `com.ivandsky.puzzlebox.domain`, Koin `domainModule`):
+  `ObserveGameHistory` (every game's records UNION every registered game's captured days →
+  `GameHistoryDay`), `GetFeaturedGame` (registry's first game as `GameSummary`; Zip only for
+  an empty registry), `ComputeStreak`, `GetReplaySession` (cached puzzle → the game's
+  `GamePlugin.replaySession` blob as `ReplayOutcome` Ready/Missing/Unreadable),
+  `ObserveTodayLeaderboard` (identity-gated featured-game board: `TodayLeaderboard`
+  SignedOut/SignedIn with Loading/Loaded/Unavailable). Android library (consumes core:data).
 - `core/game/` — the five orthogonal game contracts (ADR-0001): `GameDefinition`
   (id/displayName/`Cadence`/symmetric `decode`/`encode`), `GameRules<P>`
   (`validate`/`isComplete`/`hint`), `GameSession` + `GameSessionCodec`, `ScoreModel<S>` →
@@ -97,10 +105,10 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   one `*PlayController : GamePlayController` (session, hint machinery, win → record),
   one `*PlayUi : GamePlayUi` (board area + `PlayChrome`), the board composables, and
   `*UiModule` (the game's `GamePlayUi` single, qualified by game id).
-- `feature/home/` — `HomeRoute` (DI-bound entry: observes `ZipDailyRepository.observeHistory()`
-  — the cache-only puzzle_dailies store — plus `List<GamePlugin>` for the featured game; never
-  the network), `HomeScreen` (single/two-pane, play/history destinations, appearance via
-  `ThemeDialog`), `HomeLayout` + `homeLayoutFor` pure pane policy.
+- `feature/home/` — `HomeRoute` (DI-bound entry: collects `HomeViewModel` — featured game,
+  identity, the cache-only merged history teaser via `ObserveGameHistory`; never the
+  network; `di/HomeModule`), `HomeScreen` (single/two-pane, play/history destinations,
+  appearance via `ThemeDialog`), `HomeLayout` + `homeLayoutFor` pure pane policy.
 - `feature/play/` — the one game-agnostic play surface (ADR-0006, ADR-0007; no `games:*`
   dependency): `PlaySessionStore` (Koin single: the live `ActivePlay`, `start`/`restore`/
   `end`, rebindable session sink emitting game-named `SessionBlob` envelopes),
@@ -115,11 +123,11 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   game-controls slot), `HintButton`, `ResultScreen` (label + `gameSection` slot).
 - Session codecs persist the command history: `ZipSessionCodec` v2, `TangoSessionCodec` v2,
   `QueensSessionCodec` v3 (each still reads its previous version with empty history).
-- `feature/history/` — `HistoryRoute`/`HistoryScreen` (paged day list with streak header),
-  `HistoryPaging` (`historyDays` PagingData flow, PAGE_SIZE 20), `HistoryLayout` +
-  `historyLayoutFor`, `Streak.streakEndingAtNewest`, `ReplayLaunch` (cached puzzle + entry →
-  `ZipSessionCodec` session bytes as Ready/Missing/Unreadable — replay rides the same
-  PlayRoute with a restored session).
+- `feature/history/` — `HistoryRoute`/`HistoryScreen` (paged day list with streak header)
+  over `HistoryViewModel` (`HistoryUiState` rows/records/streak, `pagedDays` PagingData,
+  one-shot `HistoryEvent` replay answers via `GetReplaySession`; `di/HistoryModule`),
+  `HistoryPaging` (`historyPager`, `HistoryPagingSource`, PAGE_SIZE 20), `HistoryLayout` +
+  `historyLayoutFor` — replay rides the same PlayRoute with a restored session.
 - `backend/firebase/` — implements the `core/data` seams: `FirebaseIdentityService`
   (`IdentityService`) over an internal `AuthGateway`/`FirebaseAuthGateway` (Google ID-token
   sign-in), `FirestoreLeaderboardStore` + `FirestoreLeaderboardRepository`
@@ -133,7 +141,8 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
 ## Entry points
 
 - `PuzzleBoxApplication.onCreate` — `startKoin` with `appModules` = `commonModule` +
-  `dataModule` + `firebaseBackendModule` + `playModule` + each game's `*Module` and
+  `dataModule` + `firebaseBackendModule` + `domainModule` + `homeModule` + `historyModule` +
+  `playModule` + each game's `*Module` and
   `*UiModule` (zip, queens, tango) + `appModule` (the whole object graph), then
   `LeaderboardSubmitWatcher.start()`.
 - `MainActivity` — sole activity; holds composition until the persisted `ThemeMode` arrives
@@ -161,7 +170,8 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   Room v4 + all three DAOs, `CompletionRepository`→`RoomCompletionRepository`,
   `DailyPuzzleRepository`→offline-first, DataStore + `UserPreferencesRepository`) +
   `firebaseBackendModule` (`AuthGateway`, `IdentityService`, `LeaderboardStore`,
-  `LeaderboardRepository`) + `playModule` (`PlaySessionStore`, `PlayViewModel`,
+  `LeaderboardRepository`) + `domainModule` (the five use cases) + `homeModule`
+  (`HomeViewModel`) + `historyModule` (`HistoryViewModel`) + `playModule` (`PlaySessionStore`, `PlayViewModel`,
   `ResultViewModel`) + per game `*Module` (the plugin, qualified by id) and `*UiModule` (the
   `GamePlayUi`, qualified by id) + `appModule` (`CoroutineScope`, `GoogleIdTokenProvider`,
   `ProfileViewModel`, `LeaderboardSubmitWatcher`, ordered `List<GamePlugin>` via `getAll`,

@@ -104,5 +104,6 @@ object TestGame {
         stateOf = { session -> stateOf(session) },
         initialSession = { puzzle -> initialSession(puzzle) },
         refOf = { date, number -> Ref("t-$date", date = date, puzzleNumber = number) },
+        replaySession = { cached, _, _ -> DecodeResult.Ok(SessionBlob.encode(Definition.id, cached.payload)) },
     ) { state, _, lastVerdict -> Model(state.solved, lastVerdict) }
 }

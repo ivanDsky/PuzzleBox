@@ -170,6 +170,7 @@ private val otherPlugin: GamePlugin<OtherGameState, com.ivandsky.puzzlebox.game.
         stateOf = { OtherGameState },
         initialSession = { DecodeResult.Err(DecodeError.Malformed("no payload")) },
         refOf = { _, _ -> error("no refs") },
+        replaySession = { _, _, _ -> DecodeResult.Err(DecodeError.Malformed("no payload")) },
         rendererModel = { _, _, _ -> OtherRendererModel },
     )
 

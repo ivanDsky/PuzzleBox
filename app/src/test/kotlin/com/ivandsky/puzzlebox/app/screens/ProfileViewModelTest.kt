@@ -16,11 +16,17 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
+import com.ivandsky.puzzlebox.domain.GetFeaturedGame
+import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
+import com.ivandsky.puzzlebox.domain.TodayLeaderboard
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -66,12 +72,25 @@ class ProfileViewModelTest {
         val vm = ProfileViewModel(
             identityService = identity,
             idTokenProvider = tokens,
-            leaderboard = leaderboard,
-            todayBoard = { boardRef },
+            observeTodayLeaderboard = ObserveTodayLeaderboard(
+                identity = identity,
+                leaderboard = leaderboard,
+                // Today's board is the featured game's: the registry's first, "zip".
+                featured = GetFeaturedGame(TestGames.registry(listOf(GameId("zip")))),
+                today = { day },
+            ),
         )
+        // The state is observed only while subscribed (the route's lifecycle collector).
+        backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
         return Deps(vm, identity, leaderboard, tokens)
     }
+
+    private val Deps.signedOut: ProfileUiState.SignedOut
+        get() = vm.uiState.value as ProfileUiState.SignedOut
+
+    private val Deps.signedIn: ProfileUiState.SignedIn
+        get() = vm.uiState.value as ProfileUiState.SignedIn
 
     // Plain JVM test: the fake provider ignores the context, so a mock satisfies the seam.
     private val appContext: Context = org.mockito.Mockito.mock(Context::class.java)
@@ -80,25 +99,25 @@ class ProfileViewModelTest {
     fun `signed out is the initial state, board not observed (A7-A15)`() = runTest(dispatcher) {
         val deps = viewModel()
 
-        assertNull(deps.vm.state.value.identity)
+        // Signed out carries no board (nothing loading) and no sign-in progress.
+        assertEquals(ProfileUiState.SignedOut(), deps.vm.uiState.value)
         assertTrue(deps.leaderboard.observedBoards.isEmpty())
-        assertTrue(!deps.vm.state.value.boardLoading)
     }
 
     @Test
     fun `successful sign-in sets the identity and starts the today board`() = runTest(dispatcher) {
         val deps = viewModel()
 
-        deps.vm.signIn(appContext)
+        deps.vm.onSignIn(appContext)
         advanceUntilIdle()
 
+        // Signed in: the identity shows and no sign-in message is carried.
         assertEquals(
             Identity(uid = "fake-uid", displayName = "Fake Player", photoUrl = null),
-            deps.vm.state.value.identity,
+            deps.signedIn.identity,
         )
-        assertNull(deps.vm.state.value.signInMessage)
         assertEquals(listOf(boardRef), deps.leaderboard.observedBoards)
-        assertEquals(deps.identity.currentIdentity, deps.vm.state.value.identity)
+        assertEquals(deps.identity.currentIdentity, deps.signedIn.identity)
     }
 
     // ---- Ticket 24: sign-in copy per failure class -------------------------------
@@ -111,9 +130,9 @@ class ProfileViewModelTest {
         identity: FakeIdentityService = FakeIdentityService(initial = null),
     ): String {
         val deps = viewModel(tokens = tokens, identity = identity)
-        deps.vm.signIn(appContext)
+        deps.vm.onSignIn(appContext)
         advanceUntilIdle()
-        return requireNotNull(deps.vm.state.value.signInMessage)
+        return requireNotNull(deps.signedOut.signInMessage)
     }
 
     @Test
@@ -129,14 +148,15 @@ class ProfileViewModelTest {
         runTest(dispatcher) {
             val deps = viewModel(tokens = FakeTokenProvider(GoogleIdToken.Unavailable(NO_CREDENTIAL)))
 
-            deps.vm.signIn(appContext)
+            deps.vm.onSignIn(appContext)
             advanceUntilIdle()
 
             assertEquals(
                 "Google sign-in isn't available right now. Try again, or try another account.",
-                deps.vm.state.value.signInMessage,
+                deps.signedOut.signInMessage,
             )
-            assertNull(deps.vm.state.value.identity)
+            // Still signed out: no identity (A7).
+            assertTrue(deps.vm.uiState.value is ProfileUiState.SignedOut)
             assertTrue(deps.leaderboard.observedBoards.isEmpty())
         }
 
@@ -229,14 +249,14 @@ class ProfileViewModelTest {
     fun `sign-out clears identity and drops the board`() = runTest(dispatcher) {
         val deps = viewModel(identity = FakeIdentityService(initial = Identity("u1", "Ann", null)))
         advanceUntilIdle()
-        assertTrue(deps.vm.state.value.identity != null)
+        assertTrue(deps.vm.uiState.value is ProfileUiState.SignedIn)
 
-        deps.vm.signOut()
+        deps.vm.onSignOut()
         advanceUntilIdle()
 
-        assertNull(deps.vm.state.value.identity)
+        // Signed out: no identity and no board.
+        assertTrue(deps.vm.uiState.value is ProfileUiState.SignedOut)
         assertEquals(1, deps.identity.signOutCalls.size)
-        assertNull(deps.vm.state.value.board)
     }
 
     @Test
@@ -255,7 +275,9 @@ class ProfileViewModelTest {
         )
         advanceUntilIdle()
 
-        val snapshot = deps.vm.state.value.board!!
+        val board = deps.signedIn.board
+        assertTrue(board is TodayLeaderboard.Board.Loaded)
+        val snapshot: LeaderboardSnapshot = (board as TodayLeaderboard.Board.Loaded).snapshot
         assertEquals(LeaderboardSnapshot.FORMAT_VERSION, snapshot.formatVersion)
         assertEquals(listOf("Bo", "Ann"), snapshot.entries.map { it.displayName })
     }

@@ -1,13 +1,15 @@
-package com.ivandsky.puzzlebox.history
+package com.ivandsky.puzzlebox.domain
 
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /** Cached-data-only streak teaser (A8): consecutive days ending at the newest capture. */
-class StreakTest {
+class ComputeStreakTest {
 
     private val d = { day: Int -> LocalDate.of(2026, 11, day) }
+
+    private val streakEndingAtNewest = ComputeStreak()
 
     @Test
     fun `no captures is no streak`() {

@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.game.ScoreModel
+import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
@@ -71,8 +72,19 @@ object TestGames {
         stateOf = { },
         initialSession = { DecodeResult.Ok(Session) },
         refOf = { date, number -> Ref(game, date, number) },
+        replaySession = { cached, day, number ->
+            if (cached.payload.isNotEmpty() && cached.payload[0] == MAGIC) {
+                DecodeResult.Ok(replayBlob(game, cached, day, number))
+            } else {
+                DecodeResult.Err(DecodeError.Malformed("not a ${game.value} payload"))
+            }
+        },
         rendererModel = { _, _, _ -> Model },
     )
+
+    /** The replay hand-off [plugin] builds: [game]'s envelope over the payload plus the day's identity. */
+    fun replayBlob(game: GameId, cached: Puzzle, day: LocalDate, puzzleNumber: Int?): ByteArray =
+        SessionBlob.encode(game, cached.payload + "$day#$puzzleNumber".toByteArray(Charsets.UTF_8))
 
     fun registry(games: List<GameId>): GameRegistry = GameRegistry(games.map(::plugin))
 

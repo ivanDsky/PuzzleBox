@@ -1,6 +1,9 @@
-package com.ivandsky.puzzlebox.data.repository
+package com.ivandsky.puzzlebox.domain
 
+import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
@@ -19,7 +22,7 @@ import org.junit.Test
  * surface in one projection next to every listed game's captured days — no casting to a
  * concrete ref anywhere on the path.
  */
-class GameHistoryDaysTest {
+class ObserveGameHistoryTest {
 
     private val games = listOf(alpha, beta)
 
@@ -34,6 +37,10 @@ class GameHistoryDaysTest {
         DailyEntry(game, day, puzzleNumber, "${game.value}/v1", fetchedAtMs)
 
     private fun daily(vararg entries: DailyEntry) = FakeDailyRepository().apply { entries.forEach(::addEntry) }
+
+    /** The use case over a registry of exactly [games] (registration order = list order). */
+    private fun gameHistoryDays(daily: DailyRepository, games: List<GameId>, completions: FakeCompletionRepository) =
+        ObserveGameHistory(TestGames.registry(games), daily, completions)()
 
     @Test
     fun `a completion surfaces without a captured day`() = runTest {

@@ -33,10 +33,11 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -57,6 +58,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 /**
@@ -66,10 +68,10 @@ import kotlinx.coroutines.launch
  * solved Zip day. Phones — and portrait of any width — are single-pane (list, or a
  * day's detail with a back arrow); expanded landscape is list-detail side by side (07).
  *
- * Replay (A4): tapping a day opens its detail; "Replay this day" builds the session
- * blob and hands it to the play route. Replay rides each game's cache seam, so the
- * action is handed per (game, day) ([replayFor] resolves the day's cached payload;
- * a missing day surfaces the Missing snackbar). The record badge on a row/detail is
+ * Replay (A4): tapping a day opens its detail; "Replay this day" asks for the day's
+ * session blob ([onReplayDay], per (game, day) — replay rides each game's cache seam)
+ * and [events] answers: a ready blob goes to the play route through [onReplay]; a
+ * missing day or an unreadable payload surfaces its snackbar. The record badge on a row/detail is
  * cached-data only (A8): whether a record exists for the day, never its history of
  * replays. Rows are game-keyed and carry their game's display name (fix round 5,
  * defect C; tango-05): every identity (selection, record lookup, replay) is
@@ -83,23 +85,26 @@ fun HistoryScreen(
     allRows: List<HistoryDayRow>,
     recordsByKey: Map<Pair<GameId, LocalDate>, CompletionRecord>,
     streak: Int,
-    replayFor: suspend (GameId, LocalDate) -> ReplayLaunch,
-    onReplay: (ReplayLaunch.Ready) -> Unit,
+    events: Flow<HistoryEvent>,
+    onReplayDay: (GameId, LocalDate) -> Unit,
+    onReplay: (ByteArray) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selectedKey by rememberSaveable { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     val selectedRow = selectedKey?.let { key -> allRows.firstOrNull { it.key == key } }
+    val currentOnReplay by rememberUpdatedState(onReplay)
 
-    fun replay(game: GameId, day: LocalDate) {
-        scope.launch {
-            when (val payload = replayFor(game, day)) {
-                is ReplayLaunch.Ready -> onReplay(payload)
-                ReplayLaunch.Missing ->
-                    snackbarHostState.showSnackbar("That day is no longer saved on this device.")
-                is ReplayLaunch.Unreadable ->
-                    snackbarHostState.showSnackbar("This puzzle's data couldn't be read, so it can't be replayed.")
+    LaunchedEffect(events) {
+        events.collect { event ->
+            when (event) {
+                is HistoryEvent.ReplayReady -> currentOnReplay(event.session)
+                HistoryEvent.ReplayMissing ->
+                    launch { snackbarHostState.showSnackbar("That day is no longer saved on this device.") }
+                is HistoryEvent.ReplayUnreadable ->
+                    launch {
+                        snackbarHostState.showSnackbar("This puzzle's data couldn't be read, so it can't be replayed.")
+                    }
             }
         }
     }
@@ -149,7 +154,7 @@ fun HistoryScreen(
                             row = selected,
                             record = recordsByKey[selected.gameId to selected.day],
                             onBackToDayList = null,
-                            onReplay = { replay(selected.gameId, selected.day) },
+                            onReplay = { onReplayDay(selected.gameId, selected.day) },
                             cardColor = cardColor,
                             modifier = Modifier.fillMaxSize(),
                         )
@@ -181,7 +186,7 @@ fun HistoryScreen(
                         row = selected,
                         record = recordsByKey[selected.gameId to selected.day],
                         onBackToDayList = { selectedKey = null },
-                        onReplay = { replay(selected.gameId, selected.day) },
+                        onReplay = { onReplayDay(selected.gameId, selected.day) },
                         cardColor = cardColor,
                         modifier = Modifier.fillMaxSize(),
                     )

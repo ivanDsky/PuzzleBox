@@ -6,9 +6,11 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameDefinition
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
 import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
+import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 import com.ivandsky.puzzlebox.model.GameId
@@ -66,6 +68,31 @@ val tangoPlugin: GamePlugin<TangoState, TangoSession, TangoRendererModel> =
             }
         },
         refOf = { date, puzzleNumber -> TangoPuzzleRef(date, puzzleNumber) },
+        // Replay hand-off: zip's shape plus the A15 gate — an archived puzzle that decodes
+        // but is not uniquely solvable is never playable (payload untrusted), exactly as
+        // the play state refuses it on a fresh load.
+        replaySession = { cached, day, puzzleNumber ->
+            when (val decoded = TangoCodec.decode(cached.payload)) {
+                is DecodeResult.Ok ->
+                    if (!TangoUniqueness.isUniquelySolvable(decoded.value)) {
+                        DecodeResult.Err(DecodeError.Malformed("archived puzzle is not uniquely solvable"))
+                    } else {
+                        DecodeResult.Ok(
+                            SessionBlob.encode(
+                                TangoDefinition.id,
+                                TangoSessionCodec.serialize(
+                                    TangoSession(
+                                        ref = TangoPuzzleRef(date = day, puzzleNumber = puzzleNumber),
+                                        puzzle = decoded.value,
+                                    ),
+                                ),
+                            ),
+                        )
+                    }
+
+                is DecodeResult.Err -> DecodeResult.Err(decoded.error)
+            }
+        },
         rendererModel = { state, hint, verdict -> TangoRendererModel.of(state, hint, verdict) },
     )
 
