@@ -13,8 +13,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 
 /**
  * Game events out of the trace gesture (user gate feedback R1 — ticket 26): a stroke
- * never cancels or penalizes wholesale. Valid next-cell steps extend; invalid cells are
- * ignored so the finger may wander without penalty; lifting the finger keeps the trace
+ * never cancels or penalizes wholesale. Valid next-cell steps extend; invalid cells leave
+ * the trace untouched (reported as [DragEvent.Refused]) so the finger may wander without
+ * penalty; lifting the finger keeps the trace
  * exactly as drawn. Deliberate retraction happens only through a tap on a traced cell
  * (or by drawing onto the immediately-previous cell, preserved for mid-gesture
  * reversibility).
@@ -28,6 +29,13 @@ sealed interface DragEvent {
 
     /** Tap on the first traced cell: the trace empties to the start state. */
     data object Clear : DragEvent
+
+    /**
+     * Finger dragged onto an untraced [cell] the canExtend predicate refused. The trace
+     * is unchanged; the game may explain the refusal (spec A7) or ignore it (R1: the
+     * finger wanders without penalty, so this event never changes state on its own).
+     */
+    data class Refused(val cell: GridCell) : DragEvent
 }
 
 /**
@@ -46,7 +54,7 @@ fun interface DragTraceHooks {
  * is anchored at the committed [path]'s end. Gesture contract (R1):
  *
  * - **Drawing never cancels.** Past the touch slop the stroke is a drag: hook-approved
- *   cells extend, everything else (occupied/wrong/non-adjacent) is ignored. Drawing onto
+ *   cells extend, everything else (wrong/non-adjacent) is reported Refused. Drawing onto
  *   the previous cell in path order retracts by one (apple interruptibility); drawing
  *   onto any earlier traced cell is ignored — crossing the path never slashes it.
  *   Releasing keeps the trace exactly as drawn; no event fires on release.
@@ -100,7 +108,8 @@ fun DragTraceBoard(
                         var currentCell = downCell
 
                         /** One drag step: previous-cell draw-back retracts by one, hook-approved
-                         *  cells extend, everything else is ignored without penalty. */
+                         *  cells extend, hook-refused cells report Refused (no state change),
+                         *  earlier traced cells are ignored. */
                         fun dragStep(cell: GridCell) {
                             val trimmed = workingPath.dropLast(1)
                             when {
@@ -109,12 +118,13 @@ fun DragTraceBoard(
                                     workingPath = trimmed
                                     latestOnEvent(DragEvent.Retract(trimmed.lastIndex))
                                 }
-                                cell !in workingPath && latestHooks.canExtend(workingPath, cell) -> {
+                                cell in workingPath -> Unit // earlier traced cell — ignored (R1)
+                                latestHooks.canExtend(workingPath, cell) -> {
                                     workingPath = workingPath + cell
                                     latestOnEvent(DragEvent.Extend(cell))
                                 }
-                                // else: an earlier traced cell or a hook-rejected cell — ignored,
-                                // the finger wanders without penalty (R1).
+                                // The trace stays put; the game decides whether to explain (A7).
+                                else -> latestOnEvent(DragEvent.Refused(cell))
                             }
                         }
 
