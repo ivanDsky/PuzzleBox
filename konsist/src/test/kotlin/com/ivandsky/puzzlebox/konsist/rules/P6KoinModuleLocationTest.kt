@@ -25,6 +25,8 @@ class P6KoinModuleLocationTest {
                 Violation("$feature/BadUi.kt", null, ""),
                 Violation("$feature/BadArgs.kt", null, ""),
                 Violation("$feature/BadLazy.kt", null, ""),
+                Violation("$feature/BadAlias.kt", null, ""),
+                Violation("$feature/BadLazyAlias.kt", null, ""),
                 Violation("games/x/src/main/kotlin/BadFeed.kt", null, ""),
             ),
         )

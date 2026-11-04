@@ -248,22 +248,26 @@ Naming conventions for types.
 Koin modules are declared in a `di` package.
 
 - **Scope:** production.
-- **Detection:** the file text (comments removed) contains `module {`, `module(...) {` or
-  `lazyModule {`, and its package does not end in `.di`. Exception: a `:games:*` module may keep
-  its Koin module in the module's root package (ADR-0008, "Adding a game").
-- **Accepted misses:** a Koin `module` imported under another name (`import ...module as m`)
-  is not matched. Modules named `:games:<x>-ui` also count as game modules for the exception.
-  A function that is called `module` and takes a lambda matches too.
+- **Detection:** the file's code (comments and string contents removed) contains `module {`,
+  `module(...) {`, `lazyModule {` or `lazyModule(...) {`, or the same call under a name the file
+  imports `org.koin.dsl.module` or `org.koin.dsl.lazyModule` as (`import org.koin.dsl.module as m`),
+  and its package does not end in `.di`. Exception: a `:games:*` module may keep its Koin module in
+  the module's root package (ADR-0008, "Adding a game").
+- **Accepted misses:** modules named `:games:<x>-ui` also count as game modules for the exception.
+  A function that is called `module` and takes a lambda matches too. A Koin builder reached through
+  a project wrapper function or a typealias is not matched.
 - **How to fix:** move the declaration to a `di` package.
 
 ## P7
 Android-free modules import nothing from Android.
 
 - **Scope:** production files of modules using `puzzlebox.jvm.library`, plus `:core:domain`.
-- **Detection:** an `import` of `android.*`, `androidx.*`, `org.koin.android.*` or
-  `org.koin.androidx.*`, after comments are removed. The violation lists the imports.
-- **Accepted misses:** a fully qualified `android.*` use with no import (for example an inline
-  `android.util.Log.d(...)`) is not detected.
+- **Detection:** a reference to `android.*`, `androidx.*`, `org.koin.android.*` or
+  `org.koin.androidx.*` in the file's code (comments and string contents removed): an `import`, or
+  an inline fully qualified use such as `android.util.Log.d(...)`. A name preceded by a dot or a
+  word character (`com.example.android.x`) does not count. The violation lists the references.
+- **Accepted misses:** Android types reached through a typealias or a project wrapper declared in
+  another module are not seen. A local value named `android` followed by a member access matches.
 - **How to fix:** remove the import; put the Android code in an Android module behind an interface.
 
 ## Consequences

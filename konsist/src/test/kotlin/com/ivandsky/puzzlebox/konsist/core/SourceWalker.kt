@@ -42,6 +42,6 @@ object SourceWalker {
         val text = File(root, path).readText()
         val stripped = CommentStripper.strip(text)
         val packageName = PACKAGE_HEADER.find(stripped)?.groupValues?.get(1).orEmpty()
-        return SourceFile(path, module, sourceSet, SourceSetKind.of(sourceSet), packageName, text, stripped)
+        return SourceFile(path, module, sourceSet, SourceSetKind.of(sourceSet), packageName, text, stripped, CommentStripper.code(text))
     }
 }
