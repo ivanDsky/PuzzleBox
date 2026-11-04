@@ -20,17 +20,15 @@ internal object VerdictMessage {
     }
 
     private fun subject(finding: Finding): String = when (finding) {
+        is Finding.New -> pathOf(finding) + finding.violation.value?.let { " value $it vs ceiling none" }.orEmpty()
         is Finding.Grown -> "${pathOf(finding)} value ${finding.violation.value} vs ceiling ${finding.entry.ceiling}"
         is Finding.Slack -> "${pathOf(finding)} value ${finding.violation.value} vs ceiling ${finding.entry.ceiling}"
         else -> pathOf(finding)
     }
 
-    private fun fix(ruleId: String, finding: Finding): String {
-        val line = finding.line
-        return if (line != null) {
-            "edit allowlists/$ruleId.txt line $line"
-        } else {
-            "fix the code (${(finding as Finding.New).violation.hint})"
-        }
+    private fun fix(ruleId: String, finding: Finding): String = when (finding) {
+        is Finding.New -> "fix the code (${finding.violation.hint})"
+        is Finding.Grown, is Finding.Slack, is Finding.Stale, is Finding.Malformed, is Finding.Duplicate ->
+            "edit allowlists/$ruleId.txt line ${finding.line}"
     }
 }

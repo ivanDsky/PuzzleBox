@@ -40,6 +40,16 @@ class JudgeTest {
     }
 
     @Test
+    fun newCountViolationShowsValueAndNoCeiling() {
+        val verdict = run(listOf(v("a/Wide.kt", 13)), "", setOf("a/Wide.kt"))
+        assertEquals(
+            header.format(1) +
+                "\n  a/Wide.kt value 13 vs ceiling none — new violation: a/Wide.kt at 13 (split it); fix the code (split it)",
+            verdict.message(),
+        )
+    }
+
+    @Test
     fun staleForDeletedRenamedAndWrongRulePaths() {
         val verdict = run(
             emptyList(),
