@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.konsist.rules
 
+import com.ivandsky.puzzlebox.konsist.core.Brackets
+import com.ivandsky.puzzlebox.konsist.core.CommentStripper
 import com.ivandsky.puzzlebox.konsist.core.Rule
 import com.ivandsky.puzzlebox.konsist.core.RuleResult
 import com.ivandsky.puzzlebox.konsist.core.SourceSetKind
@@ -88,7 +90,7 @@ object P3ViewModelShape : Rule {
 
     /** The property an expression is just a name of, through `this.` and receiver-returning calls; null otherwise. */
     private fun aliasTarget(expression: String): String? {
-        val text = expression.trim()
+        val text = CommentStripper.code(expression).trim()
         val head = ALIAS_HEAD.find(text) ?: return null
         var i = skipSpace(text, head.range.last + 1)
         while (i < text.length) {
@@ -101,8 +103,8 @@ object P3ViewModelShape : Rule {
             val call = WORD.find(text, i)?.takeIf { it.range.first == i && it.value in IDENTITY_CALLS } ?: return null
             i = skipSpace(text, call.range.last + 1)
             val start = i
-            if (text.getOrNull(i) == '(') i = skipSpace(text, closing(text, i) ?: return null)
-            if (text.getOrNull(i) == '{') i = skipSpace(text, closing(text, i) ?: return null)
+            if (text.getOrNull(i) == '(') i = skipSpace(text, Brackets.closing(text, i) ?: return null)
+            if (text.getOrNull(i) == '{') i = skipSpace(text, Brackets.closing(text, i) ?: return null)
             if (i == start) return null
         }
         return head.groupValues[1]
@@ -112,24 +114,5 @@ object P3ViewModelShape : Rule {
         var i = from
         while (i < text.length && text[i].isWhitespace()) i++
         return i
-    }
-
-    /** Index after the bracket matching the one at [open]; brackets inside string literals are not counted. */
-    private fun closing(text: String, open: Int): Int? {
-        var depth = 0
-        var inString = false
-        var i = open
-        while (i < text.length) {
-            val c = text[i]
-            when {
-                inString && c == '\\' -> i++
-                c == '"' -> inString = !inString
-                inString -> Unit
-                c == '(' || c == '{' || c == '[' -> depth++
-                c == ')' || c == '}' || c == ']' -> if (--depth == 0) return i + 1
-            }
-            i++
-        }
-        return null
     }
 }

@@ -30,6 +30,10 @@ class S0NoSuppressTest {
                 Violation("$main/BadKotlinQualified.kt", null, ""),
                 Violation("$main/BadMixed.kt", null, ""),
                 Violation("$main/BadArrayOf.kt", null, ""),
+                Violation("$main/BadGetTarget.kt", null, ""),
+                Violation("$main/BadFileKotlin.kt", null, ""),
+                Violation("$main/BadBracket.kt", null, ""),
+                Violation("$main/BadParenInString.kt", null, ""),
                 Violation("$test/BadInTest.kt", null, ""),
             ),
         )

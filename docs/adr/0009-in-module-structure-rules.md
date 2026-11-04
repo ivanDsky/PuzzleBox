@@ -105,12 +105,14 @@ The rules below are numbered as in the spec. There is no S3.
 No suppression of a structure rule.
 
 - **Scope:** production and test source files.
-- **Detection:** an `@Suppress(...)` or `@file:Suppress(...)` annotation (also `@kotlin.Suppress`)
-  with a string argument that starts with `konsist.` or with a rule ID (`S` or `P` plus digits).
-  Comments are ignored. The violation is the file.
-- **Accepted misses:** the argument list is read up to the first `)`, so a rule name that
-  follows a `)` inside an earlier string is not seen. Other suppression ways (a name that does
-  not look like a rule ID) are not covered.
+- **Detection:** a `Suppress(...)` annotation in the file's code (comments and string contents
+  removed), with any use-site target (`@file:`, `@get:`, `@field:`, `@param:` and the others) and
+  also `@kotlin.Suppress` and the bracket form `@file:[A Suppress(...)]`. It is a violation when
+  one of its string arguments starts with `konsist.` or with a rule ID (`S` or `P` plus digits).
+  The argument list runs to the matching `)`, so a `)` inside an earlier string does not end it.
+  The violation is the file.
+- **Accepted misses:** other suppression ways (a name that does not look like a rule ID, a
+  string constant passed as the argument) are not covered.
 - **How to fix:** remove the suppression. Fix the code, or ask for a ledgered `Ruling:`.
 
 ## S1
