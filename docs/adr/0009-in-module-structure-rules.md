@@ -191,16 +191,20 @@ Every production file's package is under its module's package root.
 ViewModels are named `*ViewModel`, live in `:feature:<x>:impl`, and expose no public mutable state.
 
 - **Scope:** production. Subjects: top-level (not nested) classes that extend `ViewModel` or whose
-  name ends in `ViewModel`.
+  name ends in `ViewModel`. Extending is followed through project base classes by simple name, so
+  `class X : BaseViewModel()` extends `ViewModel` when `BaseViewModel` does.
 - **Detection:** a violation when the class extends `ViewModel` but its name does not end in
   `ViewModel`, or the reverse; when its module is not a feature `impl` module; or when it has a
-  non-private property that is a `var`, is declared with a `Mutable...` type, or is initialized
-  by a `Mutable...(` or `mutable...(` factory (so `MutableStateFlow(...)` and `mutableStateOf(...)`
-  both count), or is typeless with an initializer or getter that is just the name of a class property
-  declared `Mutable...` or initialized by such a factory (`val state = _state`, `val state get() = _state`).
+  non-private property (primary-constructor `val`/`var` parameters included) that is a `var`, is
+  declared with a `Mutable...` type, or is initialized by a `Mutable...(` or `mutable...(` factory
+  (so `MutableStateFlow(...)` and `mutableStateOf(...)` both count, per A11), or is typeless with an
+  initializer or getter that is just the name of a class property that is a `var` or mutable by those
+  rules. The name may be prefixed by `this.` and followed by receiver-returning calls
+  (`val state = _state`, `val state get() = _state`, `val state = _state.also { }.apply { }`).
   A declared read-only type (`val state: StateFlow<T> = _state`) passes. One violation per file, joining the problems.
-- **Accepted misses:** properties declared in the primary constructor are not judged. Nested
-  classes are not judged.
+- **Accepted misses:** nested classes are not judged. Only `also` and `apply` count as
+  receiver-returning; `_state.let { it }` or a helper that returns its argument passes. A base class
+  is matched by simple name, so two project classes with the same name share their parents.
 - **How to fix:** keep the `Mutable*` private and expose a read-only type; rename or move the class.
 
 ## P4

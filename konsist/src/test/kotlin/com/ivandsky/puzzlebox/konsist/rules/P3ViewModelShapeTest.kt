@@ -5,12 +5,14 @@ import com.ivandsky.puzzlebox.konsist.core.Violation
 import org.junit.Test
 
 /**
- * P3: a class extending `ViewModel` or named `*ViewModel` must do both, live in `:feature:<x>:impl`, and expose no
- * class-level non-private `var`, `Mutable*`-typed property or typeless `Mutable…(`/`mutable…(` initializer.
- * Decision: typeless lowercase factories such as `internal val y = mutableStateOf(0)` count (non-private Compose
- * state leaks like a MutableStateFlow); a declared type is judged by its `Mutable` prefix, case-sensitively.
- * A typeless property whose initializer or getter is a bare class-property name that is mutable by those rules
- * (`val state = _state`, `val state get() = _state`) counts too, private target or not; a declared read-only type passes.
+ * P3: a class extending `ViewModel` (directly or through project base classes, by simple name) or named `*ViewModel`
+ * must do both, live in `:feature:<x>:impl`, and expose no class-level non-private `var`, `Mutable*`-typed property
+ * or typeless `Mutable…(`/`mutable…(` initializer. Primary-constructor `val`/`var` parameters are properties too.
+ * Decision (A11): typeless lowercase factories such as `internal val y = mutableStateOf(0)` count (non-private
+ * Compose state leaks like a MutableStateFlow); a declared type is judged by its `Mutable` prefix, case-sensitively.
+ * A typeless property whose initializer or getter is a class-property name that is a `var` or mutable by those rules
+ * counts too, private target or not, also through `this.` and receiver-returning `.also`/`.apply` calls
+ * (`val state = _state`, `val state get() = _state`, `val state = _state.also { }`); a declared read-only type passes.
  * Companion and nested-class properties and data classes in the same file are not judged.
  * Contract and allowlist rules: ADR-0009 (docs/adr/0009-in-module-structure-rules.md).
  */
@@ -39,6 +41,15 @@ class P3ViewModelShapeTest {
                 Violation("$impl/MultiProblemViewModel.kt", null, ""),
                 Violation("$impl/AliasLeakViewModel.kt", null, ""),
                 Violation("$impl/GetterLeakViewModel.kt", null, ""),
+                Violation("$impl/AlsoChainViewModel.kt", null, ""),
+                Violation("$impl/ConstructorStateViewModel.kt", null, ""),
+                Violation("$impl/ConstructorVarViewModel.kt", null, ""),
+                Violation("$impl/CtorAliasViewModel.kt", null, ""),
+                Violation("$impl/VarAliasViewModel.kt", null, ""),
+                Violation("$impl/AnnotatedAliasViewModel.kt", null, ""),
+                Violation("$impl/ChildScreenModel.kt", null, ""),
+                Violation("$impl/LeakyChildViewModel.kt", null, ""),
+                Violation("$impl/GrandChildScreen.kt", null, ""),
             ),
         )
     }
