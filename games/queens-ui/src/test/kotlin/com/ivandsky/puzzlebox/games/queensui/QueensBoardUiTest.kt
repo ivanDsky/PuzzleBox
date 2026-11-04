@@ -10,7 +10,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
-import androidx.compose.ui.test.assertIsNotEnabled
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
@@ -265,17 +264,17 @@ class QueensBoardUiTest {
         // queens (1,3), (2,0), (3,2) — row 0's queen is forced to cell 1 (ROW elimination)
         listOf(7, 8, 14).forEach { idx -> state.onTap(idx); state.onTap(idx) }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Hint").performClick()
+        state.requestHint()
         composeRule.waitForIdle()
         val hint = state.hint
         assertTrue("unexpected $hint", hint is com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region)
         hint as com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region
         assertEquals(HintReason(HintReason.Kind.ROW, 0), hint.reason)
         assertEquals("one presented hint counts once", 1, state.session.hintsUsed)
-        composeRule.onNodeWithTag("queens/hint_caption").assertExists()
-        composeRule.onNodeWithText(
+        assertEquals(
             "The red region's queen must be in this row — every other cell there is blocked",
-        ).assertExists()
+            state.hintCaption,
+        )
     }
 
     /** Stage 2 (the repeat tap): the same forced cell is POINTED at — the crown ghost
@@ -284,10 +283,10 @@ class QueensBoardUiTest {
     fun `staged hint repeat tap points at the forced cell without recounting`() {
         val state = setContent(QueensUiFixtures.session())
         listOf(7, 8, 14).forEach { idx -> state.onTap(idx); state.onTap(idx) }
-        composeRule.onNodeWithText("Hint").performClick()
+        state.requestHint()
         composeRule.waitForIdle()
         assertFalse(state.hintPointed)
-        composeRule.onNodeWithText("Hint").performClick()
+        state.requestHint()
         composeRule.waitForIdle()
         assertTrue("stage 2 engaged", state.hintPointed)
         assertEquals(1, (state.hint as com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region).cell.idx)
@@ -301,13 +300,13 @@ class QueensBoardUiTest {
     @Test
     fun `staged hint without a human reason falls back to the neutral caption`() {
         val state = setContent(QueensUiFixtures.session())
-        composeRule.onNodeWithText("Hint").performClick()
+        state.requestHint()
         composeRule.waitForIdle()
         val hint = state.hint
         assertTrue(hint is com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region)
         assertNull((hint as com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region).reason)
         assertEquals("an empty-board hint counts", 1, state.session.hintsUsed)
-        composeRule.onNodeWithText("Hint — the red region").assertExists()
+        assertEquals("Hint — the red region", state.hintCaption)
     }
 
     /** The Incorrect hint counts too, with its own caption; None never counts. */
@@ -315,25 +314,25 @@ class QueensBoardUiTest {
     fun `incorrect hint surfaces its caption and counts`() {
         val state = setContent(QueensUiFixtures.session())
         state.onTap(0); state.onTap(0) // misplaced queen at (0,0)
-        composeRule.onNodeWithText("Hint").performClick()
+        state.requestHint()
         composeRule.waitForIdle()
         assertTrue(state.hint is com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Incorrect)
         assertEquals(1, state.session.hintsUsed)
-        composeRule.onNodeWithText("Hint — these crowns can't all stay; remove at least one").assertExists()
+        assertEquals("Hint — these crowns can't all stay; remove at least one", state.hintCaption)
     }
 
     /** Any board action clears the staged hint (caption + ghost). */
     @Test
     fun `a board action clears the staged hint`() {
         val state = setContent(QueensUiFixtures.session())
-        composeRule.onNodeWithText("Hint").performClick()
+        state.requestHint()
         composeRule.waitForIdle()
         assertNotNull(state.hint)
         state.onTap(5)
         composeRule.waitForIdle()
         assertNull(state.hint)
         assertFalse(state.hintPointed)
-        composeRule.onNodeWithTag("queens/hint_caption").assertDoesNotExist()
+        assertNull(state.hintCaption)
     }
 
     // ------------------------------- fix round 6 (F-3): win → result-route handoff
@@ -348,7 +347,7 @@ class QueensBoardUiTest {
                 completions++
                 return CompletionRecord(
                     puzzleRef = QueensPuzzleRef(LocalDate.parse("2026-11-02"), 1),
-                    time = session.elapsedMs() ?: 0L,
+                    time = session.elapsedMs,
                     hints = session.hintsUsed,
                     stats = RecordStats(schemaVersion = 1, blob = ""),
                 )
@@ -363,9 +362,11 @@ class QueensBoardUiTest {
         assertEquals("one handoff to the route callback", 1, winRecords.size)
         assertEquals("frozen hints fact", 0, winRecords.single().hints) // no hint requested
         assertTrue("frozen time fact is the play duration", winRecords.single().time >= 0L)
-        // the win is final: Undo is locked out and the session stays complete
-        composeRule.onNodeWithText("Undo").assertIsNotEnabled()
+        // the win is final: undo/redo are locked out and the session stays complete
+        assertFalse(state.canUndo)
+        state.undo()
         assertTrue("win is final", state.session.isComplete)
+        assertEquals("undo after the win left the board alone", QueensUiFixtures.solutionCells.size, state.session.queens.size)
     }
 
     /** A restored completed session never re-emits — the emission is transition-only. */

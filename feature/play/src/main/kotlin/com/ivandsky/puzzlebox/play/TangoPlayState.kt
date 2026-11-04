@@ -13,6 +13,9 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.gameui.CompletionRecordEmitter
+import com.ivandsky.puzzlebox.gameui.PlayClock
+import com.ivandsky.puzzlebox.gameui.PlayHints
+import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
@@ -53,7 +56,7 @@ sealed interface TangoScreen {
 /**
  * The Tango play state holder (tango-05): today's board → engine → win flow, mirroring
  * [ZipPlayState]. Owns the [TangoSession] as the single source of truth for placements/
- * hints/timer; every committed change round-trips through [onSessionChanged] so the
+ * hints/timer/undo history; every committed change round-trips through [onSessionChanged] so the
  * route persists bytes across process death and rotation (A19, TangoSessionCodec).
  *
  * Placement policy (design §6, LinkedIn-faithful): a placement that would VIOLATE a
@@ -77,7 +80,7 @@ class TangoPlayState(
     private val now: () -> Instant = Instant::now,
     private val today: () -> LocalDate = { LocalDate.now(tangoCadenceZone()) },
     private val onSessionChanged: (TangoSession?) -> Unit = {},
-) : ActivePlay, PlayClock {
+) : ActivePlay, PlayClock, PlayHints, PlayUndo {
 
     override val game: PlayGame get() = PlayGame.Tango
 
@@ -135,11 +138,7 @@ class TangoPlayState(
         rejection = null // next input clears the violation caption (Zip hintArrow discipline)
         hintCell = null
         hintWhy = null
-        settleJob?.cancel()
-        settleJob = scope.launch {
-            kotlinx.coroutines.delay(500)
-            suppressedSets = emptySet()
-        }
+        armSettle()
         val current = session ?: return
         val ready = screen as? TangoScreen.Ready ?: return
         if (current.isComplete) return
@@ -176,6 +175,40 @@ class TangoPlayState(
         updateSession(if (next.isComplete) foldRunning(next) else next)
         if (mistake != null) rejection = TangoVerdict.Rejected(mistake, move.idx)
     }
+
+    /**
+     * Undo/redo is a board change like a placement, so it follows the same input rules:
+     * transient reveals clear, and violations it NEWLY creates (a redo can restore one) wait
+     * out the settle window while ones it removes vanish at once. The clock is not rewound;
+     * a stopped one reopens, since undoing/redoing is play.
+     */
+    private fun stepHistory(step: (TangoSession) -> TangoSession) {
+        val current = session ?: return
+        val ready = screen as? TangoScreen.Ready ?: return
+        val next = step(current)
+        if (next == current) return // nothing to move, or the session is complete
+        rejection = null
+        armSettle()
+        suppressedSets = violatingSets(ready.puzzle, next.grid()) - violatingSets(ready.puzzle, current.grid())
+        if (runningSince == null) runningSince = now()
+        commit(next)
+    }
+
+    /** (Re)starts the 0.5 s window after which newly introduced violations show. */
+    private fun armSettle() {
+        settleJob?.cancel()
+        settleJob = scope.launch {
+            kotlinx.coroutines.delay(500)
+            suppressedSets = emptySet()
+        }
+    }
+
+    override val canUndo: Boolean get() = session?.let { !it.isComplete && it.history.canUndo } ?: false
+    override val canRedo: Boolean get() = session?.let { !it.isComplete && it.history.canRedo } ?: false
+
+    override fun undo() = stepHistory(TangoSession::withUndo)
+
+    override fun redo() = stepHistory(TangoSession::withRedo)
 
     //endregion
 
@@ -226,7 +259,7 @@ class TangoPlayState(
                 // The running clock is process-local (runningSince ≠ session state): a
                 // restored in-progress session restarts its window now, or the timer
                 // reads 0 forever (user QA 2026-11-02).
-                if (!s.isComplete && s.placements.isNotEmpty()) runningSince = now()
+                if (!s.isComplete && hasPlayed(s)) runningSince = now()
                 if (!s.isComplete) refreshBaseline(s.ref)
             }
 
@@ -254,11 +287,12 @@ class TangoPlayState(
 
     /**
      * Hint (spec hints bullet, Zip parity): the ONE counted hint AUTO-PLACES the
-     * forced move and keeps its WHY for the caption until the next input. The board
-     * highlight is 04's known gap (renderer model carries no hint payload) — the
-     * reveal is the auto-placement itself plus the side-panel caption.
+     * forced move as an ordinary, undoable [TangoPlace] and keeps its WHY for the
+     * caption until the next input. The board highlight is 04's known gap (renderer
+     * model carries no hint payload) — the reveal is the auto-placement itself plus
+     * the side-panel caption. Undoing it does not refund the hint.
      */
-    fun hint() {
+    override fun requestHint() {
         val current = session ?: return
         val ready = screen as? TangoScreen.Ready ?: return
         if (current.isComplete) return
@@ -295,7 +329,7 @@ class TangoPlayState(
 
     override fun onForeground() {
         val current = session ?: return
-        if (runningSince == null && !current.isComplete && current.placements.isNotEmpty()) {
+        if (runningSince == null && !current.isComplete && hasPlayed(current)) {
             runningSince = now()
         }
     }
@@ -331,6 +365,33 @@ class TangoPlayState(
                 else -> ref.puzzleNumber?.let { "Daily · #$it" } ?: "Daily"
             }
         }
+
+    //endregion
+
+    /** Whether this session has been played — an emptied board with history still counts. */
+    private fun hasPlayed(s: TangoSession): Boolean =
+        s.placements.isNotEmpty() || s.history.canUndo || s.history.canRedo
+
+    //region PlayHints / result copy
+
+    override val hintsUsed: Int get() = session?.hintsUsed ?: 0
+
+    override val hintEnabled: Boolean get() = screen is TangoScreen.Ready && session?.isComplete != true
+
+    /** The hint's WHY sentence (§6), shown by the shared chrome until the next input. */
+    override val hintCaption: String?
+        get() {
+            val why = hintWhy ?: return null
+            val current = session ?: return null
+            val ready = screen as? TangoScreen.Ready ?: return null
+            return TangoSemantics.hintPhrase(
+                TangoRendererModel.of(TangoState(ready.puzzle, current.grid()), hint = null),
+                why,
+            )
+        }
+
+    override val resultLabel: String?
+        get() = session?.ref?.puzzleNumber?.let { "Tango · #$it" } ?: "Tango"
 
     //endregion
 
@@ -388,11 +449,17 @@ class TangoPlayState(
     fun rendererModel(): TangoRendererModel? {
         val current = session ?: return null
         val ready = screen as? TangoScreen.Ready ?: return null
-        // The hint rides the renderer model (§7 HintReveal): highlight + §4 caption slot.
+        // The hint rides the renderer model for the cell highlight (§7 HintReveal); its WHY
+        // sentence is shown once, by the shared chrome's [hintCaption], not the board's slot.
         val hint = hintCell?.let { idx ->
             hintWhy?.let { why -> current.grid()[idx]?.let { value -> TangoHint.Forced(idx, value, why) } }
         }
-        return TangoRendererModel.of(TangoState(ready.puzzle, current.grid()), hint = hint, verdict = rejection, suppressedSets = suppressedSets)
+        return TangoRendererModel.of(
+            TangoState(ready.puzzle, current.grid()),
+            hint = hint,
+            verdict = rejection,
+            suppressedSets = suppressedSets,
+        ).copy(hintWhy = null)
     }
 
     /** Versioned session bytes for the route's rememberSaveable (A19/F2 §2). */

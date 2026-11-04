@@ -81,7 +81,8 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   search, `longestSolvablePrefix` for hints), `ZipHints`, `ZipVariants` (zip/n5–n8; BRIDGE/
   TELEPORT features reserved); `codec/`: `ZipCodec` v1 (byte format, canonical re-encode for
   storage), `ZipWireParser` (structural `trailGamePuzzle` JSON → typed puzzle, untrusted until
-  the A16 oracle gate), `ZipSessionCodec` v1 (session serialize/restore); `ZipScoreModel`
+  the A16 oracle gate), `ZipSessionCodec` v2 (session serialize/restore incl. the undo/redo history of
+  `ZipCommand`s Extend/RetractTo/Reset; still reads v1); `ZipScoreModel`
   emits `RecordStats` v1 {variant, mistakes, backtracks}; `render/ZipRendererModel`.
 - `games/zip-ui/` — `ZipBoardRenderer : GameBoardRenderer` (BoardGrid + walls + waypoint dots +
   path trace + hint highlight) and `zipUiModule` (factory binding for the renderer).
@@ -89,13 +90,18 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   — the cache-only puzzle_dailies store — plus `List<GamePlugin>` for the featured game; never
   the network), `HomeScreen` (single/two-pane, play/history destinations, appearance via
   `ThemeDialog`), `HomeLayout` + `homeLayoutFor` pure pane policy.
-- `feature/play/` — the play surface: `PlayRoute` (restore-adopt-load: in-memory saved session →
-  ReplayZip bytes → load today's daily; `BackHandler` ends the flow), `PlayFlow` (per-entry
-  scope around one `ZipPlayState`; injects `ZipDailyRepository` + `CompletionRepository`),
-  `ZipPlayState` (`ZipScreen` Loading/Ready/Unavailable with degraded-cache banner, hint
-  machinery, record emission on completion), `ZipBoardContent` + `ZipDragHooks` (registry
-  `registerZipBoard()` + drag handling), `ResultRoute`/`ResultScreen` (time + hints summary,
-  play again), `di/PlayModule` (GameUiRegistry, PlayFlow).
+- `feature/play/` — the one play surface for every game (ADR-0006): `PlayRoute` (game picker →
+  restore-adopt-load; `BackHandler` ends the flow), `PlayFlow` (per-entry scope around one
+  `ActivePlay`: `ZipPlayState` / `TangoPlayState` / `QueensPlayState`; rebindable session
+  saver so rotation then process death keeps the live session), per-game `*PlayState`
+  (screen states, hint machinery, record emission) implementing the core seams
+  `PlayClock`/`PlayHints`/`PlayUndo`, `*PlayScreen` (board area + `PlayChrome`),
+  `ResultRoute` (shared `ResultScreen` + the active state's `resultLabel`), `di/PlayModule`.
+- `core/game/` `Command`/`CommandHistory` — undo/redo as per-move commands over the game's
+  board state; `core/game-ui/` `PlayChrome` (title, timer, hint button+count, undo/redo,
+  game-controls slot), `HintButton`, `ResultScreen` (label + `gameSection` slot).
+- Session codecs persist the command history: `ZipSessionCodec` v2, `TangoSessionCodec` v2,
+  `QueensSessionCodec` v3 (each still reads its previous version with empty history).
 - `feature/history/` — `HistoryRoute`/`HistoryScreen` (paged day list with streak header),
   `HistoryPaging` (`historyDays` PagingData flow, PAGE_SIZE 20), `HistoryLayout` +
   `historyLayoutFor`, `Streak.streakEndingAtNewest`, `ReplayLaunch` (cached puzzle + entry →

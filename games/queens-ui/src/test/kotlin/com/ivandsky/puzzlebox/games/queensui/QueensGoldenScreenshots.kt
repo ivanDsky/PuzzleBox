@@ -113,7 +113,11 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
                     ) {
                         androidx.compose.foundation.layout.Column {
                             QueensPlayBoard(state, Modifier.size(side))
-                            if (controls) QueensPlayControls(state)
+                            if (controls) {
+                                QueensPlayControls(state)
+                                // The hint caption is core chrome's now; keep it in the capture.
+                                state.hintCaption?.let { androidx.compose.material3.Text(it) }
+                            }
                         }
                     }
                 }

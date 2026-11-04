@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.BoardError
 import com.ivandsky.puzzlebox.gameui.BoardLoading
 import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
+import com.ivandsky.puzzlebox.gameui.PlayChrome
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 import com.ivandsky.puzzlebox.games.tangoui.TangoBoardRenderer
@@ -26,7 +27,7 @@ import com.ivandsky.puzzlebox.games.tangoui.TangoBoardRenderer
 /**
  * The Tango play screen (tango-05): the Zip play shell (ticket 13/23 semantics) with
  * 04's board renderer — tap placements land through [TangoBoardRenderer]'s placement
- * callback, the timer/hint/banner chrome is the shared [PlaySidePanel]. Design §6:
+ * callback, the timer/hint/undo/banner chrome is the shared [PlayChrome]. Design §6:
  * the win moment is the same route handoff; this screen never renders win content.
  */
 @Composable
@@ -37,8 +38,6 @@ fun TangoPlayScreen(
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    PlayClockEffects(state)
-
     val ready = state.screen as? TangoScreen.Ready
     // suppressedSets is a key: the settle debounce clears it 0.5 s after the last touch,
     // and the model must rebuild then or newly introduced violations stay hidden forever.
@@ -59,14 +58,13 @@ fun TangoPlayScreen(
             modifier = Modifier.fillMaxSize(),
             board = { TangoBoardArea(state, ready, model) },
             side = {
-                PlaySidePanel(
+                PlayChrome(
                     title = "Tango",
                     subtitle = state.subtitle,
+                    clock = state,
+                    hints = state,
+                    undo = state,
                     banner = ready?.degraded?.let(::degradeBannerMessage),
-                    elapsedMs = state.displayedElapsedMs(),
-                    hintsUsed = state.session?.hintsUsed ?: 0,
-                    hintEnabled = ready != null && state.session?.isComplete != true,
-                    onHint = state::hint,
                 )
             },
         )

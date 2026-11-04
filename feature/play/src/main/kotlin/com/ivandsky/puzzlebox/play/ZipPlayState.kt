@@ -17,6 +17,9 @@ import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.gameui.CompletionRecordEmitter
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
+import com.ivandsky.puzzlebox.gameui.PlayClock
+import com.ivandsky.puzzlebox.gameui.PlayHints
+import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
@@ -68,9 +71,12 @@ class ZipPlayState(
     private val now: () -> Instant = Instant::now,
     private val today: () -> LocalDate = { LocalDate.now(zipCadenceZone()) },
     private val onSessionChanged: (ZipSession?) -> Unit = {},
-) : ActivePlay, PlayClock {
+) : ActivePlay, PlayClock, PlayHints, PlayUndo {
 
     override val game: PlayGame get() = PlayGame.Zip
+
+    override val resultLabel: String?
+        get() = session?.ref?.puzzleNumber?.let { "Zip · #$it" } ?: "Zip"
 
     var screen by mutableStateOf<ZipScreen>(ZipScreen.Loading)
         private set
@@ -136,6 +142,29 @@ class ZipPlayState(
             DragEvent.Clear -> commit(current.withMove(ZipMove.Reset, now()))
         }
     }
+
+    //region undo / redo (core PlayUndo over the session's command history)
+
+    override val canUndo: Boolean
+        get() = session?.let { !it.isComplete && it.history.canUndo } == true
+
+    override val canRedo: Boolean
+        get() = session?.let { !it.isComplete && it.history.canRedo } == true
+
+    override fun undo() = stepHistory(ZipSession::withUndo)
+
+    override fun redo() = stepHistory(ZipSession::withRedo)
+
+    /** The trace moves, nothing else: the session keeps timer/hints/counters, and the
+     *  step persists through [commit] like any move. A no-op step changes nothing. */
+    private fun stepHistory(step: (ZipSession) -> ZipSession) {
+        hintArrow = null // ticket 28: the arrow dies on the next input, always
+        val current = session ?: return
+        val next = step(current)
+        if (next !== current) commit(next)
+    }
+
+    //endregion
 
     //region load / restore
 
@@ -251,6 +280,22 @@ class ZipPlayState(
         lastHintAtMs = atMs
         hintHistory.add(HintEvent(atMs = atMs, fromIdx = fromIdx, placedIdx = placedIdx))
     }
+
+    //region PlayHints (core chrome seam over hint()/hintCooldownActive())
+
+    override val hintsUsed: Int get() = session?.hintsUsed ?: 0
+
+    /** Cooldown (2026-11-02): the tick loop recomposes the chrome ~5x/s while a timer
+     *  runs, so the button re-enables itself as the window expires. */
+    override val hintEnabled: Boolean
+        get() = screen is ZipScreen.Ready && session?.isComplete != true && !hintCooldownActive()
+
+    /** Zip's hint is the placed arrow, not prose. */
+    override val hintCaption: String? get() = null
+
+    override fun requestHint() = hint()
+
+    //endregion
 
     /** User-set hint cooldown (2026-11-02): presses inside the window are no-ops. Runs
      *  on the injected clock — not the tick-cached nowMs — so it holds without ticks. */

@@ -54,22 +54,26 @@ class HintButtonTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `hint presses reach the game and count displays`() {
+    fun `press reaches the game and the count displays`() {
         var pressed = 0
-        val hints = HintController()
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                HintButton(hints = hints, onHint = {
-                    hints.recordHint()
-                    pressed++
-                })
+                HintButton(count = 0, onHint = { pressed++ })
             }
         }
         composeRule.onNodeWithText("Hint").performClick()
         composeRule.waitForIdle()
         assertEquals(1, pressed)
-        assertEquals(1, hints.usedCount)
-        composeRule.onNodeWithText("Hint · 1").assertExists()
+    }
+
+    @Test
+    fun `used hints show in the label`() {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                HintButton(count = 2, onHint = {})
+            }
+        }
+        composeRule.onNodeWithText("Hint · 2").assertExists()
     }
 
     @Test
@@ -77,7 +81,7 @@ class HintButtonTest {
         var pressed = 0
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                HintButton(hints = HintController(), enabled = false, onHint = { pressed++ })
+                HintButton(count = 0, enabled = false, onHint = { pressed++ })
             }
         }
         composeRule.onNodeWithText("Hint").performClick()

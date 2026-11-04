@@ -1,7 +1,8 @@
-package com.ivandsky.puzzlebox.play
+package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,7 +22,6 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.gameui.formatClock
 
 /**
  * The solved-session result surface (ticket 23, spec UIUX-01 A3/A9). Its own nav route
@@ -33,6 +33,11 @@ import com.ivandsky.puzzlebox.gameui.formatClock
  * waits on the record write (F2 §7 fire-and-observe, unchanged); [isRecord] null means
  * the write is still in flight or the verdict is unknown. A failed write stays
  * surfaced and retryable here, where the player actually is after solving.
+ *
+ * Core | game split: this shell is the same for every game. A game tweaks it through
+ * [label] (its own line under the headline — game name + puzzle number) and
+ * [gameSection] (extra content between the facts and the action, e.g. a per-game stat);
+ * both default to nothing.
  *
  * Restraint (senior-UX Lens 7): one accent moment — the record badge; type hierarchy
  * from AppTypography; theme roles only, zero ad-hoc colors.
@@ -46,6 +51,8 @@ fun ResultScreen(
     isRecord: Boolean? = null,
     writeFailed: Boolean = false,
     onRetryWrite: () -> Unit = {},
+    label: String? = null,
+    gameSection: @Composable ColumnScope.() -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -67,6 +74,14 @@ fun ResultScreen(
                 contentDescription = "Puzzle solved"
             },
         )
+        label?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("result.label"),
+            )
+        }
         // The hero metric (senior-UX Lens 4): time first, at display weight.
         Text(
             text = formatClock(timeMs),
@@ -112,6 +127,7 @@ fun ResultScreen(
                 TextButton(onClick = onRetryWrite) { Text("Retry") }
             }
         }
+        gameSection()
         PrimaryButton(
             text = "Play again",
             onClick = onPlayAgain,

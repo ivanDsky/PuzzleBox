@@ -1,9 +1,11 @@
 package com.ivandsky.puzzlebox.games.zip
 
+import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.codec.ZipSessionCodec
+import com.ivandsky.puzzlebox.games.zip.engine.ZipMove
 import java.time.Instant
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -14,9 +16,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Session codec v1: the §4 reader rules mirrored for the play state — exact round trip
- * (C1), pinned layout (C2), determinism (C3), unknown-tail preservation (A19/D-3),
- * version guard (C5), and the restore-paused timer rule.
+ * Session codec v2: the §4 reader rules mirrored for the play state — exact round trip
+ * (C1) including the undo/redo history, pinned layout (C2), determinism (C3), unknown-tail
+ * preservation (A19/D-3), version guard (C5), v1 saves still readable, and corrupt history
+ * rejected.
  */
 class ZipSessionCodecTest {
 
@@ -64,7 +67,7 @@ class ZipSessionCodecTest {
             session().copy(path = ZipTestSupport.path(0, 1), timerStarted = false),
         )
         val expected = buildList {
-            add(1) // version
+            add(2) // version
             add((puzzleBytes.size shr 8) and 0xFF); add(puzzleBytes.size and 0xFF)
             addAll(puzzleBytes.map(Byte::toInt))
             add(2) // flags: bit1 ref present, timerStarted false
@@ -79,6 +82,8 @@ class ZipSessionCodecTest {
             add(2); add(3); add(1) // hints, mistakes, backtracks
             addAll(87_000L.let { v -> (0 until 8).map { ((v shr (it * 8)) and 0xFF).toInt() } })
             // no completedAt bytes
+            add(0); add(0) // doneLen
+            add(0); add(0) // undoneLen
         }.map(Int::toByte).toByteArray()
         assertArrayEquals(expected, blob)
     }
@@ -182,6 +187,78 @@ class ZipSessionCodecTest {
         val corrupted = full.clone().also { it[11] = 9 } // n=9 != variant n5
         val result = ZipSessionCodec.deserialize(corrupted)
         assertTrue(result is DecodeResult.Err)
+    }
+
+    private val t0 = Instant.ofEpochMilli(1_000_000)
+
+    /** All three command kinds on the stack, one of them undone: the redo stack travels too. */
+    private fun playedSession(): ZipSession {
+        var s = ZipSession(ref = ref(), puzzle = ZipTestSupport.n5Puzzle())
+        listOf(0, 1, 2, 3, 4).forEach { s = s.withMove(ZipMove.Extend(Cell(it)), t0) }
+        s = s.withMove(ZipMove.RetractTo(Cell(2)), t0)
+        s = s.withMove(ZipMove.Extend(Cell(3)), t0)
+        s = s.withMove(ZipMove.Reset, t0)
+        return s.withUndo()
+    }
+
+    @Test
+    fun `C1 - history round trips with done and redo stacks`() {
+        val played = playedSession()
+        assertTrue(played.history.canUndo)
+        assertTrue(played.history.canRedo)
+        val restored = (ZipSessionCodec.deserialize(ZipSessionCodec.serialize(played)) as DecodeResult.Ok).value
+        assertEquals(played.copy(runningSince = null), restored)
+        // the restored history is live: redo re-applies the reset
+        assertEquals(emptyList<Cell>(), restored.withRedo().path)
+    }
+
+    /** v1 saves (no history sections) must keep restoring: empty history, same session. */
+    @Test
+    fun `v1 blobs decode with an empty history and keep their tail`() {
+        val s = session().copy(runningSince = null)
+        val v2 = ZipSessionCodec.serialize(s)
+        val v1 = v2.copyOf(v2.size - 4).also { it[0] = 1 } // drop the two u16 history lengths
+        assertEquals(s, (ZipSessionCodec.deserialize(v1) as DecodeResult.Ok).value)
+
+        val withTail = (ZipSessionCodec.deserialize(v1 + byteArrayOf(9, 8)) as DecodeResult.Ok).value
+        assertArrayEquals(byteArrayOf(9, 8), withTail.unknownTail)
+        // re-saving upgrades to v2 and keeps the tail after the history sections
+        val upgraded = ZipSessionCodec.deserialize(ZipSessionCodec.serialize(withTail)) as DecodeResult.Ok
+        assertArrayEquals(byteArrayOf(9, 8), upgraded.value.unknownTail)
+    }
+
+    @Test
+    fun `a history that does not reproduce the path is Malformed`() {
+        val forged = session().copy(
+            history = CommandHistory(done = listOf(ZipCommand.Extend(Cell(7)))), // path is 0,1,2
+        )
+        val result = ZipSessionCodec.deserialize(ZipSessionCodec.serialize(forged))
+        assertTrue(result is DecodeResult.Err && result.error is DecodeError.Malformed)
+    }
+
+    @Test
+    fun `history commands outside the board, unknown tags and oversized counts are Malformed`() {
+        fun decodeWithHistory(vararg history: Int): DecodeResult<ZipSession> {
+            val base = ZipSessionCodec.serialize(session())
+            val blob = base.copyOf(base.size - 4) + history.map(Int::toByte).toByteArray()
+            return ZipSessionCodec.deserialize(blob)
+        }
+        // doneLen=1, Extend(cell 25) on a 25-cell board
+        assertTrue(decodeWithHistory(0, 1, 0, 25, 0, 0) is DecodeResult.Err)
+        // doneLen=1, unknown tag 9
+        assertTrue(decodeWithHistory(0, 1, 9, 0, 0, 0) is DecodeResult.Err)
+        // doneLen = 10_001 (> MAX_HISTORY), with no bytes behind it
+        assertTrue(decodeWithHistory(0x27, 0x11, 0, 0) is DecodeResult.Err)
+        // a RetractTo whose tail runs past the blob
+        assertTrue(decodeWithHistory(0, 1, 1, 2, 5, 3) is DecodeResult.Err)
+    }
+
+    @Test
+    fun `serializing more than MAX_HISTORY commands fails fast`() {
+        val tooMany = session().copy(
+            history = CommandHistory(done = List(ZipSessionCodec.MAX_HISTORY + 1) { ZipCommand.Extend(Cell(2)) }),
+        )
+        assertThrows(IllegalArgumentException::class.java) { ZipSessionCodec.serialize(tooMany) }
     }
 
     /** Deterministic across serialize-decode-encode-decode (no hidden state). */

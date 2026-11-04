@@ -105,6 +105,9 @@ class PlayScreenTest {
         composeRule.onNodeWithTag("play.loading").assertExists()
     }
 
+    // The default 320×470 Robolectric window leaves the error pane ~290dp under the play
+    // chrome — the retry button is clipped to zero height there. A phone-sized window.
+    @Config(sdk = [34], qualifiers = "w411dp-h891dp")
     @Test
     fun `unavailable state renders the error with a working retry`() {
         val repo = daily(result = ZipToday.Unavailable(FetchError.Unavailable("no net")))

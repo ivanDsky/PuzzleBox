@@ -213,45 +213,9 @@ class QueensSessionTest {
         val placed = withManual.withQueenPlaced(cell(0, 0), now)
         assertEquals(withManual.marks.size + 7, placed.marks.size) // 7 AUTO + the surviving manual mark
         val undone = placed.withUndo()
-        assertEquals(withManual, undone) // manual cross survived; all AUTO marks gone
+        assertEquals(withManual.marks, undone.marks) // manual cross survived; all AUTO marks gone
         assertEquals(QueensMark(MarkKind.MANUAL), undone.markAt(manualCell))
         assertEquals(emptyList<Cell>(), undone.queens)
-    }
-
-    @Test
-    fun `A12 - undo walks back action by action`() {
-        val s0 = session()
-        val s1 = s0.withQueenPlaced(cell(0, 0), now)
-        val s2 = s1.withQueenRemoved(cell(0, 0), now)
-        val s3 = s2.withCrossToggled(cell(1, 1), now)
-        assertEquals(s2, s3.withUndo())
-        assertEquals(s1, s2.withUndo())
-        // The play CLOCK persists through undo (it started at the first action and keeps
-        // running) — the reverted PLAY STATE matches s0 exactly, modulo the clock.
-        assertEquals(s0, s1.withUndo().copy(startedAt = s0.startedAt))
-        assertEquals(s0, s0.withUndo()) // empty stack is a no-op
-    }
-
-    @Test
-    fun `A12 - property - undoing k steps equals the state after k actions`() {
-        var s = session()
-        val states = ArrayList<QueensSession>()
-        states.add(s)
-        // a deterministic action script mixing placements, removals, manual marks
-        val script: List<(QueensSession) -> QueensSession> = listOf(
-            { it.withQueenPlaced(cell(0, 0), now) },
-            { it.withQueenPlaced(cell(2, 3), now) },
-            { it.withCrossToggled(cell(1, 1), now) },
-            { it.withQueenRemoved(cell(0, 0), now) },
-            { it.withQueenPlaced(cell(3, 3), now) },
-        )
-        for (action in script) s = action(s).also { states.add(it) }
-        for (i in states.indices.reversed()) {
-            // Play state must match exactly; the CLOCK persists through undo (round 6),
-            // so normalize it against the recorded state before comparing.
-            assertEquals("undo step ${states.size - 1 - i}", states[i], s.copy(startedAt = states[i].startedAt))
-            s = s.withUndo()
-        }
     }
 
     // ------------------------------------------------------- win detection
@@ -295,7 +259,7 @@ class QueensSessionTest {
         val s4 = s3.withCrossToggled(cell(0, 1), now)
         assertEquals(QueensMark(MarkKind.MANUAL), s4.markAt(cell(0, 1)))
         // ... and undo restores the AUTO provenance
-        assertEquals(s3, s4.withUndo())
+        assertEquals(s3.marks, s4.withUndo().marks)
     }
 
     // ---------------------------------------- fix round 6 (F-1/F-3/F-4)
@@ -332,11 +296,10 @@ class QueensSessionTest {
     }
 
     @Test
-    fun `clear - on an empty board leaves the board empty and undoable`() {
-        val cleared = session().withCleared(now)
-        assertTrue(cleared.queens.isEmpty())
-        assertTrue(cleared.marks.isEmpty())
-        assertNull(cleared.completedAt)
+    fun `clear - on an empty board is a no-op and records no command`() {
+        val s = session()
+        assertEquals(s, s.withCleared(now))
+        assertFalse(s.withCleared(now).canUndo)
     }
 
     @Test
@@ -388,8 +351,8 @@ class QueensSessionTest {
 
     @Test
     fun `auto-cross - undo after a flip never resurrects OFF-stripped system marks`() {
-        // place with auto-fill ON, strip OFF, undo the placement: the restored snapshot
-        // marks must come back RECOMPUTED under OFF (bare), not as the stale AUTO wave.
+        // place with auto-fill ON, strip OFF, undo the placement: the board comes back
+        // with marks RECOMPUTED under OFF (bare), not as a stale AUTO wave.
         val placed = session().withQueenPlaced(cell(0, 0), now)
         val off = placed.withAutoCross(false)
         val undone = off.withUndo()
@@ -397,30 +360,141 @@ class QueensSessionTest {
         assertTrue(undone.marks.isEmpty())
     }
 
-    @Test
-    fun `elapsed - runs from the first committed action to the win stamp`() {
-        val t0 = Instant.ofEpochMilli(1_000_000)
-        assertNull(session().elapsedMs()) // no action yet — no clock
-        val puzzle = n4()
-        val solution = solver.solve(puzzle) ?: error("fixture board must be solvable")
-        var s = session(puzzle).withCrossToggled(cell(0, 3), t0) // the clock starts here
-        assertNull(s.elapsedMs()) // clock started, not finished
-        var at = t0
-        for (c in solution) {
-            at = at.plusMillis(300)
-            s = s.withQueenPlaced(c, at)
-        }
-        assertTrue(s.isComplete)
-        assertEquals(1200L, s.elapsedMs()) // win stamps at the LAST placement (t0 + 4×300)
+    // ------------------------------------------------ command-pattern undo / redo
+
+    /** The board the player sees: queens + marks, independent of the history bookkeeping. */
+    private fun assertSameBoard(expected: QueensSession, actual: QueensSession, message: String? = null) {
+        assertEquals(message, expected.queens, actual.queens)
+        assertEquals(message, expected.marks, actual.marks)
     }
 
     @Test
-    fun `elapsed - never negative for a same-instant win`() {
+    fun `undo then redo round-trips every command kind`() {
+        // one state per command kind: PlaceQueen, ToggleCross, RemoveQueen (with a hidden
+        // MANUAL mark under it) and Clear, each undone and redone in isolation.
+        val base = session().withCrossToggled(cell(2, 2), now).withQueenPlaced(cell(2, 2), now)
+            .withQueenPlaced(cell(0, 0), now)
+        val steps = listOf(
+            base.withQueenPlaced(cell(3, 3), now), // PlaceQueen
+            base.withCrossToggled(cell(1, 3), now), // ToggleCross
+            base.withQueenRemoved(cell(2, 2), now), // RemoveQueen taking the hidden mark with it
+            base.withQueenRemoved(cell(0, 0), now), // RemoveQueen of the FIRST queen (order matters)
+            base.withCleared(now), // Clear
+        )
+        for (after in steps) {
+            val undone = after.withUndo()
+            assertSameBoard(base, undone)
+            assertEquals(listOf(cell(2, 2), cell(0, 0)), undone.queens) // placement order restored
+            assertEquals(1, undone.history.undone.size)
+            assertSameBoard(after, undone.withRedo())
+        }
+    }
+
+    @Test
+    fun `undo walks back action by action and redo walks forward again`() {
+        val s0 = session()
+        val s1 = s0.withQueenPlaced(cell(0, 0), now)
+        val s2 = s1.withQueenRemoved(cell(0, 0), now)
+        val s3 = s2.withCrossToggled(cell(1, 1), now)
+        assertSameBoard(s2, s3.withUndo())
+        assertSameBoard(s1, s3.withUndo().withUndo())
+        assertSameBoard(s0, s3.withUndo().withUndo().withUndo())
+        assertFalse(s3.withUndo().withUndo().withUndo().canUndo)
+        assertEquals(s0, s0.withUndo()) // empty history is a no-op
+        assertSameBoard(s3, s3.withUndo().withUndo().withUndo().withRedo().withRedo().withRedo())
+        assertEquals(s3, s3.withRedo()) // nothing to redo
+    }
+
+    @Test
+    fun `property - undoing k steps equals the board after k actions`() {
+        var s = session()
+        val states = arrayListOf(s)
+        val script: List<(QueensSession) -> QueensSession> = listOf(
+            { it.withQueenPlaced(cell(0, 0), now) },
+            { it.withQueenPlaced(cell(2, 3), now) },
+            { it.withCrossToggled(cell(1, 1), now) },
+            { it.withQueenRemoved(cell(0, 0), now) },
+            { it.withQueenPlaced(cell(3, 3), now) },
+            { it.withCleared(now) },
+            { it.withCrossToggled(cell(1, 1), now) },
+        )
+        for (action in script) s = action(s).also { states.add(it) }
+        for (i in states.indices.reversed()) {
+            assertSameBoard(states[i], s, "undo step ${states.size - 1 - i}")
+            s = s.withUndo()
+        }
+        for (i in states.indices) { // and all the way forward again
+            assertSameBoard(states[i], s, "redo step $i")
+            s = s.withRedo()
+        }
+    }
+
+    @Test
+    fun `a new action after an undo drops the redo stack`() {
+        val undone = session().withQueenPlaced(cell(0, 0), now).withUndo()
+        assertTrue(undone.canRedo)
+        val branched = undone.withCrossToggled(cell(3, 3), now)
+        assertFalse(branched.canRedo)
+        assertEquals(branched, branched.withRedo())
+    }
+
+    @Test
+    fun `a no-op action records nothing and keeps the redo stack`() {
+        val undone = session().withQueenPlaced(cell(0, 0), now).withUndo()
+        assertEquals(undone, undone.withQueenRemoved(cell(3, 3), now)) // no queen there
+        assertEquals(undone, undone.withCleared(now)) // empty board
+        assertTrue(undone.canRedo)
+    }
+
+    @Test
+    fun `undo and redo never rewind the clock or the hint count`() {
+        val played = session().withQueenPlaced(cell(0, 0), now).withHintUsed().copy(elapsedMs = 42_000L)
+        val undone = played.withUndo()
+        assertEquals(42_000L, undone.elapsedMs)
+        assertEquals(1, undone.hintsUsed)
+        val redone = undone.withRedo()
+        assertEquals(42_000L, redone.elapsedMs)
+        assertEquals(1, redone.hintsUsed)
+    }
+
+    @Test
+    fun `undo and redo are frozen once the session is complete`() {
         val puzzle = n4()
         val solution = solver.solve(puzzle) ?: error("fixture board must be solvable")
-        var s = session(puzzle)
+        var s = session(puzzle).withQueenPlaced(solution[0], now).withUndo() // redo available...
         for (c in solution) s = s.withQueenPlaced(c, now)
-        assertEquals(0L, s.elapsedMs())
+        assertTrue(s.isComplete)
+        assertFalse(s.canUndo)
+        assertFalse(s.canRedo)
+        assertEquals(s, s.withUndo())
+        assertEquals(s, s.withRedo())
+    }
+
+    @Test
+    fun `a MANUAL mark placed before an auto-fill survives that placement's undo and redo`() {
+        val manual = cell(1, 0) // inside the queen's fill set
+        val played = session().withCrossToggled(manual, now).withQueenPlaced(cell(1, 1), now)
+        val undone = played.withUndo()
+        assertEquals(QueensMark(MarkKind.MANUAL), undone.markAt(manual))
+        assertTrue(undone.marks.values.none { it.kind == MarkKind.AUTO })
+        assertSameBoard(played, undone.withRedo()) // AUTO wave re-derived, MANUAL still MANUAL
+    }
+
+    @Test
+    fun `the auto-cross setting is not an undo unit`() {
+        val off = session().withQueenPlaced(cell(0, 0), now).withAutoCross(false)
+        assertEquals(1, off.history.done.size)
+        assertFalse(off.withUndo().withRedo().autoCross)
+        assertTrue(off.withUndo().withRedo().marks.isEmpty()) // redo derives under the CURRENT setting
+    }
+
+    @Test
+    fun `hasStarted - false only for an untouched session`() {
+        assertFalse(session().hasStarted)
+        assertTrue(session().withHintUsed().hasStarted)
+        assertTrue(session().withCrossToggled(cell(0, 0), now).hasStarted)
+        assertTrue(session().copy(elapsedMs = 1L).hasStarted)
+        assertTrue(session().withQueenPlaced(cell(0, 0), now).withUndo().hasStarted) // redo pending
     }
 
     @Test
