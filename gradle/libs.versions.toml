@@ -98,15 +98,31 @@ androidx-credentials-play-services = { group = "androidx.credentials", name = "c
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleId" }
 mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }
 
+# Build-logic (compileOnly): the convention plugins compile against these plugin APIs;
+# the plugins themselves reach the runtime classpath via the root build's `apply false`.
+android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
+kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
+ksp-gradlePlugin = { group = "com.google.devtools.ksp", name = "com.google.devtools.ksp.gradle.plugin", version.ref = "ksp" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
-# NOTE: pure-Kotlin modules (A16: core/game, games/zip) apply org.jetbrains.kotlin.jvm
-# VERSION-LESS — AGP 9's built-in Kotlin already carries the plugin on the classpath,
-# and requesting it with a version fails resolution. Same embedded compiler as Android.
+# NOTE: puzzlebox.jvm.library applies org.jetbrains.kotlin.jvm VERSION-LESS — AGP 9's
+# built-in Kotlin already carries the plugin on the classpath, and requesting it with a
+# version fails resolution. Same embedded compiler as Android.
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 # Ticket 16: processes the root google-services.json into app resources (FirebaseInitProvider).
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+
+# Convention plugins (build-logic/convention).
+puzzlebox-android-application = { id = "puzzlebox.android.application" }
+puzzlebox-android-application-compose = { id = "puzzlebox.android.application.compose" }
+puzzlebox-android-library = { id = "puzzlebox.android.library" }
+puzzlebox-android-library-compose = { id = "puzzlebox.android.library.compose" }
+puzzlebox-android-feature = { id = "puzzlebox.android.feature" }
+puzzlebox-android-room = { id = "puzzlebox.android.room" }
+puzzlebox-android-roborazzi = { id = "puzzlebox.android.roborazzi" }
+puzzlebox-jvm-library = { id = "puzzlebox.jvm.library" }

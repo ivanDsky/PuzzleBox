@@ -1,62 +1,20 @@
 // Compose mapping for the Tango game (ZipBoardRenderer structure): TangoRendererModel ->
-// shared game-ui board. Pure render; final visual design is ticket-04 scope.
+// shared game-ui board. Pure render.
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.puzzlebox.android.library.compose)
+    alias(libs.plugins.puzzlebox.android.roborazzi)
     alias(libs.plugins.ksp)
 }
 
 android {
     namespace = "com.ivandsky.puzzlebox.games.tangoui"
-    compileSdk = 37
-
-    defaultConfig {
-        minSdk = 26
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    buildFeatures {
-        compose = true
-    }
-
-    testOptions {
-        unitTests {
-            isIncludeAndroidResources = true
-        }
-    }
 }
 
-dependencies {
-    implementation(project(":games:tango"))
-    implementation(project(":core:game"))
-    implementation(project(":core:game-ui"))
-    implementation(project(":core:designsystem"))
-
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.koin.core)
-
-    // Debug A/B switcher (design-direction §8, ticket 04): Showkase-family surface —
-    // same debug-only posture as designsystem (annotations in main, processor on kspDebug).
-    implementation(libs.showkase.annotation)
-    debugImplementation(libs.showkase)
-    kspDebug(libs.showkase.processor)
-
-    testImplementation(platform(libs.androidx.compose.bom))
-    testImplementation(libs.androidx.compose.material3)
-    testImplementation(libs.androidx.compose.ui.test.junit4)
-    testImplementation(libs.androidx.compose.ui.test.manifest)
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.robolectric)
-    testImplementation(libs.roborazzi)
-    testImplementation(libs.roborazzi.compose)
+// TangoBoardGoldenTest owns the compare (review I6): Roborazzi always records to its
+// scratch file and the unified -Proborazzi.verify flag reaches the harness as
+// `tango.golden.verify` (a MISSING golden then fails instead of being recorded).
+roborazziGoldens {
+    harnessVerifyProperty = "tango.golden.verify"
 }
 
 // Ticket 04: component mode, same as designsystem — only @ShowkaseComposable
@@ -65,14 +23,18 @@ ksp {
     arg("requireShowkaseComposableAnnotation", "true")
 }
 
-// The golden harness (TangoBoardGoldenTest) pixel-compares every run and records
-// absent goldens; -Proborazzi.verify additionally makes a MISSING golden a failure
-// instead of a silent record (review I6: goldens must actually verify). Roborazzi
-// itself stays in record mode so the capture ALWAYS writes; the harness owns the
-// compare-and-fail logic.
-val verifySnapshots = providers.gradleProperty("roborazzi.verify").isPresent
+dependencies {
+    implementation(projects.games.tango)
+    implementation(projects.core.game)
+    implementation(projects.core.gameUi)
+    implementation(projects.core.designsystem)
 
-tasks.withType<Test>().configureEach {
-    systemProperty("roborazzi.test.record", "true")
-    systemProperty("tango.golden.verify", verifySnapshots.toString())
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.koin.core)
+
+    // Debug A/B switcher (design-direction §8, ticket 04): Showkase-family surface —
+    // same debug-only posture as designsystem (annotations in main, processor on kspDebug).
+    implementation(libs.showkase.annotation)
+    debugImplementation(libs.showkase)
+    kspDebug(libs.showkase.processor)
 }
