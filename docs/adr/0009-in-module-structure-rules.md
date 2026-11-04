@@ -160,12 +160,17 @@ No literal colors outside the design system.
 
 - **Scope:** production, except files in package `com.ivandsky.puzzlebox.designsystem` and its
   sub-packages.
-- **Detection:** a call `Color(` whose first argument is a number (hex such as `0xFF112233`,
-  decimal, float, with or without a name like `red =` and a suffix). The match may be qualified.
-  A name that merely ends in `Color` (`MyColor(`) is not matched. Valued at the number of
-  calls in the file (a ceiling rule).
-- **Accepted misses:** any `Color(<number>` call matches, including numeric uses that are not
-  an ARGB color. Colors built another way (`Color.Red`, `Color.hsv(...)`) are not matched.
+- **Detection:** a call to Compose's `Color(` whose first argument is a number (hex such as
+  `0xFF112233`, decimal, float, with or without a name like `red =` and a suffix), in the file's
+  code (comments and string contents removed). Space before `(` and a line break after it are
+  allowed. A bare `Color(` counts only when the file imports `androidx.compose.ui.graphics.Color`
+  or `androidx.compose.ui.graphics.*`; the qualified `androidx.compose.ui.graphics.Color(` always
+  counts. A name that merely ends in `Color` (`MyColor(`) or is a member (`x.Color(`) is not
+  matched. Valued at the number of calls in the file (a ceiling rule).
+- **Accepted misses:** Compose `Color` imported under an alias, or reached through a typealias,
+  is not matched. Any numeric Compose `Color(<number>` call matches, including ones that are not
+  meant as a palette color. Colors built another way (`Color.Red`, `Color.hsv(...)`) are not
+  matched.
 - **How to fix:** use a design-system color token.
 
 ## P1
