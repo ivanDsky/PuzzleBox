@@ -12,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.gameui.BoardGrid
-import com.ivandsky.puzzlebox.gameui.GameBoardRenderer
 import com.ivandsky.puzzlebox.games.queens.render.QueensRendererModel
 
 /**
@@ -21,10 +20,10 @@ import com.ivandsky.puzzlebox.games.queens.render.QueensRendererModel
  * minimal skeleton surface for queens-01's DoD; marks/provenance visuals (A10–A12) and
  * the judged visual direction (senior-ux stage) extend this class.
  */
-class QueensBoardRenderer : GameBoardRenderer {
+class QueensBoardRenderer {
 
     @Composable
-    override fun Content(model: RendererModel, modifier: Modifier) {
+    fun Content(model: RendererModel, modifier: Modifier) {
         val queens = model as? QueensRendererModel
             ?: error("QueensBoardRenderer expects QueensRendererModel, got ${model::class.simpleName}")
         Box(modifier.aspectRatio(1f)) {

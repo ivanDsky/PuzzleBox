@@ -5,21 +5,18 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitError
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
-import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.testing.FakeIdentityService
-import com.ivandsky.puzzlebox.data.testing.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
-import com.ivandsky.puzzlebox.data.testing.testZipRef
+import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
+import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -42,26 +39,8 @@ class LeaderboardSubmitWatcherTest {
 
     private val day = LocalDate.of(2026, 10, 31)
 
-    /** Room-like records fake: re-emits the whole list, like the real DAO flow. */
-    private class FakeRecordsRepo(records: List<CompletionRecord>) : CompletionRepository {
-        val flow = MutableStateFlow(records)
-
-        fun emit(records: List<CompletionRecord>) {
-            flow.value = records
-        }
-
-        override suspend fun onCompleted(record: CompletionRecord) {
-            flow.value = flow.value + record
-        }
-
-        override fun observeRecords(): Flow<List<CompletionRecord>> = flow
-
-        override fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
-            flow.map { rows -> rows.filter { it.puzzleRef == puzzleRef } }
-    }
-
     private fun record(
-        ref: PuzzleRef = testZipRef(day, 592),
+        ref: PuzzleRef = ZipPuzzleRef(day, 592),
         timeMs: Long = 95_000,
         hints: Int = 2,
         isRecord: Boolean = true,
@@ -79,7 +58,7 @@ class LeaderboardSubmitWatcherTest {
 
     @Test
     fun `new records submit exactly once`() = runTest {
-        val records = FakeRecordsRepo(listOf(record()))
+        val records = FakeCompletionRepository(listOf(record()))
         val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
@@ -96,7 +75,7 @@ class LeaderboardSubmitWatcherTest {
 
     @Test
     fun `records arriving before sign-in submit once identity lands`() = runTest {
-        val records = FakeRecordsRepo(listOf(record()))
+        val records = FakeCompletionRepository(listOf(record()))
         val identity = FakeIdentityService(initial = null)
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
@@ -113,7 +92,7 @@ class LeaderboardSubmitWatcherTest {
 
     @Test
     fun `re-emitted records dedup per (uid, puzzleRef)`() = runTest {
-        val records = FakeRecordsRepo(listOf(record()))
+        val records = FakeCompletionRepository(listOf(record()))
         val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
@@ -122,7 +101,7 @@ class LeaderboardSubmitWatcherTest {
         scheduler.advanceUntilIdle()
 
         // Room re-emits the whole records list on any write.
-        records.emit(listOf(record(), record(ref = testZipRef(day, 593))))
+        records.setRecords(listOf(record(), record(ref = ZipPuzzleRef(day, 593))))
         scheduler.advanceUntilIdle()
 
         assertEquals(2, leaderboard.submitted.size)
@@ -134,8 +113,8 @@ class LeaderboardSubmitWatcherTest {
 
     @Test
     fun `replays and non-daily records never submit (A5)`() = runTest {
-        val records = FakeRecordsRepo(
-            listOf(record(isRecord = false), record(ref = testZipRef(day, puzzleNumber = null))),
+        val records = FakeCompletionRepository(
+            listOf(record(isRecord = false), record(ref = ZipPuzzleRef(day, puzzleNumber = null))),
         )
         val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
         val leaderboard = FakeLeaderboardRepository()
@@ -150,7 +129,7 @@ class LeaderboardSubmitWatcherTest {
 
     @Test
     fun `submit failures never propagate (A7)`() = runTest {
-        val records = FakeRecordsRepo(listOf(record()))
+        val records = FakeCompletionRepository(listOf(record()))
         val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
         val leaderboard = FakeLeaderboardRepository(
             nextSubmitResult = { SubmitResult.Err(SubmitError.Unavailable("offline")) },
@@ -166,7 +145,7 @@ class LeaderboardSubmitWatcherTest {
 
     @Test
     fun `different identities submit separately`() = runTest {
-        val records = FakeRecordsRepo(listOf(record()))
+        val records = FakeCompletionRepository(listOf(record()))
         val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
@@ -184,7 +163,7 @@ class LeaderboardSubmitWatcherTest {
 
     @Test
     fun `unavailable submissions un-mark and retry on the next emission (M5)`() = runTest {
-        val records = FakeRecordsRepo(listOf(record()))
+        val records = FakeCompletionRepository(listOf(record()))
         val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
         var attempts = 0
         val leaderboard = FakeLeaderboardRepository(
@@ -204,7 +183,7 @@ class LeaderboardSubmitWatcherTest {
         // A records change re-emits the list (Room semantics) and must retry the
         // failed key — pre-fix it stayed marked. The identical single-record list
         // would conflate away on the StateFlow, so the write adds another day.
-        records.emit(listOf(record(), record(ref = testZipRef(day, 593))))
+        records.setRecords(listOf(record(), record(ref = ZipPuzzleRef(day, 593))))
         scheduler.advanceUntilIdle()
 
         assertEquals(3, attempts) // 592 retried, 593 first attempt

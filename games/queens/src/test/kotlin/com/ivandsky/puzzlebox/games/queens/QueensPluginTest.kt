@@ -90,6 +90,10 @@ class QueensPluginTest {
         assertEquals(QueensSession(ref = null, puzzle = puzzle), fresh)
         // foreign envelopes are rejected, never guessed
         assertTrue(queensPlugin.initialSession(Puzzle(GameId("zip"), queensVariantId(8), 1, bytes)) is DecodeResult.Err)
+        // refOf rebuilds the typed fetch-time identity from stored columns (ADR-0004).
+        val day = LocalDate.of(2026, 11, 2)
+        assertEquals(QueensPuzzleRef(day, 12), queensPlugin.refOf(day, 12))
+        assertEquals(QueensPuzzleRef(day, null), queensPlugin.refOf(day, null))
 
         val model = queensPlugin.rendererModel(QueensState(puzzle, setOf(Cell(0), Cell(9))), QueensHint.None, null)
         assertEquals(8, model.n)
@@ -131,7 +135,12 @@ class QueensPluginTest {
      *  alongside a second qualified registration (P1 coexistence, zip precedent). */
     @Test
     fun `plugin registers in koin and survives a second game plugin`() {
-        org.koin.core.context.GlobalContext.startKoin { modules(queensModule, otherGameModule) }
+        val transport = com.ivandsky.puzzlebox.game.FeedTransport {
+            com.ivandsky.puzzlebox.game.FetchResult.Err(com.ivandsky.puzzlebox.game.FetchError.Unavailable())
+        }
+        org.koin.core.context.GlobalContext.startKoin {
+            modules(queensModule, otherGameModule, module { single { transport } })
+        }
         try {
             assertEquals(
                 queensPlugin,
@@ -142,6 +151,9 @@ class QueensPluginTest {
             assertEquals(2, plugins.size)
             assertTrue("queens plugin missing from getAll", queensPlugin in plugins)
             assertTrue("other plugin missing from getAll", otherPlugin in plugins)
+            val sources = org.koin.core.context.GlobalContext.get()
+                .getAll<com.ivandsky.puzzlebox.game.DailySource>()
+            assertEquals(listOf(QueensDefinition.id), sources.map { it.gameId })
         } finally {
             org.koin.core.context.GlobalContext.stopKoin()
         }
@@ -157,6 +169,8 @@ private val otherPlugin: GamePlugin<OtherGameState, com.ivandsky.puzzlebox.game.
         score = OtherGameScore,
         stateOf = { OtherGameState },
         initialSession = { DecodeResult.Err(DecodeError.Malformed("no payload")) },
+        refOf = { _, _ -> error("no refs") },
+        replaySession = { _, _, _ -> DecodeResult.Err(DecodeError.Malformed("no payload")) },
         rendererModel = { _, _, _ -> OtherRendererModel },
     )
 

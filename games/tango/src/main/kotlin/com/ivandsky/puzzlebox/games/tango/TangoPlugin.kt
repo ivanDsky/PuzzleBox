@@ -6,15 +6,21 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameDefinition
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
 import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
+import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.ZoneId
+import com.ivandsky.puzzlebox.game.DailySource
+import com.ivandsky.puzzlebox.games.tango.feed.LinkedInTangoDailySource
+import com.ivandsky.puzzlebox.games.tango.feed.TangoSeedBackedSource
 import org.koin.core.module.Module
 import org.koin.core.qualifier.qualifier
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 /** ZipDefinition shape (A16 recipe): decode the fetch payload into a typed [Puzzle] envelope. */
@@ -61,10 +67,41 @@ val tangoPlugin: GamePlugin<TangoState, TangoSession, TangoRendererModel> =
                 is DecodeResult.Err -> DecodeResult.Err(decoded.error)
             }
         },
+        refOf = { date, puzzleNumber -> TangoPuzzleRef(date, puzzleNumber) },
+        // Replay hand-off: zip's shape plus the A15 gate — an archived puzzle that decodes
+        // but is not uniquely solvable is never playable (payload untrusted), exactly as
+        // the play state refuses it on a fresh load.
+        replaySession = { cached, day, puzzleNumber ->
+            when (val decoded = TangoCodec.decode(cached.payload)) {
+                is DecodeResult.Ok ->
+                    if (!TangoUniqueness.isUniquelySolvable(decoded.value)) {
+                        DecodeResult.Err(DecodeError.Malformed("archived puzzle is not uniquely solvable"))
+                    } else {
+                        DecodeResult.Ok(
+                            SessionBlob.encode(
+                                TangoDefinition.id,
+                                TangoSessionCodec.serialize(
+                                    TangoSession(
+                                        ref = TangoPuzzleRef(date = day, puzzleNumber = puzzleNumber),
+                                        puzzle = decoded.value,
+                                    ),
+                                ),
+                            ),
+                        )
+                    }
+
+                is DecodeResult.Err -> DecodeResult.Err(decoded.error)
+            }
+        },
         rendererModel = { state, hint, verdict -> TangoRendererModel.of(state, hint, verdict) },
     )
 
-/** Koin wiring (ADR-0001): the id qualifier stops cross-game `single` overwrites. */
+/**
+ * Koin wiring (ADR-0001): the id qualifier stops cross-game `single` overwrites. The
+ * daily source is the seed-backed LinkedIn adapter (Tango-only fallback) over the shared
+ * [com.ivandsky.puzzlebox.game.FeedTransport].
+ */
 val tangoModule: Module = module {
     single(qualifier = qualifier(TangoDefinition.id.value)) { tangoPlugin }
+    single { TangoSeedBackedSource(LinkedInTangoDailySource(get())) } bind DailySource::class
 }

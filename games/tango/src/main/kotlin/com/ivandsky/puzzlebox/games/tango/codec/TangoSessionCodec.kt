@@ -28,9 +28,9 @@ import java.time.Instant
  *     u16   undoneCount; undoneCount x (u8 idx, u8 value, u8 previous)   last = next redo
  *     ...   unknown tail carried verbatim (A19)
  * ```
- * A history cell byte is 0 for "empty", else the [TangoCell] wire byte. v1 is the same
- * layout without the two history lists; it still decodes (empty history) so saves and
- * archived replays written before undo existed keep working.
+ * i64 fields are little-endian. A history cell byte is 0 for "empty", else the [TangoCell]
+ * wire byte. v1 is the same layout without the two history lists; it still decodes (empty
+ * history) so saves and archived replays written before undo existed keep working.
  */
 object TangoSessionCodec : GameSessionCodec<TangoSession> {
 
@@ -42,9 +42,9 @@ object TangoSessionCodec : GameSessionCodec<TangoSession> {
     override fun serialize(session: TangoSession): ByteArray {
         val puzzleBytes = TangoCodec.encode(session.puzzle) // canonical, self-describing (A19 nesting)
         require(puzzleBytes.size <= 0xFFFF) { "puzzle blob exceeds u16 length" }
-        require(session.placements.size <= 0xFF) { "v1 layout carries u8 placement count" }
-        require(session.hintsUsed in 0..255) { "v1 layout carries u8 hintsUsed" }
-        require(session.mistakeCount in 0..255) { "v1 layout carries u8 mistakeCount" }
+        require(session.placements.size <= 0xFF) { "v2 layout carries u8 placement count" }
+        require(session.hintsUsed in 0..255) { "v2 layout carries u8 hintsUsed" }
+        require(session.mistakeCount in 0..255) { "v2 layout carries u8 mistakeCount" }
 
         val out = ByteArrayOutputStream(puzzleBytes.size + 32)
         out.write(VERSION)

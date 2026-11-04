@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<!-- [synthetic] SPA shell shape (2026-10-31 live capture had no puzzle data in raw HTML —
+     the DOM fallback needs a rendered browser; research/01 §4). This fixture asserts the
+     honest negative: a JS mention of the key must NOT satisfy the extractor. -->
+<html lang="en">
+<head>
+  <title>Zip | LinkedIn</title>
+  <script type="text/javascript" src="/scouting/voyagerBundle.js"></script>
+</head>
+<body>
+  <div id="app-root" class="games-zip-start-screen" data-li-page="d_flagship3_games_zip_start_screen"></div>
+  <script type="text/javascript">
+    window.__sdui = {screenId: "com.linkedin.sdui.flagshipnav.games.GamePlayRouterPage"};
+    window.rules = {trailGamePuzzle: window.__sdui}; // mere mention — no data object follows
+  </script>
+</body>
+</html>

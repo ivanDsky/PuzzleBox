@@ -1,10 +1,12 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import androidx.room.Room
-import com.ivandsky.puzzlebox.data.db.PuzzleBoxDatabase
+import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
+import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
+import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
-import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
@@ -40,7 +42,7 @@ class CompletionRepositoryTest {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        repository = RoomCompletionRepository(db, db.completionDao(), clock = { nowMs })
+        repository = RoomCompletionRepository(db, db.completionDao(), TestGames.registry(listOf(alpha)), clock = { nowMs })
     }
 
     @After
@@ -50,7 +52,7 @@ class CompletionRepositoryTest {
 
     private fun completion(day: LocalDate, puzzleNumber: Int?, timeMs: Long, hints: Int) =
         CompletionRecord(
-            puzzleRef = ZipPuzzleRef(day, puzzleNumber),
+            puzzleRef = Ref(alpha, day, puzzleNumber),
             time = timeMs,
             hints = hints,
             stats = RecordStats(schemaVersion = 1, blob = """{"v":1,"mistakes":3}"""),
@@ -59,7 +61,7 @@ class CompletionRepositoryTest {
     @Test
     fun `play twice - record immutable, replay kept`() = runTest {
         val day = LocalDate.of(2026, 10, 31)
-        val ref = ZipPuzzleRef(day, 592)
+        val ref = Ref(alpha, day, 592)
 
         repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 2))
         nowMs += 60_000
@@ -97,16 +99,16 @@ class CompletionRepositoryTest {
 
         val records = repository.observeRecords().first()
         assertEquals(2, records.size)
-        assertEquals(listOf(593, 592), records.map { it.puzzleRef as ZipPuzzleRef }.map { it.puzzleNumber })
+        assertEquals(listOf(593, 592), records.map { it.puzzleRef.puzzleNumber })
 
-        assertEquals(1, repository.observeReplays(ZipPuzzleRef(day, 592)).first().size)
-        assertEquals(0, repository.observeReplays(ZipPuzzleRef(day, 593)).first().size)
+        assertEquals(1, repository.observeReplays(Ref(alpha, day, 592)).first().size)
+        assertEquals(0, repository.observeReplays(Ref(alpha, day, 593)).first().size)
     }
 
     @Test
     fun `empty stores observe empty before any completion`() = runTest {
         val day = LocalDate.of(2026, 10, 31)
         assertTrue(repository.observeRecords().first().isEmpty())
-        assertTrue(repository.observeReplays(ZipPuzzleRef(day, 592)).first().isEmpty())
+        assertTrue(repository.observeReplays(Ref(alpha, day, 592)).first().isEmpty())
     }
 }

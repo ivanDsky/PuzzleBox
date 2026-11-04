@@ -1,0 +1,273 @@
+package com.ivandsky.puzzlebox.games.queensui
+
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.games.queens.Cell
+import com.ivandsky.puzzlebox.games.queens.QueensSession
+import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
+import com.ivandsky.puzzlebox.game.DecodeResult
+import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import com.ivandsky.puzzlebox.gameui.Restored
+import java.time.Instant
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/** queens-10 wiring contract at the controller seam: adopt → real session → one win
+ *  record handed to the environment, restore, and no-re-emit. */
+class QueensPlayControllerTest {
+
+    /** The injected wall clock the controller reads; tests move it explicitly. */
+    private var clockMs = 1_000L
+
+    private val saved = ArrayList<ByteArray>()
+    private val won = ArrayList<CompletionRecord>()
+
+    private fun controller() = QueensPlayController(
+        env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), { saved += it }, { won += it }),
+        now = { Instant.ofEpochMilli(clockMs) },
+    )
+
+    private fun readyBoard(): QueensPlayController = controller().also {
+        assertEquals(Adopt.Adopted, it.adoptToday(QueensPlayFixtures.envelope(), QueensPlayFixtures.ref()))
+    }
+
+    private fun savedSession(bytes: ByteArray = saved.last()): QueensSession =
+        (QueensSessionCodec.deserialize(bytes) as DecodeResult.Ok).value
+
+    @Test
+    fun `adoptToday binds a real session with the day's ref`() {
+        val state = readyBoard()
+        val board = state.board
+        assertNotNull(board)
+        assertEquals(QueensPlayFixtures.puzzle(), board!!.session.puzzle)
+        assertEquals(QueensPlayFixtures.ref(), board.session.ref)
+        assertFalse(board.session.isComplete)
+    }
+
+    @Test
+    fun `completing the board emits one win record with the day's identity`() {
+        val state = readyBoard()
+        val board = state.board!!
+        solve(board)
+
+        assertTrue(board.session.isComplete)
+        assertTrue(board.winEmitted)
+        assertEquals(1, won.size)
+        val record = won.single()
+        assertEquals(QueensPlayFixtures.ref(), record.puzzleRef)
+        assertEquals("queens/n8", variantOf(record))
+    }
+
+    @Test
+    fun `an untrustable payload is rejected and binds no board`() {
+        val state = controller()
+        val good = QueensPlayFixtures.envelope()
+        val envelope = com.ivandsky.puzzlebox.game.Puzzle(good.gameId, good.variant, good.formatVersion, byteArrayOf(9, 9, 9))
+        assertTrue(state.adoptToday(envelope, QueensPlayFixtures.ref()) is Adopt.Rejected)
+        assertNull(state.board)
+    }
+
+    @Test
+    fun `a corrupt restored blob is unreadable`() {
+        val state = controller()
+        assertNull(state.adoptRestored(byteArrayOf(9, 9, 9)))
+        assertNull(state.board)
+    }
+
+    /** R-4 (fix round 4): every committed session — and the fresh one of an adopt/replay —
+     *  reaches the environment, so a process death mid-play still restores. */
+    @Test
+    fun `the saver sees the fresh session and every committed move`() {
+        val state = readyBoard()
+        assertEquals("fresh session saved before the first move", 1, saved.size)
+        assertEquals(state.board!!.session, savedSession())
+
+        state.board!!.onTap(1) // MANUAL X
+        assertTrue(savedSession().markAt(Cell(1)) != null)
+
+        state.undo()
+        assertTrue("undo is persisted too", savedSession().markAt(Cell(1)) == null)
+        assertTrue(savedSession().history.canRedo)
+
+        state.replay()
+        assertEquals("replay saves a fresh session", state.board!!.session, savedSession())
+        assertFalse(savedSession().history.canUndo)
+    }
+
+    @Test
+    fun `a restored completed session shows the win without re-emitting`() {
+        val state = readyBoard()
+        solve(state.board!!)
+        val bytes = QueensSessionCodec.serialize(state.board!!.session)
+        won.clear()
+
+        val restored = controller()
+        assertEquals(Restored(QueensPlayFixtures.ref()), restored.adoptRestored(bytes))
+        assertTrue(restored.board!!.session.isComplete)
+        assertFalse(restored.board!!.winEmitted)
+        assertTrue(restored.isComplete)
+        assertEquals(0, won.size)
+    }
+
+    /** A4 controller half: a replayed win is a new transition and emits again. */
+    @Test
+    fun `replay after a win emits a second record on the next win`() {
+        val state = readyBoard()
+        solve(state.board!!)
+        assertEquals(1, won.size)
+
+        state.replay()
+        assertFalse(state.isComplete)
+        solve(state.board!!)
+        assertEquals(2, won.size)
+        assertEquals(QueensPlayFixtures.ref(), won.last().puzzleRef)
+    }
+
+    /** Fix round 6 (F-3): the emitted record carries the REAL frozen facts — the play
+     *  duration (first counted action → win, banked clock) and the presented-hint count. */
+    @Test
+    fun `the win record carries the real elapsed time and hint count`() {
+        val s = readyBoard()
+        val board = s.board!!
+        clockMs = 1_000L
+        board.requestHint() // a presented hint is play: it opens the window
+        clockMs = 61_000L
+        solve(board)
+        val record = won.single()
+        assertEquals("record time is the banked window, not wall-clock since load", 60_000L, record.time)
+        assertEquals(1, record.hints)
+        assertEquals(60_000L, board.session.elapsedMs)
+    }
+
+    @Test
+    fun `the clock opens on the first action and background banks the running window`() {
+        val state = readyBoard()
+        assertNull("no action yet, no running window", state.clockWindow)
+        assertEquals(0L, state.displayedElapsedMs())
+
+        clockMs = 10_000L
+        state.board!!.onTap(0)
+        assertNotNull(state.clockWindow)
+        clockMs = 14_000L
+        state.tick()
+        assertEquals(4_000L, state.displayedElapsedMs())
+
+        clockMs = 15_000L
+        state.onBackground()
+        assertNull(state.clockWindow)
+        assertEquals(5_000L, state.board!!.session.elapsedMs)
+        clockMs = 60_000L
+        state.tick()
+        assertEquals("a stopped clock does not drift", 5_000L, state.displayedElapsedMs())
+    }
+
+    @Test
+    fun `foreground reopens the window only for a started unfinished session`() {
+        val state = readyBoard()
+        state.onForeground()
+        assertNull("nothing played yet", state.clockWindow)
+
+        state.board!!.onTap(0)
+        state.onBackground()
+        assertNull(state.clockWindow)
+        state.onForeground()
+        assertNotNull(state.clockWindow)
+
+        // Cell 0 already carries its X from the first tap: one more tap crowns it, the
+        // rest take the usual two.
+        state.board!!.onTap(QueensPlayFixtures.solution.first().idx)
+        for (cell in QueensPlayFixtures.solution.drop(1)) {
+            state.board!!.onTap(cell.idx)
+            state.board!!.onTap(cell.idx)
+        }
+        assertTrue(state.board!!.session.isComplete)
+        assertNull("the win stops the clock", state.clockWindow)
+        state.onForeground()
+        assertNull("a finished session never restarts it", state.clockWindow)
+    }
+
+    @Test
+    fun `a restored in-progress session restarts its window and keeps the banked time`() {
+        val state = readyBoard()
+        clockMs = 1_000L
+        state.board!!.onTap(0)
+        clockMs = 4_000L
+        state.onBackground()
+        val bytes = QueensSessionCodec.serialize(state.board!!.session)
+
+        val restored = controller()
+        assertNotNull(restored.adoptRestored(bytes))
+        assertNotNull(restored.clockWindow)
+        clockMs = 6_000L
+        restored.tick()
+        assertEquals(3_000L + 2_000L, restored.displayedElapsedMs())
+    }
+
+    @Test
+    fun `undo and redo go through the controller and never touch the clock or the hint count`() {
+        val state = readyBoard()
+        clockMs = 1_000L
+        state.requestHint() // presented on the empty board: counts and opens the window
+        state.board!!.onTap(0)
+        clockMs = 5_000L
+        state.onBackground()
+        val banked = state.board!!.session.elapsedMs
+        assertEquals(4_000L, banked)
+        assertEquals(1, state.hintsUsed)
+
+        assertTrue(state.canUndo)
+        state.undo()
+        assertTrue(state.canRedo)
+        assertEquals(banked, state.board!!.session.elapsedMs)
+        assertEquals(1, state.hintsUsed)
+        state.redo()
+        assertFalse(state.canRedo)
+        assertTrue(state.board!!.session.markAt(Cell(0)) != null)
+        assertEquals(banked, state.board!!.session.elapsedMs)
+    }
+
+    @Test
+    fun `undo is locked once the board is solved`() {
+        val state = readyBoard()
+        solve(state.board!!)
+        val solved = state.board!!.session
+
+        assertFalse(state.canUndo)
+        state.undo()
+        assertEquals(solved, state.board!!.session)
+    }
+
+    @Test
+    fun `hint availability and completion follow the board and the win`() {
+        val empty = controller()
+        assertFalse("no board to hint on", empty.hintEnabled)
+        assertFalse(empty.isComplete)
+
+        val ready = readyBoard()
+        assertFalse(ready.isComplete)
+        assertTrue(ready.hintEnabled)
+        solve(ready.board!!)
+        assertFalse(ready.hintEnabled)
+        assertTrue("a finished session must fetch fresh", ready.isComplete)
+    }
+
+    private fun solve(board: QueensBoardState) {
+        // The §5 tap cycle: markless → MANUAL X → queen — two taps per solution cell.
+        for (cell in QueensPlayFixtures.solution) {
+            board.onTap(cell.idx)
+            board.onTap(cell.idx)
+        }
+    }
+
+    private fun variantOf(record: CompletionRecord): String {
+        // The stats blob is a flat JSON object built in insertion order: v then variant.
+        val blob = record.stats.blob
+        return blob.substringAfter("\"variant\":").substringBefore("}").trim('"')
+    }
+}

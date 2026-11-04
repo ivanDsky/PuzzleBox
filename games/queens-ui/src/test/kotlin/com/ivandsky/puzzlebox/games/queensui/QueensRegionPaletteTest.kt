@@ -58,13 +58,6 @@ class QueensRegionPaletteTest {
     }
 
     @Test
-    fun `A_B-3 hue-only variant drops the lightness alternation`() {
-        val alternated = QueensRegionPalette.cielL(lightFill(0))
-        val hueOnly = QueensRegionPalette.cielL(QueensRegionPalette.fill(0, dark = false, PaletteDensity.HUE_ONLY))
-        assertTrue(alternated != hueOnly || lightFill(0) != QueensRegionPalette.fill(0, dark = false, PaletteDensity.HUE_ONLY))
-    }
-
-    @Test
     fun `on-ink computation picks the higher-contrast candidate`() {
         val onSurface = Color(0xFF1C1B1F)
         val scrim = Color.Black

@@ -1,25 +1,16 @@
 package com.ivandsky.puzzlebox.app.di
 
-import com.ivandsky.puzzlebox.app.auth.CredentialManagerGoogleIdTokenProvider
-import com.ivandsky.puzzlebox.app.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
-import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.identity.IdentityService
-import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.game.GamePlugin
-import com.ivandsky.puzzlebox.gameui.GameUiRegistry
-import com.ivandsky.puzzlebox.games.queensui.QueensBoardRenderer
-import com.ivandsky.puzzlebox.games.zipui.ZipBoardRenderer
-import com.ivandsky.puzzlebox.games.tangoui.TangoBoardRenderer
-import com.ivandsky.puzzlebox.model.GameId
-import java.time.LocalDate
+import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import org.koin.android.ext.koin.androidContext
-import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 /** App-process wiring: the application scope and the platform seams. */
@@ -29,20 +20,6 @@ val appModule = module {
     // default dispatcher from the provider — same posture as the DataStore scope.
     single<CoroutineScope> {
         CoroutineScope(SupervisorJob() + get<DispatcherProvider>().default)
-    }
-    single<GoogleIdTokenProvider> {
-        CredentialManagerGoogleIdTokenProvider(androidContext())
-    }
-    // ProfileRoute's koinViewModel(). Today's board is the official Zip daily — the
-    // same "zip" gameId the tests and firestore.rules encode; core:data has no game
-    // registry to source it from yet, so the literal lives here, once.
-    viewModel {
-        ProfileViewModel(
-            identityService = get<IdentityService>(),
-            idTokenProvider = get<GoogleIdTokenProvider>(),
-            leaderboard = get<LeaderboardRepository>(),
-            todayBoard = { LeaderboardRef("zip", LocalDate.now()) },
-        )
     }
     single {
         LeaderboardSubmitWatcher(
@@ -54,17 +31,34 @@ val appModule = module {
     }
 
     // Game aggregation (ADR-0001): the composition root owns the seams no game module
-    // may know about. Generic plugin list for consumers that must not know game ids
-    // (Home, play shell). Adding a game means one module line in
-    // [PuzzleBoxApplication.appModules] plus one registry registration here.
-    single<List<GamePlugin<*, *, *>>> { getAll<GamePlugin<*, *, *>>() }
-
-    // One registration line per game — the whole extension point (F2-1).
+    // may know about. The registry is the one lookup for consumers that must not know
+    // game ids (Home, History, play shell, data decode). Adding a game means one module
+    // line in [PuzzleBoxApplication.appModules] (its plugin + its GamePlayUi) plus its
+    // place in [GAME_ORDER]. Koin's getAll order is not a product order, so the
+    // registry is sorted here: Home's featured game and the play picker follow it.
     single {
-        GameUiRegistry().apply {
-            register(GameId("zip"), get<ZipBoardRenderer>())
-            register(GameId("queens"), get<QueensBoardRenderer>())
-            register(GameId("tango"), get<TangoBoardRenderer>())
-        }
+        GameRegistry(getAll<GamePlugin<*, *, *>>().sortedWith(gameOrder))
+            .also { requireEveryGamePlayable(it, get()) }
+    }
+
+    // Every game module's play registration; a duplicate game id throws (ADR-0007).
+    single { GamePlayRegistry(getAll<GamePlayUi>()) }
+}
+
+/** ADR-0008 "Adding a game": a plugin bound without its GamePlayUi is a wiring bug —
+ *  fail at the registry's first resolve instead of silently leaving the picker. */
+internal fun requireEveryGamePlayable(games: GameRegistry, play: GamePlayRegistry) {
+    for (plugin in games.all) {
+        val id = plugin.definition.id
+        require(play[id] != null) { "game '${id.value}' has no GamePlayUi registered (missing its -ui module)" }
     }
 }
+
+/** Product order of the shipped games: Home's featured game first, then the picker's. */
+private val GAME_ORDER = listOf("zip", "tango", "queens")
+
+/** [GAME_ORDER] rank; an unlisted game sorts after every listed one, then by id. */
+private val gameOrder: Comparator<GamePlugin<*, *, *>> =
+    compareBy<GamePlugin<*, *, *>> { plugin ->
+        GAME_ORDER.indexOf(plugin.definition.id.value).takeIf { it >= 0 } ?: GAME_ORDER.size
+    }.thenBy { it.definition.id.value }

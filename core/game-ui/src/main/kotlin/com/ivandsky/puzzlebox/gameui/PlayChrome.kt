@@ -13,6 +13,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -72,7 +74,9 @@ private const val CLOCK_TICK_MS = 200L
 /**
  * The shared play-screen clock (F2 §2: active foreground play only) — the tick loop runs
  * while a running window is open ([PlayClock.clockWindow] keys it, so each new window
- * restarts), and background/foreground fold/reopen through the game's clock.
+ * restarts), and background/foreground fold/reopen through the game's clock. The
+ * lifecycle observer is registered once per screen and follows the CURRENT clock: a new
+ * controller (each load) must not get the observer's synthetic on-register ON_RESUME.
  */
 @Composable
 fun PlayClockEffects(clock: PlayClock) {
@@ -86,11 +90,12 @@ fun PlayClockEffects(clock: PlayClock) {
         }
     }
     val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner, clock) {
+    val currentClock by rememberUpdatedState(clock)
+    DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> clock.onBackground()
-                Lifecycle.Event.ON_RESUME -> clock.onForeground()
+                Lifecycle.Event.ON_PAUSE -> currentClock.onBackground()
+                Lifecycle.Event.ON_RESUME -> currentClock.onForeground()
                 else -> Unit
             }
         }

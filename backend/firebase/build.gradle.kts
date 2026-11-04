@@ -1,32 +1,17 @@
 plugins {
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.puzzlebox.android.library)
 }
 
 android {
+    // Unit tests construct real Firebase SDK exceptions, which touch android.* (TextUtils
+    // et al.) — covered by the convention's Robolectric + merged-resources test setup.
     namespace = "com.ivandsky.puzzlebox.backend.firebase"
-    compileSdk = 37
-
-    defaultConfig {
-        minSdk = 26
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    testOptions {
-        // Constructing real Firebase SDK exceptions touches android.* (TextUtils et al.).
-        unitTests {
-            isIncludeAndroidResources = true
-        }
-    }
 }
 
 dependencies {
     // The contracts this module implements (design §1: the swap unit is this module —
     // swapping backends means re-binding the same interfaces, never editing core).
-    implementation(project(":core:data"))
+    implementation(projects.core.data)
     implementation(libs.kotlinx.coroutines.core)
     // Task.await() bridge for the Firebase SDK's ListenableFuture-style Tasks.
     implementation(libs.kotlinx.coroutines.play.services)
@@ -35,9 +20,6 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.koin.core)
 
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
     testImplementation(libs.mockito.core)
-    testImplementation(libs.robolectric)
 }

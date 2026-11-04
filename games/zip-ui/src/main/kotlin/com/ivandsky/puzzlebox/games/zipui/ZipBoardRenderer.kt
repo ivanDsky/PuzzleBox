@@ -17,7 +17,6 @@ import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.gameui.EdgeOverlay
 import com.ivandsky.puzzlebox.gameui.EdgeSide
 import com.ivandsky.puzzlebox.gameui.BoardGrid
-import com.ivandsky.puzzlebox.gameui.GameBoardRenderer
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.GridGeometry
 import com.ivandsky.puzzlebox.games.zip.WallDirection
@@ -30,10 +29,10 @@ import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
  * Pure render — every Zip decision stays in :games:zip (A16); this class paints the
  * model it is given, nothing more.
  */
-class ZipBoardRenderer : GameBoardRenderer {
+class ZipBoardRenderer {
 
     @Composable
-    override fun Content(model: RendererModel, modifier: Modifier) {
+    fun Content(model: RendererModel, modifier: Modifier) {
         val zip = model as? ZipRendererModel
             ?: error("ZipBoardRenderer expects ZipRendererModel, got ${model::class.simpleName}")
         // Zip boards are n x n: the wrapper owns the square (PuzzleBoard precedent), so

@@ -5,7 +5,7 @@ import java.time.LocalDate
 /**
  * Where puzzles come from (F1 §2). Implementations live outward of core: the LinkedIn
  * daily adapter (ticket 12) and Strands' NYT adapter (Phase 3) in core/data, the in-memory
- * fake in `testing/`, the games archive later (ADR-0002, purely additive).
+ * test fake in core:testing, the games archive later (ADR-0002, purely additive).
  */
 interface PuzzleSource {
     /** Fetches the puzzle for [date], or a typed failure — fetch callers degrade to cache (A7/A8). */

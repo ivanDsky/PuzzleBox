@@ -52,10 +52,10 @@ class TangoBoardRendererSemanticsTest {
         it.config.getOrNull(SemanticsActions.CustomActions).orEmpty().isEmpty()
     }
 
-    private fun setState(variants: TangoAbVariants = TangoAbVariants()) {
+    private fun setState() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                TangoBoardRenderer(variants = variants, onPlacement = {})
+                TangoBoardRenderer(onPlacement = {})
                     .Content(sampleModel(), Modifier.fillMaxWidth())
             }
         }

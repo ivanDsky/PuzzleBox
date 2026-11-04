@@ -5,23 +5,25 @@ import com.ivandsky.puzzlebox.app.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.data.db.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
-import com.ivandsky.puzzlebox.data.network.PuzzleFeedApi
-import com.ivandsky.puzzlebox.data.repository.DailyPuzzleRepository
-import com.ivandsky.puzzlebox.data.repository.QueensDailyRepository
-import com.ivandsky.puzzlebox.data.repository.TangoDailyRepository
-import com.ivandsky.puzzlebox.data.repository.TangoDailySource
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
-import com.ivandsky.puzzlebox.game.GamePlugin
-import com.ivandsky.puzzlebox.game.PuzzleSource
-import com.ivandsky.puzzlebox.gameui.GameUiRegistry
+import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
+import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.domain.GetFeaturedGame
+import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
+import com.ivandsky.puzzlebox.game.DailySource
+import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.history.HistoryViewModel
+import com.ivandsky.puzzlebox.home.HomeViewModel
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.play.PlayFlow
-import org.koin.core.qualifier.qualifier
+import com.ivandsky.puzzlebox.play.PlaySessionStore
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
@@ -61,14 +63,12 @@ class DiGraphTest : KoinTest {
         try {
             val koin = koinApp.koin
             assertNotNull(koin.get<DispatcherProvider>())
-            assertNotNull(koin.get<PuzzleFeedApi>())
             assertNotNull(koin.get<PuzzleBoxDatabase>())
-            assertNotNull(koin.get<DailyPuzzleRepository>())
-            // Ticket 03: the Tango daily fetch bindings resolve (qualified archive seam).
-            assertNotNull(koin.get<TangoDailySource>())
-            assertNotNull(koin.get<TangoDailyRepository>())
-            assertNotNull(
-                koin.get<PuzzleSource>(qualifier = qualifier(GameId("tango").value)),
+            // The generic daily stack: one repository over every game's DailySource.
+            assertNotNull(koin.get<DailyRepository>())
+            assertEquals(
+                setOf(GameId("zip"), GameId("tango"), GameId("queens")),
+                koin.getAll<DailySource>().map { it.gameId }.toSet(),
             )
             assertNotNull(koin.get<UserPreferencesRepository>())
             // Ticket 16: backend bindings resolve against the app-provided scope.
@@ -78,21 +78,25 @@ class DiGraphTest : KoinTest {
             // C1 regression: ProfileRoute's koinViewModel() needs this definition —
             // without it the first Profile composition throws NoDefinitionFound.
             assertNotNull(koin.get<ProfileViewModel>())
+            // Home/History routes' koinViewModel() and their domain use cases.
+            assertNotNull(koin.get<HomeViewModel>())
+            assertNotNull(koin.get<HistoryViewModel>())
+            assertNotNull(koin.get<ObserveGameHistory>())
+            assertNotNull(koin.get<ComputeStreak>())
+            assertNotNull(koin.get<GetReplaySession>())
+            assertNotNull(koin.get<ObserveTodayLeaderboard>())
+            // Today's featured game (Home's hero, Profile's board) is the registry's first.
+            assertEquals(GameId("zip"), koin.get<GetFeaturedGame>()().id)
 
             // Game aggregation (ADR-0001): every game module's plugin lands in the
-            // generic list, the app-level registry resolves, and the featured game's
-            // renderer is registered — a missing entry is a wiring bug, loudly here.
-            val plugins = koin.getAll<GamePlugin<*, *, *>>()
-            assertTrue("expected at least one registered GamePlugin, got none", plugins.isNotEmpty())
-            assertNotNull(koin.get<List<GamePlugin<*, *, *>>>())
-            val registry = koin.get<GameUiRegistry>()
-            assertNotNull("no board renderer registered for zip", registry[GameId("zip")])
-            // Queens play wiring: the one shared flow resolves off the real graph (it takes
-            // the queens repository) and the game's renderer is registered — a missing
-            // line is a wiring bug.
-            assertNotNull(koin.get<PlayFlow>())
-            assertNotNull(koin.get<QueensDailyRepository>())
-            assertNotNull("no board renderer registered for queens", registry[GameId("queens")])
+            // registry in picker order, and every game's play UI is registered — a
+            // missing entry is a wiring bug, loudly here.
+            val games = koin.get<GameRegistry>().all.map { it.definition.id.value }
+            assertEquals(listOf("zip", "tango", "queens"), games)
+            val playUis = koin.get<GamePlayRegistry>()
+            for (id in games) assertNotNull("no play UI registered for $id", playUis[GameId(id)])
+            // The one shared play session store resolves off the real graph.
+            assertNotNull(koin.get<PlaySessionStore>())
         } finally {
             stopKoin() // close() alone leaves the JVM-global context registered for later tests
         }

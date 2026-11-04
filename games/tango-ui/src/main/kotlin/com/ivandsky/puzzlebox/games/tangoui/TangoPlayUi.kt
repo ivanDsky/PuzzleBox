@@ -1,0 +1,136 @@
+package com.ivandsky.puzzlebox.games.tangoui
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
+import com.ivandsky.puzzlebox.gameui.GamePlayController
+import com.ivandsky.puzzlebox.gameui.GamePlayUi
+import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
+import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
+import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
+import com.ivandsky.puzzlebox.gameui.PlayChrome
+import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.games.tango.TangoDefinition
+import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
+import com.ivandsky.puzzlebox.model.GameId
+
+/** Tango's one play registration (ADR-0001): its controller and its play screen. */
+class TangoPlayUi : GamePlayUi {
+    override val gameId: GameId get() = TangoDefinition.id
+
+    override fun createController(env: PlayEnvironment): GamePlayController = TangoPlayController(env)
+
+    @Composable
+    override fun Screen(
+        controller: GamePlayController,
+        status: PlayBoardStatus,
+        layout: PlayLayout,
+        onRetry: () -> Unit,
+        onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
+        modifier: Modifier,
+    ) {
+        TangoPlayScreen(controller as TangoPlayController, status, layout, onRetry, onSolved, modifier)
+    }
+}
+
+/**
+ * The Tango play screen (tango-05): the Zip play shell (ticket 13/23 semantics) with
+ * 04's board renderer — tap placements land through [TangoBoardRenderer]'s placement
+ * callback, the timer/hint/undo/banner chrome is the shared [PlayChrome]. Design §6:
+ * the win moment is the same route handoff; this screen never renders win content.
+ */
+@Composable
+fun TangoPlayScreen(
+    controller: TangoPlayController,
+    status: PlayBoardStatus,
+    layout: PlayLayout,
+    onRetry: () -> Unit,
+    onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val ready = status as? PlayBoardStatus.Ready
+    // suppressedSets is a key: the settle debounce clears it 0.5 s after the last touch,
+    // and the model must rebuild then or newly introduced violations stay hidden forever.
+    val model = remember(
+        controller,
+        status,
+        controller.session,
+        controller.hintCell,
+        controller.rejection,
+        controller.suppressedSets,
+    ) {
+        controller.rendererModel()
+    }
+
+    // The win moment: the one-shot route handoff (ticket-23 pattern) — the frozen facts
+    // go to the result route while the record write keeps running in the store.
+    val completed = controller.session?.takeIf { it.isComplete }
+    LaunchedEffect(completed) {
+        if (completed != null) onSolved(completed.elapsedMs, completed.hintsUsed)
+    }
+
+    Box(modifier.fillMaxSize()) {
+        AdaptivePlayScaffold(
+            layout = layout,
+            modifier = Modifier.fillMaxSize(),
+            board = { TangoBoardArea(controller, status, model, onRetry) },
+            side = {
+                PlayChrome(
+                    title = "Tango",
+                    subtitle = controller.subtitle,
+                    clock = controller,
+                    hints = controller,
+                    undo = controller,
+                    banner = ready?.banner,
+                )
+            },
+        )
+    }
+}
+
+@Composable
+private fun BoxScope.TangoBoardArea(
+    controller: TangoPlayController,
+    status: PlayBoardStatus,
+    model: TangoRendererModel?,
+    onRetry: () -> Unit,
+) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .testTag("play.board_area")
+            // A4: standard pane margins; the cap below is a max, not a fixed width.
+            .padding(horizontal = Spacing.lg),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (status is PlayBoardStatus.Ready && model != null) {
+            // The renderer owns the tap-cycle policy (04); the
+            // play shell only wires placements into the controller. The outline
+            // rides the board modifier (§2 — the Zip outline pattern).
+            val renderer = remember(controller) { TangoBoardRenderer(onPlacement = controller::onPlacement) }
+            renderer.Content(
+                model = model,
+                modifier = Modifier
+                    .widthIn(max = PlayBoardMaxWidth)
+                    .heightIn(max = PlayBoardMaxWidth)
+                    // No zipBoardOutline here: that's Zip's ROUNDED outline. Tango's
+                    // squared mesh closes itself with a square border (renderer).
+                    .testTag("play.board"),
+            )
+        } else {
+            PlayBoardFallback(status, onRetry, tagPrefix = "play")
+        }
+    }
+}

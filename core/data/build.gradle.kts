@@ -1,70 +1,30 @@
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.ksp)
+    alias(libs.plugins.puzzlebox.android.library)
 }
 
 android {
     namespace = "com.ivandsky.puzzlebox.data"
-    compileSdk = 37
-
-    defaultConfig {
-        minSdk = 26
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    sourceSets {
-        // WHY: MigrationTestHelper (ticket-04 deferral harness) reads the committed schema
-        // JSONs from the merged test ASSETS (requires includeAndroidResources).
-        getByName("test") { assets.srcDir("$projectDir/schemas") }
-    }
-
-    testOptions {
-        unitTests { isIncludeAndroidResources = true }
-    }
-}
-
-ksp {
-    // WHY: exported schemas under schemas/ are the migration contract — committed on
-    // every version bump of PuzzleBoxDatabase and referenced by migrations.
-    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
-    api(project(":core:common"))
-    // Wire -> engine seam (ADR-0002): the LinkedIn adapter parses to ZipWireParser's input
-    // and stores ZipCodec bytes; games/zip exposes :core:game as api.
-    implementation(project(":games:zip"))
-    // Queens feed (queens-06): LinkedInQueensDailySource + QueensUniquenessGate + codec bytes.
-    implementation(project(":games:queens"))
-    // Tango daily fetch (ticket 03): wire -> TangoWireParser, storage in TangoCodec bytes.
-    implementation(project(":games:tango"))
+    api(projects.core.common)
+    // Game contracts (DailySource, GameRegistry, Puzzle, FeedTransport) appear in the
+    // repositories' public signatures; no game module is ever a dependency (ADR-0001).
+    api(projects.core.game)
 
-    // DailyPuzzle/ThemeMode appear in the repository interfaces' public signatures.
-    api(project(":core:model"))
+    // ThemeMode/GameId appear in the repositories' public signatures.
+    api(projects.core.model)
 
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.kotlinx.serialization)
-    implementation(libs.okhttp.logging.interceptor)
-    implementation(libs.androidx.datastore.preferences)
+    // Sources behind the repositories; none of their types is in this module's public API.
+    implementation(projects.core.database)
+    implementation(projects.core.datastore)
+    implementation(projects.core.network)
+
     implementation(libs.koin.core)
 
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(projects.core.testing)
     testImplementation(libs.turbine)
-    testImplementation(libs.okhttp.mockwebserver)
-    testImplementation(libs.robolectric)
     // DI-graph guard (ticket 03): koin-android provides androidContext(); koin-test the KoinTest harness.
     testImplementation(libs.koin.android)
     testImplementation(libs.koin.test)
-    // Migration harness (ticket-04 deferral): MigrationTestHelper replays committed schemas.
-    testImplementation(libs.androidx.room.testing)
 }

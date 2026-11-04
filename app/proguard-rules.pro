@@ -1,9 +1,8 @@
 # PuzzleBox release keep rules.
 # Only reflection-based surfaces need rules; Compose/Room/Koin ship consumer rules.
 
-# --- Retrofit: dynamic Proxy over PuzzleFeedApi requires interface methods kept ---
+# --- Retrofit: dynamic Proxy over the LinkedIn*Api interfaces ---
 -keepattributes Signature, InnerClasses, EnclosingMethod, *Annotation*
--keep interface com.ivandsky.puzzlebox.data.network.PuzzleFeedApi { *; }
 
 # --- kotlinx.serialization: serializer() is looked up reflectively per @Serializable class ---
 -keepclasseswithmembers class com.ivandsky.puzzlebox.** {

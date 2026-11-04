@@ -229,15 +229,4 @@ class TangoSemanticsTest {
             ),
         )
     }
-
-    // ---- §9 count rails ----
-
-    @Test
-    fun `count rail descriptions read placed of total`() {
-        val m = model(
-            cells = mapOf(0 to TangoCell.SUN, 1 to TangoCell.SUN, 2 to TangoCell.MOON),
-        )
-        assertEquals("Row 1 has 2 of 3 suns", TangoSemantics.rowCountDescription(0, TangoSemantics.sunsInRow(m, 0), 3))
-        assertEquals("Column 3 has 0 of 3 suns", TangoSemantics.columnCountDescription(2, TangoSemantics.sunsInColumn(m, 2), 3))
-    }
 }

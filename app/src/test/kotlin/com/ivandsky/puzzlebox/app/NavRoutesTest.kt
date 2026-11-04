@@ -4,19 +4,19 @@ import android.app.Application
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
-import com.ivandsky.puzzlebox.app.nav.Catalog
-import com.ivandsky.puzzlebox.app.nav.History
-import com.ivandsky.puzzlebox.app.nav.Home
-import com.ivandsky.puzzlebox.app.nav.Play
-import com.ivandsky.puzzlebox.app.nav.Profile
-import com.ivandsky.puzzlebox.app.nav.ReplayZip
-import com.ivandsky.puzzlebox.app.nav.Result
-import com.ivandsky.puzzlebox.model.ThemeMode
+import com.ivandsky.puzzlebox.app.nav.CatalogKey
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
+import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.HomeLayout
+import com.ivandsky.puzzlebox.home.api.HomeKey
+import com.ivandsky.puzzlebox.model.ThemeMode
+import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.play.api.ReplayKey
+import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import java.util.Base64
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -28,12 +28,9 @@ import org.robolectric.annotation.Config
  * Ticket 17 nav-route regression: [puzzleBoxEntryProvider] builds the route table as a
  * plain key→entry lookup, so these tests resolve every key the wired flow pushes and
  * fail on a missing entry — the exact gap that would strand a tap on an unregistered
- * destination (Home→Play, Home→History, history→ReplayZip, Home account→Profile,
- * Profile→Catalog) with no composition or Koin graph needed.
- *
- * Ticket 23 adds the result-route CONTRACT on real [NavBackStack]s: solving replaces
- * everything above Home with the result (so the system back — a plain pop — lands on
- * Home), and "Play again" swaps the result for a fresh play entry.
+ * destination (Home→Play, Home→History, history→Replay, Home account→Profile,
+ * Profile→Catalog) with no composition or Koin graph needed. The result-route stack
+ * contract (ticket 23) lives with its owner, play's PlayBackStackTest.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = Application::class)
@@ -44,7 +41,7 @@ class NavRoutesTest {
 
     private fun provider(): (NavKey) -> NavEntry<NavKey> =
         puzzleBoxEntryProvider(
-            backStack = NavBackStack(Home),
+            navigator = Navigator(NavBackStack(HomeKey)),
             homeLayout = HomeLayout.SinglePane,
             playLayout = PlayLayout.SinglePane,
             historyLayout = HistoryLayout.SinglePane,
@@ -56,7 +53,7 @@ class NavRoutesTest {
     fun `every primary-flow key resolves to a registered entry`() {
         val session = Base64.getEncoder().encodeToString(byteArrayOf(1, 2, 3))
         val keys = listOf<NavKey>(
-            Home, Play, History, ReplayZip(session), Result(95_000, 1), Profile, Catalog,
+            HomeKey, PlayKey, HistoryKey, ReplayKey(session), ResultKey(95_000, 1), ProfileKey, CatalogKey,
         )
 
         keys.forEach { key ->
@@ -71,93 +68,13 @@ class NavRoutesTest {
     }
 
     @Test
-    fun `solving routes to the result with home as the back exit`() {
-        val stack = NavBackStack<NavKey>(Home)
-        stack.add(Play)
-
-        stack.solveToResult(Result(61_200, 2))
-
-        assertTrue("expected the result on top, got ${stack.lastOrNull()}", stack.lastOrNull() == Result(61_200, 2))
-        // System back from the result is a plain pop — it must land on Home.
-        stack.removeLastOrNull()
-        assertTrue("expected Home beneath the result, got ${stack.lastOrNull()}", stack.lastOrNull() == Home)
-    }
-
-    @Test
-    fun `solving a replay day also exits to home, not history`() {
-        val stack = NavBackStack<NavKey>(Home)
-        stack.add(History)
-        stack.add(ReplayZip("blob"))
-
-        stack.solveToResult(Result(45_000, 0))
-
-        assertTrue(stack.lastOrNull() is Result)
-        stack.removeLastOrNull()
-        assertTrue("replay result must not fall back to History", stack.lastOrNull() == Home)
-    }
-
-    @Test
-    fun `solving from the play tab root still backs out to home`() {
-        // Tab selection resets the stack to the tab root — there is no Home beneath.
-        val stack = NavBackStack<NavKey>(Play)
-
-        stack.solveToResult(Result(1_000, 0))
-
-        assertTrue(stack.lastOrNull() is Result)
-        stack.removeLastOrNull()
-        assertTrue("expected a supplied Home beneath the result", stack.lastOrNull() == Home)
-    }
-
-    @Test
-    fun `back from a pushed play pops onto Home`() {
-        val stack = NavBackStack<NavKey>(Home)
-        stack.add(Play)
-
-        stack.leavePlay()
-
-        assertEquals(listOf<NavKey>(Home), stack.toList())
-    }
-
-    @Test
-    fun `back from the Play tab root lands on Home instead of emptying the stack`() {
-        // select() clears the stack, so the tab root is the only entry; an empty
-        // stack crashes NavDisplay.
-        val stack = NavBackStack<NavKey>(Play)
-
-        stack.leavePlay()
-
-        assertEquals(listOf<NavKey>(Home), stack.toList())
-    }
-
-    @Test
-    fun `play again swaps the result for a fresh play entry`() {
-        val stack = NavBackStack<NavKey>(Home)
-        stack.add(Result(95_000, 1))
-
-        stack.playAgainFromResult()
-
-        assertTrue("expected Play on top, got ${stack.lastOrNull()}", stack.lastOrNull() == Play)
-    }
-
-    @Test
-    fun `double solve push is idempotent`() {
-        val stack = NavBackStack<NavKey>(Home)
-        stack.add(Play)
-
-        stack.solveToResult(Result(61_200, 2))
-        stack.solveToResult(Result(61_200, 2))
-
-        assertEquals(2, stack.size)
-    }
-
-    @Test
     fun `replay resolution keeps the day's session blob intact`() {
         // The history route base64-encodes the replay session into the key; the play
         // entry decodes it back. Resolution must not mangle the carrier string.
         val blob = byteArrayOf(0, 1, -1, 42, 7)
         val encoded = Base64.getEncoder().encodeToString(blob)
 
-        val entry = provider().invoke(ReplayZip(encoded))
+        val entry = provider().invoke(ReplayKey(encoded))
 
         assertTrue(entry.contentKey.toString().contains(encoded))
     }
