@@ -1,0 +1,6 @@
+feature/profile/impl/src/main/kotlin/com/ivandsky/puzzlebox/app/auth/GoogleIdTokenProvider.kt  # P1
+feature/profile/impl/src/main/kotlin/com/ivandsky/puzzlebox/app/screens/ProfileLeaderboard.kt  # P1
+feature/profile/impl/src/main/kotlin/com/ivandsky/puzzlebox/app/screens/ProfileRoute.kt  # P1
+feature/profile/impl/src/main/kotlin/com/ivandsky/puzzlebox/app/screens/ProfileScreen.kt  # P1
+feature/profile/impl/src/main/kotlin/com/ivandsky/puzzlebox/app/screens/ProfileUiState.kt  # P1
+feature/profile/impl/src/main/kotlin/com/ivandsky/puzzlebox/app/screens/ProfileViewModel.kt  # P1

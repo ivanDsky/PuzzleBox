@@ -47,12 +47,18 @@ private val GUARDED_TASKS = setOf("check", "preBuild", "classes")
 /**
  * The forbidden edges of the module graph (docs/adr/0008-module-graph.md); `null` = allowed.
  * `:app` (the composition root) and `:backend:*` are otherwise unconstrained.
+ * The `:konsist` verification family has zero edges in either direction, test configurations
+ * included, so its arms sit before the `:core:testing` test-configuration exemption.
  */
 internal fun forbiddenEdgeReason(from: String, to: String, configuration: String): String? {
     if (from == to) return null
     val fromPath = from.removePrefix(":").split(":")
     val toPath = to.removePrefix(":").split(":")
     return when {
+        fromPath[0] == "konsist" -> "konsist reads sources as files; it has no project dependencies"
+
+        toPath[0] == "konsist" -> "nothing may depend on the verification module :konsist"
+
         to == ":app" -> "nothing may depend on the composition root :app"
 
         to == ":core:testing" && !configuration.contains("test", ignoreCase = true) ->

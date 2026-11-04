@@ -46,6 +46,9 @@ googleId = "1.1.1"
 # Backend-firebase unit tests: FirebaseUser has a package-private constructor, so the
 # auth tests mock the SDK type instead of hand-rolling a fake.
 mockito = "5.20.0"
+# Structure-rule tests (:konsist). 1.0.0-beta.1 is built with Kotlin 2.4 but only runs in the
+# test JVM, never against the AGP-pinned compiler.
+konsist = "1.0.0-beta.1"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -98,6 +101,7 @@ coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp"
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 androidx-credentials-play-services = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleId" }
+konsist = { group = "com.lemonappdev", name = "konsist", version.ref = "konsist" }
 mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }
 
 # Build-logic (compileOnly): the convention plugins compile against these plugin APIs;
