@@ -1,126 +1,33 @@
 package com.ivandsky.puzzlebox.play
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
-import com.ivandsky.puzzlebox.data.repository.KeptSession
-import com.ivandsky.puzzlebox.data.repository.KeptSessionRepository
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.SessionBlob
-import com.ivandsky.puzzlebox.game.today
-import com.ivandsky.puzzlebox.game.GameRegistry
-import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
-import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeKeptSessionRepository
 import kotlinx.coroutines.runBlocking
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.koin.core.KoinApplication
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
-import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The play route over stand-in games (feature:play:impl never sees a real game): the picker
- * is the fresh-entry state (A14), picking starts that game in place through its
- * [com.ivandsky.puzzlebox.gameui.GamePlayUi], a nav-carried [SessionBlob] restores
- * through the named game, and back releases the play. The same paths over the real
- * games live in the app's RealGamesPlayRouteTest.
+ * Entering the play route: the picker is the fresh-entry state (A14), picking starts
+ * that game in place through its [com.ivandsky.puzzlebox.gameui.GamePlayUi], and a
+ * nav-carried [SessionBlob] restores through the named game.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
-class PlayRouteTest {
-
-    @get:Rule
-    val composeRule = createComposeRule()
-
-    private val alpha = TestGames.alpha
-    private val beta = TestGames.beta
-    private val day = TestGames.definition(alpha).cadence.today()
-    private val fakes = FakeGames(listOf(alpha, beta))
-
-    private fun freshDaily() = FakeDailyRepository().apply {
-        setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
-        setToday(beta, DailyToday.Fresh(TestGames.puzzle(beta)))
-        setHistory(alpha, listOf(DailyEntry(alpha, day, 7, "alpha/v1", 0L)))
-    }
-
-    private var koin: KoinApplication? = null
-
-    private fun koinWith(
-        daily: DailyRepository = freshDaily(),
-        completions: CompletionRepository = FakeCompletionRepository(),
-        kept: KeptSessionRepository = FakeKeptSessionRepository(),
-    ): KoinApplication {
-        stopKoin() // tests share the JVM-global Koin context
-        return startKoin {
-            modules(
-                module {
-                    single { daily }
-                    single { completions }
-                    single { kept }
-                    single<GameRegistry> { fakes.games }
-                    single<GamePlayRegistry> { fakes.registry }
-                    factory { ObserveTodaySet(games = get(), completions = get(), kept = get()) }
-                },
-                playModule,
-            )
-        }.also { koin = it }
-    }
-
-    @After
-    fun tearDown() {
-        koin?.close()
-    }
-
-    private var handedOff: List<Pair<Long, Int>> = emptyList()
-
-    // A new nav entry of the play route: navigation composes it afresh (new remember and
-    // saveable state) over the same activity-scoped view model.
-    private var entry by mutableIntStateOf(0)
-
-    private fun setContent(restoredSession: ByteArray? = null, onBack: () -> Unit = {}) {
-        handedOff = emptyList()
-        composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false) {
-                key(entry) {
-                    PlayRoute(
-                        layout = PlayLayout.SinglePane,
-                        onBack = onBack,
-                        onSolved = { timeMs, hintsUsed -> handedOff = handedOff + (timeMs to hintsUsed) },
-                        restoredSession = restoredSession,
-                    )
-                }
-            }
-        }
-    }
-
-    private fun store() = koin!!.koin.get<PlaySessionStore>()
+class PlayRouteTest : PlayRouteHarness() {
 
     @Test
     fun `fresh entry shows the picker with every registered game`() {
@@ -158,17 +65,11 @@ class PlayRouteTest {
         val daily = freshDaily()
         koinWith(daily, kept = FakeKeptSessionRepository(listOf(keptSession(beta, moves = 3, elapsedMs = 7_000L))))
         setContent()
-        composeRule.onNodeWithTag("play.picker_beta").performClick()
-        composeRule.waitForIdle()
+        pick(beta)
 
         composeRule.onNodeWithText("beta board 3").assertExists()
         assertEquals(7_000L, fakes[beta].latest.displayedElapsedMs())
         assertEquals(0, daily.todayCalls(beta))
-    }
-
-    private fun keptSession(game: com.ivandsky.puzzlebox.model.GameId, moves: Int, elapsedMs: Long): KeptSession {
-        val session = FakeController.envelope(game, moves = moves, day = day, elapsedMs = elapsedMs)
-        return KeptSession(game, day, elapsedMs, SessionBlob.encode(game, session.session))
     }
 
     @Test
@@ -176,8 +77,7 @@ class PlayRouteTest {
         val daily = freshDaily()
         koinWith(daily)
         setContent()
-        composeRule.onNodeWithTag("play.picker_alpha").performClick()
-        composeRule.waitForIdle()
+        pick(alpha)
 
         composeRule.onNodeWithText("alpha board 0").assertExists()
         composeRule.onNodeWithTag("play.picker").assertDoesNotExist()
@@ -190,8 +90,7 @@ class PlayRouteTest {
         val daily = freshDaily().apply { setToday(alpha, DailyToday.Unavailable(FetchError.Unavailable("offline"))) }
         koinWith(daily)
         setContent()
-        composeRule.onNodeWithTag("play.picker_alpha").performClick()
-        composeRule.waitForIdle()
+        pick(alpha)
         composeRule.onNodeWithTag("play.error").assertExists()
 
         daily.setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
@@ -221,79 +120,10 @@ class PlayRouteTest {
     fun `the route redraws the live controller's moves`() {
         koinWith()
         setContent()
-        composeRule.onNodeWithTag("play.picker_alpha").performClick()
-        composeRule.waitForIdle()
+        pick(alpha)
         composeRule.runOnIdle { fakes[alpha].latest.move() }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("alpha board 1").assertExists()
         assertTrue(store().active.value?.gameId == alpha)
-    }
-
-    @Test
-    fun `back from a mid-game play leaves it to the picker`() {
-        // Zip-shaped game (the original route test's game): no session is published
-        // before the first move, so this still-composed test route has nothing to
-        // re-adopt after back (production pops the route) and nothing is kept.
-        fakes[alpha].publishesAdoptedSession = false
-        koinWith()
-        var back = 0
-        setContent(onBack = { back++ })
-        composeRule.onNodeWithTag("play.picker_alpha").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("alpha board 0").assertExists()
-
-        // Device/system back through PlayRoute's BackHandler: the route pops AND the
-        // play is left (kept when started, ADR-0010), so the next play entry picks (A14).
-        (composeRule as AndroidComposeTestRule<*, *>).activity.onBackPressedDispatcher.onBackPressed()
-        composeRule.waitForIdle()
-        assertEquals(1, back)
-        composeRule.onNodeWithTag("play.picker").assertExists()
-        assertEquals(null, store().active.value)
-        assertTrue((koin!!.koin.get<KeptSessionRepository>() as FakeKeptSessionRepository).current.isEmpty())
-    }
-
-    @Test
-    fun `back on a retained entry shows the picker and resumes with the folded clock`() {
-        // Device regression: navigation retains the play tab's entry, so its saveable
-        // still holds the last move's bytes (clock banked at 0). Back must not let them
-        // resurrect the game over the kept session's later clock fold.
-        val kept = FakeKeptSessionRepository()
-        koinWith(kept = kept)
-        setContent()
-        composeRule.onNodeWithTag("play.picker_alpha").performClick()
-        composeRule.waitForIdle()
-        composeRule.runOnIdle { fakes[alpha].latest.move() }
-        composeRule.runOnIdle { fakes[alpha].latest.advance(18_000L) }
-
-        (composeRule as AndroidComposeTestRule<*, *>).activity.onBackPressedDispatcher.onBackPressed()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithTag("play.picker").assertExists()
-        assertEquals(null, store().active.value)
-        assertEquals(18_000L, kept.current[alpha]?.elapsedMs)
-
-        composeRule.onNodeWithTag("play.picker_alpha").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("alpha board 1").assertExists()
-        assertEquals(18_000L, fakes[alpha].latest.displayedElapsedMs())
-    }
-
-    @Test
-    fun `a new entry over the result's finished play shows the picker, not the win again`() {
-        koinWith()
-        setContent()
-        composeRule.onNodeWithTag("play.picker_alpha").performClick()
-        composeRule.waitForIdle()
-        composeRule.runOnIdle { fakes[alpha].latest.move() }
-        composeRule.runOnIdle { fakes[alpha].latest.win() }
-        composeRule.waitForIdle()
-        assertEquals(1, handedOff.size)
-
-        // The Play tab after a solve: a new play entry while the finished play is still live.
-        composeRule.runOnIdle { entry++ }
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithTag("play.picker").assertExists()
-        assertEquals(1, handedOff.size)
-        assertEquals(null, store().active.value)
     }
 }

@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -99,7 +100,13 @@ fun PlayRoute(
         onBack()
     }
     // Background (ON_STOP, which every process death follows) keeps the live session.
+    // ON_STOP reaches only a COMPOSED route, so leaving composition with the app still
+    // resumed (a tab switch, then a kill in the background) keeps it too. Both are
+    // no-ops after back's leave (no live play), for a finished play (needsLoad, so the
+    // result handoff keeps nothing) and for a play never started; the clock fold is
+    // idempotent, so rotation's dispose-then-ON_STOP banks nothing twice.
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.background() }
+    DisposableEffect(viewModel) { onDispose { viewModel.background() } }
 
     when (val current = state) {
         is PlayUiState.Picker -> GamePicker(

@@ -242,7 +242,10 @@ class RealGamesPlayRouteTest {
             composeRule.runOnIdle { assertTrue(live.hintCooldownActive()) }
 
             // Configuration change: the composition (and its saveable) is rebuilt while
-            // the store keeps the play — the hint cooldown and log must survive.
+            // the store keeps the play — the hint cooldown and log must survive. A real
+            // rotation pauses and stops the activity BEFORE saving state (the chrome's
+            // ON_PAUSE folds the clock), so the route's dispose-time keep folds nothing.
+            composeRule.runOnIdle { live.onBackground() } // the chrome's ON_PAUSE fold
             restoration.emulateSavedInstanceStateRestore()
             composeRule.waitForIdle()
 
