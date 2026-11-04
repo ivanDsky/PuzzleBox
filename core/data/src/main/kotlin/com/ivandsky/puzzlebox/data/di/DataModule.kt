@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.data.di
 
+import com.ivandsky.puzzlebox.data.calendar.CadenceGameCalendar
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstDailyRepository
@@ -22,12 +24,15 @@ import org.koin.dsl.module
  */
 val dataModule = module {
     includes(databaseModule, networkModule, datastoreModule)
+    // Per-game "today" (A9/A23): the daily fetch and the hub cues share one calendar.
+    single<GameCalendar> { CadenceGameCalendar(get()) }
     single<DailyRepository> {
         OfflineFirstDailyRepository(
             sources = getAll<DailySource>().associateBy { it.gameId },
             registry = get(),
             dao = get(),
             dispatchers = get(),
+            calendar = get(),
         )
     }
     // Records/replays store (ADR-0004): the A4 first-win record is enforced here, so
