@@ -16,7 +16,7 @@ import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.PuzzleSource
 import com.ivandsky.puzzlebox.gameui.GameUiRegistry
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.play.QueensPlayFlow
+import com.ivandsky.puzzlebox.play.PlayFlow
 import org.koin.core.qualifier.qualifier
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -24,6 +24,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
 import org.koin.test.KoinTest
 import org.koin.test.verify.verify
 import org.robolectric.RobolectricTestRunner
@@ -82,13 +83,14 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<List<GamePlugin<*, *, *>>>())
             val registry = koin.get<GameUiRegistry>()
             assertNotNull("no board renderer registered for zip", registry[GameId("zip")])
-            // Queens play wiring (queens-10): the tab route's flow resolves off the real
-            // graph and the game's renderer is registered — a missing line is a wiring bug.
-            assertNotNull(koin.get<QueensPlayFlow>())
+            // Queens play wiring: the one shared flow resolves off the real graph (it takes
+            // the queens repository) and the game's renderer is registered — a missing
+            // line is a wiring bug.
+            assertNotNull(koin.get<PlayFlow>())
             assertNotNull(koin.get<QueensDailyRepository>())
             assertNotNull("no board renderer registered for queens", registry[GameId("queens")])
         } finally {
-            koinApp.close()
+            stopKoin() // close() alone leaves the JVM-global context registered for later tests
         }
     }
 }
