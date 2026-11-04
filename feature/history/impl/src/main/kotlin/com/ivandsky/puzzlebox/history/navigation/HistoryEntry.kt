@@ -17,9 +17,9 @@ fun EntryProviderScope<NavKey>.historyEntry(
     entry<HistoryKey> {
         HistoryRoute(
             layout = layout,
-            onBack = { navigator.goBack() },
+            onBack = { navigator.pop() },
             onReplay = { session ->
-                navigator.navigate(ReplayKey(Base64.getEncoder().encodeToString(session)))
+                navigator.push(ReplayKey(Base64.getEncoder().encodeToString(session)))
             },
         )
     }

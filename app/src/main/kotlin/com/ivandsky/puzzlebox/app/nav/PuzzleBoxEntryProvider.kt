@@ -22,10 +22,11 @@ import com.ivandsky.puzzlebox.profile.navigation.profileEntry
  * Building it is a plain lookup construction — no composition — so NavRoutesTest
  * resolves each key against it and fails fast if a pushed key ever lacks a route.
  *
- * Loop wiring: Home's Today card pushes Play; its history teaser pushes History; history
- * rows push Replay with the day's session blob; the account card opens the Profile
- * account surface; Profile's catalog link pushes [CatalogKey] as a deliberate deep page —
- * NavDisplay's default back pop returns it to Profile, including after process-death restore.
+ * Loop wiring: Home's Today card selects the Play tab; its history teaser pushes History
+ * on Home's stack; history rows push Replay with the day's session blob; the account card
+ * selects the Profile tab, leaving Home's stack as it was; Profile's catalog link pushes
+ * [CatalogKey] on Profile's stack. Back pops the current tab's stack ([Navigator.pop]),
+ * including after process-death restore.
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
@@ -40,6 +41,6 @@ internal fun puzzleBoxEntryProvider(
     replayEntry(navigator, playLayout)
     playEntry(navigator, playLayout)
     resultEntry(navigator)
-    profileEntry(onOpenCatalog = { navigator.navigate(CatalogKey) })
+    profileEntry(onOpenCatalog = { navigator.push(CatalogKey) })
     entry<CatalogKey> { CatalogScreen() }
 }

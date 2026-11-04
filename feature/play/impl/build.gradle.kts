@@ -9,8 +9,6 @@ android {
 dependencies {
     implementation(projects.core.navigation)
     implementation(projects.feature.play.api)
-    // Solving and leaving play unwind to Home's key (api edge only).
-    implementation(projects.feature.home.api)
     implementation(projects.core.common)
     implementation(projects.core.data)
     implementation(projects.core.game)
@@ -22,6 +20,4 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(projects.core.testing)
-    // PlayBackStackTest: a replay pushed from History still unwinds to Home.
-    testImplementation(projects.feature.history.api)
 }

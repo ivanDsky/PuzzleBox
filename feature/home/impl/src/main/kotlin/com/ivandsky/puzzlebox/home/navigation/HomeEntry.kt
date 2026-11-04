@@ -12,8 +12,9 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 
 /**
- * Home's route: the Today card pushes [PlayKey] (today's board is fetched fresh by the play
- * route), the history teaser pushes [HistoryKey], and the account card opens [ProfileKey].
+ * Home's route: the Today card selects the Play tab (today's board is fetched fresh by the
+ * play route), the history teaser pushes [HistoryKey] on Home's stack, and the account card
+ * selects the Profile tab.
  */
 fun EntryProviderScope<NavKey>.homeEntry(
     navigator: Navigator,
@@ -26,12 +27,11 @@ fun EntryProviderScope<NavKey>.homeEntry(
             layout = layout,
             themeMode = themeMode,
             onSetThemeMode = onSetThemeMode,
-            onPlayToday = { navigator.navigateOnce(PlayKey) },
-            // Bug (2026-11-02, user report): tab selection clears the stack — correct for
-            // bar/rail tab switches, but this is a content affordance; clearing left
-            // Profile as the sole entry, so back exited the app. Push, don't clear.
-            onOpenProfile = { navigator.navigateOnce(ProfileKey) },
-            onOpenHistory = { navigator.navigateOnce(HistoryKey) },
+            onPlayToday = { navigator.selectTab(PlayKey) },
+            // A6: the account card is a tab switch, not a push. Home's stack is untouched,
+            // so Home (bar or back from the Profile root) returns to it as it was.
+            onOpenProfile = { navigator.selectTab(ProfileKey) },
+            onOpenHistory = { navigator.pushOnce(HistoryKey) },
         )
     }
 }
