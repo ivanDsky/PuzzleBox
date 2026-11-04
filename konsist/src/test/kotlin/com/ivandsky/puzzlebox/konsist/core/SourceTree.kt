@@ -7,20 +7,23 @@ import java.io.File
 class SourceTree private constructor(
     val root: File,
     val modules: List<Module>,
-    private val all: List<SourceFile>,
+    walk: SourceWalker.Walk,
 ) {
-    private val byPath = all.associateBy { it.path }
-    private val scopes = SourceSetKind.values().associateWith { kind -> lazy { KonsistScopes.over(root, files(kind)) } }
+    private val all = walk.files
+    private val byKo = all.associateBy { it.ko }
+
+    /** Every file is parsed once, by the walk; a kind's scope is a slice of that one parse. */
+    private val scopes = SourceSetKind.values().associateWith { kind ->
+        val kos = files(kind).map { it.ko }.toSet()
+        walk.scope.slice { it in kos }
+    }
 
     fun files(kind: SourceSetKind): List<SourceFile> = all.filter { it.kind == kind }
 
-    /** Parsed once per kind: building a scope over the real tree is the expensive step. */
-    fun scope(kind: SourceSetKind): KoScope = scopes.getValue(kind).value
+    fun scope(kind: SourceSetKind): KoScope = scopes.getValue(kind)
 
-    fun fileFor(ko: KoFileDeclaration): SourceFile {
-        val path = KonsistScopes.pathUnder(root, ko)
-        return byPath[path] ?: error("${ko.path} (as $path) is not in the source tree rooted at $root")
-    }
+    fun fileFor(ko: KoFileDeclaration): SourceFile =
+        byKo[ko] ?: error("${ko.path} is not in the source tree rooted at $root")
 
     companion object {
         private const val REPO_ROOT_PROPERTY = "puzzlebox.repoRoot"

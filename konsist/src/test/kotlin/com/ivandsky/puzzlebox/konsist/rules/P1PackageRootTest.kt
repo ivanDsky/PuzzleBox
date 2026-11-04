@@ -22,6 +22,7 @@ class P1PackageRootTest {
         RuleCheck.assertFixture(
             P1PackageRoot,
             "P1",
+            7,
             setOf(
                 Violation("$zip/BadSibling.kt", null, ""),
                 Violation("$zip/BadPrefix.kt", null, ""),

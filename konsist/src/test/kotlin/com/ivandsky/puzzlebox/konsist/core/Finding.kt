@@ -6,7 +6,8 @@ sealed interface Finding {
 
     data class New(val violation: Violation) : Finding {
         override val line: Int? get() = null
-        override val text: String get() = "new violation: ${violation.path} (${violation.hint})"
+        override val text: String
+            get() = "new violation: ${violation.path}${violation.value?.let { " at $it" }.orEmpty()} (${violation.hint})"
     }
 
     data class Grown(val entry: AllowlistEntry, val violation: Violation) : Finding {

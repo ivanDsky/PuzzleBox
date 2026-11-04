@@ -5,9 +5,9 @@ import com.ivandsky.puzzlebox.konsist.core.Violation
 import org.junit.Test
 
 /**
- * P7: production files of Android-free modules (`puzzlebox.jvm.library` plus `:core:domain`) import no
- * `android.`, `androidx.` or `org.koin.android`. Accepted miss: a fully qualified inline `android.util.Log.d(...)`
- * with no import. Contract and allowlist rules: ADR-0009 (docs/adr/0009-in-module-structure-rules.md).
+ * P7: production files of Android-free modules (`puzzlebox.jvm.library` plus `:core:domain`) reference no
+ * `android.`, `androidx.` or `org.koin.android`, by import or by inline qualified name; mentions in comments and
+ * strings do not count. Contract and allowlist rules: ADR-0009 (docs/adr/0009-in-module-structure-rules.md).
  */
 class P7AndroidFreeTest {
     private val sample = "games/sample/src/main/kotlin/com/ivandsky/puzzlebox/games/sample"
@@ -22,11 +22,14 @@ class P7AndroidFreeTest {
         RuleCheck.assertFixture(
             P7AndroidFree,
             "P7",
+            11,
             setOf(
                 Violation("$sample/BadAndroid.kt", null, ""),
                 Violation("$sample/BadAndroidx.kt", null, ""),
                 Violation("$sample/BadKoinAndroid.kt", null, ""),
                 Violation("$sample/MultiBad.kt", null, ""),
+                Violation("$sample/InlineQualified.kt", null, ""),
+                Violation("$sample/InlineAndroidx.kt", null, ""),
                 Violation("core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/UseCase.kt", null, ""),
             ),
         )

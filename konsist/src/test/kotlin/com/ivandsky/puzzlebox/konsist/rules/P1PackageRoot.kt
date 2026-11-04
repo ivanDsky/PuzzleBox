@@ -14,7 +14,8 @@ object P1PackageRoot : Rule {
         val violations = files.mapNotNull { file ->
             val root = file.module.packageRoot
             val pkg = file.packageName
-            // The dot guards sibling roots that merely share a prefix (`zip` vs `zipx`).
+            // The dot guards sibling roots that merely share a prefix (`zip` vs `zipx`); not Konsist `hasPackage`,
+            // which lowercases both sides and would let `com.IvanDsky…` pass.
             if (pkg == root || pkg.startsWith("$root.")) null
             else Violation(file.path, null, "move to package under $root")
         }

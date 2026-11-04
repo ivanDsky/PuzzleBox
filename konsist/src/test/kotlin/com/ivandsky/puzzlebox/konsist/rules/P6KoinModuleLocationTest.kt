@@ -21,10 +21,13 @@ class P6KoinModuleLocationTest {
         RuleCheck.assertFixture(
             P6KoinModuleLocation,
             "P6",
+            12,
             setOf(
                 Violation("$feature/BadUi.kt", null, ""),
                 Violation("$feature/BadArgs.kt", null, ""),
                 Violation("$feature/BadLazy.kt", null, ""),
+                Violation("$feature/BadAlias.kt", null, ""),
+                Violation("$feature/BadLazyAlias.kt", null, ""),
                 Violation("games/x/src/main/kotlin/BadFeed.kt", null, ""),
             ),
         )
