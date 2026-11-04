@@ -42,23 +42,27 @@ class PlayRouteTest : PlayRouteHarness() {
     }
 
     @Test
-    fun `the picker shows each game's today status and a solve flips its row live`() {
+    fun `the picker shows each game's today status and action and a solve flips its row live`() {
         val completions = FakeCompletionRepository()
         val kept = FakeKeptSessionRepository(listOf(keptSession(beta, moves = 2, elapsedMs = 42_000L)))
         koinWith(completions = completions, kept = kept)
         setContent()
-        status("alpha").assertTextEquals("Not started")
-        status("beta").assertTextEquals("In progress · 0:42")
+        row("status", "alpha").assertTextEquals("Not started")
+        row("action", "alpha").assertTextEquals("Play")
+        row("status", "beta").assertTextEquals("In progress · 0:42")
+        row("action", "beta").assertTextEquals("Continue")
 
         runBlocking { completions.onCompleted(CompletionRecord(TestGames.Ref(alpha, day, 7), 36_000L, 0, RecordStats(1, "{}"))) }
         composeRule.waitForIdle()
 
-        status("alpha").assertTextEquals("Solved · 0:36 ✓")
-        status("beta").assertTextEquals("In progress · 0:42")
+        row("status", "alpha").assertTextEquals("Solved · 0:36 ✓")
+        row("action", "alpha").assertTextEquals("Replay")
+        row("status", "beta").assertTextEquals("In progress · 0:42")
     }
 
-    // Rows are clickable (merged semantics): the status line is a child node.
-    private fun status(game: String) = composeRule.onNodeWithTag("play.picker_status_$game", useUnmergedTree = true)
+    // Rows are clickable (merged semantics): the status and action lines are child nodes.
+    private fun row(part: String, game: String) =
+        composeRule.onNodeWithTag("play.picker_${part}_$game", useUnmergedTree = true)
 
     @Test
     fun `picking an in-progress game resumes its kept board without a fetch`() {
