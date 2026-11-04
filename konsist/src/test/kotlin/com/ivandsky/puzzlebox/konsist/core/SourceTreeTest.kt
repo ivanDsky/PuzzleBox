@@ -75,6 +75,7 @@ class SourceTreeTest {
             add("core/model/src/main/kotlin/p/build/B2.kt", "package x\n")
             add("games/a/src/main/kotlin/builder/Keep.kt", "package com.keep\n")
             add("games/a/src/main/kotlin/NoPkg.kt", "// package com.fake\nclass NoPkg\n")
+            add("games/a/src/main/kotlin/RawPkg.kt", "val template = \"\"\"\npackage com.fake\n\"\"\"\nclass RawPkg\n")
             add("games/a/src/main/java/Java.kt", "/* c */ package com.java\nclass J\n")
             add("games/a/src/main/kotlin/notkotlin.txt", "package x\n")
 
@@ -85,10 +86,11 @@ class SourceTreeTest {
             assertTrue(paths.toString(), "games/a/src/main/kotlin/generated/G.kt" in paths)
             assertTrue(paths.toString(), "games/a/src/main/kotlin/builder/Keep.kt" in paths)
             assertEquals("", loaded.files(SourceSetKind.PRODUCTION).single { it.path.endsWith("NoPkg.kt") }.packageName)
+            assertEquals("", loaded.files(SourceSetKind.PRODUCTION).single { it.path.endsWith("RawPkg.kt") }.packageName)
             val java = loaded.files(SourceSetKind.PRODUCTION).single { it.path.endsWith("Java.kt") }
             assertEquals("com.java", java.packageName)
             assertTrue(java.strippedText.contains("package com.java") && !java.strippedText.contains("c */"))
-            assertEquals(5 + 4, paths.size)
+            assertEquals(5 + 5, paths.size)
         } finally {
             dir.deleteRecursively()
         }

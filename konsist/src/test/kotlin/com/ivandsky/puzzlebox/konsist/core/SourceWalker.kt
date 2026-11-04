@@ -41,7 +41,9 @@ object SourceWalker {
         val sourceSet = inModule[1]
         val text = File(root, path).readText()
         val stripped = CommentStripper.strip(text)
-        val packageName = PACKAGE_HEADER.find(stripped)?.groupValues?.get(1).orEmpty()
-        return SourceFile(path, module, sourceSet, SourceSetKind.of(sourceSet), packageName, text, stripped, CommentStripper.code(text))
+        val code = CommentStripper.code(text)
+        // Read from code so a `package` line inside a raw string is not taken for the header.
+        val packageName = PACKAGE_HEADER.find(code)?.groupValues?.get(1).orEmpty()
+        return SourceFile(path, module, sourceSet, SourceSetKind.of(sourceSet), packageName, text, stripped, code)
     }
 }
