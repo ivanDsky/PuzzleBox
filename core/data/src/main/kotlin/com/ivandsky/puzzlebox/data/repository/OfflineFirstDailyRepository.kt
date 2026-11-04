@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.model.toEntity
 import com.ivandsky.puzzlebox.data.model.toPuzzle
 import com.ivandsky.puzzlebox.database.PuzzleDailyDao
@@ -9,7 +10,6 @@ import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.FetchResult
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.Puzzle
-import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
@@ -24,7 +24,7 @@ import kotlinx.coroutines.withContext
  * Rows share the `puzzle_dailies` store keyed by `gameId`; cached payloads decode through
  * the owning game's definition from [registry].
  *
- * Each game's "today" is its cadence's current day ([todayProvider]; null for a game the
+ * Each game's "today" comes from [calendar] (its cadence-zone day; null for a game the
  * registry does not know).
  */
 internal class OfflineFirstDailyRepository(
@@ -32,13 +32,13 @@ internal class OfflineFirstDailyRepository(
     private val registry: GameRegistry,
     private val dao: PuzzleDailyDao,
     private val dispatchers: DispatcherProvider,
+    private val calendar: GameCalendar,
     private val clock: () -> Long = System::currentTimeMillis,
-    private val todayProvider: (GameId) -> LocalDate? = { registry[it]?.definition?.cadence?.today() },
 ) : DailyRepository {
 
     override suspend fun today(game: GameId): DailyToday = withContext(dispatchers.io) {
         val source = sources[game]
-        val day = todayProvider(game)
+        val day = calendar.today(game)
         if (source == null || day == null) {
             return@withContext DailyToday.Unavailable(
                 FetchError.Unavailable("no daily source registered for ${game.value}"),

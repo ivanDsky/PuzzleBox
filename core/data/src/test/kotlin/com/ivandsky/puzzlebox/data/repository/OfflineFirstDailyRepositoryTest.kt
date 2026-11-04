@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.data.model.toEntity
 import com.ivandsky.puzzlebox.data.model.toPuzzle
+import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.FakeDailySource
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
@@ -57,8 +58,8 @@ class OfflineFirstDailyRepositoryTest {
             registry = TestGames.registry(listOf(alpha, beta)),
             dao = db.puzzleDailyDao(),
             dispatchers = DefaultDispatcherProvider(),
+            calendar = FakeGameCalendar(today),
             clock = { nowMs },
-            todayProvider = { today },
         )
     }
 
