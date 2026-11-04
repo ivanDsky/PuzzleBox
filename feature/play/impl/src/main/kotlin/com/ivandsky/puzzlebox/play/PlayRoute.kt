@@ -9,6 +9,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -80,13 +82,15 @@ fun PlayRoute(
         }
     }
 
-    // Mid-game exit releases the play so the next play entry picks again (a popped play
-    // never resumes). The solved handoff does NOT pass through here: the result keeps
-    // the play's scope for the record write.
+    // Mid-game exit keeps the session and releases the play, so the next play entry
+    // picks again and the picker offers to continue (ADR-0010). The solved handoff does
+    // NOT pass through here: the result keeps the play's scope for the record write.
     BackHandler {
-        viewModel.end()
+        viewModel.leave()
         onBack()
     }
+    // Background (ON_STOP, which every process death follows) keeps the live session.
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.background() }
 
     when (val current = state) {
         is PlayUiState.Picker -> GamePicker(

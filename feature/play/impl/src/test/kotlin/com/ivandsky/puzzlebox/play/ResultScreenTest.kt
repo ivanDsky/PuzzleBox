@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeKeptSessionRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -134,6 +135,8 @@ class ResultScreenTest {
                     single<GamePlayRegistry> { fakes.registry }
                     single<com.ivandsky.puzzlebox.data.repository.DailyRepository> { daily }
                     single<com.ivandsky.puzzlebox.data.repository.CompletionRepository> { FakeCompletionRepository() }
+                    single<com.ivandsky.puzzlebox.data.repository.KeptSessionRepository> { FakeKeptSessionRepository() }
+                    factory { com.ivandsky.puzzlebox.domain.ObserveTodaySet(get(), get(), get()) }
                 },
                 playModule,
             )

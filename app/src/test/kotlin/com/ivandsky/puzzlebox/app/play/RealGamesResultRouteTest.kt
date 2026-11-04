@@ -58,6 +58,10 @@ class RealGamesResultRouteTest {
                     single<CompletionRepository> { FakeCompletionRepository() }
                     single { GameRegistry(listOf(zipPlugin)) }
                     single { GamePlayRegistry(listOf(ZipPlayUi())) }
+                    single<com.ivandsky.puzzlebox.data.repository.KeptSessionRepository> {
+                        com.ivandsky.puzzlebox.testing.repository.FakeKeptSessionRepository()
+                    }
+                    factory { com.ivandsky.puzzlebox.domain.ObserveTodaySet(get(), get(), get()) }
                 },
                 playModule,
             )

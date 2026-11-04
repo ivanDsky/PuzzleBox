@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -9,8 +10,13 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.repository.KeptSession
+import com.ivandsky.puzzlebox.data.repository.KeptSessionRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.FetchError
+import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -20,6 +26,8 @@ import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeKeptSessionRepository
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -63,6 +71,7 @@ class PlayRouteTest {
     private fun koinWith(
         daily: DailyRepository = freshDaily(),
         completions: CompletionRepository = FakeCompletionRepository(),
+        kept: KeptSessionRepository = FakeKeptSessionRepository(),
     ): KoinApplication {
         stopKoin() // tests share the JVM-global Koin context
         return startKoin {
@@ -70,8 +79,10 @@ class PlayRouteTest {
                 module {
                     single { daily }
                     single { completions }
+                    single { kept }
                     single<GameRegistry> { fakes.games }
                     single<GamePlayRegistry> { fakes.registry }
+                    factory { ObserveTodaySet(games = get(), completions = get(), kept = get()) }
                 },
                 playModule,
             )
@@ -111,6 +122,43 @@ class PlayRouteTest {
         composeRule.onNodeWithTag("play.picker_beta").assertExists()
         composeRule.onNodeWithText("Alpha").assertExists()
         composeRule.onNodeWithText("Beta").assertExists()
+    }
+
+    @Test
+    fun `the picker shows each game's today status and a solve flips its row live`() {
+        val completions = FakeCompletionRepository()
+        val kept = FakeKeptSessionRepository(listOf(keptSession(beta, moves = 2, elapsedMs = 42_000L)))
+        koinWith(completions = completions, kept = kept)
+        setContent()
+        status("alpha").assertTextEquals("Not started")
+        status("beta").assertTextEquals("In progress · 0:42")
+
+        runBlocking { completions.onCompleted(CompletionRecord(TestGames.Ref(alpha, day, 7), 36_000L, 0, RecordStats(1, "{}"))) }
+        composeRule.waitForIdle()
+
+        status("alpha").assertTextEquals("Solved · 0:36 ✓")
+        status("beta").assertTextEquals("In progress · 0:42")
+    }
+
+    // Rows are clickable (merged semantics): the status line is a child node.
+    private fun status(game: String) = composeRule.onNodeWithTag("play.picker_status_$game", useUnmergedTree = true)
+
+    @Test
+    fun `picking an in-progress game resumes its kept board without a fetch`() {
+        val daily = freshDaily()
+        koinWith(daily, kept = FakeKeptSessionRepository(listOf(keptSession(beta, moves = 3, elapsedMs = 7_000L))))
+        setContent()
+        composeRule.onNodeWithTag("play.picker_beta").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("beta board 3").assertExists()
+        assertEquals(7_000L, fakes[beta].latest.displayedElapsedMs())
+        assertEquals(0, daily.todayCalls(beta))
+    }
+
+    private fun keptSession(game: com.ivandsky.puzzlebox.model.GameId, moves: Int, elapsedMs: Long): KeptSession {
+        val session = FakeController.envelope(game, moves = moves, day = day, elapsedMs = elapsedMs)
+        return KeptSession(game, day, elapsedMs, SessionBlob.encode(game, session.session))
     }
 
     @Test
@@ -172,10 +220,10 @@ class PlayRouteTest {
     }
 
     @Test
-    fun `back from a mid-game play releases the play to the picker`() {
+    fun `back from a mid-game play leaves it to the picker`() {
         // Zip-shaped game (the original route test's game): no session is published
         // before the first move, so this still-composed test route has nothing to
-        // re-adopt after back (production pops the route).
+        // re-adopt after back (production pops the route) and nothing is kept.
         fakes[alpha].publishesAdoptedSession = false
         koinWith()
         var back = 0
@@ -185,11 +233,12 @@ class PlayRouteTest {
         composeRule.onNodeWithText("alpha board 0").assertExists()
 
         // Device/system back through PlayRoute's BackHandler: the route pops AND the
-        // play releases, so the next play entry picks again (A14).
+        // play is left (kept when started, ADR-0010), so the next play entry picks (A14).
         (composeRule as AndroidComposeTestRule<*, *>).activity.onBackPressedDispatcher.onBackPressed()
         composeRule.waitForIdle()
         assertEquals(1, back)
         composeRule.onNodeWithTag("play.picker").assertExists()
         assertEquals(null, store().active.value)
+        assertTrue((koin!!.koin.get<KeptSessionRepository>() as FakeKeptSessionRepository).current.isEmpty())
     }
 }

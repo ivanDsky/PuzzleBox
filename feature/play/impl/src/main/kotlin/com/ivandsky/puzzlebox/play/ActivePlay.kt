@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.gameui.CompletionRecordEmitter
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
+import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
 import com.ivandsky.puzzlebox.gameui.unavailableMessage
@@ -49,6 +50,8 @@ class ActivePlay internal constructor(
     private val today: () -> LocalDate,
     private val scope: CoroutineScope,
     private val publish: (ActivePlay, ByteArray) -> Unit,
+    /** The win transition of the live generation (the store discards the kept session). */
+    private val onSolved: (ActivePlay) -> Unit,
 ) {
     /** What the play screen draws: the live controller and the shared fetch state. */
     data class Board(val controller: GamePlayController, val status: PlayBoardStatus)
@@ -82,6 +85,21 @@ class ActivePlay internal constructor(
     /** A fresh entry must fetch: nothing playable in hand, or the live session is finished. */
     val needsLoad: Boolean
         get() = _board.value.status !is PlayBoardStatus.Ready || controller.isComplete
+
+    /** The live session's record day when it is the game's cadence today; null before
+     *  an adopt or for a replay of another day (spec A4: only today's session is kept). */
+    internal val todayDay: LocalDate? get() = ref?.date?.takeIf { it == today() }
+
+    /**
+     * Folds the live clock through the game's own background hook (the same one the
+     * chrome calls on ON_PAUSE — folding an already-paused clock banks nothing) and
+     * returns the displayed elapsed; null for a game without a clock.
+     */
+    internal fun foldClock(): Long? {
+        val clock = controller as? PlayClock ?: return null
+        clock.onBackground()
+        return clock.displayedElapsedMs()
+    }
 
     private var ref: PuzzleRef? = null
 
@@ -182,6 +200,7 @@ class ActivePlay internal constructor(
 
     private fun onWon(record: CompletionRecord) {
         lastWon = record
+        onSolved(this)
         emit(record)
     }
 

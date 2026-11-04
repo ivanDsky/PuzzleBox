@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.gameui.unavailableMessage
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeKeptSessionRepository
 import java.time.LocalDate
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -48,8 +49,10 @@ class ActivePlayTest {
         ui = fakes.registry,
         daily = daily,
         completions = completions,
+        kept = FakeKeptSessionRepository(),
         today = { day },
         scopeFactory = { CoroutineScope(Job() + UnconfinedTestDispatcher()) },
+        keepScope = CoroutineScope(Job() + UnconfinedTestDispatcher()),
     )
 
     private fun play(): ActivePlay = store.start(game) {}!!

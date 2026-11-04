@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeKeptSessionRepository
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -48,18 +49,13 @@ class PlaySessionStoreTest {
         ui = ui,
         daily = daily,
         completions = FakeCompletionRepository(),
+        kept = FakeKeptSessionRepository(),
         today = { day },
         scopeFactory = { CoroutineScope(Job() + UnconfinedTestDispatcher()).also { scopes += it } },
+        keepScope = CoroutineScope(Job() + UnconfinedTestDispatcher()),
     )
 
     private fun ByteArray.decoded() = SessionBlob.decode(this)!!
-
-    @Test
-    fun `playable lists every game with a play ui in registry order`() {
-        assertEquals(listOf(alpha to "Alpha", beta to "Beta"), store().playable)
-        // A plugin without a play registration is not playable.
-        assertEquals(listOf(beta to "Beta"), store(GamePlayRegistry(listOf(fakes[beta]))).playable)
-    }
 
     @Test
     fun `start never fetches and an unplayable id returns null untouched`() {
@@ -69,7 +65,11 @@ class PlaySessionStoreTest {
         assertTrue(play.needsLoad)
 
         assertNull(store.start(GameId("not-a-game")) {})
-        assertNull(PlaySessionStore(fakes.games, GamePlayRegistry(emptyList()), daily, FakeCompletionRepository()).start(alpha) {})
+        val noUi = PlaySessionStore(
+            fakes.games, GamePlayRegistry(emptyList()), daily, FakeCompletionRepository(), FakeKeptSessionRepository(),
+            keepScope = CoroutineScope(Job() + UnconfinedTestDispatcher()),
+        )
+        assertNull(noUi.start(alpha) {})
         assertSame(play, store.active.value)
     }
 
@@ -209,14 +209,14 @@ class PlaySessionStoreTest {
     }
 
     @Test
-    fun `F6 end releases the play, cancels its scope and drops the sink`() {
+    fun `F6 leave releases the play, cancels its scope and drops the sink`() {
         val store = store()
         val sink = mutableListOf<ByteArray>()
         store.start(alpha) { sink += it }!!.load()
         val controller = fakes[alpha].latest
         val writes = sink.size
 
-        store.end()
+        store.leave()
 
         assertNull(store.active.value)
         assertFalse(scopes.single().isActive)
@@ -234,9 +234,11 @@ class PlaySessionStoreTest {
     @Test
     fun `a superseded controller's late win writes nothing`() {
         val completions = FakeCompletionRepository()
-        val store = PlaySessionStore(fakes.games, fakes.registry, daily, completions, today = { day }, scopeFactory = {
-            CoroutineScope(Job() + UnconfinedTestDispatcher())
-        })
+        val store = PlaySessionStore(
+            fakes.games, fakes.registry, daily, completions, FakeKeptSessionRepository(), today = { day },
+            scopeFactory = { CoroutineScope(Job() + UnconfinedTestDispatcher()) },
+            keepScope = CoroutineScope(Job() + UnconfinedTestDispatcher()),
+        )
         daily.setHistory(alpha, listOf(DailyEntry(alpha, day, 7, "alpha/v1", 0L)))
         val play = store.start(alpha) {}!!
         play.load()
