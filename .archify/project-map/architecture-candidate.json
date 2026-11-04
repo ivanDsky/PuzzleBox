@@ -2,323 +2,334 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "PuzzleBox — Phase 0 architecture",
+    "title": "PuzzleBox — module graph",
     "locale": "en",
     "quality_profile": "showcase",
-    "output": "docs/agents/project-map.html"
+    "output": "docs/agents/project-map.html",
+    "repository": {
+      "url": "git@github.com:ivanDsky/PuzzleBox.git",
+      "provider": "github",
+      "link_mode": "local-only",
+      "revision": "89c0672567c072a9a14551baa12254d9b62f6b83"
+    },
+    "legend": {
+      "entries": {
+        "frontend": { "label": "Compose UI module" },
+        "backend": { "label": "Non-UI module" },
+        "database": { "label": "Local persistence module" },
+        "external": { "label": "External service" }
+      }
+    }
   },
   "components": [
     {
-      "id": "user",
-      "type": "external",
-      "label": "Player",
-      "sublabel": "daily puzzles",
-      "pos": [
-        10,
-        292
-      ],
-      "size": [
-        104,
-        60
-      ]
-    },
-    {
-      "id": "application",
+      "id": "app",
       "type": "frontend",
-      "label": "PuzzleBoxApplication",
-      "sublabel": "startKoin(appModules)",
-      "pos": [
-        150,
-        104
-      ],
-      "size": [
-        190,
-        72
+      "label": ":app — composition root",
+      "sublabel": "depends on every module · PuzzleBoxApplication.appModules · AppModule builds GameRegistry + GamePlayRegistry",
+      "pos": [40, 40],
+      "size": [1490, 60],
+      "sources": [
+        { "path": "app/build.gradle.kts", "line": 41, "end_line": 90, "label": "app dependencies" },
+        { "path": "app/src/main/kotlin/com/ivandsky/puzzlebox/app/PuzzleBoxApplication.kt", "line": 29, "end_line": 38, "label": "appModules" },
+        { "path": "app/src/main/kotlin/com/ivandsky/puzzlebox/app/di/AppModule.kt", "line": 33, "end_line": 52, "label": "registries + GAME_ORDER" }
       ]
     },
     {
-      "id": "di",
+      "id": "feature-api",
       "type": "backend",
-      "label": "Koin DI graph",
-      "sublabel": "commonModule + dataModule",
-      "pos": [
-        430,
-        100
-      ],
-      "size": [
-        220,
-        84
+      "label": ":feature:*:api",
+      "sublabel": "NavKeys · @SerialName pinned",
+      "tag": "home · play · history · profile",
+      "pos": [300, 200],
+      "size": [190, 64],
+      "sources": [
+        { "path": "build-logic/convention/src/main/kotlin/AndroidFeatureApiConventionPlugin.kt", "line": 5, "end_line": 21, "label": "feature.api plugin" },
+        { "path": "feature/play/api/src/main/kotlin/com/ivandsky/puzzlebox/play/api/PlayKeys.kt", "line": 13, "end_line": 34, "label": "Play keys" },
+        { "path": "feature/home/api/src/main/kotlin/com/ivandsky/puzzlebox/home/api/HomeKey.kt", "line": 10, "label": "HomeKey" }
       ]
     },
     {
-      "id": "activity",
+      "id": "feature-impl",
       "type": "frontend",
-      "label": "MainActivity",
-      "sublabel": "waits for persisted theme",
-      "pos": [
-        176,
-        288
-      ],
-      "size": [
-        150,
-        84
+      "label": ":feature:*:impl",
+      "sublabel": "screens + ViewModels",
+      "tag": "home · play · history · profile",
+      "pos": [560, 200],
+      "size": [190, 64],
+      "sources": [
+        { "path": "build-logic/convention/src/main/kotlin/AndroidFeatureImplConventionPlugin.kt", "line": 7, "end_line": 25, "label": "feature.impl plugin" },
+        { "path": "feature/home/impl/build.gradle.kts", "line": 9, "end_line": 27, "label": "home:impl deps" },
+        { "path": "feature/play/impl/build.gradle.kts", "line": 9, "end_line": 27, "label": "play:impl deps" }
       ]
     },
     {
-      "id": "shell",
+      "id": "games-ui",
       "type": "frontend",
-      "label": "PuzzleBoxApp",
-      "sublabel": "Navigation3 shell + tab bar",
-      "pos": [
-        396,
-        288
-      ],
-      "size": [
-        176,
-        84
+      "label": ":games:<x>-ui",
+      "sublabel": "GamePlayUi · board Composables",
+      "tag": "zip · tango · queens",
+      "pos": [1080, 200],
+      "size": [190, 64],
+      "sources": [
+        { "path": "games/zip-ui/build.gradle.kts", "line": 14, "end_line": 25, "label": "zip-ui deps" },
+        { "path": "games/queens-ui/build.gradle.kts", "line": 19, "end_line": 30, "label": "queens-ui deps" },
+        { "path": "games/zip-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/zipui/ZipUiModule.kt", "line": 10, "end_line": 13, "label": "zipUiModule" }
       ]
     },
     {
-      "id": "home",
-      "type": "frontend",
-      "label": "HomeRoute",
-      "sublabel": "offline-first history",
-      "pos": [
-        638,
-        288
-      ],
-      "size": [
-        150,
-        84
+      "id": "games",
+      "type": "backend",
+      "label": ":games:<x>",
+      "sublabel": "rules · codec · DailySource",
+      "tag": "zip · tango · queens",
+      "pos": [1340, 200],
+      "size": [190, 64],
+      "sources": [
+        { "path": "games/zip/build.gradle.kts", "line": 9, "end_line": 18, "label": "zip deps" },
+        { "path": "games/queens/build.gradle.kts", "line": 1, "end_line": 14, "label": "queens deps" },
+        { "path": "games/zip/src/main/kotlin/com/ivandsky/puzzlebox/games/zip/ZipPlugin.kt", "line": 107, "end_line": 116, "label": "zipModule bindings" }
+      ]
+    },
+    {
+      "id": "navigation",
+      "type": "backend",
+      "label": ":core:navigation",
+      "sublabel": "Navigator · NavKeySavedState",
+      "pos": [300, 380],
+      "size": [190, 64],
+      "sources": [
+        { "path": "core/navigation/build.gradle.kts", "line": 1, "end_line": 15 },
+        { "path": "core/navigation/src/main/kotlin/com/ivandsky/puzzlebox/navigation/Navigator.kt", "line": 14, "end_line": 43, "label": "Navigator" }
+      ]
+    },
+    {
+      "id": "domain",
+      "type": "backend",
+      "label": ":core:domain",
+      "sublabel": "5 use cases · domainModule",
+      "pos": [560, 380],
+      "size": [190, 64],
+      "sources": [
+        { "path": "core/domain/build.gradle.kts", "line": 14, "end_line": 26, "label": "domain deps" },
+        { "path": "core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/di/DomainModule.kt", "line": 16, "end_line": 29, "label": "domainModule" }
       ]
     },
     {
       "id": "designsystem",
       "type": "frontend",
-      "label": "core:designsystem",
+      "label": ":core:designsystem",
       "sublabel": "theme · tokens · PuzzleBoard",
-      "pos": [
-        396,
-        478
-      ],
-      "size": [
-        176,
-        80
+      "pos": [820, 380],
+      "size": [190, 64],
+      "sources": [
+        { "path": "core/designsystem/build.gradle.kts", "line": 1, "end_line": 36 },
+        { "path": "core/designsystem/src/main/kotlin/com/ivandsky/puzzlebox/designsystem/Theme.kt", "line": 1, "end_line": 47, "label": "theme" }
       ]
     },
     {
-      "id": "prefs",
+      "id": "game-ui",
+      "type": "frontend",
+      "label": ":core:game-ui",
+      "sublabel": "GamePlayUi · GamePlayRegistry",
+      "pos": [1080, 380],
+      "size": [190, 64],
+      "sources": [
+        { "path": "core/game-ui/build.gradle.kts", "line": 9, "end_line": 18, "label": "game-ui deps" },
+        { "path": "core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/GamePlay.kt", "line": 11, "end_line": 38, "label": "GamePlayUi" },
+        { "path": "core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/GamePlay.kt", "line": 78, "end_line": 87, "label": "GamePlayRegistry" }
+      ]
+    },
+    {
+      "id": "backend-firebase",
       "type": "backend",
-      "label": "UserPreferencesRepository",
-      "sublabel": "DataStore-backed",
-      "pos": [
-        176,
-        478
-      ],
-      "size": [
-        176,
-        72
+      "label": ":backend:firebase",
+      "sublabel": "IdentityService · Leaderboard",
+      "pos": [40, 530],
+      "size": [190, 64],
+      "sources": [
+        { "path": "backend/firebase/build.gradle.kts", "line": 11, "end_line": 25, "label": "backend deps" },
+        { "path": "backend/firebase/src/main/kotlin/com/ivandsky/puzzlebox/backend/firebase/BackendModule.kt", "line": 8, "end_line": 26, "label": "firebaseBackendModule" }
+      ]
+    },
+    {
+      "id": "data",
+      "type": "backend",
+      "label": ":core:data",
+      "sublabel": "DailyRepository · contracts",
+      "pos": [560, 530],
+      "size": [190, 64],
+      "sources": [
+        { "path": "core/data/build.gradle.kts", "line": 9, "end_line": 30, "label": "data deps" },
+        { "path": "core/data/src/main/kotlin/com/ivandsky/puzzlebox/data/di/DataModule.kt", "line": 15, "end_line": 35, "label": "dataModule" }
+      ]
+    },
+    {
+      "id": "game",
+      "type": "backend",
+      "label": ":core:game",
+      "sublabel": "GameRegistry · DailySource",
+      "tag": "pure JVM",
+      "pos": [1080, 530],
+      "size": [190, 64],
+      "sources": [
+        { "path": "core/game/build.gradle.kts", "line": 1, "end_line": 10 },
+        { "path": "core/game/src/main/kotlin/com/ivandsky/puzzlebox/game/GameRegistry.kt", "line": 5, "end_line": 22, "label": "GameRegistry" },
+        { "path": "core/game/src/main/kotlin/com/ivandsky/puzzlebox/game/DailySource.kt", "line": 9, "end_line": 28, "label": "DailySource" }
+      ]
+    },
+    {
+      "id": "firebase",
+      "type": "external",
+      "label": "Firebase",
+      "sublabel": "Auth · Firestore",
+      "pos": [40, 680],
+      "size": [190, 64],
+      "sources": [
+        { "path": "backend/firebase/src/main/kotlin/com/ivandsky/puzzlebox/backend/firebase/BackendModule.kt", "line": 16, "end_line": 26, "label": "Firebase bindings" }
       ]
     },
     {
       "id": "datastore",
       "type": "database",
-      "label": "Preferences DataStore",
-      "sublabel": "puzzlebox.preferences_pb",
-      "pos": [
-        176,
-        640
-      ],
-      "size": [
-        176,
-        66
+      "label": ":core:datastore",
+      "sublabel": "Preferences DataStore",
+      "pos": [300, 680],
+      "size": [190, 64],
+      "sources": [
+        { "path": "core/datastore/build.gradle.kts", "line": 9, "end_line": 17, "label": "datastore deps" },
+        { "path": "core/datastore/src/main/kotlin/com/ivandsky/puzzlebox/datastore/di/DatastoreModule.kt", "line": 11, "end_line": 21, "label": "datastoreModule" }
       ]
     },
     {
-      "id": "repo",
-      "type": "backend",
-      "label": "DailyPuzzleRepository",
-      "sublabel": "network-first, typed errors",
-      "pos": [
-        830,
-        478
-      ],
-      "size": [
-        190,
-        84
-      ]
-    },
-    {
-      "id": "room",
+      "id": "database",
       "type": "database",
-      "label": "PuzzleBoxDatabase",
-      "sublabel": "Room · daily_puzzles",
-      "pos": [
-        610,
-        640
-      ],
-      "size": [
-        180,
-        72
+      "label": ":core:database",
+      "sublabel": "Room · dailies + completions",
+      "pos": [560, 680],
+      "size": [190, 64],
+      "sources": [
+        { "path": "core/database/build.gradle.kts", "line": 1, "end_line": 24 },
+        { "path": "core/database/src/main/kotlin/com/ivandsky/puzzlebox/database/PuzzleBoxDatabase.kt", "line": 1, "end_line": 19, "label": "PuzzleBoxDatabase" }
       ]
     },
     {
-      "id": "api",
+      "id": "network",
       "type": "backend",
-      "label": "PuzzleFeedApi",
-      "sublabel": "Retrofit + OkHttp + auth",
-      "pos": [
-        830,
-        640
-      ],
-      "size": [
-        190,
-        84
+      "label": ":core:network",
+      "sublabel": "LinkedInFeedTransport",
+      "tag": "pure JVM",
+      "pos": [820, 680],
+      "size": [190, 64],
+      "sources": [
+        { "path": "core/network/build.gradle.kts", "line": 1, "end_line": 18, "label": "network deps" },
+        { "path": "core/network/src/main/kotlin/com/ivandsky/puzzlebox/network/di/NetworkModule.kt", "line": 13, "end_line": 25, "label": "networkModule" }
+      ]
+    },
+    {
+      "id": "model",
+      "type": "backend",
+      "label": ":core:model + :core:common",
+      "sublabel": "GameId · DispatcherProvider",
+      "pos": [1340, 680],
+      "size": [190, 64],
+      "sources": [
+        { "path": "core/model/build.gradle.kts", "line": 1, "end_line": 6 },
+        { "path": "core/common/build.gradle.kts", "line": 1, "end_line": 14 },
+        { "path": "core/model/src/main/kotlin/com/ivandsky/puzzlebox/model/GameId.kt", "line": 1, "end_line": 7, "label": "GameId" }
       ]
     },
     {
       "id": "linkedin",
       "type": "external",
-      "label": "LinkedIn hosts",
-      "sublabel": "planned · placeholder URL",
-      "pos": [
-        830,
-        786
-      ],
-      "size": [
-        190,
-        72
+      "label": "LinkedIn Games",
+      "sublabel": "www.linkedin.com daily feeds",
+      "pos": [820, 830],
+      "size": [190, 64],
+      "sources": [
+        { "path": "core/network/src/main/kotlin/com/ivandsky/puzzlebox/network/Network.kt", "line": 11, "label": "LINKEDIN_BASE_URL" }
       ]
     }
   ],
   "boundaries": [
+    { "kind": "region", "label": "feature:* — screens + NavKeys", "wraps": ["feature-api", "feature-impl"] },
+    { "kind": "region", "label": "games:* — one engine + one UI per game", "wraps": ["games-ui", "games"] },
     {
       "kind": "region",
-      "label": "PuzzleBox Android process",
-      "wraps": [
-        "application",
-        "di",
-        "activity",
-        "shell",
-        "home",
-        "designsystem",
-        "prefs",
-        "datastore",
-        "repo",
-        "room",
-        "api"
-      ]
+      "label": "core:* — depends on core only",
+      "wraps": ["navigation", "domain", "designsystem", "game-ui", "data", "game", "datastore", "database", "network", "model"]
     }
   ],
   "connections": [
-    {
-      "id": "open",
-      "from": "user",
-      "to": "activity",
-      "label": "opens",
-      "variant": "emphasis"
-    },
-    {
-      "id": "startkoin",
-      "from": "application",
-      "to": "di",
-      "label": "startKoin"
-    },
-    {
-      "id": "inject-prefs",
-      "from": "di",
-      "to": "activity",
-      "label": "injects prefs"
-    },
-    {
-      "id": "inject-repo",
-      "from": "di",
-      "to": "home",
-      "label": "injects repository"
-    },
-    {
-      "id": "host",
-      "from": "activity",
-      "to": "shell",
-      "label": "hosts"
-    },
-    {
-      "id": "home-entry",
-      "from": "shell",
-      "to": "home",
-      "label": "Home"
-    },
-    {
-      "id": "theme-tokens",
-      "from": "shell",
-      "to": "designsystem",
-      "label": "theme + Catalog route"
-    },
-    {
-      "id": "observe",
-      "from": "home",
-      "to": "repo",
-      "label": "observe",
-      "variant": "emphasis"
-    },
-    {
-      "id": "refresh",
-      "from": "repo",
-      "to": "api",
-      "label": "refresh()"
-    },
-    {
-      "id": "unsigned-get",
-      "from": "api",
-      "to": "linkedin",
-      "label": "unsigned GET",
-      "variant": "dashed"
-    },
-    {
-      "id": "cache",
-      "from": "repo",
-      "to": "room",
-      "label": "cache read/write"
-    },
-    {
-      "id": "themeflow",
-      "from": "activity",
-      "to": "prefs",
-      "label": "themeMode"
-    },
-    {
-      "id": "prefs-io",
-      "from": "prefs",
-      "to": "datastore",
-      "label": "key-value I/O"
-    }
+    { "id": "app-feature-api", "from": "app", "to": "feature-api" },
+    { "id": "app-feature-impl", "from": "app", "to": "feature-impl" },
+    { "id": "app-games-ui", "from": "app", "to": "games-ui" },
+    { "id": "app-games", "from": "app", "to": "games" },
+    { "id": "app-backend", "from": "app", "to": "backend-firebase" },
+    { "id": "impl-api", "from": "feature-impl", "to": "feature-api", "label": "NavKeys" },
+    { "id": "api-navigation", "from": "feature-api", "to": "navigation", "label": "api" },
+    { "id": "impl-domain", "from": "feature-impl", "to": "domain", "label": "home · history · profile" },
+    { "id": "impl-designsystem", "from": "feature-impl", "to": "designsystem", "fromSide": "right", "toSide": "top" },
+    { "id": "impl-game-ui", "from": "feature-impl", "to": "game-ui", "label": "play only", "fromSide": "right", "toSide": "bottom" },
+    { "id": "games-ui-designsystem", "from": "games-ui", "to": "designsystem", "fromSide": "left", "toSide": "top" },
+    { "id": "games-ui-game-ui", "from": "games-ui", "to": "game-ui", "label": "GamePlayUi", "variant": "emphasis" },
+    { "id": "games-ui-games", "from": "games-ui", "to": "games", "label": "own x" },
+    { "id": "games-game", "from": "games", "to": "game", "label": "GamePlugin · DailySource", "variant": "emphasis", "fromSide": "bottom", "toSide": "right" },
+    { "id": "game-ui-designsystem", "from": "game-ui", "to": "designsystem" },
+    { "id": "game-ui-game", "from": "game-ui", "to": "game" },
+    { "id": "domain-data", "from": "domain", "to": "data", "label": "api" },
+    { "id": "backend-data", "from": "backend-firebase", "to": "data", "label": "binds contracts" },
+    { "id": "backend-firebase-sdk", "from": "backend-firebase", "to": "firebase", "label": "Auth · Firestore" },
+    { "id": "data-game", "from": "data", "to": "game", "label": "api · DailySource", "variant": "emphasis" },
+    { "id": "data-datastore", "from": "data", "to": "datastore", "label": "prefs", "fromSide": "bottom", "toSide": "top" },
+    { "id": "data-database", "from": "data", "to": "database", "label": "Room" },
+    { "id": "data-network", "from": "data", "to": "network", "label": "networkModule", "fromSide": "bottom", "toSide": "top" },
+    { "id": "network-game", "from": "network", "to": "game", "label": "FeedTransport", "fromSide": "right", "toSide": "bottom" },
+    { "id": "network-linkedin", "from": "network", "to": "linkedin", "label": "HTTPS" },
+    { "id": "game-model", "from": "game", "to": "model", "label": "api", "fromSide": "bottom", "toSide": "left" }
   ],
   "cards": [
     {
-      "dot": "cyan",
-      "title": "Contracts",
-      "items": [
-        "Repository interfaces live in core; features inject them via Koin",
-        "refresh() is network-first and returns AppResult; observeHistory()/cached() never touch the network",
-        "homeLayoutFor() is a pure function: two-pane needs Expanded width AND landscape",
-        "Pinned at 7b8eeea383c6533c691e9370a32b6fece28fab2f — no git remote, local-only identity"
-      ]
-    },
-    {
       "dot": "emerald",
-      "title": "Persistence",
+      "title": "Game seams",
       "items": [
-        "Room schema JSON exported under core/data/schemas on every version bump; destructive fallbacks disallowed",
-        "DataStore owns puzzlebox.preferences_pb process-wide on a SupervisorJob scope"
+        "GameRegistry (core:game) is the only GameId → GamePlugin lookup; AppModule builds it from getAll<GamePlugin>() sorted by GAME_ORDER = zip, tango, queens (unlisted ids last, then by id).",
+        "GamePlayRegistry (core:game-ui) is built once in AppModule from getAll<GamePlayUi>(); a duplicate game id throws.",
+        "Each game module binds its DailySource (bind DailySource::class); core:data's DailyRepository collects them by gameId, and they fetch through core:network's FeedTransport.",
+        "Features never name a game: play:impl drives every game through GamePlayUi; Home and History resolve games through GameRegistry."
       ]
     },
     {
       "dot": "rose",
-      "title": "Security",
+      "title": "Forbidden edges · ./gradlew checkModuleGraph",
       "items": [
-        "OkHttp redacts Authorization and Cookie from logcat",
-        "AuthHeaderSource binding is NONE today; LinkedIn session headers arrive in Phase 1",
-        "Retrofit base URL is a placeholder pending the real hosts"
+        "anything → :app; :core:testing from a non-test configuration",
+        "core:* → non-core; feature:* → games:*",
+        "feature:*:api → anything but core:navigation / core:model",
+        "feature:a:impl → feature:b:impl (depend on the other feature's :api)",
+        "games:* → feature:*; games:x → games:y, except games:x-ui → games:x",
+        "Every configuration is checked, test ones included; check, preBuild and classes depend on it via the application, android.library and jvm.library convention plugins. Rationale: docs/adr/0008-module-graph.md"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Adding a game",
+      "items": [
+        "settings.gradle.kts: include :games:<id> and :games:<id>-ui",
+        "games/<id> (jvm.library, api core:game): rules, codec, DailySource, GamePlugin, Koin module with the plugin qualified by id + bind DailySource::class",
+        "games/<id>-ui (on games:<id>, core:game, core:game-ui, core:designsystem): GamePlayController, GamePlayUi, <id>UiModule",
+        "app: implementation of both modules, both Koin modules in appModules, the id in GAME_ORDER — no core:* or feature:* change"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Edges summarized",
+      "items": [
+        ":app depends on every module; only its entry edges are drawn.",
+        "puzzlebox.android.feature.api adds api(core:navigation); puzzlebox.android.feature.impl adds core:designsystem to every impl.",
+        "home:impl → home/play/history/profile api, core:navigation, data, game, domain, model · play:impl → play/home api, core:navigation, common, data, game, game-ui · history:impl → history/play api, core:navigation, data, game, domain · profile:impl → profile api, core:data, domain",
+        "core:model / core:common are shared leaves (data, datastore, domain, game, game-ui also depend on them); core:network → core:game only.",
+        "core:testing (api core:data) is test-only: app, core:data, core:domain, every feature impl and games:zip-ui use it."
       ]
     }
   ]

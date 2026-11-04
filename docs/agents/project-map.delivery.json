@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "861ef5d0-1358-461a-9f2b-0a2f72488aaf",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/ivandsky/orca/workspaces/PuzzleBox/review/.archify/project-map/architecture-candidate.json",
+  "output": "/Users/ivandsky/orca/workspaces/PuzzleBox/review/docs/agents/project-map.html",
+  "specification": {
+    "sha256": "a7bea0a50d15025ca8aa9ce3e7831dbd5ad0bdd23a88feaca9a12896d96e2ed2",
+    "bytes": 16320
+  },
+  "artifact": {
+    "sha256": "6e4060140d250d63a677dffaa185c2e4e1246684ea52ae0cca4a9e25719fd6ca",
+    "bytes": 883629
+  }
+}

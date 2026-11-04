@@ -1,11 +1,15 @@
 import com.android.build.api.dsl.LibraryExtension
 import com.ivandsky.puzzlebox.configureAndroidUnitTests
 import com.ivandsky.puzzlebox.configureKotlinAndroid
+import com.ivandsky.puzzlebox.configureModuleGraphGuard
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 
-/** Android library: com.android.library + shared SDK/Java config + Robolectric unit tests. */
+/**
+ * Android library: com.android.library + shared SDK/Java config + Robolectric unit tests +
+ * the module-graph guard.
+ */
 class AndroidLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
@@ -15,6 +19,7 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                 configureKotlinAndroid(this)
                 configureAndroidUnitTests(this)
             }
+            configureModuleGraphGuard()
         }
     }
 }
