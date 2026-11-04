@@ -394,6 +394,17 @@ class ZipPlayControllerTest {
         assertEquals(banked, c.session?.elapsedMs) // the running window folds on the next tick/move
     }
 
+    @Test
+    fun `an untouched board's fold publishes nothing`() {
+        val c = readyController()
+        val before = saved.size
+
+        c.onBackground()
+
+        assertEquals(before, saved.size)
+        assertEquals(0L, c.session?.elapsedMs)
+    }
+
     //endregion
 
     //region restore (A19 / rotation + process death)

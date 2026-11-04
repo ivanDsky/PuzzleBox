@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.app.play
 
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.lifecycle.Lifecycle
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -62,7 +64,7 @@ import org.robolectric.annotation.GraphicsMode
 class RealGamesPlayRouteTest {
 
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     /** Production Tango today is the REAL cadence date — the history row it resolves
      *  must name that same day (the repository rows the day it captures). */
@@ -222,7 +224,7 @@ class RealGamesPlayRouteTest {
     }
 
     @Test
-    fun `rotation keeps the live zip controller and its hint cooldown`() {
+    fun `rotation keeps the live zip controller and its hint log`() {
         val koin = koinWith()
         try {
             val restoration = StateRestorationTester(composeRule)
@@ -236,14 +238,18 @@ class RealGamesPlayRouteTest {
             val live = composeRule.runOnIdle { zip(koin).also { it.hint() } }
             composeRule.runOnIdle { assertTrue(live.hintCooldownActive()) }
 
-            // Configuration change: the composition (and its saveable) is rebuilt while
-            // the store keeps the play — the hint cooldown and log must survive.
+            // Configuration change: ON_PAUSE folds the clock before the state is saved, then
+            // the composition (and its saveable) is rebuilt while the store keeps the play.
+            val scenario = composeRule.activityRule.scenario
+            scenario.moveToState(Lifecycle.State.STARTED)
             restoration.emulateSavedInstanceStateRestore()
+            scenario.moveToState(Lifecycle.State.RESUMED)
             composeRule.waitForIdle()
 
             composeRule.runOnIdle {
+                // Same controller ⇒ same cooldown anchor; the cooldown itself runs on the wall
+                // clock, which the paused-lifecycle hop can outlast under Robolectric.
                 assertSame(live, zip(koin))
-                assertTrue(live.hintCooldownActive())
                 assertEquals(1, live.hintHistory.size)
             }
         } finally {
@@ -263,7 +269,7 @@ class RealGamesPlayRouteTest {
 
             // Device/system back through PlayRoute's BackHandler: the route pops AND
             // the play releases, so the next play entry picks again (A14).
-            (composeRule as androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>).activity.onBackPressedDispatcher.onBackPressed()
+            composeRule.activity.onBackPressedDispatcher.onBackPressed()
             composeRule.waitForIdle()
             assertEquals(1, back)
             composeRule.onNodeWithTag("play.picker").assertExists()

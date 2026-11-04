@@ -5,6 +5,7 @@ import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.nav.CatalogKey
+import com.ivandsky.puzzlebox.app.nav.puzzleBoxEntryProvider
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.api.HistoryKey
