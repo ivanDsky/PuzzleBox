@@ -80,6 +80,9 @@ class PlayViewModel(
     /** The app went to the background (ON_STOP): the live session is kept. */
     fun background() = store.background()
 
+    /** A new entry over the result's finished [play]: drop it, so the picker shows. */
+    fun dropFinished(play: ActivePlay) = store.dropFinished(play)
+
     private fun current(): PlayUiState =
         store.active.value?.let { playing(it, it.board.value) } ?: PlayUiState.Picker(today.value)
 

@@ -128,6 +128,19 @@ class PlaySessionStore(
     /** The app went to the background (ON_STOP): keep the live play, which stays live. */
     fun background() = keepLive()
 
+    /** A new play entry opened over [play], the result's FINISHED play (the Play tab after
+     *  a solve): it is dropped so the entry shows the picker. Nothing is kept (a solve
+     *  discards), and its scope is NOT cancelled — an in-flight record write must still
+     *  land; every other job a play scope runs is finite. */
+    fun dropFinished(play: ActivePlay) {
+        if (live !== play || !play.controller.isComplete) return
+        live = null
+        scope = null
+        latest = null
+        sink = {}
+        _active.value = null
+    }
+
     private fun open(game: GameId, onSessionChanged: (ByteArray) -> Unit): ActivePlay? {
         val plugin = games[game] ?: return null
         val gameUi = ui[game] ?: return null

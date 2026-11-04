@@ -1,5 +1,9 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -96,16 +100,22 @@ class PlayRouteTest {
 
     private var handedOff: List<Pair<Long, Int>> = emptyList()
 
+    // A new nav entry of the play route: navigation composes it afresh (new remember and
+    // saveable state) over the same activity-scoped view model.
+    private var entry by mutableIntStateOf(0)
+
     private fun setContent(restoredSession: ByteArray? = null, onBack: () -> Unit = {}) {
         handedOff = emptyList()
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                PlayRoute(
-                    layout = PlayLayout.SinglePane,
-                    onBack = onBack,
-                    onSolved = { timeMs, hintsUsed -> handedOff = handedOff + (timeMs to hintsUsed) },
-                    restoredSession = restoredSession,
-                )
+                key(entry) {
+                    PlayRoute(
+                        layout = PlayLayout.SinglePane,
+                        onBack = onBack,
+                        onSolved = { timeMs, hintsUsed -> handedOff = handedOff + (timeMs to hintsUsed) },
+                        restoredSession = restoredSession,
+                    )
+                }
             }
         }
     }
@@ -265,5 +275,25 @@ class PlayRouteTest {
         composeRule.waitForIdle()
         composeRule.onNodeWithText("alpha board 1").assertExists()
         assertEquals(18_000L, fakes[alpha].latest.displayedElapsedMs())
+    }
+
+    @Test
+    fun `a new entry over the result's finished play shows the picker, not the win again`() {
+        koinWith()
+        setContent()
+        composeRule.onNodeWithTag("play.picker_alpha").performClick()
+        composeRule.waitForIdle()
+        composeRule.runOnIdle { fakes[alpha].latest.move() }
+        composeRule.runOnIdle { fakes[alpha].latest.win() }
+        composeRule.waitForIdle()
+        assertEquals(1, handedOff.size)
+
+        // The Play tab after a solve: a new play entry while the finished play is still live.
+        composeRule.runOnIdle { entry++ }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("play.picker").assertExists()
+        assertEquals(1, handedOff.size)
+        assertEquals(null, store().active.value)
     }
 }

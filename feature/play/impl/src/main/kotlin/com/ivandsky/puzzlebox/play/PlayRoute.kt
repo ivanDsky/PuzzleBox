@@ -59,15 +59,20 @@ fun PlayRoute(
     val restored = remember(restoredSession) { restoredSession?.let(SessionBlob::decode) }
     var restoredConsumed by remember { mutableStateOf(false) }
 
+    // The result's finished play stays live for its record and "Play again" (whose replay
+    // resets it before this entry exists). An entry composed over it while still finished
+    // — the Play tab after a solve — is a new visit: never its screen (each game's screen
+    // hands a complete session off again, and the reload would blank the result's
+    // badge); the play is dropped and the picker shows.
+    val finishedAtEntry = remember { viewModel.active?.takeIf { it.controller.isComplete } }
+
     // One-shot per play instance: adopt a persisted session or the replay blob (both are
     // SessionBlob envelopes naming their game — fix-round-1 C1 unified them), else fetch
     // the picked game's board. Priority: saveable first (mid-play rotation AND process
     // death — the saveable outlives the store single, whose restart lives in
-    // PlaySessionStore.restore), then the replay blob, once per play instance. A play
-    // carried over from a FINISHED result is stale: a completed session at a fresh
-    // non-replay entry means a fresh fetch. The live mid-result play (result → Play
-    // again) is kept untouched.
+    // PlaySessionStore.restore), then the replay blob, once per play instance.
     LaunchedEffect((state as? PlayUiState.Playing)?.play) {
+        finishedAtEntry?.let(viewModel::dropFinished)
         val saved = savedSession
         savedSession = null
         val envelope = saved?.let(SessionBlob::decode)
@@ -103,13 +108,15 @@ fun PlayRoute(
             modifier = modifier,
         )
 
-        is PlayUiState.Playing -> current.ui.Screen(
-            controller = current.controller,
-            status = current.status,
-            layout = layout,
-            onRetry = current.play::load,
-            onSolved = onSolved,
-            modifier = modifier,
-        )
+        is PlayUiState.Playing -> if (current.controller !== finishedAtEntry?.controller) {
+            current.ui.Screen(
+                controller = current.controller,
+                status = current.status,
+                layout = layout,
+                onRetry = current.play::load,
+                onSolved = onSolved,
+                modifier = modifier,
+            )
+        }
     }
 }
