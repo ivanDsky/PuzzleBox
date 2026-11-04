@@ -3,9 +3,9 @@ package com.ivandsky.puzzlebox.data.di
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
-import com.ivandsky.puzzlebox.data.testing.FakeDailySource
-import com.ivandsky.puzzlebox.data.testing.TestGames
-import com.ivandsky.puzzlebox.data.testing.TestGames.alpha
+import com.ivandsky.puzzlebox.testing.game.FakeDailySource
+import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.database.PuzzleDailyDao
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.FeedTransport

@@ -18,4 +18,5 @@ dependencies {
     api(projects.core.model)
     // HomeRouteTest registers the real Zip plugin so its captured days reach the teaser.
     testImplementation(projects.games.zip)
+    testImplementation(projects.core.testing)
 }

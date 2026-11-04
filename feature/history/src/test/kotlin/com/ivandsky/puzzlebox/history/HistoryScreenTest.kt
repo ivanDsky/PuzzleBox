@@ -11,7 +11,8 @@ import androidx.compose.ui.test.performClick
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.gameHistoryDays
-import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.DecodeError

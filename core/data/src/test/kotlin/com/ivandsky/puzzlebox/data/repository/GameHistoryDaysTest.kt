@@ -1,18 +1,15 @@
 package com.ivandsky.puzzlebox.data.repository
 
-import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
-import com.ivandsky.puzzlebox.data.testing.TestGames.Ref
-import com.ivandsky.puzzlebox.data.testing.TestGames.alpha
-import com.ivandsky.puzzlebox.data.testing.TestGames.beta
 import com.ivandsky.puzzlebox.game.CompletionRecord
-import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
+import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
+import com.ivandsky.puzzlebox.testing.game.TestGames.beta
+import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import java.time.LocalDate
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -23,17 +20,6 @@ import org.junit.Test
  * concrete ref anywhere on the path.
  */
 class GameHistoryDaysTest {
-
-    private class FakeCompletionRepository(records: List<CompletionRecord> = emptyList()) :
-        CompletionRepository {
-        private val recordsFlow = MutableStateFlow(records)
-        override suspend fun onCompleted(record: CompletionRecord) {
-            recordsFlow.value = recordsFlow.value + record
-        }
-        override fun observeRecords(): Flow<List<CompletionRecord>> = recordsFlow
-        override fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
-            recordsFlow.map { rows -> rows.filter { it.puzzleRef == puzzleRef } }
-    }
 
     private val games = listOf(alpha, beta)
 

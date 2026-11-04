@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.data.testing
+package com.ivandsky.puzzlebox.testing.repository
 
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository

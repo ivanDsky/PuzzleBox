@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.game.testing
+package com.ivandsky.puzzlebox.testing.game
 
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.FetchResult
@@ -7,9 +7,8 @@ import com.ivandsky.puzzlebox.game.PuzzleSource
 import java.time.LocalDate
 
 /**
- * The puzzle seam's second adapter (F1 §2): a deterministic in-memory fixture source for
- * tests and previews. The production adapters (LinkedInDaily, ticket 12; Strands, Phase 3)
- * and the future archive (ADR-0002) implement [PuzzleSource] the same way.
+ * A deterministic in-memory fixture [PuzzleSource] for tests: serves the given puzzle per
+ * date, fails [FetchError.Unavailable] for any other day.
  */
 class InMemoryPuzzleSource(
     private val byDate: Map<LocalDate, Puzzle>,

@@ -1,7 +1,6 @@
-package com.ivandsky.puzzlebox.data.testing
+package com.ivandsky.puzzlebox.testing.repository
 
 import com.ivandsky.puzzlebox.data.identity.AuthResult
-import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,6 +44,3 @@ class FakeIdentityService(
         state.value = null
     }
 }
-
-/** Convenience for tests that only need the error side of [AuthResult]. */
-fun authErr(error: AuthError): AuthResult = AuthResult.Err(error)

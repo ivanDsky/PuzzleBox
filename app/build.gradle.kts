@@ -79,6 +79,7 @@ dependencies {
 
     // DiGraphTest asserts the Room database resolves from the composed graph.
     testImplementation(projects.core.database)
+    testImplementation(projects.core.testing)
     testImplementation(libs.koin.test)
     testImplementation(libs.koin.test.junit4)
     testImplementation(libs.turbine)

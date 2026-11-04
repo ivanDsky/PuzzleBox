@@ -1,9 +1,9 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import androidx.room.Room
-import com.ivandsky.puzzlebox.data.testing.TestGames
-import com.ivandsky.puzzlebox.data.testing.TestGames.Ref
-import com.ivandsky.puzzlebox.data.testing.TestGames.alpha
+import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
+import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats

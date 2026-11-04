@@ -5,11 +5,11 @@ import app.cash.turbine.test
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.data.model.toEntity
 import com.ivandsky.puzzlebox.data.model.toPuzzle
-import com.ivandsky.puzzlebox.data.testing.FakeDailySource
-import com.ivandsky.puzzlebox.data.testing.TestGames
-import com.ivandsky.puzzlebox.data.testing.TestGames.Ref
-import com.ivandsky.puzzlebox.data.testing.TestGames.alpha
-import com.ivandsky.puzzlebox.data.testing.TestGames.beta
+import com.ivandsky.puzzlebox.testing.game.FakeDailySource
+import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
+import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
+import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.database.PuzzleDailyEntity
 import com.ivandsky.puzzlebox.game.FetchError

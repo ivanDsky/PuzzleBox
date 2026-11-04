@@ -8,8 +8,9 @@ import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.data.identity.IdentityService
-import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
-import com.ivandsky.puzzlebox.data.testing.FakeIdentityService
+import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -19,9 +20,6 @@ import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.zipPlugin
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -47,17 +45,6 @@ class HomeRouteTest {
 
     @get:Rule
     val composeRule = createComposeRule()
-
-    private class FakeCompletions(records: List<CompletionRecord> = emptyList()) :
-        CompletionRepository {
-        private val flow = MutableStateFlow(records)
-        override suspend fun onCompleted(record: CompletionRecord) {
-            flow.value = flow.value + record
-        }
-        override fun observeRecords(): Flow<List<CompletionRecord>> = flow
-        override fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
-            flow.map { rows -> rows.filter { it.puzzleRef == puzzleRef } }
-    }
 
     /** A ref shape Queens authors — local because :feature:home has no games:queens dep. */
     private data class QueensRef(
@@ -112,7 +99,7 @@ class HomeRouteTest {
     @Test
     fun `teaser tracks zip daily repository emissions`() {
         val daily = FakeDailyRepository()
-        setContent(daily, FakeCompletions())
+        setContent(daily, FakeCompletionRepository())
 
         // Nothing captured yet: the honest empty state.
         composeRule.onNodeWithText("No games yet").assertExists()
@@ -130,7 +117,7 @@ class HomeRouteTest {
 
     @Test
     fun `a queens completion surfaces in the teaser - fix round 5 defect C`() = kotlinx.coroutines.test.runTest {
-        val completions = FakeCompletions()
+        val completions = FakeCompletionRepository()
         setContent(FakeDailyRepository(), completions)
         composeRule.onNodeWithText("No games yet").assertExists()
 

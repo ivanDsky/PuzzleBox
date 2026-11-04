@@ -3,7 +3,8 @@ package com.ivandsky.puzzlebox.history
 import androidx.paging.PagingSource
 import androidx.paging.testing.asSnapshot
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import java.time.LocalDate

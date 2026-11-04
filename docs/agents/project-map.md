@@ -45,8 +45,7 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   Fresh/Cached/Unavailable), `CompletionRepository` → `RoomCompletionRepository` +
   `FirstWinPolicy`), `identity/IdentityService` + `AuthResult`/`AuthError`, `leaderboard/`
   (`LeaderboardRef`, `LeaderboardEntry`, `LeaderboardRepository`, `SubmitResult`
-  Ok/Deduped/Err, `LeaderboardEntries.fromRecord`), Koin `dataModule`, and handwritten fakes
-  under `data.testing` (main source set, usable by features).
+  Ok/Deduped/Err, `LeaderboardEntries.fromRecord`), Koin `dataModule`.
 - `core/designsystem/` — `PuzzleBoxTheme` composition root, token vocabulary (`ColorTokens`
   light/dark, `Type` Baloo 2, `Shape`, `Spacing`, `MotionTokens` + named motion patterns),
   `BoardTokens`/`BoardColors` (board palette + wall/grid weights, contrast-tuned per light/dark),
@@ -66,7 +65,12 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   `app` aggregates). Supporting types: `Puzzle` (gameId+variant+formatVersion+payload bytes),
   `DecodeResult`/`DecodeError` (UnsupportedVersion/UnknownVariant/VariantSizeMismatch/Malformed),
   `VariantId`, `RecordStats` (versioned open stats slot), `CompletionRecord` (puzzleRef + time +
-  hints + stats; `firstCompletedAt`/`isRecord` stamped by core/data); `testing/InMemoryPuzzleSource`.
+  hints + stats; `firstCompletedAt`/`isRecord` stamped by core/data).
+- `core/testing/` — test doubles, consumed ONLY via `testImplementation(projects.core.testing)`
+  (package `com.ivandsky.puzzlebox.testing`): `repository/` fakes of the core:data interfaces
+  (`FakeDailyRepository`, `FakeCompletionRepository`, `FakeIdentityService`,
+  `FakeLeaderboardRepository`, `FakeUserPreferencesRepository`), `game/` (`TestGames` stand-in
+  registry, `FakeDailySource`, `InMemoryPuzzleSource`), `rule/MainDispatcherRule`.
 - `core/game-ui/` — the Compose mapping layer, keyed by `GameId` (ADR-0001: no Compose in
   `:core:game`): `GameUiRegistry` (GameId → `GameBoardRenderer`, `Board()` renders loading/
   error/empty via `BoardStates`), `BoardGrid` + `EdgeOverlay` (walls), `DragTrace`
@@ -156,7 +160,7 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   references a concrete game. The zero-`core:game`-edit guarantee covers onboarding AND
   evolution (ADR-0005: versioned codecs, `Puzzle.variant` rule-as-data, `RecordStats` open slot).
 - **`PuzzleSource`** — where puzzles come from; implementations live outward of core
-  (`LinkedInZipDailySource` today, `InMemoryPuzzleSource` in testing, the archive later per
+  (`LinkedInZipDailySource` today, `InMemoryPuzzleSource` in core/testing, the archive later per
   ADR-0002). `FetchError` distinguishes Unavailable (degrade to cache) from Throttled
   (LinkedIn soft-redirect cooldown, retryable) from Untrusted (oracle gate failed).
 - **`GameUiRegistry`** (core/game-ui) — GameId → `GameBoardRenderer` is the game→UI seam:
@@ -179,11 +183,10 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
 - **`DispatcherProvider`** — dispatcher injection keeps callers testable.
 - **`AuthHeaderSource`** — fun interface where LinkedIn session headers plug in; currently
   `NONE` (the Zip client rides `LinkedInSessionCookieJar` instead).
-- **Handwritten fakes** in `core/data` main source set: `FakeDailyPuzzleRepository`,
-  `FakeZipDailySource`, `FakeIdentityService` (scriptable auth outcomes),
+- **Handwritten fakes** in `core/testing` (test-scope only): `FakeDailyRepository`,
+  `FakeCompletionRepository`, `FakeIdentityService` (scriptable auth outcomes),
   `FakeLeaderboardRepository` (records submissions), `FakeUserPreferencesRepository`,
-  `TestZipRef` — the tdd-fakes style PROFILE.md names; `core/game/testing` adds
-  `InMemoryPuzzleSource`.
+  `TestGames`/`FakeDailySource`, `InMemoryPuzzleSource` — the tdd-fakes style PROFILE.md names.
 - **Pure layout policies** — `homeLayoutFor`, `playLayoutFor`, `historyLayoutFor`:
   width+orientation → pane arrangement; tested without a device.
 - **`Migrations.ALL`** — every schema change bumps the Room version (now 4), commits an

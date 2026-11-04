@@ -1,9 +1,9 @@
 package com.ivandsky.puzzlebox.data.model
 
-import com.ivandsky.puzzlebox.data.testing.TestGames
-import com.ivandsky.puzzlebox.data.testing.TestGames.Ref
-import com.ivandsky.puzzlebox.data.testing.TestGames.alpha
-import com.ivandsky.puzzlebox.data.testing.TestGames.beta
+import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
+import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
+import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

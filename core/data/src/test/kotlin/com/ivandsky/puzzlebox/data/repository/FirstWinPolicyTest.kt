@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.data.repository
 
-import com.ivandsky.puzzlebox.data.testing.TestGames.Ref
+import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId

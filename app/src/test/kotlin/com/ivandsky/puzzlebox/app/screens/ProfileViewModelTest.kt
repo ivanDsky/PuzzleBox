@@ -16,22 +16,19 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
-import com.ivandsky.puzzlebox.data.testing.FakeIdentityService
-import com.ivandsky.puzzlebox.data.testing.FakeLeaderboardRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
+import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 /** Profile ViewModel states (brief §4): signed-out/in, sign-in results, board gating. */
@@ -41,6 +38,9 @@ class ProfileViewModelTest {
     private val day = LocalDate.of(2026, 10, 31)
     private val boardRef = LeaderboardRef("zip", day)
     private val dispatcher = StandardTestDispatcher()
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule(dispatcher)
 
     private class FakeTokenProvider(var next: GoogleIdToken = GoogleIdToken.Available("tok")) :
         GoogleIdTokenProvider {
@@ -75,16 +75,6 @@ class ProfileViewModelTest {
 
     // Plain JVM test: the fake provider ignores the context, so a mock satisfies the seam.
     private val appContext: Context = org.mockito.Mockito.mock(Context::class.java)
-
-    @Before
-    fun setUp() {
-        Dispatchers.setMain(dispatcher)
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
 
     @Test
     fun `signed out is the initial state, board not observed (A7-A15)`() = runTest(dispatcher) {

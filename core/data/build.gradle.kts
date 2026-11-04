@@ -22,6 +22,7 @@ dependencies {
 
     implementation(libs.koin.core)
 
+    testImplementation(projects.core.testing)
     testImplementation(libs.turbine)
     // DI-graph guard (ticket 03): koin-android provides androidContext(); koin-test the KoinTest harness.
     testImplementation(libs.koin.android)

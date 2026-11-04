@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.data.testing
+package com.ivandsky.puzzlebox.testing.game
 
 import com.ivandsky.puzzlebox.game.Cadence
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -27,10 +27,10 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 /**
- * core:data never sees a real game (no games:* edge): these stand-ins register under
- * arbitrary ids so storage, history and the daily repository are exercised through
- * [GameRegistry] exactly as production wires them. A payload decodes only when it starts
- * with [TestGames.MAGIC], so corrupted-row paths stay testable.
+ * Stand-in games for modules that must never see a real game (core:data has no games:*
+ * edge): they register under arbitrary ids so storage, history and the daily repository
+ * are exercised through [GameRegistry] exactly as production wires them. A payload
+ * decodes only when it starts with [TestGames.MAGIC], so corrupted-row paths stay testable.
  */
 object TestGames {
 

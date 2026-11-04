@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.data.testing
+package com.ivandsky.puzzlebox.testing.repository
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef

@@ -1,12 +1,9 @@
 package com.ivandsky.puzzlebox.play
 
-import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
-import com.ivandsky.puzzlebox.data.testing.FakeDailyRepository
-import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.game.Puzzle
-import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoCell
@@ -30,10 +27,6 @@ import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
 
 /**
  * Deterministic 5x5 fixture (hand-verifiable, mirrors games/zip's ZipTestSupport board):
@@ -188,25 +181,3 @@ fun freshDailyForAllGames(): FakeDailyRepository = FakeDailyRepository()
     .script(ZipDefinition.id, DailyToday.Fresh(PlayTestSupport.envelope()))
     .script(TangoDefinition.id, DailyToday.Fresh(TangoPlayFixture.envelope()))
     .script(QueensDefinition.id, DailyToday.Fresh(QueensPlayFixtures.envelope()))
-
-/**
- * In-memory [CompletionRepository] fake over the REAL :core:data interface, with a
- * [fail] switch so the write-failure path is drivable. A4 stamping semantics live in
- * the Room implementation — this fake stores verbatim what callers write.
- */
-class FakeCompletionRepository : CompletionRepository {
-
-    var fail = false
-
-    private val all = MutableStateFlow<List<CompletionRecord>>(emptyList())
-
-    override suspend fun onCompleted(record: CompletionRecord) {
-        if (fail) throw IllegalStateException("disk full")
-        all.update { it + record }
-    }
-
-    override fun observeRecords(): Flow<List<CompletionRecord>> = all
-
-    override fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
-        all.map { rows -> rows.filter { it.puzzleRef == puzzleRef } }
-}

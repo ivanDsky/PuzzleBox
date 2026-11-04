@@ -25,4 +25,6 @@ dependencies {
     implementation(projects.games.tangoUi)
 
     implementation(libs.kotlinx.coroutines.core)
+
+    testImplementation(projects.core.testing)
 }
