@@ -3,6 +3,7 @@ agp = "9.5.0"
 # Matches the Kotlin compiler embedded in AGP's built-in Kotlin support.
 kotlin = "2.2.10"
 activityCompose = "1.13.0"
+lifecycle = "2.10.0"
 composeBom = "2026.09.00"
 # material-icons-core is upstream-FROZEN at 1.7.8 (the compose BOM no longer carries a
 # real mapping for it, so the versionless entry used to hide which artifact actually
@@ -48,6 +49,7 @@ mockito = "5.20.0"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core", version.ref = "materialIconsCore" }

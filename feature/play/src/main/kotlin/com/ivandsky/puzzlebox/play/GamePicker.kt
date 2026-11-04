@@ -17,16 +17,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The play tab's fresh-entry state (spec A14): the registered games side by side, no
- * new navigation pattern — picking a game starts that game's flow in place. Both
- * entries ride the daily cadence; the picker never fetches (the flow's load does).
+ * new navigation pattern — picking a game starts that game's play in place. Both
+ * entries ride the daily cadence; the picker never fetches (the play's load does).
  */
 @Composable
 internal fun GamePicker(
-    games: List<Pair<PlayGame, String>>,
-    onPick: (PlayGame) -> Unit,
+    games: List<Pair<GameId, String>>,
+    onPick: (GameId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -47,7 +48,7 @@ internal fun GamePicker(
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("play.picker_${game.id.value}")
+                    .testTag("play.picker_${game.value}")
                     // §9 touch floors: picker rows clear 48 dp with the padded content.
                     .heightIn(min = 56.dp)
                     .clickable(onClick = { onPick(game) }),

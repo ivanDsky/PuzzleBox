@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.play
+package com.ivandsky.puzzlebox.games.zipui
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -56,12 +56,10 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.EdgeOverlay
 import com.ivandsky.puzzlebox.gameui.EdgeSide
-import com.ivandsky.puzzlebox.gameui.GameUiRegistry
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.rememberReducedMotion
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipBoard
-import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
 import com.ivandsky.puzzlebox.games.zip.engine.ZipState
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
@@ -70,18 +68,11 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * The F2-1 Compose mapping, owned HERE (the state→model call site is the play feature;
- * game-ui never imports Zip): [ZipRendererModel] → the shared [BoardGrid]. Registered
- * into the [GameUiRegistry] by `playModule`; the interactive play screen reuses the same
- * outline + wall overlays + cell decor inside a [com.ivandsky.puzzlebox.gameui.DragTraceBoard].
+ * Read-only board (no gesture layer) — the F2-1 Compose mapping, owned by Zip's UI
+ * module (game-ui never imports Zip): [ZipRendererModel] → the shared [BoardGrid]. The
+ * interactive play screen reuses the same outline + wall overlays + cell decor inside a
+ * [com.ivandsky.puzzlebox.gameui.DragTraceBoard].
  */
-fun GameUiRegistry.registerZipBoard() {
-    register(ZipDefinition.id) { model, modifier ->
-        ZipBoard(model as ZipRendererModel, modifier)
-    }
-}
-
-/** Read-only board (no gesture layer): the registry-facing rendering of the model. */
 @Composable
 fun ZipBoard(model: ZipRendererModel, modifier: Modifier = Modifier) {
     BoardGrid(

@@ -1,14 +1,11 @@
-package com.ivandsky.puzzlebox.play
+package com.ivandsky.puzzlebox.games.queensui
 
-import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.data.repository.DailyToday
-import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
-import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
+import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.queensVariantId
 import java.time.LocalDate
@@ -37,17 +34,6 @@ object QueensPlayFixtures {
     /** Today in Queens' cadence zone — the identity of the loaded board. */
     fun today(): LocalDate = QueensDefinition.cadence.today()
 
-    /** Today's captured Queens day (#42). */
-    fun entry(day: LocalDate = today()) = DailyEntry(QueensDefinition.id, day, 42, "queens/n8", 0L)
-
-    /** A daily repository serving [envelope] fresh for Queens. */
-    fun fresh(history: List<DailyEntry> = emptyList()) =
-        FakeDailyRepository().script(QueensDefinition.id, DailyToday.Fresh(envelope()), history)
-
-    /** A daily repository whose Queens fetch fails with no cache. */
-    fun unavailable() = FakeDailyRepository().script(
-        QueensDefinition.id,
-        DailyToday.Unavailable(FetchError.Unavailable("offline")),
-        listOf(entry()),
-    )
+    /** Today's resolved record identity (#42). */
+    fun ref(): QueensPuzzleRef = QueensPuzzleRef(today(), 42)
 }

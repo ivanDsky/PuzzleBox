@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,9 +34,8 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
  * surfaced and retryable here, where the player actually is after solving.
  *
  * Core | game split: this shell is the same for every game. A game tweaks it through
- * [label] (its own line under the headline — game name + puzzle number) and
- * [gameSection] (extra content between the facts and the action, e.g. a per-game stat);
- * both default to nothing.
+ * [label] (its own line under the headline — game name + puzzle number), which
+ * defaults to nothing.
  *
  * Restraint (senior-UX Lens 7): one accent moment — the record badge; type hierarchy
  * from AppTypography; theme roles only, zero ad-hoc colors.
@@ -52,7 +50,6 @@ fun ResultScreen(
     writeFailed: Boolean = false,
     onRetryWrite: () -> Unit = {},
     label: String? = null,
-    gameSection: @Composable ColumnScope.() -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -127,7 +124,6 @@ fun ResultScreen(
                 TextButton(onClick = onRetryWrite) { Text("Retry") }
             }
         }
-        gameSection()
         PrimaryButton(
             text = "Play again",
             onClick = onPlayAgain,

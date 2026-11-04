@@ -12,9 +12,9 @@ import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.GameRegistry
-import com.ivandsky.puzzlebox.gameui.GameUiRegistry
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.play.PlayFlow
+import com.ivandsky.puzzlebox.play.PlaySessionStore
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
@@ -73,16 +73,14 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<ProfileViewModel>())
 
             // Game aggregation (ADR-0001): every game module's plugin lands in the
-            // registry and the featured game's renderer is registered — a missing entry
-            // is a wiring bug, loudly here.
-            val games = koin.get<GameRegistry>().all.map { it.definition.id }.toSet()
-            assertEquals(setOf(GameId("zip"), GameId("tango"), GameId("queens")), games)
-            val registry = koin.get<GameUiRegistry>()
-            assertNotNull("no board renderer registered for zip", registry[GameId("zip")])
-            // Queens play wiring: the one shared flow resolves off the real graph and the
-            // game's renderer is registered — a missing line is a wiring bug.
-            assertNotNull(koin.get<PlayFlow>())
-            assertNotNull("no board renderer registered for queens", registry[GameId("queens")])
+            // registry in picker order, and every game's play UI is registered — a
+            // missing entry is a wiring bug, loudly here.
+            val games = koin.get<GameRegistry>().all.map { it.definition.id.value }
+            assertEquals(listOf("zip", "tango", "queens"), games)
+            val playUis = koin.get<GamePlayRegistry>()
+            for (id in games) assertNotNull("no play UI registered for $id", playUis[GameId(id)])
+            // The one shared play session store resolves off the real graph.
+            assertNotNull(koin.get<PlaySessionStore>())
         } finally {
             stopKoin() // close() alone leaves the JVM-global context registered for later tests
         }

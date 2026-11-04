@@ -1,83 +1,91 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.FetchError
-import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.game.today
+import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.games.queens.queensPlugin
-import com.ivandsky.puzzlebox.games.tango.TangoDefinition
-import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
-import com.ivandsky.puzzlebox.games.tango.TangoSession
-import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
-import com.ivandsky.puzzlebox.games.tango.tangoPlugin
-import com.ivandsky.puzzlebox.games.zip.ZipDefinition
-import com.ivandsky.puzzlebox.games.zip.codec.ZipSessionCodec
-import com.ivandsky.puzzlebox.games.zip.zipPlugin
 import com.ivandsky.puzzlebox.play.di.playModule
+import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
-import java.time.LocalDate
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
-import org.koin.core.KoinApplication
 import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import org.robolectric.annotation.GraphicsMode
 
 /**
- * tango-05 route wiring: the picker is the play tab's fresh-entry state (A14) — every
- * registered game listed, picking starts THAT game's flow in place — and a nav-carried
- * [SessionBlob] replay restores through the named game's codec (ADR-0005).
+ * The play route over stand-in games (feature:play never sees a real game): the picker
+ * is the fresh-entry state (A14), picking starts that game in place through its
+ * [com.ivandsky.puzzlebox.gameui.GamePlayUi], a nav-carried [SessionBlob] restores
+ * through the named game, and back releases the play. The same paths over the real
+ * games live in the app's RealGamesPlayRouteTest.
  */
 @RunWith(RobolectricTestRunner::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
 class PlayRouteTest {
 
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val day: LocalDate = LocalDate.parse("2026-10-31")
+    private val alpha = TestGames.alpha
+    private val beta = TestGames.beta
+    private val day = TestGames.definition(alpha).cadence.today()
+    private val fakes = FakeGames(listOf(alpha, beta))
 
-    /** Production [TangoPlayState.today] is the REAL cadence date — the history row it
-     *  resolves must name that same day (the repository rows the day it captures). */
-    private val cadenceToday: LocalDate = TangoDefinition.cadence.today()
-
-    private fun dataModule(
-        daily: DailyRepository,
-        completions: CompletionRepository,
-    ): org.koin.core.module.Module = module {
-        single { daily }
-        single { completions }
-        // The picker names games from the registry (A14) — every game registered.
-        single { GameRegistry(listOf(zipPlugin, tangoPlugin, queensPlugin)) }
+    private fun freshDaily() = FakeDailyRepository().apply {
+        setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
+        setToday(beta, DailyToday.Fresh(TestGames.puzzle(beta)))
+        setHistory(alpha, listOf(DailyEntry(alpha, day, 7, "alpha/v1", 0L)))
     }
 
+    private var koin: KoinApplication? = null
+
     private fun koinWith(
-        daily: DailyRepository = freshDailyForAllGames(),
+        daily: DailyRepository = freshDaily(),
         completions: CompletionRepository = FakeCompletionRepository(),
     ): KoinApplication {
         stopKoin() // tests share the JVM-global Koin context
-        return startKoin { modules(dataModule(daily, completions), playModule) }
+        return startKoin {
+            modules(
+                module {
+                    single { daily }
+                    single { completions }
+                    single<GameRegistry> { fakes.games }
+                    single<GamePlayRegistry> { fakes.registry }
+                },
+                playModule,
+            )
+        }.also { koin = it }
+    }
+
+    @After
+    fun tearDown() {
+        koin?.close()
     }
 
     private var handedOff: List<Pair<Long, Int>> = emptyList()
 
-    private fun setContent(koin: KoinApplication, restoredSession: ByteArray? = null, onBack: () -> Unit = {}) {
+    private fun setContent(restoredSession: ByteArray? = null, onBack: () -> Unit = {}) {
         handedOff = emptyList()
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
@@ -91,134 +99,97 @@ class PlayRouteTest {
         }
     }
 
+    private fun store() = koin!!.koin.get<PlaySessionStore>()
+
     @Test
     fun `fresh entry shows the picker with every registered game`() {
-        val koin = koinWith()
-        try {
-            setContent(koin)
-            composeRule.onNodeWithTag("play.picker").assertExists()
-            composeRule.onNodeWithText("Pick a game").assertExists()
-            composeRule.onNodeWithTag("play.picker_zip").assertExists()
-            composeRule.onNodeWithTag("play.picker_tango").assertExists()
-            composeRule.onNodeWithTag("play.picker_queens").assertExists()
-            composeRule.onNodeWithText("Zip").assertExists()
-            composeRule.onNodeWithText("Tango").assertExists()
-            composeRule.onNodeWithText("Queens").assertExists()
-        } finally {
-            koin.close()
-        }
+        koinWith()
+        setContent()
+        composeRule.onNodeWithTag("play.picker").assertExists()
+        composeRule.onNodeWithText("Pick a game").assertExists()
+        composeRule.onNodeWithTag("play.picker_alpha").assertExists()
+        composeRule.onNodeWithTag("play.picker_beta").assertExists()
+        composeRule.onNodeWithText("Alpha").assertExists()
+        composeRule.onNodeWithText("Beta").assertExists()
     }
 
     @Test
-    fun `picking tango starts the tango screen in place`() {
-        val daily = freshDailyForAllGames().apply {
-            setHistory(TangoDefinition.id, listOf(TangoPlayFixture.entry(cadenceToday)))
-        }
-        val koin = koinWith(daily)
-        try {
-            setContent(koin)
-            composeRule.onNodeWithTag("play.picker_tango").performClick()
-            composeRule.waitForIdle()
+    fun `picking a game starts its screen in place and loads today`() {
+        val daily = freshDaily()
+        koinWith(daily)
+        setContent()
+        composeRule.onNodeWithTag("play.picker_alpha").performClick()
+        composeRule.waitForIdle()
 
-            // The tango play screen replaced the picker; today's board loaded in.
-            composeRule.runOnIdle {
-                val playState = koin.koin.get<PlayFlow>().state as TangoPlayState
-                assertTrue(playState.screen is TangoScreen.Ready)
-                assertEquals(TangoPuzzleRef(cadenceToday, 301), playState.session?.ref)
-            }
-            composeRule.onNodeWithText("Tango").assertExists()
-            composeRule.onNodeWithTag("play.side_panel").assertExists()
-            composeRule.onNodeWithText("Daily · #301").assertExists()
-            composeRule.onNodeWithTag("play.picker").assertDoesNotExist()
-        } finally {
-            koin.close()
-        }
+        composeRule.onNodeWithText("alpha board 0").assertExists()
+        composeRule.onNodeWithTag("play.picker").assertDoesNotExist()
+        assertEquals(1, daily.todayCalls(alpha))
+        assertEquals(TestGames.Ref(alpha, day, 7), fakes[alpha].latest.ref)
     }
 
     @Test
-    fun `a tango replay blob starts tango and restores the archived session`() {
-        val session = TangoSession(
-            ref = TangoPuzzleRef(LocalDate.parse("2026-03-09"), 12),
-            puzzle = TangoPlayFixture.puzzle,
-            completedAt = java.time.Instant.parse("2026-03-09T12:00:00Z"),
-        )
-        val blob = SessionBlob.encode(
-            TangoDefinition.id,
-            TangoSessionCodec.serialize(session),
-        )
-        val koin = koinWith(
-            freshDailyForAllGames().apply {
-                setToday(TangoDefinition.id, DailyToday.Unavailable(FetchError.Throttled()))
-            },
-        )
-        try {
-            setContent(koin, restoredSession = blob)
+    fun `an unavailable board retries through the screen`() {
+        val daily = freshDaily().apply { setToday(alpha, DailyToday.Unavailable(FetchError.Unavailable("offline"))) }
+        koinWith(daily)
+        setContent()
+        composeRule.onNodeWithTag("play.picker_alpha").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("play.error").assertExists()
 
-            // Restored COMPLETED session → the win handoff fires into navigation (the
-            // app shell renders the result route; here it's a stub) and the archive
-            // was NEVER re-fetched (the blob carried the puzzle, A19).
-            composeRule.waitForIdle()
-            composeRule.runOnIdle {
-                val playState = koin.koin.get<PlayFlow>().state as TangoPlayState
-                assertTrue(
-                    "screen=${playState.screen::class.simpleName} " +
-                        "complete=${playState.session?.isComplete} " +
-                        "ref=${playState.session?.ref} " +
-                        "done=${playState.session?.completedAt != null}",
-                    playState.session?.isComplete ?: false,
-                )
-                assertEquals(1, handedOff.size)
-            }
-            composeRule.onNodeWithText("Tango").assertExists()
-            composeRule.onNodeWithTag("play.picker").assertDoesNotExist()
-        } finally {
-            koin.close()
-        }
+        daily.setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
+        composeRule.onNodeWithText("Try again").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("alpha board 0").assertExists()
+        assertEquals(2, daily.todayCalls(alpha))
     }
 
     @Test
-    fun `a zip replay blob still restores through the zip codec`() {
-        val zipSession = com.ivandsky.puzzlebox.games.zip.ZipSession(
-            ref = com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef(LocalDate.parse("2026-03-09"), 12),
-            puzzle = PlayTestSupport.puzzle(),
-        )
-        val blob = SessionBlob.encode(
-            ZipDefinition.id,
-            ZipSessionCodec.serialize(zipSession),
-        )
-        val daily = freshDailyForAllGames()
-        val koin = koinWith(daily)
-        try {
-            setContent(koin, restoredSession = blob)
-            composeRule.waitForIdle()
+    fun `a replay blob starts its game and restores the archived session without a fetch`() {
+        val daily = freshDaily().apply { setToday(beta, DailyToday.Unavailable(FetchError.Throttled())) }
+        koinWith(daily)
+        val blob = FakeController.envelope(beta, moves = 3, complete = true, day = day.minusDays(30), number = 12)
+        setContent(restoredSession = SessionBlob.encode(blob.game, blob.session))
+        composeRule.waitForIdle()
 
-            composeRule.onNodeWithText("Zip").assertExists()
-            composeRule.onNodeWithTag("play.picker").assertDoesNotExist()
-            assertEquals(0, daily.todayCalls(ZipDefinition.id)) // restored, not fetched
-        } finally {
-            koin.close()
-        }
+        // Restored COMPLETED session → the win handoff fires into navigation once and
+        // the archive was NEVER re-fetched (the blob carried the session).
+        composeRule.onNodeWithText("beta board 3").assertExists()
+        composeRule.onNodeWithTag("play.picker").assertDoesNotExist()
+        assertEquals(1, handedOff.size)
+        assertEquals(0, daily.todayCalls(beta))
     }
 
     @Test
-    fun `back from a mid-game play releases the flow to the picker`() {
-        val koin = koinWith()
-        try {
-            var back = 0
-            setContent(koin, onBack = { back++ })
-            composeRule.onNodeWithTag("play.picker_zip").performClick()
-            composeRule.waitForIdle()
-            composeRule.onNodeWithText("Zip").assertExists()
-
-            // Device/system back through PlayRoute's BackHandler: the route pops AND
-            // the flow releases, so the next play entry picks again (A14).
-            (composeRule as androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>).activity.onBackPressedDispatcher.onBackPressed()
-            composeRule.waitForIdle()
-            assertEquals(1, back)
-            composeRule.onNodeWithTag("play.picker").assertExists()
-        } finally {
-            koin.close()
-        }
+    fun `the route redraws the live controller's moves`() {
+        koinWith()
+        setContent()
+        composeRule.onNodeWithTag("play.picker_alpha").performClick()
+        composeRule.waitForIdle()
+        composeRule.runOnIdle { fakes[alpha].latest.move() }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("alpha board 1").assertExists()
+        assertTrue(store().active.value?.gameId == alpha)
     }
 
+    @Test
+    fun `back from a mid-game play releases the play to the picker`() {
+        // Zip-shaped game (the original route test's game): no session is published
+        // before the first move, so this still-composed test route has nothing to
+        // re-adopt after back (production pops the route).
+        fakes[alpha].publishesAdoptedSession = false
+        koinWith()
+        var back = 0
+        setContent(onBack = { back++ })
+        composeRule.onNodeWithTag("play.picker_alpha").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("alpha board 0").assertExists()
+
+        // Device/system back through PlayRoute's BackHandler: the route pops AND the
+        // play releases, so the next play entry picks again (A14).
+        (composeRule as AndroidComposeTestRule<*, *>).activity.onBackPressedDispatcher.onBackPressed()
+        composeRule.waitForIdle()
+        assertEquals(1, back)
+        composeRule.onNodeWithTag("play.picker").assertExists()
+        assertEquals(null, store().active.value)
+    }
 }

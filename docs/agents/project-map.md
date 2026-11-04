@@ -28,8 +28,9 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   NavKey routes in `nav/TopLevelDestination.kt`, `auth/GoogleIdTokenProvider` (Credential
   Manager with a typed `Unavailable.Reason` taxonomy), `leaderboard/LeaderboardSubmitWatcher`
   (auto-submits records when signed in), `screens/ProfileScreen` (ProfileViewModel: identity,
-  sign-in/out, today's board), `di/AppModule` (app scope, `List<GamePlugin>` aggregation,
-  `GameUiRegistry` with Zip's renderer), debug-only Showkase browser (`CatalogDebugBinding`,
+  sign-in/out, today's board), `di/AppModule` (app scope, `List<GamePlugin>` aggregation in
+  the app's picker order zip → tango → queens, `GamePlayRegistry(getAll())` over every game's
+  `GamePlayUi`), debug-only Showkase browser (`CatalogDebugBinding`,
   `PreviewBackdrop`, `BrowserRadioControls`; goldens in `app/snapshots/`).
 - `core/common/` — `DispatcherProvider` seam (+ default impl), `AppResult`/`AppError` and
   `resultOf` convention (typed errors, never thrown surprises), Koin `commonModule`.
@@ -72,8 +73,12 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   `FakeLeaderboardRepository`, `FakeUserPreferencesRepository`), `game/` (`TestGames` stand-in
   registry, `FakeDailySource`, `InMemoryPuzzleSource`), `rule/MainDispatcherRule`.
 - `core/game-ui/` — the Compose mapping layer, keyed by `GameId` (ADR-0001: no Compose in
-  `:core:game`): `GameUiRegistry` (GameId → `GameBoardRenderer`, `Board()` renders loading/
-  error/empty via `BoardStates`), `BoardGrid` + `EdgeOverlay` (walls), `DragTrace`
+  `:core:game`): the play contracts (ADR-0007) `GamePlayUi` (`gameId`,
+  `createController(PlayEnvironment)`, `Screen`), `GamePlayController` (`adoptToday`/
+  `adoptRestored`/`replay`; the games' controllers also implement `PlayClock`/`PlayHints`/
+  `PlayUndo`), `GamePlayRegistry` (GameId →
+  `GamePlayUi`; a duplicate id throws), `PlayBoardStatus` + `PlayBoardFallback`, `PlayCopy`
+  (shared degrade/unavailable copy), `BoardGrid` + `EdgeOverlay` (walls), `DragTrace`
   (pointer-drag → cell events), `GridGeometry`, `HintController`/`HintButton`, `TimerBar` +
   `formatClock`, `PlayScaffold` (`playLayoutFor` SinglePane/TwoPane policy, 552dp board cap),
   `CompletionRecordEmitter` (one record per PuzzleRef, `AppResult` write).
@@ -88,19 +93,23 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   the A16 oracle gate), `ZipSessionCodec` v2 (session serialize/restore incl. the undo/redo history of
   `ZipCommand`s Extend/RetractTo/Reset; still reads v1); `ZipScoreModel`
   emits `RecordStats` v1 {variant, mistakes, backtracks}; `render/ZipRendererModel`.
-- `games/zip-ui/` — `ZipBoardRenderer : GameBoardRenderer` (BoardGrid + walls + waypoint dots +
-  path trace + hint highlight) and `zipUiModule` (factory binding for the renderer).
+- `games/zip-ui/`, `games/tango-ui/`, `games/queens-ui/` — each game's whole play UI:
+  one `*PlayController : GamePlayController` (session, hint machinery, win → record),
+  one `*PlayUi : GamePlayUi` (board area + `PlayChrome`), the board composables, and
+  `*UiModule` (the game's `GamePlayUi` single, qualified by game id).
 - `feature/home/` — `HomeRoute` (DI-bound entry: observes `ZipDailyRepository.observeHistory()`
   — the cache-only puzzle_dailies store — plus `List<GamePlugin>` for the featured game; never
   the network), `HomeScreen` (single/two-pane, play/history destinations, appearance via
   `ThemeDialog`), `HomeLayout` + `homeLayoutFor` pure pane policy.
-- `feature/play/` — the one play surface for every game (ADR-0006): `PlayRoute` (game picker →
-  restore-adopt-load; `BackHandler` ends the flow), `PlayFlow` (per-entry scope around one
-  `ActivePlay`: `ZipPlayState` / `TangoPlayState` / `QueensPlayState`; rebindable session
-  saver so rotation then process death keeps the live session), per-game `*PlayState`
-  (screen states, hint machinery, record emission) implementing the core seams
-  `PlayClock`/`PlayHints`/`PlayUndo`, `*PlayScreen` (board area + `PlayChrome`),
-  `ResultRoute` (shared `ResultScreen` + the active state's `resultLabel`), `di/PlayModule`.
+- `feature/play/` — the one game-agnostic play surface (ADR-0006, ADR-0007; no `games:*`
+  dependency): `PlaySessionStore` (Koin single: the live `ActivePlay`, `start`/`restore`/
+  `end`, rebindable session sink emitting game-named `SessionBlob` envelopes),
+  `ActivePlay` (daily load → adopt, board/record `StateFlow`s incl. the record badge and
+  result label, a new controller per load with stale callbacks dropped),
+  `PlayViewModel`/`PlayUiState` + `ResultViewModel`,
+  `PlayRoute` (game picker → restore-adopt-load through the rememberSaveable envelope;
+  `BackHandler` ends the play), `GamePicker`, `ResultRoute` (shared `ResultScreen` + the
+  live play's label), `di/PlayModule`.
 - `core/game/` `Command`/`CommandHistory` — undo/redo as per-move commands over the game's
   board state; `core/game-ui/` `PlayChrome` (title, timer, hint button+count, undo/redo,
   game-controls slot), `HintButton`, `ResultScreen` (label + `gameSection` slot).
@@ -118,13 +127,15 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   snapshot errors), `LeaderboardDocCodec`, `BackendModule` bindings. Deployed rules and
   indexes live alongside the module (`firebase.json`, `firestore.rules`, `firestore.indexes.json`).
 - `PROFILE.md` — product frame, ranked care-axes, deploy targets, testing style.
-- `docs/adr/` — the five accepted ADRs summarized under Purpose.
+- `docs/adr/` — the accepted ADRs summarized under Purpose (0006 command history and the
+  shared play chrome; 0007 the play session store).
 
 ## Entry points
 
 - `PuzzleBoxApplication.onCreate` — `startKoin` with `appModules` = `commonModule` +
-  `dataModule` + `firebaseBackendModule` + `playModule` + `zipModule` + `zipUiModule` +
-  `appModule` (the whole object graph), then `LeaderboardSubmitWatcher.start()`.
+  `dataModule` + `firebaseBackendModule` + `playModule` + each game's `*Module` and
+  `*UiModule` (zip, queens, tango) + `appModule` (the whole object graph), then
+  `LeaderboardSubmitWatcher.start()`.
 - `MainActivity` — sole activity; holds composition until the persisted `ThemeMode` arrives
   (no light flash), resolves dark theme against the system setting, keeps system bar icon
   appearance in step with the resolved in-app theme, then hosts `PuzzleBoxApp` with the width
@@ -150,10 +161,11 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   Room v4 + all three DAOs, `CompletionRepository`→`RoomCompletionRepository`,
   `DailyPuzzleRepository`→offline-first, DataStore + `UserPreferencesRepository`) +
   `firebaseBackendModule` (`AuthGateway`, `IdentityService`, `LeaderboardStore`,
-  `LeaderboardRepository`) + `playModule` + `zipModule` (`zipPlugin`) + `zipUiModule`
-  (`ZipBoardRenderer`) + `appModule` (`CoroutineScope`, `GoogleIdTokenProvider`,
-  `ProfileViewModel`, `LeaderboardSubmitWatcher`, `List<GamePlugin>` via `getAll`,
-  `GameUiRegistry` with Zip's renderer). Graph completeness is asserted by `DiGraphTest`
+  `LeaderboardRepository`) + `playModule` (`PlaySessionStore`, `PlayViewModel`,
+  `ResultViewModel`) + per game `*Module` (the plugin, qualified by id) and `*UiModule` (the
+  `GamePlayUi`, qualified by id) + `appModule` (`CoroutineScope`, `GoogleIdTokenProvider`,
+  `ProfileViewModel`, `LeaderboardSubmitWatcher`, ordered `List<GamePlugin>` via `getAll`,
+  `GamePlayRegistry` via `getAll`). Graph completeness is asserted by `DiGraphTest`
   under Robolectric.
 - **`GamePlugin`/`GameDefinition` contracts** (ADR-0001, `core/game`) — onboarding a game is
   one module + one Koin registration; `app` aggregates `List<GamePlugin<*, *, *>>` and never
@@ -163,9 +175,9 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   (`LinkedInZipDailySource` today, `InMemoryPuzzleSource` in core/testing, the archive later per
   ADR-0002). `FetchError` distinguishes Unavailable (degrade to cache) from Throttled
   (LinkedIn soft-redirect cooldown, retryable) from Untrusted (oracle gate failed).
-- **`GameUiRegistry`** (core/game-ui) — GameId → `GameBoardRenderer` is the game→UI seam:
-  games ship a pure `RendererModel` factory; the Compose mapping registers by GameId
-  (`registerZipBoard()`), so a game's UI is swappable without touching Play.
+- **`GamePlayRegistry`** (core/game-ui) — GameId → `GamePlayUi` is the game→UI seam: each
+  game's ui module binds one `GamePlayUi`; `feature/play` drives any game through the
+  `GamePlayController` contract, so adding or swapping a game never touches Play.
 - **Repository interfaces** (live in core/data, features inject them):
   `ZipDailyRepository` — `today()` is network-first (`ZipToday.Cached` carries the fetch error
   so UI can banner degradation), `cached()`/`observeHistory()` never touch the network.
@@ -193,10 +205,10 @@ pure JVM (no Android): `:core:model`, `:core:game`, `:games:zip`.
   exported schema JSON, and registers a migration (1→2 puzzle_dailies, 2→3 completions,
   3→4 daily_puzzles rebuild); destructive fallbacks disallowed.
 - **Roborazzi screenshot harness** — committed goldens are the debug browser's
-  (`app/snapshots/`, 14 pngs from `ShowkaseBrowserScreenshotTest`); `feature/play`'s
+  (`app/snapshots/`, 14 pngs from `ShowkaseBrowserScreenshotTest`); `games/zip-ui`'s
   `VariantMatrixScreenshotTest` renders its board/variant matrix into the `.scratch` review
-  tree. `-Proborazzi.verify` remains the verify-vs-record switch in the designsystem and play
-  build files.
+  tree. `-Proborazzi.verify` remains the verify-vs-record switch in the designsystem and
+  zip-ui build files.
 
 ## Working test commands
 

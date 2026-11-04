@@ -8,7 +8,7 @@ android {
 
 dependencies {
     implementation(projects.core.game)
-    // GameId appears in GameUiRegistry's public registration/lookup API.
+    // GameId appears in GamePlayRegistry's/GamePlayUi's public lookup API.
     api(projects.core.model)
     implementation(projects.core.designsystem)
     implementation(projects.core.common)

@@ -45,7 +45,6 @@ import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.EdgeOverlay
 import com.ivandsky.puzzlebox.gameui.EdgeSide
-import com.ivandsky.puzzlebox.gameui.GameBoardRenderer
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.rememberReducedMotion
 import com.ivandsky.puzzlebox.games.tango.TangoCell
@@ -65,10 +64,10 @@ import kotlin.math.sin
  */
 class TangoBoardRenderer(
     private val onPlacement: ((TangoPlacement) -> Unit)? = null,
-) : GameBoardRenderer {
+) {
 
     @Composable
-    override fun Content(model: RendererModel, modifier: Modifier) {
+    fun Content(model: RendererModel, modifier: Modifier) {
         val tango = model as? TangoRendererModel
             ?: error("TangoBoardRenderer expects TangoRendererModel, got ${model::class.simpleName}")
         val commit = onPlacement

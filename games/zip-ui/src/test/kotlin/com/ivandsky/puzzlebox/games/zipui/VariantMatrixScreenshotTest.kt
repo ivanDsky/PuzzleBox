@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.play
+package com.ivandsky.puzzlebox.games.zipui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -49,7 +49,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The T25 variant matrix (spec UIUX-01 A6/A7/A12, success criterion 3): the panes the
  * user judges remotely on the review page. Every board pane renders the PRODUCTION
- * [com.ivandsky.puzzlebox.play.ZipBoard] through the real `ZipRendererModel.of`
+ * [com.ivandsky.puzzlebox.games.zipui.ZipBoard] through the real `ZipRendererModel.of`
  * mapping; every decision-variant value comes from [ZipBoardSpec] /
  * [LocalBoardColors] — nothing here retunes production (the gate contract: ZipBoardSpec
  * retunes happen ONLY after the user picks). Captures write straight to the review-page

@@ -1,19 +1,21 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.gameui.ResultScreen
-import org.koin.compose.koinInject
+import org.koin.androidx.compose.koinViewModel
 
 /**
  * The result screen's DI-bound entry point (PlayRoute pattern). The frozen facts ride
  * the nav key (process-death stable); the record badge and the write-failure affordance
- * read the live [PlayFlow] state when it exists — the record write is never awaited
- * here, it completes async as today (F2 §7).
+ * read the live play through [ResultViewModel] when one exists — the record write is
+ * never awaited here, it completes async as today (F2 §7).
  *
  * "Play again" resets the session to a fresh play of the SAME puzzle via
- * [ActivePlay.replay] before handing navigation back to the app callback, which pops
- * the result and pushes a fresh play entry over the flow's live state.
+ * [ResultViewModel.replay] before handing navigation back to the app callback, which
+ * pops the result and pushes a fresh play entry over the store's live play.
  */
 @Composable
 fun ResultRoute(
@@ -22,21 +24,21 @@ fun ResultRoute(
     onPlayAgain: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val flow = koinInject<PlayFlow>()
-    val state = flow.state
+    val viewModel: ResultViewModel = koinViewModel()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     ResultScreen(
         timeMs = timeMs,
         hintsUsed = hintsUsed,
         onPlayAgain = {
             // Fresh session, same puzzle (A9) — before the entry swap, so the play
-            // route finds the live flow state already reset.
-            state?.replay()
+            // route finds the live play already reset.
+            viewModel.replay()
             onPlayAgain()
         },
         modifier = modifier,
-        isRecord = state?.recordBadge,
-        writeFailed = state?.recordWriteFailed == true,
-        onRetryWrite = { state?.retryRecordWrite() },
-        label = state?.resultLabel,
+        isRecord = state.isRecord,
+        writeFailed = state.writeFailed,
+        onRetryWrite = viewModel::retryRecordWrite,
+        label = state.label,
     )
 }

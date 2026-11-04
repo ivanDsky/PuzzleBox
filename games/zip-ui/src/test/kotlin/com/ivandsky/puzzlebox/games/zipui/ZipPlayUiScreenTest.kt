@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.play
+package com.ivandsky.puzzlebox.games.zipui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
@@ -10,20 +10,18 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.data.repository.DailyToday
-import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
-import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.FetchError
-import com.ivandsky.puzzlebox.gameui.Board
+import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.DragEvent
-import com.ivandsky.puzzlebox.gameui.GameUiRegistry
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
+import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
+import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.games.zip.ZipDefinition
+import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
+import com.ivandsky.puzzlebox.gameui.unavailableMessage
 import java.time.LocalDate
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
@@ -36,13 +34,13 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Robolectric compose coverage for the play screen (A17): states, chrome, and the
+ * Robolectric compose coverage for the Zip play screen (A17): states, chrome, and the
  * ticket-23 solved handoff (the win moment itself lives on the result route now).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
-class PlayScreenTest {
+class ZipPlayUiScreenTest {
 
     @get:Rule
     val composeRule = createComposeRule()
@@ -53,57 +51,49 @@ class PlayScreenTest {
     private val day: LocalDate = LocalDate.of(2026, 10, 31)
     private val scope = CoroutineScope(Dispatchers.Unconfined)
 
-    private fun daily(
-        result: DailyToday = DailyToday.Fresh(PlayTestSupport.envelope()),
-        history: List<DailyEntry> = listOf(PlayTestSupport.entry(day)),
-    ) = PlayTestSupport.daily(result, history)
+    private fun bareController(): ZipPlayController =
+        ZipPlayController(PlayEnvironment(scope, {}, {}))
 
-    private fun readyState(
+    private fun adoptedController(): ZipPlayController = bareController().also {
+        check(it.adoptToday(ZipPlayFixture.envelope(), ZipPlayFixture.ref(day)) == Adopt.Adopted)
+    }
+
+    private fun readyController(
         layout: PlayLayout = PlayLayout.SinglePane,
-        repo: FakeDailyRepository = daily(),
-        completions: com.ivandsky.puzzlebox.data.repository.CompletionRepository = FakeCompletionRepository(),
-    ): ZipPlayState {
-        val state = ZipPlayState(
-            daily = repo,
-            completions = completions,
-            scope = scope,
-            today = { day },
-        )
-        state.load()
+        banner: String? = null,
+    ): ZipPlayController = adoptedController().also {
+        setContent(it, PlayBoardStatus.Ready(banner), layout)
+    }
+
+    private fun setContent(
+        controller: ZipPlayController,
+        status: PlayBoardStatus,
+        layout: PlayLayout = PlayLayout.SinglePane,
+        onRetry: () -> Unit = {},
+    ) {
         solvedFacts = null
         composeRule.setContent {
             PuzzleBoxTheme {
-                PlayScreen(
-                    state = state,
+                ZipPlayScreen(
+                    controller = controller,
+                    status = status,
                     layout = layout,
-                    registry = GameUiRegistry().apply { registerZipBoard() },
-                    onBack = {},
+                    onRetry = onRetry,
                     onSolved = { timeMs, hintsUsed -> solvedFacts = timeMs to hintsUsed },
                 )
             }
         }
-        return state
     }
 
-    private fun bareState(repo: FakeDailyRepository): ZipPlayState = ZipPlayState(
-        daily = repo,
-        completions = FakeCompletionRepository(),
-        scope = scope,
-        today = { day },
-    )
-
-    private fun setContent(state: ZipPlayState, layout: PlayLayout = PlayLayout.SinglePane, registry: GameUiRegistry = GameUiRegistry().apply { registerZipBoard() }) {
-        solvedFacts = null
-        composeRule.setContent {
-            PuzzleBoxTheme {
-                PlayScreen(state, layout, registry, onBack = {}, onSolved = { timeMs, hintsUsed -> solvedFacts = timeMs to hintsUsed })
-            }
+    private fun solve(controller: ZipPlayController) = composeRule.runOnIdle {
+        ZipPlayFixture.solution.forEach { cell ->
+            controller.onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
         }
     }
 
     @Test
     fun `loading state renders the board loading indicator`() {
-        setContent(bareState(daily()))
+        setContent(bareController(), PlayBoardStatus.Loading)
         composeRule.onNodeWithTag("play.loading").assertExists()
     }
 
@@ -112,18 +102,20 @@ class PlayScreenTest {
     @Config(sdk = [34], qualifiers = "w411dp-h891dp")
     @Test
     fun `unavailable state renders the error with a working retry`() {
-        val repo = daily(result = DailyToday.Unavailable(FetchError.Unavailable("no net")))
-        val state = bareState(repo)
-        state.load()
-        setContent(state)
+        var retries = 0
+        setContent(
+            bareController(),
+            PlayBoardStatus.Unavailable(unavailableMessage(FetchError.Unavailable("no net"))),
+            onRetry = { retries++ },
+        )
         composeRule.onNodeWithTag("play.error").assertExists()
         composeRule.onNodeWithText("Try again").performClick()
-        composeRule.runOnIdle { check(repo.todayCalls(ZipDefinition.id) >= 2) { "retry did not refetch" } }
+        composeRule.runOnIdle { check(retries == 1) { "retry did not reach onRetry" } }
     }
 
     @Test
     fun `ready board renders the play chrome`() {
-        readyState()
+        readyController()
         composeRule.onNodeWithTag("play.board").assertExists()
         composeRule.onNodeWithTag("play.side_panel").assertExists()
         composeRule.onNodeWithText("Zip").assertExists()
@@ -139,7 +131,7 @@ class PlayScreenTest {
 
     @Test
     fun `degraded ready shows the banner but stays playable`() {
-        readyState(repo = daily(result = DailyToday.Cached(PlayTestSupport.envelope(), FetchError.Unavailable("offline"))))
+        readyController(banner = degradeBannerMessage(FetchError.Unavailable("offline")))
         composeRule.onNodeWithTag("play.degrade_banner").assertExists()
         composeRule.onNodeWithText("Offline — playing today's saved puzzle.").assertExists()
         composeRule.onNodeWithTag("play.board").assertExists()
@@ -147,23 +139,23 @@ class PlayScreenTest {
 
     @Test
     fun `hint button counts up and highlights a cell`() {
-        val state = readyState()
+        val controller = readyController()
         composeRule.onNodeWithText("Hint").performClick()
-        composeRule.runOnIdle { check(state.session?.hintsUsed == 1) { "hint not counted" } }
+        composeRule.runOnIdle { check(controller.session?.hintsUsed == 1) { "hint not counted" } }
         composeRule.onNodeWithText("Hint · 1").assertExists()
         composeRule.onNodeWithTag("play.hint_cell").assertExists()
     }
 
     @Test
     fun `hint autoplace shows the arrow at the new head`() {
-        val state = readyState()
-        composeRule.runOnIdle { state.onDragEvent(DragEvent.Extend(GridCell(0, 0))) }
+        val controller = readyController()
+        composeRule.runOnIdle { controller.onDragEvent(DragEvent.Extend(GridCell(0, 0))) }
         // Manual clock: apply one frame for the placed arrow, then run out its ~2s hold
         // + fade and confirm it clears. Representation: the plain centered arrowhead
         // glyph (ticket 28 r5) under the play.hint_arrow tag.
         composeRule.mainClock.autoAdvance = false
         composeRule.onNodeWithText("Hint").performClick()
-        composeRule.runOnIdle { check(state.hintArrow != null) { "hint did not place an arrow" } }
+        composeRule.runOnIdle { check(controller.hintArrow != null) { "hint did not place an arrow" } }
         composeRule.mainClock.advanceTimeBy(16)
         composeRule.onNodeWithTag("play.hint_arrow").assertExists()
         composeRule.mainClock.advanceTimeBy(5000)
@@ -172,12 +164,8 @@ class PlayScreenTest {
 
     @Test
     fun `solving hands the frozen facts to the result route once`() {
-        val state = readyState()
-        composeRule.runOnIdle {
-            PlayTestSupport.solution.forEach { cell ->
-                state.onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
-            }
-        }
+        val controller = readyController()
+        solve(controller)
         composeRule.waitForIdle()
         // Ticket 23: the win moment is a route handoff, not an overlay — the screen
         // carries the frozen A3 facts (time, hints) and never renders win content.
@@ -191,38 +179,30 @@ class PlayScreenTest {
 
     @Test
     fun `a fresh entry does not hand off to the result route`() {
-        readyState()
+        readyController()
         composeRule.waitForIdle()
         check(solvedFacts == null) { "unsolved session handed off to the result route" }
     }
 
     @Test
     fun `replay resets to a fresh board and can hand off again`() {
-        val state = readyState()
-        composeRule.runOnIdle {
-            PlayTestSupport.solution.forEach { cell ->
-                state.onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
-            }
-        }
+        val controller = readyController()
+        solve(controller)
         composeRule.waitForIdle()
         check(solvedFacts != null) { "first solve did not hand off" }
-        composeRule.runOnIdle { state.replay() }
+        composeRule.runOnIdle { controller.replay() }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("00:00").assertExists()
-        composeRule.runOnIdle { check(state.session?.path?.isEmpty() == true) }
+        composeRule.runOnIdle { check(controller.session?.path?.isEmpty() == true) }
 
-        composeRule.runOnIdle {
-            PlayTestSupport.solution.forEach { cell ->
-                state.onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
-            }
-        }
+        solve(controller)
         composeRule.waitForIdle()
         check(solvedFacts != null) { "second solve did not hand off" }
     }
 
     @Test
     fun `two pane arrangement renders board and side panel`() {
-        readyState(layout = PlayLayout.TwoPane)
+        readyController(layout = PlayLayout.TwoPane)
         composeRule.onNodeWithTag("play.board").assertExists()
         composeRule.onNodeWithTag("play.side_panel").assertExists()
     }
@@ -230,14 +210,13 @@ class PlayScreenTest {
     /** A4: the board is capped at [PlayBoardMaxWidth], centered in its pane, aspect exact. */
     @Test
     fun `wide pane caps the board at the max width and centers it`() {
-        val state = bareState(daily())
-        state.load()
+        val controller = adoptedController()
         var density = Density(1f)
         composeRule.setContent {
             PuzzleBoxTheme {
                 density = LocalDensity.current
                 Box(Modifier.requiredSize(width = 1200.dp, height = 800.dp)) {
-                    PlayScreen(state, PlayLayout.SinglePane, GameUiRegistry().apply { registerZipBoard() }, onBack = {}, onSolved = { _, _ -> })
+                    ZipPlayScreen(controller, PlayBoardStatus.Ready(null), PlayLayout.SinglePane, onRetry = {}, onSolved = { _, _ -> })
                 }
             }
         }
@@ -258,14 +237,13 @@ class PlayScreenTest {
     /** A4: the cap is a max, not fixed — a phone pane keeps near-full width minus margins. */
     @Test
     fun `phone pane keeps near-full board width under standard margins`() {
-        val state = bareState(daily())
-        state.load()
+        val controller = adoptedController()
         var density = Density(1f)
         composeRule.setContent {
             PuzzleBoxTheme {
                 density = LocalDensity.current
                 Box(Modifier.requiredSize(width = 411.dp, height = 900.dp)) {
-                    PlayScreen(state, PlayLayout.SinglePane, GameUiRegistry().apply { registerZipBoard() }, onBack = {}, onSolved = { _, _ -> })
+                    ZipPlayScreen(controller, PlayBoardStatus.Ready(null), PlayLayout.SinglePane, onRetry = {}, onSolved = { _, _ -> })
                 }
             }
         }
@@ -276,20 +254,5 @@ class PlayScreenTest {
             val expected = (411.dp - Spacing.lg * 2).roundToPx()
             check(board.size.width == expected) { "board not near-full width: ${board.size.width}px != $expected" }
         }
-    }
-
-    @Test
-    fun `registry renders the zip board through the play registration`() {
-        val registry = GameUiRegistry()
-        registry.registerZipBoard()
-        val state = bareState(daily())
-        state.load()
-        composeRule.setContent {
-            PuzzleBoxTheme {
-                registry.Board(gameId = ZipDefinition.id, model = state.rendererModel())
-            }
-        }
-        composeRule.onNodeWithTag("play.waypoint_dot_0").assertExists()
-        composeRule.onNodeWithText("1").assertExists()
     }
 }

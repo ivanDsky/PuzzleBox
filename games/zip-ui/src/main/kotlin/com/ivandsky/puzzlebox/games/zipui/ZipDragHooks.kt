@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.play
+package com.ivandsky.puzzlebox.games.zipui
 
 import com.ivandsky.puzzlebox.gameui.DragTraceHooks
 import com.ivandsky.puzzlebox.gameui.GridCell

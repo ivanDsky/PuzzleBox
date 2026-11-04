@@ -11,11 +11,8 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
-import com.ivandsky.puzzlebox.gameui.GameUiRegistry
-import com.ivandsky.puzzlebox.games.queensui.QueensBoardRenderer
-import com.ivandsky.puzzlebox.games.zipui.ZipBoardRenderer
-import com.ivandsky.puzzlebox.games.tangoui.TangoBoardRenderer
-import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -57,15 +54,20 @@ val appModule = module {
     // Game aggregation (ADR-0001): the composition root owns the seams no game module
     // may know about. The registry is the one lookup for consumers that must not know
     // game ids (Home, History, play shell, data decode). Adding a game means one module
-    // line in [PuzzleBoxApplication.appModules] plus one UI registration here.
-    single { GameRegistry(getAll<GamePlugin<*, *, *>>()) }
+    // line in [PuzzleBoxApplication.appModules] (its plugin + its GamePlayUi) plus its
+    // place in [GAME_ORDER]. Koin's getAll order is not a product order, so the
+    // registry is sorted here: Home's featured game and the play picker follow it.
+    single { GameRegistry(getAll<GamePlugin<*, *, *>>().sortedWith(gameOrder)) }
 
-    // One registration line per game — the whole extension point (F2-1).
-    single {
-        GameUiRegistry().apply {
-            register(GameId("zip"), get<ZipBoardRenderer>())
-            register(GameId("queens"), get<QueensBoardRenderer>())
-            register(GameId("tango"), get<TangoBoardRenderer>())
-        }
-    }
+    // Every game module's play registration; a duplicate game id throws (ADR-0007).
+    single { GamePlayRegistry(getAll<GamePlayUi>()) }
 }
+
+/** Product order of the shipped games: Home's featured game first, then the picker's. */
+private val GAME_ORDER = listOf("zip", "tango", "queens")
+
+/** [GAME_ORDER] rank; an unlisted game sorts after every listed one, then by id. */
+private val gameOrder: Comparator<GamePlugin<*, *, *>> =
+    compareBy<GamePlugin<*, *, *>> { plugin ->
+        GAME_ORDER.indexOf(plugin.definition.id.value).takeIf { it >= 0 } ?: GAME_ORDER.size
+    }.thenBy { it.definition.id.value }

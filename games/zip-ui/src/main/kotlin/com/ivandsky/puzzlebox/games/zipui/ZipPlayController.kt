@@ -1,28 +1,23 @@
-package com.ivandsky.puzzlebox.play
+package com.ivandsky.puzzlebox.games.zipui
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.ivandsky.puzzlebox.common.result.AppResult
-import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.repository.DailyRepository
-import com.ivandsky.puzzlebox.data.repository.DailyToday
-import com.ivandsky.puzzlebox.game.CompletionRecord
-import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
-import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
-import com.ivandsky.puzzlebox.game.today
-import com.ivandsky.puzzlebox.gameui.CompletionRecordEmitter
+import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.DragEvent
+import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.PlayClock
+import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
+import com.ivandsky.puzzlebox.gameui.Restored
+import com.ivandsky.puzzlebox.gameui.untrustedDecodeMessage
 import com.ivandsky.puzzlebox.games.zip.Cell
-import com.ivandsky.puzzlebox.games.zip.ZipDefinition
-import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.ZipSession
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
@@ -35,51 +30,24 @@ import com.ivandsky.puzzlebox.games.zip.engine.ZipValidation
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import com.ivandsky.puzzlebox.games.zip.zipPlugin
 import java.time.Instant
-import java.time.LocalDate
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-/** The play screen's async board states (A7/A8) — degrade states are first-class. */
-sealed interface ZipScreen {
-    data object Loading : ZipScreen
-
-    /** Nothing playable today; [message] drives the error copy. Retry re-runs the fetch. */
-    data class Unavailable(val message: String) : ZipScreen
-
-    /** Board in hand. [degraded] non-null = playing the SAVED puzzle because the fetch
-     *  failed (capture-probe live path) — surfaced as a banner, the board stays playable. */
-    data class Ready(val puzzle: ZipPuzzle, val ref: ZipPuzzleRef?, val degraded: FetchError?) : ZipScreen
-}
-
 /**
- * The Zip play state holder (ticket 13): today's board → engine → win flow. Owns the
- * [ZipSession] as the single source of truth for path/hints/timer; every committed change
- * round-trips through [onSessionChanged] so the route can persist bytes across
- * process death and rotation (A19 session codec, F2 §2 timer semantics).
+ * The Zip play controller (ticket 13): one adopted board → engine → win transition. Owns
+ * the [ZipSession] as the single source of truth for path/hints/timer; every committed
+ * change round-trips through [PlayEnvironment.onSessionChanged] as session-codec bytes so
+ * the play feature can persist them across process death and rotation (A19 session
+ * codec, F2 §2 timer semantics).
  *
- * Win flow (F2 §7): the [ZipSession.completedAt] transition emits ONE
- * [CompletionRecord] via [CompletionRecordEmitter] — fire-and-observe, never blocking
- * the win overlay. [recordBadge] is null while the write is in flight, then the A4
- * verdict for THIS play (true = first in-app completion, false = replay).
+ * Win (F2 §7): the [ZipSession.completedAt] transition hands ONE completion record to
+ * [PlayEnvironment.onWon]; the play feature writes it and derives the A4 badge.
  */
-class ZipPlayState(
-    private val daily: DailyRepository,
-    private val completions: CompletionRepository,
-    private val scope: CoroutineScope,
+class ZipPlayController(
+    private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
-    private val today: () -> LocalDate = { ZipDefinition.cadence.today() },
-    private val onSessionChanged: (ZipSession?) -> Unit = {},
-) : ActivePlay, PlayClock, PlayHints, PlayUndo {
+) : GamePlayController, PlayClock, PlayHints, PlayUndo {
 
-    override val game: PlayGame get() = PlayGame.Zip
-
-    override val resultLabel: String?
-        get() = session?.ref?.puzzleNumber?.let { "Zip · #$it" } ?: "Zip"
-
-    var screen by mutableStateOf<ZipScreen>(ZipScreen.Loading)
-        private set
     var session by mutableStateOf<ZipSession?>(null)
         private set
     var hintCell by mutableStateOf<Int?>(null)
@@ -95,39 +63,26 @@ class ZipPlayState(
     val hintHistory = mutableStateListOf<HintEvent>()
 
     private var lastHintAtMs: Long? = null
-        private set
     var rejection by mutableStateOf<ZipRendererModel.RejectedMove?>(null)
-        private set
-    override var recordBadge by mutableStateOf<Boolean?>(null)
-        private set
-    override var recordWriteFailed by mutableStateOf(false)
         private set
     var nowMs by mutableStateOf(0L)
         private set
 
-    /** A fresh entry must fetch: no live session, or the live one already finished. */
-    override val needsLoad: Boolean
-        get() = session == null || session?.isComplete == true
+    override val isComplete: Boolean get() = session?.isComplete == true
 
     private val rules = zipPlugin.rules as ZipRules // the plugin's rules ARE ZipRules
-    private var emitter: CompletionRecordEmitter? = null
-
-    /** Whether a record already existed for the current ref BEFORE this session's win —
-     *  the A4 badge is derived from this baseline, never from the stored rows. */
-    private var baselineHadRecord: Boolean? = null
 
     //region input (F2 §7: candidate moves in, authoritative validation here)
 
     fun onDragEvent(event: DragEvent) {
         hintArrow = null // ticket 28: the arrow dies on the next input, always
         val current = session ?: return
-        val ready = screen as? ZipScreen.Ready ?: return
         if (current.isComplete) return
-        val board = ready.puzzle.board
+        val board = current.puzzle.board
         when (event) {
             is DragEvent.Extend -> {
                 val move = ZipMove.Extend(cellOf(event.cell, board.n))
-                when (val verdict = rules.validateMove(move, ZipState(ready.puzzle, current.path))) {
+                when (val verdict = rules.validateMove(move, ZipState(current.puzzle, current.path))) {
                     is ZipValidation.Valid -> commit(current.withMove(move, now()))
                     is ZipValidation.Invalid -> reject(current, cellOf(event.cell, board.n), verdict.reason)
                 }
@@ -166,75 +121,30 @@ class ZipPlayState(
 
     //endregion
 
-    //region load / restore
+    //region adopt / restore
 
-    /** Fetch-today → board (A7/A8): Fresh plays; Cached plays with a degrade banner;
-     *  Unavailable is the error state; an untrustable payload is never playable (A16). */
-    override fun load() {
-        screen = ZipScreen.Loading
-        session = null
-        hintCell = null
-        hintArrow = null
-        rejection = null
-        recordBadge = null
-        recordWriteFailed = false
-        baselineHadRecord = null
-        emitter = null
-        scope.launch {
-            when (val today = daily.today(ZipDefinition.id)) {
-                is DailyToday.Fresh -> adopt(today.puzzle, degraded = null)
-                is DailyToday.Cached -> adopt(today.puzzle, degraded = today.error)
-                is DailyToday.Unavailable -> screen = ZipScreen.Unavailable(unavailableMessage(today.error))
-            }
-        }
-    }
-
-    /** Rotation/process-death restore: the session codec carries the puzzle BY VALUE, so
-     *  a corrupt save falls back to a normal load; a restored COMPLETED session shows the
-     *  win without re-emitting (emission happens on the transition only). */
-    override fun adoptRestored(bytes: ByteArray) {
-        when (val restored = ZipSessionCodec.deserialize(bytes)) {
-            is DecodeResult.Ok -> {
-                val s = restored.value
-                emitter = null
-                session = s
-                screen = ZipScreen.Ready(s.puzzle, s.ref, degraded = null)
-                if (!s.isComplete) refreshBaseline(s.ref)
-            }
-
-            is DecodeResult.Err -> load()
-        }
-    }
-
-    private suspend fun adopt(puzzle: Puzzle, degraded: FetchError?) {
+    /** Today's envelope under [ref]; an untrustable payload is never playable (A16). */
+    override fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt {
         val zip = when (val decoded = ZipCodec.decode(puzzle.payload)) {
             is DecodeResult.Ok -> decoded.value
-            is DecodeResult.Err -> {
-                screen = ZipScreen.Unavailable(untrustedMessage(decoded.error))
-                return
+            is DecodeResult.Err -> return Adopt.Rejected(untrustedDecodeMessage(decoded.error))
+        }
+        session = ZipSession(ref = ref as ZipPuzzleRef, puzzle = zip)
+        return Adopt.Adopted
+    }
+
+    /** Rotation/process-death restore: the session codec carries the puzzle BY VALUE; a
+     *  restored COMPLETED session shows the win without re-emitting (emission happens on
+     *  the transition only). */
+    override fun adoptRestored(bytes: ByteArray): Restored? =
+        when (val restored = ZipSessionCodec.deserialize(bytes)) {
+            is DecodeResult.Ok -> {
+                session = restored.value
+                Restored(restored.value.ref)
             }
-        }
-        val ref = resolveRef()
-        screen = ZipScreen.Ready(zip, ref, degraded)
-        session = ZipSession(ref = ref, puzzle = zip)
-        refreshBaseline(ref)
-    }
 
-    /** Record identity = gameId zip + day/puzzleNumber (ADR-0004): the repository persists
-     *  both at fetch time and history rows carry them; today's row (in Zip's cadence
-     *  zone) is the identity of the board we just loaded. */
-    private suspend fun resolveRef(): ZipPuzzleRef? {
-        val day = today()
-        val entry = daily.observeHistory(ZipDefinition.id).first().firstOrNull { it.day == day }
-        return ZipPuzzleRef(entry?.day ?: day, entry?.puzzleNumber)
-    }
-
-    private fun refreshBaseline(ref: ZipPuzzleRef?) {
-        if (ref == null) return
-        scope.launch {
-            baselineHadRecord = completions.observeRecords().first().any { it.puzzleRef == ref }
+            is DecodeResult.Err -> null
         }
-    }
 
     //endregion
 
@@ -248,24 +158,24 @@ class ZipPlayState(
      */
     fun hint() {
         val current = session ?: return
-        val ready = screen as? ZipScreen.Ready ?: return
         if (current.isComplete) return
         if (hintCooldownActive()) return
+        val puzzle = current.puzzle
         val fromIdx = current.path.lastOrNull()?.idx
         var next = current
-        var resolved = rules.hint(ZipState(ready.puzzle, next.path))
+        var resolved = rules.hint(ZipState(puzzle, next.path))
         if (resolved is ZipHint.Backtrack) {
             next = next.withMove(
                 if (resolved.trimTo < 0) ZipMove.Reset else ZipMove.RetractTo(next.path[resolved.trimTo]),
                 now(),
             )
-            resolved = rules.hint(ZipState(ready.puzzle, next.path))
+            resolved = rules.hint(ZipState(puzzle, next.path))
         }
         val step = resolved as? ZipHint.Step
         var placedIdx: Int? = null
         if (step != null) {
             val move = ZipMove.Extend(step.cell)
-            if (rules.validateMove(move, ZipState(ready.puzzle, next.path)) is ZipValidation.Valid) {
+            if (rules.validateMove(move, ZipState(puzzle, next.path)) is ZipValidation.Valid) {
                 next = next.withMove(move, now())
                 placedIdx = step.cell.idx
                 next.path.getOrNull(next.path.size - 2)?.let { tail ->
@@ -288,7 +198,7 @@ class ZipPlayState(
     /** Cooldown (2026-11-02): the tick loop recomposes the chrome ~5x/s while a timer
      *  runs, so the button re-enables itself as the window expires. */
     override val hintEnabled: Boolean
-        get() = screen is ZipScreen.Ready && session?.isComplete != true && !hintCooldownActive()
+        get() = session?.isComplete == false && !hintCooldownActive()
 
     /** Zip's hint is the placed arrow, not prose. */
     override val hintCaption: String? get() = null
@@ -308,8 +218,6 @@ class ZipPlayState(
     fun clearHintArrow() {
         hintArrow = null
     }
-
-    //endregion
 
     //region timer (F2 §2: active foreground play only)
 
@@ -339,67 +247,28 @@ class ZipPlayState(
 
     //endregion
 
-    //region win flow
-
-    /** Win overlay's "Play again": a fresh session, a new emitter lifetime — replays
-     *  emit again (A4), and the badge resets until the new write lands. The A4 baseline
-     *  is re-read: whether a record existed BEFORE this new play. */
+    /** Result's "Play again": a fresh session of the same puzzle, every transient reveal
+     *  and the hint log cleared (F9) — the next win is a new transition and emits again. */
     override fun replay() {
-        val ready = screen as? ZipScreen.Ready ?: return
-        emitter = null
-        recordBadge = null
-        recordWriteFailed = false
+        val current = session ?: return
         hintCell = null
         hintArrow = null
         rejection = null
-        baselineHadRecord = null
         lastHintAtMs = null
         hintHistory.clear()
-        refreshBaseline(ready.ref)
-        commit(ZipSession(ref = ready.ref, puzzle = ready.puzzle))
+        commit(ZipSession(ref = current.ref, puzzle = current.puzzle))
     }
-
-    /** Retry after a failed record write: a new emitter (the old one deduped this ref). */
-    override fun retryRecordWrite() {
-        val completed = session?.takeIf { it.isComplete } ?: return
-        emitRecord(record = zipPlugin.score.completion(completed) ?: return)
-    }
-
-    private fun onWin(completed: ZipSession) {
-        emitRecord(record = zipPlugin.score.completion(completed) ?: return)
-    }
-
-    private fun emitRecord(record: CompletionRecord) {
-        recordWriteFailed = false
-        recordBadge = null
-        val instance = CompletionRecordEmitter(scope) { r ->
-            completions.onCompleted(r)
-            AppResult.Ok(Unit)
-        }
-        emitter = instance
-        instance.emit(record) { result ->
-            when (result) {
-                // A4 badge for THIS play: true only when no record existed at session
-                // start; unknown baseline (write raced the baseline read) stays null.
-                is AppResult.Ok -> recordBadge = baselineHadRecord?.let { !it }
-                is AppResult.Err -> recordWriteFailed = true
-            }
-        }
-    }
-
-    //endregion
 
     //region derived + persistence
 
     /** The renderer model the board draws — built here (F2: the state→model call site). */
     fun rendererModel(): ZipRendererModel? {
         val current = session ?: return null
-        val ready = screen as? ZipScreen.Ready ?: return null
         val hint = hintCell?.let { ZipHint.Step(Cell(it)) }
-        return ZipRendererModel.of(ZipState(ready.puzzle, current.path), hint, rejection)
+        return ZipRendererModel.of(ZipState(current.puzzle, current.path), hint, rejection)
     }
 
-    /** Versioned session bytes for the route's rememberSaveable (A19/F2 §2). */
+    /** Versioned session bytes (A19/F2 §2) — what [PlayEnvironment.onSessionChanged] receives. */
     fun persist(): ByteArray? = session?.let(ZipSessionCodec::serialize)
 
     //endregion
@@ -414,14 +283,14 @@ class ZipPlayState(
     private fun updateSession(next: ZipSession) {
         val won = next.isComplete && session?.isComplete != true
         session = next
-        onSessionChanged(next)
-        if (won) onWin(next)
+        env.onSessionChanged(ZipSessionCodec.serialize(next))
+        if (won) env.onWon(zipPlugin.score.completion(next) ?: return)
     }
 
     private fun reject(current: ZipSession, cell: Cell, reason: ZipValidation.Reason) {
         updateSession(current.withRejection()) // mistake analytics only, never scored (A3)
         rejection = ZipRendererModel.RejectedMove(cell.idx, reason)
-        scope.launch {
+        env.scope.launch {
             delay(REJECTION_CLEAR_MS)
             if (rejection?.cellIdx == cell.idx) rejection = null
         }
@@ -445,20 +314,3 @@ data class HintArrow(val headIdx: Int, val tailIdx: Int)
 /** Internal hint telemetry (2026-11-02): trace head at request time and the placed
  *  cell (null = the press trimmed/placed nothing). Wall-clock ms of the state's nowMs. */
 data class HintEvent(val atMs: Long, val fromIdx: Int?, val placedIdx: Int?)
-
-/** Copy for the first-class degrade states. */
-fun unavailableMessage(error: FetchError): String = when (error) {
-    is FetchError.Unavailable -> "Couldn't reach LinkedIn, and no copy of today's puzzle is saved yet. Check your connection and try again."
-    is FetchError.Throttled -> "LinkedIn is rate-limiting requests right now. Give it a minute and try again."
-    is FetchError.Untrusted -> "Today's puzzle failed verification, so it can't be played. Try again later."
-}
-
-private fun untrustedMessage(error: DecodeError): String =
-    "The saved puzzle couldn't be read (${error::class.simpleName}). Try refreshing."
-
-/** Banner copy when a captured day is played because the fetch failed (A7/A8). */
-fun degradeBannerMessage(error: FetchError): String = when (error) {
-    is FetchError.Unavailable -> "Offline — playing today's saved puzzle."
-    is FetchError.Throttled -> "LinkedIn is rate-limiting — playing today's saved puzzle."
-    is FetchError.Untrusted -> "Fresh puzzle was rejected — playing the saved copy."
-}

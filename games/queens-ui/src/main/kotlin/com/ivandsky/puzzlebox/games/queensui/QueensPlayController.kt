@@ -1,0 +1,201 @@
+package com.ivandsky.puzzlebox.games.queensui
+
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.ivandsky.puzzlebox.game.DecodeResult
+import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.GamePlayController
+import com.ivandsky.puzzlebox.gameui.PlayClock
+import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import com.ivandsky.puzzlebox.gameui.PlayHints
+import com.ivandsky.puzzlebox.gameui.PlayUndo
+import com.ivandsky.puzzlebox.gameui.Restored
+import com.ivandsky.puzzlebox.gameui.untrustedDecodeMessage
+import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
+import com.ivandsky.puzzlebox.games.queens.QueensSession
+import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
+import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
+import com.ivandsky.puzzlebox.games.queens.queensPlugin
+import java.time.Duration
+import java.time.Instant
+
+/**
+ * The Queens play controller (queens-10 wiring; Zip controller shape): one adopted board
+ * → a real [QueensSession] (queens-04) → the queens-08 [QueensBoardState] interaction
+ * holder. The controller owns only the adopt / restore / clock wiring — every game
+ * decision stays in the session and the board state (A10–A12 provenance, A14
+ * Auto-cross, §5 interaction set, command undo).
+ *
+ * Win (fix round 6 — zip's win→result-route pattern): the board state builds ONE
+ * completion record (the plugin's score model on the completedAt transition) and this
+ * controller hands it to [PlayEnvironment.onWon]; the play feature writes it. A
+ * restored completed session never re-emits (transition-only).
+ *
+ * Timer (Tango parity): the session banks [QueensSession.elapsedMs]; this controller
+ * owns the process-local running window, so undo/redo never touch it.
+ *
+ * Session persistence (R-4): every committed session reaches
+ * [PlayEnvironment.onSessionChanged] as codec bytes, including the initial session of a
+ * fresh adopt/replay so a process death before the first move still restores.
+ */
+class QueensPlayController(
+    private val env: PlayEnvironment,
+    private val now: () -> Instant = Instant::now,
+) : GamePlayController, PlayClock, PlayHints, PlayUndo {
+
+    /** The live interaction holder, null until a session is adopted. */
+    var board by mutableStateOf<QueensBoardState?>(null)
+        private set
+
+    override val isComplete: Boolean get() = board?.session?.isComplete == true
+
+    /** The open running window's start: null = clock stopped (not started, backgrounded, or won). */
+    private var runningSince: Instant? by mutableStateOf(null)
+
+    /** Last [tick]; the window's displayed length is measured against it so the timer recomposes. */
+    var nowMs by mutableStateOf(0L)
+        private set
+
+    //region adopt / restore
+
+    /** Today's envelope under [ref]; an untrustable payload is never playable (A16). */
+    override fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt {
+        val queens = when (val decoded = QueensCodec.decode(puzzle.payload)) {
+            is DecodeResult.Ok -> decoded.value
+            is DecodeResult.Err -> return Adopt.Rejected(untrustedDecodeMessage(decoded.error))
+        }
+        val fresh = QueensSession(ref = ref as QueensPuzzleRef, puzzle = queens)
+        board = boardFor(fresh)
+        publish(fresh)
+        return Adopt.Adopted
+    }
+
+    /** Process-death/rotation restore: the codec carries the puzzle BY VALUE; a restored
+     *  COMPLETED session shows the result without re-emitting (emission happens on the
+     *  transition only). */
+    override fun adoptRestored(bytes: ByteArray): Restored? =
+        when (val restored = QueensSessionCodec.deserialize(bytes)) {
+            is DecodeResult.Ok -> {
+                val s = restored.value
+                runningSince = null
+                board = boardFor(s)
+                // The running clock is process-local (runningSince is not session state):
+                // a restored in-progress session restarts its window now, or the timer
+                // reads frozen forever (Tango parity, user QA 2026-11-02).
+                if (!s.isComplete && s.hasStarted) openWindow()
+                Restored(s.ref)
+            }
+
+            is DecodeResult.Err -> null
+        }
+
+    private fun boardFor(session: QueensSession): QueensBoardState = QueensBoardState(
+        initialSession = session,
+        score = queensPlugin.score,
+        onWinRecord = { env.onWon(it) },
+        now = now,
+        onSessionChanged = ::publish,
+        settle = this::settle,
+    )
+
+    private fun publish(session: QueensSession) {
+        env.onSessionChanged(QueensSessionCodec.serialize(session))
+    }
+
+    /** Result's "Play again" parity (zip replay): a fresh session of the same puzzle with
+     *  the clock stopped — the next win is a new transition and emits again (A4). */
+    override fun replay() {
+        val current = board?.session ?: return
+        runningSince = null
+        val fresh = QueensSession(ref = current.ref, puzzle = current.puzzle)
+        board = boardFor(fresh)
+        publish(fresh)
+    }
+
+    //endregion
+
+    //region PlayClock (F2 §2: active foreground play only)
+
+    /**
+     * The board's hook on every committed session, BEFORE it is stored and the win record
+     * built: the first committed action (or counted hint) opens the running window, and
+     * the win folds it into the banked [QueensSession.elapsedMs] so the frozen result and
+     * the record carry the real duration.
+     */
+    private fun settle(next: QueensSession): QueensSession {
+        if (next.isComplete) return foldRunning(next)
+        if (runningSince == null) openWindow()
+        return next
+    }
+
+    private fun openWindow() {
+        val start = now()
+        nowMs = start.toEpochMilli()
+        runningSince = start
+    }
+
+    /** Folds the running window into [target]'s banked elapsed and stops the clock. */
+    private fun foldRunning(target: QueensSession): QueensSession {
+        val rs = runningSince ?: return target
+        runningSince = null
+        return target.copy(elapsedMs = target.elapsedMs + Duration.between(rs, now()).toMillis())
+    }
+
+    override fun tick() {
+        nowMs = now().toEpochMilli()
+    }
+
+    override fun onBackground() {
+        val rs = runningSince ?: return
+        runningSince = null
+        board?.bankElapsed(Duration.between(rs, now()).toMillis())
+    }
+
+    override fun onForeground() {
+        val current = board?.session ?: return
+        if (runningSince == null && !current.isComplete && current.hasStarted) openWindow()
+    }
+
+    /** The running window's identity — the loop restarts each time it (re)opens. */
+    override val clockWindow: Any?
+        get() = runningSince
+
+    /** What TimerBar draws right now (banked + running window). Never negative. */
+    override fun displayedElapsedMs(): Long {
+        val banked = board?.session?.elapsedMs ?: return 0L
+        val window = runningSince?.let { Duration.between(it, Instant.ofEpochMilli(nowMs)).toMillis() } ?: 0L
+        return (banked + window).coerceAtLeast(0L)
+    }
+
+    //endregion
+
+    //region PlayHints / PlayUndo
+
+    override val hintsUsed: Int get() = board?.session?.hintsUsed ?: 0
+
+    override val hintEnabled: Boolean
+        get() = board?.session?.isComplete == false
+
+    /** The §5.5 deduction caption, shown by the shared chrome until the next board action. */
+    override val hintCaption: String? get() = board?.hintCaption
+
+    override fun requestHint() {
+        board?.requestHint()
+    }
+
+    override val canUndo: Boolean get() = board?.canUndo ?: false
+    override val canRedo: Boolean get() = board?.canRedo ?: false
+
+    override fun undo() {
+        board?.undo()
+    }
+
+    override fun redo() {
+        board?.redo()
+    }
+
+    //endregion
+}

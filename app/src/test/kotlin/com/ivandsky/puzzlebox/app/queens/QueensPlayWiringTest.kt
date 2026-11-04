@@ -20,9 +20,9 @@ import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.queensVariantId
-import com.ivandsky.puzzlebox.play.PlayFlow
+import com.ivandsky.puzzlebox.games.queensui.QueensPlayController
 import com.ivandsky.puzzlebox.play.PlayRoute
-import com.ivandsky.puzzlebox.play.QueensPlayState
+import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -100,7 +100,8 @@ class QueensPlayWiringTest {
             ),
             allowOverride = true,
         )
-        val flow = koinApp.koin.get<PlayFlow>()
+        val store = koinApp.koin.get<PlaySessionStore>()
+        fun queens() = store.active.value?.controller as? QueensPlayController
 
         val solved = ArrayList<Pair<Long, Int>>()
         composeRule.setContent {
@@ -120,8 +121,8 @@ class QueensPlayWiringTest {
         composeRule.onNodeWithTag("queens.board").assertExists()
 
         // The board is bound to a real session off the graph, with today's ref.
-        composeRule.waitUntil(10_000) { (flow.state as? QueensPlayState)?.board != null }
-        val board = (flow.state as QueensPlayState).board!!
+        composeRule.waitUntil(10_000) { queens()?.board != null }
+        val board = queens()!!.board!!
         assertNotNull(board.session.ref)
 
         // Complete the game through the board's §5 tap cycle (two taps per queen).
@@ -131,7 +132,7 @@ class QueensPlayWiringTest {
                 board.onTap(idx)
             }
         }
-        composeRule.waitUntil(10_000) { (flow.state as QueensPlayState).board!!.session.isComplete }
+        composeRule.waitUntil(10_000) { queens()!!.board!!.session.isComplete }
 
         // Fix round 6 (F-3/R-5): the win is a ROUTE handoff — the play screen invokes
         // onSolved exactly once with the frozen facts; no win overlay exists anymore.

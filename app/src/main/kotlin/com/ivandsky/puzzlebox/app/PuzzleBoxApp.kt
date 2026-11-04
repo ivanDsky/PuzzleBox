@@ -324,8 +324,8 @@ internal fun NavBackStack<NavKey>.solveToResult(solved: Result) {
 }
 
 // Ticket 23 nav contract — "Play again": the result pops and a fresh play entry takes
-// its place. The result route has already reset the flow's session to a fresh play of
-// the SAME puzzle (ResultRoute → ZipPlayState.replay), which the play route keeps.
+// its place. The result route has already reset the live play's session to a fresh play of
+// the SAME puzzle (ResultRoute → ActivePlay.replay), which the play route keeps.
 internal fun NavBackStack<NavKey>.playAgainFromResult() {
     removeLastOrNull()
     if (lastOrNull() != Play) add(Play)

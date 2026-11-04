@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app.queens
 
+import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -20,9 +21,9 @@ import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.queensVariantId
-import com.ivandsky.puzzlebox.play.PlayFlow
+import com.ivandsky.puzzlebox.games.queensui.QueensPlayController
 import com.ivandsky.puzzlebox.play.PlayRoute
-import com.ivandsky.puzzlebox.play.QueensPlayState
+import com.ivandsky.puzzlebox.play.PlaySessionStore
 import org.junit.After
 import org.junit.Rule
 import org.junit.Assert.assertEquals
@@ -109,18 +110,19 @@ class QueensRotationRestoreTest {
         shadowOf(RuntimeEnvironment.getApplication().mainLooper).idle()
     }
 
-    private fun awaitBoard(flow: PlayFlow) {
+    private fun awaitBoard(store: PlaySessionStore) {
         repeat(200) {
             idle()
             // The load is launched from a composition effect: drive frames, not just the looper.
             composeRule.waitForIdle()
-            if ((flow.state as? QueensPlayState)?.board != null) return
+            if ((store.active.value?.controller as? QueensPlayController)?.board != null) return
             Thread.sleep(10)
         }
         error("board never became ready")
     }
 
-    private fun queens(flow: PlayFlow): QueensPlayState = flow.state as QueensPlayState
+    private fun queens(store: PlaySessionStore): QueensPlayController =
+        store.active.value!!.controller as QueensPlayController
 
     /** A recreation pauses the clock, which banks the running window — so elapsed time may
      *  only grow across it; everything else (marks, queens, history) must be identical. */
@@ -132,7 +134,7 @@ class QueensRotationRestoreTest {
     @Test
     fun `a configuration change keeps the live session without a refetch`() {
         val repo = startGraph()
-        val flow = koinApp.koin.get<PlayFlow>()
+        val flow = koinApp.koin.get<PlaySessionStore>()
 
         val controller = Robolectric.buildActivity(ComponentActivity::class.java)
         controller.setup()
@@ -185,18 +187,20 @@ class QueensRotationRestoreTest {
         assertTrue("second-rotation marks present", final.markAt(Cell(5)) != null && Cell(6) in final.queens)
         assertEquals("still no refetch", 1, repo.todayCalls(QueensDefinition.id))
 
-        // The critical leg (R-4): a process death while the entry is live — the Koin
-        // graph is gone, so the ONLY restore path is the persisted codec bytes. The
-        // session (marks, queens, undo stack, provenance) must come back with NO refetch.
+        // The critical leg (R-4): a process death while the entry is live — the activity,
+        // its ViewModels and the Koin graph are all gone, so the ONLY restore path is the
+        // saved-instance-state codec bytes. The session (marks, queens, undo stack,
+        // provenance) must come back with NO refetch.
+        val saved = Bundle()
+        controller.pause().stop().saveInstanceState(saved).destroy()
         stopKoin()
-        val freshRepo = startGraph() // a brand-new graph, a brand-new flow
-        val freshFlow = koinApp.koin.get<PlayFlow>()
-        controller.get().recreate()
+        val freshRepo = startGraph() // a brand-new graph, a brand-new store
+        val freshStore = koinApp.koin.get<PlaySessionStore>()
+        val reborn = Robolectric.buildActivity(ComponentActivity::class.java).setup(saved)
+        setContent(reborn.get())
         idle()
-        setContent(controller.get())
-        idle()
-        awaitBoard(freshFlow)
-        assertSameButClock("process death restores the exact live session", mid, queens(freshFlow).board!!.session)
+        awaitBoard(freshStore)
+        assertSameButClock("process death restores the exact live session", mid, queens(freshStore).board!!.session)
         assertEquals("no refetch after process death — restore came from codec bytes", 0, freshRepo.todayCalls(QueensDefinition.id))
     }
 }

@@ -1,11 +1,15 @@
-package com.ivandsky.puzzlebox.play
+package com.ivandsky.puzzlebox.app.play
 
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.games.queens.Cell as QueensCell
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
+import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
+import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
+import com.ivandsky.puzzlebox.games.queens.queensVariantId
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
@@ -21,19 +25,18 @@ import com.ivandsky.puzzlebox.games.zip.WallDirection
 import com.ivandsky.puzzlebox.games.zip.ZipBoard
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
-import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
-import com.ivandsky.puzzlebox.games.zip.ZipSession
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
 /**
- * Deterministic 5x5 fixture (hand-verifiable, mirrors games/zip's ZipTestSupport board):
+ * Real-game fixtures for the app's play-through tests (the play feature's own tests run
+ * on stand-in games). Deterministic 5x5 Zip (mirrors games/zip's ZipTestSupport board):
  * boustrophedon solution; DOWN walls on every row crossing the solution does NOT use, so
  * exactly one full path exists.
  */
-object PlayTestSupport {
+object ZipPlayFixture {
 
     val solution: List<Cell> = listOf(
         0, 1, 2, 3, 4, 9, 8, 7, 6, 5, 10, 11, 12, 13, 14,
@@ -50,13 +53,6 @@ object PlayTestSupport {
     fun puzzle(): ZipPuzzle =
         ZipPuzzle(variant = ZipVariants.byId(VariantId("zip/n5"))!!.id, board = board(), solution = solution)
 
-    /** The board with wall (3,DOWN) removed: [0,1,2,3,8] becomes a provably dead trace
-     *  (the 8-entry pocket strands the rest), while [0,1,2,3] still completes. */
-    fun branchyPuzzle(): ZipPuzzle {
-        val walls = board().walls - Wall(Cell(3), WallDirection.DOWN)
-        return ZipPuzzle(variant = ZipVariants.byId(VariantId("zip/n5"))!!.id, board = ZipBoard(5, walls, waypoints), solution = solution)
-    }
-
     /** Envelope as DailyRepository hands it to the UI (payload = codec bytes). */
     fun envelope(puzzle: ZipPuzzle = puzzle()): Puzzle = Puzzle(
         gameId = ZipDefinition.id,
@@ -65,24 +61,21 @@ object PlayTestSupport {
         payload = ZipCodec.encode(puzzle),
     )
 
-    /** Valid, provably dead trace on [branchyPuzzle]. */
-    fun deadTrace(): List<Cell> = listOf(0, 1, 2, 3, 8).map(::Cell)
-
-    fun path(vararg idx: Int): List<Cell> = idx.map(::Cell)
-
-    fun ref(day: LocalDate) = ZipPuzzleRef(day, 592)
-
-    fun session(ref: ZipPuzzleRef? = null) = ZipSession(ref = ref, puzzle = puzzle())
-
     /** [day]'s captured Zip entry (#592). */
     fun entry(day: LocalDate, puzzleNumber: Int? = 592) =
         DailyEntry(ZipDefinition.id, day, puzzleNumber, "zip/n5", 0L)
+}
 
-    /** A daily repository scripted for Zip only: [result] and its captured days. */
-    fun daily(
-        result: DailyToday = DailyToday.Fresh(envelope()),
-        history: List<DailyEntry> = emptyList(),
-    ): FakeDailyRepository = FakeDailyRepository().script(ZipDefinition.id, result, history)
+/** 4×4 Queens daily, regions = rows. */
+object QueensPlayFixture {
+    fun envelope(): Puzzle = Puzzle(
+        gameId = QueensDefinition.id,
+        variant = queensVariantId(4),
+        formatVersion = QueensCodec.VERSION,
+        payload = QueensCodec.encode(
+            QueensPuzzle(size = 4, regions = List(16) { it / 4 }, solution = listOf(1, 6, 11, 12).map(::QueensCell)),
+        ),
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -91,7 +84,7 @@ object PlayTestSupport {
 // A15 solver so a fixture drift fails loudly instead of silently changing semantics.
 // ---------------------------------------------------------------------------
 
-/** Tango side of [PlayTestSupport]: a uniquely solvable 6x6 daily and its solution. */
+/** A uniquely solvable 6x6 Tango daily and its solution. */
 object TangoPlayFixture {
 
     val variant = VariantId("tango/n6")
@@ -145,25 +138,11 @@ object TangoPlayFixture {
         payload = TangoCodec.encode(puzzle),
     )
 
-    /** Decodable but NOT uniquely solvable — the A15 gate must refuse it. */
-    val ambiguous: TangoPuzzle = TangoPuzzle(
-        variant = variant,
-        n = 6,
-        givens = emptyMap(),
-        markers = emptyList(),
-    )
-
     fun ref(day: LocalDate, puzzleNumber: Int? = 301) = TangoPuzzleRef(day, puzzleNumber)
 
     /** [day]'s captured Tango entry. */
     fun entry(day: LocalDate, puzzleNumber: Int? = 301, fetchedAtMs: Long = 0L) =
         DailyEntry(TangoDefinition.id, day, puzzleNumber, "tango/n6", fetchedAtMs)
-
-    /** A daily repository scripted for Tango only: [result] and its captured days. */
-    fun daily(
-        result: DailyToday = DailyToday.Fresh(envelope()),
-        history: List<DailyEntry> = emptyList(),
-    ): FakeDailyRepository = FakeDailyRepository().script(TangoDefinition.id, result, history)
 }
 
 /** Scripts [game] on this fake: its [today] outcome and its captured days. */
@@ -176,8 +155,8 @@ fun FakeDailyRepository.script(
     setHistory(game, history)
 }
 
-/** A daily repository serving every game's fixture fresh (the flow/route default). */
+/** A daily repository serving every game's fixture fresh (the route default). */
 fun freshDailyForAllGames(): FakeDailyRepository = FakeDailyRepository()
-    .script(ZipDefinition.id, DailyToday.Fresh(PlayTestSupport.envelope()))
+    .script(ZipDefinition.id, DailyToday.Fresh(ZipPlayFixture.envelope()))
     .script(TangoDefinition.id, DailyToday.Fresh(TangoPlayFixture.envelope()))
-    .script(QueensDefinition.id, DailyToday.Fresh(QueensPlayFixtures.envelope()))
+    .script(QueensDefinition.id, DailyToday.Fresh(QueensPlayFixture.envelope()))
