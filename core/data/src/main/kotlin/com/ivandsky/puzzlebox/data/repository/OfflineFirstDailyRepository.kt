@@ -1,9 +1,9 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.data.db.PuzzleDailyDao
-import com.ivandsky.puzzlebox.data.db.toEntity
-import com.ivandsky.puzzlebox.data.db.toPuzzle
+import com.ivandsky.puzzlebox.data.model.toEntity
+import com.ivandsky.puzzlebox.data.model.toPuzzle
+import com.ivandsky.puzzlebox.database.PuzzleDailyDao
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.FetchResult
@@ -27,7 +27,7 @@ import kotlinx.coroutines.withContext
  * Each game's "today" is its cadence's current day ([todayProvider]; null for a game the
  * registry does not know).
  */
-class OfflineFirstDailyRepository(
+internal class OfflineFirstDailyRepository(
     private val sources: Map<GameId, DailySource>,
     private val registry: GameRegistry,
     private val dao: PuzzleDailyDao,

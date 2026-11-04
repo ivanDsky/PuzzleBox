@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.data.leaderboard
 
-import com.ivandsky.puzzlebox.data.db.CompletionEntity
 import com.ivandsky.puzzlebox.data.testing.TestGames.Ref
+import com.ivandsky.puzzlebox.database.CompletionEntity
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats

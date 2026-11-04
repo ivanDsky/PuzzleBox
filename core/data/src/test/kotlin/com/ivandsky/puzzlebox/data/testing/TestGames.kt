@@ -39,7 +39,7 @@ object TestGames {
     val alpha = GameId("alpha")
     val beta = GameId("beta")
 
-    /** A game's typed ref, round-trippable through [com.ivandsky.puzzlebox.data.db.PuzzleRefKeys]. */
+    /** A game's typed ref, round-trippable through [com.ivandsky.puzzlebox.data.model.PuzzleRefKeys]. */
     data class Ref(
         override val gameId: GameId,
         override val date: LocalDate,

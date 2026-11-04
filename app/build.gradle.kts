@@ -77,6 +77,8 @@ dependencies {
     // createComposeRule's ComponentActivity unresolvable. Debug APK only.
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
+    // DiGraphTest asserts the Room database resolves from the composed graph.
+    testImplementation(projects.core.database)
     testImplementation(libs.koin.test)
     testImplementation(libs.koin.test.junit4)
     testImplementation(libs.turbine)

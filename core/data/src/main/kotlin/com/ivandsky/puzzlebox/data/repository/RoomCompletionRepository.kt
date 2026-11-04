@@ -1,10 +1,10 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import androidx.room.withTransaction
-import com.ivandsky.puzzlebox.data.db.CompletionDao
-import com.ivandsky.puzzlebox.data.db.PuzzleBoxDatabase
-import com.ivandsky.puzzlebox.data.db.PuzzleRefKeys
-import com.ivandsky.puzzlebox.data.db.toModel
+import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
+import com.ivandsky.puzzlebox.data.model.toModel
+import com.ivandsky.puzzlebox.database.CompletionDao
+import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef

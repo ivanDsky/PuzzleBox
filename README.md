@@ -30,7 +30,10 @@ app                  # navigation shell, MainActivity
 ├── games/zip        # Zip game (plugin module)
 ├── core/game        # game engine contracts
 ├── core/game-ui     # shared game UI components
-├── core/data        # repositories, persistence
+├── core/data        # repositories (offline-first over the sources below)
+├── core/database    # Room database, DAOs, migrations, schemas
+├── core/network     # LinkedIn feed transport (OkHttp/Retrofit)
+├── core/datastore   # Preferences DataStore data source
 ├── core/designsystem# theme + components, screenshot-tested
 └── core/common      # shared utilities, dispatchers
 ```

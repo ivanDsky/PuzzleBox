@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.data.leaderboard
 
-import com.ivandsky.puzzlebox.data.db.CompletionEntity
-import com.ivandsky.puzzlebox.data.db.PuzzleRefKeys
+import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
+import com.ivandsky.puzzlebox.database.CompletionEntity
 import com.ivandsky.puzzlebox.game.CompletionRecord
 
 /**
@@ -23,7 +23,7 @@ object LeaderboardEntries {
         raw.trim().ifEmpty { "Player" }.take(64)
 
     /** From the Room row. Null when this row may never appear on a board. */
-    fun fromEntity(entity: CompletionEntity, uid: String, displayName: String): LeaderboardEntry? {
+    internal fun fromEntity(entity: CompletionEntity, uid: String, displayName: String): LeaderboardEntry? {
         if (!entity.isRecord) return null // A5: replays are never leaderboard-eligible
         if (LeaderboardRef.fromPuzzleRefKey(entity.puzzleRef) == null) return null
         if (entity.timeMs <= 0 || entity.hints < 0) return null // rules sanity envelope

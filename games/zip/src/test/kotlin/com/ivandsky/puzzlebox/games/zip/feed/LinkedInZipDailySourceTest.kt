@@ -19,7 +19,7 @@ import org.junit.Test
 /**
  * Wire → engine seam over the golden payload: parse to ZipWireParser's input, run the A16
  * oracle gate, store canonical ZipCodec bytes in a Puzzle envelope. The transport is a
- * fake; the network ladder itself is core/data's LinkedInFeedTransportTest.
+ * fake; the network ladder itself is core/network's LinkedInFeedTransportTest.
  */
 class LinkedInZipDailySourceTest {
 

@@ -22,7 +22,7 @@ import org.junit.Test
  * Wire → engine seam over the golden Tango payload (research 01, [INFERRED] schema):
  * parse to TangoWireParser's input, store canonical TangoCodec bytes in a Puzzle
  * envelope, and round-trip them through [TangoDefinition.decode]. The transport is a
- * fake; the network ladder itself is core/data's LinkedInFeedTransportTest.
+ * fake; the network ladder itself is core/network's LinkedInFeedTransportTest.
  */
 class LinkedInTangoDailySourceTest {
 
