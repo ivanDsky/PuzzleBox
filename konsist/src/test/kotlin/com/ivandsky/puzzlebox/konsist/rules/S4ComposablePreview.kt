@@ -1,25 +1,24 @@
 package com.ivandsky.puzzlebox.konsist.rules
 
 import com.ivandsky.puzzlebox.konsist.core.CommentStripper
+import com.ivandsky.puzzlebox.konsist.core.Previews
 import com.ivandsky.puzzlebox.konsist.core.Rule
 import com.ivandsky.puzzlebox.konsist.core.RuleResult
 import com.ivandsky.puzzlebox.konsist.core.SourceSetKind
 import com.ivandsky.puzzlebox.konsist.core.SourceTree
 import com.ivandsky.puzzlebox.konsist.core.Violation
-import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
 
 object S4ComposablePreview : Rule {
     override val id = "S4"
 
-    private const val PREVIEW = "Preview"
     private const val COMPOSABLE = "Composable"
 
     override fun check(tree: SourceTree): RuleResult {
         val scope = tree.scope(SourceSetKind.PRODUCTION)
-        val previewAnnotations = previewAnnotationNames(scope.classes().filter { it.hasAnnotationModifier })
+        val previewAnnotations = Previews.annotationNames(scope)
         val functions = scope.functions(includeNested = true)
-        val previews = functions.filter { fn -> fn.annotations.any { it.name in previewAnnotations } }
+        val previews = functions.filter { Previews.isPreview(it, previewAnnotations) }
         val calledByModule = previews
             .groupBy { tree.fileFor(it.containingFile).module.path }
             .mapValues { (_, fns) -> fns.joinToString("\n") { CommentStripper.strip(it.text) } }
@@ -40,15 +39,4 @@ object S4ComposablePreview : Rule {
     private fun callPattern(name: String) = Regex("""\b${Regex.escape(name)}\s*[({]""")
 
     private fun KoFunctionDeclaration.isComposable() = annotations.any { it.name == COMPOSABLE }
-
-    /** `Preview` itself plus every annotation class carrying one, transitively, so a multipreview of multipreviews counts. */
-    private fun previewAnnotationNames(annotationClasses: List<KoClassDeclaration>): Set<String> {
-        val known = mutableSetOf(PREVIEW)
-        do {
-            val grew = annotationClasses
-                .filter { cls -> cls.annotations.any { it.name in known } }
-                .any { known.add(it.name) }
-        } while (grew)
-        return known
-    }
 }

@@ -124,9 +124,10 @@ One public type per file.
 
 - **Scope:** production.
 - **Detection:** count the public top-level classes, enums, annotations, interfaces and objects
-  in a file, plus public `@Composable` functions that carry no `Preview` annotation. Private,
-  internal and protected declarations, plain functions and typealiases do not count. More than
-  one is a violation, valued at the count (a ceiling rule).
+  in a file, plus public `@Composable` functions that are not previews. A preview is defined once
+  for S1 and S4 (see S4, Detection). Private, internal and protected declarations, plain
+  functions and typealiases do not count. More than one is a violation, valued at the count (a
+  ceiling rule).
 - **Accepted misses:** it counts types, not responsibility. A file with one huge class that does
   five jobs passes. A file with two tiny related types is flagged.
 - **How to fix:** move each extra type to its own file.
@@ -145,15 +146,19 @@ Every public composable has a preview.
 
 - **Scope:** production. Judged: top-level `@Composable` functions that are public or have no
   visibility modifier, and that are not themselves previews.
-- **Detection:** a preview is a function with an annotation named `Preview`, or with an
-  annotation class that is itself annotated with one, followed transitively (multipreviews).
-  A composable is covered when its name is called (`Name(` or `Name {`) in the body of any
-  preview function in the same module. One violation per file, listing the uncovered names.
+- **Detection:** a preview is a function with an annotation named `Preview` or one of the
+  multipreviews `androidx.compose.ui.tooling.preview` ships (`PreviewLightDark`,
+  `PreviewFontScale`, `PreviewScreenSizes`, `PreviewDynamicColors`), or with an annotation class
+  in the scanned source that is itself annotated with one, followed transitively
+  (multipreviews). S1 uses the same definition (`core/Previews.kt`). A composable is covered
+  when its name is called (`Name(` or `Name {`) in the body of any preview function in the same
+  module. One violation per file, listing the uncovered names.
 - **Accepted misses:** coverage is by name and by module, not by file or by overload. A call
   anywhere in any preview of the module covers every composable with that name. Coverage is
   direct: a preview that calls a parent composable covers the parent only. A child the parent
   calls is flagged unless a preview also calls the child by name. Preview detection goes by
-  annotation name, so any annotation named `Preview` counts.
+  annotation name, so any annotation with one of those names counts. A library multipreview not
+  in the list above is not a preview.
   Ruling A7 widened the call match from `Name(` to `Name\s*[({]`, because wrappers such as
   `PuzzleBoxTheme` are only called with a trailing lambda. A `Name {` that is not a call counts
   as coverage.

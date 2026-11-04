@@ -27,6 +27,7 @@ class S1OneTypePerFileTest {
                 Violation("$dir/ClassAndComposable.kt", 2, ""),
                 Violation("$dir/ObjectAndInterface.kt", 2, ""),
                 Violation("$dir/DataAndSealed.kt", 2, ""),
+                Violation("$dir/ClassAndNotPreview.kt", 2, ""),
             ),
         )
     }
