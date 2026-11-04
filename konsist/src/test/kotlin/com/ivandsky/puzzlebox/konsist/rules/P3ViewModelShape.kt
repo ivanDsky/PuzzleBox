@@ -1,9 +1,9 @@
 package com.ivandsky.puzzlebox.konsist.rules
 
-import com.ivandsky.puzzlebox.konsist.core.Brackets
 import com.ivandsky.puzzlebox.konsist.core.CommentStripper
 import com.ivandsky.puzzlebox.konsist.core.Rule
 import com.ivandsky.puzzlebox.konsist.core.RuleResult
+import com.ivandsky.puzzlebox.konsist.core.Scan
 import com.ivandsky.puzzlebox.konsist.core.SourceSetKind
 import com.ivandsky.puzzlebox.konsist.core.SourceTree
 import com.ivandsky.puzzlebox.konsist.core.Violation
@@ -92,27 +92,21 @@ object P3ViewModelShape : Rule {
     private fun aliasTarget(expression: String): String? {
         val text = CommentStripper.code(expression).trim()
         val head = ALIAS_HEAD.find(text) ?: return null
-        var i = skipSpace(text, head.range.last + 1)
+        var i = Scan.skipSpace(text, head.range.last + 1)
         while (i < text.length) {
             i = when {
                 text.startsWith("?.", i) -> i + 2
                 text[i] == '.' -> i + 1
                 else -> return null
             }
-            i = skipSpace(text, i)
+            i = Scan.skipSpace(text, i)
             val call = WORD.find(text, i)?.takeIf { it.range.first == i && it.value in IDENTITY_CALLS } ?: return null
-            i = skipSpace(text, call.range.last + 1)
+            i = Scan.skipSpace(text, call.range.last + 1)
             val start = i
-            if (text.getOrNull(i) == '(') i = skipSpace(text, Brackets.closing(text, i) ?: return null)
-            if (text.getOrNull(i) == '{') i = skipSpace(text, Brackets.closing(text, i) ?: return null)
+            if (text.getOrNull(i) == '(') i = Scan.skipSpace(text, Scan.closing(text, i) ?: return null)
+            if (text.getOrNull(i) == '{') i = Scan.skipSpace(text, Scan.closing(text, i) ?: return null)
             if (i == start) return null
         }
         return head.groupValues[1]
-    }
-
-    private fun skipSpace(text: String, from: Int): Int {
-        var i = from
-        while (i < text.length && text[i].isWhitespace()) i++
-        return i
     }
 }

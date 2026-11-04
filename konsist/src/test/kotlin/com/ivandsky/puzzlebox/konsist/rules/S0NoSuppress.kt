@@ -1,8 +1,8 @@
 package com.ivandsky.puzzlebox.konsist.rules
 
-import com.ivandsky.puzzlebox.konsist.core.Brackets
 import com.ivandsky.puzzlebox.konsist.core.Rule
 import com.ivandsky.puzzlebox.konsist.core.RuleResult
+import com.ivandsky.puzzlebox.konsist.core.Scan
 import com.ivandsky.puzzlebox.konsist.core.SourceSetKind
 import com.ivandsky.puzzlebox.konsist.core.SourceTree
 import com.ivandsky.puzzlebox.konsist.core.Violation
@@ -27,7 +27,7 @@ object S0NoSuppress : Rule {
             suppress.findAll(file.codeText).any { match ->
                 val open = match.range.last
                 // Balanced on codeText, where string contents are blank; the arguments are read from strippedText.
-                val end = Brackets.closing(file.codeText, open) ?: file.codeText.length
+                val end = Scan.closing(file.codeText, open) ?: file.codeText.length
                 literal.findAll(file.strippedText.substring(open, end)).any { ruleTarget.containsMatchIn(it.groupValues[1]) }
             }
         }.map { Violation(it.path, null, HINT) }

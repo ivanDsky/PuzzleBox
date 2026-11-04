@@ -10,7 +10,7 @@ object SettingsReader {
         val stripped = CommentStripper.strip(settings)
         return includeCall.findAll(code).flatMap { call ->
             val open = call.range.last
-            val close = Brackets.closing(code, open) ?: error("settings.gradle.kts: unclosed include(")
+            val close = Scan.closing(code, open) ?: error("settings.gradle.kts: unclosed include(")
             GradleLiterals.arguments(stripped.substring(open + 1, close - 1), "settings.gradle.kts include")
         }.toList()
     }

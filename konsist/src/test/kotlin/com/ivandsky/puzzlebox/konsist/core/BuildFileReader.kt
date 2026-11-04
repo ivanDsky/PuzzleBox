@@ -16,10 +16,10 @@ object BuildFileReader {
         val plugins = buildSet {
             for (block in pluginsBlock.findAll(code)) {
                 val open = block.range.last
-                val close = Brackets.closing(code, open) ?: error("$CONTEXT: unclosed plugins {")
+                val close = Scan.closing(code, open) ?: error("$CONTEXT: unclosed plugins {")
                 for (call in pluginCall.findAll(code.substring(0, close), open)) {
                     val argsOpen = call.range.last
-                    val argsClose = Brackets.closing(code, argsOpen) ?: error("$CONTEXT: unclosed ${call.value}")
+                    val argsClose = Scan.closing(code, argsOpen) ?: error("$CONTEXT: unclosed ${call.value}")
                     val args = stripped.substring(argsOpen + 1, argsClose - 1)
                     when (call.groupValues[1]) {
                         "alias" -> add(catalogAlias.find(args)?.groupValues?.get(1) ?: error("$CONTEXT: cannot read alias(${args.trim()})"))
