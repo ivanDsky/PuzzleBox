@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import java.time.LocalDate
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
@@ -209,10 +210,52 @@ class ActivePlayTest {
     @Test
     fun `corrupt saved bytes fall back to a normal load`() {
         val play = play()
+        val created = ui.controllers.size
         play.adoptRestored("not a session".encodeToByteArray())
         assertEquals(1, daily.todayCalls(game))
         assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
         assertEquals(ref, ui.latest.ref)
+        assertEquals("no throwaway controller for the unreadable blob", created + 1, ui.controllers.size)
+    }
+
+    @Test
+    fun `a record write in flight across a restore still delivers its badge`() {
+        val gate = CompletableDeferred<Unit>()
+        completions.writeGate = gate
+        val play = loaded()
+        ui.latest.move()
+        val lagging = ui.latest.bytes()
+        ui.latest.win()
+        assertNull(play.record.value.badge)
+
+        // A restore of the SAME puzzle (a saveable that missed the winning commit) adopts
+        // into a new controller while the win's write is still running.
+        play.adoptRestored(lagging)
+        gate.complete(Unit)
+
+        assertEquals(listOf(FakeController.record(ref)), records())
+        assertEquals(true, play.record.value.badge)
+    }
+
+    @Test
+    fun `a failed record write in flight across a restore still surfaces and retries`() {
+        val gate = CompletableDeferred<Unit>()
+        completions.writeGate = gate
+        completions.fail = true
+        val play = loaded()
+        ui.latest.move()
+        val lagging = ui.latest.bytes()
+        ui.latest.win()
+
+        play.adoptRestored(lagging)
+        gate.complete(Unit)
+        assertTrue(play.record.value.writeFailed)
+
+        completions.fail = false
+        play.retryRecordWrite()
+        assertFalse(play.record.value.writeFailed)
+        assertEquals(true, play.record.value.badge)
+        assertEquals(1, records().size)
     }
 
     @Test

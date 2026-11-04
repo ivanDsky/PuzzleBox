@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app.play
 
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -27,6 +28,7 @@ import com.ivandsky.puzzlebox.games.tangoui.TangoPlayUi
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.codec.ZipSessionCodec
 import com.ivandsky.puzzlebox.games.zip.zipPlugin
+import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayUi
 import com.ivandsky.puzzlebox.play.PlayRoute
 import com.ivandsky.puzzlebox.play.PlaySessionStore
@@ -34,6 +36,7 @@ import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -87,6 +90,9 @@ class RealGamesPlayRouteTest {
 
     private fun tango(koin: KoinApplication): TangoPlayController =
         koin.koin.get<PlaySessionStore>().active.value!!.controller as TangoPlayController
+
+    private fun zip(koin: KoinApplication): ZipPlayController =
+        koin.koin.get<PlaySessionStore>().active.value!!.controller as ZipPlayController
 
     private fun status(koin: KoinApplication): PlayBoardStatus =
         koin.koin.get<PlaySessionStore>().active.value!!.board.value.status
@@ -210,6 +216,36 @@ class RealGamesPlayRouteTest {
             composeRule.onNodeWithText("Zip").assertExists()
             composeRule.onNodeWithTag("play.picker").assertDoesNotExist()
             assertEquals(0, daily.todayCalls(ZipDefinition.id)) // restored, not fetched
+        } finally {
+            koin.close()
+        }
+    }
+
+    @Test
+    fun `rotation keeps the live zip controller and its hint cooldown`() {
+        val koin = koinWith()
+        try {
+            val restoration = StateRestorationTester(composeRule)
+            restoration.setContent {
+                PuzzleBoxTheme(darkTheme = false) {
+                    PlayRoute(layout = PlayLayout.SinglePane, onBack = {}, onSolved = { _, _ -> })
+                }
+            }
+            composeRule.onNodeWithTag("play.picker_zip").performClick()
+            composeRule.waitForIdle()
+            val live = composeRule.runOnIdle { zip(koin).also { it.hint() } }
+            composeRule.runOnIdle { assertTrue(live.hintCooldownActive()) }
+
+            // Configuration change: the composition (and its saveable) is rebuilt while
+            // the store keeps the play — the hint cooldown and log must survive.
+            restoration.emulateSavedInstanceStateRestore()
+            composeRule.waitForIdle()
+
+            composeRule.runOnIdle {
+                assertSame(live, zip(koin))
+                assertTrue(live.hintCooldownActive())
+                assertEquals(1, live.hintHistory.size)
+            }
         } finally {
             koin.close()
         }

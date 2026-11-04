@@ -91,7 +91,8 @@ class PlaySessionStore(
     /**
      * The one session-restore path for saves AND history replays (both are
      * [SessionBlob] envelopes naming their game). A live same-game play adopts in
-     * place; a stale other-game play is released; and after PROCESS DEATH — the
+     * place — and keeps its controller when the envelope is the session it already
+     * holds (rotation); a stale other-game play is released; and after PROCESS DEATH — the
      * saveable outlived this single while [active] is null — the saved game's play is
      * restarted here, so a mid-play day is never dropped (fix-round-1 C1). An
      * unparseable or unplayable envelope names nothing: null, store untouched.

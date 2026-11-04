@@ -34,7 +34,11 @@ import kotlinx.coroutines.launch
  *
  * Every [load] and restore adopts into a NEW controller; callbacks and async results of
  * an older controller are dropped (the generation guard), so a superseded session can
- * never publish bytes or write a record.
+ * never publish bytes or write a record. The one exception is a restore of the session
+ * the live controller already holds (rotation): that controller is kept, transient
+ * state and all. The record write is tracked apart from the controller (the record
+ * token): only [load], [replay] and a restore of ANOTHER puzzle start a new record, so a
+ * write in flight across a same-puzzle restore still delivers its badge or failure.
  */
 class ActivePlay internal constructor(
     private val plugin: GamePlugin<*, *, *>,
@@ -59,6 +63,14 @@ class ActivePlay internal constructor(
     val gameId: GameId get() = plugin.definition.id
 
     private var generation = 0
+
+    /** The session bytes the live controller last published or was restored from. */
+    private var held: ByteArray? = null
+
+    /** The record write's identity: bumped by [resetRecord] only (load/replay, or a
+     *  restore of ANOTHER puzzle) — never by a controller swap. */
+    private var recordToken = 0
+
     private val _board = MutableStateFlow(Board(newController(), PlayBoardStatus.Loading))
     val board: StateFlow<Board> = _board.asStateFlow()
 
@@ -80,8 +92,9 @@ class ActivePlay internal constructor(
 
     /** Fetch-today → board (A7/A8): Fresh plays; Cached plays with a degrade banner;
      *  Unavailable is the error state; an envelope the game rejects is never playable. */
-    fun load() {
-        val controller = newController()
+    fun load() = load(newController())
+
+    private fun load(controller: GamePlayController) {
         val gen = generation
         resetRecord(ref = null)
         _board.value = Board(controller, PlayBoardStatus.Loading)
@@ -115,16 +128,23 @@ class ActivePlay internal constructor(
 
     /**
      * Rotation/process-death + history-replay restore: the game's codec carries the
-     * puzzle BY VALUE, so a corrupt blob falls back to a normal [load]; a restored
-     * COMPLETED session shows its win without re-emitting (emission happens on the
-     * transition only) and reads no baseline.
+     * puzzle BY VALUE, so a corrupt blob falls back to a normal [load] (on the controller
+     * that failed to read it — it adopted nothing); a restored COMPLETED session shows
+     * its win without re-emitting (emission happens on the transition only) and reads
+     * no baseline. The session the live controller already holds (rotation: the store
+     * outlived the composition) keeps that controller — hint cooldown, visible hint,
+     * rejection and the record write untouched. A restore of the same puzzle keeps the
+     * record; another puzzle starts a new one.
      */
     internal fun adoptRestored(bytes: ByteArray) {
+        if (held?.contentEquals(bytes) == true) return
         val controller = newController()
-        val restored = controller.adoptRestored(bytes) ?: return load()
-        resetRecord(restored.ref)
+        val restored = controller.adoptRestored(bytes) ?: return load(controller)
+        held = bytes
+        val newPuzzle = restored.ref != ref
+        if (newPuzzle) resetRecord(restored.ref)
         _board.value = Board(controller, PlayBoardStatus.Ready(banner = null))
-        if (!controller.isComplete) refreshBaseline(restored.ref)
+        if (newPuzzle && !controller.isComplete) refreshBaseline(restored.ref)
     }
 
     /** Result's "Play again": a fresh session of the SAME puzzle (A9) — the badge resets
@@ -145,10 +165,16 @@ class ActivePlay internal constructor(
 
     private fun newController(): GamePlayController {
         val gen = ++generation
+        held = null
         return ui.createController(
             PlayEnvironment(
                 scope = scope,
-                onSessionChanged = { bytes -> if (gen == generation) publish(this, bytes) },
+                onSessionChanged = { bytes ->
+                    if (gen == generation) {
+                        held = bytes
+                        publish(this, bytes)
+                    }
+                },
                 onWon = { record -> if (gen == generation) onWon(record) },
             ),
         )
@@ -160,13 +186,13 @@ class ActivePlay internal constructor(
     }
 
     private fun emit(record: CompletionRecord) {
-        val gen = generation
+        val token = recordToken
         _record.update { it.copy(badge = null, writeFailed = false) }
         CompletionRecordEmitter(scope) { r ->
             completions.onCompleted(r)
             AppResult.Ok(Unit)
         }.emit(record) { result ->
-            if (gen != generation) return@emit
+            if (token != recordToken) return@emit
             when (result) {
                 // A4 badge for THIS play: true only when no record existed at session
                 // start; unknown baseline (write raced the baseline read) stays null.
@@ -177,6 +203,7 @@ class ActivePlay internal constructor(
     }
 
     private fun resetRecord(ref: PuzzleRef?) {
+        recordToken++
         this.ref = ref
         baselineHadRecord = null
         lastWon = null
@@ -185,10 +212,10 @@ class ActivePlay internal constructor(
 
     private fun refreshBaseline(ref: PuzzleRef?) {
         if (ref == null) return
-        val gen = generation
+        val token = recordToken
         scope.launch {
             val had = completions.observeRecords().first().any { it.puzzleRef == ref }
-            if (gen == generation) baselineHadRecord = had
+            if (token == recordToken) baselineHadRecord = had
         }
     }
 

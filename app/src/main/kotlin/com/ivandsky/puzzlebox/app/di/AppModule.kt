@@ -36,10 +36,22 @@ val appModule = module {
     // line in [PuzzleBoxApplication.appModules] (its plugin + its GamePlayUi) plus its
     // place in [GAME_ORDER]. Koin's getAll order is not a product order, so the
     // registry is sorted here: Home's featured game and the play picker follow it.
-    single { GameRegistry(getAll<GamePlugin<*, *, *>>().sortedWith(gameOrder)) }
+    single {
+        GameRegistry(getAll<GamePlugin<*, *, *>>().sortedWith(gameOrder))
+            .also { requireEveryGamePlayable(it, get()) }
+    }
 
     // Every game module's play registration; a duplicate game id throws (ADR-0007).
     single { GamePlayRegistry(getAll<GamePlayUi>()) }
+}
+
+/** ADR-0008 "Adding a game": a plugin bound without its GamePlayUi is a wiring bug —
+ *  fail at the registry's first resolve instead of silently leaving the picker. */
+internal fun requireEveryGamePlayable(games: GameRegistry, play: GamePlayRegistry) {
+    for (plugin in games.all) {
+        val id = plugin.definition.id
+        require(play[id] != null) { "game '${id.value}' has no GamePlayUi registered (missing its -ui module)" }
+    }
 }
 
 /** Product order of the shipped games: Home's featured game first, then the picker's. */

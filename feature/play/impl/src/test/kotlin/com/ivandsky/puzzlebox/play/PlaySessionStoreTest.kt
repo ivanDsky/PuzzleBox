@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -97,6 +98,31 @@ class PlaySessionStoreTest {
         val restored = store.restore(FakeController.envelope(alpha, moves = 3, day = day)) {}
         assertSame(live, restored)
         assertEquals(3, fakes[alpha].latest.moves)
+    }
+
+    @Test
+    fun `a rotation restore of the live session keeps the live controller`() {
+        val store = store()
+        val sink = mutableListOf<ByteArray>()
+        val play = store.start(alpha) { sink += it }!!
+        play.load()
+        val live = fakes[alpha].latest
+        live.move()
+        val created = fakes[alpha].controllers.size
+
+        // Rotation: the store survived and the reborn saveable hands back exactly the
+        // session the live controller published — its transient state must survive.
+        val restored = store.restore(sink.last().decoded()) { sink += it }
+
+        assertSame(play, restored)
+        assertSame(live, play.controller)
+        assertEquals(created, fakes[alpha].controllers.size)
+        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        // Still the live generation: its changes keep reaching the new sink.
+        val writes = sink.size
+        live.move()
+        assertEquals(writes + 1, sink.size)
+        assertEquals(2, sink.last().decoded().session.decodeToString().split('|')[1].toInt())
     }
 
     @Test

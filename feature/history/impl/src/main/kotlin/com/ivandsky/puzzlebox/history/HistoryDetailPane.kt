@@ -67,8 +67,8 @@ internal fun DetailHint(
 
 /** One captured or solved day: identity, cached record state, and the replay action
  *  when the game supports it (fix round 5, defect C — the pane renders any game's row;
- *  the captured line + replay ride Zip's cache seam and appear only when [entry]
- *  supplies a captured Zip day). */
+ *  the captured line + replay ride the game's cached day via GetReplaySession and
+ *  appear only when [entry] supplies that captured day). */
 @Composable
 internal fun DayDetailPane(
     row: HistoryDayRow,
