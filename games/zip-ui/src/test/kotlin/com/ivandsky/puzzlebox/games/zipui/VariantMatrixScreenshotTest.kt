@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultScreen
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipBoard as ZipBoardModel
@@ -135,7 +136,7 @@ class VariantMatrixScreenshotTest {
                 timeMs = 95_000,
                 hintsUsed = 1,
                 onPlayAgain = {},
-                isRecord = true,
+                verdict = RecordVerdict.NewBest,
                 modifier = Modifier.fillMaxSize(),
             )
         }

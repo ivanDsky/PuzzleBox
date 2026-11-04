@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
 import com.ivandsky.puzzlebox.gameui.unavailableMessage
 import com.ivandsky.puzzlebox.model.GameId
@@ -31,7 +32,7 @@ import kotlinx.coroutines.launch
  * One game's live play (ticket 23): the game's [GamePlayController] plus everything the
  * play feature owns around it — the fetch → adopt lifecycle (A7/A8 degrade states
  * first-class), the record identity (ADR-0004), the record write (F2 §7
- * fire-and-observe) and the A4 badge derived from the session-start baseline.
+ * fire-and-observe) and the A10 verdict derived from the session-start best-time baseline.
  *
  * Every [load] and restore adopts into a NEW controller; callbacks and async results of
  * an older controller are dropped (the generation guard), so a superseded session can
@@ -39,7 +40,7 @@ import kotlinx.coroutines.launch
  * the live controller already holds (rotation): that controller is kept, transient
  * state and all. The record write is tracked apart from the controller (the record
  * token): only [load], [replay] and a restore of ANOTHER puzzle start a new record, so a
- * write in flight across a same-puzzle restore still delivers its badge or failure.
+ * write in flight across a same-puzzle restore still delivers its verdict or failure.
  */
 class ActivePlay internal constructor(
     private val plugin: GamePlugin<*, *, *>,
@@ -57,11 +58,17 @@ class ActivePlay internal constructor(
     data class Board(val controller: GamePlayController, val status: PlayBoardStatus)
 
     /**
-     * What the result route reads. [badge] is the A4 verdict for THIS play — null while
-     * the write is in flight or the baseline is unknown; [label] is the result screen's
-     * game line ("Zip · #123").
+     * What the result route reads. [verdict] is the A10 verdict for THIS play — null while
+     * the write is in flight or the baseline is unknown; [previousBestMs] is the game's
+     * best before this session (null with no completion, or until [verdict] lands);
+     * [label] is the result screen's game line ("Zip · #123").
      */
-    data class Record(val badge: Boolean?, val writeFailed: Boolean, val label: String)
+    data class Record(
+        val verdict: RecordVerdict?,
+        val previousBestMs: Long?,
+        val writeFailed: Boolean,
+        val label: String,
+    )
 
     val gameId: GameId get() = plugin.definition.id
 
@@ -77,7 +84,7 @@ class ActivePlay internal constructor(
     private val _board = MutableStateFlow(Board(newController(), PlayBoardStatus.Loading))
     val board: StateFlow<Board> = _board.asStateFlow()
 
-    private val _record = MutableStateFlow(Record(badge = null, writeFailed = false, label = labelFor(null)))
+    private val _record = MutableStateFlow(blankRecord(labelFor(null)))
     val record: StateFlow<Record> = _record.asStateFlow()
 
     val controller: GamePlayController get() = _board.value.controller
@@ -103,9 +110,11 @@ class ActivePlay internal constructor(
 
     private var ref: PuzzleRef? = null
 
-    /** Whether a record already existed for [ref] BEFORE this session's win — the A4
-     *  badge is derived from this baseline, never from the stored rows. */
-    private var baselineHadRecord: Boolean? = null
+    /** The game's best time BEFORE this session, read at session start (A10): the
+     *  verdict is derived from this baseline, never from the stored rows after the write.
+     *  [baselineKnown] false = the read has not landed (the verdict stays null). */
+    private var baselineKnown = false
+    private var baselineBestMs: Long? = null
     private var lastWon: CompletionRecord? = null
 
     /** Fetch-today → board (A7/A8): Fresh plays; Cached plays with a degrade banner;
@@ -165,8 +174,8 @@ class ActivePlay internal constructor(
         if (newPuzzle && !controller.isComplete) refreshBaseline(restored.ref)
     }
 
-    /** Result's "Play again": a fresh session of the SAME puzzle (A9) — the badge resets
-     *  until the new write lands and the A4 baseline is re-read. The banner stays. */
+    /** Result's "Play again": a fresh session of the SAME puzzle (A9) — the verdict resets
+     *  until the new write lands and the A10 baseline is re-read. The banner stays. */
     fun replay() {
         if (_board.value.status !is PlayBoardStatus.Ready) return
         resetRecord(ref)
@@ -206,16 +215,25 @@ class ActivePlay internal constructor(
 
     private fun emit(record: CompletionRecord) {
         val token = recordToken
-        _record.update { it.copy(badge = null, writeFailed = false) }
+        _record.update { it.copy(verdict = null, previousBestMs = null, writeFailed = false) }
         CompletionRecordEmitter(scope) { r ->
             completions.onCompleted(r)
             AppResult.Ok(Unit)
         }.emit(record) { result ->
             if (token != recordToken) return@emit
             when (result) {
-                // A4 badge for THIS play: true only when no record existed at session
-                // start; unknown baseline (write raced the baseline read) stays null.
-                is AppResult.Ok -> _record.update { it.copy(badge = baselineHadRecord?.let { had -> !had }) }
+                // A10 verdict for THIS play against the session-start best; an unknown
+                // baseline (the write raced the baseline read) stays null.
+                is AppResult.Ok -> _record.update {
+                    if (!baselineKnown) {
+                        it
+                    } else {
+                        it.copy(
+                            verdict = RecordVerdict.of(baselineBestMs, record.time),
+                            previousBestMs = baselineBestMs,
+                        )
+                    }
+                }
                 is AppResult.Err -> _record.update { it.copy(writeFailed = true) }
             }
         }
@@ -224,19 +242,26 @@ class ActivePlay internal constructor(
     private fun resetRecord(ref: PuzzleRef?) {
         recordToken++
         this.ref = ref
-        baselineHadRecord = null
+        baselineKnown = false
+        baselineBestMs = null
         lastWon = null
-        _record.value = Record(badge = null, writeFailed = false, label = labelFor(ref))
+        _record.value = blankRecord(labelFor(ref))
     }
 
     private fun refreshBaseline(ref: PuzzleRef?) {
         if (ref == null) return
         val token = recordToken
         scope.launch {
-            val had = completions.observeRecords().first().any { it.puzzleRef == ref }
-            if (token == recordToken) baselineHadRecord = had
+            val best = completions.bestTimeMs(ref.gameId)
+            if (token == recordToken) {
+                baselineBestMs = best
+                baselineKnown = true
+            }
         }
     }
+
+    private fun blankRecord(label: String) =
+        Record(verdict = null, previousBestMs = null, writeFailed = false, label = label)
 
     private fun labelFor(ref: PuzzleRef?): String {
         val name = plugin.definition.displayName

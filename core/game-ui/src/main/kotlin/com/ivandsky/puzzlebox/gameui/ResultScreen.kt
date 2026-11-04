@@ -25,19 +25,22 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 /**
  * The solved-session result surface (ticket 23, spec UIUX-01 A3/A9). Its own nav route
  * paints an opaque scene — the finished board never bleeds through. Content is the
- * existing A3 facts only: time (the hero), hints, the new-record badge, and "Play
+ * existing A3 facts only: time (the hero), hints, the honest-best badge, and "Play
  * again" (A9: no streaks, no percentiles, no new metrics).
  *
- * The badge renders from the in-memory verdict whenever it lands — this screen NEVER
- * waits on the record write (F2 §7 fire-and-observe, unchanged); [isRecord] null means
- * the write is still in flight or the verdict is unknown. A failed write stays
- * surfaced and retryable here, where the player actually is after solving.
+ * The badge renders from the in-memory [verdict] whenever it lands — this screen NEVER
+ * waits on the record write (F2 §7 fire-and-observe, unchanged); [verdict] null means
+ * the write is still in flight or the verdict is unknown. A10: "New best" only on a
+ * strictly faster time (with the "Previous best" it beat), "First solve" on the game's
+ * first completion, otherwise no badge and "Best m:ss" from [previousBestMs]. A failed
+ * write stays surfaced and
+ * retryable here, where the player actually is after solving.
  *
  * Core | game split: this shell is the same for every game. A game tweaks it through
  * [label] (its own line under the headline — game name + puzzle number), which
  * defaults to nothing.
  *
- * Restraint (senior-UX Lens 7): one accent moment — the record badge; type hierarchy
+ * Restraint (senior-UX Lens 7): one accent moment — the best badge; type hierarchy
  * from AppTypography; theme roles only, zero ad-hoc colors.
  */
 @Composable
@@ -46,7 +49,8 @@ fun ResultScreen(
     hintsUsed: Int,
     onPlayAgain: () -> Unit,
     modifier: Modifier = Modifier,
-    isRecord: Boolean? = null,
+    verdict: RecordVerdict? = null,
+    previousBestMs: Long? = null,
     writeFailed: Boolean = false,
     onRetryWrite: () -> Unit = {},
     label: String? = null,
@@ -85,9 +89,14 @@ fun ResultScreen(
             style = MaterialTheme.typography.displayMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        // The run's ONE accent moment: the record badge, a tonal pill on the theme's
+        // The run's ONE accent moment: the best badge, a tonal pill on the theme's
         // primary pair — no confetti, no second accent.
-        if (isRecord == true) {
+        val badge = when (verdict) {
+            RecordVerdict.NewBest -> "New best"
+            RecordVerdict.FirstSolve -> "First solve"
+            RecordVerdict.NotBest, null -> null
+        }
+        if (badge != null) {
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primaryContainer,
@@ -95,11 +104,27 @@ fun ResultScreen(
                 modifier = Modifier.testTag("result.record_badge"),
             ) {
                 Text(
-                    text = "New personal record",
+                    text = badge,
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
                 )
             }
+        }
+        // The speed player's payoff: a new best shows the time it beat; otherwise the
+        // standing best to chase. A first solve has no previous best to show.
+        val bestLine = when {
+            previousBestMs == null -> null
+            verdict == RecordVerdict.NewBest -> "Previous best ${formatClock(previousBestMs)}"
+            verdict == RecordVerdict.NotBest -> "Best ${formatClock(previousBestMs)}"
+            else -> null
+        }
+        if (bestLine != null) {
+            Text(
+                text = bestLine,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("result.previous_best"),
+            )
         }
         Text(
             text = if (hintsUsed == 1) "1 hint" else "$hintsUsed hints",

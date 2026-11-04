@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -11,11 +12,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 /**
- * The result route's live facts. [isRecord] is the A4 verdict for THIS play — null while
- * the write is in flight/unknown, or when no play is live; [label] is null without one.
+ * The result route's live facts. [verdict] is the A10 verdict for THIS play — null while
+ * the write is in flight/unknown, or when no play is live; [previousBestMs] is the game's
+ * best before this play; [label] is null without one.
  */
 data class ResultUiState(
-    val isRecord: Boolean? = null,
+    val verdict: RecordVerdict? = null,
+    val previousBestMs: Long? = null,
     val writeFailed: Boolean = false,
     val label: String? = null,
 )
@@ -41,6 +44,10 @@ class ResultViewModel(private val store: PlaySessionStore) : ViewModel() {
         store.active.value?.retryRecordWrite()
     }
 
-    private fun resultOf(record: ActivePlay.Record) =
-        ResultUiState(isRecord = record.badge, writeFailed = record.writeFailed, label = record.label)
+    private fun resultOf(record: ActivePlay.Record) = ResultUiState(
+        verdict = record.verdict,
+        previousBestMs = record.previousBestMs,
+        writeFailed = record.writeFailed,
+        label = record.label,
+    )
 }

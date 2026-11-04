@@ -78,7 +78,7 @@ class RealGamesResultRouteTest {
             // No live play yet (process-death route restore case): the frozen facts
             // from the key render, no badge can be claimed.
             composeRule.onNodeWithText("Solved!").assertExists()
-            composeRule.onNodeWithText("New personal record").assertDoesNotExist()
+            composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
 
             // Bring the store to a solved play the way a play-through would.
             composeRule.runOnIdle { store.start(ZipDefinition.id, onSessionChanged = {})!!.load() }
@@ -89,8 +89,8 @@ class RealGamesResultRouteTest {
                 }
             }
             composeRule.waitForIdle()
-            // The verdict is in memory: the badge renders; the facts still show.
-            composeRule.onNodeWithTag("result.record_badge").assertExists()
+            // The verdict is in memory: the game's first solve badge renders.
+            composeRule.onNodeWithText("First solve").assertExists()
 
             // "Play again": same puzzle, fresh session, then navigation is handed back.
             composeRule.onNodeWithTag("result.play_again").performClick()

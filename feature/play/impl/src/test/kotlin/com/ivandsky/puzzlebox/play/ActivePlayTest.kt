@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
+import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
 import com.ivandsky.puzzlebox.gameui.unavailableMessage
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -27,7 +28,7 @@ import org.junit.Test
 /**
  * The play feature's game-agnostic half of a play, over a stand-in game: fetch → adopt
  * (A7/A8 degrade states first-class), the record identity (ADR-0004), the fire-and-observe
- * record write (F2 §7) and the A4 badge from the session-start baseline. The game halves
+ * record write (F2 §7) and the A10 verdict from the session-start baseline. The game halves
  * (decode, moves, onWon once per win) are pinned in each games:*-ui controller test.
  */
 class ActivePlayTest {
@@ -111,41 +112,74 @@ class ActivePlayTest {
     }
 
     @Test
-    fun `a fresh win writes exactly one record and the badge shows a record`() {
+    fun `a fresh win writes exactly one record and the verdict is a first solve`() {
         val play = loaded()
-        assertNull(play.record.value.badge)
+        assertNull(play.record.value.verdict)
 
         ui.latest.win()
 
         assertEquals(listOf(FakeController.record(ref)), records())
-        assertEquals(true, play.record.value.badge)
+        assertEquals(RecordVerdict.FirstSolve, play.record.value.verdict)
         assertFalse(play.record.value.writeFailed)
         assertTrue(play.needsLoad) // a finished session means a fresh entry fetches
     }
 
     @Test
-    fun `a win on an already-recorded puzzle shows not-a-record`() {
+    fun `a win on an already-recorded puzzle is not a new best`() {
         completions.setRecords(listOf(FakeController.record(ref)))
         val play = loaded()
         ui.latest.win()
-        assertEquals(false, play.record.value.badge)
+        assertEquals(RecordVerdict.NotBest, play.record.value.verdict)
+        assertEquals("an equal time shows the best it tied", FakeController.TIME_MS, play.record.value.previousBestMs)
         assertEquals(2, records().size)
     }
 
     @Test
-    fun `replay after a win emits again and the badge shows not-a-record`() {
+    fun `a replay faster than the record is a new best`() {
+        // The game's best is a slower record of this very puzzle (FirstWinPolicy keeps it
+        // the record); the replay beats it, so the verdict is honest about the time.
+        val slower = FakeController.TIME_MS + 10_000
+        completions.setRecords(listOf(FakeController.record(ref).copy(time = slower, isRecord = true)))
         val play = loaded()
         ui.latest.win()
-        assertEquals(true, play.record.value.badge)
+        assertEquals(RecordVerdict.NewBest, play.record.value.verdict)
+        assertEquals(slower, play.record.value.previousBestMs)
+    }
+
+    @Test
+    fun `another game's faster solve never counts as this game's best`() {
+        val other = TestGames.Ref(TestGames.beta, day, 7)
+        completions.setRecords(listOf(FakeController.record(other).copy(time = 1_000)))
+        val play = loaded()
+        ui.latest.win()
+        assertEquals(RecordVerdict.FirstSolve, play.record.value.verdict)
+        assertNull(play.record.value.previousBestMs)
+    }
+
+    @Test
+    fun `a solve slower than the game's best on another day is not a new best and shows that best`() {
+        val faster = FakeController.TIME_MS - 10_000
+        completions.setRecords(listOf(FakeController.record(TestGames.Ref(game, day.minusDays(1), 6)).copy(time = faster)))
+        val play = loaded()
+        ui.latest.win()
+        assertEquals(RecordVerdict.NotBest, play.record.value.verdict)
+        assertEquals(faster, play.record.value.previousBestMs)
+    }
+
+    @Test
+    fun `replay after a win emits again and is not a new best`() {
+        val play = loaded()
+        ui.latest.win()
+        assertEquals(RecordVerdict.FirstSolve, play.record.value.verdict)
 
         play.replay()
         assertEquals(1, ui.latest.replays)
-        assertNull("the badge resets until the new write lands", play.record.value.badge)
+        assertNull("the verdict resets until the new write lands", play.record.value.verdict)
         assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
 
         ui.latest.win()
         assertEquals(2, records().size)
-        assertEquals(false, play.record.value.badge)
+        assertEquals(RecordVerdict.NotBest, play.record.value.verdict)
     }
 
     @Test
@@ -164,14 +198,14 @@ class ActivePlayTest {
         ui.latest.win()
 
         assertTrue(play.record.value.writeFailed)
-        assertNull(play.record.value.badge)
+        assertNull(play.record.value.verdict)
         assertTrue(records().isEmpty())
         assertTrue(ui.latest.isComplete)
 
         completions.fail = false
         play.retryRecordWrite()
         assertFalse(play.record.value.writeFailed)
-        assertEquals(true, play.record.value.badge)
+        assertEquals(RecordVerdict.FirstSolve, play.record.value.verdict)
         assertEquals(1, records().size)
     }
 
@@ -196,7 +230,7 @@ class ActivePlayTest {
         assertFalse(play.needsLoad)
 
         ui.latest.win()
-        assertEquals(true, play.record.value.badge)
+        assertEquals(RecordVerdict.FirstSolve, play.record.value.verdict)
         assertEquals(1, records().size)
     }
 
@@ -207,7 +241,7 @@ class ActivePlayTest {
         assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
         assertTrue(play.controller.isComplete)
         assertTrue(records().isEmpty())
-        assertNull(play.record.value.badge)
+        assertNull(play.record.value.verdict)
     }
 
     @Test
@@ -222,14 +256,14 @@ class ActivePlayTest {
     }
 
     @Test
-    fun `a record write in flight across a restore still delivers its badge`() {
+    fun `a record write in flight across a restore still delivers its verdict`() {
         val gate = CompletableDeferred<Unit>()
         completions.writeGate = gate
         val play = loaded()
         ui.latest.move()
         val lagging = ui.latest.bytes()
         ui.latest.win()
-        assertNull(play.record.value.badge)
+        assertNull(play.record.value.verdict)
 
         // A restore of the SAME puzzle (a saveable that missed the winning commit) adopts
         // into a new controller while the win's write is still running.
@@ -237,7 +271,7 @@ class ActivePlayTest {
         gate.complete(Unit)
 
         assertEquals(listOf(FakeController.record(ref)), records())
-        assertEquals(true, play.record.value.badge)
+        assertEquals(RecordVerdict.FirstSolve, play.record.value.verdict)
     }
 
     @Test
@@ -257,7 +291,7 @@ class ActivePlayTest {
         completions.fail = false
         play.retryRecordWrite()
         assertFalse(play.record.value.writeFailed)
-        assertEquals(true, play.record.value.badge)
+        assertEquals(RecordVerdict.FirstSolve, play.record.value.verdict)
         assertEquals(1, records().size)
     }
 

@@ -36,7 +36,8 @@ fun ResultRoute(
             onPlayAgain()
         },
         modifier = modifier,
-        isRecord = state.isRecord,
+        verdict = state.verdict,
+        previousBestMs = state.previousBestMs,
         writeFailed = state.writeFailed,
         onRetryWrite = viewModel::retryRecordWrite,
         label = state.label,

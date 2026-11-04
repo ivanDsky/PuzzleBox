@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
+import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -177,7 +178,7 @@ class PlayViewModelsTest {
 
     @Test
     fun `result without a live play shows only the frozen facts`() {
-        assertEquals(ResultUiState(isRecord = null, writeFailed = false, label = null), ResultViewModel(store).state.value)
+        assertEquals(ResultUiState(verdict = null, writeFailed = false, label = null), ResultViewModel(store).state.value)
     }
 
     @Test
@@ -185,11 +186,22 @@ class PlayViewModelsTest {
         val vm = ResultViewModel(store)
         store.start(alpha) {}!!.load()
         fakes[alpha].latest.win()
-        assertEquals(ResultUiState(isRecord = true, writeFailed = false, label = "Alpha · #7"), vm.state.value)
+        assertEquals(ResultUiState(verdict = RecordVerdict.FirstSolve, writeFailed = false, label = "Alpha · #7"), vm.state.value)
 
         vm.replay()
         assertEquals(1, fakes[alpha].latest.replays)
-        assertEquals(ResultUiState(isRecord = null, writeFailed = false, label = "Alpha · #7"), vm.state.value)
+        assertEquals(ResultUiState(verdict = null, writeFailed = false, label = "Alpha · #7"), vm.state.value)
+
+        fakes[alpha].latest.win()
+        assertEquals(
+            ResultUiState(
+                verdict = RecordVerdict.NotBest,
+                previousBestMs = FakeController.TIME_MS,
+                writeFailed = false,
+                label = "Alpha · #7",
+            ),
+            vm.state.value,
+        )
     }
 
     @Test
@@ -202,6 +214,6 @@ class PlayViewModelsTest {
 
         completions.fail = false
         vm.retryRecordWrite()
-        assertEquals(ResultUiState(isRecord = true, writeFailed = false, label = "Alpha · #7"), vm.state.value)
+        assertEquals(ResultUiState(verdict = RecordVerdict.FirstSolve, writeFailed = false, label = "Alpha · #7"), vm.state.value)
     }
 }
