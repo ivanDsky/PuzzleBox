@@ -1,64 +1,28 @@
 package com.ivandsky.puzzlebox.app
 
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.LocalContext
-import android.provider.Settings
-import androidx.navigation3.runtime.NavEntry
-import androidx.navigation3.runtime.NavEntryDecorator
-import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.entryProvider
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.navigation3.runtime.rememberNavBackStack
-import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
-import androidx.navigation3.ui.NavDisplay
-import com.ivandsky.puzzlebox.app.nav.CatalogKey
+import com.ivandsky.puzzlebox.app.nav.PuzzleBoxNavShell
+import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
+import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavKeys
-import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.screens.CatalogUnavailableScreen
-import com.ivandsky.puzzlebox.model.ThemeMode
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.playLayoutFor
-import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.historyLayoutFor
-import com.ivandsky.puzzlebox.history.navigation.historyEntry
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.home.homeLayoutFor
-import com.ivandsky.puzzlebox.home.navigation.homeEntry
+import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.play.api.ResultKey
-import com.ivandsky.puzzlebox.play.navigation.playEntry
-import com.ivandsky.puzzlebox.play.navigation.replayEntry
-import com.ivandsky.puzzlebox.play.navigation.resultEntry
-import com.ivandsky.puzzlebox.profile.navigation.profileEntry
 
 @Composable
 fun PuzzleBoxApp(
@@ -92,37 +56,14 @@ fun PuzzleBoxApp(
     val expanded = layout == HomeLayout.TwoPane
     val backStack = rememberNavBackStack(puzzleBoxNavKeys, HomeKey)
     val navigator = remember(backStack) { Navigator(backStack) }
-    // Every scene root paints an opaque canvas (SceneCanvas) — applied once here as an
-    // entry decorator so feature entries stay shell-agnostic. The saveable-state holder
-    // stays outermost (NavDisplay's default), the same tree each entry had wrapping itself.
-    val sceneCanvas = remember { NavEntryDecorator<NavKey> { entry -> SceneCanvas { entry.Content() } } }
-    // Accessibility (spec A3): animator scale 0 is the system's reduced-motion signal —
-    // the result fade-through collapses to opacity-only.
-    val context = LocalContext.current
-    val reduceMotion = remember {
-        Settings.Global.getFloat(
-            context.contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            1f,
-        ) == 0f
-    }
+    val selected = navigator.currentKey ?: HomeKey
 
     Scaffold(
         modifier = modifier,
         bottomBar = {
             // Two-pane moves navigation to a rail; the bottom bar is every other shape.
             if (!expanded) {
-                NavigationBar {
-                    topLevelDestinations.forEach { destination ->
-                        val selected = navigator.currentKey == destination.key
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = { navigator.navigateToTopLevel(destination.key) },
-                            icon = { Icon(destination.icon, contentDescription = null) },
-                            label = { Text(destination.label) },
-                        )
-                    }
-                }
+                TopLevelNavBar(selected = selected, onSelect = navigator::navigateToTopLevel)
             }
         },
     ) { innerPadding ->
@@ -132,80 +73,19 @@ fun PuzzleBoxApp(
                 .padding(innerPadding),
         ) {
             if (expanded) {
-                NavigationRail {
-                    topLevelDestinations.forEach { destination ->
-                        val selected = navigator.currentKey == destination.key
-                        NavigationRailItem(
-                            selected = selected,
-                            onClick = { navigator.navigateToTopLevel(destination.key) },
-                            icon = { Icon(destination.icon, contentDescription = null) },
-                            label = { Text(destination.label) },
-                        )
-                    }
-                }
+                TopLevelNavRail(selected = selected, onSelect = navigator::navigateToTopLevel)
             }
-            NavDisplay(
-                backStack = backStack,
+            PuzzleBoxNavShell(
+                navigator = navigator,
+                homeLayout = layout,
+                playLayout = playLayout,
+                historyLayout = historyLayout,
+                themeMode = themeMode,
+                onSetThemeMode = onSetThemeMode,
                 modifier = Modifier.weight(1f),
-                entryDecorators = listOf(rememberSaveableStateHolderNavEntryDecorator(), sceneCanvas),
-                // Fade-through: the outgoing screen fades out in 90ms BEFORE the incoming
-                // one starts, so the two contents never superimpose mid-flight (Nav3's
-                // simultaneous crossfade showed both screens' text over each other).
-                // Slide is a residual 1/24 — tab switches aren't hierarchical.
-                // Ticket 23: entering the RESULT route is the run's only new animation —
-                // opacity 0→1 + scale 0.92→1 on one critically damped ~0.3s spring
-                // (spec A3); reduced motion keeps the opacity half only.
-                transitionSpec = {
-                    // Ticket 23: the shared result route (every game) takes the run's
-                    // one celebratory entrance.
-                    if (targetState.key is ResultKey) {
-                        resultEnterTransform(reduceMotion) togetherWith screenExitTransform()
-                    } else {
-                        screenEnterTransform() togetherWith screenExitTransform()
-                    }
-                },
-                popTransitionSpec = {
-                    screenEnterTransform() togetherWith screenExitTransform()
-                },
-                entryProvider = puzzleBoxEntryProvider(
-                    navigator = navigator,
-                    homeLayout = layout,
-                    playLayout = playLayout,
-                    historyLayout = historyLayout,
-                    themeMode = themeMode,
-                    onSetThemeMode = onSetThemeMode,
-                ),
             )
         }
     }
-}
-
-/**
- * The app's route table (ticket 17): one entry per [NavKey], every destination real —
- * each feature contributes its own entries; the shell owns only the catalog page.
- * Building it is a plain lookup construction — no composition — so [NavRoutesTest]
- * resolves each key against it and fails fast if a pushed key ever lacks a route.
- *
- * Loop wiring: Home's Today card pushes Play; its history teaser pushes History; history
- * rows push Replay with the day's session blob; the account card opens the Profile
- * account surface; Profile's catalog link pushes [CatalogKey] as a deliberate deep page —
- * NavDisplay's default back pop returns it to Profile, including after process-death restore.
- */
-internal fun puzzleBoxEntryProvider(
-    navigator: Navigator,
-    homeLayout: HomeLayout,
-    playLayout: PlayLayout,
-    historyLayout: HistoryLayout,
-    themeMode: ThemeMode,
-    onSetThemeMode: (ThemeMode) -> Unit,
-): (NavKey) -> NavEntry<NavKey> = entryProvider {
-    homeEntry(navigator, homeLayout, themeMode, onSetThemeMode)
-    historyEntry(navigator, historyLayout)
-    replayEntry(navigator, playLayout)
-    playEntry(navigator, playLayout)
-    resultEntry(navigator)
-    profileEntry(onOpenCatalog = { navigator.navigate(CatalogKey) })
-    entry<CatalogKey> { CatalogScreen() }
 }
 
 // Catalog route (ticket showkase-v2-01): debug builds render the new Showkase browser
@@ -225,7 +105,7 @@ internal object DebugCatalogContent {
 private const val DEBUG_CATALOG_BINDING =
     "com.ivandsky.puzzlebox.app.debug.CatalogDebugBinding"
 @Composable
-private fun CatalogScreen() {
+internal fun CatalogScreen() {
     val debugBrowser = debugCatalogBrowser()
     if (debugBrowser != null) {
         debugBrowser()
@@ -251,49 +131,5 @@ private fun debugCatalogBrowser(): (
         }
     } else {
         null
-    }
-}
-
-// Fade-through screen transition: 90ms accelerated fade-out, then the incoming screen
-// fades in over 200ms (delayed 90ms) with a residual 1/24 slide. Sequencing guarantees
-// only one screen's content is ever visible; every scene root paints an opaque canvas
-// (SceneCanvas) so nothing underneath can bleed through. Tokens keep one vocabulary.
-private fun AnimatedContentTransitionScope<*>.screenEnterTransform() =
-    fadeIn(
-        tween(MotionTokens.NavTransitionEnter, delayMillis = MotionTokens.NavTransitionEnterDelay, easing = MotionTokens.EasingEmphasizedDecelerate),
-    ) + slideInHorizontally(
-        tween(MotionTokens.NavTransitionEnter, delayMillis = MotionTokens.NavTransitionEnterDelay, easing = MotionTokens.EasingEmphasizedDecelerate),
-    ) { it / 24 }
-
-private fun AnimatedContentTransitionScope<*>.screenExitTransform() =
-    fadeOut(tween(MotionTokens.NavTransitionExit, easing = MotionTokens.EasingEmphasizedAccelerate))
-
-// Ticket 23 — the run's ONLY new animation (spec A3): the result screen enters with a
-// fade-through — opacity 0→1 + scale 0.92→1 on ONE critically damped spring (~0.3s
-// response, MotionTokens.SpringStiffnessDefault). Reduced motion (animator scale 0)
-// keeps the opacity half only. The outgoing screen still fades out in its own 90ms, so
-// the arrival reads as a fade-through, not a crossfade.
-private fun resultEnterTransform(reduceMotion: Boolean): EnterTransition =
-    if (reduceMotion) {
-        fadeIn(tween(MotionTokens.DurationShort, easing = MotionTokens.EasingEmphasizedDecelerate))
-    } else {
-        val enter = spring<Float>(
-            dampingRatio = MotionTokens.SpringDampingDefault,
-            stiffness = MotionTokens.SpringStiffnessDefault,
-        )
-        fadeIn(enter) + scaleIn(initialScale = 0.92f, animationSpec = enter)
-    }
-
-// Opaque canvas behind every nav scene: without it the AnimatedContent layers blend and
-// screens read as ghosts of each other during the transition.
-@Composable
-private fun SceneCanvas(content: 
-@Composable () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-    ) {
-        content()
     }
 }

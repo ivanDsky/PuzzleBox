@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.history
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -53,6 +55,7 @@ class HistoryScreenTest {
     val composeRule = createComposeRule()
 
     private var handedToShell: ByteArray? = null
+    private var shellBacks = 0
 
     private fun setContent(
         zips: List<DailyEntry> = emptyList(),
@@ -62,6 +65,7 @@ class HistoryScreenTest {
         cached: Map<Pair<GameId, LocalDate>, Puzzle> = emptyMap(),
     ) {
         handedToShell = null
+        shellBacks = 0
         val daily = FakeDailyRepository().apply {
             setHistory(ZIP, zips)
             setHistory(TANGO, tangos)
@@ -69,6 +73,9 @@ class HistoryScreenTest {
         }
         val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository(records))
         composeRule.setContent {
+            // Stand-in for the shell's NavDisplay pop: registered first, so History's own
+            // handler (registered later) wins while it is enabled.
+            BackHandler { shellBacks++ }
             PuzzleBoxTheme {
                 HistoryRoute(
                     layout = layout,
@@ -158,6 +165,27 @@ class HistoryScreenTest {
         assertNotNull("shell must receive the Ready launch", handed)
         // The handed blob keeps the replayed DAY's identity, never today's (A4).
         assertArrayEquals(TestGames.replayBlob(ZIP, cached, day, HistoryTestSupport.PUZZLE_NUMBER), handed)
+    }
+
+    @Test
+    fun `single-pane back closes the day detail first and then leaves history`() {
+        val day = LocalDate.of(2026, 11, 3)
+        setContent(zips = listOf(HistoryTestSupport.entry(day)))
+        val dispatcher = (composeRule as AndroidComposeTestRule<*, *>).activity.onBackPressedDispatcher
+
+        awaitTag("history.row.zip/$day")
+        composeRule.onNodeWithTag("history.row.zip/$day").performClick()
+        awaitTag("history.replay")
+
+        composeRule.runOnUiThread { dispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+        awaitTag("history.row.zip/$day")
+        composeRule.onNodeWithTag("history.replay").assertDoesNotExist()
+        assertEquals(0, shellBacks)
+
+        composeRule.runOnUiThread { dispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+        assertEquals(1, shellBacks)
     }
 
     @Test

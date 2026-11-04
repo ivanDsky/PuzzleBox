@@ -12,7 +12,7 @@ composeBom = "2026.09.00"
 # Glyphs outside the core set come in as Material Symbols SVG imports (drawables).
 materialIconsCore = "1.7.8"
 coroutines = "1.11.0"
-navigation3 = "1.2.0"
+navigation3 = "1.2.1"
 koin = "4.2.2"
 paging = "3.5.3"
 junit = "4.13.2"
@@ -53,7 +53,9 @@ konsist = "1.0.0-beta.1"
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-navigation3 = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-navigation3", version.ref = "lifecycle" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core", version.ref = "materialIconsCore" }
 androidx-compose-material3-windowsizeclass = { group = "androidx.compose.material3", name = "material3-window-size-class" }

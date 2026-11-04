@@ -226,7 +226,7 @@ class ZipPlayController(
     }
 
     override fun onBackground() {
-        val current = session ?: return
+        val current = session?.takeIf { it.timerStarted } ?: return // untouched: no save (A14)
         updateSession(current.onBackground(now()))
     }
 

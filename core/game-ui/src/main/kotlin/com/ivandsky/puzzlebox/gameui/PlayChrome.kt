@@ -92,15 +92,27 @@ fun PlayClockEffects(clock: PlayClock) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentClock by rememberUpdatedState(clock)
     DisposableEffect(lifecycleOwner) {
+        // Resumed and not yet paused: leaving the composition (tab switch, push on top)
+        // folds like backgrounding does, so only foreground-visible time counts (A14).
+        var resumed = false
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> currentClock.onBackground()
-                Lifecycle.Event.ON_RESUME -> currentClock.onForeground()
+                Lifecycle.Event.ON_PAUSE -> {
+                    resumed = false
+                    currentClock.onBackground()
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    resumed = true
+                    currentClock.onForeground()
+                }
                 else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            if (resumed) currentClock.onBackground()
+        }
     }
 }
 

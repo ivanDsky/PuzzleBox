@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.history
 
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
@@ -84,6 +85,14 @@ fun HistoryScreen(
                     }
             }
         }
+    }
+
+    // Single-pane (A16, N17): back from a day's detail returns to the day list first;
+    // only enabled while a day shows, so the next back leaves History. Predictive, so
+    // the system's back preview plays instead of a blocking intercept.
+    PredictiveBackHandler(enabled = layout == HistoryLayout.SinglePane && selectedRow != null) { progress ->
+        progress.collect {}
+        selectedKey = null
     }
 
     // Cards float ABOVE the pane in both themes (home convention): white on cool paper

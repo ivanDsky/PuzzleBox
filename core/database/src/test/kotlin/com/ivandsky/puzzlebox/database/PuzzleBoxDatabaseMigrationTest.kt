@@ -208,4 +208,57 @@ class PuzzleBoxDatabaseMigrationTest {
         }
         db.close()
     }
+
+    @Test
+    fun `migrate 5 to 6 keeps dailies and completions and opens the saved plays store`() {
+        val dbName = "puzzlebox-migration-5-6-test.db"
+        val v5 = helper.createDatabase(dbName, 5)
+        v5.execSQL(
+            "INSERT INTO puzzle_dailies (gameId, day, puzzleNumber, variant, formatVersion, payload, fetchedAtMs) " +
+                "VALUES ('zip', '2026-10-31', 592, 'zip/n6', 1, x'00ff', 5000)",
+        )
+        v5.execSQL(
+            "INSERT INTO completions (puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord) " +
+                "VALUES ('zip/2026-10-31/592', 95000, 2, 1, '{\"v\":1}', 7000, 7000, 1)",
+        )
+        v5.close()
+
+        val db = helper.runMigrationsAndValidate(dbName, 6, true, Migrations.MIGRATION_5_6)
+
+        db.query("SELECT gameId, day, puzzleNumber FROM puzzle_dailies").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("zip", cursor.getString(0))
+            assertEquals("2026-10-31", cursor.getString(1))
+            assertEquals(592, cursor.getInt(2))
+        }
+        db.query("SELECT puzzleRef, timeMs, isRecord FROM completions").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("zip/2026-10-31/592", cursor.getString(0))
+            assertEquals(95000L, cursor.getLong(1))
+            assertEquals(1, cursor.getInt(2))
+        }
+        // The v6 saved plays store starts empty and takes blob rows keyed by (gameId, day).
+        db.execSQL(
+            "INSERT INTO saved_plays (gameId, day, blob, updatedAt) VALUES ('zip', '2026-11-01', x'0102', 9000)",
+        )
+        db.query("SELECT gameId, day, LENGTH(blob), updatedAt FROM saved_plays").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("zip", cursor.getString(0))
+            assertEquals("2026-11-01", cursor.getString(1))
+            assertEquals(2, cursor.getInt(2))
+            assertEquals(9000L, cursor.getLong(3))
+        }
+        db.close()
+    }
+
+    @Test
+    fun `fresh v6 database is created by the normal builder path`() {
+        val dbName = "puzzlebox-fresh-v6.db"
+        val db = helper.createDatabase(dbName, 6)
+        db.query("SELECT COUNT(*) FROM saved_plays").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.getInt(0))
+        }
+        db.close()
+    }
 }
