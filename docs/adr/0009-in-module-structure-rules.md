@@ -53,7 +53,8 @@ misses on purpose, and how to fix a hit.
 ### Allowlist policy
 Existing violators sit in `konsist/src/test/resources/allowlists/<ID>.txt`, one entry per line:
 `path` for a presence rule, `path ceiling` for a count rule (S1, S2, S5). Paths are relative to
-the repo root with `/` separators. `#` starts a comment. The list can only shrink. `judge`
+the repo root with `/` separators. `#` starts a comment. The list can only shrink. A rule with no
+`allowlists/<ID>.txt` has an empty allowlist: every violation is new. `judge`
 returns these findings:
 
 | Finding | Meaning | Fix |
