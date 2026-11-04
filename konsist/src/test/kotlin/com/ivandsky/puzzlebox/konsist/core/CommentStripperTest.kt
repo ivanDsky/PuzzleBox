@@ -81,4 +81,18 @@ class CommentStripperTest {
         assertShape(src, out)
         assertEquals(src.lines().size, out.lines().size)
     }
+
+    @Test fun codeBlanksStringAndCharContentsButKeepsTemplates() {
+        val src = "val s = \"Dispatchers.IO \${Dispatchers.IO} x\"; val c = '\"' // c"
+        val out = CommentStripper.code(src)
+        assertEquals("val s = \"               \${Dispatchers.IO}  \"; val c = ' '     ", out)
+        assertShape(src, out)
+    }
+
+    @Test fun codeBlanksRawStringKeepingClosingQuotes() {
+        val src = "val s = \"\"\"\npackage x\n\"\"\"\"\nval t = 1"
+        val out = CommentStripper.code(src)
+        assertEquals("val s = \"\"\"\n         \n \"\"\"\nval t = 1", out)
+        assertShape(src, out)
+    }
 }

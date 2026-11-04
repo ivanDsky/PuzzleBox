@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.games.sample
 
+import androidx.compose.ui.graphics.Color
+
 val a = Color.Red
 val b = Color(token)
 val c = MyColor(0x1)

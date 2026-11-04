@@ -12,13 +12,15 @@ object P7AndroidFree : Rule {
 
     private const val JVM_LIBRARY_PLUGIN = "puzzlebox.jvm.library"
     private const val DOMAIN_MODULE = ":core:domain"
-    private val importLine = Regex("""(?m)^\s*import\s+((?:android|androidx)\.[\w.]*|org\.koin\.androidx?(?:\.[\w.]*)?)(?![\w])""")
+
+    /** An import or an inline qualified name; the lookbehind keeps `com.example.android.x` and `myandroid.x` out. */
+    private val reference = Regex("""(?<![\w.])(?:androidx?\.\w+|org\.koin\.androidx?(?!\w))(?:\.\w+)*""")
 
     override fun check(tree: SourceTree): RuleResult {
         val files = tree.files(SourceSetKind.PRODUCTION).filter { isAndroidFree(it.module) }
         val violations = files.mapNotNull { file ->
-            val imports = importLine.findAll(file.strippedText).map { it.groupValues[1] }.toList()
-            if (imports.isEmpty()) null else Violation(file.path, null, "remove Android imports: ${imports.joinToString()}")
+            val references = reference.findAll(file.codeText).map { it.value }.distinct().toList()
+            if (references.isEmpty()) null else Violation(file.path, null, "remove Android references: ${references.joinToString()}")
         }
         return RuleResult(files.size, violations)
     }

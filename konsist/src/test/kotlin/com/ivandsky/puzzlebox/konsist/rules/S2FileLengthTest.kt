@@ -21,6 +21,7 @@ class S2FileLengthTest {
         RuleCheck.assertFixture(
             S2FileLength,
             "S2",
+            3,
             setOf(Violation("$dir/TooLong.kt", 301, ""), Violation("$dir/Padded.kt", 301, "")),
         )
     }

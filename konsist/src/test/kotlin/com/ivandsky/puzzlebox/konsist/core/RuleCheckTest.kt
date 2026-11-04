@@ -51,7 +51,7 @@ class RuleCheckTest {
             "ZZ",
             violations = { listOf(Violation("games/a/src/main/kotlin/A.kt", 3, "prose one")) },
         )
-        RuleCheck.assertFixture(rule, "_tree", setOf(Violation("games/a/src/main/kotlin/A.kt", 3, "other prose")))
+        RuleCheck.assertFixture(rule, "_tree", 1, setOf(Violation("games/a/src/main/kotlin/A.kt", 3, "other prose")))
     }
 
     @Test
@@ -69,7 +69,7 @@ class RuleCheckTest {
             Violation("games/a/src/main/kotlin/A.kt", 4, "h"),
             Violation("core/model/src/main/kotlin/Model.kt", null, "h"),
         )
-        val message = failure { RuleCheck.assertFixture(rule, "_tree", expected) }
+        val message = failure { RuleCheck.assertFixture(rule, "_tree", 1, expected) }
         assertTrue(message, message.startsWith("ZZ: fixture _tree"))
         assertTrue(message, message.contains("missing") && message.contains("games/a/src/main/kotlin/A.kt (4)"))
         assertTrue(message, message.contains("core/model/src/main/kotlin/Model.kt"))
@@ -79,7 +79,7 @@ class RuleCheckTest {
 
     @Test
     fun assertFixtureFailsOnZeroSubjects() {
-        val message = failure { RuleCheck.assertFixture(StubRule("ZZ", subjects = { 0 }), "_tree", emptySet()) }
+        val message = failure { RuleCheck.assertFixture(StubRule("ZZ", subjects = { 0 }), "_tree", 0, emptySet()) }
         assertTrue(message, message.contains("ZZ: scope empty"))
     }
 
@@ -87,8 +87,14 @@ class RuleCheckTest {
     fun assertFixtureScansTheNamedFixture() {
         val seen = mutableListOf<String>()
         val rule = StubRule("ZZ", subjects = { tree -> seen += tree.root.name; 1 })
-        RuleCheck.assertFixture(rule, "_tree", emptySet())
+        RuleCheck.assertFixture(rule, "_tree", 1, emptySet())
         assertEquals(listOf("_tree"), seen)
+    }
+
+    @Test
+    fun assertFixtureFailsWhenTheSubjectCountDiffers() {
+        val message = failure { RuleCheck.assertFixture(StubRule("ZZ", subjects = { 4 }), "_tree", 5, emptySet()) }
+        assertEquals("ZZ: fixture _tree has 4 subjects, expected 5", message)
     }
 
     @Test
@@ -127,13 +133,13 @@ class RuleCheckTest {
     fun anAllowlistedTestPathIsStaleForAProductionRule() {
         val tree = SourceTree.fixture("_tree")
         val allowlist = Allowlist.parse("ZZ", "core/model/src/test/kotlin/ModelTest.kt\n")
-        val production = RuleCheck.verdict(StubRule("ZZ"), tree, allowlist)
-        assertTrue(production.message(), production.message().contains("path not in scope"))
+        val production = failure { RuleCheck.assertClean(StubRule("ZZ"), tree, allowlist) }
+        assertTrue(production, production.contains("path not in scope"))
 
         val both = StubRule("ZZ", kinds = SourceSetKind.values().toSet(), violations = {
             listOf(Violation("core/model/src/test/kotlin/ModelTest.kt", null, "h"))
         })
-        assertTrue(RuleCheck.verdict(both, tree, allowlist).ok)
+        RuleCheck.assertClean(both, tree, allowlist)
     }
 
     @Test

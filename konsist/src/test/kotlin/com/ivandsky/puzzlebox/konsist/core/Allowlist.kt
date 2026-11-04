@@ -8,7 +8,7 @@ class Allowlist(val ruleId: String, val entries: List<AllowlistEntry>, val probl
             val firstLineByPath = mutableMapOf<String, Int>()
             text.lines().forEachIndexed { index, rawLine ->
                 val lineNo = index + 1
-                val content = rawLine.substringBefore('#').trim()
+                val content = rawLine.replace(COMMENT, "").trim()
                 if (content.isEmpty()) return@forEachIndexed
                 val entry = when (val parsed = parseLine(content, lineNo)) {
                     is Parsed.Ok -> parsed.entry
@@ -33,6 +33,9 @@ class Allowlist(val ruleId: String, val entries: List<AllowlistEntry>, val probl
                 ?: return Allowlist(ruleId, emptyList(), emptyList())
             return parse(ruleId, stream.bufferedReader().use { it.readText() })
         }
+
+        /** `#` opens a comment at line start or after whitespace; inside a path it is part of the path. */
+        private val COMMENT = Regex("""(^|\s)#.*""")
 
         private sealed interface Parsed {
             data class Ok(val entry: AllowlistEntry) : Parsed

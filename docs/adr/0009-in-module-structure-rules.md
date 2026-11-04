@@ -44,15 +44,18 @@ misses on purpose, and how to fix a hit.
   `.gradle` and `build-logic/**/build`). Editing any source, build script or allowlist re-runs
   the rules, and build output never does. The census proves the tree stays inside this set.
 - **Fixtures.** Each rule has a fixture tree under `konsist/src/test/resources/fixtures/<ID>`
-  and a test that compares the violations it finds there with an exact expected set
-  (`assertFixture`). The `add-a-game` fixture is ADR-0008's "Adding a game" recipe as files;
+  and a test that compares the subjects it judges there with an exact count and the violations
+  it finds with an exact expected set (`assertFixture`). The count catches a fixture subject the
+  rule silently stopped judging. The `add-a-game` fixture is ADR-0008's "Adding a game" recipe as files;
   every rule must report zero violations on it (`assertAddAGameClean`). Change that fixture
   only by a ledgered `Ruling:`.
 
 ### Allowlist policy
 Existing violators sit in `konsist/src/test/resources/allowlists/<ID>.txt`, one entry per line:
 `path` for a presence rule, `path ceiling` for a count rule (S1, S2, S5). Paths are relative to
-the repo root with `/` separators. `#` starts a comment. The list can only shrink. `judge`
+the repo root with `/` separators. `#` at line start or after whitespace starts a comment; a `#`
+inside a path is part of it. The list can only shrink. A rule with no
+`allowlists/<ID>.txt` has an empty allowlist: every violation is new. `judge`
 returns these findings:
 
 | Finding | Meaning | Fix |
@@ -95,8 +98,12 @@ modules stays in ADR-0008.
 3. Add a section named `## <ID>` to this file. The failure message links to its lowercase anchor.
 4. There is no registry. A rule is a test class, so JUnit finds it.
 5. A new game or Android module needs no suite edit. Modules are read from `settings.gradle.kts`
-   and each module's `build.gradle.kts`. A JVM module's package root is derived from its path
-   with hyphens removed. A JVM module family the fallback does not know fails loudly.
+   and each module's `build.gradle.kts` (plugin ids from its `plugins { }` block). Values must be
+   string literals, joined with `+` if needed; a variable or `$` template in an `include`, plugin
+   id or `namespace` fails loudly rather than being skipped. An Android module's package root is
+   its `namespace`, and an Android module without one fails loudly. A JVM module's package root is
+   derived from its path with hyphens removed. A JVM module family the fallback does not know
+   fails loudly.
 
 ## Rules
 The rules below are numbered as in the spec. There is no S3.
@@ -105,12 +112,14 @@ The rules below are numbered as in the spec. There is no S3.
 No suppression of a structure rule.
 
 - **Scope:** production and test source files.
-- **Detection:** an `@Suppress(...)` or `@file:Suppress(...)` annotation (also `@kotlin.Suppress`)
-  with a string argument that starts with `konsist.` or with a rule ID (`S` or `P` plus digits).
-  Comments are ignored. The violation is the file.
-- **Accepted misses:** the argument list is read up to the first `)`, so a rule name that
-  follows a `)` inside an earlier string is not seen. Other suppression ways (a name that does
-  not look like a rule ID) are not covered.
+- **Detection:** a `Suppress(...)` annotation in the file's code (comments and string contents
+  removed), with any use-site target (`@file:`, `@get:`, `@field:`, `@param:` and the others) and
+  also `@kotlin.Suppress` and the bracket form `@file:[A Suppress(...)]`. It is a violation when
+  one of its string arguments starts with `konsist.` or with a rule ID (`S` or `P` plus digits).
+  The argument list runs to the matching `)`, so a `)` inside an earlier string does not end it.
+  The violation is the file.
+- **Accepted misses:** other suppression ways (a name that does not look like a rule ID, a
+  string constant passed as the argument) are not covered.
 - **How to fix:** remove the suppression. Fix the code, or ask for a ledgered `Ruling:`.
 
 ## S1
@@ -118,9 +127,10 @@ One public type per file.
 
 - **Scope:** production.
 - **Detection:** count the public top-level classes, enums, annotations, interfaces and objects
-  in a file, plus public `@Composable` functions that carry no `Preview` annotation. Private,
-  internal and protected declarations, plain functions and typealiases do not count. More than
-  one is a violation, valued at the count (a ceiling rule).
+  in a file, plus public `@Composable` functions that are not previews. A preview is defined once
+  for S1 and S4 (see S4, Detection). Private, internal and protected declarations, plain
+  functions and typealiases do not count. More than one is a violation, valued at the count (a
+  ceiling rule).
 - **Accepted misses:** it counts types, not responsibility. A file with one huge class that does
   five jobs passes. A file with two tiny related types is flagged.
 - **How to fix:** move each extra type to its own file.
@@ -139,15 +149,19 @@ Every public composable has a preview.
 
 - **Scope:** production. Judged: top-level `@Composable` functions that are public or have no
   visibility modifier, and that are not themselves previews.
-- **Detection:** a preview is a function with an annotation named `Preview`, or with an
-  annotation class that is itself annotated with one, followed transitively (multipreviews).
-  A composable is covered when its name is called (`Name(` or `Name {`) in the body of any
-  preview function in the same module. One violation per file, listing the uncovered names.
+- **Detection:** a preview is a function with an annotation named `Preview` or one of the
+  multipreviews `androidx.compose.ui.tooling.preview` ships (`PreviewLightDark`,
+  `PreviewFontScale`, `PreviewScreenSizes`, `PreviewDynamicColors`), or with an annotation class
+  in the scanned source that is itself annotated with one, followed transitively
+  (multipreviews). S1 uses the same definition (`core/Previews.kt`). A composable is covered
+  when its name is called (`Name(` or `Name {`) in the body of any preview function in the same
+  module. One violation per file, listing the uncovered names.
 - **Accepted misses:** coverage is by name and by module, not by file or by overload. A call
   anywhere in any preview of the module covers every composable with that name. Coverage is
   direct: a preview that calls a parent composable covers the parent only. A child the parent
   calls is flagged unless a preview also calls the child by name. Preview detection goes by
-  annotation name, so any annotation named `Preview` counts.
+  annotation name, so any annotation with one of those names counts. A library multipreview not
+  in the list above is not a preview.
   Ruling A7 widened the call match from `Name(` to `Name\s*[({]`, because wrappers such as
   `PuzzleBoxTheme` are only called with a trailing lambda. A `Name {` that is not a call counts
   as coverage.
@@ -158,12 +172,17 @@ No literal colors outside the design system.
 
 - **Scope:** production, except files in package `com.ivandsky.puzzlebox.designsystem` and its
   sub-packages.
-- **Detection:** a call `Color(` whose first argument is a number (hex such as `0xFF112233`,
-  decimal, float, with or without a name like `red =` and a suffix). The match may be qualified.
-  A name that merely ends in `Color` (`MyColor(`) is not matched. Valued at the number of
-  calls in the file (a ceiling rule).
-- **Accepted misses:** any `Color(<number>` call matches, including numeric uses that are not
-  an ARGB color. Colors built another way (`Color.Red`, `Color.hsv(...)`) are not matched.
+- **Detection:** a call to Compose's `Color(` whose first argument is a number (hex such as
+  `0xFF112233`, decimal, float, with or without a name like `red =` and a suffix), in the file's
+  code (comments and string contents removed). Space before `(` and a line break after it are
+  allowed. A bare `Color(` counts only when the file imports `androidx.compose.ui.graphics.Color`
+  or `androidx.compose.ui.graphics.*`; the qualified `androidx.compose.ui.graphics.Color(` always
+  counts. A name that merely ends in `Color` (`MyColor(`) or is a member (`x.Color(`) is not
+  matched. Valued at the number of calls in the file (a ceiling rule).
+- **Accepted misses:** Compose `Color` imported under an alias, or reached through a typealias,
+  is not matched. Any numeric Compose `Color(<number>` call matches, including ones that are not
+  meant as a palette color. Colors built another way (`Color.Red`, `Color.hsv(...)`) are not
+  matched.
 - **How to fix:** use a design-system color token.
 
 ## P1
@@ -181,40 +200,49 @@ Every production file's package is under its module's package root.
 
 - **Scope:** production, except `:core:testing` and files in `:core:common` whose package ends in
   `.common.dispatcher`.
-- **Detection:** the text `kotlinx.coroutines.Dispatchers` or `Dispatchers.` after comments are
-  removed. One pattern covers the import, the member import and the inline use.
-- **Accepted misses:** a string literal that contains `kotlinx.coroutines.Dispatchers` matches
-  (false positive). Only comments are stripped, not strings.
+- **Detection:** the text `kotlinx.coroutines.Dispatchers` or `Dispatchers.` in the file's code
+  (comments and string contents removed; `${...}` templates are code). One pattern covers the
+  import, the member import and the inline use.
+- **Accepted misses:** `Dispatchers` reached through a typealias or an import alias is not seen.
 - **How to fix:** inject a `DispatcherProvider`.
 
 ## P3
 ViewModels are named `*ViewModel`, live in `:feature:<x>:impl`, and expose no public mutable state.
 
 - **Scope:** production. Subjects: top-level (not nested) classes that extend `ViewModel` or whose
-  name ends in `ViewModel`.
+  name ends in `ViewModel`. Extending is followed through project base classes by simple name, so
+  `class X : BaseViewModel()` extends `ViewModel` when `BaseViewModel` does. Only scanned classes
+  count as bases: Konsist's own parent resolution reads every Kotlin file under the project root.
 - **Detection:** a violation when the class extends `ViewModel` but its name does not end in
   `ViewModel`, or the reverse; when its module is not a feature `impl` module; or when it has a
-  non-private property that is a `var`, is declared with a `Mutable...` type, or is initialized
-  by a `Mutable...(` or `mutable...(` factory (so `MutableStateFlow(...)` and `mutableStateOf(...)`
-  both count), or is typeless with an initializer or getter that is just the name of a class property
-  declared `Mutable...` or initialized by such a factory (`val state = _state`, `val state get() = _state`).
+  non-private property (primary-constructor `val`/`var` parameters included) that is a `var`, is
+  declared with a type whose simple name starts with `Mutable` (qualified or nullable alike, so
+  `kotlinx.coroutines.flow.MutableStateFlow<T>?` counts), or is initialized by a `Mutable...(` or
+  `mutable...(` factory (so `MutableStateFlow(...)` and `mutableStateOf(...)` both count, per A11), or is typeless with an
+  initializer or getter that is just the name of a class property that is a `var` or mutable by those
+  rules. The name may be prefixed by `this.` and followed by receiver-returning calls
+  (`val state = _state`, `val state get() = _state`, `val state = _state.also { }.apply { }`); an
+  annotated getter is read through its body.
   A declared read-only type (`val state: StateFlow<T> = _state`) passes. One violation per file, joining the problems.
-- **Accepted misses:** properties declared in the primary constructor are not judged. Nested
-  classes are not judged.
+- **Accepted misses:** nested classes are not judged. Only `also` and `apply` count as
+  receiver-returning; `_state.let { it }` or a helper that returns its argument passes. A base class
+  is matched by simple name, so two project classes with the same name share their parents.
 - **How to fix:** keep the `Mutable*` private and expose a read-only type; rename or move the class.
 
 ## P4
 Use cases in `:core:domain` start with a verb and have one public `operator fun invoke`.
 
-- **Scope:** production, module `:core:domain`, top-level public or default-visibility classes,
-  except data classes and classes in a `di` package.
+- **Scope:** production, module `:core:domain`, top-level public or default-visibility classes and
+  objects, except data classes, data objects, enum classes, sealed classes and declarations in a
+  `di` package.
 - **Detection:** the name must start with one of Get, Observe, Compute, Submit, Save, Load, Delete,
-  Update, Create, Sync, Validate, Record, Start, Finish, followed by an uppercase letter. The class
-  must declare exactly one public `operator fun invoke`.
+  Update, Create, Sync, Validate, Record, Start, Finish, followed by an uppercase letter. The
+  declaration must have exactly one public function named `invoke`, and that function must be an
+  `operator fun`. An extra public non-operator `invoke` overload is a violation.
 - **Accepted misses:** only `operator fun invoke` counts as the entry point; a use case with a
-  differently named method fails. Data classes in use-case files are skipped (Ruling: they are
-  result models such as `GameSummary`, not use cases), so a data class posing as a use case
-  escapes. The verb list is closed.
+  differently named method fails. Data classes and objects, enums and sealed classes in use-case
+  files are skipped (Ruling: they are result models such as `GameSummary`, not use cases), so one
+  posing as a use case escapes. The verb list is closed.
 - **How to fix:** rename the class with a listed verb and give it one `operator fun invoke`. A
   new verb is added to the rule by a ledgered `Ruling:`.
 
@@ -231,10 +259,14 @@ Naming conventions for types.
     `Source`, `Gateway`, `Store`, `Service` or `Provider` must be named `<Qualifier><Interface>`,
     longer than the interface name and ending in it.
   One violation per file, joining the problems.
-- **Accepted misses:** objects are judged like classes. A type with several such interfaces
-  passes if any one of them fits its name. Interfaces get only the banned-suffix check, not the
-  Fake or qualifier checks. `Fake` followed by a lowercase letter or nothing is not a Fake.
-  Supertypes are compared by simple name.
+- **Decision (intended, not misses):** objects are judged like classes, so
+  `object InMemoryGameRepository : GameRepository` follows the same naming as a class. A type
+  with several such interfaces passes if its name fits any one of them
+  (`class RoomGameStore : GameRepository, Store`): a name carries only one suffix. Both are
+  pinned by clean fixture cases.
+- **Accepted misses:** interfaces get only the banned-suffix check, not the Fake or qualifier
+  checks. `Fake` followed by a lowercase letter or nothing is not a Fake. Supertypes are
+  compared by simple name.
 - **How to fix:** rename the type (`OfflineFirstDailyRepository`, not `DailyRepositoryImpl`), or
   make the Fake implement the type it fakes.
 
@@ -242,22 +274,26 @@ Naming conventions for types.
 Koin modules are declared in a `di` package.
 
 - **Scope:** production.
-- **Detection:** the file text (comments removed) contains `module {`, `module(...) {` or
-  `lazyModule {`, and its package does not end in `.di`. Exception: a `:games:*` module may keep
-  its Koin module in the module's root package (ADR-0008, "Adding a game").
-- **Accepted misses:** a Koin `module` imported under another name (`import ...module as m`)
-  is not matched. Modules named `:games:<x>-ui` also count as game modules for the exception.
-  A function that is called `module` and takes a lambda matches too.
+- **Detection:** the file's code (comments and string contents removed) contains `module {`,
+  `module(...) {`, `lazyModule {` or `lazyModule(...) {`, or the same call under a name the file
+  imports `org.koin.dsl.module` or `org.koin.dsl.lazyModule` as (`import org.koin.dsl.module as m`),
+  and its package does not end in `.di`. Exception: a `:games:*` module may keep its Koin module in
+  the module's root package (ADR-0008, "Adding a game").
+- **Accepted misses:** modules named `:games:<x>-ui` also count as game modules for the exception.
+  A function that is called `module` and takes a lambda matches too. A Koin builder reached through
+  a project wrapper function or a typealias is not matched.
 - **How to fix:** move the declaration to a `di` package.
 
 ## P7
 Android-free modules import nothing from Android.
 
 - **Scope:** production files of modules using `puzzlebox.jvm.library`, plus `:core:domain`.
-- **Detection:** an `import` of `android.*`, `androidx.*`, `org.koin.android.*` or
-  `org.koin.androidx.*`, after comments are removed. The violation lists the imports.
-- **Accepted misses:** a fully qualified `android.*` use with no import (for example an inline
-  `android.util.Log.d(...)`) is not detected.
+- **Detection:** a reference to `android.*`, `androidx.*`, `org.koin.android.*` or
+  `org.koin.androidx.*` in the file's code (comments and string contents removed): an `import`, or
+  an inline fully qualified use such as `android.util.Log.d(...)`. A name preceded by a dot or a
+  word character (`com.example.android.x`) does not count. The violation lists the references.
+- **Accepted misses:** Android types reached through a typealias or a project wrapper declared in
+  another module are not seen. A local value named `android` followed by a member access matches.
 - **How to fix:** remove the import; put the Android code in an Android module behind an interface.
 
 ## Consequences

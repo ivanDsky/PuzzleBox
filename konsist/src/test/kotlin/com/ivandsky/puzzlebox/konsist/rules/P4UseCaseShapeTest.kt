@@ -5,8 +5,9 @@ import com.ivandsky.puzzlebox.konsist.core.Violation
 import org.junit.Test
 
 /**
- * P4: a public class in `:core:domain` (outside `di` packages) starts with a verb from the list, followed by an
- * uppercase letter, and has exactly one public `operator fun invoke`; `suspend` is allowed, overloads are not.
+ * P4: a public class or object in `:core:domain` (outside `di` packages; data, enum and sealed types skipped) starts
+ * with a verb from the list, followed by an uppercase letter, and has exactly one public `invoke`, which is an
+ * `operator fun`; `suspend` is allowed, overloads (operator or not) are not.
  * Contract and allowlist rules: ADR-0009 (docs/adr/0009-in-module-structure-rules.md).
  */
 class P4UseCaseShapeTest {
@@ -22,12 +23,16 @@ class P4UseCaseShapeTest {
         RuleCheck.assertFixture(
             P4UseCaseShape(),
             "P4",
+            11,
             setOf(
                 Violation("$dir/ThingFetcher.kt", null, ""),
                 Violation("$dir/Getter.kt", null, ""),
                 Violation("$dir/LoadNothing.kt", null, ""),
                 Violation("$dir/SaveTwice.kt", null, ""),
                 Violation("$dir/DeleteLoose.kt", null, ""),
+                Violation("$dir/CreateHidden.kt", null, ""),
+                Violation("$dir/FetchClock.kt", null, ""),
+                Violation("$dir/SyncNothing.kt", null, ""),
             ),
         )
     }

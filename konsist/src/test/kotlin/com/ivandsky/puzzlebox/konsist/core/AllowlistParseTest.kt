@@ -22,6 +22,13 @@ class AllowlistParseTest {
     }
 
     @Test
+    fun hashInsideAPathIsPartOfThePath() {
+        val a = parse("a/C#Sharp.kt 4 # why\nb/Tag#.kt\n\t# indented comment\n")
+        assertEquals(listOf(AllowlistEntry("a/C#Sharp.kt", 4, 1), AllowlistEntry("b/Tag#.kt", null, 2)), a.entries)
+        assertTrue(a.problems.isEmpty())
+    }
+
+    @Test
     fun malformedFormsAreReturnedNotThrown() {
         val a = parse("a b c\nx.kt abc\ny.kt -1\n/abs/z.kt\na\\b.kt\n../up.kt\nq/../r.kt\nok.kt\n")
         assertEquals(listOf(AllowlistEntry("ok.kt", null, 8)), a.entries)

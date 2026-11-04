@@ -53,12 +53,18 @@ class ModuleReaderTest {
         assertFailsNaming(root, ":tools:y")
     }
 
-    private fun assertFailsNaming(root: File, path: String) {
+    @Test
+    fun androidModuleWithoutNamespaceFailsEvenWhenAFallbackExists() {
+        val root = rootWith(":core:x", buildFile = "plugins { alias(libs.plugins.puzzlebox.android.library) }")
+        assertFailsNaming(root, ":core:x", "Android module :core:x declares no namespace")
+    }
+
+    private fun assertFailsNaming(root: File, path: String, message: String = path) {
         try {
             ModuleReader.read(root)
             fail("expected IllegalStateException")
         } catch (e: IllegalStateException) {
-            assertTrue(e.message, e.message!!.contains(path))
+            assertTrue(e.message, e.message!!.contains(path) && e.message!!.contains(message))
         }
     }
 

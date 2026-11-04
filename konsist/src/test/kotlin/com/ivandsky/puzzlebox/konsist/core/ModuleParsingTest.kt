@@ -3,6 +3,8 @@ package com.ivandsky.puzzlebox.konsist.core
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 class ModuleParsingTest {
@@ -29,6 +31,22 @@ class ModuleParsingTest {
             )
         """.trimIndent()
         assertEquals(listOf(":a", ":b", ":c:d", ":e", ":f"), SettingsReader.includes(text))
+    }
+
+    @Test
+    fun settings_concatenatedLiteralsAreJoined() {
+        val text = """
+            include(":games:" + "zip", ":games:" +
+                "zip-ui")
+        """.trimIndent()
+        assertEquals(listOf(":games:zip", ":games:zip-ui"), SettingsReader.includes(text))
+    }
+
+    @Test
+    fun settings_nonLiteralIncludeFailsLoudly() {
+        assertFailsWith("gameName") { SettingsReader.includes("include(\":games:\" + gameName)") }
+        assertFailsWith("\${'$'}{") { SettingsReader.includes("include(\":games:\${'$'}{name}\")") }
+        assertFailsWith("modules") { SettingsReader.includes("include(*modules)") }
     }
 
     @Test
@@ -66,6 +84,32 @@ class ModuleParsingTest {
     }
 
     @Test
+    fun buildFile_concatenatedPluginIdAndNamespaceAreJoined() {
+        val text = """
+            plugins {
+                id("com.android." + "library")
+                kotlin("plugin." + "compose")
+            }
+            android { namespace = "com.ivandsky." + "puzzlebox.x" }
+        """.trimIndent()
+        val facts = BuildFileReader.read(text)
+        assertEquals("com.ivandsky.puzzlebox.x", facts.namespace)
+        assertEquals(setOf("com.android.library", "kotlin.plugin.compose"), facts.plugins)
+    }
+
+    @Test
+    fun buildFile_nonLiteralPluginIdOrNamespaceFailsLoudly() {
+        assertFailsWith("pluginId") { BuildFileReader.read("plugins { id(pluginId) }") }
+        assertFailsWith("base") { BuildFileReader.read("android { namespace = base + \".x\" }") }
+    }
+
+    @Test
+    fun buildFile_idOutsidePluginsBlockIsNotAPlugin() {
+        val facts = BuildFileReader.read("plugins { id(\"a.b\") }\nextensions.configure { id(someValue) }")
+        assertEquals(setOf("a.b"), facts.plugins)
+    }
+
+    @Test
     fun buildFile_noNamespaceNoPlugins() {
         val facts = BuildFileReader.read("dependencies { }")
         assertNull(facts.namespace)
@@ -85,5 +129,14 @@ class ModuleParsingTest {
         assertNull(PackageRootFallback.forJvmModule(":feature:home:api"))
         assertNull(PackageRootFallback.forJvmModule(":app"))
         assertNull(PackageRootFallback.forJvmModule(":core"))
+    }
+
+    private fun assertFailsWith(fragment: String, block: () -> Unit) {
+        try {
+            block()
+            fail("expected IllegalStateException mentioning $fragment")
+        } catch (e: IllegalStateException) {
+            assertTrue(e.message, e.message!!.contains(fragment))
+        }
     }
 }
