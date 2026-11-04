@@ -181,6 +181,124 @@ class ZipPlayStateTest {
         assertEquals(listOf(Cell(0)), s.session?.path)
     }
 
+    //region undo / redo (PlayUndo over the session's command history)
+
+    private fun extend(s: ZipPlayState, vararg idx: Int) =
+        idx.forEach { s.onDragEvent(DragEvent.Extend(GridCell(it / 5, it % 5))) }
+
+    @Test
+    fun `undo and redo step the trace, clear the hint arrow and persist each step`() {
+        val saved = mutableListOf<com.ivandsky.puzzlebox.games.zip.ZipSession?>()
+        val s = ZipPlayState(
+            daily = freshDaily(),
+            completions = FakeCompletionRepository(),
+            scope = scope,
+            today = { day },
+            onSessionChanged = { saved += it },
+        ).also { it.load() }
+        extend(s, 0, 1, 2)
+        assertTrue(s.canUndo)
+        assertFalse(s.canRedo)
+
+        s.hint() // places cell 3 with an arrow
+        assertTrue(s.hintArrow != null)
+        val beforeUndo = saved.size
+        s.undo()
+        assertNull(s.hintArrow)
+        assertEquals(PlayTestSupport.solution.take(3), s.session?.path)
+        assertTrue(s.canRedo)
+        assertEquals(s.session, saved.last())
+
+        s.redo()
+        assertEquals(PlayTestSupport.solution.take(4), s.session?.path)
+        assertFalse(s.canRedo)
+        assertEquals(beforeUndo + 2, saved.size)
+
+        // nothing to redo: no state change, nothing persisted
+        s.redo()
+        assertEquals(beforeUndo + 2, saved.size)
+    }
+
+    @Test
+    fun `undo leaves hints, mistakes, backtracks and the timer as played`() {
+        val tick = AtomicLong(1_000)
+        val s = readyState(now = { Instant.ofEpochMilli(tick.getAndAdd(100)) })
+        extend(s, 0, 1, 2)
+        s.onDragEvent(DragEvent.Extend(GridCell(4, 4))) // rejected: a mistake
+        s.onDragEvent(DragEvent.Retract(index = 0)) // a backtrack
+        s.hint()
+        val before = s.session!!
+
+        s.undo()
+        s.undo()
+
+        val after = s.session!!
+        assertNotEquals(before.path, after.path)
+        assertEquals(before.hintsUsed, after.hintsUsed)
+        assertEquals(before.mistakeCount, after.mistakeCount)
+        assertEquals(before.backtrackCount, after.backtrackCount)
+        assertEquals(before.elapsedMs, after.elapsedMs)
+        assertEquals(before.runningSince, after.runningSince)
+        assertEquals(before.timerStarted, after.timerStarted)
+    }
+
+    @Test
+    fun `a new move after an undo forks the timeline but a rejected drop does not`() {
+        val s = readyState()
+        extend(s, 0, 1, 2)
+        s.undo()
+        assertTrue(s.canRedo)
+
+        s.onDragEvent(DragEvent.Extend(GridCell(4, 4))) // rejected: not a move
+        assertTrue(s.canRedo)
+
+        extend(s, 2) // an accepted move: the old future is gone
+        assertEquals(PlayTestSupport.solution.take(3), s.session?.path)
+        assertFalse(s.canRedo)
+    }
+
+    @Test
+    fun `a finished play is frozen against undo and redo`() {
+        val s = readyState()
+        playSolution(s)
+        assertTrue(s.session!!.isComplete)
+        assertFalse(s.canUndo)
+        assertFalse(s.canRedo)
+        val solved = s.session
+        s.undo()
+        s.redo()
+        assertEquals(solved, s.session)
+    }
+
+    @Test
+    fun `history survives persist and restore`() {
+        val s = readyState()
+        extend(s, 0, 1, 2)
+        s.undo()
+
+        val restored = ZipPlayState(
+            daily = freshDaily(),
+            completions = FakeCompletionRepository(),
+            scope = scope,
+            today = { day },
+        )
+        restored.adoptRestored(s.persist()!!)
+
+        assertTrue(restored.canUndo)
+        assertTrue(restored.canRedo)
+        restored.redo()
+        assertEquals(PlayTestSupport.solution.take(3), restored.session?.path)
+        restored.undo()
+        restored.undo()
+        assertEquals(PlayTestSupport.solution.take(1), restored.session?.path)
+    }
+
+    @Test
+    fun `result label names the puzzle number when known`() {
+        assertEquals("Zip · #592", readyState().resultLabel)
+        assertEquals("Zip", readyState(daily = freshDaily(history = false)).resultLabel)
+    }
+
     //endregion
 
     //region hints (A3 / F2 §10)

@@ -15,6 +15,9 @@ import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.data.repository.QueensDailyRepository
+import com.ivandsky.puzzlebox.data.repository.QueensToday
+import com.ivandsky.puzzlebox.games.queens.queensPlugin
 import com.ivandsky.puzzlebox.games.tango.TangoSession
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
@@ -37,8 +40,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * tango-05 route wiring: the picker is the play tab's fresh-entry state (A14) — both
- * registered games listed, picking starts THAT game's flow in place — and a nav-carried
+ * tango-05 route wiring: the picker is the play tab's fresh-entry state (A14) — every
+ * registered game listed, picking starts THAT game's flow in place — and a nav-carried
  * [SessionBlob] replay restores through the named game's codec (ADR-0005).
  */
 @RunWith(RobolectricTestRunner::class)
@@ -60,12 +63,14 @@ class PlayRouteTest {
         zips: ZipDailyRepository = FakeZipDailyRepository(ZipToday.Fresh(PlayTestSupport.envelope())),
         tangos: TangoDailyRepository = FakeTangoDailyRepository(todayResult = TangoToday.Fresh(TangoPlayFixture.envelope())),
         completions: CompletionRepository = FakeCompletionRepository(),
+        queens: QueensDailyRepository = FakeQueensDailyRepository(todayResult = QueensToday.Fresh(QueensPlayFixtures.envelope())),
     ): org.koin.core.module.Module = module {
         single { zips }
         single { tangos }
+        single { queens }
         single { completions }
-        // The picker names games from the plugin list (A14) — both games registered.
-        single<List<GamePlugin<*, *, *>>> { listOf(zipPlugin, tangoPlugin) }
+        // The picker names games from the plugin list (A14) — every game registered.
+        single<List<GamePlugin<*, *, *>>> { listOf(zipPlugin, tangoPlugin, queensPlugin) }
     }
 
     private fun koinWith(
@@ -94,7 +99,7 @@ class PlayRouteTest {
     }
 
     @Test
-    fun `fresh entry shows the picker with both registered games`() {
+    fun `fresh entry shows the picker with every registered game`() {
         val koin = koinWith(
             FakeZipDailyRepository(ZipToday.Fresh(PlayTestSupport.envelope())),
             FakeTangoDailyRepository(todayResult = TangoToday.Fresh(TangoPlayFixture.envelope())),
@@ -106,8 +111,10 @@ class PlayRouteTest {
             composeRule.onNodeWithText("Pick a game").assertExists()
             composeRule.onNodeWithTag("play.picker_zip").assertExists()
             composeRule.onNodeWithTag("play.picker_tango").assertExists()
+            composeRule.onNodeWithTag("play.picker_queens").assertExists()
             composeRule.onNodeWithText("Zip").assertExists()
             composeRule.onNodeWithText("Tango").assertExists()
+            composeRule.onNodeWithText("Queens").assertExists()
         } finally {
             koin.close()
         }

@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.repository.ZipToday
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
+import com.ivandsky.puzzlebox.gameui.ResultScreen
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -121,7 +122,7 @@ class ResultScreenTest {
             listOf(ZipDailyEntry(day, 592, "zip/n5", 0L)),
         )
         val completions = FakeCompletionRepository()
-        val flow = PlayFlow(zips = repo, tangos = FakeTangoDailyRepository(todayResult = TangoToday.Fresh(TangoPlayFixture.envelope())), completions = completions)
+        val flow = PlayFlow(zips = repo, tangos = FakeTangoDailyRepository(todayResult = TangoToday.Fresh(TangoPlayFixture.envelope())), queens = FakeQueensDailyRepository(todayResult = com.ivandsky.puzzlebox.data.repository.QueensToday.Fresh(QueensPlayFixtures.envelope())), completions = completions)
         stopKoin() // tests share the JVM-global Koin context
         val koin = startKoin { modules(module { single { flow } }) }
         try {

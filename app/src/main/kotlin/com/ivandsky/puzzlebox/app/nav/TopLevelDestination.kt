@@ -15,26 +15,6 @@ data object Home : NavKey
 data object Play : NavKey
 
 /**
- * The Queens route (queens-10): the Play tab's active game — the tab resolves to this
- * entry, which hosts the queens-ui board off the Koin graph. Zip's daily stays at [Play],
- * pushed from Home's Today card; replay stays [ReplayZip].
- */
-@Serializable
-data object Queens : NavKey
-
-/**
- * Solved-Queens result (fix round 6, R-5 parity with [Result]): a proper opaque route,
- * not the old modal overlay. The frozen facts (elapsed time, hints used) ride the key
- * so the surface renders even after process death; the record badge is live flow state
- * — the record write is fire-and-observe, never awaited. Solving unwinds to the Queens
- * TAB ROOT and pushes this entry over it, so back lands on the Queens board (Play tab),
- * not Home — Queens IS a tab root here (its solve entry is pushed from the tab, unlike
- * Zip's Home-pushed daily).
- */
-@Serializable
-data class QueensResult(val timeMs: Long, val hintsUsed: Int) : NavKey
-
-/**
  * Solved-session result (ticket 23, spec UIUX-01 A3/A9): a proper route, not an overlay.
  * The frozen A3 facts ride the key so the surface renders even after process death; the
  * record badge is live flow state — the record write is fire-and-observe, never awaited.
@@ -72,6 +52,6 @@ data class TopLevelDestination(
 
 val topLevelDestinations = listOf(
     TopLevelDestination(Home, "Home", Icons.Filled.Home),
-    TopLevelDestination(Queens, "Play", Icons.Filled.PlayArrow),
+    TopLevelDestination(Play, "Play", Icons.Filled.PlayArrow),
     TopLevelDestination(Profile, "Profile", Icons.Filled.Person),
 )

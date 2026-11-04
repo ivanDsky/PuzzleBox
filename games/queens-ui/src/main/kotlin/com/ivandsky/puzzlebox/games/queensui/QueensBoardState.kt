@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensSession
+import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHints
 import java.time.Instant
@@ -22,10 +23,12 @@ import java.time.Instant
  *   (withQueenRemoved — the removal takes the queen AND its stored mark, so the cycle
  *   closes; fix round 5). §5.2 haptics are fired by the board.
  * - Drag (drag-start + each newly entered cell): MANUAL X on markless queen-free
- *   cells only — idempotent, no flicker over an already-X cell (§5.1).
- * - Undo: session's provenance-aware one-step revert (A12; one tap = one undo unit).
- * - Clear (fix round 6): ONE undo unit that wipes EVERYTHING — queens, AUTO and
- *   MANUAL marks — reverting to the pre-clear snapshot.
+ *   cells only — idempotent, no flicker over an already-X cell (§5.1). One painted
+ *   cell = one command (no gesture coalescing).
+ * - Undo / Redo: the session's command history (A12; one action = one command, its
+ *   auto-fill side effects revert with it). A new action drops the redo stack.
+ * - Clear (fix round 6): ONE command that wipes EVERYTHING — queens, AUTO and
+ *   MANUAL marks — and one undo restores the queens + manual marks it removed.
  * - MANUAL marks are cleared only by their own cell's cycle closing (or by Clear).
  *
  * Staged hint ladder (§5.5, fix round 6): the first tap presents the queens-05
@@ -34,6 +37,11 @@ import java.time.Instant
  * escalates to stage 2 — [hintPointed] renders the crown ghost directly on the cell.
  * Any board action clears the hint. A NEW presented hint counts into the session's
  * result facts ([QueensSession.hintsUsed]); the stage-2 repeat is presentation only.
+ *
+ * Clock: the owner (the play state) holds the running window; [settle] is its hook on
+ * every committed session — start the window, or fold it into the session's banked
+ * [QueensSession.elapsedMs] on a win — BEFORE the session is stored and the win record
+ * is built, so the record carries the real duration. [bankElapsed] folds a pause.
  *
  * Win flow (Zip's win→result-route pattern, F2 §7): the [QueensSession.completedAt]
  * TRANSITION builds ONE [com.ivandsky.puzzlebox.game.CompletionRecord] through the
@@ -48,6 +56,7 @@ class QueensBoardState(
     private val onWinRecord: (CompletionRecord) -> Unit = {},
     private val now: () -> Instant = Instant::now,
     private val onSessionChanged: (QueensSession) -> Unit = {},
+    private val settle: (QueensSession) -> QueensSession = { it },
 ) {
 
     var session by mutableStateOf(initialSession)
@@ -114,11 +123,23 @@ class QueensBoardState(
         commit(current.withCrossToggled(cell, now()))
     }
 
-    /** A12: one provenance-aware step; auto-fill side effects revert with it. */
+    /** A12: one command reverted; its auto-fill side effects revert with it. */
     fun undo() {
         clearHint()
         commit(session.withUndo())
     }
+
+    /** Re-apply the most recently undone command. */
+    fun redo() {
+        clearHint()
+        commit(session.withRedo())
+    }
+
+    val canUndo: Boolean get() = session.canUndo
+    val canRedo: Boolean get() = session.canRedo
+
+    /** The §5.5 caption of the active hint, null when there is none (PlayHints seam). */
+    val hintCaption: String? get() = queensHintCaption(hint)
 
     /**
      * §5.5 staged ladder: first tap presents the hint (stage 1); a repeat tap while the
@@ -133,10 +154,15 @@ class QueensBoardState(
         lastHintCellIdx = regionCell?.idx
         hint = next
         hintPointed = repeat
-        if (!repeat && next != QueensHint.None) {
-            session = session.withHintUsed()
-            onSessionChanged(session)
+        if (!repeat && next != QueensHint.None && !session.isComplete) {
+            store(settle(session.withHintUsed()))
         }
+    }
+
+    /** Folds [deltaMs] of finished running time into the session's banked clock. */
+    fun bankElapsed(deltaMs: Long) {
+        if (deltaMs <= 0L) return
+        store(session.copy(elapsedMs = session.elapsedMs + deltaMs))
     }
 
     /** A14 (fix round 6): ON auto-fills exclusion marks (A10); OFF places queens bare.
@@ -145,8 +171,7 @@ class QueensBoardState(
         clearHint()
         val next = session.withAutoCross(enabled)
         if (next == session) return
-        session = next
-        onSessionChanged(next)
+        store(next)
     }
 
     /** Clear (fix round 6): wipe queens + AUTO + MANUAL marks as ONE undo unit. */
@@ -164,12 +189,38 @@ class QueensBoardState(
     }
 
     private fun commit(next: QueensSession) {
+        if (next == session) return // a no-op action: no history, no clock, no persist churn
         val previous = session
-        session = next
-        onSessionChanged(next)
-        if (!previous.isComplete && next.isComplete && !winEmitted) {
+        val settled = settle(next)
+        store(settled)
+        if (!previous.isComplete && settled.isComplete && !winEmitted) {
             winEmitted = true
-            score?.completion(next)?.let(onWinRecord)
+            score?.completion(settled)?.let(onWinRecord)
         }
     }
+
+    private fun store(next: QueensSession) {
+        session = next
+        onSessionChanged(next)
+    }
+}
+
+/**
+ * The §5.5 caption text for the active hint (fix round 6). The region is always named
+ * by its palette color (the pulsed fill); the deduction names the unit whose every
+ * other cell is blocked. null = nothing to show (no hint, or a no-op hint).
+ */
+internal fun queensHintCaption(hint: QueensHint?): String? = when (hint) {
+    is QueensHint.Region -> {
+        val color = QueensRegionPalette.hueName(hint.region)
+        when (hint.reason?.kind) {
+            HintReason.Kind.ROW -> "The $color region's queen must be in this row — every other cell there is blocked"
+            HintReason.Kind.COLUMN -> "The $color region's queen must be in this column — every other cell there is blocked"
+            HintReason.Kind.REGION -> "The $color region's queen must be here — every other cell in the region is blocked"
+            // Solver-only forcing: the honest fallback (never a fabricated reason).
+            null -> "Hint — the $color region"
+        }
+    }
+    is QueensHint.Incorrect -> "Hint — these crowns can't all stay; remove at least one"
+    QueensHint.None, null -> null
 }
