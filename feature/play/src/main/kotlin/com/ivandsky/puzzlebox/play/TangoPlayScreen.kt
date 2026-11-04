@@ -90,7 +90,7 @@ private fun BoxScope.TangoBoardArea(
         val screenState = state.screen
         when {
             ready != null && model != null -> {
-                // The renderer owns the tap policy + A/B placement variants (04); the
+                // The renderer owns the tap-cycle policy (04); the
                 // play shell only wires placements into the state holder. The outline
                 // rides the board modifier (§2 — the Zip outline pattern).
                 val renderer = remember(state) { TangoBoardRenderer(onPlacement = state::onPlacement) }

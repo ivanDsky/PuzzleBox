@@ -6,8 +6,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -31,11 +29,9 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Golden matrix (design-direction §10.8, ticket 04 DoD): phone posture (w360dp) with
- * light + dark × both A11 placement variants, all at fontScale 1.5 (T25 matrix
- * precedent) — the reading text (caption slot) must reflow while the board geometry
- * stays pitch-exact. Plus the tablet-landscape posture (w1280dp-h800dp, §10.8's
- * second posture): light × placement A and dark × placement B — one capture per
- * theme and per placement variant across the two postures, fontScale 1.5.
+ * light + dark, all at fontScale 1.5 (T25 matrix precedent) — the reading text
+ * (caption slot) must reflow while the board geometry stays pitch-exact. Plus the
+ * tablet-landscape posture (w1280dp-h800dp, §10.8's second posture) in light.
  *
  * Committed goldens live in `src/test/resources/goldens/`. This class is a REAL
  * floor (review I6): every run captures to a scratch file and pixel-compares against
@@ -60,26 +56,19 @@ class TangoBoardGoldenTest {
     private fun scratchPath(name: String) =
         File("build/roborecord/$name")
 
-    private fun capture(name: String, dark: Boolean, variants: TangoAbVariants, fontScale: Float) {
+    private fun capture(name: String, dark: Boolean, fontScale: Float) {
         composeRule.setContent {
             val density = LocalDensity.current
             PuzzleBoxTheme(darkTheme = dark) {
                 CompositionLocalProvider(
                     LocalDensity provides Density(density.density, fontScale = fontScale),
                 ) {
-                    TangoBoardRenderer(variants = variants, onPlacement = {})
+                    TangoBoardRenderer(onPlacement = {})
                         .Content(sampleBoard(), Modifier.fillMaxWidth().padding(16.dp))
                 }
             }
         }
         composeRule.waitForIdle()
-        if (variants.placement == TangoPlacementVariant.TwoTapChooser) {
-            // The B golden must show the variant's actual surface: tap an empty player
-            // cell to open the anchored chooser before capture.
-            composeRule.onNodeWithContentDescription("Row 3, column 2", substring = true)
-                .performClick()
-            composeRule.waitForIdle()
-        }
         val scratch = scratchPath(name).apply { parentFile?.mkdirs() }
         composeRule.onRoot().captureRoboImage(scratch)
         val golden = goldenPath(name)
@@ -128,14 +117,13 @@ class TangoBoardGoldenTest {
         )
     }
 
-    // ---- phone posture (w360dp): light + dark × placement A + B ----
+    // ---- phone posture (w360dp): light + dark ----
 
     /** §10.8: reading text reflows at fontScale 1.5, board geometry exact. */
     @Test fun `golden light placement A at fontScale 1_5`() =
         capture(
             "tango-board-light-a-frc1_5.png",
             dark = false,
-            variants = TangoAbVariants(placement = TangoPlacementVariant.TapCycle),
             fontScale = 1.5f,
         )
 
@@ -143,23 +131,6 @@ class TangoBoardGoldenTest {
         capture(
             "tango-board-dark-a-frc1_5.png",
             dark = true,
-            variants = TangoAbVariants(placement = TangoPlacementVariant.TapCycle),
-            fontScale = 1.5f,
-        )
-
-    @Test fun `golden light placement B at fontScale 1_5`() =
-        capture(
-            "tango-board-light-b-frc1_5.png",
-            dark = false,
-            variants = TangoAbVariants(placement = TangoPlacementVariant.TwoTapChooser),
-            fontScale = 1.5f,
-        )
-
-    @Test fun `golden dark placement B at fontScale 1_5`() =
-        capture(
-            "tango-board-dark-b-frc1_5.png",
-            dark = true,
-            variants = TangoAbVariants(placement = TangoPlacementVariant.TwoTapChooser),
             fontScale = 1.5f,
         )
 
@@ -171,17 +142,6 @@ class TangoBoardGoldenTest {
         capture(
             "tango-board-tablet-landscape-light-a-frc1_5.png",
             dark = false,
-            variants = TangoAbVariants(placement = TangoPlacementVariant.TapCycle),
-            fontScale = 1.5f,
-        )
-
-    @Test
-    @Config(qualifiers = "w1280dp-h800dp-240dpi")
-    fun `golden tablet landscape dark placement B at fontScale 1_5`() =
-        capture(
-            "tango-board-tablet-landscape-dark-b-frc1_5.png",
-            dark = true,
-            variants = TangoAbVariants(placement = TangoPlacementVariant.TwoTapChooser),
             fontScale = 1.5f,
         )
 

@@ -3,7 +3,6 @@
 plugins {
     alias(libs.plugins.puzzlebox.android.library.compose)
     alias(libs.plugins.puzzlebox.android.roborazzi)
-    alias(libs.plugins.ksp)
 }
 
 android {
@@ -17,12 +16,6 @@ roborazziGoldens {
     harnessVerifyProperty = "tango.golden.verify"
 }
 
-// Ticket 04: component mode, same as designsystem — only @ShowkaseComposable
-// composables are indexed into the debug browser.
-ksp {
-    arg("requireShowkaseComposableAnnotation", "true")
-}
-
 dependencies {
     implementation(projects.games.tango)
     implementation(projects.core.game)
@@ -31,10 +24,4 @@ dependencies {
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.koin.core)
-
-    // Debug A/B switcher (design-direction §8, ticket 04): Showkase-family surface —
-    // same debug-only posture as designsystem (annotations in main, processor on kspDebug).
-    implementation(libs.showkase.annotation)
-    debugImplementation(libs.showkase)
-    kspDebug(libs.showkase.processor)
 }

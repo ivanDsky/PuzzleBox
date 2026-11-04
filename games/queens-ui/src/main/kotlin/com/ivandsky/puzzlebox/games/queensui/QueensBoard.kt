@@ -70,11 +70,10 @@ internal fun rememberReducedMotion(): Boolean {
 fun QueensPlayBoard(
     state: QueensBoardState,
     modifier: Modifier = Modifier,
-    variants: QueensAbVariants = QueensAbVariants(),
 ) {
     val reducedMotion = rememberReducedMotion()
     CompositionLocalProvider(LocalQueensReducedMotion provides reducedMotion) {
-        QueensPlayBoardContent(state, modifier, variants)
+        QueensPlayBoardContent(state, modifier)
     }
 }
 
@@ -82,7 +81,6 @@ fun QueensPlayBoard(
 private fun QueensPlayBoardContent(
     state: QueensBoardState,
     modifier: Modifier,
-    variants: QueensAbVariants,
 ) {
     val model = QueensBoardModel.of(state.session, state.hint, state.hintPointed)
     val boardTokens = LocalBoardColors.current
@@ -162,7 +160,6 @@ private fun QueensPlayBoardContent(
                 QueensCell(
                     model = model,
                     idx = row * model.n + col,
-                    variants = variants,
                 )
             },
         )
@@ -261,11 +258,10 @@ private fun DrawScope.drawCellEdges(model: QueensBoardModel, hintColor: Color, i
 private fun QueensCell(
     model: QueensBoardModel,
     idx: Int,
-    variants: QueensAbVariants,
 ) {
     val n = model.n
     val dark = currentIsDarkTheme()
-    val fill = QueensRegionPalette.fill(model.regions[idx], dark, variants.paletteDensity)
+    val fill = QueensRegionPalette.fill(model.regions[idx], dark)
     val onSurface = MaterialTheme.colorScheme.onSurface
     val scrim = MaterialTheme.colorScheme.scrim
     val ink = remember(model.regions[idx], dark) {
@@ -346,26 +342,13 @@ private fun QueensCell(
             // visible" report). clipRect confines the pattern to this cell.
             if (violated) {
                 clipRect(0f, 0f, size.width, size.height) {
-                    when (variants.violationCue) {
-                        ViolationCue.STRIPES_SCRIM -> drawViolationStripes(
-                            error = error,
-                            scrim = scrim,
-                            pitch = QueensBoardDefaults.violationStripePitch.toPx(),
-                            band = QueensBoardDefaults.violationStripeWidth.toPx(),
-                            scrimBand = QueensBoardDefaults.violationScrimWidth.toPx(),
-                        )
-                        ViolationCue.TINT -> if (QueensRegionPalette.cielL(fill) >= 55f) {
-                            drawRect(error.copy(alpha = QueensBoardDefaults.violationTintAlpha))
-                        } else {
-                            drawViolationStripes(
-                                error = error,
-                                scrim = scrim,
-                                pitch = QueensBoardDefaults.violationStripePitch.toPx(),
-                                band = QueensBoardDefaults.violationStripeWidth.toPx(),
-                                scrimBand = QueensBoardDefaults.violationScrimWidth.toPx(),
-                            )
-                        }
-                    }
+                    drawViolationStripes(
+                        error = error,
+                        scrim = scrim,
+                        pitch = QueensBoardDefaults.violationStripePitch.toPx(),
+                        band = QueensBoardDefaults.violationStripeWidth.toPx(),
+                        scrimBand = QueensBoardDefaults.violationScrimWidth.toPx(),
+                    )
                 }
             }
             when (shown) {

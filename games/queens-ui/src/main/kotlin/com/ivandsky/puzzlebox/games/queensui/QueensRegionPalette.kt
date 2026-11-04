@@ -56,20 +56,9 @@ object QueensRegionPalette {
         Color(0xFF662757), // 9 magenta
     )
 
-    /** A/B-3 variant B: hue-only cycle (same hues, NO parity lightness alternation) —
-     *  the loser candidate the §7 walk judges against the alternated default. */
-    private val lightHueOnly = listOf(
-        Color(0xFFEBD9D4), Color(0xFFEFE0CD), Color(0xFFE8E0C2), Color(0xFFDBEFDB),
-        Color(0xFFC1D6D2), Color(0xFFDAEDF1), Color(0xFFC2D3EB), Color(0xFFD9D7EB),
-        Color(0xFFD8CEDF), Color(0xFFEDE0EA),
-    )
-
-    /** Region fill for [region] id in [dark] mode, per the A/B-3 palette variant. */
-    fun fill(region: Int, dark: Boolean, density: PaletteDensity = PaletteDensity.LIGHTNESS_ALTERNATED): Color {
-        val palette = when {
-            density == PaletteDensity.HUE_ONLY && !dark -> lightHueOnly
-            else -> if (dark) this.dark else light
-        }
+    /** Region fill for [region] id in [dark] mode. */
+    fun fill(region: Int, dark: Boolean): Color {
+        val palette = if (dark) this.dark else light
         return palette[((region % palette.size) + palette.size) % palette.size]
     }
 
@@ -112,6 +101,3 @@ object QueensRegionPalette {
         return 0.2126f * linear(red) + 0.7152f * linear(green) + 0.0722f * linear(blue)
     }
 }
-
-/** §7 A/B-3 switch payload (debug switcher in the queens-09 walk). */
-enum class PaletteDensity { LIGHTNESS_ALTERNATED, HUE_ONLY }
