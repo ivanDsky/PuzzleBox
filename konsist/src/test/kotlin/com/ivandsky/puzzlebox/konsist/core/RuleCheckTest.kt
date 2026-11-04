@@ -133,13 +133,13 @@ class RuleCheckTest {
     fun anAllowlistedTestPathIsStaleForAProductionRule() {
         val tree = SourceTree.fixture("_tree")
         val allowlist = Allowlist.parse("ZZ", "core/model/src/test/kotlin/ModelTest.kt\n")
-        val production = RuleCheck.verdict(StubRule("ZZ"), tree, allowlist)
-        assertTrue(production.message(), production.message().contains("path not in scope"))
+        val production = failure { RuleCheck.assertClean(StubRule("ZZ"), tree, allowlist) }
+        assertTrue(production, production.contains("path not in scope"))
 
         val both = StubRule("ZZ", kinds = SourceSetKind.values().toSet(), violations = {
             listOf(Violation("core/model/src/test/kotlin/ModelTest.kt", null, "h"))
         })
-        assertTrue(RuleCheck.verdict(both, tree, allowlist).ok)
+        RuleCheck.assertClean(both, tree, allowlist)
     }
 
     @Test
