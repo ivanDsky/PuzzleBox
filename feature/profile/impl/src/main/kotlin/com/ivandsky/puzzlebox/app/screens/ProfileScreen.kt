@@ -11,9 +11,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.ivandsky.puzzlebox.designsystem.AppTextButton
+import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,9 +41,11 @@ internal fun ProfileContent(
             is ProfileUiState.SignedIn -> SignedInSection(state, onSignOut)
         }
         HorizontalDivider()
-        OutlinedButton(onClick = onOpenCatalog, modifier = Modifier.fillMaxWidth()) {
-            Text("Design system catalog")
-        }
+        SecondaryButton(
+            text = "Design system catalog",
+            onClick = onOpenCatalog,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
@@ -105,7 +107,7 @@ private fun SignedInSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            TextButton(onClick = onSignOut) { Text("Sign out") }
+            AppTextButton(text = "Sign out", onClick = onSignOut)
         }
 
         LeaderboardSection(state.board, myUid = identity.uid)

@@ -19,7 +19,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -134,9 +134,7 @@ private fun HistorySection(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = onOpenHistory) {
-                Text(text = "See all", style = MaterialTheme.typography.labelLarge)
-            }
+            AppTextButton(text = "See all", onClick = onOpenHistory)
         }
         if (history.isEmpty()) {
             Surface(

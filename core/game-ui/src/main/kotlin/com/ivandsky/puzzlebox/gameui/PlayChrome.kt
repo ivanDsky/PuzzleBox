@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -191,15 +191,17 @@ fun UndoRedoRow(undo: PlayUndo, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        OutlinedButton(
+        SecondaryButton(
+            text = "Undo",
             onClick = undo::undo,
             enabled = undo.canUndo,
             modifier = Modifier.testTag("play.undo"),
-        ) { Text("Undo") }
-        OutlinedButton(
+        )
+        SecondaryButton(
+            text = "Redo",
             onClick = undo::redo,
             enabled = undo.canRedo,
             modifier = Modifier.testTag("play.redo"),
-        ) { Text("Redo") }
+        )
     }
 }
