@@ -23,6 +23,7 @@ class P4UseCaseShapeTest {
         RuleCheck.assertFixture(
             P4UseCaseShape(),
             "P4",
+            11,
             setOf(
                 Violation("$dir/ThingFetcher.kt", null, ""),
                 Violation("$dir/Getter.kt", null, ""),

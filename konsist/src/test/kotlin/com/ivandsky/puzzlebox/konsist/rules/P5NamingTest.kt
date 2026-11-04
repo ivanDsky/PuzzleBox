@@ -38,7 +38,7 @@ class P5NamingTest {
             "$test/Dummy.kt",
             "$test/Stub.kt",
         )
-        RuleCheck.assertFixture(P5Naming, "P5", bad.map { Violation(it, null, "") }.toSet())
+        RuleCheck.assertFixture(P5Naming, "P5", 33, bad.map { Violation(it, null, "") }.toSet())
     }
 
     @Test

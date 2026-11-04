@@ -22,6 +22,7 @@ class P7AndroidFreeTest {
         RuleCheck.assertFixture(
             P7AndroidFree,
             "P7",
+            11,
             setOf(
                 Violation("$sample/BadAndroid.kt", null, ""),
                 Violation("$sample/BadAndroidx.kt", null, ""),

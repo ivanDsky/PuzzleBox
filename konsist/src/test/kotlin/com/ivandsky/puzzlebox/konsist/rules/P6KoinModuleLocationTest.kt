@@ -21,6 +21,7 @@ class P6KoinModuleLocationTest {
         RuleCheck.assertFixture(
             P6KoinModuleLocation,
             "P6",
+            12,
             setOf(
                 Violation("$feature/BadUi.kt", null, ""),
                 Violation("$feature/BadArgs.kt", null, ""),

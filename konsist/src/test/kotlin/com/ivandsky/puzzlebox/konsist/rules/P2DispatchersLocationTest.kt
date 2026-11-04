@@ -21,6 +21,7 @@ class P2DispatchersLocationTest {
         RuleCheck.assertFixture(
             P2DispatchersLocation,
             "P2",
+            8,
             setOf(
                 Violation("$dir/ImportBad.kt", null, ""),
                 Violation("$dir/MemberImportBad.kt", null, ""),

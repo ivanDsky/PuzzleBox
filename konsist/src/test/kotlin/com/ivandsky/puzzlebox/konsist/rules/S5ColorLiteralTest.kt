@@ -21,6 +21,7 @@ class S5ColorLiteralTest {
         RuleCheck.assertFixture(
             S5ColorLiteral,
             "S5",
+            8,
             setOf(
                 Violation("$dir/Hex.kt", 2, ""),
                 Violation("$dir/Named.kt", 2, ""),

@@ -44,8 +44,9 @@ misses on purpose, and how to fix a hit.
   `.gradle` and `build-logic/**/build`). Editing any source, build script or allowlist re-runs
   the rules, and build output never does. The census proves the tree stays inside this set.
 - **Fixtures.** Each rule has a fixture tree under `konsist/src/test/resources/fixtures/<ID>`
-  and a test that compares the violations it finds there with an exact expected set
-  (`assertFixture`). The `add-a-game` fixture is ADR-0008's "Adding a game" recipe as files;
+  and a test that compares the subjects it judges there with an exact count and the violations
+  it finds with an exact expected set (`assertFixture`). The count catches a fixture subject the
+  rule silently stopped judging. The `add-a-game` fixture is ADR-0008's "Adding a game" recipe as files;
   every rule must report zero violations on it (`assertAddAGameClean`). Change that fixture
   only by a ledgered `Ruling:`.
 

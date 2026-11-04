@@ -22,6 +22,7 @@ class S0NoSuppressTest {
         RuleCheck.assertFixture(
             S0NoSuppress,
             "S0",
+            17,
             setOf(
                 Violation("$main/BadQualified.kt", null, ""),
                 Violation("$main/BadBareId.kt", null, ""),

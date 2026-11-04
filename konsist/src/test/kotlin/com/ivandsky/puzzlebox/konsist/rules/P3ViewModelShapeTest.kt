@@ -30,6 +30,7 @@ class P3ViewModelShapeTest {
         RuleCheck.assertFixture(
             P3ViewModelShape,
             "P3",
+            23,
             setOf(
                 Violation("$impl/HomeModel.kt", null, ""),
                 Violation("$impl/FooViewModel.kt", null, ""),

@@ -22,6 +22,7 @@ class S4ComposablePreviewTest {
         RuleCheck.assertFixture(
             S4ComposablePreview,
             "S4",
+            11,
             setOf(
                 Violation("$alpha/Uncovered.kt", null, ""),
                 Violation("$beta/OtherModule.kt", null, ""),
