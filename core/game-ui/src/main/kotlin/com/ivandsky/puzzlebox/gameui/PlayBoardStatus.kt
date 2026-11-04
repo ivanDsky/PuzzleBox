@@ -1,0 +1,40 @@
+package com.ivandsky.puzzlebox.gameui
+
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import com.ivandsky.puzzlebox.designsystem.Spacing
+
+/** The play screen's async board states (A7/A8) — degrade states are first-class. */
+sealed interface PlayBoardStatus {
+    data object Loading : PlayBoardStatus
+
+    /** Nothing playable; [message] drives the error copy. Retry re-runs the fetch. */
+    data class Unavailable(val message: String) : PlayBoardStatus
+
+    /** Board in hand. [banner] non-null = playing the SAVED puzzle because the fetch
+     *  failed — surfaced as a banner, the board stays playable. */
+    data class Ready(val banner: String?) : PlayBoardStatus
+}
+
+/**
+ * The board area while no board is drawn: the retryable error for [PlayBoardStatus.Unavailable],
+ * the loading indicator otherwise. Test tags are `"$tagPrefix.error"` / `"$tagPrefix.loading"`.
+ */
+@Composable
+fun PlayBoardFallback(status: PlayBoardStatus, onRetry: () -> Unit, tagPrefix: String) {
+    when (status) {
+        is PlayBoardStatus.Unavailable -> BoardError(
+            message = status.message,
+            onRetry = onRetry,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.xl)
+                .testTag("$tagPrefix.error"),
+        )
+
+        else -> BoardLoading(modifier = Modifier.testTag("$tagPrefix.loading"))
+    }
+}

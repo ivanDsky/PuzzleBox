@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.game.Hint
 import com.ivandsky.puzzlebox.game.Move
 import com.ivandsky.puzzlebox.game.MoveVerdict
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
@@ -20,8 +21,11 @@ import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensVerifier
 import com.ivandsky.puzzlebox.games.queens.render.QueensRendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.ZoneId
+import com.ivandsky.puzzlebox.game.DailySource
+import com.ivandsky.puzzlebox.games.queens.feed.LinkedInQueensDailySource
 import org.koin.core.module.Module
 import org.koin.core.qualifier.qualifier
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 /**
@@ -145,16 +149,36 @@ val queensPlugin: GamePlugin<QueensState, QueensSession, QueensRendererModel> =
                 }
             }
         },
+        refOf = { date, puzzleNumber -> QueensPuzzleRef(date, puzzleNumber) },
+        // Replay hand-off: zip's shape — the play state trusts any payload the codec decodes.
+        replaySession = { cached, day, puzzleNumber ->
+            when (val decoded = QueensCodec.decode(cached.payload)) {
+                is DecodeResult.Ok -> DecodeResult.Ok(
+                    SessionBlob.encode(
+                        QueensDefinition.id,
+                        QueensSessionCodec.serialize(
+                            QueensSession(
+                                ref = QueensPuzzleRef(date = day, puzzleNumber = puzzleNumber),
+                                puzzle = decoded.value,
+                            ),
+                        ),
+                    ),
+                )
+
+                is DecodeResult.Err -> DecodeResult.Err(decoded.error)
+            }
+        },
         rendererModel = { state, hint, _ ->
             QueensRendererModel.of(state.puzzle, state.queens.map { it.idx }.toSet(), hint)
         },
     )
 
 /**
- * Koin wiring (ADR-0001): feature modules resolve `GamePlugin<*, *, *>` generically; the
- * id qualifier stops another game's `single { ... }` from overwriting Queens' definition
- * while `getAll` still collects it.
+ * Koin wiring (ADR-0001): `app` collects every `GamePlugin<*, *, *>` into the GameRegistry
+ * and every [DailySource] into the daily repository; the id qualifier stops another game's
+ * `single { ... }` from overwriting Queens' definition while `getAll` still collects it.
  */
 val queensModule: Module = module {
     single(qualifier = qualifier(QueensDefinition.id.value)) { queensPlugin }
+    single { LinkedInQueensDailySource(get()) } bind DailySource::class
 }

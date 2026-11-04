@@ -39,9 +39,6 @@ object QueensBoardDefaults {
     val violationStripeWidth: Dp = 4.dp
     val violationScrimWidth: Dp = 1.dp
 
-    // A/B-2 variant B: full-cell error tint at 30% over a luminance-gated fill list.
-    const val violationTintAlpha: Float = 0.30f
-
     // §3.3 mass exit (queen removal clears up to 3(N−1) marks): stagger 10ms/cell, cap 80ms.
     const val autoMarkStaggerStepMillis: Long = 10L
     const val autoMarkStaggerCapMillis: Long = 80L
@@ -60,17 +57,3 @@ object QueensBoardDefaults {
     // §6 lower bound reasoning: compact worst case (10x10 on 360dp) bottoms out here.
     val cellMinSize: Dp = 32.dp
 }
-
-/** §7 A/B-2 switch payload: scrimmed red stripes vs gated full-cell tint. */
-enum class ViolationCue { STRIPES_SCRIM, TINT }
-
-/**
- * The §7 A/B toggles queens-08 hands to queens-09 (all default to variant A). The
- * former A/B-1 X-provenance pair is gone (round-7 ruling: one cross shape — AUTO and
- * MANUAL are geometrically identical), as is the former A/B-4 win-cascade pair: the
- * solved state presents as the result ROUTE now (fix round 6).
- */
-data class QueensAbVariants(
-    val violationCue: ViolationCue = ViolationCue.STRIPES_SCRIM,
-    val paletteDensity: PaletteDensity = PaletteDensity.LIGHTNESS_ALTERNATED,
-)

@@ -22,20 +22,77 @@ Official puzzle apps scatter dailies across NYT and LinkedIn with separate login
 
 ## Architecture
 
-Multi-module Gradle project, Kotlin + Compose (Material 3):
+Multi-module Gradle project, Kotlin + Compose (Material 3), shaped after
+[nowinandroid](https://github.com/android/nowinandroid): convention plugins in `build-logic`
+(`puzzlebox.*`), `core:*` layers, one `games:<id>` + `games:<id>-ui` pair per game, and
+`feature:<name>:{api,impl}` pairs.
 
-```
-app                  # navigation shell, MainActivity
-├── feature/home     # home / daily games UI
-├── games/zip        # Zip game (plugin module)
-├── core/game        # game engine contracts
-├── core/game-ui     # shared game UI components
-├── core/data        # repositories, persistence
-├── core/designsystem# theme + components, screenshot-tested
-└── core/common      # shared utilities, dispatchers
+```mermaid
+graph TD
+    app[":app<br/>composition root: Koin, Nav3 shell, GAME_ORDER"]
+    backend[":backend:firebase"]
+
+    subgraph features["features: home, play, history, profile"]
+        impl[":feature:*:impl<br/>screens, ViewModels, nav entries"]
+        api[":feature:*:api<br/>NavKeys"]
+    end
+
+    subgraph games["games: zip, tango, queens"]
+        gameui[":games:*-ui<br/>GamePlayController + GamePlayUi"]
+        game[":games:*<br/>GamePlugin + DailySource"]
+    end
+
+    subgraph core["core"]
+        navigation[":core:navigation"]
+        domain[":core:domain<br/>use cases"]
+        data[":core:data<br/>DailyRepository, records"]
+        database[":core:database"]
+        network[":core:network"]
+        datastore[":core:datastore"]
+        coregameui[":core:game-ui<br/>GamePlayRegistry"]
+        coregame[":core:game<br/>GameRegistry, contracts"]
+        designsystem[":core:designsystem"]
+        common[":core:common"]
+        model[":core:model"]
+    end
+
+    app --> impl & api & gameui & game & backend
+    backend --> data
+    impl --> api
+    impl --> navigation & domain & data & coregameui & designsystem
+    api --> navigation
+    gameui --> game
+    gameui --> coregameui & designsystem
+    game --> coregame
+    domain --> data
+    data --> database & network & datastore & coregame & common
+    network --> coregame
+    datastore --> common
+    coregameui --> coregame & designsystem & common
+    coregame --> model
 ```
 
-Games plug in through module contracts (see `docs/adr/0001-game-plugin-contracts.md`); puzzle archives act as `PuzzleSource`s (ADR-0002). Architecture decisions are recorded as ADRs in [`docs/adr`](docs/adr).
+`impl` modules reach another feature only through its `api`; no feature depends on a game;
+games plug in through Koin and the `GameRegistry` / `GamePlayRegistry` seams. The forbidden
+edges (over every configuration, tests included) are enforced by `./gradlew checkModuleGraph`,
+which `check`, `assembleDebug` and `testDebugUnitTest` run — see
+[ADR-0008](docs/adr/0008-module-graph.md). Architecture decisions are recorded as ADRs in
+[`docs/adr`](docs/adr).
+
+### Adding a game
+
+1. `settings.gradle.kts`: `include(":games:<id>")` and `include(":games:<id>-ui")`.
+2. `games/<id>` (`puzzlebox.jvm.library`): the game's `GamePlugin` and `DailySource`, bound in
+   its Koin module — the plugin under `qualifier(<Id>Definition.id.value)`, the source with
+   `bind DailySource::class`.
+3. `games/<id>-ui` (`puzzlebox.android.library.compose`): one `GamePlayController` + one
+   `GamePlayUi`, bound in `<id>UiModule` as `single<GamePlayUi>(qualifier = qualifier(<Id>Definition.id.value))`.
+4. `app/build.gradle.kts`: `implementation(projects.games.<id>)` and
+   `implementation(projects.games.<id>Ui)`.
+5. `PuzzleBoxApplication.appModules`: add `<id>Module` and `<id>UiModule`.
+6. `app/.../di/AppModule.kt`: add the id to `GAME_ORDER`.
+
+No `core:*` or `feature:*` module changes.
 
 ## Tech stack
 
@@ -56,6 +113,9 @@ Requires an Android SDK (`ANDROID_HOME` or `local.properties`). Install and run 
 Tests:
 
 ```bash
-./gradlew :app:testDebugUnitTest        # JVM unit tests against fakes
-./gradlew :core:designsystem:verifyRoborazziDebug  # design-system screenshot tests
+./gradlew testDebugUnitTest :core:game:test :games:zip:test :games:queens:test :games:tango:test :core:model:test :core:network:test -Proborazzi.verify=true
+                                       # JVM unit tests against fakes; screenshot goldens in verify mode
+./gradlew check                        # tests, lint and the module-graph guard (checkModuleGraph)
 ```
+
+Without `-Proborazzi.verify=true` the screenshot tests re-record their goldens.

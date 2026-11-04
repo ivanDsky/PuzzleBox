@@ -3,7 +3,7 @@
  * than one module must agree on.
  *
  * WHY a single flat package (`com.ivandsky.puzzlebox.model`): these types are the
- * vocabulary of the domain seams (game identity, the daily envelope, user preferences),
+ * vocabulary of the domain seams (game identity, user preferences),
  * not any module's implementation detail. One package keeps imports stable no matter
  * which module historically owned a type, and makes "what is shared" answerable by
  * listing one directory.
@@ -17,6 +17,6 @@
  * seam AND it carries no framework weight. Module-internal shapes (Room entities, wire
  * DTOs, game variants) stay in their owning module.
  *
- * Current members: [GameId], [DailyPuzzle], [ThemeMode].
+ * Current members: [GameId], [ThemeMode].
  */
 package com.ivandsky.puzzlebox.model

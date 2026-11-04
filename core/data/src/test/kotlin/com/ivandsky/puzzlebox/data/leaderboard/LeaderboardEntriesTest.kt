@@ -1,10 +1,11 @@
 package com.ivandsky.puzzlebox.data.leaderboard
 
-import com.ivandsky.puzzlebox.data.db.CompletionEntity
+import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
+import com.ivandsky.puzzlebox.database.CompletionEntity
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
-import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -19,12 +20,13 @@ class LeaderboardEntriesTest {
 
     private val day = LocalDate.of(2026, 10, 31)
     private val refKey = "zip/2026-10-31/592"
+    private val zip = GameId("zip")
 
     private fun record(
         timeMs: Long = 95_000,
         hints: Int = 2,
         isRecord: Boolean = true,
-        ref: PuzzleRef = ZipPuzzleRef(day, 592),
+        ref: PuzzleRef = Ref(zip, day, 592),
         firstCompletedAt: Instant? = Instant.ofEpochMilli(1_700_000_000_000),
     ) = CompletionRecord(
         puzzleRef = ref,
@@ -93,12 +95,12 @@ class LeaderboardEntriesTest {
         // No puzzle number: not official-daily-shaped (Phase-2 custom boards later).
         assertNull(
             LeaderboardEntries.fromRecord(
-                record(ref = ZipPuzzleRef(day, puzzleNumber = null)),
+                record(ref = Ref(zip, day, puzzleNumber = null)),
                 "u1",
                 "Ann",
             ),
         )
-        // A ref no registered game authored cannot key a completion (preserve-or-drop).
+        // Any game's unnumbered ref is not daily-shaped either (keys are game-agnostic).
         assertNull(
             LeaderboardEntries.fromRecord(record(ref = UnregisteredRef()), "u1", "Ann"),
         )

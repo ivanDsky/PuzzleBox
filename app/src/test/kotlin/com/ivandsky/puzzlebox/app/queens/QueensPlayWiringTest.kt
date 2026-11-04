@@ -8,27 +8,23 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.repository.QueensDailyEntry
-import com.ivandsky.puzzlebox.data.repository.QueensDailyRepository
-import com.ivandsky.puzzlebox.data.repository.QueensToday
+import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.game.Cadence
-import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.queensVariantId
-import com.ivandsky.puzzlebox.play.PlayFlow
+import com.ivandsky.puzzlebox.games.queensui.QueensPlayController
 import com.ivandsky.puzzlebox.play.PlayRoute
-import com.ivandsky.puzzlebox.play.QueensPlayState
+import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import java.time.LocalDate
-import java.time.ZoneId
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -81,12 +77,6 @@ class QueensPlayWiringTest {
         )
     }
 
-    private class FakeQueensRepository(private val fresh: QueensToday, private val history: List<QueensDailyEntry>) : QueensDailyRepository {
-        override suspend fun today(): QueensToday = fresh
-        override suspend fun cached(day: LocalDate): Puzzle? = null
-        override fun observeHistory(): Flow<List<QueensDailyEntry>> = flowOf(history)
-    }
-
     @Test
     fun `the play tab offers queens, and a completed queens game records a history entry`() {
         stopKoin() // tests share the JVM-global Koin context
@@ -97,24 +87,21 @@ class QueensPlayWiringTest {
         koinApp.koin.loadModules(
             listOf(
                 module {
-                    single<QueensDailyRepository> {
-                        FakeQueensRepository(
-                            fresh = QueensToday.Fresh(envelope()),
-                            history = listOf(
-                                QueensDailyEntry(
-                                    LocalDate.now((QueensDefinition.cadence as Cadence.Daily).zone),
-                                    42,
-                                    "queens/n8",
-                                    0L,
-                                ),
-                            ),
-                        )
+                    single<DailyRepository> {
+                        FakeDailyRepository().apply {
+                            setToday(QueensDefinition.id, DailyToday.Fresh(envelope()))
+                            setHistory(
+                                QueensDefinition.id,
+                                listOf(DailyEntry(QueensDefinition.id, QueensDefinition.cadence.today(), 42, "queens/n8", 0L)),
+                            )
+                        }
                     }
                 },
             ),
             allowOverride = true,
         )
-        val flow = koinApp.koin.get<PlayFlow>()
+        val store = koinApp.koin.get<PlaySessionStore>()
+        fun queens() = store.active.value?.controller as? QueensPlayController
 
         val solved = ArrayList<Pair<Long, Int>>()
         composeRule.setContent {
@@ -134,8 +121,8 @@ class QueensPlayWiringTest {
         composeRule.onNodeWithTag("queens.board").assertExists()
 
         // The board is bound to a real session off the graph, with today's ref.
-        composeRule.waitUntil(10_000) { (flow.state as? QueensPlayState)?.board != null }
-        val board = (flow.state as QueensPlayState).board!!
+        composeRule.waitUntil(10_000) { queens()?.board != null }
+        val board = queens()!!.board!!
         assertNotNull(board.session.ref)
 
         // Complete the game through the board's §5 tap cycle (two taps per queen).
@@ -145,7 +132,7 @@ class QueensPlayWiringTest {
                 board.onTap(idx)
             }
         }
-        composeRule.waitUntil(10_000) { (flow.state as QueensPlayState).board!!.session.isComplete }
+        composeRule.waitUntil(10_000) { queens()!!.board!!.session.isComplete }
 
         // Fix round 6 (F-3/R-5): the win is a ROUTE handoff — the play screen invokes
         // onSolved exactly once with the frozen facts; no win overlay exists anymore.

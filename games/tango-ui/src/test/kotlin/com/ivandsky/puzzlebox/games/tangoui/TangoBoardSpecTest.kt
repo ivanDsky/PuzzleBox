@@ -52,19 +52,6 @@ class TangoBoardSpecTest {
         assertEquals(41.0f, pitchN8.value, 0.1f)
     }
 
-    /** §10.7: chooser hit area never smaller than the cell, and ≥ 48 dp where the cell is. */
-    @Test
-    fun `chooser target is never smaller than the cell`() {
-        for (n in 6..8) {
-            val pitch = board328 / n
-            val target = TangoBoardSpec.chooserTargetSize(pitch, n)
-            assertTrue("n=$n target $target < cell $pitch", target >= pitch)
-        }
-        assertTrue(
-            TangoBoardSpec.chooserTargetSize(pitchN6, 6) >= TangoBoardSpec.touchTargetFloor,
-        )
-    }
-
     /** §10.5 arithmetic: violation border rides colorScheme.error (6.46/9.84) — pinned in designsystem; here the dash geometry stays pitch-derived. */
     @Test
     fun `violation dash geometry is pitch-derived`() {

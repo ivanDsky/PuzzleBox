@@ -1,11 +1,12 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import androidx.room.withTransaction
-import com.ivandsky.puzzlebox.data.db.CompletionDao
-import com.ivandsky.puzzlebox.data.db.PuzzleBoxDatabase
-import com.ivandsky.puzzlebox.data.db.PuzzleRefKeys
-import com.ivandsky.puzzlebox.data.db.toModel
+import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
+import com.ivandsky.puzzlebox.data.model.toModel
+import com.ivandsky.puzzlebox.database.CompletionDao
+import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -13,12 +14,13 @@ import kotlinx.coroutines.flow.map
 /**
  * Room implementation of the pinned [CompletionRepository] contract. The record-exists
  * check and the insert run in one transaction so two racing completions of the same ref
- * cannot both stamp isRecord (A4). Rows whose key no registered game can decode are
+ * cannot both stamp isRecord (A4). Rows whose key no game in [registry] can decode are
  * dropped on read (A19 preserve-or-drop), never reinterpreted.
  */
 internal class RoomCompletionRepository(
     private val db: PuzzleBoxDatabase,
     private val dao: CompletionDao,
+    private val registry: GameRegistry,
     private val policy: FirstWinPolicy = FirstWinPolicy(),
     private val clock: () -> Long = System::currentTimeMillis,
 ) : CompletionRepository {
@@ -32,10 +34,10 @@ internal class RoomCompletionRepository(
     }
 
     override fun observeRecords(): Flow<List<CompletionRecord>> =
-        dao.observeRecords().map { rows -> rows.mapNotNull { it.toModel() } }
+        dao.observeRecords().map { rows -> rows.mapNotNull { it.toModel(registry) } }
 
     override fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
         dao.observeReplays(PuzzleRefKeys.encode(puzzleRef)).map { rows ->
-            rows.mapNotNull { it.toModel() }
+            rows.mapNotNull { it.toModel(registry) }
         }
 }

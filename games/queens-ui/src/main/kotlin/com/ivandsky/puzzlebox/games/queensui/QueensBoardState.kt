@@ -13,7 +13,7 @@ import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHints
 import java.time.Instant
 
 /**
- * The Queens play state holder (ZipPlayState precedent): the [QueensSession] is the
+ * The Queens board state holder (ZipPlayController precedent): the [QueensSession] is the
  * single source of truth; the holder owns the transient UI overlay state (Auto-cross
  * toggle, staged hint) and the interaction set of A10–A12/A14.
  *

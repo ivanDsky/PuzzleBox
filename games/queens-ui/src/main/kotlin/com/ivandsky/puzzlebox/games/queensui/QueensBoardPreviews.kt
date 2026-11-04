@@ -1,12 +1,7 @@
 package com.ivandsky.puzzlebox.games.queensui
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -16,7 +11,7 @@ import com.ivandsky.puzzlebox.games.queens.QueensSession
 
 /**
  * queens-08's hand-off to queens-09 (direction doc §8): every cell state × light/dark
- * in @PuzzleBoxPreviews panes, so the A/B walk is preview-first, device-confirm.
+ * in @PuzzleBoxPreviews panes, preview-first, device-confirm.
  * The panes use the fixture board (regions = rows) from the queens-ui test contract —
  * built from real [QueensSession] values through the same [QueensBoardState] the play
  * screen uses (stateless overload pattern: state holder in, no DI).
@@ -114,25 +109,5 @@ internal fun QueensBoardSolvedPreview() {
 internal fun QueensBoardExpandedPreview() {
     PuzzleBoxTheme {
         QueensPlayBoard(previewState(queens = listOf(1), manual = listOf(15)), Modifier.fillMaxWidth())
-    }
-}
-
-/**
- * §7 A/B switcher (debug): the remaining toggles queens-08 hands to queens-09, driving
- * the variant matrix in one pane. Losers are deleted after the hardware verdict.
- */
-@Preview(name = "A/B switcher", widthDp = 360, heightDp = 780, showBackground = true)
-@Composable
-internal fun QueensAbSwitcherPreview() {
-    var variants by remember { mutableStateOf(QueensAbVariants()) }
-    PuzzleBoxTheme {
-        Column(Modifier.fillMaxWidth()) {
-            QueensPlayBoard(
-                previewState(queens = listOf(1, 2), manual = listOf(15)),
-                Modifier.fillMaxWidth(),
-                variants,
-            )
-            QueensAbControls(variants, onChange = { variants = it })
-        }
     }
 }

@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.data.repository
 
-import com.ivandsky.puzzlebox.data.db.CompletionEntity
+import com.ivandsky.puzzlebox.database.CompletionEntity
 import com.ivandsky.puzzlebox.game.CompletionRecord
 
 /**
@@ -9,7 +9,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
  * NEVER mutates the record (A5: only records are leaderboard-eligible). Android-free so
  * the first-win rule stays provable without Room or Robolectric.
  */
-class FirstWinPolicy {
+internal class FirstWinPolicy {
 
     /** What to persist for one emitted completion. */
     sealed interface Decision {

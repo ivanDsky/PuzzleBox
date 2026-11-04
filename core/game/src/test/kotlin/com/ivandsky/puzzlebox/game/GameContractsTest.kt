@@ -79,6 +79,21 @@ class GameContractsTest {
     }
 
     @Test
+    fun `registry looks plugins up by id in registration order and refOf rebuilds refs`() {
+        val plugin = TestGame.plugin()
+        val registry = GameRegistry(listOf(plugin))
+
+        assertEquals(listOf(plugin), registry.all)
+        assertSame(plugin, registry[TestGame.id])
+        assertNull(registry[GameId("unregistered")])
+
+        val ref = plugin.refOf(TestGame.date, 7)
+        assertEquals(TestGame.id, ref.gameId)
+        assertEquals(TestGame.date, ref.date)
+        assertEquals(7, ref.puzzleNumber)
+    }
+
+    @Test
     fun `definition decode-encode is symmetric over envelopes`() {
         val definition = TestGame.Definition
         val bytes = byteArrayOf(7, 7, 7)
@@ -106,17 +121,11 @@ class GameContractsTest {
     }
 
     @Test
-    fun `in-memory source serves fixtures and fails with a typed unavailable error`() = kotlinx.coroutines.test.runTest {
-        val source = com.ivandsky.puzzlebox.game.testing.InMemoryPuzzleSource(
-            TestGame.date to TestGame.Definition.blank(),
-        )
-
-        val ok = source.fetch(TestGame.date)
+    fun `fetch results expose the value only on success`() {
+        val ok: FetchResult<Puzzle> = FetchResult.Ok(TestGame.Definition.blank())
         assertEquals(TestGame.Definition.blank(), ok.getOrNull())
 
-        val miss = source.fetch(TestGame.date.plusDays(1))
-        assertTrue(miss is FetchResult.Err)
-        assertTrue((miss as FetchResult.Err).error is FetchError.Unavailable)
+        val miss: FetchResult<Puzzle> = FetchResult.Err(FetchError.Unavailable("no fixture"))
         assertNull(miss.getOrNull())
     }
 

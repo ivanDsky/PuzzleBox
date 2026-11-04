@@ -230,19 +230,6 @@ object TangoSemantics {
 
     /** Custom action labels (§9): the gesture model; commits are final-only (I4). */
     val customActions = listOf("Place sun", "Place moon", "Clear")
-
-    /** Chooser target labels (§9, variant B). */
-    const val chooserSunLabel = "Place sun here"
-    const val chooserMoonLabel = "Place moon here"
-    const val chooserDismissLabel = "Cancel"
-
-    /** Count rail semantics (§9): "Row 3 has 2 of 3 suns". */
-    fun rowCountDescription(row: Int, placed: Int, total: Int): String =
-        "Row ${row + 1} has $placed of $total suns"
-
-    fun columnCountDescription(col: Int, placed: Int, total: Int): String =
-        "Column ${col + 1} has $placed of $total suns"
-
     // ---- hint copy (§6, exact value-naming; review M1) ----
 
     /**
@@ -296,18 +283,4 @@ object TangoSemantics {
     private fun plural(value: TangoCell): String = if (value == TangoCell.SUN) "suns" else "moons"
 
     private fun other(value: TangoCell): TangoCell = if (value == TangoCell.SUN) TangoCell.MOON else TangoCell.SUN
-
-    // ---- count-rail helpers ----
-
-    /** Placed suns along a row (count rail semantics + pips). */
-    fun sunsInRow(model: TangoRendererModel, row: Int): Int =
-        (0 until model.n).count {
-            model.cells.getOrNull(row * model.n + it)?.value == TangoCell.SUN
-        }
-
-    /** Placed suns along a column. */
-    fun sunsInColumn(model: TangoRendererModel, col: Int): Int =
-        (0 until model.n).count {
-            model.cells.getOrNull(it * model.n + col)?.value == TangoCell.SUN
-        }
 }

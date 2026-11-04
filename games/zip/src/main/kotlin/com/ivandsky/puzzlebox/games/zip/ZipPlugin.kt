@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameDefinition
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.codec.ZipSessionCodec
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
@@ -14,8 +15,11 @@ import com.ivandsky.puzzlebox.games.zip.engine.ZipValidation
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.ZoneId
+import com.ivandsky.puzzlebox.game.DailySource
+import com.ivandsky.puzzlebox.games.zip.feed.LinkedInZipDailySource
 import org.koin.core.module.Module
 import org.koin.core.qualifier.qualifier
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 /**
@@ -68,6 +72,26 @@ val zipPlugin: GamePlugin<ZipState, ZipSession, ZipRendererModel> =
                 is DecodeResult.Err -> DecodeResult.Err(decoded.error)
             }
         },
+        refOf = { date, puzzleNumber -> ZipPuzzleRef(date, puzzleNumber) },
+        // Replay hand-off (ticket-14 semantics): the game-named envelope (ADR-0005) carries
+        // a fresh session whose ref is the replayed day's identity (ADR-0004).
+        replaySession = { cached, day, puzzleNumber ->
+            when (val decoded = ZipCodec.decode(cached.payload)) {
+                is DecodeResult.Ok -> DecodeResult.Ok(
+                    SessionBlob.encode(
+                        ZipDefinition.id,
+                        ZipSessionCodec.serialize(
+                            ZipSession(
+                                ref = ZipPuzzleRef(date = day, puzzleNumber = puzzleNumber),
+                                puzzle = decoded.value,
+                            ),
+                        ),
+                    ),
+                )
+
+                is DecodeResult.Err -> DecodeResult.Err(decoded.error)
+            }
+        },
         rendererModel = { state, hint, verdict ->
             ZipRendererModel.of(
                 state,
@@ -81,10 +105,12 @@ val zipPlugin: GamePlugin<ZipState, ZipSession, ZipRendererModel> =
     )
 
 /**
- * Koin wiring: feature modules resolve `GamePlugin<*, *, *>` instances generically (F2 §1).
- * The id qualifier stops a later game module's `single { ... }` from overwriting Zip's
- * definition while `getAll` still collects it.
+ * Koin wiring: `app` collects every `GamePlugin<*, *, *>` into the GameRegistry and every
+ * [DailySource] into the daily repository (F2 §1). The id qualifier stops a later game
+ * module's `single { ... }` from overwriting Zip's definition while `getAll` still
+ * collects it; the daily source rides the shared [com.ivandsky.puzzlebox.game.FeedTransport].
  */
 val zipModule: Module = module {
     single(qualifier = qualifier(ZipDefinition.id.value)) { zipPlugin }
+    single { LinkedInZipDailySource(get()) } bind DailySource::class
 }

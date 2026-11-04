@@ -31,35 +31,34 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.LocalContext
 import android.provider.Settings
-import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import com.ivandsky.puzzlebox.app.nav.Catalog
-import com.ivandsky.puzzlebox.app.nav.History
-import com.ivandsky.puzzlebox.app.nav.Home
-import com.ivandsky.puzzlebox.app.nav.Play
-import com.ivandsky.puzzlebox.app.nav.Profile
-import com.ivandsky.puzzlebox.app.nav.ReplayZip
-import com.ivandsky.puzzlebox.app.nav.Result
+import com.ivandsky.puzzlebox.app.nav.CatalogKey
+import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavKeys
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.screens.CatalogUnavailableScreen
-import com.ivandsky.puzzlebox.app.screens.ProfileRoute
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.playLayoutFor
 import com.ivandsky.puzzlebox.history.HistoryLayout
-import com.ivandsky.puzzlebox.history.HistoryRoute
 import com.ivandsky.puzzlebox.history.historyLayoutFor
+import com.ivandsky.puzzlebox.history.navigation.historyEntry
 import com.ivandsky.puzzlebox.home.HomeLayout
-import com.ivandsky.puzzlebox.home.HomeRoute
+import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.home.homeLayoutFor
-import com.ivandsky.puzzlebox.play.PlayRoute
-import com.ivandsky.puzzlebox.play.ResultRoute
-import java.util.Base64
+import com.ivandsky.puzzlebox.home.navigation.homeEntry
+import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.play.navigation.playEntry
+import com.ivandsky.puzzlebox.play.navigation.replayEntry
+import com.ivandsky.puzzlebox.play.navigation.resultEntry
+import com.ivandsky.puzzlebox.profile.navigation.profileEntry
 
 @Composable
 fun PuzzleBoxApp(
@@ -91,7 +90,12 @@ fun PuzzleBoxApp(
         isLandscape = isLandscape,
     )
     val expanded = layout == HomeLayout.TwoPane
-    val backStack = rememberNavBackStack(Home)
+    val backStack = rememberNavBackStack(puzzleBoxNavKeys, HomeKey)
+    val navigator = remember(backStack) { Navigator(backStack) }
+    // Every scene root paints an opaque canvas (SceneCanvas) — applied once here as an
+    // entry decorator so feature entries stay shell-agnostic. The saveable-state holder
+    // stays outermost (NavDisplay's default), the same tree each entry had wrapping itself.
+    val sceneCanvas = remember { NavEntryDecorator<NavKey> { entry -> SceneCanvas { entry.Content() } } }
     // Accessibility (spec A3): animator scale 0 is the system's reduced-motion signal —
     // the result fade-through collapses to opacity-only.
     val context = LocalContext.current
@@ -110,10 +114,10 @@ fun PuzzleBoxApp(
             if (!expanded) {
                 NavigationBar {
                     topLevelDestinations.forEach { destination ->
-                        val selected = backStack.lastOrNull() == destination.key
+                        val selected = navigator.currentKey == destination.key
                         NavigationBarItem(
                             selected = selected,
-                            onClick = { select(destination.key, backStack) },
+                            onClick = { navigator.navigateToTopLevel(destination.key) },
                             icon = { Icon(destination.icon, contentDescription = null) },
                             label = { Text(destination.label) },
                         )
@@ -130,10 +134,10 @@ fun PuzzleBoxApp(
             if (expanded) {
                 NavigationRail {
                     topLevelDestinations.forEach { destination ->
-                        val selected = backStack.lastOrNull() == destination.key
+                        val selected = navigator.currentKey == destination.key
                         NavigationRailItem(
                             selected = selected,
-                            onClick = { select(destination.key, backStack) },
+                            onClick = { navigator.navigateToTopLevel(destination.key) },
                             icon = { Icon(destination.icon, contentDescription = null) },
                             label = { Text(destination.label) },
                         )
@@ -143,6 +147,7 @@ fun PuzzleBoxApp(
             NavDisplay(
                 backStack = backStack,
                 modifier = Modifier.weight(1f),
+                entryDecorators = listOf(rememberSaveableStateHolderNavEntryDecorator(), sceneCanvas),
                 // Fade-through: the outgoing screen fades out in 90ms BEFORE the incoming
                 // one starts, so the two contents never superimpose mid-flight (Nav3's
                 // simultaneous crossfade showed both screens' text over each other).
@@ -153,7 +158,7 @@ fun PuzzleBoxApp(
                 transitionSpec = {
                     // Ticket 23: the shared result route (every game) takes the run's
                     // one celebratory entrance.
-                    if (targetState.key is Result) {
+                    if (targetState.key is ResultKey) {
                         resultEnterTransform(reduceMotion) togetherWith screenExitTransform()
                     } else {
                         screenEnterTransform() togetherWith screenExitTransform()
@@ -163,7 +168,7 @@ fun PuzzleBoxApp(
                     screenEnterTransform() togetherWith screenExitTransform()
                 },
                 entryProvider = puzzleBoxEntryProvider(
-                    backStack = backStack,
+                    navigator = navigator,
                     homeLayout = layout,
                     playLayout = playLayout,
                     historyLayout = historyLayout,
@@ -176,93 +181,31 @@ fun PuzzleBoxApp(
 }
 
 /**
- * The app's route table (ticket 17): one entry per [NavKey], every destination real.
+ * The app's route table (ticket 17): one entry per [NavKey], every destination real —
+ * each feature contributes its own entries; the shell owns only the catalog page.
  * Building it is a plain lookup construction — no composition — so [NavRoutesTest]
  * resolves each key against it and fails fast if a pushed key ever lacks a route.
  *
- * Loop wiring: Home's Today card pushes [Play] (today's board is fetched fresh by the
- * play route); its history teaser pushes [History]; history rows push [ReplayZip] with
- * the day's session blob; the account card opens the [Profile] account surface as a tab
- * root; Profile's catalog link pushes [Catalog] as a deliberate deep page — NavDisplay's
- * default back pop returns it to Profile, including after process-death restore.
+ * Loop wiring: Home's Today card pushes Play; its history teaser pushes History; history
+ * rows push Replay with the day's session blob; the account card opens the Profile
+ * account surface; Profile's catalog link pushes [CatalogKey] as a deliberate deep page —
+ * NavDisplay's default back pop returns it to Profile, including after process-death restore.
  */
 internal fun puzzleBoxEntryProvider(
-    backStack: NavBackStack<NavKey>,
+    navigator: Navigator,
     homeLayout: HomeLayout,
     playLayout: PlayLayout,
     historyLayout: HistoryLayout,
     themeMode: ThemeMode,
     onSetThemeMode: (ThemeMode) -> Unit,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
-    entry<Home> {
-        SceneCanvas {
-            HomeRoute(
-                layout = homeLayout,
-                themeMode = themeMode,
-                onSetThemeMode = onSetThemeMode,
-                onPlayToday = { backStack.pushOnce(Play) },
-                // Bug (2026-11-02, user report): select() clears the stack — correct for
-                // bar/rail tab switches, but this is a content affordance; clearing left
-                // [Profile] as the sole entry, so back exited the app. Push, don't clear.
-                onOpenProfile = { backStack.pushOnce(Profile) },
-                onOpenHistory = { backStack.pushOnce(History) },
-            )
-        }
-    }
-    entry<History> {
-        SceneCanvas {
-            HistoryRoute(
-                layout = historyLayout,
-                onBack = { backStack.removeLastOrNull() },
-                onReplay = { ready ->
-                    backStack.add(
-                        ReplayZip(Base64.getEncoder().encodeToString(ready.session)),
-                    )                },
-            )
-        }
-    }
-    entry<ReplayZip> { key ->
-        SceneCanvas {
-            PlayRoute(
-                layout = playLayout,
-                onBack = { backStack.leavePlay() },
-                onSolved = { timeMs, hintsUsed -> backStack.solveToResult(Result(timeMs, hintsUsed)) },
-                restoredSession = runCatching {
-                    Base64.getDecoder().decode(key.session)
-                }.getOrNull(),
-            )
-        }
-    }
-    entry<Play> {
-        SceneCanvas {
-            PlayRoute(
-                layout = playLayout,
-                onBack = { backStack.leavePlay() },
-                onSolved = { timeMs, hintsUsed -> backStack.solveToResult(Result(timeMs, hintsUsed)) },
-            )
-        }
-    }
-    entry<Result> { key ->
-        SceneCanvas {
-            ResultRoute(
-                timeMs = key.timeMs,
-                hintsUsed = key.hintsUsed,
-                onPlayAgain = { backStack.playAgainFromResult() },
-            )
-        }
-    }
-    entry<Profile> {
-        SceneCanvas { ProfileRoute(onOpenCatalog = { backStack.add(Catalog) }) }
-    }
-    entry<Catalog> {
-        SceneCanvas { CatalogScreen() }
-    }
-}
-
-// Tab selection resets to that tab's root — no cross-tab back stacking.
-private fun select(key: NavKey, backStack: NavBackStack<NavKey>) {
-    backStack.clear()
-    backStack.add(key)
+    homeEntry(navigator, homeLayout, themeMode, onSetThemeMode)
+    historyEntry(navigator, historyLayout)
+    replayEntry(navigator, playLayout)
+    playEntry(navigator, playLayout)
+    resultEntry(navigator)
+    profileEntry(onOpenCatalog = { navigator.navigate(CatalogKey) })
+    entry<CatalogKey> { CatalogScreen() }
 }
 
 // Catalog route (ticket showkase-v2-01): debug builds render the new Showkase browser
@@ -309,45 +252,6 @@ private fun debugCatalogBrowser(): (
     } else {
         null
     }
-}
-
-// Ticket 23 nav contract — solving: everything above Home unwinds and the result takes
-// its place, so the system back (a plain NavDisplay pop) lands on Home — the same
-// surface the flow entered from (senior-UX wayfinding: back never surprises). The Play
-// tab root sits directly on the stack with no Home beneath it; the unwind supplies one
-// so the pop always has somewhere predictable to go.
-internal fun NavBackStack<NavKey>.solveToResult(solved: Result) {
-    if (lastOrNull() == solved) return
-    while (isNotEmpty() && lastOrNull() != Home) removeLastOrNull()
-    if (isEmpty()) add(Home)
-    add(solved)
-}
-
-// Ticket 23 nav contract — "Play again": the result pops and a fresh play entry takes
-// its place. The result route has already reset the flow's session to a fresh play of
-// the SAME puzzle (ResultRoute → ZipPlayState.replay), which the play route keeps.
-internal fun NavBackStack<NavKey>.playAgainFromResult() {
-    removeLastOrNull()
-    if (lastOrNull() != Play) add(Play)
-}
-
-// Back out of a play entry. Reached from Home ("Play today") the stack is [Home, Play] and a
-// pop lands on Home; reached from the Play tab the entry is the sole stack element (select()
-// clears), and popping it would leave NavDisplay an empty stack — it throws. Home is the
-// only sensible landing for a tab root's back, same as the solve unwind above.
-internal fun NavBackStack<NavKey>.leavePlay() {
-    if (size > 1) {
-        removeLastOrNull()
-    } else {
-        clear()
-        add(Home)
-    }
-}
-
-// Double-tap guard: pushing a destination that is already the stack top would need two
-// backs to unwind — add only when it isn't (Rev17).
-private fun NavBackStack<NavKey>.pushOnce(key: NavKey) {
-    if (lastOrNull() != key) add(key)
 }
 
 // Fade-through screen transition: 90ms accelerated fade-out, then the incoming screen

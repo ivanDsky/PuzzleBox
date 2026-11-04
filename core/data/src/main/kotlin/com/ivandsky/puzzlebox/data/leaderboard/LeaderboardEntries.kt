@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.data.leaderboard
 
-import com.ivandsky.puzzlebox.data.db.CompletionEntity
-import com.ivandsky.puzzlebox.data.db.PuzzleRefKeys
+import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
+import com.ivandsky.puzzlebox.database.CompletionEntity
 import com.ivandsky.puzzlebox.game.CompletionRecord
 
 /**
@@ -23,7 +23,7 @@ object LeaderboardEntries {
         raw.trim().ifEmpty { "Player" }.take(64)
 
     /** From the Room row. Null when this row may never appear on a board. */
-    fun fromEntity(entity: CompletionEntity, uid: String, displayName: String): LeaderboardEntry? {
+    internal fun fromEntity(entity: CompletionEntity, uid: String, displayName: String): LeaderboardEntry? {
         if (!entity.isRecord) return null // A5: replays are never leaderboard-eligible
         if (LeaderboardRef.fromPuzzleRefKey(entity.puzzleRef) == null) return null
         if (entity.timeMs <= 0 || entity.hints < 0) return null // rules sanity envelope
@@ -40,13 +40,11 @@ object LeaderboardEntries {
     /**
      * From the model [com.ivandsky.puzzlebox.data.repository.CompletionRepository]
      * emits (the submit-watcher path). Null when this completion may never appear on
-     * a board; a ref no registered game authored decodes to null (A19 preserve-or-drop).
+     * a board (not official-daily-shaped, a replay, or outside the rules envelope).
      */
     fun fromRecord(record: CompletionRecord, uid: String, displayName: String): LeaderboardEntry? {
         if (!record.isRecord) return null // A5: replays are never leaderboard-eligible
-        // A ref no registered game authored cannot key a completion (A19 preserve-or-drop).
-        val refKey = runCatching { PuzzleRefKeys.encode(record.puzzleRef) }.getOrNull()
-            ?: return null
+        val refKey = PuzzleRefKeys.encode(record.puzzleRef)
         if (LeaderboardRef.fromPuzzleRefKey(refKey) == null) return null
         if (record.time <= 0 || record.hints < 0) return null // rules sanity envelope
         // A record row always carries the A4 first-win stamp; without it there is no
