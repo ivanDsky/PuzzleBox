@@ -1,0 +1,4 @@
+app/src/debug/kotlin/com/ivandsky/puzzlebox/app/debug/ShowkaseBrowserScreen.kt 1  # S5
+games/queens-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/queensui/QueensBoardRenderer.kt 12  # S5
+games/queens-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/queensui/QueensRegionPalette.kt 20  # S5
+games/zip-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/zipui/ZipBoardPreviews.kt 2  # S5
