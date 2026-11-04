@@ -210,9 +210,9 @@ Every production file's package is under its module's package root.
 ViewModels are named `*ViewModel`, live in `:feature:<x>:impl`, and expose no public mutable state.
 
 - **Scope:** production. Subjects: top-level (not nested) classes that extend `ViewModel` or whose
-  name ends in `ViewModel`. Extending is followed through project base classes (Konsist resolves
-  them across the scanned files), so `class X : BaseViewModel()` extends `ViewModel` when
-  `BaseViewModel` does.
+  name ends in `ViewModel`. Extending is followed through project base classes by simple name, so
+  `class X : BaseViewModel()` extends `ViewModel` when `BaseViewModel` does. Only scanned classes
+  count as bases: Konsist's own parent resolution reads every Kotlin file under the project root.
 - **Detection:** a violation when the class extends `ViewModel` but its name does not end in
   `ViewModel`, or the reverse; when its module is not a feature `impl` module; or when it has a
   non-private property (primary-constructor `val`/`var` parameters included) that is a `var`, is
@@ -226,7 +226,7 @@ ViewModels are named `*ViewModel`, live in `:feature:<x>:impl`, and expose no pu
   A declared read-only type (`val state: StateFlow<T> = _state`) passes. One violation per file, joining the problems.
 - **Accepted misses:** nested classes are not judged. Only `also` and `apply` count as
   receiver-returning; `_state.let { it }` or a helper that returns its argument passes. A base class
-  declared outside the scanned files, other than `ViewModel` itself, ends the chain.
+  is matched by simple name, so two project classes with the same name share their parents.
 - **How to fix:** keep the `Mutable*` private and expose a read-only type; rename or move the class.
 
 ## P4

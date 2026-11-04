@@ -25,21 +25,33 @@ object P3ViewModelShape : Rule {
     private val WORD = Regex("""\w+""")
 
     override fun check(tree: SourceTree): RuleResult {
-        val subjects = tree.scope(SourceSetKind.PRODUCTION).classes(includeNested = false)
-            .filter { extendsViewModel(it) || it.name.endsWith(VIEW_MODEL) }
+        val classes = tree.scope(SourceSetKind.PRODUCTION).classes(includeNested = false)
+        val viewModels = viewModelNames(classes)
+        val subjects = classes.filter { it.name in viewModels || it.name.endsWith(VIEW_MODEL) }
             .map { tree.fileFor(it.containingFile) to it }
         val violations = subjects.groupBy({ it.first }, { it.second }).mapNotNull { (file, classes) ->
-            val problems = classes.flatMap { problems(it, file.module.path) }
+            val problems = classes.flatMap { problems(it, it.name in viewModels, file.module.path) }
             if (problems.isEmpty()) null else Violation(file.path, null, problems.joinToString("; "))
         }
         return RuleResult(subjects.size, violations)
     }
 
-    /** Konsist resolves project base classes, so `class X : BaseViewModel()` extends ViewModel when the base does. */
-    private fun extendsViewModel(cls: KoClassDeclaration) = cls.hasParentWithName(VIEW_MODEL, indirectParents = true)
+    /**
+     * Names of the scanned classes that reach `ViewModel` through scanned base classes, matched by simple name.
+     * Not Konsist `parents(indirectParents = true)`: that resolves through every Kotlin file under the project
+     * root, scanned or not, so a fixture or test class could decide a production subject.
+     */
+    private fun viewModelNames(classes: List<KoClassDeclaration>): Set<String> {
+        val parents = classes.groupBy({ it.name }, { cls -> cls.parents().map { it.name.substringBefore('<').trim() } })
+            .mapValues { (_, lists) -> lists.flatten().toSet() }
+        val known = mutableSetOf(VIEW_MODEL)
+        do {
+            val grew = parents.filter { (_, ps) -> ps.any { it in known } }.keys.any(known::add)
+        } while (grew)
+        return known - VIEW_MODEL
+    }
 
-    private fun problems(cls: KoClassDeclaration, modulePath: String) = buildList {
-        val extends = extendsViewModel(cls)
+    private fun problems(cls: KoClassDeclaration, extends: Boolean, modulePath: String) = buildList {
         val named = cls.name.endsWith(VIEW_MODEL)
         if (extends && !named) add("${cls.name} extends ViewModel but is not named *ViewModel")
         if (named && !extends) add("${cls.name} is named *ViewModel but does not extend ViewModel")
