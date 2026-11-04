@@ -83,9 +83,13 @@ fun PlayRoute(
     }
 
     // Mid-game exit keeps the session and releases the play, so the next play entry
-    // picks again and the picker offers to continue (ADR-0010). The solved handoff does
-    // NOT pass through here: the result keeps the play's scope for the record write.
+    // picks again and the picker offers to continue (ADR-0010). The entry's saveable is
+    // dropped too: navigation may retain this entry, and its pre-leave bytes (older than
+    // the kept session's clock fold) must never resurrect the game on return. The solved
+    // handoff does NOT pass through here: the result keeps the play's scope for the
+    // record write.
     BackHandler {
+        savedSession = null
         viewModel.leave()
         onBack()
     }

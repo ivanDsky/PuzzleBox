@@ -241,4 +241,29 @@ class PlayRouteTest {
         assertEquals(null, store().active.value)
         assertTrue((koin!!.koin.get<KeptSessionRepository>() as FakeKeptSessionRepository).current.isEmpty())
     }
+
+    @Test
+    fun `back on a retained entry shows the picker and resumes with the folded clock`() {
+        // Device regression: navigation retains the play tab's entry, so its saveable
+        // still holds the last move's bytes (clock banked at 0). Back must not let them
+        // resurrect the game over the kept session's later clock fold.
+        val kept = FakeKeptSessionRepository()
+        koinWith(kept = kept)
+        setContent()
+        composeRule.onNodeWithTag("play.picker_alpha").performClick()
+        composeRule.waitForIdle()
+        composeRule.runOnIdle { fakes[alpha].latest.move() }
+        composeRule.runOnIdle { fakes[alpha].latest.advance(18_000L) }
+
+        (composeRule as AndroidComposeTestRule<*, *>).activity.onBackPressedDispatcher.onBackPressed()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("play.picker").assertExists()
+        assertEquals(null, store().active.value)
+        assertEquals(18_000L, kept.current[alpha]?.elapsedMs)
+
+        composeRule.onNodeWithTag("play.picker_alpha").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("alpha board 1").assertExists()
+        assertEquals(18_000L, fakes[alpha].latest.displayedElapsedMs())
+    }
 }
