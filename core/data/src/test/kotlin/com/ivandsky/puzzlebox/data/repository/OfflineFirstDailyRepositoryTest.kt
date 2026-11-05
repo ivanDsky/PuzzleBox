@@ -13,13 +13,16 @@ import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.database.PuzzleDailyEntity
+import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
+import java.time.ZoneOffset
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -32,7 +35,8 @@ import org.robolectric.annotation.Config
 /**
  * A7/A8 degrade contract for every registered game: fetch-today → cache under the game's
  * id; any fetch failure → today's cache plus the sealed error; history and replay are
- * cache-only. Network never enters this test — fake sources stand in.
+ * cache-only. By-date reads (ADR-0012) fetch a missed past day only for a source that
+ * declares an archive. Network never enters this test — fake sources stand in.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -53,15 +57,31 @@ class OfflineFirstDailyRepositoryTest {
             .build()
         alphaSource = FakeDailySource(alpha)
         betaSource = FakeDailySource(beta)
-        repository = OfflineFirstDailyRepository(
-            sources = listOf(alphaSource, betaSource).associateBy { it.gameId },
-            registry = TestGames.registry(listOf(alpha, beta)),
-            dao = db.puzzleDailyDao(),
-            dispatchers = DefaultDispatcherProvider(),
-            calendar = FakeGameCalendar(today),
-            clock = { nowMs },
-        )
+        repository = repository(alphaSource, betaSource)
     }
+
+    private fun repository(vararg sources: DailySource) = OfflineFirstDailyRepository(
+        sources = sources.associateBy { it.gameId },
+        registry = TestGames.registry(listOf(alpha, beta)),
+        dao = db.puzzleDailyDao(),
+        dispatchers = DefaultDispatcherProvider(),
+        calendar = FakeGameCalendar(today),
+        clock = { nowMs },
+    )
+
+    /** [alphaSource] serving any date from [archiveStart] (fetches still land in its log). */
+    private fun archiveRepository(): OfflineFirstDailyRepository {
+        val archiveAlpha = object : DailySource by alphaSource {
+            override val archiveSince: LocalDate = archiveStart
+        }
+        return repository(archiveAlpha, betaSource)
+    }
+
+    private val archiveStart = LocalDate.of(2026, 10, 1)
+    private val pastDay = LocalDate.of(2026, 10, 15)
+
+    /** Epoch millis of noon UTC on [day] (FakeGameCalendar reads instants in UTC). */
+    private fun noonOf(day: LocalDate): Long = day.atTime(12, 0).toInstant(ZoneOffset.UTC).toEpochMilli()
 
     @After
     fun tearDown() {
@@ -215,5 +235,110 @@ class OfflineFirstDailyRepositoryTest {
         )
 
         assertNull(repository.cached(alpha, today))
+    }
+
+    @Test
+    fun `a cached past day is Ready for a game without an archive, never fetched`() = runTest {
+        db.puzzleDailyDao().upsert(TestGames.puzzle(alpha).toEntity(Ref(alpha, pastDay, 584), noonOf(pastDay)))
+
+        val result = repository.day(alpha, pastDay)
+
+        result as DailyDay.Ready
+        assertEquals(alpha, result.puzzle.gameId)
+        assertEquals(584, result.puzzleNumber)
+        assertTrue(alphaSource.requestedDates.isEmpty())
+    }
+
+    @Test
+    fun `an uncached past day without an archive is NotCaptured, never fetched`() = runTest {
+        alphaSource.nextPuzzle = TestGames.puzzle(alpha)
+
+        assertEquals(DailyDay.NotCaptured, repository.day(alpha, pastDay))
+        assertTrue(alphaSource.requestedDates.isEmpty())
+        assertEquals(0, db.puzzleDailyDao().count("alpha"))
+    }
+
+    @Test
+    fun `an unregistered game's day is NotCaptured`() = runTest {
+        assertEquals(DailyDay.NotCaptured, archiveRepository().day(GameId("strands"), pastDay))
+    }
+
+    @Test
+    fun `an archive miss in range fetches once, persists, then serves the cache`() = runTest {
+        val archive = archiveRepository()
+        alphaSource.nextPuzzle = TestGames.puzzle(alpha, tag = 7)
+        alphaSource.nextPuzzleNumber = 584
+
+        val first = archive.day(alpha, pastDay)
+
+        first as DailyDay.Ready
+        assertEquals(584, first.puzzleNumber)
+        assertEquals(listOf(pastDay), alphaSource.requestedDates)
+        val row = db.puzzleDailyDao().get("alpha", pastDay.toString())!!
+        assertEquals(584, row.puzzleNumber)
+        assertEquals(1_000L, row.fetchedAtMs)
+
+        alphaSource.nextPuzzle = null
+        val second = archive.day(alpha, pastDay)
+
+        second as DailyDay.Ready
+        assertEquals(7.toByte(), second.puzzle.payload[1])
+        assertEquals(584, second.puzzleNumber)
+        assertEquals(1, alphaSource.requestedDates.size)
+    }
+
+    @Test
+    fun `days outside the archive range are OutOfRange, never fetched`() = runTest {
+        val archive = archiveRepository()
+        alphaSource.nextPuzzle = TestGames.puzzle(alpha)
+
+        assertEquals(DailyDay.OutOfRange, archive.day(alpha, archiveStart.minusDays(1)))
+        assertEquals(DailyDay.OutOfRange, archive.day(alpha, today.plusDays(1)))
+        assertTrue(alphaSource.requestedDates.isEmpty())
+    }
+
+    @Test
+    fun `the archive range's both ends are fetchable`() = runTest {
+        val archive = archiveRepository()
+        alphaSource.nextPuzzle = TestGames.puzzle(alpha)
+
+        assertTrue(archive.day(alpha, archiveStart) is DailyDay.Ready)
+        assertTrue(archive.day(alpha, today) is DailyDay.Ready)
+        assertEquals(listOf(archiveStart, today), alphaSource.requestedDates)
+    }
+
+    @Test
+    fun `an archive fetch failure is Failed with the source's error and caches nothing`() = runTest {
+        alphaSource.nextError = FetchError.NotFound("404")
+
+        val result = archiveRepository().day(alpha, pastDay)
+
+        assertTrue(result is DailyDay.Failed && result.error is FetchError.NotFound)
+        assertEquals(1, alphaSource.requestedDates.size)
+        assertEquals(0, db.puzzleDailyDao().count("alpha"))
+    }
+
+    @Test
+    fun `archiveRange spans archiveSince to today, null without an archive`() {
+        val archive = archiveRepository()
+
+        assertEquals(archiveStart..today, archive.archiveRange(alpha))
+        assertNull(archive.archiveRange(beta))
+        assertNull(archive.archiveRange(GameId("strands")))
+        assertNull(repository.archiveRange(alpha))
+    }
+
+    @Test
+    fun `history marks archived only rows fetched after their own day`() = runTest {
+        val dao = db.puzzleDailyDao()
+        val live = LocalDate.of(2026, 10, 30)
+        dao.upsert(TestGames.puzzle(alpha).toEntity(Ref(alpha, live, 591), noonOf(live)))
+        dao.upsert(TestGames.puzzle(alpha).toEntity(Ref(alpha, pastDay, 584), noonOf(today)))
+
+        val history = repository.observeHistory(alpha).first()
+
+        assertEquals(listOf(live, pastDay), history.map { it.day })
+        assertFalse(history[0].archived)
+        assertTrue(history[1].archived)
     }
 }

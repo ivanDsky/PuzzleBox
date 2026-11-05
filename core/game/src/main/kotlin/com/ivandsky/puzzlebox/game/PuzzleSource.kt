@@ -3,9 +3,11 @@ package com.ivandsky.puzzlebox.game
 import java.time.LocalDate
 
 /**
- * Where puzzles come from (F1 §2). Implementations live outward of core: the LinkedIn
- * daily adapter (ticket 12) and Strands' NYT adapter (Phase 3) in core/data, the in-memory
- * test fake in core:testing, the games archive later (ADR-0002, purely additive).
+ * Where puzzles come from (F1 §2). Implementations live outward of core: each game
+ * module's `DailySource` feed adapter and the in-memory test fake in core:testing. The
+ * archive is not a separate adapter: a source that serves past days declares
+ * `DailySource.archiveSince` and the daily repository reads it by date (ADR-0012,
+ * amending ADR-0002).
  */
 interface PuzzleSource {
     /** Fetches the puzzle for [date], or a typed failure — fetch callers degrade to cache (A7/A8). */

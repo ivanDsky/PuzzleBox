@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.testing.repository
 
+import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
@@ -12,9 +13,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 /**
  * Scriptable in-memory [DailyRepository] for feature and app tests, keyed by [GameId]
  * like the real one: per-game scripted [today] results (counted), per-game history
- * flows (newest first, live via [addEntry]) and a cache-only [cached] map. An
- * unscripted [today] fails loudly — history surfaces are cache-only (A8) and must never
- * fetch.
+ * flows (newest first, live via [addEntry]), a cache-only [cached] map, per-game
+ * [archiveRange]s and per-day scripted [day] outcomes (counted). An unscripted [today]
+ * fails loudly — history surfaces are cache-only (A8) and must never fetch. An unscripted
+ * [day] mirrors the real read: the [setCached] puzzle (numbered from history) is Ready,
+ * no archive is NotCaptured, outside the range is OutOfRange, and an in-range miss —
+ * which would fetch — fails loudly.
  */
 class FakeDailyRepository : DailyRepository {
 
@@ -22,6 +26,9 @@ class FakeDailyRepository : DailyRepository {
     private val calls = mutableMapOf<GameId, Int>()
     private val histories = mutableMapOf<GameId, MutableStateFlow<List<DailyEntry>>>()
     private val cachedByDay = mutableMapOf<Pair<GameId, LocalDate>, Puzzle>()
+    private val archiveRanges = mutableMapOf<GameId, ClosedRange<LocalDate>>()
+    private val dayResults = mutableMapOf<Pair<GameId, LocalDate>, DailyDay>()
+    private val dayCallCounts = mutableMapOf<Pair<GameId, LocalDate>, Int>()
 
     /** Scripts [game]'s next (and every following) [today] outcome. */
     fun setToday(game: GameId, result: DailyToday) {
@@ -49,6 +56,19 @@ class FakeDailyRepository : DailyRepository {
         cachedByDay[game to day] = puzzle
     }
 
+    /** Declares [game]'s openable days ([range] null = no archive, the default). */
+    fun setArchiveRange(game: GameId, range: ClosedRange<LocalDate>?) {
+        if (range == null) archiveRanges -= game else archiveRanges[game] = range
+    }
+
+    /** Scripts every following [day] outcome for [game]'s [day]. */
+    fun setDay(game: GameId, day: LocalDate, result: DailyDay) {
+        dayResults[game to day] = result
+    }
+
+    /** How many times [day] ran for [game]'s [day]. */
+    fun dayCalls(game: GameId, day: LocalDate): Int = dayCallCounts[game to day] ?: 0
+
     override suspend fun today(game: GameId): DailyToday {
         calls[game] = todayCalls(game) + 1
         return todayResults[game] ?: error("no today() scripted for ${game.value} (history is cache-only, A8)")
@@ -57,6 +77,20 @@ class FakeDailyRepository : DailyRepository {
     override suspend fun cached(game: GameId, day: LocalDate): Puzzle? = cachedByDay[game to day]
 
     override fun observeHistory(game: GameId): Flow<List<DailyEntry>> = history(game)
+
+    override suspend fun day(game: GameId, day: LocalDate): DailyDay {
+        val key = game to day
+        dayCallCounts[key] = dayCalls(game, day) + 1
+        dayResults[key]?.let { return it }
+        cachedByDay[key]?.let { puzzle ->
+            return DailyDay.Ready(puzzle, history(game).value.firstOrNull { it.day == day }?.puzzleNumber)
+        }
+        val range = archiveRanges[game] ?: return DailyDay.NotCaptured
+        if (day !in range) return DailyDay.OutOfRange
+        error("no day() scripted for ${game.value} $day (an in-range miss would fetch)")
+    }
+
+    override fun archiveRange(game: GameId): ClosedRange<LocalDate>? = archiveRanges[game]
 
     private fun history(game: GameId): MutableStateFlow<List<DailyEntry>> =
         histories.getOrPut(game) { MutableStateFlow(emptyList()) }
