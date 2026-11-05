@@ -1,7 +1,9 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollToNode
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
 import com.ivandsky.puzzlebox.gameui.DragEvent
@@ -64,7 +66,7 @@ class HistoryE2ETest {
             val result = state.currentStack.last()
             assertTrue("result of the replayed day: $state", result is ResultKey && result.gameId == ZIP && result.day == "$REPLAY_DAY")
             assertEquals(listOf(HomeKey, HistoryKey(), result), state.currentStack)
-            assertSelectedTab(HomeKey)
+            assertNoNavigation()
 
             back()
             assertState(history)
@@ -78,7 +80,7 @@ class HistoryE2ETest {
         back()
         assertState(history)
         assertRoute(HISTORY)
-        awaitTag(ROW)
+        scrollToRow()
         rule.onNodeWithTag(DETAIL, useUnmergedTree = true).assertDoesNotExist()
 
         back()
@@ -93,7 +95,7 @@ class HistoryE2ETest {
         awaitZip(REPLAY_DAY)
         rule.runOnIdle { MID_GAME.forEach { zip(REPLAY_DAY).extend(it) } }
 
-        tapTab(PlayKey)
+        switchTab(PlayKey)
         openGame(ZIP)
 
         assertState(stacks(tab = PlayKey, home = replaying.stacks.first(), play = listOf(PlayKey, GameKey(ZIP))))
@@ -107,8 +109,16 @@ class HistoryE2ETest {
     /** Opens the replayed day's detail from History's list. */
     private fun ShellRobot.openDay() {
         assertRoute(HISTORY)
+        scrollToRow()
         tap(ROW)
         awaitTag(DETAIL)
+    }
+
+    /** Scrolls History's list until [ROW] composes: the stats and weeks cards sit above the rows. */
+    private fun ShellRobot.scrollToRow() {
+        rule.waitUntil(TIMEOUT_MS) {
+            runCatching { rule.onNodeWithTag(LIST).performScrollToNode(hasTestTag(ROW)) }.isSuccess
+        }
     }
 
     private val ShellRobot.store: PlaySessionStore get() = graph.koin.get()
@@ -145,7 +155,9 @@ class HistoryE2ETest {
         const val HISTORY = "route.history"
         const val GAME = "route.game"
         const val RESULT = "route.result"
-        const val REPLAY = "history.replay"
+        // REPLAY_DAY is unfinished, so its detail offers "Keep going".
+        const val REPLAY = "history.keep_going"
+        const val LIST = "history.list"
         const val ZIP = "zip"
         const val TIMEOUT_MS = 5_000L
         val REPLAY_DAY: LocalDate = LocalDate.of(2026, 10, 30)

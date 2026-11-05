@@ -12,8 +12,8 @@ import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 
 /**
- * Home's route: the Today card pushes its play target's [GameKey] once on Home's stack
- * (A6, N8/N9: back returns to Home), the history teaser pushes [HistoryKey] on Home's
+ * Home's route: a Today tile or the CTA pushes that game's [GameKey] once on Home's stack
+ * (A6, A10, N1/N8/N9: back returns to Home), "See all" pushes [HistoryKey] on Home's
  * stack, and the account card selects the Profile tab.
  */
 fun EntryProviderScope<NavKey>.homeEntry(
@@ -27,7 +27,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
             layout = layout,
             themeMode = themeMode,
             onSetThemeMode = onSetThemeMode,
-            onPlayToday = { id -> navigator.pushOnce(GameKey(id.value)) },
+            onOpenGame = { id -> navigator.pushOnce(GameKey(id.value)) },
             // A6: the account card is a tab switch, not a push. Home's stack is untouched,
             // so Home (bar or back from the Profile root) returns to it as it was.
             onOpenProfile = { navigator.selectTab(ProfileKey) },

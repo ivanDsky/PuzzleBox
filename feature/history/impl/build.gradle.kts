@@ -17,6 +17,8 @@ dependencies {
     // ADR-0001: history is game-agnostic — replay sessions come from each game's plugin
     // through GetReplaySession, never a games:* edge.
     implementation(projects.core.domain)
+    // Game brands, glyphs and the week strip (identity §3).
+    implementation(projects.core.gameUi)
 
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.paging.compose)

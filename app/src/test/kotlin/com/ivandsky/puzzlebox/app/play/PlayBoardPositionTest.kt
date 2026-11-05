@@ -18,7 +18,11 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -105,6 +109,9 @@ class PlayBoardPositionTest {
                     factory { GetReplaySession(get(), get()) }
                     single { SyncTodayPuzzles(get(), get(), get()) }
                     factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
+                    // The hub's best times and puzzle numbers.
+                    factory { ObserveGameHistory(get(), get(), get()) }
+                    factory { ObserveGameStats(get(), ComputeStreak(GetPuzzleDay(get()))) }
                     // Every tutorial seen: the boards draw straight away.
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository(seen = games.toSet()) }
                 },
@@ -138,7 +145,7 @@ class PlayBoardPositionTest {
                         backStack = navigator.state.currentStack,
                         onBack = { navigator.pop() },
                         entryProvider = entryProvider {
-                            playEntry(navigator, layout)
+                            playEntry(navigator, layout, onOpenHistory = {})
                             entry<ResultKey> { Text("result") }
                         },
                     )

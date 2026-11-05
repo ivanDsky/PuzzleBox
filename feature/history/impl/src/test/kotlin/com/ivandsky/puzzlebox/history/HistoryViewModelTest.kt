@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.history
 
 import androidx.paging.testing.asSnapshot
+import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
 import com.ivandsky.puzzlebox.history.api.HistoryKey
@@ -8,12 +9,14 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
+import java.time.DayOfWeek
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -150,10 +153,10 @@ class HistoryViewModelTest {
             setRecords(listOf(HistoryTestSupport.record(today), HistoryTestSupport.tangoRecord(today.minusDays(1))))
         }
 
-        val state = HistoryTestSupport.viewModel(daily, completions).uiState.first { it.rows.isNotEmpty() }
+        val state = HistoryTestSupport.viewModel(daily, completions).uiState.first { it.rows.isNotEmpty() && it.stats != null }
 
         assertEquals(3, state.rows.size) // two games, three distinct days, no rows lost
-        assertEquals(2, state.streak) // solved today + yesterday; the opened day never counts
+        assertEquals(2, state.stats?.currentStreak) // solved today + yesterday; the opened day never counts
     }
 
     @Test
@@ -169,24 +172,103 @@ class HistoryViewModelTest {
             setRecords(listOf(HistoryTestSupport.record(today), practice))
         }
 
-        val state = HistoryTestSupport.viewModel(daily, completions).uiState.first { it.rows.isNotEmpty() }
+        val state = HistoryTestSupport.viewModel(daily, completions).uiState.first { it.rows.isNotEmpty() && it.stats != null }
 
-        assertTrue("the practice solve is still a solved row", (TANGO to yesterday) in state.recordsByKey)
-        assertEquals(1, state.streak) // today only; yesterday's practice solve doesn't bridge
+        assertNotNull("the practice solve is still a solved row", state.rows.single { it.gameId == TANGO }.record)
+        assertEquals(1, state.stats?.currentStreak) // today only; yesterday's practice solve doesn't bridge
     }
 
+    // ------------------------------------------------------------------
+    // S06: tabs, best, weeks.
+    // ------------------------------------------------------------------
+
     @Test
-    fun `the key picks the game tab, and no game means every game`() {
+    fun `the key picks the starting tab, and no game or an unknown game means All`() {
         val daily = FakeDailyRepository()
-        assertEquals(ZIP, HistoryTestSupport.viewModel(daily, FakeCompletionRepository(), HistoryKey(ZIP.value)).game)
-        assertNull(HistoryTestSupport.viewModel(daily, FakeCompletionRepository()).game)
+        fun tabOf(key: HistoryKey) = HistoryTestSupport.viewModel(daily, FakeCompletionRepository(), key).selectedTab.value
+
+        assertEquals(QUEENS, tabOf(HistoryKey(QUEENS.value)))
+        assertNull(tabOf(HistoryKey()))
+        assertNull(tabOf(HistoryKey("nope")))
     }
 
     @Test
-    fun `the history label switches on the edition number`() {
+    fun `a game tab lists only that game, in the state and the pages`() = runTest {
+        val today = HistoryTestSupport.TODAY
+        val daily = FakeDailyRepository().apply {
+            setHistory(ZIP, listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(today.minusDays(1))))
+            setHistory(TANGO, listOf(HistoryTestSupport.tangoEntry(today)))
+        }
+        val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository())
+
+        viewModel.select(TANGO)
+
+        assertEquals(TANGO, viewModel.selectedTab.value)
+        val state = viewModel.uiState.first { it.rows.isNotEmpty() }
+        assertEquals(listOf(TANGO), state.rows.map { it.gameId })
+        assertEquals(1, state.dotsPerDay)
+        assertEquals(listOf(TANGO), viewModel.pagedDays.asSnapshot().map { it.gameId })
+
+        viewModel.select(null)
+        advanceUntilIdle()
+
+        assertEquals(3, viewModel.pagedDays.asSnapshot().size)
+    }
+
+    @Test
+    fun `only each game's fastest numbered solve is its best`() = runTest {
+        val today = HistoryTestSupport.TODAY
+        val practiceDay = today.minusDays(3)
+        val daily = FakeDailyRepository().apply {
+            setHistory(ZIP, listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(today.minusDays(1))))
+            setHistory(TANGO, listOf(HistoryTestSupport.tangoEntry(today), HistoryTestSupport.tangoEntry(practiceDay, puzzleNumber = null)))
+        }
+        val completions = FakeCompletionRepository().apply {
+            setRecords(
+                listOf(
+                    HistoryTestSupport.record(today, timeMs = 95_000),
+                    HistoryTestSupport.record(today.minusDays(1), timeMs = 70_000),
+                    HistoryTestSupport.tangoRecord(today, timeMs = 61_000),
+                    // Faster, but practice: never a best.
+                    HistoryTestSupport.tangoRecord(practiceDay, timeMs = 5_000)
+                        .copy(puzzleRef = TestGames.Ref(TANGO, practiceDay, null)),
+                ),
+            )
+        }
+
+        val rows = HistoryTestSupport.viewModel(daily, completions).uiState.first { it.rows.size == 4 }.rows
+
+        assertEquals(setOf("zip/${today.minusDays(1)}", "tango/$today"), rows.filter { it.isBest }.map { it.key }.toSet())
+    }
+
+    @Test
+    fun `the weeks run Monday to Sunday, newest first, with practice left out`() {
+        val today = HistoryTestSupport.TODAY // a Tuesday
+        val rows = listOf(
+            HistoryDayRow(today, 1, ZIP, "Zip", record = HistoryTestSupport.record(today)),
+            HistoryDayRow(today.minusDays(1), null, TANGO, "Tango", record = HistoryTestSupport.tangoRecord(today.minusDays(1))),
+            HistoryDayRow(today.minusDays(2), 2, ZIP, "Zip"),
+        )
+
+        val weeks = historyWeeks(today, rows, listOf(ZIP, TANGO))
+
+        assertEquals(HISTORY_WEEKS, weeks.size)
+        assertTrue(weeks.all { week -> week.size == 7 && week.first().date.dayOfWeek == DayOfWeek.MONDAY })
+        assertTrue("newest week first", weeks[0].first().date > weeks[1].first().date)
+        assertTrue("this week holds today", weeks[0].any { it.date == today })
+        // today - 2 is Sunday: the end of last week.
+        val shown = weeks.flatten().associateBy { it.date }
+        assertEquals(1, shown.getValue(today).solved.size)
+        assertTrue(shown.getValue(today).isToday)
+        assertTrue("practice fills no dot", shown.getValue(today.minusDays(1)).solved.isEmpty())
+        assertTrue("an unfinished day fills no dot", shown.getValue(today.minusDays(2)).solved.isEmpty())
+    }
+
+    @Test
+    fun `the history edition switches on the edition number`() {
         val day = HistoryTestSupport.TODAY
         fun row(puzzleNumber: Int?) = HistoryDayRow(day = day, puzzleNumber = puzzleNumber, gameId = TANGO, gameName = "Tango")
-        assertNotEquals(row(puzzleNumber = 5).label, row(puzzleNumber = null).label)
-        assertTrue("a practice label never claims an edition", "#" !in row(puzzleNumber = null).label)
+        assertNotEquals(row(puzzleNumber = 5).edition, row(puzzleNumber = null).edition)
+        assertTrue("a practice day never claims an edition", "#" !in row(puzzleNumber = null).title)
     }
 }

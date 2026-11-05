@@ -56,7 +56,7 @@ class PlayLeaveE2ETest {
         openGame(ZIP)
         val live = playMidGame()
 
-        tapTab(ProfileKey)
+        switchTab(ProfileKey)
         assertState(inZip.selectTab(ProfileKey))
         assertRoute(PROFILE)
         val away = session(live)
@@ -77,7 +77,7 @@ class PlayLeaveE2ETest {
 
     @Test
     fun `N13 SC5 reselecting Play pops to the hub and saves`() = leaveAndResume(PlayLeave.Released) {
-        tapTab(PlayKey)
+        switchTab(PlayKey)
         assertState(playHub)
         assertRoute(HUB)
     }
@@ -101,7 +101,7 @@ class PlayLeaveE2ETest {
 
     @Test
     fun `SC5 SC6 a tab switch saves and resumes`() = leaveAndResume(PlayLeave.Kept) {
-        tapTab(HomeKey)
+        switchTab(HomeKey)
         assertRoute(HOME)
     }
 
@@ -115,7 +115,7 @@ class PlayLeaveE2ETest {
             assertRoute(GAME)
             val live = playMidGame()
 
-            tapTab(PlayKey)
+            switchTab(PlayKey)
             assertState(both.selectTab(PlayKey))
             assertRoute(GAME)
             assertSame("one shared play", live, rule.runOnIdle { zip() })
@@ -123,7 +123,7 @@ class PlayLeaveE2ETest {
             val more = ZipPlayFixture.solution[MID_GAME.size]
             rule.runOnIdle { live.extend(more) }
 
-            tapTab(HomeKey)
+            switchTab(HomeKey)
             assertState(both)
             assertRoute(GAME)
             assertSame(live, rule.runOnIdle { zip() })
@@ -137,7 +137,7 @@ class PlayLeaveE2ETest {
             daily.setToday(ZipDefinition.id, DailyToday.Unavailable(FetchError.Unavailable()))
         }
         shellRobot(graph = offline) {
-            tapText(PLAY_TODAY)
+            tap(HOME_PLAY)
             assertState(stacks(tab = HomeKey, home = listOf(HomeKey, GameKey(ZIP))))
             assertRoute(GAME)
             awaitTag(BOARD_ERROR)
@@ -166,14 +166,14 @@ class PlayLeaveE2ETest {
     }
 
     @Test
-    fun `SC11 Home's card reads Resume, and tapping it resumes`() = shellRobot(playHub) {
+    fun `SC11 Home's CTA resumes the saved play`() = shellRobot(playHub) {
         openGame(ZIP)
         val live = playMidGame()
         back()
         awaitSaved()
         tapTab(HomeKey)
 
-        tapText(RESUME)
+        tap(HOME_PLAY)
         assertState(stacks(tab = HomeKey, home = listOf(HomeKey, GameKey(ZIP))))
         assertRoute(GAME)
         assertResumed(session(live))
@@ -183,7 +183,7 @@ class PlayLeaveE2ETest {
     fun `SC11 the Play tab shows a dot, and tapping it resumes`() = shellRobot(playHub) {
         openGame(ZIP)
         val live = playMidGame()
-        tapTab(HomeKey)
+        switchTab(HomeKey)
         awaitSaved()
 
         awaitTag(PLAY_BADGE)
@@ -294,8 +294,7 @@ class PlayLeaveE2ETest {
         const val PROFILE = "route.profile"
         const val GAME_UP = "game.up"
         const val BOARD_ERROR = "play.error"
-        const val PLAY_TODAY = "Play today"
-        const val RESUME = "Resume"
+        const val HOME_PLAY = "home.today_play"
         // The saved-play status line's words, without its clock.
         val IN_PROGRESS = todayStatusLine(TodayStatus.InProgress(0L)).substringBefore(" ·")
         const val TRY_AGAIN = "Try again"

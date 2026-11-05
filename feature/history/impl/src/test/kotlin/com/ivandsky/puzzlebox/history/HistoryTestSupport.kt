@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -20,8 +21,8 @@ import java.time.ZoneOffset
 
 /**
  * Game-free history fixtures (ADR-0001: :feature:history:impl never sees a games:* module):
- * stand-in [TestGames] plugins registered under the real ids, so rows read
- * "Daily Zip/Tango/Queens" exactly as production names them through the registry.
+ * stand-in [TestGames] plugins registered under the real ids, so rows carry the game
+ * names exactly as production resolves them through the registry.
  */
 object HistoryTestSupport {
 
@@ -46,14 +47,18 @@ object HistoryTestSupport {
         key: HistoryKey = HistoryKey(),
     ): HistoryViewModel {
         val observeGameHistory = ObserveGameHistory(registry, daily, completions)
+        val puzzleDay = GetPuzzleDay(registry, clock)
         return HistoryViewModel(
             key = key,
             observeGameHistory = observeGameHistory,
             observeGameStats = ObserveGameStats(
                 observeGameHistory = observeGameHistory,
-                computeStreak = ComputeStreak(puzzleDay = GetPuzzleDay(registry, clock)),
+                computeStreak = ComputeStreak(puzzleDay = puzzleDay),
             ),
             registry = registry,
+            // No play UIs: every game reads GameBrand.Neutral.
+            playRegistry = GamePlayRegistry(emptyList()),
+            puzzleDay = puzzleDay,
         )
     }
 

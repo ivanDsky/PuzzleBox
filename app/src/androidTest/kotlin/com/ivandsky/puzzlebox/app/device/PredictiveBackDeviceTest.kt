@@ -43,7 +43,7 @@ class PredictiveBackDeviceTest {
         predictiveBack(commit = false)
 
         assertRoute(GAME)
-        assertSelectedTab(PlayKey)
+        assertNoNavigation()
         assertEquals("a cancelled gesture leaves the board as it was", left, zipPath())
     }
 }
