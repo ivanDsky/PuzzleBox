@@ -15,6 +15,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -155,9 +158,10 @@ internal fun QueensCell(
                     },
             )
         }
-        // §5.5 stage 2 and the guided lesson (spec A12) share the crown ghost — the
-        // queen's silhouette at reduced alpha, above the emphasized overlay. "This cell,
-        // exactly." A guided ghost stays over an × until the queen itself lands.
+        // §5.5 stage 2 and the guided lesson (spec A12) share the crown ghost — a dashed
+        // outline of the queen, above the emphasized overlay: "a queen goes here", never
+        // mistaken for a placed (solid) queen. A guided ghost stays over an × until the
+        // queen itself lands.
         val guided = idx in model.ghosts && shown != QueensCellVisual.QUEEN
         if ((pointed && shown == QueensCellVisual.EMPTY) || guided) {
             val ghost = if (guided) {
@@ -168,7 +172,16 @@ internal fun QueensCell(
                 Modifier
             }
             Canvas(Modifier.fillMaxSize().then(ghost)) {
-                drawQueen(ink, QueensBoardDefaults.queenHeightFraction, alpha = QueensBoardDefaults.hintGhostAlpha)
+                val dash = QueensBoardDefaults.ghostDash.toPx()
+                drawQueen(
+                    ink, QueensBoardDefaults.queenHeightFraction,
+                    alpha = QueensBoardDefaults.ghostOutlineAlpha,
+                    style = Stroke(
+                        width = QueensBoardDefaults.ghostStrokeWeight.toPx(),
+                        join = StrokeJoin.Round,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(dash, dash * 0.6f)),
+                    ),
+                )
             }
         }
         // Guided lesson: a queen off the answer gets a faint corner × — calm, not a rule

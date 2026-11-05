@@ -6,6 +6,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.DrawStyle
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import com.ivandsky.puzzlebox.gameui.GridGeometry
 
@@ -75,8 +77,9 @@ internal fun DrawScope.drawX(color: Color, weightPx: Float, lengthFraction: Floa
     drawLine(color, Offset(cx - half, cy + half), Offset(cx + half, cy - half), weightPx * scale, StrokeCap.Round, alpha = alpha)
 }
 
-/** Crown silhouette, single path: three points + band base, height = fraction of cell. */
-internal fun DrawScope.drawQueen(color: Color, heightFraction: Float, alpha: Float) {
+/** Crown silhouette, single path: three points + band base, height = fraction of cell.
+ *  [style] Fill is a placed queen; a dashed Stroke is the ghost, "a queen goes here". */
+internal fun DrawScope.drawQueen(color: Color, heightFraction: Float, alpha: Float, style: DrawStyle = Fill) {
     val h = size.minDimension * heightFraction
     val w = h * 1.15f
     val left = (size.width - w) / 2f
@@ -93,7 +96,7 @@ internal fun DrawScope.drawQueen(color: Color, heightFraction: Float, alpha: Flo
         close()
         addRect(androidx.compose.ui.geometry.Rect(left, top + h * 0.70f, left + w, top + h * 0.70f + band))
     }
-    drawPath(path, color.copy(alpha = alpha))
+    drawPath(path, color.copy(alpha = alpha), style = style)
 }
 
 /** §3.5: 45° diagonal bands — a 2dp scrim band under each 3dp error band, 6dp pitch.

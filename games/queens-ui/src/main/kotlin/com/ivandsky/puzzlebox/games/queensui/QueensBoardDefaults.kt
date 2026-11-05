@@ -50,6 +50,10 @@ object QueensBoardDefaults {
     const val hintPulseCycles: Int = 2
     const val hintPointedAlphaBoost: Float = 3f
     const val hintGhostAlpha: Float = 0.45f
+    // The ghost is a dashed crown outline, so it never reads as a placed (solid) queen.
+    const val ghostOutlineAlpha: Float = 0.7f
+    val ghostStrokeWeight: Dp = 2.dp
+    val ghostDash: Dp = 5.dp
 
     // Guided lesson (spec A12): a queen off the answer carries a faint × in its corner
     // (Tango's guide badge size), so a lesson with every answer placed never looks stuck.

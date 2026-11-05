@@ -2,6 +2,9 @@ package com.ivandsky.puzzlebox.games.queensui
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.geometry.Offset
@@ -437,6 +440,26 @@ class QueensBoardUiTest {
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription))
         tap(stray / n, stray % n) // the queen goes
         composeRule.onNodeWithTag("queens.stray.$stray").assertDoesNotExist()
+    }
+
+    /** U2: the next lesson (or a replay) is a new state of the same size; its taps
+     *  must reach it, not the state it replaced. */
+    @Test
+    fun `a new board of the same size takes the taps`() {
+        val first = QueensBoardState(initialSession = QueensUiFixtures.session())
+        val second = QueensBoardState(initialSession = QueensUiFixtures.session())
+        var current by mutableStateOf(first)
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                QueensPlayBoard(current, Modifier.fillMaxWidth().testTag(BoardTag))
+            }
+        }
+        tap(0, 0)
+        current = second
+        composeRule.waitForIdle()
+        tap(0, 0)
+        assertEquals(MarkKind.MANUAL, second.session.markAt(Cell(0))?.kind)
+        assertEquals(MarkKind.MANUAL, first.session.markAt(Cell(0))?.kind) // untouched by the 2nd tap
     }
 
     /** V1: a lesson board fills the board pane the tutorial host gives it, edge to edge —

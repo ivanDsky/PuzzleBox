@@ -66,7 +66,7 @@ internal object TangoTutorial {
             ),
         ),
         lesson(
-            "Each row and column has two suns and two moons.",
+            "Each row and column has equal suns and moons (two each).",
             "SSMM",
             "MMSS",
             "SMSM",
