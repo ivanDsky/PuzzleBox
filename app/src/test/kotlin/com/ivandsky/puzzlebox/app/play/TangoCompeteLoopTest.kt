@@ -1,7 +1,13 @@
 package com.ivandsky.puzzlebox.app.play
 
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntries
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.GamePlayController
@@ -14,17 +20,20 @@ import com.ivandsky.puzzlebox.games.tangoui.TangoPlacement
 import com.ivandsky.puzzlebox.games.tangoui.TangoPlayController
 import com.ivandsky.puzzlebox.games.tangoui.TangoPlayUi
 import com.ivandsky.puzzlebox.play.PlaySessionStore
+import com.ivandsky.puzzlebox.play.di.playModule
+import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.Instant
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
+import org.koin.dsl.koinApplication
+import org.koin.dsl.module
 
 /**
  * ADR-0004 reach across the seam: a Tango win written by the play feature's store
@@ -49,13 +58,23 @@ class TangoCompeteLoopTest {
             DailyToday.Fresh(TangoPlayFixture.envelope()),
             listOf(TangoPlayFixture.entry(TangoDefinition.cadence.today())),
         )
-        val store = PlaySessionStore(
-            games = GameRegistry(listOf(tangoPlugin)),
-            ui = GamePlayRegistry(listOf(tangoUi)),
-            daily = daily,
-            completions = completions,
-            scopeFactory = { CoroutineScope(SupervisorJob() + Dispatchers.Unconfined) },
-        )
+        val fakes = module {
+            single<DailyRepository> { daily }
+            single<CompletionRepository> { completions }
+            single<SavedPlayRepository> { FakeSavedPlayRepository() }
+            single<GameCalendar> { FakeGameCalendar(TangoDefinition.cadence.today()) }
+            single<DispatcherProvider> {
+                object : DispatcherProvider {
+                    override val main = Dispatchers.Unconfined
+                    override val io = Dispatchers.Unconfined
+                    override val default = Dispatchers.Unconfined
+                }
+            }
+            single { GameRegistry(listOf(tangoPlugin)) }
+            single { GamePlayRegistry(listOf(tangoUi)) }
+            factory { GetReplaySession(get(), get()) }
+        }
+        val store = koinApplication { modules(fakes, playModule) }.koin.get<PlaySessionStore>()
         val play = store.start(TangoDefinition.id) {}!!
         play.load()
         val s = play.controller as TangoPlayController

@@ -4,17 +4,23 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.ivandsky.puzzlebox.common.di.commonModule
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.ResultScreen
 import com.ivandsky.puzzlebox.play.di.playModule
+import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -129,11 +135,15 @@ class ResultScreenTest {
         stopKoin() // tests share the JVM-global Koin context
         val koin = startKoin {
             modules(
+                commonModule,
                 module {
                     single<GameRegistry> { fakes.games }
                     single<GamePlayRegistry> { fakes.registry }
                     single<com.ivandsky.puzzlebox.data.repository.DailyRepository> { daily }
                     single<com.ivandsky.puzzlebox.data.repository.CompletionRepository> { FakeCompletionRepository() }
+                    single<SavedPlayRepository> { FakeSavedPlayRepository() }
+                    single<GameCalendar> { FakeGameCalendar(day) }
+                    factory { GetReplaySession(get(), get()) }
                 },
                 playModule,
             )

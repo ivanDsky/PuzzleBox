@@ -40,8 +40,9 @@ internal class SlotOpening(
         /** A [SessionBlob] envelope to adopt: a saved play or a past day's replay build. */
         class Restored(val session: ByteArray) : Origin
 
-        /** Today's fresh daily; [banner] is the degrade copy when it is a cached fallback. */
-        class Fetched(val puzzle: Puzzle, val banner: String?) : Origin
+        /** Today's fresh daily; [banner] is the degrade copy when it is a cached fallback;
+         *  [puzzleNumber] is the day's number from the cache's history (ADR-0004), if any. */
+        class Fetched(val puzzle: Puzzle, val banner: String?, val puzzleNumber: Int?) : Origin
 
         /** Nothing to play; [message] is the copy. */
         class Unavailable(val message: String) : Origin
@@ -73,19 +74,21 @@ internal class SlotOpening(
     }
 
     private suspend fun fetch(slot: PlaySlot): Origin = when (val fetched = daily.today(slot.gameId)) {
-        is DailyToday.Fresh -> Origin.Fetched(fetched.puzzle, banner = null)
-        is DailyToday.Cached -> Origin.Fetched(fetched.puzzle, banner = degradeBannerMessage(fetched.error))
+        is DailyToday.Fresh -> Origin.Fetched(fetched.puzzle, banner = null, puzzleNumberOf(slot))
+        is DailyToday.Cached -> Origin.Fetched(fetched.puzzle, degradeBannerMessage(fetched.error), puzzleNumberOf(slot))
         is DailyToday.Unavailable -> Origin.Unavailable(unavailableMessage(fetched.error))
     }
 
-    private suspend fun build(slot: PlaySlot): Origin {
-        val puzzleNumber = daily.observeHistory(slot.gameId).first().firstOrNull { it.day == slot.day }?.puzzleNumber
-        return when (val replay = replays(slot.gameId, slot.day, puzzleNumber)) {
+    private suspend fun build(slot: PlaySlot): Origin =
+        when (val replay = replays(slot.gameId, slot.day, puzzleNumberOf(slot))) {
             is ReplayOutcome.Ready -> Origin.Restored(replay.session)
             ReplayOutcome.Missing -> Origin.Unavailable(DAY_MISSING)
             is ReplayOutcome.Unreadable -> Origin.Unavailable(DAY_UNREADABLE)
         }
-    }
+
+    /** The day's puzzleNumber from the cache's history rows (null when the day has none). */
+    private suspend fun puzzleNumberOf(slot: PlaySlot): Int? =
+        daily.observeHistory(slot.gameId).first().firstOrNull { it.day == slot.day }?.puzzleNumber
 
     private companion object {
         const val UNREGISTERED = "This game isn't available in this build."

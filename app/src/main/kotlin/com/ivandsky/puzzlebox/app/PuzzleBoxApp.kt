@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -15,16 +17,21 @@ import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.screens.CatalogUnavailableScreen
+import com.ivandsky.puzzlebox.domain.ObservePlayProgress
 import com.ivandsky.puzzlebox.gameui.playLayoutFor
 import com.ivandsky.puzzlebox.history.historyLayoutFor
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.homeLayoutFor
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.PlayKey
+import kotlinx.coroutines.flow.map
+import org.koin.compose.koinInject
 
 /**
  * The app shell: tab bar (or rail) over [PuzzleBoxNavShell]. The highlight is the
  * [navigator]'s selected tab, so it always names the tab that owns the screen on top.
+ * The Play tab carries a dot while any of today's games is in progress (A13, SC11).
  */
 @Composable
 fun PuzzleBoxApp(
@@ -33,6 +40,7 @@ fun PuzzleBoxApp(
     onSetThemeMode: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,
     navigator: Navigator = rememberNavigator(),
+    observePlayProgress: ObservePlayProgress = koinInject(),
 ) {
     // Two-pane needs width AND height: a large tablet in portrait still measures
     // Expanded by width class, so the orientation comes from the current window
@@ -58,13 +66,17 @@ fun PuzzleBoxApp(
     )
     val expanded = layout == HomeLayout.TwoPane
     val selected = navigator.state.tab
+    val anyInProgress by remember(observePlayProgress) {
+        observePlayProgress().map { it.anyInProgress }
+    }.collectAsState(initial = false)
+    val badged = if (anyInProgress) setOf(PlayKey) else emptySet()
 
     Scaffold(
         modifier = modifier,
         bottomBar = {
             // Two-pane moves navigation to a rail; the bottom bar is every other shape.
             if (!expanded) {
-                TopLevelNavBar(selected = selected, onSelect = navigator::selectTab)
+                TopLevelNavBar(selected = selected, onSelect = navigator::selectTab, badged = badged)
             }
         },
     ) { innerPadding ->
@@ -74,7 +86,7 @@ fun PuzzleBoxApp(
                 .padding(innerPadding),
         ) {
             if (expanded) {
-                TopLevelNavRail(selected = selected, onSelect = navigator::selectTab)
+                TopLevelNavRail(selected = selected, onSelect = navigator::selectTab, badged = badged)
             }
             PuzzleBoxNavShell(
                 navigator = navigator,
