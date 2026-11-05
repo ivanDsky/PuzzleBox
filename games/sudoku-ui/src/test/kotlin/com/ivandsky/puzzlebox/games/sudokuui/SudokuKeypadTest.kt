@@ -189,6 +189,41 @@ class SudokuKeypadTest {
     }
 
     @Test
+    fun `inline notes drops the button row for a notes switch key after the digits`() {
+        var notesMode by mutableStateOf(false)
+        var solved by mutableStateOf(false)
+        composeRule.setContent {
+            PuzzleBoxTheme {
+                SudokuKeypad(
+                    model = SudokuKeypadModel(6, List(6) { 6 }, notesMode, canClear = true, solved = solved),
+                    onDigit = {},
+                    onErase = {},
+                    onClear = {},
+                    onToggleNotes = { notesMode = !notesMode },
+                    inlineNotes = true,
+                )
+            }
+        }
+        composeRule.onNodeWithText("Erase").assertDoesNotExist()
+        composeRule.onNodeWithTag("sudoku.clear").assertDoesNotExist()
+        val toggle = composeRule.onNodeWithContentDescription("Notes")
+        toggle.assert(hasRole(Role.Switch)).assert(hasStateDescription("Off"))
+        val six = composeRule.onNodeWithContentDescription("6, 6 left").getUnclippedBoundsInRoot()
+        val key = toggle.getUnclippedBoundsInRoot()
+        assertEquals(six.top, key.top)
+        assertTrue("toggle $key not after 6 $six", key.left > six.right)
+        assertTrue("toggle $key under 48dp", key.width >= 48.dp && key.height >= 48.dp)
+
+        toggle.performClick()
+
+        toggle.assert(hasStateDescription("On"))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.On))
+        composeRule.onNodeWithContentDescription("Note 1, 6 left").assertExists()
+        solved = true
+        toggle.assertIsNotEnabled()
+    }
+
+    @Test
     fun `two rows split nine digits five over four with every key at least 48dp`() {
         composeRule.setContent {
             PuzzleBoxTheme {

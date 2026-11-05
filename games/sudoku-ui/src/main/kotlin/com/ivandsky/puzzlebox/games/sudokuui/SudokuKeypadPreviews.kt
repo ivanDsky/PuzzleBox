@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -120,6 +121,42 @@ internal fun SudokuKeypadSolvedPreview() {
             onClear = {},
             onToggleNotes = {},
             modifier = Modifier.padding(Spacing.lg),
+        )
+    }
+}
+
+@PuzzleBoxPreviews
+@Preview(name = "Tablet board pane", widthDp = 584, showBackground = true)
+@Composable
+internal fun SudokuKeypadNineInlinePreview() {
+    PuzzleBoxTheme {
+        SudokuKeypad(
+            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = false, canClear = true, solved = false),
+            onDigit = {},
+            onErase = {},
+            onClear = {},
+            onToggleNotes = {},
+            modifier = Modifier.padding(Spacing.lg),
+            keyHeight = 56.dp,
+            inlineNotes = true,
+        )
+    }
+}
+
+@PuzzleBoxPreviews
+@Preview(name = "Tablet board pane", widthDp = 584, showBackground = true)
+@Composable
+internal fun SudokuKeypadNineInlineNotesPreview() {
+    PuzzleBoxTheme {
+        SudokuKeypad(
+            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = true, canClear = true, solved = false),
+            onDigit = {},
+            onErase = {},
+            onClear = {},
+            onToggleNotes = {},
+            modifier = Modifier.padding(Spacing.lg),
+            keyHeight = 56.dp,
+            inlineNotes = true,
         )
     }
 }

@@ -205,36 +205,38 @@ class SudokuPlayUiTest {
 
     @Test
     @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
-    fun `two pane plays in the tutorial frame - header on top, board centred, undo, redo and hint under the grid`() {
+    fun `two pane - board with one digit row and the notes key left, chrome with erase and clear right`() {
         val controller = adopted()
         setScreen(controller, PlayLayout.TwoPane)
 
         val inBoard = hasAnyAncestor(hasTestTag("sudoku.board_area"))
-        val inHeader = hasAnyAncestor(hasTestTag("play.header"))
-        composeRule.onNodeWithTag("play.side_panel").assertDoesNotExist()
-        composeRule.onNode(hasText("Daily · #450") and inHeader).assertExists()
-        composeRule.onNode(hasText("00:00") and inHeader).assertExists()
+        val inSide = hasAnyAncestor(hasTestTag("play.side_panel"))
         composeRule.onNode(hasTestTag("sudoku.keypad") and inBoard).assertExists()
-        composeRule.onNode(hasTestTag("play.undo") and inBoard).assertExists()
-        composeRule.onNode(hasTestTag("play.redo") and inBoard).assertExists()
-        composeRule.onNode(hasClickAction() and hasText("Hint", substring = true) and inBoard).assertExists()
+        composeRule.onNode(hasTestTag("sudoku.notes_key") and inBoard).assertExists()
+        composeRule.onNode(hasText("Notes") and hasClickAction()).assertDoesNotExist()
+        for (tag in listOf("play.undo", "play.redo", "sudoku.clear")) composeRule.onNode(hasTestTag(tag) and inSide).assertExists()
+        composeRule.onNode(hasText("Erase") and inSide).assertExists()
+        composeRule.onNode(hasClickAction() and hasText("Hint", substring = true) and inSide).assertExists()
+        composeRule.onNode(hasText("Daily · #450") and inSide).assertExists()
 
-        // Centred on the screen like the tutorial's board, not offset into a left pane.
-        val screen = composeRule.onNodeWithTag("play.column").getUnclippedBoundsInRoot()
-        val grid = composeRule.onNodeWithTag("sudoku.grid").getUnclippedBoundsInRoot()
-        assertEquals(((screen.left + screen.right) / 2).value, ((grid.left + grid.right) / 2).value, 1f)
+        // One row: the six digits and the notes key share a top, the key last; the grid
+        // takes the 552dp cap the dropped button rows free.
+        val keys = (1..6).map { key(it).getUnclippedBoundsInRoot() }
+        val notes = composeRule.onNodeWithTag("sudoku.notes_key").getUnclippedBoundsInRoot()
+        assertEquals(listOf(notes.top), keys.map { it.top }.distinct())
+        assertTrue("$notes after ${keys.last()}", notes.left > keys.last().right)
+        assertEquals(PlayBoardMaxWidth, composeRule.onNodeWithTag("sudoku.grid").getUnclippedBoundsInRoot().width)
 
-        cell(0).performClick()
-        key(4).performClick()
-        assertEquals(SudokuCell.Entry(4), session(controller).board.cells[0])
+        composeRule.onNodeWithTag("sudoku.notes_key").performClick()
+        cell(1).performClick()
+        key(1).performClick()
+        assertEquals(SudokuCell.Notes(1), session(controller).board.cells[1])
+        composeRule.onNode(hasText("Erase") and inSide).performClick()
+        assertEquals(SudokuCell.Empty, session(controller).board.cells[1])
         composeRule.onNodeWithTag("play.undo").performClick()
-        assertEquals(SudokuCell.Empty, session(controller).board.cells[0])
-        hint().performClick()
-        assertEquals(1, session(controller).hintsUsed)
-        composeRule.onNode(hasText("Hint · 1") and inBoard).assertExists()
-        // The hint's reason sits in the caption slot under the board group, as the tutorial's does.
-        val caption = composeRule.runOnIdle { requireNotNull(controller.hintCaption) }
-        composeRule.onNode(hasText(caption) and !inBoard).assertExists()
+        assertEquals(SudokuCell.Notes(1), session(controller).board.cells[1])
+        composeRule.onNodeWithTag("sudoku.clear").performClick()
+        assertEquals(SudokuCell.Empty, session(controller).board.cells[1])
     }
 
     @Test

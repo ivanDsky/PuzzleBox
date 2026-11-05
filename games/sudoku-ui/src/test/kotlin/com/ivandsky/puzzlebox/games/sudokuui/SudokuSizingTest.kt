@@ -69,39 +69,39 @@ class SudokuSizingTest {
     }
 
     @Test
-    fun `tablet landscape column is height-bound - 48dp keys and the board takes every spare dp`() {
-        // Tab S9 landscape, 1280x800, in the tutorial frame (PlayColumn): 552dp column less
-        // 16dp side padding across; down, 800 less the 12dp padding twice, the 48dp header,
-        // the 40dp caption slot and the two 12dp gaps. Undo/Redo/Hint and Notes/Erase/Clear
-        // are the two action rows, the digits one more.
-        val paneWidth = PlayBoardMaxWidth - 32.dp
-        val paneHeight = 800.dp - 24.dp - 48.dp - 40.dp - 24.dp
-        val nine = SudokuSizing.layout(paneWidth, paneHeight, 9, actionRows = 2)
-        assertEquals(SudokuLayout(cell = 55.dp, board = 495.dp, key = 48.dp, keyGap = 8.dp, keyRows = 1, actionRows = 2), nine)
+    fun `tablet landscape board pane reaches the cap with one digit row ending in the notes key`() {
+        // Tab S9 landscape, 1280x800, TwoPane: the board pane is 62% of the width less the
+        // 12dp gutter each side, and 800 less the gutters down. No button row sits above the
+        // digits, so the grid takes the cap; keys stay within 1.1x their ~51dp width.
+        val paneWidth = 1280.dp * 0.62f - 24.dp
+        val paneHeight = 800.dp - 24.dp
+        val nine = SudokuSizing.layout(paneWidth, paneHeight, 9, inlineNotes = true)
+        assertEquals(SudokuLayout(cell = 61.dp, board = 549.dp, key = 56.dp, keyGap = 8.dp, keyRows = 1, inlineNotes = true), nine)
         assertTrue(nine.board + SudokuSizing.stackedKeypadHeight(nine) <= paneHeight)
 
-        val six = SudokuSizing.layout(paneWidth, paneHeight, 6, actionRows = 2)
-        assertEquals(SudokuLayout(cell = 82.dp, board = 492.dp, key = 49.dp, keyGap = 8.dp, keyRows = 1, actionRows = 2), six)
+        val six = SudokuSizing.layout(paneWidth, paneHeight, 6, inlineNotes = true)
+        assertEquals(SudokuLayout(cell = 92.dp, board = PlayBoardMaxWidth, key = 64.dp, keyGap = 8.dp, keyRows = 1, inlineNotes = true), six)
         assertTrue(six.board + SudokuSizing.stackedKeypadHeight(six) <= paneHeight)
     }
 
     @Test
-    fun `a second action row shrinks the board, never the keys, on a short pane`() {
-        // Pixel-class landscape pane, 500x400: the extra row's height comes out of the grid.
-        val one = SudokuSizing.layout(500.dp, 400.dp, 9)
-        val two = SudokuSizing.layout(500.dp, 400.dp, 9, actionRows = 2)
-        assertTrue("$one vs $two", two.board < one.board)
-        assertTrue("$two", two.key >= 48.dp)
-        assertTrue("$two", two.board + SudokuSizing.stackedKeypadHeight(two) <= 400.dp)
+    fun `the inline notes key gives the board the button row's height on a short pane`() {
+        // Pixel-class landscape pane, 600x400: the board is height-bound, so dropping the
+        // Notes/Erase/Clear row grows the grid, never the keys past their width share.
+        val stacked = SudokuSizing.layout(600.dp, 400.dp, 9)
+        val inline = SudokuSizing.layout(600.dp, 400.dp, 9, inlineNotes = true)
+        assertTrue("$stacked vs $inline", inline.board > stacked.board)
+        assertTrue("$inline", inline.key >= 48.dp)
+        assertTrue("$inline", inline.board + SudokuSizing.stackedKeypadHeight(inline) <= 400.dp)
     }
 
     @Test
     fun `every pane keeps keys at least 48dp and the board a whole multiple of the cell under the cap`() {
         val widths = listOf(200, 320, 360, 411, 600, 800, 1000, 1280)
         val heights = listOf(300, 480, 640, 891, 1280)
-        for (size in listOf(6, 9)) for (actionRows in 1..2) for (w in widths) for (h in heights) {
-            val layout = SudokuSizing.layout(w.dp, h.dp, size, actionRows)
-            val case = "size=$size actionRows=$actionRows ${w}x$h $layout"
+        for (size in listOf(6, 9)) for (inline in listOf(false, true)) for (w in widths) for (h in heights) {
+            val layout = SudokuSizing.layout(w.dp, h.dp, size, inline)
+            val case = "size=$size inline=$inline ${w}x$h $layout"
             assertTrue(case, layout.key >= 48.dp)
             assertTrue(case, layout.keyRows in 1..2)
             assertTrue(case, layout.board <= PlayBoardMaxWidth)
@@ -109,6 +109,11 @@ class SudokuSizingTest {
             assertTrue(case, layout.board + SudokuSizing.stackedKeypadHeight(layout) <= h.dp)
             // Two rows of 5 keys at 48dp plus gaps need 272dp; narrower panes cannot hold the floor.
             if (w >= 272) assertTrue(case, digitKeyWidth(layout, w.dp, size) >= 48.dp)
+            // The inline row (digits and toggle) lays out in the capped keypad column.
+            if (inline && w >= 272) {
+                val perRow = (size + 1 + layout.keyRows - 1) / layout.keyRows
+                assertTrue(case, SudokuSizing.inlineKeyWidth(minOf(w.dp, PlayBoardMaxWidth), perRow) >= 48.dp)
+            }
             assertEquals(case, layout.cell * size, layout.board)
             assertEquals(case, floor(layout.cell.value), layout.cell.value, 0f)
         }

@@ -15,6 +15,7 @@ dependencies {
     implementation(projects.core.designsystem)
     implementation(projects.core.model)
 
+    implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.kotlinx.coroutines.core)
     // Plugin-adjacent Koin wiring (ADR-0001): one ui module per game id, collected by `app`.
     implementation(libs.koin.core)
