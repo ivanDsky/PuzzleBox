@@ -133,6 +133,33 @@ class BoardTokensTest {
         assertTrue(BoardTokens.boardWallWeight >= BoardTokens.boardGridLineWeight * 2)
     }
 
+    // Strands (spec A32): black letters sit on the tinted tiles, so each fill needs 4.5:1
+    // against the tile text; the dashed hint ring is non-text (3:1) and the idle letter is
+    // text on the bare board (4.5:1).
+    @Test
+    fun `strands tile text meets AA on every tinted fill in both themes`() {
+        for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
+            for (fill in listOf(tokens.strandsThemeFill, tokens.strandsSpangramFill, tokens.strandsSelectionFill)) {
+                assertTrue(contrast(tokens.strandsTileText, fill) >= 4.5f)
+            }
+        }
+    }
+
+    @Test
+    fun `strands hint ring and idle letter clear their bars vs boardSurface in both themes`() {
+        for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
+            assertTrue(contrast(tokens.strandsHintRing, tokens.boardSurface) >= 3f)
+            assertTrue(contrast(tokens.strandsIdleLetter, tokens.boardSurface) >= 4.5f)
+        }
+    }
+
+    @Test
+    fun `strands tiles keep NYT's hues in both themes`() {
+        assertEquals(DarkBoardTokens.strandsThemeFill, LightBoardTokens.strandsThemeFill)
+        assertEquals(DarkBoardTokens.strandsSpangramFill, LightBoardTokens.strandsSpangramFill)
+        assertEquals(DarkBoardTokens.strandsSelectionFill, LightBoardTokens.strandsSelectionFill)
+    }
+
     private fun contrast(foreground: Color, background: Color): Float {
         val fg = foreground.luminance() + 0.05f
         val bg = background.luminance() + 0.05f

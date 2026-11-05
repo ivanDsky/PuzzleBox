@@ -46,7 +46,30 @@ data class BoardColors(
     // value ticket 27 retired as neon glare).
     val sunFill: Color,
     val moonFill: Color,
+
+    // Strands (spec A32, research 03): NYT's palette on round letter tokens. The tile
+    // fills keep the same light hues in both modes, so the letter on them is always
+    // black (>= 4.5:1 on each fill). The hint ring is non-text (>= 3:1 vs
+    // boardSurface); an idle letter sits on the bare board (>= 4.5:1). Connectors
+    // take their word's fill: beige trace, blue theme, yellow spangram, ring-blue hint.
+    val strandsThemeFill: Color,
+    val strandsSpangramFill: Color,
+    val strandsSelectionFill: Color,
+    val strandsHintRing: Color,
+    val strandsTileText: Color,
+    val strandsIdleLetter: Color,
+    val strandsTraceConnector: Color,
+    val strandsThemeConnector: Color,
+    val strandsSpangramConnector: Color,
+    val strandsHintConnector: Color,
 )
+
+// NYT's Strands hues (research 03, CSS655 `--strands-*`): one value per role in both
+// modes, because NYT keeps them fixed and remaps only the page around them.
+private val StrandsBlue = Color(0xFFAEDFEE) // black text 14.59:1
+private val StrandsYellow = Color(0xFFF8CD05) // black text 13.73:1
+private val StrandsBeige = Color(0xFFDBD8C5) // black text 14.64:1
+private val StrandsDarkMint = Color(0xFF3F9EBC) // NYT's light-mode hint dash, 3.08:1 on white
 
 // Dark values alias the dark scheme (provenance per U2's table; ratios vs
 // boardSurface): gridline 4.59, wall 8.01, dot 9.70, label-on-dot 8.28,
@@ -66,6 +89,16 @@ val DarkBoardTokens = BoardColors(
     boardRegion = DarkColorScheme.surfaceContainerHigh, // future fill tint; stroke its boundary with wall/gridline when built
     sunFill = DarkColorScheme.tertiary, // #FFC800, 10.76:1 — dark scheme tertiary already cleared the bar; no new literal
     moonFill = Color(0xFFB3CBD6), // T27 "powder" literal, 9.89:1 — same hue as secondary, proven non-glaring
+    strandsThemeFill = StrandsBlue,
+    strandsSpangramFill = StrandsYellow,
+    strandsSelectionFill = StrandsBeige,
+    strandsHintRing = StrandsBlue, // NYT dark mode swaps the dash to strands-blue: 11.61:1
+    strandsTileText = Color.Black,
+    strandsIdleLetter = DarkColorScheme.onSurface,
+    strandsTraceConnector = StrandsBeige,
+    strandsThemeConnector = StrandsBlue,
+    strandsSpangramConnector = StrandsYellow,
+    strandsHintConnector = StrandsBlue,
 )
 
 // Light mirrors dark role-for-role: reuses plus the three new darker steps (dot
@@ -85,6 +118,16 @@ val LightBoardTokens = BoardColors(
     boardRegion = LightColorScheme.surfaceContainerHigh, // future fill tint
     sunFill = Color(0xFFC25A00), // new: orange family, darkest step clearing 3:1 with selection headroom — 4.42:1 on white
     moonFill = Color(0xFF0F78B4), // existing waypointDotOnPath light literal, blue family — 4.81:1
+    strandsThemeFill = StrandsBlue,
+    strandsSpangramFill = StrandsYellow,
+    strandsSelectionFill = StrandsBeige,
+    strandsHintRing = StrandsDarkMint,
+    strandsTileText = Color.Black,
+    strandsIdleLetter = LightColorScheme.onSurface,
+    strandsTraceConnector = StrandsBeige,
+    strandsThemeConnector = StrandsBlue,
+    strandsSpangramConnector = StrandsYellow,
+    strandsHintConnector = StrandsDarkMint,
 )
 
 object BoardTokens {
