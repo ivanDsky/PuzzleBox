@@ -205,21 +205,24 @@ class SudokuPlayUiTest {
 
     @Test
     @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
-    fun `two pane puts the keypad, undo, redo and hint under the grid and leaves the side pane the chrome`() {
+    fun `two pane plays in the tutorial frame - header on top, board centred, undo, redo and hint under the grid`() {
         val controller = adopted()
         setScreen(controller, PlayLayout.TwoPane)
 
         val inBoard = hasAnyAncestor(hasTestTag("sudoku.board_area"))
-        val inSide = hasAnyAncestor(hasTestTag("play.side_panel"))
+        val inHeader = hasAnyAncestor(hasTestTag("play.header"))
+        composeRule.onNodeWithTag("play.side_panel").assertDoesNotExist()
+        composeRule.onNode(hasText("Daily · #450") and inHeader).assertExists()
+        composeRule.onNode(hasText("00:00") and inHeader).assertExists()
         composeRule.onNode(hasTestTag("sudoku.keypad") and inBoard).assertExists()
-        composeRule.onNode(hasTestTag("sudoku.keypad") and inSide).assertDoesNotExist()
-        composeRule.onNode(hasTestTag("sudoku.grid") and inBoard).assertExists()
         composeRule.onNode(hasTestTag("play.undo") and inBoard).assertExists()
         composeRule.onNode(hasTestTag("play.redo") and inBoard).assertExists()
-        composeRule.onNode(hasTestTag("play.undo") and inSide).assertDoesNotExist()
-        composeRule.onNode(hasClickAction() and hasText("Hint", substring = true) and inSide).assertDoesNotExist()
-        composeRule.onNode(hasText("Daily · #450") and inSide).assertExists()
-        composeRule.onNode(hasText("00:00") and inSide).assertExists()
+        composeRule.onNode(hasClickAction() and hasText("Hint", substring = true) and inBoard).assertExists()
+
+        // Centred on the screen like the tutorial's board, not offset into a left pane.
+        val screen = composeRule.onNodeWithTag("play.column").getUnclippedBoundsInRoot()
+        val grid = composeRule.onNodeWithTag("sudoku.grid").getUnclippedBoundsInRoot()
+        assertEquals(((screen.left + screen.right) / 2).value, ((grid.left + grid.right) / 2).value, 1f)
 
         cell(0).performClick()
         key(4).performClick()
@@ -229,6 +232,9 @@ class SudokuPlayUiTest {
         hint().performClick()
         assertEquals(1, session(controller).hintsUsed)
         composeRule.onNode(hasText("Hint · 1") and inBoard).assertExists()
+        // The hint's reason sits in the caption slot under the board group, as the tutorial's does.
+        val caption = composeRule.runOnIdle { requireNotNull(controller.hintCaption) }
+        composeRule.onNode(hasText(caption) and !inBoard).assertExists()
     }
 
     @Test

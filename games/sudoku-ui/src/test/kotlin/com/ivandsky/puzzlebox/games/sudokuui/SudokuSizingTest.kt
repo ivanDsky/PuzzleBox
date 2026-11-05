@@ -69,18 +69,19 @@ class SudokuSizingTest {
     }
 
     @Test
-    fun `tablet landscape stacks a capped board over the controls row and a one-row keypad`() {
-        // Tab S9 landscape, 1280x800: TwoPane gives the board pane 62% of the width and the
-        // full height, less the 12dp gutters; Undo/Redo/Hint and Notes/Erase/Clear take two
-        // action rows under the grid, the digits one more, and all keys stay at 64dp.
-        val paneWidth = 1280.dp * 0.62f - 24.dp
-        val paneHeight = 800.dp - 24.dp
+    fun `tablet landscape column is height-bound - 48dp keys and the board takes every spare dp`() {
+        // Tab S9 landscape, 1280x800, in the tutorial frame (PlayColumn): 552dp column less
+        // 16dp side padding across; down, 800 less the 12dp padding twice, the 48dp header,
+        // the 40dp caption slot and the two 12dp gaps. Undo/Redo/Hint and Notes/Erase/Clear
+        // are the two action rows, the digits one more.
+        val paneWidth = PlayBoardMaxWidth - 32.dp
+        val paneHeight = 800.dp - 24.dp - 48.dp - 40.dp - 24.dp
         val nine = SudokuSizing.layout(paneWidth, paneHeight, 9, actionRows = 2)
-        assertEquals(SudokuLayout(cell = 61.dp, board = 549.dp, key = 64.dp, keyGap = 8.dp, keyRows = 1, actionRows = 2), nine)
+        assertEquals(SudokuLayout(cell = 55.dp, board = 495.dp, key = 48.dp, keyGap = 8.dp, keyRows = 1, actionRows = 2), nine)
         assertTrue(nine.board + SudokuSizing.stackedKeypadHeight(nine) <= paneHeight)
 
         val six = SudokuSizing.layout(paneWidth, paneHeight, 6, actionRows = 2)
-        assertEquals(SudokuLayout(cell = 92.dp, board = PlayBoardMaxWidth, key = 64.dp, keyGap = 8.dp, keyRows = 1, actionRows = 2), six)
+        assertEquals(SudokuLayout(cell = 82.dp, board = 492.dp, key = 49.dp, keyGap = 8.dp, keyRows = 1, actionRows = 2), six)
         assertTrue(six.board + SudokuSizing.stackedKeypadHeight(six) <= paneHeight)
     }
 

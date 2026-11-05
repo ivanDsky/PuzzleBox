@@ -24,19 +24,21 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
+import com.ivandsky.puzzlebox.gameui.PlayColumn
 import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.playCaption
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 
 /** The §6 gutter between the board pane's edge and the grid. */
 private val PaneGutter: Dp = Spacing.md
 
 /**
- * The play screen. Both layouts stack the grid over the keypad in the board pane, so the
- * digits stay one short reach from the cells; the chrome goes below (SinglePane) or beside
- * (TwoPane). TwoPane's side pane is a reach away, so there Undo/Redo and Hint join the
- * keypad as a row of its own and the side pane keeps the title, timer, caption and ⓘ.
- * Clear rides the keypad's action row, so the chrome takes no row of its own.
+ * The play screen. Both layouts stack the grid over the keypad, so the digits stay one
+ * short reach from the cells. SinglePane docks the shared chrome below. TwoPane (tablet
+ * landscape) plays in the tutorial's own frame ([PlayColumn]): a centred column with the
+ * title, timer and ⓘ on top, and Undo/Redo/Hint as a keypad row under the grid, so the
+ * daily looks and sizes like the lessons. Clear rides the keypad's action row.
  * The result hand-off waits for the solve sweep ([SudokuMotionHost]); one per board, so a
  * replay's win hands off again.
  */
@@ -53,23 +55,51 @@ internal fun SudokuPlayScreen(
 ) {
     val ready = status as? PlayBoardStatus.Ready
     val state = controller.board?.takeIf { ready != null }
-    val actionsOnBoard = layout == PlayLayout.TwoPane
+    val subtitle = ready?.let { controller.board?.session?.ref?.puzzleNumber }?.let { "Daily · #$it" } ?: "Daily"
     SudokuMotionHost(controller.board, onSolved = { onSolved(it.elapsedMs, it.hintsUsed) }) {
-        AdaptivePlayScaffold(
-            layout = layout,
-            modifier = modifier.fillMaxSize(),
-            board = {
-                SudokuBoardPane(status, onRetry) {
-                    if (state != null) {
-                        SudokuStackedBoard(
+        when (layout) {
+            PlayLayout.SinglePane -> AdaptivePlayScaffold(
+                layout = layout,
+                modifier = modifier.fillMaxSize(),
+                board = {
+                    SudokuBoardPane(status, onRetry) {
+                        if (state != null) SudokuStackedBoard(state)
+                    }
+                },
+                side = {
+                    PlayChrome(
+                        title = title,
+                        subtitle = subtitle,
+                        clock = controller,
+                        hints = controller,
+                        undo = controller,
+                        banner = ready?.banner,
+                        feedback = controller,
+                        onHowToPlay = onHowToPlay,
+                    )
+                },
+            )
+
+            PlayLayout.TwoPane -> PlayColumn(
+                title = title,
+                subtitle = subtitle,
+                clock = controller,
+                caption = playCaption(controller, controller),
+                banner = ready?.banner,
+                modifier = modifier,
+                onHowToPlay = onHowToPlay,
+            ) {
+                Box(Modifier.testTag("sudoku.board_area"), contentAlignment = Alignment.Center) {
+                    when {
+                        state != null -> SudokuStackedBoard(
                             state,
-                            controls = if (actionsOnBoard) { height -> SudokuPlayControls(controller, controller, height) } else null,
+                            controls = { height -> SudokuPlayControls(controller, controller, height) },
                         )
+                        ready == null -> PlayBoardFallback(status, onRetry, tagPrefix = "sudoku")
                     }
                 }
-            },
-            side = { SudokuChrome(controller, title, ready, onHowToPlay, actionsOnBoard) },
-        )
+            }
+        }
     }
 }
 
@@ -155,26 +185,5 @@ private fun SudokuBoardKeypad(state: SudokuBoardState, rows: Int, keyHeight: Dp)
         modifier = Modifier.testTag("sudoku.keypad"),
         rows = rows,
         keyHeight = keyHeight,
-    )
-}
-
-@Composable
-private fun SudokuChrome(
-    controller: SudokuPlayController,
-    title: String,
-    ready: PlayBoardStatus.Ready?,
-    onHowToPlay: (() -> Unit)?,
-    actionsOnBoard: Boolean,
-) {
-    PlayChrome(
-        title = title,
-        subtitle = ready?.let { controller.board?.session?.ref?.puzzleNumber }?.let { "Daily · #$it" } ?: "Daily",
-        clock = controller,
-        hints = controller,
-        undo = controller,
-        banner = ready?.banner,
-        feedback = controller,
-        onHowToPlay = onHowToPlay,
-        actionsOnBoard = actionsOnBoard,
     )
 }
