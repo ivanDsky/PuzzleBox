@@ -31,8 +31,7 @@ class QueensPlayUi : GamePlayUi {
 
     override fun createController(env: PlayEnvironment): GamePlayController = QueensPlayController(env)
 
-    // Tickets 14–16 fill the lessons.
-    override val tutorial: List<TutorialStep> get() = emptyList()
+    override val tutorial: List<TutorialStep> get() = QueensTutorial.steps
 
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {

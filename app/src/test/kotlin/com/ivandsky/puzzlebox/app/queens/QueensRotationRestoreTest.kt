@@ -99,6 +99,16 @@ class QueensRotationRestoreTest {
                 module {
                     single<DailyRepository> { repo }
                     single<com.ivandsky.puzzlebox.data.repository.KeptSessionRepository> { kept }
+                    // Every tutorial seen: this path is about the board; the lessons have their own tests.
+                    single<com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository> {
+                        com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository(
+                            seen = setOf(
+                                com.ivandsky.puzzlebox.games.zip.ZipDefinition.id,
+                                com.ivandsky.puzzlebox.games.tango.TangoDefinition.id,
+                                QueensDefinition.id,
+                            ),
+                        )
+                    }
                 },
             ),
             allowOverride = true,
