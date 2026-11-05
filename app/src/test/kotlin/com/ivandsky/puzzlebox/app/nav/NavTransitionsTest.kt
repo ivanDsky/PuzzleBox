@@ -261,8 +261,9 @@ class NavTransitionsTest {
         const val SCREEN_A = "probe.a"
         const val SCREEN_B = "probe.b"
 
-        /** Well into every travel/scale curve, and before any transition has settled. */
-        const val SAMPLE_MILLIS = 100L
+        /** Well into every travel/scale curve, and before any exit has finished: the back
+         *  clock's fade-out ([NavMotion.PopFadeOutMillis]) is the shortest. */
+        const val SAMPLE_MILLIS = 50L
         val PREDICTIVE_HALF = NavMotion.PredictiveMillis / 2L
         const val SETTLE_MILLIS = 3_000L
         const val EPS = 0.5f
