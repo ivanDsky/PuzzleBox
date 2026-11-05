@@ -32,8 +32,7 @@ class TangoPlayUi : GamePlayUi {
 
     override fun createController(env: PlayEnvironment): GamePlayController = TangoPlayController(env)
 
-    // Tickets 14–16 fill the lessons.
-    override val tutorial: List<TutorialStep> get() = emptyList()
+    override val tutorial: List<TutorialStep> get() = TangoTutorial.steps
 
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
