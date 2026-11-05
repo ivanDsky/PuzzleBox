@@ -29,8 +29,11 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34])
 class PlayRouteTutorialTest : PlayRouteHarness() {
 
+    /** Wins the open lesson and waits out its success beat. */
     private fun winLesson() {
         composeRule.runOnIdle { fakes[alpha].latest.win() }
+        composeRule.waitForIdle()
+        composeRule.mainClock.advanceTimeBy(PAST_THE_BEAT_MS)
         composeRule.waitForIdle()
     }
 
@@ -163,5 +166,10 @@ class PlayRouteTutorialTest : PlayRouteHarness() {
         assertEquals(1, back)
         composeRule.onNodeWithTag("play.picker").assertExists()
         assertTrue(prefs.seen.isEmpty())
+    }
+
+    private companion object {
+        /** Longer than the tutorial's success beat between lessons. */
+        const val PAST_THE_BEAT_MS = 1_000L
     }
 }

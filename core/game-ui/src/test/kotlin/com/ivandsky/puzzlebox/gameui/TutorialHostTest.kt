@@ -28,6 +28,12 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [34])
 class TutorialHostTest {
 
+    private companion object {
+        /** Well inside the success beat, and well past it. */
+        const val MID_BEAT_MS = 400L
+        const val PAST_THE_BEAT_MS = 1_000L
+    }
+
     @get:Rule
     val composeRule = createComposeRule()
 
@@ -43,8 +49,11 @@ class TutorialHostTest {
         }
     }
 
+    /** Wins the current lesson and waits out its success beat. */
     private fun solveLesson() {
         composeRule.onNodeWithTag("lesson.solve").performClick()
+        composeRule.waitForIdle()
+        composeRule.mainClock.advanceTimeBy(PAST_THE_BEAT_MS)
         composeRule.waitForIdle()
     }
 
@@ -71,6 +80,44 @@ class TutorialHostTest {
     }
 
     @Test
+    fun `a win holds the same board with a success line, then the next lesson follows`() {
+        setHost()
+        composeRule.mainClock.autoAdvance = false
+
+        composeRule.onNodeWithTag("lesson.solve").performClick()
+        composeRule.mainClock.advanceTimeByFrame()
+
+        composeRule.onNodeWithTag("tutorial.success").assertExists()
+        composeRule.onNodeWithTag("lesson.board").assertTextEquals("Board 1")
+        composeRule.onNodeWithContentDescription("Step 1 of 3").assertExists()
+        assertEquals(1, game.controllers.size)
+
+        composeRule.mainClock.advanceTimeBy(MID_BEAT_MS)
+        composeRule.onNodeWithTag("lesson.board").assertTextEquals("Board 1")
+
+        composeRule.mainClock.advanceTimeBy(PAST_THE_BEAT_MS)
+        composeRule.onNodeWithTag("tutorial.success").assertDoesNotExist()
+        composeRule.onNodeWithTag("lesson.board").assertTextEquals("Board 2")
+        composeRule.onNodeWithTag("tutorial.instruction").assertTextEquals("Lesson 2: tap Solve.")
+        assertEquals(2, game.controllers.size)
+    }
+
+    @Test
+    fun `skip during the success beat ends the tutorial at once`() {
+        setHost()
+        composeRule.mainClock.autoAdvance = false
+        composeRule.onNodeWithTag("lesson.solve").performClick()
+        composeRule.mainClock.advanceTimeByFrame()
+
+        composeRule.onNodeWithTag("tutorial.skip").performClick()
+        composeRule.mainClock.advanceTimeBy(PAST_THE_BEAT_MS)
+
+        assertEquals(1, finished)
+        assertEquals(TutorialState.Skipped, session.state.value)
+        composeRule.onNodeWithTag("lesson.board").assertDoesNotExist()
+    }
+
+    @Test
     fun `skip ends the tutorial and hands back once`() {
         setHost()
         solveLesson()
@@ -88,11 +135,11 @@ class TutorialHostTest {
         setHost()
         repeat(3) { solveLesson() }
 
-        composeRule.onNodeWithText("You're ready!").assertExists()
+        composeRule.onNodeWithTag("tutorial.ready").assertExists()
         composeRule.onNodeWithTag("lesson.board").assertDoesNotExist()
         assertEquals(0, finished)
 
-        composeRule.onNodeWithText("Let's play").performClick()
+        composeRule.onNodeWithTag("tutorial.finish").performClick()
         composeRule.runOnIdle { assertEquals(1, finished) }
     }
 
@@ -118,7 +165,7 @@ class TutorialHostTest {
 
         repeat(3) { solveLesson() }
 
-        composeRule.onNodeWithText("You're ready!").assertExists()
+        composeRule.onNodeWithTag("tutorial.ready").assertExists()
         assertTrue(dailySessions.isEmpty())
         assertTrue(dailyRecords.isEmpty())
         assertFalse(daily.isComplete)

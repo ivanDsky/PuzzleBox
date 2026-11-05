@@ -144,6 +144,8 @@ class ZipTutorialTest {
             val c = sandbox.controllerFor(lesson, scope) as ZipPlayController
             val n = zip(lesson.step).board.n
             intendedPath(lesson.step).forEach { extend(c, it, n) }
+            assertEquals(true, (session.state.value as TutorialState.Playing).solved)
+            session.next()
         }
         assertEquals(TutorialState.Ready, session.state.value)
     }

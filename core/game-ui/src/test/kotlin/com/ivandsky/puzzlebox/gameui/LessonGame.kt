@@ -28,9 +28,11 @@ private data class LessonRef(
  * A stand-in game for the tutorial tests: lesson N's puzzle payload is the byte N, and
  * its board shows that number plus a "Solve" tap that wins the way a real game does —
  * it publishes the session bytes, then emits one completion record. Every controller it
- * makes is kept in [controllers] so a test can check what the game was told.
+ * makes is kept in [controllers] so a test can check what the game was told. Lessons in
+ * [guided] are guided steps; when [canGuide] is off the game hands out controllers that
+ * are not a [PlayGuide].
  */
-class LessonGame(lessons: Int = 3) : GamePlayUi {
+class LessonGame(lessons: Int = 3, guided: Set<Int> = emptySet()) : GamePlayUi {
 
     override val gameId = GameId("lesson")
 
@@ -39,6 +41,7 @@ class LessonGame(lessons: Int = 3) : GamePlayUi {
             instruction = "Lesson $lesson: tap Solve.",
             puzzle = Puzzle(gameId, VariantId("lesson/v1"), 1, byteArrayOf(lesson.toByte())),
             ref = LessonRef(lesson),
+            guided = lesson in guided,
         )
     }
 
@@ -47,8 +50,16 @@ class LessonGame(lessons: Int = 3) : GamePlayUi {
     /** When set, [Controller.adoptToday] rejects every envelope with this copy. */
     var rejectWith: String? = null
 
-    override fun createController(env: PlayEnvironment): GamePlayController =
-        Controller(env, this).also { controllers += it }
+    /** When off, controllers come without [PlayGuide]. */
+    var canGuide = true
+
+    override fun createController(env: PlayEnvironment): GamePlayController {
+        val controller = Controller(env, this).also { controllers += it }
+        return if (canGuide) controller else Unguided(controller)
+    }
+
+    /** The same controller with its [PlayGuide] side hidden. */
+    private class Unguided(val inner: Controller) : GamePlayController by inner
 
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
@@ -71,7 +82,7 @@ class LessonGame(lessons: Int = 3) : GamePlayUi {
     ) = Board(controller, modifier)
 
     class Controller(private val env: PlayEnvironment, private val game: LessonGame) :
-        GamePlayController, PlayFeedback {
+        GamePlayController, PlayFeedback, PlayGuide {
 
         /** The adopted lesson's number (its payload byte); 0 before adoption. */
         var lesson by mutableStateOf(0)
@@ -90,6 +101,13 @@ class LessonGame(lessons: Int = 3) : GamePlayUi {
 
         /** Completion records this controller handed to its environment. */
         val won = mutableListOf<CompletionRecord>()
+
+        /** How many times the tutorial asked this controller to guide; with the lesson it held then. */
+        val guidedLessons = mutableListOf<Int>()
+
+        override fun guide() {
+            guidedLessons += lesson
+        }
 
         override fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt {
             game.rejectWith?.let { return Adopt.Rejected(it) }

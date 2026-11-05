@@ -14,10 +14,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -32,32 +32,33 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.game.Puzzle
-import com.ivandsky.puzzlebox.game.PuzzleRef
-import com.ivandsky.puzzlebox.game.VariantId
-import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.job
-import java.time.LocalDate
 
 /** A done or upcoming step dot; the current one is wider, so it never relies on colour alone. */
 private val DotSize = 8.dp
 private val CurrentDotWidth = 24.dp
 
+/** How long a solved lesson stays on screen before the next one: a pause, not an animation. */
+private const val SUCCESS_HOLD_MS = 900L
+
+/** The calm success line the caption slot shows during the beat. */
+private const val SUCCESS_LINE = "✓ Nice!"
+
 /**
  * Plays a game's tutorial (spec A11): it draws [session] and nothing else decides here.
  * Each lesson shows its step dots, an always-visible Skip, the instruction line, the
  * game's own [GamePlayUi.Board] on a sandboxed controller ([TutorialSandbox]) and the
- * shared caption slot under the same precedence as the play chrome. Solving a lesson
+ * shared caption slot docked under the board, under the same precedence as the play
+ * chrome. Solving a lesson holds its board with a calm "Nice!" for a short beat, then
  * moves on; after the last one a calm "You're ready" hands back through [onFinished].
  * Skip ends the session and calls [onFinished] at once. No clock runs here.
  */
@@ -103,6 +104,15 @@ private fun ColumnScope.LessonPane(
     onSkip: () -> Unit,
 ) {
     val controller = rememberLessonController(ui, session, lesson)
+    // The success beat: the solved board stays with "Nice!" for a pause, then the next
+    // lesson. It is a pause, not an animation, so it holds under reduced motion too. A
+    // rotation restarts the hold; next() only moves a solved lesson, so none is skipped.
+    LaunchedEffect(session, lesson.index, lesson.solved) {
+        if (lesson.solved) {
+            delay(SUCCESS_HOLD_MS)
+            session.next()
+        }
+    }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         StepDots(index = lesson.index, count = lesson.count, modifier = Modifier.weight(1f))
         AppTextButton(text = "Skip", onClick = onSkip, modifier = Modifier.testTag("tutorial.skip"))
@@ -120,19 +130,36 @@ private fun ColumnScope.LessonPane(
                 liveRegion = LiveRegionMode.Polite
             },
     )
-    Box(
+    // Board and caption are one group, centred in the space under the instruction. The
+    // board gets the same room as before (the area less the caption and its gap), and the
+    // slot always reserves its lines, so the board never moves when a caption appears.
+    Column(
         Modifier
             .weight(1f)
-            .fillMaxWidth()
-            .testTag("tutorial.board_area"),
-        contentAlignment = Alignment.Center,
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ui.Board(controller, Modifier)
+        Box(
+            Modifier
+                .weight(1f, fill = false)
+                .fillMaxWidth()
+                .testTag("tutorial.board_area"),
+            contentAlignment = Alignment.Center,
+        ) {
+            ui.Board(controller, Modifier)
+        }
+        val caption = if (lesson.solved) SUCCESS_LINE else playCaption(controller as? PlayFeedback, controller as? PlayHints)
+        Box(if (lesson.solved) Modifier.testTag("tutorial.success") else Modifier) {
+            PlayCaptionSlot(caption = caption, textAlign = TextAlign.Center)
+        }
     }
-    PlayCaptionSlot(caption = playCaption(controller as? PlayFeedback, controller as? PlayHints))
 }
 
-/** One sandboxed controller per lesson; its scope ends when the lesson leaves the screen. */
+/**
+ * One sandboxed controller per lesson, keyed on the lesson's index so the solved beat
+ * keeps the same board; its scope ends when the lesson leaves the screen.
+ */
 @Composable
 private fun rememberLessonController(
     ui: GamePlayUi,
@@ -140,7 +167,7 @@ private fun rememberLessonController(
     lesson: TutorialState.Playing,
 ): GamePlayController {
     val parent = rememberCoroutineScope()
-    val scope = remember(ui, session, lesson) {
+    val scope = remember(ui, session, lesson.index) {
         CoroutineScope(parent.coroutineContext + Job(parent.coroutineContext.job))
     }
     DisposableEffect(scope) { onDispose { scope.cancel() } }
@@ -197,84 +224,4 @@ private fun ColumnScope.ReadyPane(onFinished: () -> Unit) {
             .testTag("tutorial.finish"),
     )
     Spacer(Modifier.weight(1f))
-}
-
-// Previews — a stand-in game whose board is a plain tile: one lesson in light and dark,
-// and the closing "You're ready".
-
-private val PreviewBoardSide = 200.dp
-
-private object PreviewRef : PuzzleRef {
-    override val gameId = GameId("preview")
-    override val date: LocalDate = LocalDate.of(2026, 11, 4)
-    override val puzzleNumber: Int? = null
-}
-
-private object PreviewController : GamePlayController {
-    override val isComplete = false
-    override fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt = Adopt.Adopted
-    override fun adoptRestored(bytes: ByteArray): Restored? = null
-    override fun replay() = Unit
-}
-
-private object PreviewGame : GamePlayUi {
-    override val gameId = PreviewRef.gameId
-    override val tutorial = listOf("Tap a cell to fill it.", "Fill every cell.", "Now try it on your own.").map {
-        TutorialStep(it, Puzzle(gameId, VariantId("preview/v1"), 1, byteArrayOf()), PreviewRef)
-    }
-
-    override fun createController(env: PlayEnvironment): GamePlayController = PreviewController
-
-    @Composable
-    override fun Board(controller: GamePlayController, modifier: Modifier) {
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            shape = MaterialTheme.shapes.medium,
-            modifier = modifier.size(PreviewBoardSide),
-        ) {}
-    }
-
-    @Composable
-    override fun Screen(
-        controller: GamePlayController,
-        status: PlayBoardStatus,
-        layout: PlayLayout,
-        onRetry: () -> Unit,
-        onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
-        onHowToPlay: (() -> Unit)?,
-        modifier: Modifier,
-    ) = Unit
-}
-
-/** The preview game's tutorial with the first [solved] lessons already won. */
-private fun previewSession(solved: Int) = TutorialSession(PreviewGame.tutorial).apply { repeat(solved) { advance() } }
-
-@Preview(widthDp = 360, heightDp = 640)
-@Composable
-private fun TutorialHostLessonPreview() {
-    PuzzleBoxTheme(darkTheme = false) {
-        Surface(color = MaterialTheme.colorScheme.surface) {
-            TutorialHost(ui = PreviewGame, session = remember { previewSession(solved = 1) }, onFinished = {})
-        }
-    }
-}
-
-@Preview(widthDp = 360, heightDp = 640)
-@Composable
-private fun TutorialHostLessonDarkPreview() {
-    PuzzleBoxTheme(darkTheme = true) {
-        Surface(color = MaterialTheme.colorScheme.surface) {
-            TutorialHost(ui = PreviewGame, session = remember { previewSession(solved = 1) }, onFinished = {})
-        }
-    }
-}
-
-@Preview(widthDp = 360, heightDp = 640)
-@Composable
-private fun TutorialHostReadyPreview() {
-    PuzzleBoxTheme(darkTheme = false) {
-        Surface(color = MaterialTheme.colorScheme.surface) {
-            TutorialHost(ui = PreviewGame, session = remember { previewSession(solved = 3) }, onFinished = {})
-        }
-    }
 }

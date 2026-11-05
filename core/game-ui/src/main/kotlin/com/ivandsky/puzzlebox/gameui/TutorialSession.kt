@@ -8,8 +8,8 @@ import kotlinx.coroutines.flow.update
 /**
  * The tutorial's step machine (spec A11), free of Compose and Android so it is plain to
  * test and can live in a ViewModel across rotation. It starts on the first lesson; a win
- * [advance]s to the next one, and the last win lands on [TutorialState.Ready]. [skip]
- * ends it early. Both end states are final.
+ * [advance]s it to the same lesson, solved, and [next] then moves to the next lesson, or
+ * to [TutorialState.Ready] after the last. [skip] ends it early. Both end states are final.
  */
 class TutorialSession(private val steps: List<TutorialStep>) {
 
@@ -20,10 +20,17 @@ class TutorialSession(private val steps: List<TutorialStep>) {
     private val _state = MutableStateFlow<TutorialState>(playing(0))
     val state: StateFlow<TutorialState> = _state.asStateFlow()
 
-    /** The current lesson is solved: on to the next one, or [TutorialState.Ready] after the last. */
+    /** The current lesson is won: it stays on screen, solved. A solved lesson stays as it is. */
     fun advance() {
         _state.update { current ->
-            if (current !is TutorialState.Playing) return@update current
+            if (current is TutorialState.Playing && !current.solved) current.copy(solved = true) else current
+        }
+    }
+
+    /** After a solved lesson: on to the next one, or [TutorialState.Ready] after the last. */
+    fun next() {
+        _state.update { current ->
+            if (current !is TutorialState.Playing || !current.solved) return@update current
             val next = current.index + 1
             if (next < steps.size) playing(next) else TutorialState.Ready
         }

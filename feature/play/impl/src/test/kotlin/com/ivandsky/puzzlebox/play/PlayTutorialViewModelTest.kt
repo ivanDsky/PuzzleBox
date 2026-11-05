@@ -186,6 +186,7 @@ class PlayTutorialViewModelTest {
         vm.howToPlay()
         val open = vm.state.value as PlayUiState.Tutorial
         open.session.advance()
+        open.session.next()
 
         vm.restore(FakeController.envelope(alpha, moves = 1, day = day)) {}
 
