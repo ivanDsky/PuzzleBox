@@ -214,13 +214,13 @@ internal fun queensHintCaption(hint: QueensHint?): String? = when (hint) {
     is QueensHint.Region -> {
         val color = QueensRegionPalette.hueName(hint.region)
         when (hint.reason?.kind) {
-            HintReason.Kind.ROW -> "The $color region's queen must be in this row — every other cell there is blocked"
-            HintReason.Kind.COLUMN -> "The $color region's queen must be in this column — every other cell there is blocked"
-            HintReason.Kind.REGION -> "The $color region's queen must be here — every other cell in the region is blocked"
+            HintReason.Kind.ROW -> "The $color queen goes in this row. The other cells are blocked."
+            HintReason.Kind.COLUMN -> "The $color queen goes in this column. The other cells are blocked."
+            HintReason.Kind.REGION -> "The $color queen goes here. The other $color cells are blocked."
             // Solver-only forcing: the honest fallback (never a fabricated reason).
             null -> "Hint — the $color region"
         }
     }
-    is QueensHint.Incorrect -> "Hint — these crowns can't all stay; remove at least one"
+    is QueensHint.Incorrect -> "Some of these queens can't stay. Take one away."
     QueensHint.None, null -> null
 }

@@ -121,7 +121,7 @@ private fun DayDetail(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = "Replay this day from Your history — every captured day stays playable.",
+            text = "You can play this day again from History.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.BROKEN_PUZZLE_MESSAGE
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
@@ -183,10 +184,10 @@ class TangoPlayController(
     override fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt {
         val tango = when (val decoded = TangoCodec.decode(puzzle.payload)) {
             is DecodeResult.Ok -> decoded.value
-            is DecodeResult.Err -> return Adopt.Rejected(UNTRUSTED_COPY)
+            is DecodeResult.Err -> return Adopt.Rejected(BROKEN_PUZZLE_MESSAGE)
         }
         // A15: an ambiguous puzzle is never playable — the untrusted unavailable state.
-        if (!TangoUniqueness.isUniquelySolvable(tango)) return Adopt.Rejected(UNTRUSTED_COPY)
+        if (!TangoUniqueness.isUniquelySolvable(tango)) return Adopt.Rejected(BROKEN_PUZZLE_MESSAGE)
         // Round-trip the initial session through the callback too: the route's saveable
         // must exist from load, not first placement (C1 process-death window).
         updateSession(TangoSession(ref = ref as TangoPuzzleRef, puzzle = tango))
@@ -367,9 +368,6 @@ class TangoPlayController(
     //endregion
 
     private companion object {
-        /** §6 Unavailable (payload untrusted, A15/A16) — the same copy both games share. */
-        const val UNTRUSTED_COPY = "Today's puzzle failed verification, so it can't be played. Try again later."
-
         val REPLAY_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d")
     }
 }

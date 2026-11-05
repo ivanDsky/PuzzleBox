@@ -1,5 +1,5 @@
 app/src/debug/kotlin/com/ivandsky/puzzlebox/app/debug/ShowkaseBrowserDetailScreen.kt 390  # S2
 app/src/debug/kotlin/com/ivandsky/puzzlebox/app/debug/ShowkaseBrowserScreen.kt 908  # S2
 games/queens/src/main/kotlin/com/ivandsky/puzzlebox/games/queens/codec/QueensSessionCodec.kt 427  # S2
-games/tango-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/tangoui/TangoPlayController.kt 375  # S2
+games/tango-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/tangoui/TangoPlayController.kt 373  # S2
 games/zip-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/zipui/ZipPlayController.kt 316  # S2

@@ -97,7 +97,7 @@ class HistoryScreenTest {
         setContent()
 
         awaitTag("history.empty")
-        composeRule.onNodeWithText("Nothing captured yet").assertExists()
+        composeRule.onNodeWithText("No saved days yet").assertExists()
         composeRule.onNodeWithText("Day streak").assertDoesNotExist()
     }
 
@@ -230,7 +230,7 @@ class HistoryScreenTest {
         composeRule.onNodeWithTag("history.row.zip/$day").performClick()
         composeRule.onNodeWithTag("history.replay").performClick()
 
-        awaitText("This puzzle's data couldn't be read, so it can't be replayed.")
+        awaitText("This day didn't load right, so it can't be played again.")
         assertNull(handedToShell)
     }
 

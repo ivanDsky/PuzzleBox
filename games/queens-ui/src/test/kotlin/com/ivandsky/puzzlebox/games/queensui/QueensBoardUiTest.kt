@@ -197,7 +197,7 @@ class QueensBoardUiTest {
         assertTrue(QueensBoardModel.of(state.session).violations.isNotEmpty())
         composeRule.onNodeWithTag("queens/violation_caption").assertDoesNotExist()
         composeRule.onNodeWithText(
-            "Rule conflict — queens can't touch or share a row, column, or region",
+            "Queens can't touch or share a row, column, or color.",
         ).assertDoesNotExist()
     }
 
@@ -268,7 +268,7 @@ class QueensBoardUiTest {
         assertEquals(HintReason(HintReason.Kind.ROW, 0), hint.reason)
         assertEquals("one presented hint counts once", 1, state.session.hintsUsed)
         assertEquals(
-            "The red region's queen must be in this row — every other cell there is blocked",
+            "The red queen goes in this row. The other cells are blocked.",
             state.hintCaption,
         )
     }
@@ -314,7 +314,7 @@ class QueensBoardUiTest {
         composeRule.waitForIdle()
         assertTrue(state.hint is com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Incorrect)
         assertEquals(1, state.session.hintsUsed)
-        assertEquals("Hint — these crowns can't all stay; remove at least one", state.hintCaption)
+        assertEquals("Some of these queens can't stay. Take one away.", state.hintCaption)
     }
 
     /** Any board action clears the staged hint (caption + ghost). */

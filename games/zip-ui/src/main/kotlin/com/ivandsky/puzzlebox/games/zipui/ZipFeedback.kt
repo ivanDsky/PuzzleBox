@@ -84,7 +84,7 @@ class ZipFeedback(private val scope: CoroutineScope) : PlayFeedback {
     private fun rejectionCopy(board: ZipBoard, reason: Reason): String? = when (reason) {
         is Reason.WrongWaypointOrder -> board.waypointLabel(reason.expectedNext)?.let { "Go to $it first" }
         Reason.WrongStart -> "Start at 1"
-        Reason.NotAdjacent -> "Move to a neighbouring cell"
+        Reason.NotAdjacent -> "Move to a cell next to it"
         Reason.WallBetween -> "A wall blocks that way"
         Reason.CellAlreadyInPath -> "That cell is already in your path"
         Reason.OutOfBounds, Reason.NotInPath, Reason.ForeignMove -> null

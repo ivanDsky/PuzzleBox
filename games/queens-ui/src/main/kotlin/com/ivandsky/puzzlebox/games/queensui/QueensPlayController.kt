@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.BROKEN_PUZZLE_MESSAGE
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
@@ -14,7 +15,6 @@ import com.ivandsky.puzzlebox.gameui.PlayFeedback
 import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
-import com.ivandsky.puzzlebox.gameui.untrustedDecodeMessage
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
@@ -66,7 +66,7 @@ class QueensPlayController(
     override fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt {
         val queens = when (val decoded = QueensCodec.decode(puzzle.payload)) {
             is DecodeResult.Ok -> decoded.value
-            is DecodeResult.Err -> return Adopt.Rejected(untrustedDecodeMessage(decoded.error))
+            is DecodeResult.Err -> return Adopt.Rejected(BROKEN_PUZZLE_MESSAGE)
         }
         val fresh = QueensSession(ref = ref as QueensPuzzleRef, puzzle = queens)
         board = boardFor(fresh)
@@ -211,6 +211,6 @@ class QueensPlayController(
     //endregion
 
     private companion object {
-        const val RULE_CONFLICT = "Rule conflict — queens can't touch or share a row, column, or region"
+        const val RULE_CONFLICT = "Queens can't touch or share a row, column, or color."
     }
 }
