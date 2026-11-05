@@ -3,6 +3,9 @@ package com.ivandsky.puzzlebox.app.e2e
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -15,10 +18,12 @@ import com.ivandsky.puzzlebox.app.play.script
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.game.FetchResult
+import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.StrandsNumber
 import com.ivandsky.puzzlebox.games.strands.StrandsSession
+import com.ivandsky.puzzlebox.games.strands.codec.StrandsSessionCodec
 import com.ivandsky.puzzlebox.games.strands.feed.NytStrandsDailySource
 import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayController
@@ -30,6 +35,7 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.testing.network.FakeNytTransport
 import java.time.LocalDate
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -82,7 +88,11 @@ class StrandsPlayE2ETest {
 
             background()
             val killed = checkNotNull(rule.runOnIdle { strands().session })
-            rule.waitUntil(TIMEOUT_MS) { runBlocking { graph.saved.load(SLOT) } != null }
+            // The earlier word commits already saved a blob; only backgrounding banks the
+            // running clock, so wait for the save that holds this folded elapsed time.
+            rule.waitUntil(TIMEOUT_MS) {
+                savedSession()?.let { it.state == killed.state && it.elapsedMs == killed.elapsedMs } == true
+            }
             foreground()
 
             relaunch()
@@ -94,6 +104,7 @@ class StrandsPlayE2ETest {
             HUSK.forEachIndexed { index, at -> assertCell(at, CellState.HintOrderRevealed(index)) }
 
             listOf(BRANCH, HUSK, LEAVES, MOSS, PINECONE, TWIG).forEach { drag(it) }
+            assertTrue("no record before the last word", runBlocking { strandsRecords() }.isEmpty())
             drag(SPANGRAM)
 
             awaitTag(RESULT_SCREEN)
@@ -109,10 +120,26 @@ class StrandsPlayE2ETest {
                     .fetchSemanticsNodes().isEmpty(),
             )
 
+            val record = runBlocking { strandsRecords() }.single()
+            assertEquals("the record keeps the solve's hints", 2, record.hints)
+
             tapTab(HomeKey)
             tapText("See all")
             awaitTag(HISTORY_ROW)
+            // The captured row exists from the opening; only the solve's record marks it.
+            rule.onNode(
+                hasTestTag(HISTORY_ROW) and hasAnyDescendant(hasContentDescription("Record set")),
+                useUnmergedTree = true,
+            ).assertExists()
         }
+
+    private fun ShellRobot.savedSession(): StrandsSession? =
+        runBlocking { graph.saved.load(SLOT) }
+            ?.let(SessionBlob::decode)
+            ?.let { StrandsSessionCodec.deserialize(it.session).getOrNull() }
+
+    private suspend fun ShellRobot.strandsRecords() =
+        graph.records.observeRecords().first().filter { it.puzzleRef.gameId == StrandsDefinition.id }
 
     private fun ShellRobot.strands(): StrandsPlayController =
         checkNotNull(graph.koin.get<PlaySessionStore>().peek(SLOT)) { "no live Strands play for $TODAY" }
