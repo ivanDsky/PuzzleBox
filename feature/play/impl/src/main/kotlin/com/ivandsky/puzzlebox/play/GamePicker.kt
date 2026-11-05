@@ -14,30 +14,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.TodayStatus
-import com.ivandsky.puzzlebox.gameui.GameBrand
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 
 /** The hub's two-pane grid width in cards. */
 private const val GRID_COLUMNS = 2
 
+/** The board thumbnail's side in the two-pane grid, where each card has more room. */
+private val GridThumbSize = 128.dp
+
 /**
  * The games hub (tag `route.hub`, spec A13/A14): the "N of M done" header (`hub.summary`),
  * then one [HubCard] per playable game in the order given — stacked on phones, a
- * two-column grid in [PlayLayout.TwoPane] — where only the [HubUiState.next] game's
- * button is filled. Below them, "Older puzzles" (`hub.older`, [onOpenHistory]) and the
- * line that more games are on the way (`hub.more_coming`). Stateless; picking a card is
- * [onPick].
+ * two-column grid in [PlayLayout.TwoPane] — each showing today's board as its game in
+ * [games] draws [HubUiState.previews], with the [HubUiState.next] game's card up next.
+ * Below them, "Older puzzles" (`hub.older`, [onOpenHistory]) and the line that more games
+ * are on the way (`hub.more_coming`). Stateless; picking a card is [onPick].
  */
 @Composable
 internal fun GamePicker(
     state: HubUiState,
+    games: GamePlayRegistry,
     layout: PlayLayout,
     onPick: (GameId) -> Unit,
     onOpenHistory: () -> Unit,
@@ -57,16 +58,25 @@ internal fun GamePicker(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.testTag("hub.summary"),
         )
-        val columns = if (layout == PlayLayout.TwoPane) GRID_COLUMNS else 1
+        val grid = layout == PlayLayout.TwoPane
+        val columns = if (grid) GRID_COLUMNS else 1
         state.rows.chunked(columns).forEach { line ->
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 line.forEach { row ->
+                    val model = state.previews[row.game]
+                    val ui = games[row.game]
                     HubCard(
                         entry = row,
                         best = state.bestByGame[row.game],
                         isNext = row.game == state.next,
+                        thumbnail = if (model != null && ui != null) {
+                            { thumb -> ui.BoardThumbnail(model, thumb) }
+                        } else {
+                            null
+                        },
                         onPlay = { onPick(row.game) },
                         modifier = Modifier.weight(1f),
+                        thumbSize = if (grid) GridThumbSize else HubThumbSize,
                     )
                 }
                 // A short last line keeps its cards at grid width.
@@ -95,26 +105,3 @@ internal fun GamePicker(
 
 /** The hub's header: how many of today's puzzles are solved, out of every game. */
 internal fun hubSummary(done: Int, total: Int): String = "$done of $total done"
-
-@PuzzleBoxPreviews
-@Composable
-private fun GamePickerPreview() {
-    PuzzleBoxTheme {
-        GamePicker(
-            state = HubUiState(
-                rows = listOf(
-                    HubRow(GameId("zip"), "Zip", GameBrand.Neutral.copy(accent = AccentSlot.Blue), 592, TodayStatus.Solved(36_000L)),
-                    HubRow(GameId("tango"), "Tango", GameBrand.Neutral.copy(accent = AccentSlot.Orange), 431, TodayStatus.InProgress(42_000L)),
-                    HubRow(GameId("queens"), "Queens", GameBrand.Neutral.copy(accent = AccentSlot.Violet), 918, TodayStatus.NotStarted),
-                    HubRow(GameId("pinpoint"), "Pinpoint"),
-                ),
-                bestByGame = mapOf(GameId("zip") to 31_000L),
-                doneCount = 1,
-                next = GameId("tango"),
-            ),
-            layout = PlayLayout.SinglePane,
-            onPick = {},
-            onOpenHistory = {},
-        )
-    }
-}

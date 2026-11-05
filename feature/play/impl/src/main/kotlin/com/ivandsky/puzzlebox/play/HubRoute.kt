@@ -5,15 +5,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 /**
  * The Play tab's root (A5, A13, N2): the games hub shows the [PlaySessionStore]'s playable
- * games in registry order as brand cards, each with today's progress and best time
- * ([HubViewModel], SC11), stacked or, in [PlayLayout.TwoPane], in a grid. Picking one is
- * [onPick]; the entry pushes that game's key, so back from the board returns here (N3)
+ * games in registry order as cards, each with a live thumbnail of today's board (drawn by
+ * the game's own [GamePlayRegistry] entry), today's progress and best time
+ * ([HubViewModel], SC11), stacked or, in [PlayLayout.TwoPane], in a grid. Tapping a card
+ * is [onPick]; the entry pushes that game's key, so back from the board returns here (N3)
  * and an in-progress game resumes its save. "Older puzzles" is [onOpenHistory] (N3). The
  * hub never opens a play; each start prefetches today's uncached puzzles
  * ([HubViewModel.syncToday], A12).
@@ -24,6 +27,7 @@ internal fun HubRoute(
     onPick: (GameId) -> Unit,
     onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
+    games: GamePlayRegistry = koinInject(),
 ) {
     val viewModel: HubViewModel = koinViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -33,6 +37,7 @@ internal fun HubRoute(
     }
     GamePicker(
         state = state,
+        games = games,
         layout = layout,
         onPick = onPick,
         onOpenHistory = onOpenHistory,

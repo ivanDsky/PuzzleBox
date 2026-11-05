@@ -28,6 +28,9 @@ import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.playBoardPane
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.game.RendererModel
+import com.ivandsky.puzzlebox.gameui.BoardPreview
+import com.ivandsky.puzzlebox.games.queens.render.QueensRendererModel
 
 /** Queens' one play registration (ADR-0001): its controller, its board and its play screen. */
 class QueensPlayUi : GamePlayUi {
@@ -42,6 +45,13 @@ class QueensPlayUi : GamePlayUi {
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
         QueensBoard(controller as QueensPlayController, modifier)
+    }
+
+    override fun previewModel(preview: BoardPreview): RendererModel? = queensPreviewModel(preview)
+
+    @Composable
+    override fun BoardThumbnail(model: RendererModel, modifier: Modifier) {
+        (model as? QueensRendererModel)?.let { QueensBoardThumbnail(it, modifier) }
     }
 
     /**

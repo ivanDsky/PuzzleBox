@@ -38,6 +38,9 @@ import com.ivandsky.puzzlebox.gameui.PlaySolveFrame
 import com.ivandsky.puzzlebox.gameui.playBoardPane
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
+import com.ivandsky.puzzlebox.game.RendererModel
+import com.ivandsky.puzzlebox.gameui.BoardPreview
+import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.delay
 
@@ -54,6 +57,14 @@ class ZipPlayUi : GamePlayUi {
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
         ZipBoard(controller as ZipPlayController, modifier)
+    }
+
+    override fun previewModel(preview: BoardPreview): RendererModel? = ZipPreviewModels.of(preview)
+
+    /** The hub thumbnail: the read-only board, no input or motion. */
+    @Composable
+    override fun BoardThumbnail(model: RendererModel, modifier: Modifier) {
+        ZipBoard(model as? ZipRendererModel ?: return, modifier)
     }
 
     /** Clear empties the trace to the start state, one undo unit (R1). */

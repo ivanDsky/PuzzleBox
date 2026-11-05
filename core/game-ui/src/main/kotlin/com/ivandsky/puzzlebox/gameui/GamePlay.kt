@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.CoroutineScope
 
@@ -37,6 +38,21 @@ interface GamePlayUi {
      */
     @Composable
     fun Board(controller: GamePlayController, modifier: Modifier)
+
+    /**
+     * [preview] as this game's own drawable model, for the hub card's thumbnail; null
+     * when it can't be read (a foreign or corrupt save, a puzzle of another game), and
+     * the hub then shows the glyph instead. Pure, no I/O: the hub calls it off the main thread.
+     */
+    fun previewModel(preview: BoardPreview): RendererModel?
+
+    /**
+     * [model] (one [previewModel] returned) drawn read-only at thumbnail size (~96–128dp):
+     * the same look as [Board], with no input, no animation and no caption. It fills
+     * [modifier]'s square.
+     */
+    @Composable
+    fun BoardThumbnail(model: RendererModel, modifier: Modifier)
 
     /**
      * The game's Clear over [controller] (A14): null when the game has none, which hides

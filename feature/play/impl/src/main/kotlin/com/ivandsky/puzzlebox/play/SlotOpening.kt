@@ -55,6 +55,9 @@ internal class SlotOpening(
         return if (slot.day == today) fetch(slot) else build(slot)
     }
 
+    /** The slot's saved row as stored, read through the [lane] after every save queued before it; never deletes. */
+    suspend fun savedRow(slot: PlaySlot): ByteArray? = lane.run { saved.load(slot) }
+
     /** The slot's saved envelope when it decodes; an undecodable row is deleted in the same lane turn. */
     private suspend fun restore(slot: PlaySlot, plugin: GamePlugin<*, *, *>): ByteArray? = lane.run {
         val blob = saved.load(slot)

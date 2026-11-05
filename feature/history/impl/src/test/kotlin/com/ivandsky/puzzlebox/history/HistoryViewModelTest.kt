@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -275,27 +276,56 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `the calendar month stays between the oldest row's month and today's`() = runTest {
+    fun `the calendar opens on this week and stays between the oldest row and today`() = runTest {
         val today = HistoryTestSupport.TODAY
         val oldest = LocalDate.of(2026, 9, 15)
         val daily = FakeDailyRepository().apply {
             setHistory(ZIP, listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(oldest)))
         }
         val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository())
-        val current = YearMonth.from(today)
 
         val opened = viewModel.uiState.first { it.rows.isNotEmpty() }
-        assertEquals(current, opened.month)
-        assertEquals(YearMonth.from(oldest), opened.earliestMonth)
+        assertEquals(today, opened.calendarDay)
+        assertFalse("one week by default", opened.calendarExpanded)
+        assertEquals(oldest, opened.earliestDay)
 
-        viewModel.showMonth(current.minusMonths(1))
-        assertEquals(current.minusMonths(1), viewModel.uiState.first { it.month != current }.month)
+        val october = LocalDate.of(2026, 10, 1)
+        viewModel.showCalendar(october, expanded = true)
+        val expanded = viewModel.uiState.first { it.calendarExpanded }
+        assertEquals(october, expanded.calendarDay)
 
-        viewModel.showMonth(YearMonth.of(2020, 1))
-        assertEquals(YearMonth.from(oldest), viewModel.uiState.first { it.month != current.minusMonths(1) }.month)
+        viewModel.showCalendar(LocalDate.of(2020, 1, 6), expanded = false)
+        assertEquals(oldest, viewModel.uiState.first { !it.calendarExpanded }.calendarDay)
 
-        viewModel.showMonth(current.plusMonths(3))
-        assertEquals(current, viewModel.uiState.first { it.month != YearMonth.from(oldest) }.month)
+        viewModel.showCalendar(today.plusWeeks(3), expanded = false)
+        assertEquals(today, viewModel.uiState.first { it.calendarDay != oldest }.calendarDay)
+    }
+
+    @Test
+    fun `folding the month back picks the picked day, then this week, then the first play, then the 1st`() {
+        val today = HistoryTestSupport.TODAY // Tuesday, November 3, 2026
+        val november = YearMonth.from(today)
+        val october = YearMonth.of(2026, 10)
+        val played = setOf(LocalDate.of(2026, 10, 14), LocalDate.of(2026, 10, 22))
+
+        assertEquals(
+            LocalDate.of(2026, 10, 19),
+            collapsedWeek(october, selectedDay = LocalDate.of(2026, 10, 22), today = today, daysWithRows = played),
+        )
+        assertEquals(
+            LocalDate.of(2026, 11, 2),
+            collapsedWeek(november, selectedDay = LocalDate.of(2026, 10, 22), today = today, daysWithRows = played),
+        )
+        assertEquals(LocalDate.of(2026, 10, 12), collapsedWeek(october, null, today, played))
+        assertEquals(LocalDate.of(2026, 8, 31), collapsedWeek(YearMonth.of(2026, 9), null, today, played))
+    }
+
+    @Test
+    fun `a week's title names its month, or both when it spans two`() {
+        assertTrue(weekTitle(LocalDate.of(2026, 11, 2)).contains("2026"))
+        assertEquals(weekTitle(LocalDate.of(2026, 11, 2)), weekTitle(LocalDate.of(2026, 11, 9)))
+        assertTrue("a week across two years names both", weekTitle(LocalDate.of(2026, 12, 28)).contains("2027"))
+        assertTrue(weekTitle(LocalDate.of(2026, 12, 28)).contains("2026"))
     }
 
     @Test
