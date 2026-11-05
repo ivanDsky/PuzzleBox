@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.network
 import com.ivandsky.puzzlebox.game.FeedRequest
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.FetchResult
+import com.ivandsky.puzzlebox.game.PersistedQuery
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
@@ -16,9 +17,10 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * The one LinkedIn ladder every game's DailySource rides (research R-19-1), against
- * MockWebServer: stream GET → graphql POST (when the request carries a body) → page-shell
- * GET (when asked). The request's `accepts` — the game's extractor — decides which body wins.
+ * The one LinkedIn ladder every game's DailySource rides (research R-19-1, ADR-0013), against
+ * MockWebServer: stream GET → persisted-query GET (when named) → graphql POST (when the
+ * request carries a body) → page-shell GET (when asked). The request's `accepts` — the
+ * game's extractor — decides which body wins.
  */
 class LinkedInFeedTransportTest {
 
@@ -48,12 +50,14 @@ class LinkedInFeedTransportTest {
         path: String = "games/zip/",
         objectName: String = "trailGamePuzzle",
         graphqlBody: String? = null,
+        persistedQuery: PersistedQuery? = null,
         scanPageShell: Boolean = true,
     ) = FeedRequest(
         path = path,
         objectName = objectName,
         accepts = { it.contains("\"$objectName\"") },
         graphqlBody = graphqlBody,
+        persistedQuery = persistedQuery,
         scanPageShell = scanPageShell,
     )
 
@@ -70,6 +74,11 @@ class LinkedInFeedTransportTest {
         """{"$objectName":{"gridSize":2,"orderedSequence":[0,3]},"todaysGameEditionText":"9"}"""
 
     private val dataLessStream = "2:\"\$Sreact.fragment\"\n5:I[0]"
+
+    private val miniSudokuQuery = PersistedQuery(queryId = "voyagerIdentityDashGames.x", variables = "(gameTypeId:7)")
+
+    /** A data-less launch page that, like LinkedIn's, hands out the anonymous session cookie. */
+    private fun sessionSeedingStream() = ok(dataLessStream).addHeader("Set-Cookie", "JSESSIONID=ajax:4242; Path=/")
 
     @Test
     fun `flight GET is the primary request and carries the route-context headers`() = runBlocking {
@@ -201,6 +210,44 @@ class LinkedInFeedTransportTest {
 
         val error = (result as FetchResult.Err).error as FetchError.Unavailable
         assertTrue(error.detail!!.contains("graphql HTTP 500"))
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test
+    fun `persisted-query GET runs after the stream, signed with the stream's cookie, and its body wins`() =
+        runBlocking {
+            server.enqueue(sessionSeedingStream())
+            server.enqueue(ok(dataBearing("sudokuGamePuzzle")))
+
+            val result = transport.fetch(
+                request(
+                    path = "games/mini-sudoku/",
+                    objectName = "sudokuGamePuzzle",
+                    graphqlBody = "{}",
+                    persistedQuery = miniSudokuQuery,
+                ),
+            )
+
+            assertEquals(dataBearing("sudokuGamePuzzle"), (result as FetchResult.Ok).value)
+            assertEquals(2, server.requestCount) // POST and page rungs never ran
+            assertEquals("/games/mini-sudoku/?skipStartScreen=true", server.takeRequest().path)
+            val persisted = server.takeRequest()
+            assertEquals("GET", persisted.method)
+            assertEquals("/voyager/api/graphql?variables=(gameTypeId:7)&queryId=voyagerIdentityDashGames.x", persisted.path)
+            assertEquals("ajax:4242", persisted.getHeader("csrf-token"))
+        }
+
+    @Test
+    fun `403 on the persisted-query GET is an Unavailable naming that rung`() = runBlocking {
+        server.enqueue(sessionSeedingStream())
+        server.enqueue(MockResponse().setResponseCode(403))
+
+        val result = transport.fetch(
+            request(objectName = "sudokuGamePuzzle", persistedQuery = miniSudokuQuery, scanPageShell = false),
+        )
+
+        val error = (result as FetchResult.Err).error as FetchError.Unavailable
+        assertTrue(error.detail!!.contains("persisted-query HTTP 403"))
         assertEquals(2, server.requestCount)
     }
 }
