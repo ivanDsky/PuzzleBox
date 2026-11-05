@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
+import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.ResultScreen
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.api.ResultKey
@@ -25,7 +26,8 @@ import org.koin.core.parameter.parametersOf
  *
  * Up and Done both hand back [onDone] (a pop to the game's origin, SC4). "Play again"
  * hands back [onPlayAgain]: the app replaces this entry with the game, whose open resets
- * the solved live play to a fresh attempt. [onNext] is Next's hand-off (17 adds its UI).
+ * the solved live play to a fresh attempt. "Next: <game>" hands back [onNext] with the
+ * next unsolved daily (A7, SC10).
  */
 @Composable
 fun ResultRoute(
@@ -37,6 +39,7 @@ fun ResultRoute(
 ) {
     val viewModel: ResultViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val primary by viewModel.primary.collectAsStateWithLifecycle()
     Column(modifier = modifier.testTag("route.result")) {
         CompactTopBar(
             // The result body already names the puzzle; the bar only carries Up.
@@ -54,6 +57,14 @@ fun ResultRoute(
         ResultScreen(
             timeMs = key.timeMs,
             hintsUsed = key.hintsUsed,
+            primary = primary,
+            onPrimary = {
+                when (val action = primary) {
+                    is ResultPrimaryAction.Next -> onNext(action.gameId)
+                    ResultPrimaryAction.AllDone, ResultPrimaryAction.Done -> onDone()
+                    null -> Unit
+                }
+            },
             onPlayAgain = onPlayAgain,
             isRecord = state.isRecord,
             writeFailed = state.writeFailed,

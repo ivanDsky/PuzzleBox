@@ -32,6 +32,8 @@ import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.ResultScreen
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipBoard as ZipBoardModel
@@ -134,6 +136,8 @@ class VariantMatrixScreenshotTest {
             ResultScreen(
                 timeMs = 95_000,
                 hintsUsed = 1,
+                primary = ResultPrimaryAction.Next(GameId("tango"), "Tango"),
+                onPrimary = {},
                 onPlayAgain = {},
                 isRecord = true,
                 modifier = Modifier.fillMaxSize(),

@@ -16,7 +16,9 @@ import com.ivandsky.puzzlebox.domain.ObservePlayProgress
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.ResultScreen
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
@@ -44,6 +46,7 @@ import org.robolectric.annotation.GraphicsMode
  * result ROUTE. The A3 facts render (time hero, hints), the record badge is conditional
  * on the in-memory verdict — present when stamped, absent while the write is in flight
  * (fire-and-observe, never waited on) — and "Play again" hands back to navigation.
+ * Ticket 17: each primary action (Next, All done, a replay's Done) shows its own tag.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -59,7 +62,9 @@ class ResultScreenTest {
     private fun setContent(
         isRecord: Boolean? = null,
         writeFailed: Boolean = false,
-        onPlayAgain: () -> Unit = {},
+        primary: ResultPrimaryAction? = ResultPrimaryAction.Done,
+        onPrimary: () -> Unit = {},
+        onPlayAgain: (() -> Unit)? = {},
         onRetryWrite: () -> Unit = {},
     ) {
         composeRule.setContent {
@@ -67,6 +72,8 @@ class ResultScreenTest {
                 ResultScreen(
                     timeMs = 95_000,
                     hintsUsed = 1,
+                    primary = primary,
+                    onPrimary = onPrimary,
                     onPlayAgain = onPlayAgain,
                     isRecord = isRecord,
                     writeFailed = writeFailed,
@@ -107,8 +114,56 @@ class ResultScreenTest {
     fun `play again hands back to navigation`() {
         var replayed = 0
         setContent(onPlayAgain = { replayed++ })
-        composeRule.onNodeWithTag("result.play_again").performClick()
+        composeRule.onNodeWithTag("result.playAgain").performClick()
         composeRule.runOnIdle { assertEquals(1, replayed) }
+    }
+
+    @Test
+    fun `next names the next game and hands back`() {
+        var taps = 0
+        setContent(primary = ResultPrimaryAction.Next(GameId("beta"), "Beta"), onPrimary = { taps++ })
+        composeRule.onNodeWithText("Next: Beta").assertExists()
+        composeRule.onNodeWithTag("result.done").assertDoesNotExist()
+        composeRule.onNodeWithTag("result.all_done").assertDoesNotExist()
+        composeRule.onNodeWithTag("result.playAgain").assertExists()
+        composeRule.onNodeWithTag("result.next").performClick()
+        composeRule.runOnIdle { assertEquals(1, taps) }
+    }
+
+    @Test
+    fun `all done shows the copy and done`() {
+        var taps = 0
+        setContent(primary = ResultPrimaryAction.AllDone, onPrimary = { taps++ })
+        composeRule.onNodeWithText("All done for today").assertExists()
+        composeRule.onNodeWithTag("result.next").assertDoesNotExist()
+        composeRule.onNodeWithTag("result.done").performClick()
+        composeRule.runOnIdle { assertEquals(1, taps) }
+    }
+
+    @Test
+    fun `a replay's result offers done and play again`() {
+        setContent(primary = ResultPrimaryAction.Done)
+        composeRule.onNodeWithTag("result.done").assertExists()
+        composeRule.onNodeWithTag("result.playAgain").assertExists()
+        composeRule.onNodeWithTag("result.next").assertDoesNotExist()
+        composeRule.onNodeWithTag("result.all_done").assertDoesNotExist()
+    }
+
+    @Test
+    fun `an unresolved next step exposes no actions to tap or read`() {
+        var taps = 0
+        setContent(primary = null, onPrimary = { taps++ }, onPlayAgain = { taps++ })
+        composeRule.onNodeWithText("Solved!").assertExists()
+        listOf("result.next", "result.done", "result.playAgain", "result.all_done").forEach {
+            composeRule.onNodeWithTag(it).assertDoesNotExist()
+        }
+        composeRule.runOnIdle { assertEquals(0, taps) }
+    }
+
+    @Test
+    fun `no play again when none is handed in`() {
+        setContent(onPlayAgain = null)
+        composeRule.onNodeWithTag("result.playAgain").assertDoesNotExist()
     }
 
     @Test
@@ -166,7 +221,12 @@ class ResultScreenTest {
             composeRule.onNodeWithTag("result.up").performClick()
             composeRule.runOnIdle { assertEquals(1, done) }
 
-            composeRule.onNodeWithTag("result.play_again").performClick()
+            // The only game is solved: all done, and Done pops too.
+            composeRule.onNodeWithText("All done for today").assertExists()
+            composeRule.onNodeWithTag("result.done").performClick()
+            composeRule.runOnIdle { assertEquals(2, done) }
+
+            composeRule.onNodeWithTag("result.playAgain").performClick()
             composeRule.runOnIdle {
                 assertTrue(replayed)
                 store.open(gameKey)
@@ -196,6 +256,28 @@ class ResultScreenTest {
             composeRule.onNodeWithText("Solved!").assertExists()
             composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
             composeRule.onNodeWithTag("result.write_failed").assertDoesNotExist()
+        } finally {
+            koin.close()
+        }
+    }
+
+    @Test
+    fun `today's result route hands next the next unsolved game`() {
+        val koin = startGraph(FakeGames(listOf(game, TestGames.beta)), FakeDailyRepository())
+        try {
+            var next: GameId? = null
+            composeRule.setContent {
+                PuzzleBoxTheme(darkTheme = false) {
+                    ResultRoute(
+                        key = ResultKey(game.value, day.toString(), 12_340, 0),
+                        onPlayAgain = {},
+                        onNext = { next = it },
+                        onDone = {},
+                    )
+                }
+            }
+            composeRule.onNodeWithTag("result.next").performClick()
+            composeRule.runOnIdle { assertEquals(TestGames.beta, next) }
         } finally {
             koin.close()
         }

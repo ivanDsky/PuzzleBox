@@ -107,7 +107,7 @@ class RealGamesResultRouteTest {
             composeRule.onNodeWithTag("result.record_badge").assertExists()
 
             // "Play again": navigation is handed back; the game's reopen is a fresh session.
-            composeRule.onNodeWithTag("result.play_again").performClick()
+            composeRule.onNodeWithTag("result.playAgain").performClick()
             composeRule.runOnIdle {
                 assertTrue(replayed)
                 store.open(gameKey)

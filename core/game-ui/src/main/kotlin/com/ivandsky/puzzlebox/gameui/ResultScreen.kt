@@ -19,14 +19,26 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.draw.alpha
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The solved-session result surface (ticket 23, spec UIUX-01 A3/A9). Its own nav route
  * paints an opaque scene — the finished board never bleeds through. Content is the
- * existing A3 facts only: time (the hero), hints, the new-record badge, and "Play
- * again" (A9: no streaks, no percentiles, no new metrics).
+ * existing A3 facts only: time (the hero), hints and the new-record badge (A9: no
+ * streaks, no percentiles, no new metrics).
+ *
+ * Actions (A7, SC10): [primary] is the one filled button, handed back through
+ * [onPrimary] — "Next: <game>", "All done for today" with Done, or a replay's Done. While
+ * [primary] is null (the next step still unknown) the action row keeps its place but is
+ * invisible and inert, so the centred content never jumps when it lands.
+ * "Play again" ([onPlayAgain]) is the quiet secondary; null hides it.
  *
  * The badge renders from the in-memory verdict whenever it lands — this screen NEVER
  * waits on the record write (F2 §7 fire-and-observe, unchanged); [isRecord] null means
@@ -44,7 +56,9 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 fun ResultScreen(
     timeMs: Long,
     hintsUsed: Int,
-    onPlayAgain: () -> Unit,
+    primary: ResultPrimaryAction?,
+    onPrimary: () -> Unit,
+    onPlayAgain: (() -> Unit)?,
     modifier: Modifier = Modifier,
     isRecord: Boolean? = null,
     writeFailed: Boolean = false,
@@ -124,10 +138,116 @@ fun ResultScreen(
                 TextButton(onClick = onRetryWrite) { Text("Retry") }
             }
         }
-        PrimaryButton(
+        val pending = primary == null
+        Column(
+            modifier = if (pending) Modifier.alpha(0f).clearAndSetSemantics {} else Modifier,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            ResultActions(
+                primary = primary ?: ResultPrimaryAction.Done,
+                onPrimary = { if (!pending) onPrimary() },
+                onPlayAgain = onPlayAgain?.let { again -> { if (!pending) again() } },
+            )
+        }
+    }
+}
+
+/** The primary action (tagged `result.next` or `result.done`) over "Play again". */
+@Composable
+private fun ResultActions(
+    primary: ResultPrimaryAction,
+    onPrimary: () -> Unit,
+    onPlayAgain: (() -> Unit)?,
+) {
+    if (primary == ResultPrimaryAction.AllDone) {
+        Text(
+            text = "All done for today",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.testTag("result.all_done"),
+        )
+    }
+    when (primary) {
+        is ResultPrimaryAction.Next -> PrimaryButton(
+            text = "Next: ${primary.name}",
+            onClick = onPrimary,
+            modifier = Modifier.testTag("result.next"),
+        )
+        ResultPrimaryAction.AllDone, ResultPrimaryAction.Done -> PrimaryButton(
+            text = "Done",
+            onClick = onPrimary,
+            modifier = Modifier.testTag("result.done"),
+        )
+    }
+    onPlayAgain?.let {
+        SecondaryButton(
             text = "Play again",
-            onClick = onPlayAgain,
-            modifier = Modifier.testTag("result.play_again"),
+            onClick = it,
+            modifier = Modifier.testTag("result.playAgain"),
+        )
+    }
+}
+
+// Previews — internal, light + dark inside PuzzleBoxTheme: today's live result (badge,
+// label, Next), a cold result after process death (no badge), all done, and a replay.
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ResultScreenLivePreview() {
+    PuzzleBoxTheme {
+        ResultScreen(
+            timeMs = 95_000,
+            hintsUsed = 1,
+            primary = ResultPrimaryAction.Next(GameId("tango"), "Tango"),
+            onPrimary = {},
+            onPlayAgain = {},
+            isRecord = true,
+            label = "Zip · #42",
+        )
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ResultScreenColdPreview() {
+    PuzzleBoxTheme {
+        ResultScreen(
+            timeMs = 95_000,
+            hintsUsed = 0,
+            primary = ResultPrimaryAction.Next(GameId("tango"), "Tango"),
+            onPrimary = {},
+            onPlayAgain = {},
+        )
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ResultScreenAllDonePreview() {
+    PuzzleBoxTheme {
+        ResultScreen(
+            timeMs = 95_000,
+            hintsUsed = 2,
+            primary = ResultPrimaryAction.AllDone,
+            onPrimary = {},
+            onPlayAgain = {},
+            label = "Zip · #42",
+        )
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ResultScreenReplayPreview() {
+    PuzzleBoxTheme {
+        ResultScreen(
+            timeMs = 95_000,
+            hintsUsed = 0,
+            primary = ResultPrimaryAction.Done,
+            onPrimary = {},
+            onPlayAgain = {},
+            label = "Zip · #41",
         )
     }
 }
