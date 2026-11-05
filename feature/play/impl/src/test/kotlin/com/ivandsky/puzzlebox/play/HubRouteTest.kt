@@ -4,6 +4,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasParent
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -47,6 +48,7 @@ import java.time.LocalDate
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -77,7 +79,7 @@ class HubRouteTest {
 
     private val zip = GameId("zip")
     private val alpha = TestGames.alpha
-    private val fakes = FakeGames(listOf(zip, alpha))
+    private var fakes = FakeGames(listOf(zip, alpha))
     private val daily = FakeDailyRepository()
     private val today = LocalDate.parse("2026-11-04")
     private val saved = FakeSavedPlayRepository()
@@ -124,6 +126,14 @@ class HubRouteTest {
             }
         }
     }
+
+    /** Plays [ids] instead of zip and alpha, each fetching fresh; call before [setContent]. */
+    private fun useGames(ids: List<GameId>) {
+        fakes = FakeGames(ids)
+        ids.forEach { daily.setToday(it, DailyToday.Fresh(TestGames.puzzle(it))) }
+    }
+
+    private fun boundsOf(game: GameId) = composeRule.onNodeWithTag("hub.row.${game.value}").getUnclippedBoundsInRoot()
 
     private fun solveZipToday() = runBlocking {
         completions.onCompleted(
@@ -281,5 +291,26 @@ class HubRouteTest {
         assertEquals(1, opened)
         assertEquals(emptyList<GameId>(), picked)
         composeRule.onNodeWithTag("hub.more_coming").assertExists()
+    }
+
+    @Test
+    fun `from five games a phone hub puts the first two cards side by side`() {
+        useGames(listOf(zip, alpha, TestGames.beta, GameId("gamma"), GameId("delta")))
+        setContent {}
+        composeRule.waitForIdle()
+
+        val first = boundsOf(zip)
+        val second = boundsOf(alpha)
+        assertEquals(first.top, second.top)
+        assertTrue(second.left > first.left)
+    }
+
+    @Test
+    fun `below five games a phone hub stacks its cards`() {
+        useGames(listOf(zip, alpha, TestGames.beta))
+        setContent {}
+        composeRule.waitForIdle()
+
+        assertTrue(boundsOf(alpha).top >= boundsOf(zip).bottom)
     }
 }

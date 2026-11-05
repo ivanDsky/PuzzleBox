@@ -2,9 +2,11 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,8 +23,11 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 
-/** The hub's two-pane grid width in cards. */
+/** The hub's grid width in cards, in two-pane and in the phone grid. */
 private const val GRID_COLUMNS = 2
+
+/** From this many games a phone hub turns into a grid of tiles, so 7–8 games stay scannable. */
+private const val PHONE_GRID_MIN_GAMES = 5
 
 /** The board thumbnail's side in the two-pane grid, where each card has more room. */
 private val GridThumbSize = 128.dp
@@ -30,7 +35,8 @@ private val GridThumbSize = 128.dp
 /**
  * The games hub (tag `route.hub`, spec A13/A14): the "N of M done" header (`hub.summary`),
  * then one [HubCard] per playable game in the order given — stacked on phones, a
- * two-column grid in [PlayLayout.TwoPane] — each showing today's board as its game in
+ * two-column grid in [PlayLayout.TwoPane], and on phones from [PHONE_GRID_MIN_GAMES] games
+ * a two-column grid of [HubCardShape.Tile]s — each showing today's board as its game in
  * [games] draws [HubUiState.previews], with the [HubUiState.next] game's card up next.
  * Below them, "Older puzzles" (`hub.older`, [onOpenHistory]) and the line that more games
  * are on the way (`hub.more_coming`). Stateless; picking a card is [onPick].
@@ -58,10 +64,15 @@ internal fun GamePicker(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.testTag("hub.summary"),
         )
-        val grid = layout == PlayLayout.TwoPane
-        val columns = if (grid) GRID_COLUMNS else 1
+        val twoPane = layout == PlayLayout.TwoPane
+        val tiles = !twoPane && state.rows.size >= PHONE_GRID_MIN_GAMES
+        val columns = if (twoPane || tiles) GRID_COLUMNS else 1
         state.rows.chunked(columns).forEach { line ->
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            // IntrinsicSize.Min + the cards' fillMaxHeight: a row's cards share its tallest's height.
+            Row(
+                modifier = Modifier.height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
                 line.forEach { row ->
                     val model = state.previews[row.game]
                     val ui = games[row.game]
@@ -76,7 +87,8 @@ internal fun GamePicker(
                         },
                         onPlay = { onPick(row.game) },
                         modifier = Modifier.weight(1f),
-                        thumbSize = if (grid) GridThumbSize else HubThumbSize,
+                        thumbSize = if (twoPane) GridThumbSize else HubThumbSize,
+                        shape = if (tiles) HubCardShape.Tile else HubCardShape.Row,
                     )
                 }
                 // A short last line keeps its cards at grid width.

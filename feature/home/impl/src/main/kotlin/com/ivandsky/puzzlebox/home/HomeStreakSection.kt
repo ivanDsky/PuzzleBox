@@ -26,7 +26,7 @@ import com.ivandsky.puzzlebox.gameui.WeekStrip
 /**
  * The streak card (A8, identity §2.8): "N days in a row · Best M" from [stats] over the
  * [WeekStrip] of the last 7 puzzle days ([week], oldest first, ending today), each day's
- * dots counting its solved dailies out of [total] games.
+ * game ring counting its solved dailies out of [total] games.
  */
 @Composable
 internal fun HomeStreakSection(

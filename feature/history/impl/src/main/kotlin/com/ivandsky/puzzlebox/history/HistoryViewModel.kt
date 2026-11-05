@@ -35,7 +35,7 @@ import kotlinx.coroutines.flow.stateIn
  * The calendar shows the week — or, [calendarExpanded], the month — holding
  * [calendarDay] (null until the first emission), between [earliestDay] (History's
  * oldest row, any game — stable across tabs) and [today].
- * [solvedByDay] holds each day's numbered solves as brands, [dotsPerDay] dots a day —
+ * [solvedByDay] holds each day's numbered solves as brands, [gamesPerDay] ring segments a day —
  * every game on All, one on a game's tab — and [daysWithRows] the days the tab has any
  * row (solved or not). [selectedDay] filters the list to one day and survives tab
  * switches. [today] is the puzzle day the list's "Today" / "Yesterday" count from.
@@ -50,7 +50,7 @@ data class HistoryUiState(
     val selectedDay: LocalDate? = null,
     val solvedByDay: Map<LocalDate, List<GameBrand>> = emptyMap(),
     val daysWithRows: Set<LocalDate> = emptySet(),
-    val dotsPerDay: Int = 0,
+    val gamesPerDay: Int = 0,
     val today: LocalDate? = null,
 )
 
@@ -131,7 +131,7 @@ class HistoryViewModel(
             selectedDay = selected,
             solvedByDay = solvedByDay(rows, order),
             daysWithRows = rows.mapTo(HashSet()) { it.day },
-            dotsPerDay = order.size,
+            gamesPerDay = order.size,
             today = today,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState(tabs = tabs))

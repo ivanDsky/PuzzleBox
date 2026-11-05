@@ -102,6 +102,38 @@ private val previewState = HubUiState(
     ),
 )
 
+private val pinpoint = PreviewGame(GameId("pinpoint"), GameBrand.Neutral.copy(accent = AccentSlot.Teal))
+private val crossclimb = PreviewGame(GameId("crossclimb"), GameBrand.Neutral.copy(accent = AccentSlot.Pink))
+private val wordle = PreviewGame(GameId("wordle"), GameBrand.Neutral.copy(accent = AccentSlot.Violet))
+private val sudoku = PreviewGame(GameId("sudoku"), GameBrand.Neutral.copy(accent = AccentSlot.Blue))
+private val nonogram = PreviewGame(GameId("nonogram"), GameBrand.Neutral.copy(accent = AccentSlot.Orange))
+private val manyGames = GamePlayRegistry(listOf(zip, tango, queens, pinpoint, crossclimb, wordle, sudoku, nonogram))
+
+/** Eight games, enough for the phone grid of tiles: three solved, one in progress and next, one offline. */
+private val manyState = HubUiState(
+    rows = listOf(
+        HubRow(zip.gameId, "Zip", zip.brand, 592, TodayStatus.Solved(36_000L)),
+        HubRow(tango.gameId, "Tango", tango.brand, 431, TodayStatus.Solved(58_000L)),
+        HubRow(queens.gameId, "Queens", queens.brand, 918, TodayStatus.InProgress(42_000L)),
+        HubRow(pinpoint.gameId, "Pinpoint", pinpoint.brand, status = TodayStatus.Offline),
+        HubRow(crossclimb.gameId, "Crossclimb", crossclimb.brand, 377, TodayStatus.Solved(95_000L)),
+        HubRow(wordle.gameId, "Wordle", wordle.brand, 1_604, TodayStatus.NotStarted),
+        HubRow(sudoku.gameId, "Sudoku", sudoku.brand, 88, TodayStatus.NotStarted),
+        HubRow(nonogram.gameId, "Nonogram", nonogram.brand, 12, TodayStatus.NotStarted),
+    ),
+    bestByGame = mapOf(zip.gameId to 31_000L, tango.gameId to 50_000L, crossclimb.gameId to 80_000L),
+    doneCount = 3,
+    next = queens.gameId,
+    previews = mapOf(
+        zip.gameId to PreviewBoard((0 until PREVIEW_SIDE * PREVIEW_SIDE).toSet()),
+        tango.gameId to PreviewBoard((0 until PREVIEW_SIDE * PREVIEW_SIDE).toSet()),
+        queens.gameId to PreviewBoard(setOf(0, 1, 2, 7, 12, 13)),
+        crossclimb.gameId to PreviewBoard((0 until PREVIEW_SIDE * PREVIEW_SIDE).toSet()),
+        wordle.gameId to PreviewBoard(emptySet()),
+        sudoku.gameId to PreviewBoard(emptySet()),
+    ),
+)
+
 @PuzzleBoxPreviews
 @Composable
 private fun HubCardPreview() {
@@ -147,6 +179,20 @@ private fun GamePickerGridPreview() {
             state = previewState,
             games = previewGames,
             layout = PlayLayout.TwoPane,
+            onPick = {},
+            onOpenHistory = {},
+        )
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+private fun GamePickerTilesPreview() {
+    PuzzleBoxTheme {
+        GamePicker(
+            state = manyState,
+            games = manyGames,
+            layout = PlayLayout.SinglePane,
             onPick = {},
             onOpenHistory = {},
         )
