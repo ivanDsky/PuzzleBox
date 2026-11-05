@@ -9,6 +9,8 @@ import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.domain.di.domainModule
 import com.ivandsky.puzzlebox.games.queens.queensModule
 import com.ivandsky.puzzlebox.games.queensui.queensUiModule
+import com.ivandsky.puzzlebox.games.sudoku.miniSudokuModule
+import com.ivandsky.puzzlebox.games.sudokuui.miniSudokuUiModule
 import com.ivandsky.puzzlebox.games.zip.zipModule
 import com.ivandsky.puzzlebox.games.zipui.zipUiModule
 import com.ivandsky.puzzlebox.games.tango.tangoModule
@@ -36,6 +38,6 @@ class PuzzleBoxApplication : Application() {
 
     companion object {
         val appModules =
-            listOf(commonModule, dataModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, profileModule(R.string.default_web_client_id), zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, strandsModule, strandsUiModule, appModule)
+            listOf(commonModule, dataModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, profileModule(R.string.default_web_client_id), zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, strandsModule, strandsUiModule, miniSudokuModule, miniSudokuUiModule, appModule) + buildTypeGameModules
     }
 }

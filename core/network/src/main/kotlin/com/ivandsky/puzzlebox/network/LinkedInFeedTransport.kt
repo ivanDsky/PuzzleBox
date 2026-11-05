@@ -8,7 +8,9 @@ import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody
 import retrofit2.HttpException
+import retrofit2.Response
 
 /**
  * Fetches a game's daily body through the rotation-tolerant ladder (research R-19-1 / 02),
@@ -21,9 +23,13 @@ import retrofit2.HttpException
  *    (~5 fetches inside a minute, ~100 s cooldown). It is remembered as retryable and
  *    resurfaces as [FetchError.Throttled] — never as "no data". No silent looping: the
  *    ladder keeps walking once, then reports.
- * 3. If the request carries a [FeedRequest.graphqlBody], POST it through the session
+ * 3. If the request names a [FeedRequest.persistedQuery], GET
+ *    `voyager/api/graphql?variables=<v>&queryId=<id>` with both params verbatim (ADR-0016).
+ *    It runs after the stream because the stream's `JSESSIONID` cookie is what the
+ *    csrf-token echo signs it with.
+ * 4. If the request carries a [FeedRequest.graphqlBody], POST it through the session
  *    seams (cookie jar + csrf-token echo on the OkHttp client) and scan the response.
- * 4. If [FeedRequest.scanPageShell], scan the plain page shell as the last network
+ * 5. If [FeedRequest.scanPageShell], scan the plain page shell as the last network
  *    resort — dead today, but LinkedIn may inline SSR data again at any build.
  *
  * Any body the request [FeedRequest.accepts] wins — the game's extractor, not the URL,
@@ -50,18 +56,18 @@ internal class LinkedInFeedTransport(private val api: LinkedInGamesApi) : FeedTr
                 response.errorBody()?.close()
             }
         }
+        request.persistedQuery?.let { query ->
+            rung(PERSISTED_QUERY, reasons) {
+                val response = api.persistedQuery(variables = query.variables, queryId = query.queryId)
+                scanSessionRung(PERSISTED_QUERY, response, request, reasons) { throttled = true }
+                    ?.let { return FetchResult.Ok(it) }
+            }
+        }
         request.graphqlBody?.let { query ->
-            rung("graphql", reasons) {
+            rung(GRAPHQL, reasons) {
                 val response = api.graphql(query.toRequestBody(JSON_MEDIA_TYPE))
-                if (response.isSuccessful) {
-                    val text = response.body()?.string().orEmpty()
-                    if (request.accepts(text)) return FetchResult.Ok(text)
-                    reasons += "graphql body carried no ${request.objectName} (${text.length}B)"
-                    if (text.isEmpty() && response.headers()["location"] != null) throttled = true
-                } else {
-                    reasons += "graphql HTTP ${response.code()}"
-                    response.errorBody()?.close()
-                }
+                scanSessionRung(GRAPHQL, response, request, reasons) { throttled = true }
+                    ?.let { return FetchResult.Ok(it) }
             }
         }
         if (request.scanPageShell) {
@@ -81,6 +87,29 @@ internal class LinkedInFeedTransport(private val api: LinkedInGamesApi) : FeedTr
         }
     }
 
+    /**
+     * Scans a cookie-jar + csrf-signed rung's response: the accepted body, or null after
+     * recording why it was refused (and flagging [onThrottle] on the throttle signature).
+     */
+    private inline fun scanSessionRung(
+        name: String,
+        response: Response<ResponseBody>,
+        request: FeedRequest,
+        reasons: MutableList<String>,
+        onThrottle: () -> Unit,
+    ): String? {
+        if (!response.isSuccessful) {
+            reasons += "$name HTTP ${response.code()}"
+            response.errorBody()?.close()
+            return null
+        }
+        val text = response.body()?.string().orEmpty()
+        if (request.accepts(text)) return text
+        reasons += "$name body carried no ${request.objectName} (${text.length}B)"
+        if (text.isEmpty() && response.headers()["location"] != null) onThrottle()
+        return null
+    }
+
     /** Runs one ladder rung, recording its transport/HTTP failure and moving on. */
     private inline fun rung(name: String, reasons: MutableList<String>, block: () -> Unit) {
         try {
@@ -95,6 +124,8 @@ internal class LinkedInFeedTransport(private val api: LinkedInGamesApi) : FeedTr
     }
 
     private companion object {
+        const val PERSISTED_QUERY = "persisted-query"
+        const val GRAPHQL = "graphql"
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }
 }

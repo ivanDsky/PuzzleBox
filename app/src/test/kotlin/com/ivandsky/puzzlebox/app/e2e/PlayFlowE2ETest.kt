@@ -14,6 +14,8 @@ import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.strands.StrandsNumber
 import com.ivandsky.puzzlebox.games.strands.StrandsPuzzleRef
+import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
+import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
@@ -202,10 +204,12 @@ class PlayFlowE2ETest {
 
     private fun ZipPlayController.extend(cell: Cell) = onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
 
-    /** Tango, Queens and Strands are solved today, so a Zip solve leaves nothing next. */
+    /** Every other game is solved today, so a Zip solve leaves nothing next. */
     private fun solvedOthersGraph() = solvedGraph(
         tangoRecord(),
         record(QueensPuzzleRef(E2E_TODAY, 1)),
+        record(SudokuPuzzleRef(SudokuGames.MINI.id, E2E_TODAY, 1)),
+        record(SudokuPuzzleRef(SudokuGames.CLASSIC.id, E2E_TODAY, null)),
         record(StrandsPuzzleRef(E2E_TODAY, StrandsNumber.of(E2E_TODAY))),
     )
 

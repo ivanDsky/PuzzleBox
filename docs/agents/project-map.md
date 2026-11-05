@@ -26,6 +26,8 @@ rank order is per game (`ScoreModel` declares `RankOrder`; Strands ranks hints t
 leaderboard stays time-first and Zip-only), ADR-0014 the NYT transport (`core:game`
 `NytTransport`, implemented in `core:network` with its own client, never a second
 `FeedTransport`; parsing and the trust gate stay in the game).
+ADR-0015 one `games:sudoku` pair hosting two GameIds (`minisudoku` 6x6, `sudoku` 9x9 shipped
+unregistered in release), ADR-0016 the persisted-query GraphQL GET rung in `FeedTransport`.
 
 ## Layout
 
@@ -39,7 +41,7 @@ through Koin. `:core:data` exposes `:core:common`/`:core:game`/`:core:model` and
 `:backend:firebase` implements seams declared in `:core:data`. Every module except app/backend
 tests via `testImplementation(projects.core.testing)`. Pure JVM modules
 (`puzzlebox.jvm.library`): `:core:model`, `:core:game`, `:core:network`, `:games:zip`,
-`:games:tango`, `:games:queens`, `:games:strands`, plus `:konsist` (test-only `jvm.library`, zero project
+`:games:tango`, `:games:queens`, `:games:strands`, `:games:sudoku`, plus `:konsist` (test-only `jvm.library`, zero project
 edges; reads the repo's sources as files).
 
 Forbidden edges (ADR-0008, [docs/adr/0008-module-graph.md](../adr/0008-module-graph.md)),
@@ -70,7 +72,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   polymorphic `SavedStateConfiguration` over every feature's keys),
   `leaderboard/LeaderboardSubmitWatcher` (auto-submits records when signed in),
   `di/AppModule` (app scope; `GameRegistry` over `getAll<GamePlugin>()` sorted by the app-side
-  `GAME_ORDER` zip → tango → queens → strands; `GamePlayRegistry(getAll())` over every game's
+  `GAME_ORDER` zip → tango → queens → strands → minisudoku → sudoku; `GamePlayRegistry(getAll())` over every game's
   `GamePlayUi`), debug-only Showkase browser (`CatalogDebugBinding`, `ShowkaseBrowserScreen`,
   `PreviewBackdrop`, `BrowserRadioControls`; goldens in `app/snapshots/`). Tests:
   `src/test/.../e2e/` the E2E robot (`shellRobot`/`ShellRobot`: gestures, back and
@@ -185,7 +187,15 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `StrandsSpend`, `StrandsVerdict`; `StrandsScoreModel` (`HintsThenTime`); `render/`
   `StrandsRendererModel` → `StrandsCell` with sealed `CellState` (Idle/FoundTheme/
   FoundSpangram/HintOutlined/HintOrderRevealed) + `StrandsLink`/`LinkKind`.
-- `games/zip-ui/`, `games/tango-ui/`, `games/queens-ui/`, `games/strands-ui/` (`:games:<x>-ui`) — each game's play
+- `games/sudoku/` (`:games:sudoku`, pure JVM, ADR-0015) — one engine for two ids:
+  `SudokuModules` (`miniSudokuModule` binds `LinkedInMiniSudokuDailySource`; `sudokuModule`
+  binds `BundledSudokuDailySource`), `SudokuPlugin`, `SudokuGames`, geometry as variant data
+  (`SudokuVariants`: `sudoku/6x6`, `sudoku/9x9`); `engine/rules/` `SudokuConflicts`,
+  `engine/solve/SudokuSolver` (MRV bitmask), `engine/hints/` (`SudokuHints` ladder over
+  singles, intersections, subsets, reveal fallback); `codec/` `SudokuCodec`,
+  `SudokuSessionCodec` v1 + `SudokuCommandCodec`; `feed/` `MiniSudokuGameExtractor`,
+  `MiniSudokuWireParser`, `SudokuUniquenessGate`; `SudokuScoreModel`.
+- `games/zip-ui/`, `games/tango-ui/`, `games/queens-ui/`, `games/strands-ui/`, `games/sudoku-ui/` (`:games:<x>-ui`) — each game's play
   UI: one `*PlayController : GamePlayController`, one `*PlayUi : GamePlayUi`, the board
   composables, and `*UiModule` (the game's `GamePlayUi`). Strands: `StrandsPlayController`,
   `StrandsScreen`, `board/` (`StrandsCellDrawing` maps each `CellState` to its
@@ -193,6 +203,16 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `HintOrderRevealedSpec` — plus `TraceOverlaySpec`, gesture/hit-test/sizing), `chrome/`
   (`StrandsHintRow`, `StrandsHintControl`, `HintMeter`, `ThemeCard`, `WordSlotLine`,
   `FoundCounter`, `HintModal`).
+  `sudoku-ui` serves both ids
+  (`SudokuUiModules`: `miniSudokuUiModule`, `sudokuUiModule`): `SudokuGrid` + `SudokuKeypad`,
+  `SudokuBoardState`, pure `SudokuSizing`/`SudokuLayout`, `SudokuMotion`, `SudokuHaptics`,
+  `SudokuTutorial`.
+  Extending Sudoku (ADR-0015): a new board size is a `SudokuVariants` row and a source, a
+  `SudokuTutorial` `BOARDS` entry, and a `gridStrokes` branch in `SudokuGrid` if neither
+  stroke weight suits it; as its own GameId it also needs a `SudokuGames` entry, its module
+  pair in `appModules` and a `GAME_ORDER` line. A new elimination technique is an
+  `EliminationStep` file, a line in `EliminationSteps.DEFAULT` and a `SudokuTechnique` entry;
+  captions name only the single, so `SudokuHintCaptions` stays unchanged.
 - `feature/home/impl/` (`:feature:home:impl`) — `navigation/HomeEntry`, `HomeRoute` +
   `HomeViewModel` (today's set via `ObserveTodaySet`, identity, cache-only history teaser via
   `ObserveGameHistory`; `di/HomeModule`), `HomeScreen` with `HomeListPane`/`HomeDetailPane`/
@@ -226,14 +246,16 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `LeaderboardDocCodec`, `BackendModule` (`firebaseBackendModule`). Rules and indexes live
   alongside (`firebase.json`, `firestore.rules`, `firestore.indexes.json`).
 - `PROFILE.md` — product frame, ranked care-axes, deploy targets, testing style.
-- `docs/adr/` — ADR-0001…0014, summarized under Purpose.
+- `docs/adr/` — ADR-0001…0016, summarized under Purpose.
 
 ## Entry points
 
 - `PuzzleBoxApplication.onCreate` — `startKoin` with `appModules` = `commonModule` +
   `dataModule` + `firebaseBackendModule` + `domainModule` + `homeModule` + `historyModule` +
   `playModule` + `profileModule(R.string.default_web_client_id)` + each game's `*Module` and
-  `*UiModule` (zip, queens, tango, strands) + `appModule`, then `LeaderboardSubmitWatcher.start()`.
+  `*UiModule` (zip, queens, tango, strands, minisudoku) + `appModule`, plus `buildTypeGameModules`
+  (`BuildTypeGameModules.kt` per source set: debug adds `sudokuModule` + `sudokuUiModule`,
+  release is empty; `testRelease/ReleaseGameModulesTest`), then `LeaderboardSubmitWatcher.start()`.
 - `MainActivity` — sole activity; holds composition until the persisted `ThemeMode` arrives
   (no light flash), resolves dark theme against the system setting, keeps system bar icons in
   step, then hosts `PuzzleBoxApp` with the width size class, `ThemeMode`, and the setter.
@@ -259,7 +281,8 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `LeaderboardSubmitWatcher`, `GameRegistry`, `GamePlayRegistry`). Completeness asserted by
   `DiGraphTest` (app) and `DataModuleGraphTest` (core:data) under Robolectric.
 - **`GamePlugin`/`GameRegistry`** (ADR-0001, `core:game`) — onboarding a game is one module
-  pair + Koin registrations + a `GAME_ORDER` slot; nothing outside `app` references a concrete
+  pair per game family (ADR-0015: one pair may host several ids) + Koin registrations
+  (per build type via `BuildTypeGameModules` when an id is debug-only) + a `GAME_ORDER` slot; nothing outside `app` references a concrete
   game. Evolution stays inside the game (ADR-0005: versioned codecs, `Puzzle.variant`,
   `RecordStats`).
 - **`DailySource` / `FeedTransport` / `NytTransport`** — each game adapts its feed
@@ -303,11 +326,12 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   3→4 daily_puzzles rebuild, 4→5 drops the legacy daily_puzzles, 5→6 adds saved_plays); no destructive fallback.
 - **Module graph guard** — `checkModuleGraph` (see Layout) fails the build on a forbidden edge.
 - **Roborazzi** — plugin `puzzlebox.android.roborazzi` (app, designsystem, zip-ui, tango-ui,
-  queens-ui, strands-ui) unifies the switch: `-Proborazzi.verify=true` verifies, default records.
+  queens-ui, strands-ui, sudoku-ui) unifies the switch: `-Proborazzi.verify=true` verifies, default records.
   Committed goldens: `app/snapshots/` (14 pngs, `ShowkaseBrowserScreenshotTest`),
   `games/queens-ui/snapshots/` (36, `QueensGoldenScreenshots`),
   `games/strands-ui/snapshots/` (24, `StrandsGoldenScreenshots`, the real 2026-11-06 NYT day
-  through the production source), `games/tango-ui/src/test/resources/goldens/` (3,
+  through the production source), `games/sudoku-ui/snapshots/` (26, `SudokuGoldenScreenshots`),
+  `games/tango-ui/src/test/resources/goldens/` (3,
   `TangoBoardGoldenTest`); zip-ui's
   `VariantMatrixScreenshotTest` writes review evidence to `.scratch`, not goldens.
 
@@ -320,8 +344,8 @@ via `gradle/gradle-daemon-jvm.properties`. Android modules run `testDebugUnitTes
 modules run `test`. Full suite:
 
 `./gradlew assembleDebug testDebugUnitTest :core:game:test :games:zip:test :games:queens:test
-:games:tango:test :games:strands:test :core:model:test :core:network:test -Proborazzi.verify=true --continue` —
-the 0.9.0 gate.
+:games:tango:test :games:strands:test :games:sudoku:test :core:model:test :core:network:test -Proborazzi.verify=true --continue` —
+the 0.13.0 gate.
 
 Structure rules (ADR-0009): `./gradlew :konsist:test` — runs the 13 in-module rules, the
 census and the engine tests over the whole repo's sources (not in the count above; reruns
@@ -349,6 +373,7 @@ when any source, build script or allowlist changes).
 - `:games:zip:test` — 155; `:games:zip-ui:testDebugUnitTest` — 70
 - `:games:tango:test` — 114; `:games:tango-ui:testDebugUnitTest` — 53
 - `:games:queens:test` — 163; `:games:queens-ui:testDebugUnitTest` — 81
+- `:games:sudoku:test` — 126; `:games:sudoku-ui:testDebugUnitTest` — 96
 - `:games:strands:test` — 82; `:games:strands-ui:testDebugUnitTest` — 125 (executed `tests`
   totals from the last `build/test-results/` XML, not annotation counts)
 - `./gradlew checkModuleGraph` — forbidden-edge guard (also run by `check`)

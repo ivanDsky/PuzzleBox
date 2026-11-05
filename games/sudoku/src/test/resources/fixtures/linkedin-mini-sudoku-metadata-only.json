@@ -1,0 +1,7 @@
+{
+  "$metadata":{"types":{"miniSudokuGamePuzzle":"com.linkedin.3f1c2a9d4e7b8a60"}},
+  "value":{"data":{"identityDashGamesByTodaysGame":{"elements":[{
+    "gameTypeId":7,
+    "entityUrn":"urn:li:fsd_game:(ACoAAAAAAAABWzs7tPEzjbzdTu0bZDhDZpin_Ds,7,450)",
+    "gamePuzzle":{"queensGamePuzzle":null,"miniSudokuGamePuzzle":null}}]}}}
+}

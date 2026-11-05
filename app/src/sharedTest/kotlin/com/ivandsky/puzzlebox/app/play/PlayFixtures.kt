@@ -15,6 +15,9 @@ import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.StrandsPuzzle
 import com.ivandsky.puzzlebox.games.strands.StrandsWord
 import com.ivandsky.puzzlebox.games.strands.codec.StrandsCodec
+import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
+import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
+import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
@@ -150,6 +153,21 @@ object TangoPlayFixture {
         DailyEntry(TangoDefinition.id, day, puzzleNumber, "tango/n6", fetchedAtMs)
 }
 
+/** LinkedIn Mini Sudoku #450 "Peanut": 12 givens, one solution. */
+object MiniSudokuPlayFixture {
+
+    private fun grid(text: String): List<Int> = text.filterNot { it.isWhitespace() }.map { if (it == '.') 0 else it.digitToInt() }
+
+    val puzzle: SudokuPuzzle = SudokuPuzzle(
+        SudokuGames.MINI.variant,
+        givens = grid("..3.5. .2.4.6 1..... .....2 2.4.1. .1.3.."),
+        solution = grid("463251 521436 142563 356142 234615 615324"),
+    )
+
+    /** Envelope as DailyRepository hands it to the UI (payload = codec bytes). */
+    fun envelope(): Puzzle = Puzzle(SudokuGames.MINI.id, puzzle.variant.id, SudokuCodec.VERSION, SudokuCodec.encode(puzzle))
+}
+
 /**
  * A 4×4 Strands board whose words are its rows: PIES, BAKE (the spangram, edge to edge),
  * TART and CAKE. [rows] in order solve it.
@@ -190,4 +208,5 @@ fun freshDailyForAllGames(): FakeDailyRepository = FakeDailyRepository()
     .script(ZipDefinition.id, DailyToday.Fresh(ZipPlayFixture.envelope()))
     .script(TangoDefinition.id, DailyToday.Fresh(TangoPlayFixture.envelope()))
     .script(QueensDefinition.id, DailyToday.Fresh(QueensPlayFixture.envelope()))
+    .script(SudokuGames.MINI.id, DailyToday.Fresh(MiniSudokuPlayFixture.envelope()))
     .script(StrandsDefinition.id, DailyToday.Fresh(StrandsPlayFixture.envelope()))
