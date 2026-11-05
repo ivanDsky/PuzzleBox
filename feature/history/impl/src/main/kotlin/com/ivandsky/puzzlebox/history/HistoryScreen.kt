@@ -27,13 +27,15 @@ import androidx.paging.compose.LazyPagingItems
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
+import java.time.YearMonth
 
 /**
- * The history browser (spec A18): tabs for All and each game, the tab's stats and last
- * four weeks, then its days newest first, paged lazily and grouped by day. Every row
- * carries its GameId, glyph and display name (fix round 5, defect C). Phones — and
- * portrait of any width — are single-pane (list, or a day's detail with a back arrow);
- * expanded landscape is list-detail side by side (07).
+ * The history browser (spec A18): tabs for All and each game, the tab's stats and month
+ * calendar, then its days newest first, paged lazily and grouped by day. A calendar day
+ * ([onSelectDay]) narrows the list to that day; [onShowMonth] turns the calendar's
+ * month. Every row carries its GameId, glyph and display name (fix round 5, defect C).
+ * Phones — and portrait of any width — are single-pane (list, or a day's detail with a
+ * back arrow); expanded landscape is list-detail side by side (07).
  *
  * Replay (A4, ticket 11): tapping a day opens its detail; "Play again" / "Keep going"
  * reports the (game, day) through [onReplay] and the shell opens that day's game slot.
@@ -48,6 +50,8 @@ fun HistoryScreen(
     state: HistoryUiState,
     selectedTab: GameId?,
     onSelectTab: (GameId?) -> Unit,
+    onShowMonth: (YearMonth) -> Unit,
+    onSelectDay: (LocalDate?) -> Unit,
     onReplay: (GameId, LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -87,6 +91,8 @@ fun HistoryScreen(
                     state = state,
                     selectedTab = selectedTab,
                     onSelectTab = selectTab,
+                    onShowMonth = onShowMonth,
+                    onSelectDay = onSelectDay,
                     selectedKey = selectedRow?.key,
                     onDayClick = { selectedKey = it.key },
                     onBack = onBack,
@@ -133,6 +139,8 @@ fun HistoryScreen(
                         state = state,
                         selectedTab = selectedTab,
                         onSelectTab = selectTab,
+                        onShowMonth = onShowMonth,
+                        onSelectDay = onSelectDay,
                         selectedKey = null,
                         onDayClick = { selectedKey = it.key },
                         onBack = onBack,

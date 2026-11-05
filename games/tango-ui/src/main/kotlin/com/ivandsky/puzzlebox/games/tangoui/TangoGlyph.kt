@@ -17,11 +17,11 @@ import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.gameGlyph
 
-/** Tango's glyph (identity §2.5): a filled sun disc with three rays and a stroked crescent moon, on the 24 grid. */
+/** Tango's glyph (identity §2.5): a filled sun disc beside a stroked crescent moon, no rays, on the 24 grid. */
 internal val TangoGlyph: ImageVector = gameGlyph(
     name = "Tango",
-    stroke = "M8 5v1.5M8 17.5V19M2.5 12H4M18.5 7.6A4.5 4.5 0 1 0 18.5 16.4 3.6 3.6 0 0 1 18.5 7.6Z",
-    fill = "M5 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0",
+    stroke = "M19.5 6.8A5.5 5.5 0 1 0 19.5 17.2A6 6 0 0 1 19.5 6.8Z",
+    fill = "M3.5 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0",
 )
 
 // Tango's glyph at every GameGlyphSize, tinted then solid, in light and dark.

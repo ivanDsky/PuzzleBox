@@ -33,7 +33,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Robolectric compose coverage for the history browser (A17, A18): the empty state, the
- * game tabs (the key picks the first one, a tap filters), the stats and weeks cards, day
+ * game tabs (the key picks the first one, a tap filters), the stats and calendar cards, day
  * groups, the Best pill, and the detail's hand-off — "Play again" once solved, "Keep
  * going" while unfinished; both report the (game, day) to the shell and never build a
  * session blob (ticket 11), so cache state never blocks the tap.
@@ -43,7 +43,7 @@ import org.robolectric.annotation.GraphicsMode
  *
  * Drives [HistoryRoute] over a real [HistoryViewModel] (production use cases, fake
  * repositories, stand-in game plugins) — the route's exact projection. Assertions sit on
- * tags and callbacks, never copy. Rows sit below the stats and weeks cards, so they are
+ * tags and callbacks, never copy. Rows sit below the stats and calendar cards, so they are
  * reached by scrolling the list.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -124,16 +124,16 @@ class HistoryScreenTest {
 
         awaitTag("history.empty")
         assertNoTag("history.stats")
-        assertNoTag("history.weeks")
+        assertNoTag("history.calendar")
     }
 
     @Test
-    fun `captured days list under the stats and weeks, one group per day`() {
+    fun `captured days list under the stats and calendar, one group per day`() {
         val days = listOf(day.minusDays(2), day.minusDays(1), day)
         setContent(days.map { HistoryTestSupport.entry(it) })
 
         awaitTag("history.stats")
-        awaitTag("history.weeks")
+        awaitTag("history.calendar")
         days.forEach { listed ->
             awaitRow(ZIP, listed)
             awaitTag("history.day.$listed")
