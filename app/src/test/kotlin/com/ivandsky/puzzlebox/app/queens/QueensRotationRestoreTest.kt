@@ -79,6 +79,9 @@ class QueensRotationRestoreTest {
 
     private lateinit var koinApp: org.koin.core.KoinApplication
 
+    // Stands in for kept_sessions on disk surviving the death: a second real DataStore on the same file in one JVM is a harness artifact.
+    private val kept = com.ivandsky.puzzlebox.testing.repository.FakeKeptSessionRepository()
+
     private fun startGraph(): FakeDailyRepository {
         val repo = FakeDailyRepository().apply {
             setToday(QueensDefinition.id, DailyToday.Fresh(envelope()))
@@ -92,7 +95,12 @@ class QueensRotationRestoreTest {
             modules(PuzzleBoxApplication.appModules)
         }
         koinApp.koin.loadModules(
-            listOf(module { single<DailyRepository> { repo } }),
+            listOf(
+                module {
+                    single<DailyRepository> { repo }
+                    single<com.ivandsky.puzzlebox.data.repository.KeptSessionRepository> { kept }
+                },
+            ),
             allowOverride = true,
         )
         return repo

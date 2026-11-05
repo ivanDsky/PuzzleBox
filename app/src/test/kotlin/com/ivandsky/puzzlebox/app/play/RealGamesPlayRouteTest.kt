@@ -78,6 +78,11 @@ class RealGamesPlayRouteTest {
         // the app's picker order.
         single { GameRegistry(listOf(zipPlugin, tangoPlugin, queensPlugin)) }
         single { GamePlayRegistry(listOf(ZipPlayUi(), TangoPlayUi(), QueensPlayUi())) }
+        // The picker's today's set (A14) over in-memory kept sessions (ADR-0010).
+        single<com.ivandsky.puzzlebox.data.repository.KeptSessionRepository> {
+            com.ivandsky.puzzlebox.testing.repository.FakeKeptSessionRepository()
+        }
+        factory { com.ivandsky.puzzlebox.domain.ObserveTodaySet(get(), get(), get()) }
     }
 
     private fun koinWith(
@@ -237,7 +242,10 @@ class RealGamesPlayRouteTest {
             composeRule.runOnIdle { assertTrue(live.hintCooldownActive()) }
 
             // Configuration change: the composition (and its saveable) is rebuilt while
-            // the store keeps the play — the hint cooldown and log must survive.
+            // the store keeps the play — the hint cooldown and log must survive. A real
+            // rotation pauses and stops the activity BEFORE saving state (the chrome's
+            // ON_PAUSE folds the clock), so the route's dispose-time keep folds nothing.
+            composeRule.runOnIdle { live.onBackground() } // the chrome's ON_PAUSE fold
             restoration.emulateSavedInstanceStateRestore()
             composeRule.waitForIdle()
 

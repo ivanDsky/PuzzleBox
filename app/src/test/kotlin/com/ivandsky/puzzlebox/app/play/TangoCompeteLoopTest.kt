@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.games.tangoui.TangoPlayUi
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeKeptSessionRepository
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -54,7 +55,9 @@ class TangoCompeteLoopTest {
             ui = GamePlayRegistry(listOf(tangoUi)),
             daily = daily,
             completions = completions,
+            kept = FakeKeptSessionRepository(),
             scopeFactory = { CoroutineScope(SupervisorJob() + Dispatchers.Unconfined) },
+            keepScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
         )
         val play = store.start(TangoDefinition.id) {}!!
         play.load()

@@ -56,4 +56,9 @@ object QueensBoardDefaults {
 
     // §6 lower bound reasoning: compact worst case (10x10 on 360dp) bottoms out here.
     val cellMinSize: Dp = 32.dp
+
+    // §6 pane gutter per side; dense boards (n ≥ 10) tighten it so a 12×12 fits 360dp.
+    val gutter: Dp = 16.dp
+    val compactGutter: Dp = 8.dp
+    const val compactGutterFromCells: Int = 10
 }

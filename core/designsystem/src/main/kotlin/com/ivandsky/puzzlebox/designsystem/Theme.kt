@@ -16,6 +16,13 @@ import androidx.compose.runtime.staticCompositionLocalOf
 val LocalPrimaryText = staticCompositionLocalOf { LightPrimaryText }
 
 /**
+ * Timer bar fill role (ColorTokens.kt, spec A8): the progress fill reads this instead of
+ * `colorScheme.primary`, whose light value holds under 3:1 against the
+ * `surfaceVariant` track. Provided by [PuzzleBoxTheme] like [LocalPrimaryText].
+ */
+val LocalTimerFill = staticCompositionLocalOf { LightTimerFill }
+
+/**
  * Board color roles (BoardTokens.kt, spec UIUX-01 A5): the board renders from these named
  * roles, never raw colors. Provided by [PuzzleBoxTheme] so board rendering always follows
  * the RESOLVED theme — same contract as [LocalPrimaryText], including a forced appearance
@@ -35,6 +42,7 @@ fun PuzzleBoxTheme(
 ) {
     CompositionLocalProvider(
         LocalPrimaryText provides if (darkTheme) DarkPrimaryText else LightPrimaryText,
+        LocalTimerFill provides if (darkTheme) DarkTimerFill else LightTimerFill,
         LocalBoardColors provides if (darkTheme) DarkBoardTokens else LightBoardTokens,
     ) {
         MaterialTheme(

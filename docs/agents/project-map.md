@@ -106,7 +106,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `GameHistoryDay`), `GetFeaturedGame` (registry's first game as `GameSummary`),
   `ComputeStreak`, `GetReplaySession` (cached puzzle → the game's replay blob as
   `ReplayOutcome`), `ObserveTodayLeaderboard` (identity-gated featured-game board:
-  `TodayLeaderboard`). Android library.
+  `TodayLeaderboard`), `ObserveTodaySet` (registry-order `TodayEntry` per game: Solved/InProgress/NotStarted on its cadence day). Android library.
 - `core/game/` (`:core:game`, pure JVM) — the orthogonal game contracts (ADR-0001):
   `GameDefinition`, `GameRules<P>`, `GameSession` + `GameSessionCodec`, `ScoreModel<S>` →
   `CompletionRecord?`, `PuzzleSource` (`fetch(date)` → `FetchResult`; `FetchError`), composed

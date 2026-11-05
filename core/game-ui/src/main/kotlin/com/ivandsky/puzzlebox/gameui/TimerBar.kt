@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LocalTimerFill
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import java.util.Locale
 
@@ -57,7 +58,7 @@ fun TimerBar(
                 color = if (elapsedMs > budgetMs) {
                     MaterialTheme.colorScheme.tertiary
                 } else {
-                    MaterialTheme.colorScheme.primary
+                    LocalTimerFill.current
                 },
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
             )

@@ -16,6 +16,9 @@ Official puzzle apps scatter dailies across NYT and LinkedIn with separate login
 
 - **Daily games** — today's puzzle front and center, with a preview grid and streak tracking
 - **Play history** — finished puzzles and scores stay browsable (unlike the official apps)
+- **Pick up where you left off** — leave a game mid-play (Back, another tab, or the app closing) and the picker offers Continue with the clock where you stopped
+- **Feedback you can read** — a refused move or a broken rule says why in a reserved caption under the board, so the board never jumps
+- **Honest best** — only a day's first solve can set "New best" or tie it; replays are practice and say so
 - **Custom games** — build and share puzzles via shareable archives *(planned)*
 - **Leaderboards & 1v1** — Google sign-in, compete with friends *(planned)*
 - **Adaptive design** — phone and tablet layouts, light and dark themes
