@@ -108,7 +108,7 @@ internal fun HistoryCalendar(
                 .animateContentSize(
                     if (reducedMotion) snap() else tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard),
                 )
-                .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                .padding(start = Spacing.md, end = Spacing.md, top = Spacing.xs, bottom = Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             CalendarHeader(

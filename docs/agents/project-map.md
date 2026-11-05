@@ -181,7 +181,8 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   → Unavailable; undecodable row deleted), `SlotWriter` (per-slot 300 ms trailing-throttle
   saves, `discard` on solve), `WriteLane` (one Mutex-ordered lane for every saved-play I/O),
   `HubRoute` + `HubViewModel` (Play tab's games hub: buttonless tap-to-play cards with today's status
-  line and a live board thumbnail per game), `GameRoute` + `GameViewModel` (one `GameKey`'s board; first-play tutorial
+  line and a live board thumbnail per game; phones stack them until 5+ games, then a 2-column grid of
+  `HubCardShape.Tile`s; two-pane is always a 2-column grid), `GameRoute` + `GameViewModel` (one `GameKey`'s board; first-play tutorial
   and How to play via `TutorialGate`), `ResultRoute` + `ResultViewModel` (verdict + previous
   best live, Play again, Next unsolved), `GamePicker`, `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
   `resultEntry`).

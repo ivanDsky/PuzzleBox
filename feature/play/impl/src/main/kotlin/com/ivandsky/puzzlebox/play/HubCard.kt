@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -21,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -44,16 +47,25 @@ private val NextBorderWidth = 2.dp
 private val SolvedBadgeSize = 24.dp
 private val SolvedCheckSize = 16.dp
 
+/** How a [HubCard] lays out: the thumbnail beside the text, or a [Tile] with it on top. */
+internal enum class HubCardShape {
+    /** The thumbnail on the left at its own side, the text to its right. */
+    Row,
+
+    /** The phone grid's tile: a square thumbnail filling the width, the text under it on single lines. */
+    Tile,
+}
+
 /**
  * One game's hub card (tag `hub.row.<gameId>`, A13), with no buttons: the whole card is
- * [onPlay]. On the left a [thumbSize] square shows today's board as the game draws it
- * ([thumbnail], `hub.thumb.<gameId>`); with none yet (loading, offline or unreadable)
- * it is the game's Hero glyph on its brand's accent container
- * (`hub.thumb_placeholder.<gameId>`). On the right the game's glyph and name, today's
- * status ([hubStatusLine], `hub.status.<gameId>`, none until it is known), then today's
- * puzzle number and the [best] daily time (`hub.best.<gameId>`). The [isNext] card wears
- * a 2dp accent border (`hub.next.<gameId>`); a solved day gets an accent check on the
- * thumbnail's corner (`hub.solved.<gameId>`).
+ * [onPlay]. A [thumbSize] square (in a [HubCardShape.Tile], the card's width) shows today's
+ * board as the game draws it ([thumbnail], `hub.thumb.<gameId>`); with none yet (loading,
+ * offline or unreadable) it is the game's Hero glyph on its brand's accent container
+ * (`hub.thumb_placeholder.<gameId>`). Beside it, or under it in a tile, the game's glyph and
+ * name, today's status ([hubStatusLine], `hub.status.<gameId>`, none until it is known),
+ * then today's puzzle number and the [best] daily time (`hub.best.<gameId>`). The [isNext]
+ * card wears a 2dp accent border (`hub.next.<gameId>`); a solved day gets an accent check
+ * on the thumbnail's corner (`hub.solved.<gameId>`). Both shapes share every piece and tag.
  */
 @Composable
 internal fun HubCard(
@@ -64,51 +76,76 @@ internal fun HubCard(
     onPlay: () -> Unit,
     modifier: Modifier = Modifier,
     thumbSize: Dp = HubThumbSize,
+    shape: HubCardShape = HubCardShape.Row,
 ) {
     val id = entry.game.value
     val accent = entry.brand.accent.colors()
+    val solved = entry.status is TodayStatus.Solved
     OutlinedCard(
         onClick = onPlay,
         shape = MaterialTheme.shapes.large,
         border = if (isNext) BorderStroke(NextBorderWidth, accent.accent) else CardDefaults.outlinedCardBorder(),
+        // fillMaxHeight: a grid row sizes to its tallest card (GamePicker's IntrinsicSize.Min).
         modifier = modifier
             .fillMaxWidth()
+            .fillMaxHeight()
             .testTag("hub.row.$id"),
     ) {
-        Row(
-            modifier = Modifier
-                .padding(Spacing.md)
-                .then(if (isNext) Modifier.testTag("hub.next.$id") else Modifier),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Thumbnail(entry.brand, solved = entry.status is TodayStatus.Solved, thumbnail, thumbSize, id)
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        val inner = Modifier
+            .padding(Spacing.md)
+            .then(if (isNext) Modifier.testTag("hub.next.$id") else Modifier)
+        when (shape) {
+            HubCardShape.Row -> Row(
+                modifier = inner,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    GameGlyph(entry.brand, GameGlyphSize.Inline)
-                    Text(
-                        text = entry.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                entry.status?.let { status ->
-                    Text(
-                        text = hubStatusLine(status),
-                        style = MaterialTheme.typography.bodyMedium.tabular(),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.testTag("hub.status.$id"),
-                    )
-                }
-                Meta(entry.puzzleNumber, best, id)
+                Thumbnail(entry.brand, solved, thumbnail, id, Modifier.size(thumbSize))
+                TextBlock(entry, best, tile = false, Modifier.weight(1f))
+            }
+            HubCardShape.Tile -> Column(
+                modifier = inner,
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                // Sized by its modifiers alone, so the row's intrinsic height never measures the game's
+                // thumbnail (which may use BoxWithConstraints, which can't answer intrinsics).
+                Thumbnail(entry.brand, solved, thumbnail, id, Modifier.fillMaxWidth().aspectRatio(1f))
+                TextBlock(entry, best, tile = true, Modifier.fillMaxWidth())
             }
         }
+    }
+}
+
+/** The glyph and name, today's status and the meta line; a [tile] clamps them to fit ~165dp. */
+@Composable
+private fun TextBlock(entry: HubRow, best: Long?, tile: Boolean, modifier: Modifier) {
+    val id = entry.game.value
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            GameGlyph(entry.brand, GameGlyphSize.Inline)
+            Text(
+                text = entry.name,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = if (tile) 1 else Int.MAX_VALUE,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        entry.status?.let { status ->
+            Text(
+                text = hubStatusLine(status),
+                style = MaterialTheme.typography.bodyMedium.tabular(),
+                color = MaterialTheme.colorScheme.onSurface,
+                // Two lines in a tile, so the offline line reads whole.
+                maxLines = if (tile) 2 else Int.MAX_VALUE,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag("hub.status.$id"),
+            )
+        }
+        Meta(entry.puzzleNumber, best, id)
     }
 }
 
@@ -118,11 +155,11 @@ private fun Thumbnail(
     brand: GameBrand,
     solved: Boolean,
     thumbnail: (@Composable (Modifier) -> Unit)?,
-    size: Dp,
     id: String,
+    modifier: Modifier,
 ) {
     val accent = brand.accent.colors()
-    Box(Modifier.size(size)) {
+    Box(modifier) {
         val frame = Modifier
             .fillMaxSize()
             .clip(MaterialTheme.shapes.medium)

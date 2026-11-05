@@ -210,7 +210,7 @@ class HistoryViewModelTest {
         assertEquals(TANGO, viewModel.selectedTab.value)
         val state = viewModel.uiState.first { it.rows.isNotEmpty() }
         assertEquals(listOf(TANGO), state.rows.map { it.gameId })
-        assertEquals(1, state.dotsPerDay)
+        assertEquals(1, state.gamesPerDay)
         assertEquals(listOf(TANGO), viewModel.pagedDays.asSnapshot().map { it.gameId })
 
         viewModel.select(null)
@@ -246,7 +246,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `calendar dots leave out practice and unfinished days, in tab order`() {
+    fun `calendar rings leave out practice and unfinished days, in tab order`() {
         val today = HistoryTestSupport.TODAY
         val zip = GameBrand.Neutral.copy(accent = AccentSlot.Blue)
         val tango = GameBrand.Neutral.copy(accent = AccentSlot.Orange)
@@ -345,7 +345,7 @@ class HistoryViewModelTest {
         assertEquals(today.minusDays(1), viewModel.uiState.first { it.selectedDay != null }.selectedDay)
 
         viewModel.select(TANGO)
-        val tango = viewModel.uiState.first { it.rows.isEmpty() && it.dotsPerDay == 1 }
+        val tango = viewModel.uiState.first { it.rows.isEmpty() && it.gamesPerDay == 1 }
         assertEquals("the pick stays across tabs", today.minusDays(1), tango.selectedDay)
 
         viewModel.selectDay(today.minusDays(1))

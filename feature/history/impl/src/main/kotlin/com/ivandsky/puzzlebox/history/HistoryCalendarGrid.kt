@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.history
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,13 +20,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.gameui.DayDots
+import com.ivandsky.puzzlebox.gameui.DayRing
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -35,9 +35,9 @@ import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 
-private val DayCircle = 32.dp
-private val TodayRing = 2.dp
-private val DotsGap = 2.dp
+// Inside DayRing's 17dp inner edge, so a 2dp sliver separates the disc from the ring.
+private val DayDisc = 30.dp
+private val WeekdayGap = Spacing.xs
 private val FilterIcon = 16.dp
 private const val DIMMED = 0.38f
 
@@ -110,9 +110,9 @@ internal fun CalendarMonth(month: YearMonth, state: HistoryUiState, onSelectDay:
 }
 
 /**
- * One day: its [weekday] letter (week view only) over its number — ringed today,
- * ink-filled when selected — over its dots. Later days and the neighbouring months'
- * days are dimmed with no dots; only a day the tab has a row on taps.
+ * One day: its [weekday] letter (week view only) over its [DayRing], with the number
+ * inside — on an ink disc when selected, bold on a tinted disc today. Later days and the
+ * neighbouring months' days are dimmed with no ring; only a day the tab has a row on taps.
  */
 @Composable
 private fun CalendarDay(
@@ -127,37 +127,37 @@ private fun CalendarDay(
     val today = state.today
     val later = today == null || date > today
     val selected = date == state.selectedDay
-    val circle = when {
-        selected -> Modifier.background(colors.onSurface, CircleShape)
-        date == today -> Modifier.border(TodayRing, colors.onSurface, CircleShape)
-        else -> Modifier
+    val disc = when {
+        selected -> colors.onSurface
+        date == today -> colors.surfaceContainerHighest
+        else -> null
     }
+    val shown = inMonth && !later
     Column(
         modifier = modifier
             .clip(MaterialTheme.shapes.small)
             .clickable(enabled = inMonth && !later && date in state.daysWithRows) { onSelectDay(date) }
             .then(if (inMonth) Modifier.testTag("history.calendar.day.$date") else Modifier)
-            .alpha(if (!inMonth || later) DIMMED else 1f)
-            .padding(bottom = DotsGap),
+            .alpha(if (shown) 1f else DIMMED),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(DotsGap),
+        verticalArrangement = Arrangement.spacedBy(WeekdayGap),
     ) {
         weekday?.let {
             Text(text = it, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
         }
-        Box(modifier = Modifier.size(DayCircle).then(circle), contentAlignment = Alignment.Center) {
+        // No ring is total 0: the ring keeps its size, so every week row lines up.
+        DayRing(
+            solved = if (shown) state.solvedByDay[date].orEmpty() else emptyList(),
+            total = if (shown) state.gamesPerDay else 0,
+        ) {
+            disc?.let { Box(Modifier.size(DayDisc).background(it, CircleShape)) }
             Text(
                 text = date.dayOfMonth.toString(),
                 style = MaterialTheme.typography.labelLarge.tabular(),
+                fontWeight = if (date == today && !selected) FontWeight.Bold else null,
                 color = if (selected) colors.surface else colors.onSurface,
             )
         }
-        // Neighbouring and later days keep the dots' height, so every week row lines up.
-        DayDots(
-            solved = state.solvedByDay[date].orEmpty(),
-            total = state.dotsPerDay,
-            modifier = Modifier.alpha(if (inMonth && !later) 1f else 0f),
-        )
     }
 }
 
