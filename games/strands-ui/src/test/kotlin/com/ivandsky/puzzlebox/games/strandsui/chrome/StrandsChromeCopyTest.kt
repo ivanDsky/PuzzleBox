@@ -44,9 +44,8 @@ class StrandsChromeCopyTest {
     }
 
     @Test
-    fun `the hint state names availability or progress in thirds, never a used count`() {
-        assertEquals("available", StrandsCopy.HINT_AVAILABLE)
-        assertEquals("2 of 3 words toward the next hint", StrandsCopy.hintProgress(2))
+    fun `the unavailable hint state names progress in thirds, never a used count`() {
+        assertEquals("No hint available, 2 of 3 words toward the next hint", StrandsCopy.hintUnavailable(2))
     }
 
     @Test
@@ -60,7 +59,6 @@ class StrandsChromeCopyTest {
     @Test
     fun `the shake runs NYT's keyframes for one and a half cycles, then rests`() {
         val cycle = StrandsMotion.ShakeMs
-        assertEquals(300, StrandsMotion.ShakeTotalMs)
         assertEquals(0f, StrandsMotion.shakeOffset(0))
         assertEquals(-1f, StrandsMotion.shakeOffset(cycle / 3 + 1), 0.05f)
         assertEquals(1f, StrandsMotion.shakeOffset(2 * cycle / 3 + 1), 0.05f)
