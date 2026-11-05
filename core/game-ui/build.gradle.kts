@@ -14,7 +14,5 @@ dependencies {
     implementation(projects.core.common)
 
     implementation(libs.androidx.compose.material3.windowsizeclass)
-    // The chrome's "How to play" icon (core set only; libs.versions.toml icon policy).
-    implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.kotlinx.coroutines.core)
 }

@@ -29,10 +29,6 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -67,6 +63,7 @@ import com.airbnb.android.showkase.models.ShowkaseElementsMetadata
 import com.airbnb.android.showkase.models.ShowkaseProvider
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
 // Same resolution mechanism as the stock browser activity: load the generated provider
@@ -357,11 +354,11 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
         onValueChange = onQueryChange,
         modifier = Modifier.fillMaxWidth(),
         placeholder = { Text("Search components, colors, type") },
-        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        leadingIcon = { Icon(PuzzleIcons.Search, contentDescription = null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Filled.Close, contentDescription = "Clear search")
+                    Icon(PuzzleIcons.Close, contentDescription = "Clear search")
                 }
             }
         },
@@ -600,7 +597,7 @@ private fun Chevron(expanded: Boolean) {
         label = "groupChevron",
     )
     Icon(
-        Icons.Filled.KeyboardArrowDown,
+        PuzzleIcons.ExpandMore,
         contentDescription = if (expanded) "Collapse" else "Expand",
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.rotate(rotation),

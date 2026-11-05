@@ -27,4 +27,22 @@ class MotionTokensTest {
         assertTrue(MotionTokens.SpringDampingMomentum > 0f)
         assertTrue(MotionTokens.SpringDampingMomentum < MotionTokens.SpringDampingDefault)
     }
+
+    @Test
+    fun `stamp lands from above full size on a springier curve than momentum`() {
+        assertTrue(MotionTokens.StampFromScale > 1f)
+        assertTrue(MotionTokens.StampSpringDamping < MotionTokens.SpringDampingMomentum)
+    }
+
+    @Test
+    fun `sweep outline settles before the band finishes crossing`() {
+        assertTrue(MotionTokens.SweepOutlineDuration < MotionTokens.SweepDuration)
+        assertTrue(MotionTokens.SweepBandFraction in 0f..1f)
+        assertTrue(MotionTokens.SweepAlpha in 0f..1f)
+    }
+
+    @Test
+    fun `reduced-motion fade is feedback-short`() {
+        assertTrue(MotionTokens.ReducedFadeDuration <= MotionTokens.DurationShort)
+    }
 }

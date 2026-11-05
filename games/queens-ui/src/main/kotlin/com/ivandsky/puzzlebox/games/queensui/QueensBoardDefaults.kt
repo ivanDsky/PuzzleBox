@@ -39,10 +39,6 @@ object QueensBoardDefaults {
     val violationStripeWidth: Dp = 4.dp
     val violationScrimWidth: Dp = 1.dp
 
-    // §3.3 mass exit (queen removal clears up to 3(N−1) marks): stagger 10ms/cell, cap 80ms.
-    const val autoMarkStaggerStepMillis: Long = 10L
-    const val autoMarkStaggerCapMillis: Long = 80L
-
     // §5.5 hint: boardSelection overlay at 25%, two pulse cycles of DurationExpressive.
     // Stage 2 (fix round 6): the repeat tap points at the forced cell — the overlay
     // emphasis triples and the cell renders the crown ghost at reduced alpha.

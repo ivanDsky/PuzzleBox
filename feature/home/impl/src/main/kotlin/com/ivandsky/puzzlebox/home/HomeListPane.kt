@@ -11,9 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +33,7 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.LargeTopBar
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.model.ThemeMode
 import java.time.LocalDate
@@ -73,7 +71,7 @@ internal fun ListPane(
             actions = {
                 IconButton(onClick = onOpenTheme) {
                     Icon(
-                        imageVector = Icons.Filled.Settings,
+                        imageVector = PuzzleIcons.Appearance,
                         contentDescription = "Appearance",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -202,7 +200,7 @@ private fun HistoryRow(
             }
             if (onClick != null) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    imageVector = PuzzleIcons.Chevron,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

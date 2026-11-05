@@ -80,7 +80,6 @@ dependencies {
     implementation(projects.feature.profile.impl)
 
     implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.compose.material3.windowsizeclass)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
