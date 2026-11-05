@@ -1,6 +1,6 @@
 # ADR-0009 — In-module structure rules (`:konsist`)
 
-Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5)
+Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); S6 from the sudoku run (spec A12)
 
 ## Context
 ADR-0008 guards the edges between modules. It says nothing about what is inside a module:
@@ -74,7 +74,7 @@ returns these findings:
   fixtures are protected files: a worker does not edit them to make a test pass.
 
 Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1.
-S0, P3, P4, P7 and P8 have none.
+S0, S6, P3, P4, P7 and P8 have none.
 
 ### Payload cross-reference
 The `design-architecture` payload (`references/rules-architecture.md`) states four of these as
@@ -86,7 +86,7 @@ prose rules; the tests are their mechanical form and add no stricter bar:
 - Rule 20, one public top-level type per file (private helpers, extensions, typealiases and
   previews excepted): S1.
 
-The other rules (S0, S4, S5, P1, P4–P8) have no payload twin. Dependency direction between
+The other rules (S0, S4, S5, S6, P1, P4–P8) have no payload twin. Dependency direction between
 modules stays in ADR-0008.
 
 ### Adding a rule
@@ -184,6 +184,20 @@ No literal colors outside the design system.
   meant as a palette color. Colors built another way (`Color.Red`, `Color.hsv(...)`) are not
   matched.
 - **How to fix:** use a design-system color token.
+
+## S6
+No infinite animation in games.
+
+- **Scope:** production files of `:games:*` modules.
+- **Detection:** the name `rememberInfiniteTransition`, `infiniteRepeatable` or
+  `withInfiniteAnimationFrame` in the file's code (comments and string contents removed), as an
+  import, a bare call or a qualified call. A name that only contains one of them
+  (`myInfiniteRepeatable`) is not matched. The violation is the file.
+- **Accepted misses:** an infinite loop built by hand (`while (true) { animate(...) }`, a
+  `repeatable` with a huge count) or reached through a project wrapper in another module is not
+  seen. Feature and core modules are not scanned.
+- **How to fix:** animate only in response to input, with a finite spec (`tween`, `spring`,
+  `repeatable(iterations = n)`).
 
 ## P1
 Every production file's package is under its module's package root.
