@@ -21,7 +21,7 @@ enum class QueensCellVisual { EMPTY, X_MANUAL, X_AUTO, QUEEN }
  * queens-02) render stripes + caption whenever a conflict is live. The one exception is
  * a guided lesson (spec A12): it teaches input before any rule, so the guide passed to
  * [of] holds the stripes back and instead shows [ghosts] — faint crowns on the answer
- * squares that still lack a queen.
+ * squares that still lack a queen — and [strays], the queens off the answer.
  *
  * [hintCell] is the staged ladder's stage 2 (fix round 6): a repeat hint tap on the
  * same forced cell POINTS at it — a crown ghost renders over the region pulse.
@@ -37,6 +37,7 @@ data class QueensBoardModel(
     val hintCell: Int?, // stage 2: the pointed forced cell (crown ghost)
     val win: Boolean,
     val ghosts: Set<Int> = emptySet(), // guided lesson: answer squares still without a queen
+    val strays: Set<Int> = emptySet(), // guided lesson: queens on squares outside the answer
 ) {
     val cellCount: Int get() = n * n
 
@@ -88,6 +89,7 @@ data class QueensBoardModel(
                 hintCell = hintCell,
                 win = session.isComplete,
                 ghosts = guide.orEmpty() - queenSet.map { it.idx }.toSet(),
+                strays = guide?.let { answer -> queenSet.map { it.idx }.toSet() - answer }.orEmpty(),
             )
         }
     }

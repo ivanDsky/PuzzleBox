@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -23,8 +24,8 @@ import com.ivandsky.puzzlebox.designsystem.MotionTokens
 
 /**
  * One cell: region fill, the state glyph with its §3 entrance/exit motion, the §5.5
- * hint overlay + pulse + stage-2 crown ghost, the guided lesson's answer ghost (spec
- * A12), and the A14 violation cue. All animation runs through one presence Animatable
+ * hint overlay + pulse + stage-2 crown ghost, the guided lesson's answer ghost and stray
+ * badge (spec A12), and the A14 violation cue. All animation runs through one presence Animatable
  * per cell — reduced motion collapses every transition to an instant state change.
  */
 @Composable
@@ -170,11 +171,31 @@ internal fun QueensCell(
                 drawQueen(ink, QueensBoardDefaults.queenHeightFraction, alpha = QueensBoardDefaults.hintGhostAlpha)
             }
         }
+        // Guided lesson: a queen off the answer gets a faint corner × — calm, not a rule
+        // mark — so the child sees which queen to tap away.
+        if (idx in model.strays && shown == QueensCellVisual.QUEEN) {
+            Canvas(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .fillMaxSize(QueensBoardDefaults.strayBadgeFraction)
+                    .semantics { contentDescription = STRAY_DESCRIPTION }
+                    .testTag("queens.stray.$idx"),
+            ) {
+                drawX(
+                    ink, QueensBoardDefaults.xManualWeight.toPx() / 2,
+                    QueensBoardDefaults.xManualLengthFraction,
+                    alpha = QueensBoardDefaults.hintGhostAlpha,
+                )
+            }
+        }
     }
 }
 
 /** TalkBack's line for a guided lesson's answer ghost (spec A12). */
 private const val GHOST_DESCRIPTION = "A queen goes here"
+
+/** TalkBack's line for a guided lesson's queen off the answer. */
+private const val STRAY_DESCRIPTION = "No queen here. Tap to take it away."
 
 @Composable
 private fun currentIsDarkTheme(): Boolean {

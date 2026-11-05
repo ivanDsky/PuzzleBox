@@ -51,6 +51,10 @@ object QueensBoardDefaults {
     const val hintPointedAlphaBoost: Float = 3f
     const val hintGhostAlpha: Float = 0.45f
 
+    // Guided lesson (spec A12): a queen off the answer carries a faint × in its corner
+    // (Tango's guide badge size), so a lesson with every answer placed never looks stuck.
+    const val strayBadgeFraction: Float = 0.4f
+
     // §6 upper bound: cell visual size caps at 64dp; larger panes pad instead. The cap
     // holds from 5 cells per side (every daily, A9); a smaller lesson board fills its
     // pane up to the shared PlayBoardMaxWidth, like Tango's and Zip's (queensBoardMaxSideFor).

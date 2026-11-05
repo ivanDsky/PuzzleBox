@@ -423,6 +423,22 @@ class QueensBoardUiTest {
         composeRule.onNodeWithTag("queens.ghost.7").assertExists()
     }
 
+    /** N1: on a guided board, a queen off the answer shows a corner cue TalkBack reads;
+     *  taking the queen away clears it. */
+    @Test
+    fun `a guided board marks a queen off the answer until it is taken away`() {
+        val state = setContent(QueensUiFixtures.session())
+        val answer = QueensUiFixtures.solutionCells.map { it.idx }.toSet()
+        val stray = (0 until n * n).first { it !in answer && state.session.markAt(Cell(it)) == null }
+        state.guide()
+        tap(stray / n, stray % n)
+        tap(stray / n, stray % n) // ×, then the queen lands off the answer
+        composeRule.onNodeWithTag("queens.stray.$stray")
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription))
+        tap(stray / n, stray % n) // the queen goes
+        composeRule.onNodeWithTag("queens.stray.$stray").assertDoesNotExist()
+    }
+
     /** V1: a lesson board fills the board pane the tutorial host gives it, edge to edge —
      *  no second gutter inside the board and no 64dp-per-cell cap on a 4×4. */
     @Test
