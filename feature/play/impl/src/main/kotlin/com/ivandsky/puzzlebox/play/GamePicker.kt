@@ -21,11 +21,12 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The games hub's list (tag `route.hub`): one row per playable game (`hub.row.<gameId>`),
- * in the order given. Stateless; picking a row is [onPick].
+ * in the order given. A row's subtitle reads "In progress" for a game with a save for
+ * today (A13). Stateless; picking a row is [onPick].
  */
 @Composable
 internal fun GamePicker(
-    games: List<Pair<GameId, String>>,
+    rows: List<HubRow>,
     onPick: (GameId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -41,7 +42,7 @@ internal fun GamePicker(
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        games.forEach { (game, name) ->
+        rows.forEach { (game, name, inProgress) ->
             Surface(
                 shape = MaterialTheme.shapes.large,
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -63,7 +64,7 @@ internal fun GamePicker(
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            text = "Today's daily puzzle",
+                            text = if (inProgress) "In progress" else "Today's daily puzzle",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

@@ -7,6 +7,8 @@ import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.domain.ObservePlayProgress
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -28,7 +30,8 @@ import org.junit.Test
 /**
  * The result VM for a [ResultKey]'s slot: live (the slot's play in the store) it shows
  * the play's badge, label and write retry; cold (after process death) the badge is a
- * (time, hints) match against the slot's completion records and retry is hidden.
+ * (time, hints) match against the slot's completion records and retry is hidden. The
+ * primary action is Next (the next unsolved daily) or AllDone on today's slot only.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ResultViewModelTest {
@@ -65,7 +68,7 @@ class ResultViewModelTest {
     )
     private val progress = ObservePlayProgress(fakes.games, saved, completions, calendar)
 
-    private fun vm(key: ResultKey = this.key) = ResultViewModel(key, store, completions, progress)
+    private fun vm(key: ResultKey = this.key) = ResultViewModel(key, store, completions, progress, fakes.games, calendar)
 
     private fun solveLive(): ActivePlay {
         val play = store.open(GameKey(alpha.value, day.toString()))!!
@@ -75,8 +78,8 @@ class ResultViewModelTest {
         return play
     }
 
-    private fun record(time: Long, hints: Int, date: LocalDate = day) =
-        CompletionRecord(TestGames.Ref(alpha, date, 7), time, hints, RecordStats(1, "{}"), isRecord = true)
+    private fun record(time: Long, hints: Int, date: LocalDate = day, game: GameId = alpha) =
+        CompletionRecord(TestGames.Ref(game, date, 7), time, hints, RecordStats(1, "{}"), isRecord = true)
 
     @Test
     fun `live result shows the play's badge and label`() {
@@ -125,5 +128,27 @@ class ResultViewModelTest {
         val vm = vm()
         vm.retryRecordWrite()
         assertEquals(ResultUiState(), vm.state.value)
+    }
+
+    @Test
+    fun `today's result offers the next unsolved game`() {
+        val vm = vm()
+        dispatcher.scheduler.runCurrent()
+        assertEquals(ResultPrimaryAction.Next(beta, fakes.games.displayName(beta)), vm.primary.value)
+    }
+
+    @Test
+    fun `today's result with every other game solved is all done`() {
+        completions.setRecords(listOf(record(FakeController.TIME_MS, 0, game = beta)))
+        val vm = vm()
+        dispatcher.scheduler.runCurrent()
+        assertEquals(ResultPrimaryAction.AllDone, vm.primary.value)
+    }
+
+    @Test
+    fun `a past day's result offers done, never next`() {
+        val vm = vm(key.copy(day = day.minusDays(1).toString()))
+        dispatcher.scheduler.runCurrent()
+        assertEquals(ResultPrimaryAction.Done, vm.primary.value)
     }
 }
