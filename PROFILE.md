@@ -34,6 +34,9 @@
 ## Review site publish
 always  # user ruling 2026-10-31: every review gate publishes a localhost HTML review page (REVIEW.md contract + archify diagrams); served on LAN :8777
 
+## Delivery
+- changes: pr  # user ruling 2026-11-05 (sudoku run): land runs as PRs from the run branch, as #5/#6
+
 ## Testing style
 - runner: ./gradlew :app:testDebugUnitTest   # JVM unit tests against fakes
 - approach: tdd-fakes
