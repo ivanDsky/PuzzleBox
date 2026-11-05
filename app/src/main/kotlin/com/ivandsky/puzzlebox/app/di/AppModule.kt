@@ -35,7 +35,7 @@ val appModule = module {
     // game ids (Home, History, play shell, data decode). Adding a game means one module
     // line in [PuzzleBoxApplication.appModules] (its plugin + its GamePlayUi) plus its
     // place in [GAME_ORDER]. Koin's getAll order is not a product order, so the
-    // registry is sorted here: Home's featured game and the play picker follow it.
+    // registry is sorted here: Home's Today card and the play picker follow it.
     single {
         GameRegistry(getAll<GamePlugin<*, *, *>>().sortedWith(gameOrder))
             .also { requireEveryGamePlayable(it, get()) }
@@ -54,7 +54,7 @@ internal fun requireEveryGamePlayable(games: GameRegistry, play: GamePlayRegistr
     }
 }
 
-/** Product order of the shipped games: Home's featured game first, then the picker's. */
+/** Product order of the shipped games: Home's Today card and the picker list them in this order. */
 private val GAME_ORDER = listOf("zip", "tango", "queens")
 
 /** [GAME_ORDER] rank; an unlisted game sorts after every listed one, then by id. */

@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.home
 
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -9,9 +11,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.assertTextEquals
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.GameSummary
+import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
 import org.junit.Rule
@@ -32,7 +35,7 @@ class HomeScreenTest {
         layout: HomeLayout,
         themeMode: ThemeMode = ThemeMode.SYSTEM,
         history: List<HistoryDay> = emptyList(),
-        game: GameSummary = GameSummary(GameId("zip"), "Zip"),
+        today: MutableState<List<HomeUiState.TodayRow>> = mutableStateOf(TODAY),
         identity: Identity? = null,
         onSetThemeMode: (ThemeMode) -> Unit = {},
         onPlayToday: () -> Unit = {},
@@ -42,7 +45,7 @@ class HomeScreenTest {
             PuzzleBoxTheme {
                 HomeScreen(
                     layout = layout,
-                    game = game,
+                    today = today.value,
                     identity = identity,
                     themeMode = themeMode,
                     onSetThemeMode = onSetThemeMode,
@@ -69,6 +72,46 @@ class HomeScreenTest {
 
         composeRule.onNodeWithTag("home.today_card").assertExists()
         composeRule.onNodeWithTag("home.detail_pane").assertExists()
+    }
+
+    @Test
+    fun `today card lists every game with its status and the done count`() {
+        setContent(HomeLayout.SinglePane)
+
+        composeRule.onNodeWithTag("home.today_summary").assertTextEquals("1 of 4 done")
+        composeRule.onNodeWithTag("home.today_row_zip").assertExists()
+        composeRule.onNodeWithTag("home.today_status_zip").assertTextEquals("Solved · 0:36 ✓")
+        composeRule.onNodeWithTag("home.today_status_tango").assertTextEquals("In progress · 0:42")
+        composeRule.onNodeWithTag("home.today_status_queens").assertTextEquals("Not started")
+        // Status not known yet: the row still lists the game, with no status line.
+        composeRule.onNodeWithTag("home.today_row_pinpoint").assertExists()
+        composeRule.onNodeWithTag("home.today_status_pinpoint").assertDoesNotExist()
+        composeRule.onNodeWithText("Pinpoint").assertExists()
+    }
+
+    @Test
+    fun `the done count flips when a game becomes solved`() {
+        val today = mutableStateOf(TODAY)
+        setContent(HomeLayout.SinglePane, today = today)
+        composeRule.onNodeWithTag("home.today_summary").assertTextEquals("1 of 4 done")
+
+        today.value = TODAY.map {
+            if (it.game == GameId("tango")) it.copy(status = TodayStatus.Solved(61_000L)) else it
+        }
+
+        composeRule.onNodeWithTag("home.today_summary").assertTextEquals("2 of 4 done")
+        composeRule.onNodeWithTag("home.today_status_tango").assertTextEquals("Solved · 1:01 ✓")
+    }
+
+    @Test
+    fun `two pane detail lists every game with its status and the done count`() {
+        setContent(HomeLayout.TwoPane)
+
+        composeRule.onNodeWithTag("home.detail_today_summary").assertTextEquals("1 of 4 done")
+        composeRule.onNodeWithTag("home.detail_today_status_zip").assertTextEquals("Solved · 0:36 ✓")
+        composeRule.onNodeWithTag("home.detail_today_status_tango").assertTextEquals("In progress · 0:42")
+        composeRule.onNodeWithTag("home.detail_today_status_queens").assertTextEquals("Not started")
+        composeRule.onNodeWithTag("home.detail_today_row_pinpoint").assertExists()
     }
 
     @Test
@@ -160,5 +203,15 @@ class HomeScreenTest {
         composeRule.onNodeWithText("Ivan D.").assertExists()
         composeRule.onNodeWithText("Competing on leaderboards.").assertExists()
         composeRule.onNodeWithText("Profile").assertExists()
+    }
+
+    private companion object {
+        /** Registry order; Pinpoint's status is not known yet. */
+        val TODAY = listOf(
+            HomeUiState.TodayRow(GameId("zip"), "Zip", TodayStatus.Solved(36_000L)),
+            HomeUiState.TodayRow(GameId("tango"), "Tango", TodayStatus.InProgress(42_000L)),
+            HomeUiState.TodayRow(GameId("queens"), "Queens", TodayStatus.NotStarted),
+            HomeUiState.TodayRow(GameId("pinpoint"), "Pinpoint", status = null),
+        )
     }
 }

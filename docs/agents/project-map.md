@@ -145,9 +145,10 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   UI: one `*PlayController : GamePlayController`, one `*PlayUi : GamePlayUi`, the board
   composables, and `*UiModule` (the game's `GamePlayUi`).
 - `feature/home/impl/` (`:feature:home:impl`) — `navigation/HomeEntry`, `HomeRoute` +
-  `HomeViewModel` (featured game, identity, cache-only history teaser via
+  `HomeViewModel` (today's set via `ObserveTodaySet`, identity, cache-only history teaser via
   `ObserveGameHistory`; `di/HomeModule`), `HomeScreen` with `HomeListPane`/`HomeDetailPane`/
-  `HomeCards`, `ThemeDialog`, `HomeLayout` + `homeLayoutFor` pure pane policy.
+  `HomeTodayCard` (one row per game, "n of N done")/`HomeCards`, `ThemeDialog`, `HomeLayout` +
+  `homeLayoutFor` pure pane policy.
 - `feature/play/impl/` (`:feature:play:impl`) — the one game-agnostic play surface (ADR-0006,
   ADR-0007; no `games:*` dependency): `PlaySessionStore` (Koin single: the live `ActivePlay`,
   `start`/`restore`/`end`, emits `SessionBlob` envelopes), `ActivePlay`, `PlayViewModel` +

@@ -36,7 +36,6 @@ import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.LargeTopBar
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.GameSummary
 import com.ivandsky.puzzlebox.model.ThemeMode
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -45,7 +44,7 @@ import kotlinx.coroutines.delay
 /** The left pane and the whole single-pane screen share one stacked content column. */
 @Composable
 internal fun ListPane(
-    game: GameSummary,
+    today: List<HomeUiState.TodayRow>,
     identity: Identity?,
     themeMode: ThemeMode,
     onOpenTheme: () -> Unit,
@@ -80,7 +79,7 @@ internal fun ListPane(
         )
         StaggeredItem(0) {
             TodayCard(
-                game = game,
+                today = today,
                 onPlayToday = onPlayToday,
                 cardColor = cardColor,
                 modifier = Modifier.padding(horizontal = Spacing.lg),
