@@ -205,14 +205,14 @@ class SudokuPlayUiTest {
 
     @Test
     @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
-    fun `two pane puts the keypad in the side slot and leaves the grid alone in the board pane`() {
+    fun `two pane stacks the keypad under the grid in the board pane, away from the side slot`() {
         val controller = adopted()
         setScreen(controller, PlayLayout.TwoPane)
 
-        composeRule.onNode(hasTestTag("sudoku.keypad") and hasAnyAncestor(hasTestTag("play.side_panel"))).assertExists()
-        composeRule.onNode(hasTestTag("sudoku.keypad") and hasAnyAncestor(hasTestTag("sudoku.board_area"))).assertDoesNotExist()
+        composeRule.onNode(hasTestTag("sudoku.keypad") and hasAnyAncestor(hasTestTag("sudoku.board_area"))).assertExists()
+        composeRule.onNode(hasTestTag("sudoku.keypad") and hasAnyAncestor(hasTestTag("play.side_panel"))).assertDoesNotExist()
         composeRule.onNode(hasTestTag("sudoku.grid") and hasAnyAncestor(hasTestTag("sudoku.board_area"))).assertExists()
-        composeRule.onNode(hasTestTag("sudoku.clear") and hasAnyAncestor(hasTestTag("sudoku.keypad"))).assertExists()
+        composeRule.onNodeWithTag("play.undo").assertExists()
 
         cell(0).performClick()
         key(4).performClick()

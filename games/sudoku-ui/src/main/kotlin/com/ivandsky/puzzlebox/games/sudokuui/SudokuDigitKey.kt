@@ -8,7 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -18,12 +18,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.FirstBaseline
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import kotlin.math.roundToInt
 
 private const val TABULAR_FIGURES = "tnum"
 
@@ -31,6 +36,13 @@ private const val TABULAR_FIGURES = "tnum"
 private const val EXHAUSTED_CONTENT_ALPHA = 0.38f
 
 private val NOTES_BORDER = 1.dp
+
+// Baloo 2's line boxes are much taller than its figures, so stacking two Text boxes put
+// the count on the key's bottom edge in a 48dp key. The key instead places each line by
+// its baseline: figures stand ~0.68em tall, and the digit + gap + count block is centred
+// in the key whatever its height or the font scale.
+private const val FIGURE_HEIGHT_EM = 0.68f
+private val LINE_GAP = 5.sp
 
 /**
  * One digit key: the digit over its remaining count. A fully placed digit greys out
@@ -78,21 +90,39 @@ internal fun SudokuDigitKey(
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
-        // No vertical padding: the digit and count lines (28 + 16) must fit a 48dp key unclipped.
-        Column(
-            modifier = Modifier.clearAndSetSemantics {},
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = digit.toString(),
-                style = digitStyle.copy(fontFeatureSettings = TABULAR_FIGURES),
-                color = content,
-            )
-            Text(
-                text = remaining.toString(),
-                style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = TABULAR_FIGURES),
-                color = content,
-            )
+        DigitOverCount(
+            digit = digit.toString(),
+            digitStyle = digitStyle.copy(fontFeatureSettings = TABULAR_FIGURES),
+            count = remaining.toString(),
+            countStyle = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = TABULAR_FIGURES),
+            color = content,
+        )
+    }
+}
+
+/** The digit's and count's figures as one block centred in the key, each line placed by its baseline. */
+@Composable
+private fun DigitOverCount(digit: String, digitStyle: TextStyle, count: String, countStyle: TextStyle, color: Color) {
+    Layout(
+        modifier = Modifier.fillMaxSize().clearAndSetSemantics {},
+        content = {
+            Text(text = digit, style = digitStyle, color = color, softWrap = false)
+            Text(text = count, style = countStyle, color = color, softWrap = false)
+        },
+    ) { measurables, constraints ->
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val digitText = measurables[0].measure(loose)
+        val countText = measurables[1].measure(loose)
+        val digitFigure = digitStyle.fontSize.toPx() * FIGURE_HEIGHT_EM
+        val countFigure = countStyle.fontSize.toPx() * FIGURE_HEIGHT_EM
+        val block = digitFigure + LINE_GAP.toPx() + countFigure
+        val width = if (constraints.hasBoundedWidth) constraints.maxWidth else maxOf(digitText.width, countText.width)
+        val height = if (constraints.hasBoundedHeight) constraints.maxHeight else maxOf(constraints.minHeight, 48.dp.roundToPx())
+        val digitBaseline = (height - block) / 2 + digitFigure
+        val countBaseline = digitBaseline + LINE_GAP.toPx() + countFigure
+        layout(width, height) {
+            digitText.place((width - digitText.width) / 2, (digitBaseline - digitText[FirstBaseline]).roundToInt())
+            countText.place((width - countText.width) / 2, (countBaseline - countText[FirstBaseline]).roundToInt())
         }
     }
 }

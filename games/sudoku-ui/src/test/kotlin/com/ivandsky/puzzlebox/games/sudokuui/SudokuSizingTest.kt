@@ -19,7 +19,7 @@ class SudokuSizingTest {
     private val heightReserve = 256.dp
 
     private fun portrait(width: Int, height: Int, size: Int): SudokuLayout =
-        SudokuSizing.layout(width.dp - widthReserve, height.dp - heightReserve, size, keypadBeside = false)
+        SudokuSizing.layout(width.dp - widthReserve, height.dp - heightReserve, size)
 
     private fun assertFitsStacked(layout: SudokuLayout, width: Int, height: Int, size: Int) {
         val paneWidth = width.dp - widthReserve
@@ -69,40 +69,34 @@ class SudokuSizingTest {
     }
 
     @Test
-    fun `tablet landscape with the keypad beside caps the board in the board pane`() {
-        // Tab S9 landscape, 1280x800: TwoPane gives the board 62% of the width, full height;
-        // the side slot (~454dp after padding) is too narrow for 9 keys in one row.
-        val paneWidth = 1280.dp * 0.62f
-        val nine = SudokuSizing.layout(paneWidth, 800.dp, 9, keypadBeside = true)
-        assertEquals(SudokuLayout(cell = 61.dp, board = 549.dp, key = 64.dp, keyGap = 8.dp, keyRows = 2), nine)
+    fun `tablet landscape stacks a capped board over a one-row keypad in the board pane`() {
+        // Tab S9 landscape, 1280x800: TwoPane gives the board pane 62% of the width and the
+        // full height, less the 12dp gutters; the keypad sits under the grid, not in the side slot.
+        val paneWidth = 1280.dp * 0.62f - 24.dp
+        val paneHeight = 800.dp - 24.dp
+        val nine = SudokuSizing.layout(paneWidth, paneHeight, 9)
+        assertEquals(SudokuLayout(cell = 61.dp, board = 549.dp, key = 64.dp, keyGap = 8.dp, keyRows = 1), nine)
+        assertTrue(nine.board + SudokuSizing.stackedKeypadHeight(nine) <= paneHeight)
 
-        val six = SudokuSizing.layout(paneWidth, 800.dp, 6, keypadBeside = true)
+        val six = SudokuSizing.layout(paneWidth, paneHeight, 6)
         assertEquals(SudokuLayout(cell = 92.dp, board = PlayBoardMaxWidth, key = 64.dp, keyGap = 8.dp, keyRows = 1), six)
-    }
-
-    @Test
-    fun `keypad beside sizes the board against the full height`() {
-        val beside = SudokuSizing.layout(800.dp, 480.dp, 9, keypadBeside = true)
-        val stacked = SudokuSizing.layout(800.dp, 480.dp, 9, keypadBeside = false)
-        assertEquals(477.dp, beside.board) // 480 / 9 → 53dp cells
-        assertEquals(360.dp, stacked.board) // (480 − 2 × (48 + 8) keypad) / 9 → 40dp cells
+        assertTrue(six.board + SudokuSizing.stackedKeypadHeight(six) <= paneHeight)
     }
 
     @Test
     fun `every pane keeps keys at least 48dp and the board a whole multiple of the cell under the cap`() {
         val widths = listOf(200, 320, 360, 411, 600, 800, 1000, 1280)
         val heights = listOf(300, 480, 640, 891, 1280)
-        for (size in listOf(6, 9)) for (w in widths) for (h in heights) for (beside in listOf(false, true)) {
-            val layout = SudokuSizing.layout(w.dp, h.dp, size, beside)
-            val case = "size=$size ${w}x$h beside=$beside $layout"
+        for (size in listOf(6, 9)) for (w in widths) for (h in heights) {
+            val layout = SudokuSizing.layout(w.dp, h.dp, size)
+            val case = "size=$size ${w}x$h $layout"
             assertTrue(case, layout.key >= 48.dp)
             assertTrue(case, layout.keyRows in 1..2)
             assertTrue(case, layout.board <= PlayBoardMaxWidth)
             assertTrue(case, layout.board <= w.dp)
-            val keypadBelow = if (beside) 0.dp else SudokuSizing.stackedKeypadHeight(layout)
-            assertTrue(case, layout.board + keypadBelow <= h.dp)
+            assertTrue(case, layout.board + SudokuSizing.stackedKeypadHeight(layout) <= h.dp)
             // Two rows of 5 keys at 48dp plus gaps need 272dp; narrower panes cannot hold the floor.
-            if (!beside && w >= 272) assertTrue(case, digitKeyWidth(layout, w.dp, size) >= 48.dp)
+            if (w >= 272) assertTrue(case, digitKeyWidth(layout, w.dp, size) >= 48.dp)
             assertEquals(case, layout.cell * size, layout.board)
             assertEquals(case, floor(layout.cell.value), layout.cell.value, 0f)
         }
