@@ -73,7 +73,8 @@ internal fun TodayCard(
                 onClick = onPlayToday,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = Spacing.md),
+                    .padding(top = Spacing.md)
+                    .testTag("home.play_today"),
             )
         }
     }

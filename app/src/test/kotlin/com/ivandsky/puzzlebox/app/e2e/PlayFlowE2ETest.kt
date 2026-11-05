@@ -33,11 +33,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Play-flow rows of the transition table (spec §2.6) over the real shell: N2–N9, SC4 (back
- * from Result lands on its origin — the hub here in N5, Home's "Play today" in N9; the
- * History replay origin is HistoryE2ETest's N11) and SC10 ("Next" names the next unsolved
- * daily; all done shows when nothing is left, and Done returns to the origin). Every row
- * asserts the navigation state (with SC2's selected tab) and the visible `route.*` tag.
+ * Play-flow rows of the transition table (spec §2.6) over the real shell: N2, N4–N9 (N3 is
+ * PlayBackE2ETest's), SC4 (back from Result lands on its origin — the hub here in N5, Home's
+ * "Play today" in N9; the History replay origin is HistoryE2ETest's N11) and SC10 ("Next"
+ * names the next unsolved daily; all done shows when nothing is left, and Done returns to
+ * the origin). Every row asserts the navigation state (with SC2's selected tab) and the
+ * visible `route.*` tag.
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -52,39 +53,6 @@ class PlayFlowE2ETest {
 
         assertState(inZip)
         assertRoute(GAME)
-    }
-
-    @Test
-    fun `N3 system back from a game returns to the hub`() = shellRobot(playHub) {
-        openGame(ZIP)
-
-        back()
-
-        assertState(playHub)
-        assertRoute(HUB)
-    }
-
-    @Test
-    fun `N3 Up from a game returns to the hub`() = shellRobot(playHub) {
-        openGame(ZIP)
-
-        tap(GAME_UP)
-
-        assertState(playHub)
-        assertRoute(HUB)
-    }
-
-    @Test
-    fun `N3 predictive back cancelled stays on the game, committed returns to the hub`() = shellRobot(playHub) {
-        openGame(ZIP)
-
-        predictiveBack(commit = false)
-        assertState(inZip)
-        assertRoute(GAME)
-
-        predictiveBack(commit = true)
-        assertState(playHub)
-        assertRoute(HUB)
     }
 
     @Test
@@ -264,7 +232,6 @@ class PlayFlowE2ETest {
         const val HUB = "route.hub"
         const val GAME = "route.game"
         const val RESULT = "route.result"
-        const val GAME_UP = "game.up"
         const val NEXT = "result.next"
         const val DONE = "result.done"
         const val PLAY_AGAIN = "result.playAgain"

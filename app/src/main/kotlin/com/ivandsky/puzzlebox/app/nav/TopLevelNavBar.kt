@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.app.nav
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
@@ -16,13 +17,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 
 /**
  * The bottom bar for the single-pane shapes: one item per [topLevelDestinations] entry,
  * tagged with [TopLevelDestination.tag]; the item whose key is [selected] carries the
- * selected semantics. Items whose key is in [badged] carry a badge dot (A13, SC11); the
- * caller decides which keys, so the bar never names a tab.
+ * selected semantics. Items whose key is in [badged] carry a primary-coloured badge dot at
+ * the icon's top end, except the selected item, whose screen already shows the cue (A13,
+ * SC11); the caller decides which keys, so the bar never names a tab.
  */
 @Composable
 internal fun TopLevelNavBar(
@@ -36,7 +39,7 @@ internal fun TopLevelNavBar(
             NavigationBarItem(
                 selected = selected == destination.key,
                 onClick = { onSelect(destination.key) },
-                icon = { TabIcon(destination, badged = destination.key in badged) },
+                icon = { TabIcon(destination, badged = showsBadge(destination, selected, badged)) },
                 label = { Text(destination.label) },
                 modifier = Modifier.testTag(destination.tag),
             )
@@ -57,7 +60,7 @@ internal fun TopLevelNavRail(
             NavigationRailItem(
                 selected = selected == destination.key,
                 onClick = { onSelect(destination.key) },
-                icon = { TabIcon(destination, badged = destination.key in badged) },
+                icon = { TabIcon(destination, badged = showsBadge(destination, selected, badged)) },
                 label = { Text(destination.label) },
                 modifier = Modifier.testTag(destination.tag),
             )
@@ -71,15 +74,20 @@ internal const val IN_PROGRESS_BADGE_DESCRIPTION = "Game in progress"
 /** Test tag of a badge dot: `<tab tag>.badge`. */
 internal fun badgeTag(destination: TopLevelDestination): String = "${destination.tag}.badge"
 
+/** The dot shows on a badged tab only while another tab is selected. */
+private fun showsBadge(destination: TopLevelDestination, selected: NavKey, badged: Set<NavKey>): Boolean =
+    destination.key in badged && destination.key != selected
+
 @Composable
 private fun TabIcon(destination: TopLevelDestination, badged: Boolean) {
     if (badged) {
         BadgedBox(
             badge = {
                 Badge(
-                    Modifier
+                    modifier = Modifier
                         .testTag(badgeTag(destination))
                         .semantics { contentDescription = IN_PROGRESS_BADGE_DESCRIPTION },
+                    containerColor = MaterialTheme.colorScheme.primary,
                 )
             },
         ) {
@@ -94,7 +102,7 @@ private fun TabIcon(destination: TopLevelDestination, badged: Boolean) {
 @Composable
 internal fun TopLevelNavBarPreview() {
     PuzzleBoxTheme {
-        TopLevelNavBar(selected = PlayKey, onSelect = {}, badged = setOf(PlayKey))
+        TopLevelNavBar(selected = HomeKey, onSelect = {}, badged = setOf(PlayKey))
     }
 }
 
@@ -102,6 +110,6 @@ internal fun TopLevelNavBarPreview() {
 @Composable
 internal fun TopLevelNavRailPreview() {
     PuzzleBoxTheme {
-        TopLevelNavRail(selected = PlayKey, onSelect = {}, badged = setOf(PlayKey))
+        TopLevelNavRail(selected = HomeKey, onSelect = {}, badged = setOf(PlayKey))
     }
 }

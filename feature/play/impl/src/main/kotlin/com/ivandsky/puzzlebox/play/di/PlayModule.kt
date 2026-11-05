@@ -51,6 +51,6 @@ val playModule = module {
         )
     }
     viewModel { HubViewModel(get(), get()) }
-    viewModel { (key: GameKey) -> GameViewModel(key, get()) }
+    viewModel { (key: GameKey) -> GameViewModel(key, get(), get()) }
     viewModel { (key: ResultKey) -> ResultViewModel(key, get(), get(), get(), get(), get()) }
 }

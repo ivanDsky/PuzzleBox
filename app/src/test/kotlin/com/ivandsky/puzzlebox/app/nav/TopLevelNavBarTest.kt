@@ -30,7 +30,7 @@ import org.robolectric.annotation.Config
  * SC2 contract for the shell's tabs: the bar and the rail each render exactly one
  * `nav.tab.<name>` item per top-level destination, only the selected destination's item
  * carries selected semantics, and a tap reports that destination's key. SC11: a badged key
- * shows the described dot on its own item only.
+ * shows the described dot on its own item only, and never while that item is selected.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
@@ -57,6 +57,27 @@ class TopLevelNavBarTest {
     @Test
     fun `rail shows the dot on play only when play is badged`() {
         assertBadge { badged -> TopLevelNavRail(selected = HomeKey, onSelect = {}, badged = badged) }
+    }
+
+    @Test
+    fun `bar hides the dot while play is selected`() {
+        assertBadgeHiddenWhenSelected { selected -> TopLevelNavBar(selected = selected, onSelect = {}, badged = setOf(PlayKey)) }
+    }
+
+    @Test
+    fun `rail hides the dot while play is selected`() {
+        assertBadgeHiddenWhenSelected { selected -> TopLevelNavRail(selected = selected, onSelect = {}, badged = setOf(PlayKey)) }
+    }
+
+    private fun assertBadgeHiddenWhenSelected(content: @Composable (NavKey) -> Unit) {
+        var selected by mutableStateOf<NavKey>(PlayKey)
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) { content(selected) }
+        }
+        assertDots(expected = emptySet())
+        selected = HomeKey
+        composeRule.waitForIdle()
+        assertDots(expected = setOf(PlayKey))
     }
 
     private fun assertBadge(content: @Composable (Set<NavKey>) -> Unit) {

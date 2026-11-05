@@ -202,7 +202,10 @@ class PlayLeaveE2ETest {
         relaunch()
         assertState(playHub)
         awaitText(IN_PROGRESS)
+        // The dot marks the Play tab only while another tab is selected.
+        tapTab(HomeKey)
         awaitTag(PLAY_BADGE)
+        tapTab(PlayKey)
         openGame(ZIP)
         assertResumed(killed)
     }

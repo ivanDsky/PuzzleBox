@@ -1,11 +1,13 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -71,6 +73,7 @@ class GameRouteTest {
         setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
         setHistory(alpha, listOf(DailyEntry(alpha, day, 7, "alpha/v1", 0L)))
     }
+    private val calendar = FakeGameCalendar(day)
 
     private var koin: KoinApplication? = null
 
@@ -86,7 +89,7 @@ class GameRouteTest {
                     single<GameRegistry> { fakes.games }
                     single<GamePlayRegistry> { fakes.registry }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
-                    single<GameCalendar> { FakeGameCalendar(day) }
+                    single<GameCalendar> { calendar }
                     factory { GetReplaySession(get(), get()) }
                 },
                 playModule,
@@ -172,6 +175,26 @@ class GameRouteTest {
         composeRule.waitForIdle()
         composeRule.onAllNodesWithText("alpha board 1").assertCountEquals(2)
         assertEquals("one slot, one fetch", 1, daily.todayCalls(alpha))
+    }
+
+    @Test
+    fun `a today board kept across midnight is labelled yesterday's, a dated one never`() {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                Column {
+                    GameRoute(key = key, layout = PlayLayout.SinglePane, onBack = {}, onSolved = { _, _, _ -> })
+                    GameRoute(key = GameKey(alpha.value, "$day"), layout = PlayLayout.SinglePane, onBack = {}, onSolved = { _, _, _ -> })
+                }
+            }
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("game.past_day").assertDoesNotExist()
+
+        composeRule.runOnIdle { calendar.setAll(day.plusDays(1)) }
+        composeRule.waitForIdle()
+
+        composeRule.onAllNodesWithTag("game.past_day").assertCountEquals(1)
+        composeRule.onNodeWithText("Yesterday's puzzle").assertExists()
     }
 
     private data object RootKey : NavKey
