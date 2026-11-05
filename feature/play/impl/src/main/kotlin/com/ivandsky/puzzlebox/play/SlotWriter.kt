@@ -10,7 +10,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Coalesces one slot's disk saves (A10: latest wins, written within 500 ms). A trailing
+ * Coalesces one slot's disk saves (A10: latest wins, written within 500 ms) — each blob with
+ * the play's displayed elapsed at that change (the "In progress · m:ss" status). A trailing
  * throttle, not a debounce: the first [offer] opens a [window] and its end writes the
  * latest blob, so continuous moves cannot starve the save. A solve's [discard] supersedes
  * the pending save. Every write goes through the store's shared [lane], so a later writer
@@ -26,15 +27,16 @@ internal class SlotWriter(
     private val scope: CoroutineScope,
     private val window: Duration = 300.milliseconds,
 ) {
-    /** The newest blob not yet handed to the lane. */
-    private var pending: ByteArray? = null
+    /** The newest blob and its elapsed ms, not yet handed to the lane. */
+    private var pending: Pending? = null
 
     /** The open throttle window; null when no window is open. */
     private var timer: Job? = null
 
-    /** Keeps [blob] as the latest; the first offer of a window opens it, its end writes the latest. */
-    fun offer(blob: ByteArray) {
-        pending = blob
+    /** Keeps [blob] at [elapsedMs] as the latest; the first offer of a window opens it, its
+     *  end writes the latest. */
+    fun offer(blob: ByteArray, elapsedMs: Long) {
+        pending = Pending(blob, elapsedMs)
         if (timer != null) return
         timer = scope.launch {
             delay(window)
@@ -64,8 +66,10 @@ internal class SlotWriter(
     }
 
     private fun drain() {
-        val blob = pending ?: return
+        val next = pending ?: return
         pending = null
-        lane.enqueue(scope) { saved.save(slot, blob) }
+        lane.enqueue(scope) { saved.save(slot, next.blob, next.elapsedMs) }
     }
+
+    private class Pending(val blob: ByteArray, val elapsedMs: Long)
 }

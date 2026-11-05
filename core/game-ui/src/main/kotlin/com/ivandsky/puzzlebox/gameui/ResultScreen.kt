@@ -38,8 +38,8 @@ private val CompactHeight = 480.dp
 /**
  * The solved-session result surface (ticket 23, spec UIUX-01 A3/A9). Its own nav route
  * paints an opaque scene — the finished board never bleeds through. Content is the
- * existing A3 facts only: time (the hero), hints and the new-record badge (A9: no
- * streaks, no percentiles, no new metrics).
+ * existing A3 facts only: time (the hero), hints and the honest-best badge with its
+ * previous-best line (A9, A10: no streaks, no percentiles, no new metrics).
  *
  * Actions (A7, SC10): [primary] is the one filled button, handed back through
  * [onPrimary] — "Next: <game>", Done under the "All done for today" sub-headline, or a
@@ -53,16 +53,16 @@ private val CompactHeight = 480.dp
  * gaps so both actions stay visible; anything taller centres. Either way the column
  * scrolls rather than squeezing the actions to nothing.
  *
- * The badge renders from the in-memory verdict whenever it lands — this screen NEVER
- * waits on the record write (F2 §7 fire-and-observe, unchanged); [isRecord] null means
- * the write is still in flight or the verdict is unknown. A failed write stays
+ * The badge renders from the in-memory [verdict] whenever it lands — this screen NEVER
+ * waits on the record write (F2 §7 fire-and-observe, unchanged); null means the write is
+ * still in flight or the verdict is unknown. [previousBestMs] is the best before this play. A failed write stays
  * surfaced and retryable here, where the player actually is after solving.
  *
  * Core | game split: this shell is the same for every game. A game tweaks it through
  * [label] (its own line under the headline — game name + puzzle number), which
  * defaults to nothing.
  *
- * Restraint (senior-UX Lens 7): one accent moment — the record tag; type hierarchy
+ * Restraint (senior-UX Lens 7): one accent moment — the best badge; type hierarchy
  * from AppTypography; theme roles only, zero ad-hoc colors.
  */
 @Composable
@@ -73,7 +73,8 @@ fun ResultScreen(
     onPrimary: () -> Unit,
     onPlayAgain: (() -> Unit)?,
     modifier: Modifier = Modifier,
-    isRecord: Boolean? = null,
+    verdict: RecordVerdict? = null,
+    previousBestMs: Long? = null,
     writeFailed: Boolean = false,
     onRetryWrite: () -> Unit = {},
     label: String? = null,
@@ -140,8 +141,9 @@ fun ResultScreen(
                 },
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            // The run's ONE accent moment: the record tag — no confetti, no second accent.
-            if (isRecord == true) RecordTag()
+            // The run's ONE accent moment: the best badge — no confetti, no second accent.
+            RecordTag(verdict)
+            BestLine(verdict, previousBestMs)
             Text(
                 text = if (hintsUsed == 1) "1 hint" else "$hintsUsed hints",
                 style = MaterialTheme.typography.bodyLarge,
@@ -179,8 +181,8 @@ fun ResultScreen(
     }
 }
 
-// Previews — internal, light + dark inside PuzzleBoxTheme: today's live result (badge,
-// label, Next), a cold result after process death (no badge), all done, and a replay.
+// Previews — internal, light + dark inside PuzzleBoxTheme: today's live result (new best,
+// label, Next), a cold result after process death (no verdict), all done, and a replay.
 
 @PuzzleBoxPreviews
 @Composable
@@ -192,7 +194,8 @@ internal fun ResultScreenLivePreview() {
             primary = ResultPrimaryAction.Next(GameId("tango"), "Tango"),
             onPrimary = {},
             onPlayAgain = {},
-            isRecord = true,
+            verdict = RecordVerdict.NewBest,
+            previousBestMs = 112_000,
             label = "Zip · #42",
         )
     }
@@ -237,6 +240,8 @@ internal fun ResultScreenReplayPreview() {
             primary = ResultPrimaryAction.Done,
             onPrimary = {},
             onPlayAgain = {},
+            verdict = RecordVerdict.Replay,
+            previousBestMs = 88_000,
             label = "Zip · #41",
         )
     }

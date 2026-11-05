@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -40,4 +41,7 @@ internal class RoomCompletionRepository(
         dao.observeReplays(PuzzleRefKeys.encode(puzzleRef)).map { rows ->
             rows.mapNotNull { it.toModel(registry) }
         }
+
+    // PuzzleRefKeys.encode leads every key with "$gameId/".
+    override suspend fun bestTimeMs(game: GameId): Long? = dao.bestTimeMs("${game.value}/")
 }

@@ -1,8 +1,8 @@
 package com.ivandsky.puzzlebox.play
 
-import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -14,8 +14,10 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.GetReplaySession
-import com.ivandsky.puzzlebox.domain.ObservePlayProgress
+import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
@@ -43,7 +45,8 @@ import org.robolectric.annotation.Config
 /**
  * The Play tab's games hub over stand-in games: one row per playable game in registry
  * order under `route.hub`, picking a row reports that game without fetching, and a game
- * with a save for today reads "In progress" (A13, SC11).
+ * reads today's status and what a tap does: a save "In progress · m:ss" / Continue, a solve
+ * "Solved · m:ss ✓" / Replay, otherwise "Not started" / Play (A13, A14, SC11).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -58,6 +61,7 @@ class HubRouteTest {
     private val daily = FakeDailyRepository()
     private val today = LocalDate.parse("2026-11-04")
     private val saved = FakeSavedPlayRepository()
+    private val completions = FakeCompletionRepository()
 
     private var koin: KoinApplication? = null
 
@@ -69,13 +73,13 @@ class HubRouteTest {
                 commonModule,
                 module {
                     single<DailyRepository> { daily }
-                    single<CompletionRepository> { FakeCompletionRepository() }
+                    single<CompletionRepository> { completions }
                     single<GameRegistry> { fakes.games }
                     single<GamePlayRegistry> { fakes.registry }
                     single<SavedPlayRepository> { saved }
                     single<GameCalendar> { FakeGameCalendar(today) }
                     factory { GetReplaySession(get(), get()) }
-                    factory { ObservePlayProgress(get(), get(), get(), get()) }
+                    factory { ObserveTodaySet(get(), get(), get(), get()) }
                 },
                 playModule,
             )
@@ -119,13 +123,32 @@ class HubRouteTest {
     }
 
     @Test
-    fun `a game saved today reads in progress and the others do not`() {
-        runBlocking { saved.save(PlaySlot(zip, today), byteArrayOf(1)) }
+    fun `a game saved today reads in progress with its clock and continue`() {
+        runBlocking { saved.save(PlaySlot(zip, today), byteArrayOf(1), elapsedMs = 42_000L) }
         setContent {}
 
-        composeRule.waitUntil { composeRule.onAllNodesWithText("In progress").fetchSemanticsNodes().isNotEmpty() }
-        composeRule.onNodeWithTag("hub.row.zip").assert(hasText("In progress"))
-        composeRule.onNodeWithTag("hub.row.alpha").assert(hasText("In progress").not())
-        assertEquals(1, composeRule.onAllNodesWithText("In progress").fetchSemanticsNodes().size)
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithTag("hub.status.zip", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("hub.status.zip", useUnmergedTree = true).assertTextEquals("In progress · 0:42")
+        composeRule.onNodeWithTag("hub.action.zip", useUnmergedTree = true).assertTextEquals("Continue")
+        composeRule.onNodeWithTag("hub.status.alpha", useUnmergedTree = true).assertTextEquals("Not started")
+        composeRule.onNodeWithTag("hub.action.alpha", useUnmergedTree = true).assertTextEquals("Play")
+    }
+
+    @Test
+    fun `a game solved today reads solved with its time and replay`() {
+        runBlocking {
+            completions.onCompleted(
+                CompletionRecord(TestGames.Ref(zip, today, 7), time = 36_000L, hints = 0, stats = RecordStats(1, "{}")),
+            )
+        }
+        setContent {}
+
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText("Solved · 0:36 ✓", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("hub.status.zip", useUnmergedTree = true).assertTextEquals("Solved · 0:36 ✓")
+        composeRule.onNodeWithTag("hub.action.zip", useUnmergedTree = true).assertTextEquals("Replay")
     }
 }

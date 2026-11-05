@@ -160,7 +160,7 @@ class ProcessDeathE2ETest {
         val older = (CAP downTo 1).map { PlaySlot(ZipDefinition.id, E2E_TODAY.minusDays(it.toLong())) }
         runBlocking {
             older.forEach { slot ->
-                saves.save(slot, byteArrayOf(1))
+                saves.save(slot, byteArrayOf(1), elapsedMs = 0L)
                 // Room stamps saves in epoch ms: keep the seeded order strict.
                 Thread.sleep(SAVE_GAP_MS)
             }

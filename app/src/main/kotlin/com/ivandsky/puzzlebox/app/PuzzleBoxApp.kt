@@ -19,7 +19,8 @@ import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.screens.CatalogUnavailableScreen
-import com.ivandsky.puzzlebox.domain.ObservePlayProgress
+import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.gameui.playLayoutFor
 import com.ivandsky.puzzlebox.history.historyLayoutFor
 import com.ivandsky.puzzlebox.home.HomeLayout
@@ -42,7 +43,7 @@ fun PuzzleBoxApp(
     onSetThemeMode: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,
     navigator: Navigator = rememberNavigator(),
-    observePlayProgress: ObservePlayProgress = koinInject(),
+    todaySet: ObserveTodaySet = koinInject(),
 ) {
     // Two-pane needs width AND height: a large tablet in portrait still measures
     // Expanded by width class, so the orientation comes from the current window
@@ -68,8 +69,8 @@ fun PuzzleBoxApp(
     )
     val expanded = layout == HomeLayout.TwoPane
     val selected = navigator.state.tab
-    val anyInProgress by remember(observePlayProgress) {
-        observePlayProgress().map { it.anyInProgress }
+    val anyInProgress by remember(todaySet) {
+        todaySet().map { entries -> entries.any { it.status is TodayStatus.InProgress } }
     }.collectAsStateWithLifecycle(initialValue = false)
     val badged = if (anyInProgress) setOf(PlayKey) else emptySet()
 

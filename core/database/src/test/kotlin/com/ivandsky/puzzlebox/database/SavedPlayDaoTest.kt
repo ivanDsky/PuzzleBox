@@ -35,16 +35,16 @@ class SavedPlayDaoTest {
         db.close()
     }
 
-    private fun row(gameId: String, day: String, updatedAt: Long, vararg bytes: Byte) =
-        SavedPlayEntity(gameId = gameId, day = day, blob = bytes, updatedAt = updatedAt)
+    private fun row(gameId: String, day: String, updatedAt: Long, vararg bytes: Byte, elapsedMs: Long = 0L) =
+        SavedPlayEntity(gameId = gameId, day = day, blob = bytes, elapsedMs = elapsedMs, updatedAt = updatedAt)
 
     @Test
-    fun `saving the same daily again replaces its blob`() = runTest {
-        dao.saveAndPrune(row("zip", "2026-11-01", 1_000L, 1, 2), cap = 5)
-        dao.saveAndPrune(row("zip", "2026-11-01", 2_000L, 3, 4, 5), cap = 5)
+    fun `saving the same daily again replaces its blob and elapsed`() = runTest {
+        dao.saveAndPrune(row("zip", "2026-11-01", 1_000L, 1, 2, elapsedMs = 5_000L), cap = 5)
+        dao.saveAndPrune(row("zip", "2026-11-01", 2_000L, 3, 4, 5, elapsedMs = 7_000L), cap = 5)
 
         assertArrayEquals(byteArrayOf(3, 4, 5), dao.blob("zip", "2026-11-01"))
-        assertEquals(listOf(SavedPlaySlotRow("zip", "2026-11-01")), dao.observeSlots().first())
+        assertEquals(listOf(SavedPlaySlotRow("zip", "2026-11-01", 7_000L)), dao.observeSlots().first())
     }
 
     @Test
@@ -60,7 +60,7 @@ class SavedPlayDaoTest {
 
         assertNull(dao.blob("zip", "2026-11-01"))
         assertEquals(
-            listOf(SavedPlaySlotRow("zip", "2026-11-02"), SavedPlaySlotRow("tango", "2026-11-01")),
+            listOf(SavedPlaySlotRow("zip", "2026-11-02", 0L), SavedPlaySlotRow("tango", "2026-11-01", 0L)),
             dao.observeSlots().first(),
         )
     }
@@ -73,7 +73,7 @@ class SavedPlayDaoTest {
         dao.saveAndPrune(row("queens", "2026-11-01", 4_000L, 4), cap = 2)
 
         assertEquals(
-            listOf(SavedPlaySlotRow("queens", "2026-11-01"), SavedPlaySlotRow("zip", "2026-11-01")),
+            listOf(SavedPlaySlotRow("queens", "2026-11-01", 0L), SavedPlaySlotRow("zip", "2026-11-01", 0L)),
             dao.observeSlots().first(),
         )
     }
@@ -87,6 +87,6 @@ class SavedPlayDaoTest {
 
         assertNull(dao.blob("zip", "2026-11-01"))
         assertArrayEquals(byteArrayOf(2), dao.blob("zip", "2026-11-02"))
-        assertEquals(listOf(SavedPlaySlotRow("zip", "2026-11-02")), dao.observeSlots().first())
+        assertEquals(listOf(SavedPlaySlotRow("zip", "2026-11-02", 0L)), dao.observeSlots().first())
     }
 }

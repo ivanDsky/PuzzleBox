@@ -19,8 +19,14 @@ internal class RoomSavedPlayRepository(
     private val clock: () -> Long = System::currentTimeMillis,
 ) : SavedPlayRepository {
 
-    override suspend fun save(slot: PlaySlot, blob: ByteArray) {
-        val row = SavedPlayEntity(gameId = slot.gameId.value, day = slot.day.toString(), blob = blob, updatedAt = clock())
+    override suspend fun save(slot: PlaySlot, blob: ByteArray, elapsedMs: Long) {
+        val row = SavedPlayEntity(
+            gameId = slot.gameId.value,
+            day = slot.day.toString(),
+            blob = blob,
+            elapsedMs = elapsedMs,
+            updatedAt = clock(),
+        )
         dao.saveAndPrune(row, CAP)
     }
 
@@ -30,9 +36,9 @@ internal class RoomSavedPlayRepository(
         dao.delete(slot.gameId.value, slot.day.toString())
     }
 
-    override fun observeInProgress(): Flow<Set<PlaySlot>> =
+    override fun observeInProgress(): Flow<Map<PlaySlot, Long>> =
         dao.observeSlots()
-            .map { rows -> rows.mapTo(LinkedHashSet()) { PlaySlot(GameId(it.gameId), LocalDate.parse(it.day)) } }
+            .map { rows -> rows.associate { PlaySlot(GameId(it.gameId), LocalDate.parse(it.day)) to it.elapsedMs } }
             .distinctUntilChanged()
 
     private companion object {

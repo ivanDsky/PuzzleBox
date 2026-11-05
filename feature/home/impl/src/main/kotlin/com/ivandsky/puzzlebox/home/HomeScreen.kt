@@ -13,7 +13,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.luminance
 import com.ivandsky.puzzlebox.data.identity.Identity
-import com.ivandsky.puzzlebox.domain.GameSummary
 import com.ivandsky.puzzlebox.model.ThemeMode
 
 /** One row in the history teaser. Phase 0 renders the day only; scores land in Phase 1. */
@@ -27,22 +26,23 @@ data class HistoryDay(
  * The real Home screen (A12, A15): Today card, history teaser, account card.
  * Single-pane on compact widths; list-detail on expanded. The theme choice is hoisted
  * to the composition root — this screen only edits it. Destinations are hoisted to the
- * app shell (ticket 17): play today's Zip, open the full history, open the account
- * surface — no in-screen placeholder behavior. [game] is the featured game's
- * identity; game-title strings render from it and from [HistoryDay.gameName], never
- * from a hardcoded id. [resumeFeatured] relabels today's action "Resume" (A13, SC11);
- * [onPlayToday] opens the same game either way, and the play restores its save.
+ * app shell (ticket 17): play today, open the full history, open the account
+ * surface — no in-screen placeholder behavior. [today] is today's set (A15), one row
+ * per registered game; game-title strings render from it and from
+ * [HistoryDay.gameName], never from a hardcoded id. [resume] relabels today's action
+ * "Resume" (A13, SC11); [onPlayToday] opens the state's play target, and the play
+ * restores its save.
  */
 @Composable
 fun HomeScreen(
     layout: HomeLayout,
-    game: GameSummary,
+    today: List<HomeUiState.TodayRow>,
     identity: Identity? = null,
     themeMode: ThemeMode,
     onSetThemeMode: (ThemeMode) -> Unit,
     onOpenHistory: () -> Unit = {},
     history: List<HistoryDay>,
-    resumeFeatured: Boolean,
+    resume: Boolean,
     onPlayToday: () -> Unit,
     onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
@@ -64,7 +64,7 @@ fun HomeScreen(
         if (layout == HomeLayout.TwoPane) {
             Row(Modifier.fillMaxSize()) {
                 ListPane(
-                    game = game,
+                    today = today,
                     identity = identity,
                     themeMode = themeMode,
                     onOpenTheme = { showThemeDialog = true },
@@ -73,7 +73,7 @@ fun HomeScreen(
                     selectedDay = selectedDay,
                     onDayClick = { selectedDay = it },
                     selectable = true,
-                    resumeFeatured = resumeFeatured,
+                    resume = resume,
                     onPlayToday = onPlayToday,
                     onOpenProfile = onOpenProfile,
                     paneColor = paneColor,
@@ -84,8 +84,8 @@ fun HomeScreen(
                 )
                 DetailPane(
                     selected = selectedDay?.let { iso -> history.firstOrNull { it.isoDay == iso } },
-                    game = game,
-                    resumeFeatured = resumeFeatured,
+                    today = today,
+                    resume = resume,
                     onPlayToday = onPlayToday,
                     modifier = Modifier
                         .weight(0.58f)
@@ -94,7 +94,7 @@ fun HomeScreen(
             }
         } else {
             ListPane(
-                game = game,
+                today = today,
                 identity = identity,
                 themeMode = themeMode,
                 onOpenTheme = { showThemeDialog = true },
@@ -103,7 +103,7 @@ fun HomeScreen(
                 selectedDay = null,
                 onDayClick = {},
                 selectable = false,
-                resumeFeatured = resumeFeatured,
+                resume = resume,
                 onPlayToday = onPlayToday,
                 onOpenProfile = onOpenProfile,
                 paneColor = paneColor,

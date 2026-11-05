@@ -10,7 +10,9 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.GetReplaySession
-import com.ivandsky.puzzlebox.domain.ObservePlayProgress
+import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
@@ -73,7 +75,11 @@ class RealGamesResultRouteTest {
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<GameCalendar> { FakeGameCalendar(today) }
                     factory { GetReplaySession(get(), get()) }
-                    factory { ObservePlayProgress(get(), get(), get(), get()) }
+                    factory { ObserveTodaySet(get(), get(), get(), get()) }
+                    // Tutorial seen: this path is about the result; the lessons have their own tests.
+                    single<UserPreferencesRepository> {
+                        FakeUserPreferencesRepository(seen = setOf(ZipDefinition.id))
+                    }
                 },
                 playModule,
             )
@@ -107,6 +113,8 @@ class RealGamesResultRouteTest {
             // The verdict is in memory: the badge renders; the key's facts show.
             composeRule.onNodeWithText("Solved!").assertExists()
             composeRule.onNodeWithTag("result.record_badge").assertExists()
+            // The game's first solve (no prior records) reads as such.
+            composeRule.onNodeWithText("First solve").assertExists()
 
             // "Play again": navigation is handed back; the game's reopen is a fresh session.
             composeRule.onNodeWithTag("result.playAgain").performClick()

@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.Restored
+import com.ivandsky.puzzlebox.gameui.playCaption
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -87,7 +88,7 @@ class TangoPlayControllerTest {
         )
 
         val rejected = adopt as Adopt.Rejected
-        assertTrue(rejected.message.contains("failed verification")) // §6 exact copy
+        assertTrue(rejected.message.contains("didn't load right"))
         assertNull(s.session)
     }
 
@@ -97,7 +98,7 @@ class TangoPlayControllerTest {
 
         val adopt = s.adoptToday(TangoPlayFixture.envelope(TangoPlayFixture.ambiguous), TangoPlayFixture.ref(today))
 
-        assertTrue((adopt as Adopt.Rejected).message.contains("failed verification"))
+        assertTrue((adopt as Adopt.Rejected).message.contains("didn't load right"))
         assertNull(s.session)
     }
 
@@ -131,7 +132,7 @@ class TangoPlayControllerTest {
 
         assertEquals(TangoCell.MOON, s.session?.placements?.get(4))
         assertEquals(1, s.session?.mistakeCount)
-        assertNotNull(s.rejection)
+        assertNotNull(s.lastRejection)
         assertNull(s.session?.completedAt)
     }
 
@@ -142,7 +143,7 @@ class TangoPlayControllerTest {
 
         s.onPlacement(TangoPlacement(0, TangoCell.MOON)) // idx 0 is a SUN given
         assertEquals(before, s.session)
-        assertNull(s.rejection)
+        assertNull(s.lastRejection)
     }
 
     @Test
@@ -289,6 +290,25 @@ class TangoPlayControllerTest {
         assertEquals(emptySet<Set<Int>>(), s.rendererModel()!!.suppressedSets)
     }
 
+    @Test
+    fun `one caption - the settled violation phrase outranks the hint, none is a rejection`() {
+        val s = loaded()
+        s.requestHint()
+        assertNull(s.violation)
+        assertEquals(s.hintCaption, playCaption(s, s))
+
+        s.onPlacement(TangoPlacement(2, TangoCell.MOON))
+        s.onPlacement(TangoPlacement(3, TangoCell.MOON))
+        s.onPlacement(TangoPlacement(4, TangoCell.MOON)) // lands, violating
+        assertNull(s.violation) // new violation waits out the settle window
+        Thread.sleep(600)
+        val phrase = TangoSemantics.firstViolationPhrase(s.rendererModel()!!)
+        assertNotNull(phrase)
+        assertEquals(phrase, s.violation)
+        assertNull(s.rejection) // placements land; Tango never shows a refusal caption
+        assertEquals(phrase, playCaption(s, s))
+    }
+
     // ---- undo / redo (command history) ----
 
     @Test
@@ -359,11 +379,11 @@ class TangoPlayControllerTest {
         s.onPlacement(TangoPlacement(2, TangoCell.MOON))
         s.onPlacement(TangoPlacement(3, TangoCell.MOON))
         s.onPlacement(TangoPlacement(4, TangoCell.MOON))
-        assertNotNull(s.rejection)
+        assertNotNull(s.lastRejection)
 
         s.undo()
 
-        assertNull(s.rejection)
+        assertNull(s.lastRejection)
     }
 
     @Test

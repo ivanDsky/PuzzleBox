@@ -52,11 +52,11 @@ class TangoBoardRendererSemanticsTest {
         it.config.getOrNull(SemanticsActions.CustomActions).orEmpty().isEmpty()
     }
 
-    private fun setState() {
+    private fun setState(model: TangoRendererModel = sampleModel()) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 TangoBoardRenderer(onPlacement = {})
-                    .Content(sampleModel(), Modifier.fillMaxWidth())
+                    .Content(model, Modifier.fillMaxWidth())
             }
         }
         composeRule.waitForIdle()
@@ -108,6 +108,16 @@ class TangoBoardRendererSemanticsTest {
         // And no node anywhere describes only a marker symbol.
         val markerOnly = composeRule.onAllNodes(hasContentDescription("=", substring = false)).fetchSemanticsNodes()
         assertTrue(markerOnly.isEmpty())
+    }
+
+    /** Spec A12: a guided square's ghost is heard as well as seen, and only where one is drawn. */
+    @Test
+    fun `a guide ghost rides the state description`() {
+        setState(sampleModel().copy(ghosts = mapOf(2 to TangoCell.MOON)))
+        composeRule.onNodeWithContentDescription("Row 1, column 3", substring = true)
+            .assert(hasStateDescription(TangoSemantics.ghostPhrase(TangoCell.MOON)))
+        composeRule.onNodeWithContentDescription("Row 1, column 4", substring = true)
+            .assert(hasStateDescription(TangoSemantics.ghostPhrase(TangoCell.MOON)).not())
     }
 
     private fun sampleModel() = TangoRendererModel(

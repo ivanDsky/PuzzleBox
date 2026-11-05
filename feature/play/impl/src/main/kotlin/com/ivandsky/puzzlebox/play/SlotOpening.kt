@@ -93,6 +93,6 @@ internal class SlotOpening(
     private companion object {
         const val UNREGISTERED = "This game isn't available in this build."
         const val DAY_MISSING = "That day is no longer saved on this device."
-        const val DAY_UNREADABLE = "This puzzle's data couldn't be read, so it can't be replayed."
+        const val DAY_UNREADABLE = "This day didn't load right, so it can't be played again."
     }
 }

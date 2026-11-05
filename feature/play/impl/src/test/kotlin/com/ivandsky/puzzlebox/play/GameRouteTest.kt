@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -39,6 +40,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -90,6 +92,7 @@ class GameRouteTest {
                     single<GamePlayRegistry> { fakes.registry }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<GameCalendar> { calendar }
+                    single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
                     factory { GetReplaySession(get(), get()) }
                 },
                 playModule,

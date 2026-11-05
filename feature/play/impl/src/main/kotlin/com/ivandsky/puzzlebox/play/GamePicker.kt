@@ -17,14 +17,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.model.GameId
+import java.util.Locale
 
 /**
- * The games hub's list (tag `route.hub`): one card per playable game (`hub.row.<gameId>`),
- * in the order given, each ending in a chevron. A game with a save for today swaps its
- * subtitle for an "In progress" tonal tag (A13). Stateless; picking a card is [onPick].
+ * The games hub's list (tag `route.hub`, spec A14): one card per playable game
+ * (`hub.row.<gameId>`), in the order given, with today's status — "Not started",
+ * "In progress · m:ss" (a saved play, as a tonal tag: the A13 cue) or "Solved · m:ss ✓" —
+ * and what a tap does (Play, Continue, Replay) in the primary-text colour before the
+ * chevron. No status line until the status is known. Stateless; picking a card is [onPick].
  */
 @Composable
 internal fun GamePicker(
@@ -49,72 +58,117 @@ internal fun GamePicker(
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        rows.forEach { (game, name, inProgress) ->
-            Surface(
-                // Surface's own onClick clips the ripple to the card's rounded shape.
-                onClick = { onPick(game) },
-                shape = MaterialTheme.shapes.large,
-                color = cardColor,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("hub.row.${game.value}")
-                    // §9 touch floors: hub rows clear 48 dp with the padded content.
-                    .heightIn(min = 56.dp),
+        rows.forEach { row -> HubCard(row, cardColor, onPick) }
+    }
+}
+
+@Composable
+private fun HubCard(row: HubRow, color: androidx.compose.ui.graphics.Color, onPick: (GameId) -> Unit) {
+    val action = row.status?.let(::actionLabel)
+    Surface(
+        // Surface's own onClick clips the ripple to the card's rounded shape.
+        onClick = { onPick(row.game) },
+        shape = MaterialTheme.shapes.large,
+        color = color,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("hub.row.${row.game.value}")
+            // TalkBack names what the tap does ("Continue"), not just "double-tap to activate".
+            .semantics { if (action != null) onClick(label = action) { onPick(row.game); true } }
+            // §9 touch floors: hub rows clear 48 dp with the padded content.
+            .heightIn(min = 56.dp),
+    ) {
+        Row(
+            // The chevron's 24 dp box carries its own optical inset: a tighter end pad.
+            Modifier.padding(start = Spacing.lg, end = Spacing.md, top = Spacing.md, bottom = Spacing.md),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
-                Row(
-                    // The chevron's 24 dp box carries its own optical inset: a tighter end pad.
-                    Modifier.padding(
-                        start = Spacing.lg,
-                        end = Spacing.md,
-                        top = Spacing.md,
-                        bottom = Spacing.md,
-                    ),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    ) {
-                        Text(
-                            text = name,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        if (inProgress) {
-                            InProgressTag()
-                        } else {
-                            Text(
-                                text = "Today's daily puzzle",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                    // Decorative: the whole card is the click target and reads its name.
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Text(
+                    text = row.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                row.status?.let { status -> StatusLine(status, tag = "hub.status.${row.game.value}") }
             }
+            action?.let { label ->
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = LocalPrimaryText.current,
+                    modifier = Modifier.testTag("hub.action.${row.game.value}"),
+                )
+            }
+            // Decorative: the whole card is the click target and reads its name.
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
 
-/** The A13 hub cue: a small tonal tag on the secondary pair, not another subtitle line. */
+/** The status line; in progress is the A13 cue — a small tonal tag on the secondary pair. */
 @Composable
-private fun InProgressTag() {
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-    ) {
+private fun StatusLine(status: TodayStatus, tag: String) {
+    if (status is TodayStatus.InProgress) {
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        ) {
+            Text(
+                text = statusLine(status),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.testTag(tag).padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+            )
+        }
+    } else {
         Text(
-            text = "In progress",
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+            text = statusLine(status),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag(tag),
+        )
+    }
+}
+
+/** A row's status copy: the clock reads m:ss (0:42, 12:05). */
+internal fun statusLine(status: TodayStatus): String = when (status) {
+    TodayStatus.NotStarted -> "Not started"
+    is TodayStatus.InProgress -> "In progress · ${minutesSeconds(status.elapsedMs)}"
+    is TodayStatus.Solved -> "Solved · ${minutesSeconds(status.timeMs)} ✓"
+}
+
+/** What tapping a row does: a saved play continues, a solved day replays. */
+internal fun actionLabel(status: TodayStatus): String = when (status) {
+    TodayStatus.NotStarted -> "Play"
+    is TodayStatus.InProgress -> "Continue"
+    is TodayStatus.Solved -> "Replay"
+}
+
+private fun minutesSeconds(ms: Long): String {
+    val totalSeconds = ms.coerceAtLeast(0L) / 1000
+    return String.format(Locale.ROOT, "%d:%02d", totalSeconds / 60, totalSeconds % 60)
+}
+
+@PuzzleBoxPreviews
+@Composable
+private fun GamePickerPreview() {
+    PuzzleBoxTheme {
+        GamePicker(
+            rows = listOf(
+                HubRow(GameId("zip"), "Zip", TodayStatus.Solved(36_000L)),
+                HubRow(GameId("tango"), "Tango", TodayStatus.InProgress(42_000L)),
+                HubRow(GameId("queens"), "Queens", TodayStatus.NotStarted),
+                HubRow(GameId("pinpoint"), "Pinpoint", status = null),
+            ),
+            onPick = {},
         )
     }
 }

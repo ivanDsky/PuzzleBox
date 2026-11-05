@@ -77,8 +77,8 @@ internal fun ListPane(
                     color = cardColor,
                 ) {
                     EmptyState(
-                        title = "Nothing captured yet",
-                        message = "Days you play are saved on this device — replay any of them, even offline.",
+                        title = "No saved days yet",
+                        message = "Each day you open is saved here. You can play it again, even offline.",
                         modifier = Modifier
                             .testTag("history.empty"),
                     )

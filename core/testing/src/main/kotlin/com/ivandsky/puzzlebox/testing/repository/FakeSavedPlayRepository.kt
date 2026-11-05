@@ -15,20 +15,23 @@ import kotlinx.coroutines.flow.update
  */
 class FakeSavedPlayRepository : SavedPlayRepository {
 
-    private val state = MutableStateFlow<Map<PlaySlot, ByteArray>>(emptyMap())
+    private class Row(val blob: ByteArray, val elapsedMs: Long)
+
+    private val state = MutableStateFlow<Map<PlaySlot, Row>>(emptyMap())
 
     /** Every stored slot and its blob, as last written. */
-    val rows: Map<PlaySlot, ByteArray> get() = state.value
+    val rows: Map<PlaySlot, ByteArray> get() = state.value.mapValues { it.value.blob }
 
-    override suspend fun save(slot: PlaySlot, blob: ByteArray) {
-        state.update { (it - slot) + (slot to blob.copyOf()) }
+    override suspend fun save(slot: PlaySlot, blob: ByteArray, elapsedMs: Long) {
+        state.update { (it - slot) + (slot to Row(blob.copyOf(), elapsedMs)) }
     }
 
-    override suspend fun load(slot: PlaySlot): ByteArray? = state.value[slot]?.copyOf()
+    override suspend fun load(slot: PlaySlot): ByteArray? = state.value[slot]?.blob?.copyOf()
 
     override suspend fun delete(slot: PlaySlot) {
         state.update { it - slot }
     }
 
-    override fun observeInProgress(): Flow<Set<PlaySlot>> = state.map { it.keys }.distinctUntilChanged()
+    override fun observeInProgress(): Flow<Map<PlaySlot, Long>> =
+        state.map { rows -> rows.mapValues { it.value.elapsedMs } }.distinctUntilChanged()
 }

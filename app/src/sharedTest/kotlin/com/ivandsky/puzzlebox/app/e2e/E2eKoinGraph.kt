@@ -48,7 +48,14 @@ class E2eKoinGraph(
     val records = FakeCompletionRepository()
     val saved = FakeSavedPlayRepository()
     val calendar = FakeGameCalendar(today)
-    val preferences = FakeUserPreferencesRepository()
+    // Every tutorial seen: the E2E paths are about the boards; the lessons have their own tests.
+    val preferences = FakeUserPreferencesRepository(
+        seen = setOf(
+            com.ivandsky.puzzlebox.games.zip.ZipDefinition.id,
+            com.ivandsky.puzzlebox.games.tango.TangoDefinition.id,
+            com.ivandsky.puzzlebox.games.queens.QueensDefinition.id,
+        ),
+    )
     val identity = FakeIdentityService()
     val leaderboard = FakeLeaderboardRepository()
 

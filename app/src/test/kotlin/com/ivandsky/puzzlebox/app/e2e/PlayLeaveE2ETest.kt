@@ -157,7 +157,7 @@ class PlayLeaveE2ETest {
         back()
         awaitSaved()
 
-        awaitText(IN_PROGRESS)
+        awaitTextContaining(IN_PROGRESS)
         openGame(ZIP)
         assertState(inZip)
         assertResumed(session(live))
@@ -201,7 +201,7 @@ class PlayLeaveE2ETest {
 
         relaunch()
         assertState(playHub)
-        awaitText(IN_PROGRESS)
+        awaitTextContaining(IN_PROGRESS)
         // The dot marks the Play tab only while another tab is selected.
         tapTab(HomeKey)
         awaitTag(PLAY_BADGE)
@@ -269,8 +269,8 @@ class PlayLeaveE2ETest {
         return checkNotNull(rule.runOnIdle { zip().session })
     }
 
-    private fun ShellRobot.awaitText(text: String) =
-        rule.waitUntil(TIMEOUT_MS) { rule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
+    private fun ShellRobot.awaitTextContaining(text: String) =
+        rule.waitUntil(TIMEOUT_MS) { rule.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isNotEmpty() }
 
     private fun ZipPlayController.extend(cell: Cell) = onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
 

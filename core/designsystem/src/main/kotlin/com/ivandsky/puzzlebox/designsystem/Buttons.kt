@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -19,13 +20,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+
+// Touch-target floor (spec A8): Material's buttons default to 40 dp tall; every shared
+// button is lifted to the 48 dp accessibility minimum.
+internal val ButtonMinHeight: Dp = 48.dp
 
 // Press feedback: content scales to 0.97 on a critically damped spring — subtle,
 // instant on touch-down, and cleanly interruptible on release. The damping/stiffness
 // come from the motion tokens so every pressable surface shares one physics.
 @Composable
-private fun Modifier.pressScale(interactionSource: MutableInteractionSource): Modifier {
+internal fun Modifier.pressScale(interactionSource: MutableInteractionSource): Modifier {
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.97f else 1f,
@@ -52,7 +58,7 @@ fun PrimaryButton(
     val interactionSource = remember { MutableInteractionSource() }
     Button(
         onClick = onClick,
-        modifier = modifier.pressScale(interactionSource),
+        modifier = modifier.heightIn(min = ButtonMinHeight).pressScale(interactionSource),
         enabled = enabled,
         shape = MaterialTheme.shapes.medium,
         interactionSource = interactionSource,
@@ -61,7 +67,7 @@ fun PrimaryButton(
     }
 }
 
-/** The quiet counterpart: outline border, primary text, no fill. */
+/** The quiet counterpart: outline border (>= 3:1 on every surface), primary text, no fill. */
 @Composable
 fun SecondaryButton(
     text: String,
@@ -72,7 +78,7 @@ fun SecondaryButton(
     val interactionSource = remember { MutableInteractionSource() }
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.pressScale(interactionSource),
+        modifier = modifier.heightIn(min = ButtonMinHeight).pressScale(interactionSource),
         enabled = enabled,
         shape = MaterialTheme.shapes.medium,
         interactionSource = interactionSource,
@@ -81,7 +87,17 @@ fun SecondaryButton(
             // light primary is a fill green that fails AA as text (ColorTokens.kt).
             contentColor = LocalPrimaryText.current,
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        // Spec A8: the border is a non-text boundary, so it reads the >= 3:1 `outline`
+        // role (outlineVariant held only 1.4:1). Disabled keeps Material's faint stroke —
+        // exempt from the floor but still distinct from the enabled border.
+        border = BorderStroke(
+            1.dp,
+            if (enabled) {
+                MaterialTheme.colorScheme.outline
+            } else {
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+            },
+        ),
     ) {
         Text(text)
     }

@@ -31,6 +31,9 @@ data class TangoRendererModel(
      *  0.5 s after the last touch (user QA 2026-11-02). Pre-existing violations are
      *  never suppressed — an unfixed error only leaves when the grid fixes it. */
     val suppressedSets: Set<Set<Int>> = emptySet(),
+    /** A guided lesson's answer (spec A12) on each open square that doesn't hold it yet,
+     *  drawn faintly until the square matches. Empty on every unguided board. */
+    val ghosts: Map<Int, TangoCell> = emptyMap(),
 ) : RendererModel {
 
     data class CellRender(

@@ -17,7 +17,7 @@ persisted artifact self-describes its schema version and rule changes are data
 play session store (amended: slots persist on disk and resume; per-entry ViewModels),
 ADR-0008 the module graph and its enforced forbidden edges, ADR-0009 the
 in-module structure rules (`:konsist`, 12 Konsist-backed rules with shrink-only allowlists;
-each failure links to its section), ADR-0010 per-tab navigation (immutable
+each failure links to its section), ADR-0011 per-tab navigation (immutable
 `NavigationState` + verb rules, rejected designs, "Adding a tab", serial-name policy).
 
 ## Layout
@@ -48,8 +48,8 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 - `app/` (`:app`) — `PuzzleBoxApplication` (starts Koin, then starts `LeaderboardSubmitWatcher`),
   `MainActivity` (Compose host, theme resolution, edge-to-edge), `PuzzleBoxApp` (bar or rail
   over the shell; highlight = `navigator.state.tab`; Play tab badge while
-  `ObservePlayProgress` reports any of today's games in progress), `nav/` the shell
-  (ADR-0010): `TopLevelDestination.kt` (`topLevelDestinations` tab registry: key, label, icon,
+  `ObserveTodaySet` reports any of today's games in progress), `nav/` the shell
+  (ADR-0011): `TopLevelDestination.kt` (`topLevelDestinations` tab registry: key, label, icon,
   test tag), `PuzzleBoxNavigationState.kt` (fresh state, Home = start tab),
   `RememberNavigator.kt` (`rememberNavigator`, saved under `NAVIGATION_STATE_KEY`
   `"puzzlebox.navigation.v1"`, restored via `reconciledWith`; foreign/undecodable → fresh),
@@ -85,7 +85,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `PlayKey` (hub), `GameKey(gameId, day?)`, `ResultKey(gameId, day, timeMs, hintsUsed)`;
   `HistoryKey`; `ProfileKey`) and a `*NavKeys()` polymorphic registration; serial names keep
   the `com.ivandsky.puzzlebox.app.nav.*` prefix by convention, compatibility is versioned by
-  `NAVIGATION_STATE_KEY` (ADR-0010).
+  `NAVIGATION_STATE_KEY` (ADR-0011).
 - `core/common/` (`:core:common`) — `DispatcherProvider` seam (+ `DefaultDispatcherProvider`),
   `AppResult`/`AppError` and `resultOf` convention (typed errors, never thrown surprises),
   Koin `commonModule`.
@@ -127,8 +127,8 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `GameHistoryDay`), `GetFeaturedGame` (registry's first game as `GameSummary`),
   `ComputeStreak`, `GetReplaySession` (cached puzzle → the game's replay blob as
   `ReplayOutcome`), `ObserveTodayLeaderboard` (identity-gated featured-game board:
-  `TodayLeaderboard`), `ObservePlayProgress` (saved plays + records + each game's calendar
-  day → `PlayProgress(order, inProgress, solved)`, `anyInProgress`, `nextUnsolved`). Android library.
+  `TodayLeaderboard`), `ObserveTodaySet` (saved plays + records + each game's calendar day →
+  registry-order `TodayEntry` per game: Solved/InProgress(elapsed)/NotStarted; `nextUnsolved`). Android library.
 - `core/game/` (`:core:game`, pure JVM) — the orthogonal game contracts (ADR-0001):
   `GameDefinition`, `GameRules<P>`, `GameSession` + `GameSessionCodec`, `ScoreModel<S>` →
   `CompletionRecord?`, `PuzzleSource` (`fetch(date)` → `FetchResult`; `FetchError`), composed
@@ -168,19 +168,21 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   UI: one `*PlayController : GamePlayController`, one `*PlayUi : GamePlayUi`, the board
   composables, and `*UiModule` (the game's `GamePlayUi`).
 - `feature/home/impl/` (`:feature:home:impl`) — `navigation/HomeEntry`, `HomeRoute` +
-  `HomeViewModel` (featured game, identity, cache-only history teaser via
+  `HomeViewModel` (today's set via `ObserveTodaySet`, identity, cache-only history teaser via
   `ObserveGameHistory`; `di/HomeModule`), `HomeScreen` with `HomeListPane`/`HomeDetailPane`/
-  `HomeCards`, `ThemeDialog`, `HomeLayout` + `homeLayoutFor` pure pane policy.
+  `HomeTodayCard` (one row per game, "n of N done")/`HomeCards`, `ThemeDialog`, `HomeLayout` +
+  `homeLayoutFor` pure pane policy.
 - `feature/play/impl/` (`:feature:play:impl`) — the one game-agnostic play surface (ADR-0006,
   ADR-0007; no `games:*` dependency): `PlaySessionStore` (Koin single: one `ActivePlay` per
   `PlaySlot`, `open(GameKey)`/`peek(slot)`/`retain(keys)`/`flush()`, `playable` games, pins a
   null-day key to today on first open), `ActivePlay` (controller, board/record flows, record
-  write, badge, slot saves), `SlotOpening` (saved row → today's fetch → past-day replay build
+  write, A10 verdict, slot saves with elapsed ms), `SlotOpening` (saved row → today's fetch → past-day replay build
   → Unavailable; undecodable row deleted), `SlotWriter` (per-slot 300 ms trailing-throttle
   saves, `discard` on solve), `WriteLane` (one Mutex-ordered lane for every saved-play I/O),
-  `HubRoute` + `HubViewModel` (Play tab's games hub with in-progress marks), `GameRoute` +
-  `GameViewModel` (one `GameKey`'s board), `ResultRoute` + `ResultViewModel` (Play again,
-  Next unsolved), `GamePicker`, `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
+  `HubRoute` + `HubViewModel` (Play tab's games hub: today's status line and Play/Continue/
+  Replay per game), `GameRoute` + `GameViewModel` (one `GameKey`'s board; first-play tutorial
+  and How to play via `TutorialGate`), `ResultRoute` + `ResultViewModel` (verdict + previous
+  best live, Play again, Next unsolved), `GamePicker`, `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
   `resultEntry`).
 - `feature/history/impl/` (`:feature:history:impl`) — `navigation/HistoryEntry`,
   `HistoryRoute`/`HistoryScreen` with `HistoryListPane`/`HistoryDetailPane` over
@@ -217,7 +219,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   CatalogKey → the debug-only Showkase browser (`CatalogDebugBinding`, FLAG_DEBUGGABLE-gated;
   release gets a placeholder). Each tab keeps its own stack; reselecting a tab pops it to its
   root; back at a Play/Profile root returns to Home; back at the Home root exits
-  (ADR-0010). Bottom bar on compact widths, rail on expanded-width landscape
+  (ADR-0011). Bottom bar on compact widths, rail on expanded-width landscape
   (`homeLayoutFor`/`playLayoutFor`/`historyLayoutFor`).
 - No deep links, widgets, or services.
 
@@ -237,14 +239,14 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 - **`DailySource` / `FeedTransport`** — each game adapts the LinkedIn feed (`DailySource`),
   `core:network` supplies the one transport; `DailyRepository` consumes all sources by id.
   `FetchError` distinguishes Unavailable (degrade to cache) / Throttled / Untrusted.
-- **`NavigationState` / `Navigator`** (`core:navigation`, ADR-0010) — pure per-tab reducer
+- **`NavigationState` / `Navigator`** (`core:navigation`, ADR-0011) — pure per-tab reducer
   plus its snapshot holder; features get a `Navigator`, Navigation3 stays in `app/nav/TabEntries`.
 - **`PlaySessionStore` slots** (`feature:play:impl`, ADR-0007 §4) — `open`/`peek`/`retain`/
   `flush` over `SlotOpening`, `SlotWriter` and one `WriteLane`; the shell drives `retain`/`flush`.
 - **`SavedPlayRepository`** (`core:data`) — Room (`saved_plays`) + `FakeSavedPlayRepository`,
   one shared contract test (`SavedPlayRepositoryContract`).
 - **`GameCalendar`** (`core:data`) — `CadenceGameCalendar` + `FakeGameCalendar`; the one
-  "today for game X", used by dailies, the store and `ObservePlayProgress`.
+  "today for game X", used by dailies, the store and `ObserveTodaySet`.
 - **E2E robot** (`app` tests, `e2e/`) — `shellRobot { … }` over `E2eKoinGraph` drives the real
   shell row by row in spec notation.
 - **`GamePlayRegistry`** (`core:game-ui`) — the game → UI seam; `:feature:play:impl` drives any

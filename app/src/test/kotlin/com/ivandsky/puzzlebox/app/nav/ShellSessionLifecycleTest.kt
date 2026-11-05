@@ -81,6 +81,16 @@ class ShellSessionLifecycleTest {
                     single<GameCalendar> { FakeGameCalendar(ZipDefinition.cadence.today()) }
                     single<IdentityService> { FakeIdentityService() }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
+                    // Every tutorial seen: this path is about the board; the lessons have their own tests.
+                    single<com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository> {
+                        com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository(
+                            seen = setOf(
+                                ZipDefinition.id,
+                                com.ivandsky.puzzlebox.games.tango.TangoDefinition.id,
+                                com.ivandsky.puzzlebox.games.queens.QueensDefinition.id,
+                            ),
+                        )
+                    }
                 },
             )
         }

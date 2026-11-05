@@ -107,6 +107,16 @@ class ZipWireParserTest {
         assertTrue(error is DecodeError.UnknownVariant)
     }
 
+    /** Spec A18: the tutorial's 3×3 regime is never a daily, even when the payload is whole. */
+    @Test
+    fun `a 3x3 daily payload fails to parse`() {
+        val json = """
+            {"gridSize": 3, "orderedSequence": [0, 8], "solution": [0, 1, 2, 5, 4, 3, 6, 7, 8]}
+        """.trimIndent()
+        val error = (com.ivandsky.puzzlebox.games.zip.codec.ZipWireParser.parse(json, date, "600") as DecodeResult.Err).error
+        assertEquals(DecodeError.UnknownVariant("zip/n3"), error)
+    }
+
     @Test
     fun `direction suffix parsing accepts the full wire spelling`() {
         val json = """

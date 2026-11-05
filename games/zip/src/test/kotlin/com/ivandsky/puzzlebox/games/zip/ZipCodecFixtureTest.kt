@@ -86,7 +86,7 @@ class ZipCodecFixtureTest {
         assertTrue(err("""{"gridSize": 6}""") is DecodeError.Malformed) // no orderedSequence
         assertTrue(err("""{"orderedSequence": [1]}""") is DecodeError.Malformed) // no gridSize
         assertTrue(err("""not json""") is DecodeError.Malformed)
-        assertTrue(err("""{"gridSize": 4, "orderedSequence": [1, 2]}""") is DecodeError.UnknownVariant) // no n4 regime
+        assertTrue(err("""{"gridSize": 4, "orderedSequence": [1, 2]}""") is DecodeError.UnknownVariant) // no n4 daily regime
         assertTrue(
             err("""{"gridSize": 6, "orderedSequence": [10, 10]}""") is DecodeError.Malformed, // duplicate waypoint
         )

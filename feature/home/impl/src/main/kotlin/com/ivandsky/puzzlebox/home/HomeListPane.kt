@@ -19,7 +19,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,7 +36,6 @@ import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.LargeTopBar
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.GameSummary
 import com.ivandsky.puzzlebox.model.ThemeMode
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -45,7 +44,7 @@ import kotlinx.coroutines.delay
 /** The left pane and the whole single-pane screen share one stacked content column. */
 @Composable
 internal fun ListPane(
-    game: GameSummary,
+    today: List<HomeUiState.TodayRow>,
     identity: Identity?,
     themeMode: ThemeMode,
     onOpenTheme: () -> Unit,
@@ -54,7 +53,7 @@ internal fun ListPane(
     selectedDay: String?,
     onDayClick: (String) -> Unit,
     selectable: Boolean,
-    resumeFeatured: Boolean,
+    resume: Boolean,
     onPlayToday: () -> Unit,
     onOpenProfile: () -> Unit,
     paneColor: Color,
@@ -81,8 +80,8 @@ internal fun ListPane(
         )
         StaggeredItem(0) {
             TodayCard(
-                game = game,
-                resume = resumeFeatured,
+                today = today,
+                resume = resume,
                 onPlayToday = onPlayToday,
                 cardColor = cardColor,
                 modifier = Modifier.padding(horizontal = Spacing.lg),
@@ -136,9 +135,7 @@ private fun HistorySection(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = onOpenHistory) {
-                Text(text = "See all", style = MaterialTheme.typography.labelLarge)
-            }
+            AppTextButton(text = "See all", onClick = onOpenHistory)
         }
         if (history.isEmpty()) {
             Surface(

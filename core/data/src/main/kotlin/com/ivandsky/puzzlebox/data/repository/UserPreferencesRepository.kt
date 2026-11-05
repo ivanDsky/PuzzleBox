@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.data.repository
 
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
 
@@ -12,4 +13,9 @@ interface UserPreferencesRepository {
     val themeMode: Flow<ThemeMode>
 
     suspend fun setThemeMode(mode: ThemeMode)
+
+    /** True once the player finished or skipped [game]'s tutorial; false before that. */
+    fun tutorialSeen(game: GameId): Flow<Boolean>
+
+    suspend fun markTutorialSeen(game: GameId)
 }

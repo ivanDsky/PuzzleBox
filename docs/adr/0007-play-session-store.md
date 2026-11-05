@@ -14,21 +14,32 @@ ViewModel (F7).
 
 ## Decision
 1. `core/game-ui` owns the play contracts: `GamePlayUi` (game id, `createController`,
-   `Screen`), `GamePlayController` (`adoptToday`, `adoptRestored`, `replay`, `isComplete`),
-   `PlayEnvironment` (scope, session-changed and won callbacks), `PlayBoardStatus`,
-   `PlayCopy`, and `GamePlayRegistry` (GameId → `GamePlayUi`; a duplicate id throws).
-   Games' controllers also implement the ADR-0006 `PlayClock`/`PlayHints`/`PlayUndo` seams.
+   `tutorial`, `Board`, `Screen`), `GamePlayController` (`adoptToday`, `adoptRestored`,
+   `replay`, `isComplete`), `PlayEnvironment` (scope, session-changed and won callbacks),
+   `PlayBoardStatus`, `PlayCopy`, and `GamePlayRegistry` (GameId → `GamePlayUi`; a
+   duplicate id throws). Games' controllers also implement the ADR-0006
+   `PlayClock`/`PlayHints`/`PlayUndo` seams. `Board` is the game's one chrome-free board:
+   its daily `Screen` and the tutorial both draw it. `tutorial` is the game's ordered
+   `TutorialStep`s (instruction, puzzle, ref, `guided`). `TutorialSession` is the step
+   machine (lessons → ready, or skipped); a win marks the lesson `solved` and `next()`
+   moves on, so `TutorialHost` can hold the solved board for a short beat before the next
+   lesson. `TutorialSandbox` builds each lesson's controller with an environment that drops
+   session changes and turns a win into that beat, so a lesson never reaches the record
+   emitter or the session store. A `guided` step asks the controller to show its answer
+   through the optional `PlayGuide` capability (answers come from the game's own solver)
+   and fails loudly when the controller can't guide.
+   `PlayChrome` takes an optional `onHowToPlay` that shows the "How to play" button.
    `core/game-ui` never references `feature/play`.
 2. Each `games/*-ui` module ships exactly one controller and one `GamePlayUi`, bound in its
    `*UiModule` as a `GamePlayUi` single qualified by the game id; `app` binds
    `GamePlayRegistry(getAll())` once.
 3. `feature/play` is game-agnostic (no `games:*` dependency, no `when` over game ids):
    `PlaySessionStore` (Koin single) owns the live `ActivePlay`s (one per slot since §4's amendment) — fetch the daily, resolve
-   the record identity, write the record, derive the badge and result label — and creates a
+   the record identity, write the record, derive the A10 verdict and result label — and creates a
    new controller per load, dropping callbacks from released controllers. `HubViewModel`,
    `GameViewModel` and `ResultViewModel` expose it to `HubRoute`/`GameRoute`/`ResultRoute` via
    `collectAsStateWithLifecycle` (0.8: `PlayViewModel`/`PlayRoute`).
-4. *(Amended 2026-11-04, navigation-ux, ADR-0010.)* Sessions persist on disk and resume.
+4. *(Amended 2026-11-04, navigation-ux, ADR-0011.)* Sessions persist on disk and resume.
    The store keeps one `ActivePlay` per `PlaySlot` (game, day), shared by every stack whose
    `GameKey`/`ResultKey` names that slot; `open(key)`, `peek(slot)`, `retain(keys)` and
    `flush()` are its only API. `SlotOpening` decides where a slot's board comes from: the
@@ -40,8 +51,11 @@ ViewModel (F7).
    calls `retain(allKeys)` whenever the stacks change (a slot no key names folds its clock,
    saves and is cancelled) and `flush()` at activity stop. After process death a key reopens
    its slot from disk; nothing rides the route's saveable.
+   Each row also carries the session's displayed elapsed ms, which today's status reads
+   (ADR-0011 §7).
    *Originally:* persistence stayed in the route's `rememberSaveable` via `SessionBlob`
-   envelopes, with one live play that `end()` dropped.
+   envelopes, with one live play that `end()` dropped; 0.9–0.10 kept one session per game
+   in a DataStore (ADR-0010, superseded).
 5. The picker and Home's featured game follow the app-side product order (zip, tango,
    queens); an unlisted game sorts after them by id.
 
@@ -50,7 +64,7 @@ ViewModel (F7).
   `games/<id>-ui` module with one `GamePlayController` + one `GamePlayUi` bound under its id
   qualifier, both modules added to `PuzzleBoxApplication.appModules`, and its id in
   `GAME_ORDER`. `feature/play` and `core/game-ui` stay untouched.
-- *(Amended 2026-11-04, ADR-0010.)* ViewModels are per entry: the shell decorates every tab's
+- *(Amended 2026-11-04, ADR-0011.)* ViewModels are per entry: the shell decorates every tab's
   stack with Navigation3's per-entry `ViewModelStore`, so `HubViewModel`, `GameViewModel` and
   `ResultViewModel` live and die with their entry, and own only UI state. The play outlives
   them in the store; releasing it is `retain`'s job. *Originally:* ViewModels were

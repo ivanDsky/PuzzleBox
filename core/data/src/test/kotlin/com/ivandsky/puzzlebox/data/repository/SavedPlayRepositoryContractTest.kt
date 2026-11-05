@@ -48,10 +48,10 @@ class SavedPlayRepositoryContractTest(private val adapter: String) : SavedPlayRe
     @Test
     fun `room adapter's ninth save prunes the oldest`() = runTest {
         assumeTrue(adapter == ROOM)
-        for (day in 1..9) repository.save(slot("zip", day), byteArrayOf(day.toByte()))
+        for (day in 1..9) repository.save(slot("zip", day), byteArrayOf(day.toByte()), elapsedMs = 0L)
 
         assertNull(repository.load(slot("zip", 1)))
-        assertEquals((2..9).map { slot("zip", it) }.toSet(), repository.observeInProgress().first())
+        assertEquals((2..9).map { slot("zip", it) }.toSet(), repository.observeInProgress().first().keys)
     }
 
     companion object {

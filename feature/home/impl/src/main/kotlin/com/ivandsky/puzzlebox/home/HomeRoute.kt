@@ -12,7 +12,8 @@ import org.koin.androidx.compose.koinViewModel
 /**
  * Home's DI-bound entry point: renders [HomeViewModel]'s state. The pane layout is
  * decided once at the app shell (width class + orientation) and passed in; UI below
- * this point stays repository-free. [onPlayToday] reports the featured game's [GameId].
+ * this point stays repository-free. [onPlayToday] reports today's play target's [GameId]
+ * ([HomeUiState.playTarget]: the saved game, else the next unsolved one).
  */
 @Composable
 fun HomeRoute(
@@ -29,14 +30,14 @@ fun HomeRoute(
 
     HomeScreen(
         layout = layout,
-        game = uiState.featured,
+        today = uiState.today,
         identity = uiState.identity,
         themeMode = themeMode,
         onSetThemeMode = onSetThemeMode,
         onOpenHistory = onOpenHistory,
         history = uiState.history,
-        resumeFeatured = uiState.resumeFeatured,
-        onPlayToday = { onPlayToday(uiState.featured.id) },
+        resume = uiState.resume,
+        onPlayToday = { uiState.playTarget?.let(onPlayToday) },
         onOpenProfile = onOpenProfile,
         modifier = modifier.testTag("route.home"),
     )

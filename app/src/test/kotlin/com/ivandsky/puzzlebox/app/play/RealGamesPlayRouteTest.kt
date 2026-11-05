@@ -20,12 +20,15 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.GetReplaySession
-import com.ivandsky.puzzlebox.domain.ObservePlayProgress
+import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.queensPlugin
 import com.ivandsky.puzzlebox.games.queensui.QueensPlayUi
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
@@ -116,7 +119,13 @@ class RealGamesPlayRouteTest {
                     // Every real game shares the America/Los_Angeles cadence zone.
                     single<GameCalendar> { FakeGameCalendar(cadenceToday) }
                     factory { GetReplaySession(get(), get()) }
-                    factory { ObservePlayProgress(get(), get(), get(), get()) }
+                    factory { ObserveTodaySet(get(), get(), get(), get()) }
+                    // Every tutorial seen: these paths are about the boards; the lessons have their own tests.
+                    single<UserPreferencesRepository> {
+                        FakeUserPreferencesRepository(
+                            seen = setOf(ZipDefinition.id, TangoDefinition.id, QueensDefinition.id),
+                        )
+                    }
                 },
                 playModule,
             )
