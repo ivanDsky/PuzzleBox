@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.domain.ComputeStreak
-import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -36,7 +35,6 @@ object HistoryTestSupport {
         HistoryViewModel(
             observeGameHistory = ObserveGameHistory(registry, daily, completions),
             computeStreak = ComputeStreak(),
-            getReplaySession = GetReplaySession(daily, registry),
             registry = registry,
         )
 
