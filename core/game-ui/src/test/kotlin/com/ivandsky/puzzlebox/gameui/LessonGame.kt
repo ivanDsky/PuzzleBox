@@ -66,6 +66,7 @@ class LessonGame(lessons: Int = 3) : GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
+        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     ) = Board(controller, modifier)
 

@@ -39,7 +39,9 @@ interface GamePlayUi {
      * The game's play screen. [controller] is one this UI created; [status] is the
      * shared fetch state (Loading / Unavailable / Ready + degrade banner). [onSolved]
      * carries the frozen result facts once per completion — including a restored
-     * completed session, which shows its win.
+     * completed session, which shows its win. [onHowToPlay] goes to the game's
+     * [PlayChrome] (null = no button): the play feature reopens the tutorial over this
+     * play and pauses its clock meanwhile.
      */
     @Composable
     fun Screen(
@@ -48,6 +50,7 @@ interface GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
+        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     )
 }

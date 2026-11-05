@@ -34,6 +34,7 @@ private class FakePlayUi(override val gameId: GameId) : GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
+        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     ) = Unit
 }

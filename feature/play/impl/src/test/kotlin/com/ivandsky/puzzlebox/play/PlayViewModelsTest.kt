@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeKeptSessionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -56,7 +57,7 @@ class PlayViewModelsTest {
     )
 
     private fun playVm(todaySet: ObserveTodaySet = ObserveTodaySet(fakes.games, completions, kept, today = { day })) =
-        PlayViewModel(store, todaySet, fakes.games)
+        PlayViewModel(store, todaySet, fakes.games, fakes.registry, FakeUserPreferencesRepository())
 
     private fun row(game: GameId, name: String, status: TodayStatus?) = PlayUiState.Picker.Row(game, name, status)
 

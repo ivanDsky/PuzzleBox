@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,7 +36,8 @@ import java.time.LocalDate
  * session is a readable string — `fake|<moves>|<complete>|<date>|<number>|<elapsedMs>`
  * — so tests can assert exactly what was adopted, published and restored. Its clock is
  * the real games' shape: the first move opens a window, a background fold banks it into
- * the session (and publishes), folding a paused clock banks nothing.
+ * the session (and publishes), folding a paused clock banks nothing. It has no tutorial
+ * until a test calls [teach]; its screen offers How to play whenever the route passes it.
  */
 class FakePlayUi(override val gameId: GameId) : GamePlayUi {
 
@@ -51,7 +54,16 @@ class FakePlayUi(override val gameId: GameId) : GamePlayUi {
     override fun createController(env: PlayEnvironment): GamePlayController =
         FakeController(gameId, env, this).also { controllers += it }
 
-    override val tutorial: List<TutorialStep> get() = emptyList()
+    /** None by default, like a game whose lessons have not landed yet. */
+    override var tutorial: List<TutorialStep> = emptyList()
+        private set
+
+    /** Gives the game [count] lessons; each is won with one [FakeController.win]. */
+    fun teach(count: Int) {
+        tutorial = (1..count).map { lesson ->
+            TutorialStep("Lesson $lesson", TestGames.puzzle(gameId, lesson.toByte()), TestGames.Ref(gameId, LESSON_DAY))
+        }
+    }
 
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
@@ -65,18 +77,27 @@ class FakePlayUi(override val gameId: GameId) : GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
+        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     ) {
         val fake = controller as FakeController
-        if (status is PlayBoardStatus.Ready) {
-            Board(fake, modifier)
-            // Keyed like the real games' handoff: on the completion VALUE, so re-adopting
-            // the same completed bytes (a fresh controller) never hands off twice.
-            val completed = fake.isComplete
-            LaunchedEffect(completed, fake.ref, fake.replays) { if (completed) onSolved(FakeController.TIME_MS, 0) }
-        } else {
-            PlayBoardFallback(status, onRetry, "play")
+        Column {
+            if (onHowToPlay != null) Text("How to play", Modifier.testTag("play.how_to_play").clickable(onClick = onHowToPlay))
+            if (status is PlayBoardStatus.Ready) {
+                Board(fake, modifier)
+                // Keyed like the real games' handoff: on the completion VALUE, so re-adopting
+                // the same completed bytes (a fresh controller) never hands off twice.
+                val completed = fake.isComplete
+                LaunchedEffect(completed, fake.ref, fake.replays) { if (completed) onSolved(FakeController.TIME_MS, 0) }
+            } else {
+                PlayBoardFallback(status, onRetry, "play")
+            }
         }
+    }
+
+    private companion object {
+        /** Tutorial refs are custom, never today's daily. */
+        val LESSON_DAY: LocalDate = LocalDate.of(2000, 1, 1)
     }
 }
 

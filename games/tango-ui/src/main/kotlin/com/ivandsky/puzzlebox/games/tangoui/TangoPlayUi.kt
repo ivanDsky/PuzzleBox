@@ -47,9 +47,10 @@ class TangoPlayUi : GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
+        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     ) {
-        TangoPlayScreen(controller as TangoPlayController, status, layout, onRetry, onSolved, modifier)
+        TangoPlayScreen(controller as TangoPlayController, status, layout, onRetry, onSolved, modifier, onHowToPlay)
     }
 }
 
@@ -58,6 +59,7 @@ class TangoPlayUi : GamePlayUi {
  * 04's board renderer — tap placements land through [TangoBoardRenderer]'s placement
  * callback, the timer/hint/undo/banner chrome is the shared [PlayChrome]. Design §6:
  * the win moment is the same route handoff; this screen never renders win content.
+ * [onHowToPlay] (null = no button) reopens the tutorial from the chrome.
  */
 @Composable
 fun TangoPlayScreen(
@@ -67,6 +69,7 @@ fun TangoPlayScreen(
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
+    onHowToPlay: (() -> Unit)? = null,
 ) {
     val ready = status as? PlayBoardStatus.Ready
 
@@ -91,6 +94,7 @@ fun TangoPlayScreen(
                     undo = controller,
                     banner = ready?.banner,
                     feedback = controller,
+                    onHowToPlay = onHowToPlay,
                 )
             },
         )

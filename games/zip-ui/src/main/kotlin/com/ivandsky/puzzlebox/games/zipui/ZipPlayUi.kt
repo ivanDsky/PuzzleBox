@@ -57,9 +57,10 @@ class ZipPlayUi : GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
+        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     ) {
-        ZipPlayScreen(controller as ZipPlayController, status, layout, onRetry, onSolved, modifier)
+        ZipPlayScreen(controller as ZipPlayController, status, layout, onRetry, onSolved, modifier, onHowToPlay)
     }
 }
 
@@ -70,7 +71,8 @@ class ZipPlayUi : GamePlayUi {
  *
  * Ticket 23: the win moment is a ROUTE handoff, not an overlay — when the session
  * completes, [onSolved] carries the frozen A3 facts to the result route; this screen
- * never renders win content itself.
+ * never renders win content itself. [onHowToPlay] (null = no button) reopens the
+ * tutorial from the chrome.
  */
 @Composable
 fun ZipPlayScreen(
@@ -80,6 +82,7 @@ fun ZipPlayScreen(
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
+    onHowToPlay: (() -> Unit)? = null,
 ) {
     val ready = status as? PlayBoardStatus.Ready
 
@@ -104,6 +107,7 @@ fun ZipPlayScreen(
                     undo = controller,
                     banner = ready?.banner,
                     feedback = controller,
+                    onHowToPlay = onHowToPlay,
                 )
             },
         )

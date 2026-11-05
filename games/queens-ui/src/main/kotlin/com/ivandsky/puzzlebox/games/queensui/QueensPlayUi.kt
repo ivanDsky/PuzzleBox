@@ -46,9 +46,10 @@ class QueensPlayUi : GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
+        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     ) {
-        QueensPlayScreen(controller as QueensPlayController, status, layout, onRetry, onSolved, modifier)
+        QueensPlayScreen(controller as QueensPlayController, status, layout, onRetry, onSolved, modifier, onHowToPlay)
     }
 }
 
@@ -58,6 +59,7 @@ class QueensPlayUi : GamePlayUi {
  * solved transition hands the frozen result facts (time, hints) to the caller's
  * [onSolved] — the app navigates to the opaque result ROUTE (fix round 6; the modal
  * overlay is deleted). The record write already runs in the play feature's store.
+ * [onHowToPlay] (null = no button) reopens the tutorial from the chrome.
  */
 @Composable
 fun QueensPlayScreen(
@@ -67,6 +69,7 @@ fun QueensPlayScreen(
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
+    onHowToPlay: (() -> Unit)? = null,
 ) {
     // Win → result route (Zip's handoff): ONE navigation trigger per completion —
     // keyed on the completedAt instance so a replay (new completion) hands off again.
@@ -79,7 +82,7 @@ fun QueensPlayScreen(
             layout = layout,
             modifier = Modifier.fillMaxSize(),
             board = { BoardArea(controller, status, onRetry) },
-            side = { SidePanel(controller, status) },
+            side = { SidePanel(controller, status, onHowToPlay) },
         )
     }
 }
@@ -131,7 +134,7 @@ private fun QueensBoard(controller: QueensPlayController, modifier: Modifier) {
 }
 
 @Composable
-private fun SidePanel(controller: QueensPlayController, status: PlayBoardStatus) {
+private fun SidePanel(controller: QueensPlayController, status: PlayBoardStatus, onHowToPlay: (() -> Unit)?) {
     val ready = status as? PlayBoardStatus.Ready
     PlayChrome(
         title = "Queens",
@@ -141,6 +144,7 @@ private fun SidePanel(controller: QueensPlayController, status: PlayBoardStatus)
         undo = controller,
         banner = ready?.banner,
         feedback = controller,
+        onHowToPlay = onHowToPlay,
         modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
     ) {
         controller.board?.let { QueensPlayControls(state = it) }
