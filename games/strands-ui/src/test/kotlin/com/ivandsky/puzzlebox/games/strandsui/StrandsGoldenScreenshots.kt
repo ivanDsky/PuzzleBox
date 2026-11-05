@@ -28,12 +28,20 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import com.ivandsky.puzzlebox.game.DailyFetch
+import com.ivandsky.puzzlebox.game.FetchResult
+import com.ivandsky.puzzlebox.games.strands.feed.NytStrandsDailySource
+import java.time.LocalDate
+import kotlinx.coroutines.runBlocking
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
- * Golden matrix for the Strands play screen over the fixture board: idle, mid-trace, a found
- * theme word beside the spangram, both hint stages and the solved board with its rating word,
- * each light and dark, on a phone (single pane) and a tablet (two panes). Robolectric capture,
- * no emulator; recorded by default, verified with `-Proborazzi.verify=true`. Goldens live in
+ * Golden matrix for the Strands play screen over a real NYT day (2026-11-06, 6×8, read
+ * through the production source and trust gate): idle, mid-trace, a found theme word beside
+ * the spangram, both hint stages and the solved board with its rating word, each light and
+ * dark, on a phone (single pane) and a tablet (two panes). Robolectric capture, no emulator;
+ * recorded by default, verified with `-Proborazzi.verify=true`. Goldens live in
  * `games/strands-ui/snapshots/`.
  *
  * One state per test method, so each window capture is exactly one screen.
@@ -67,15 +75,14 @@ abstract class StrandsGoldenTestBase(
     private fun controller() = StrandsPlayController(
         PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}),
         now = { Instant.EPOCH },
-    ).also { assertEquals(Adopt.Adopted, it.adoptToday(StrandsUiFixtures.envelope(), StrandsUiFixtures.ref)) }
+    ).also { assertEquals(Adopt.Adopted, it.adoptToday(RealDay.fetched.puzzle, RealDay.fetched.ref)) }
 
     private fun StrandsPlayController.play(path: List<Coord>) {
         path.forEach(::tap)
         tap(path.last())
     }
 
-    private fun StrandsPlayController.playNonTheme(vararg words: String) =
-        words.forEach { play(StrandsUiFixtures.nonTheme.getValue(it)) }
+    private fun StrandsPlayController.playNonTheme(words: List<List<Coord>>) = words.forEach { play(it) }
 
     private fun capture(name: String, dark: Boolean, setUp: StrandsPlayController.() -> Unit = {}) {
         // The reduced-motion path snaps every found-word and hint animation to its end state,
@@ -110,27 +117,27 @@ abstract class StrandsGoldenTestBase(
     }
 
     private fun StrandsPlayController.hintOutlined() {
-        playNonTheme("PIKE", "TAKE", "RAKE")
+        playNonTheme(RealDay.firstHintWords)
         pressHint()
     }
 
     private fun StrandsPlayController.hintOrderRevealed() {
         hintOutlined()
-        playNonTheme("CART", "KART", "RAKES")
+        playNonTheme(RealDay.secondHintWords)
         pressHint()
     }
 
-    private fun StrandsPlayController.solve() = (0 until 4).forEach { play(StrandsUiFixtures.row(it)) }
+    private fun StrandsPlayController.solve() = (RealDay.themeWords + listOf(RealDay.spangram)).forEach { play(it) }
 
     @Test fun `idle light`() = capture("idle", dark = false)
     @Test fun `idle dark`() = capture("idle", dark = true)
 
-    // Two letters traced, nothing submitted: the live trace and its slot.
-    @Test fun `mid trace light`() = capture("mid-trace", dark = false) { tap(Coord(0, 0)); tap(Coord(0, 1)) }
-    @Test fun `mid trace dark`() = capture("mid-trace", dark = true) { tap(Coord(0, 0)); tap(Coord(0, 1)) }
+    // Two letters of ACORN traced, nothing submitted: the live trace and its slot.
+    @Test fun `mid trace light`() = capture("mid-trace", dark = false) { RealDay.themeWords[0].take(2).forEach(::tap) }
+    @Test fun `mid trace dark`() = capture("mid-trace", dark = true) { RealDay.themeWords[0].take(2).forEach(::tap) }
 
-    @Test fun `found theme and spangram light`() = capture("found", dark = false) { play(StrandsUiFixtures.row(0)); play(StrandsUiFixtures.row(1)) }
-    @Test fun `found theme and spangram dark`() = capture("found", dark = true) { play(StrandsUiFixtures.row(0)); play(StrandsUiFixtures.row(1)) }
+    @Test fun `found theme and spangram light`() = capture("found", dark = false) { play(RealDay.themeWords[0]); play(RealDay.spangram) }
+    @Test fun `found theme and spangram dark`() = capture("found", dark = true) { play(RealDay.themeWords[0]); play(RealDay.spangram) }
 
     @Test fun `hint outlined light`() = capture("hint-outlined", dark = false) { hintOutlined() }
     @Test fun `hint outlined dark`() = capture("hint-outlined", dark = true) { hintOutlined() }
@@ -140,4 +147,48 @@ abstract class StrandsGoldenTestBase(
 
     @Test fun `solved with rating light`() = capture("solved", dark = false) { solve() }
     @Test fun `solved with rating dark`() = capture("solved", dark = true) { solve() }
+}
+
+/**
+ * The committed 2026-11-06 NYT body, adopted as the app would: through [NytStrandsDailySource]
+ * and its trust gate. The word paths are that day's real solution, as NYT lists `[row, col]`.
+ */
+private object RealDay {
+    private val day: LocalDate = LocalDate.of(2026, 11, 6)
+    private val body: String =
+        checkNotNull(javaClass.classLoader?.getResource("fixtures/strands/$day.json")) { "no fixture for $day" }.readText()
+
+    val fetched: DailyFetch = runBlocking {
+        when (val result = NytStrandsDailySource { FetchResult.Ok(body) }.fetchDaily(day)) {
+            is FetchResult.Ok -> result.value
+            is FetchResult.Err -> error("the fixture failed the trust gate: ${result.error}")
+        }
+    }
+
+    private val wire = JSONObject(body)
+
+    /** In feed order, so the first is ACORN. */
+    val themeWords: List<List<Coord>> = wire.getJSONArray("themeWords").let { words ->
+        (0 until words.length()).map { cells(wire.getJSONObject("themeCoords").getJSONArray(words.getString(it))) }
+    }
+    val spangram: List<Coord> = cells(wire.getJSONArray("spangramCoords"))
+
+    /** Valid non-theme words on this board, three earn a hint: ARTS, BRAN, CART… */
+    val firstHintWords: List<List<Coord>> = listOf(
+        path(1 to 4, 2 to 5, 3 to 5, 4 to 4),
+        path(1 to 5, 2 to 5, 1 to 4, 0 to 5),
+        path(0 to 4, 1 to 4, 2 to 5, 3 to 5),
+    )
+
+    /** …then ALTS, AVER, BACH. */
+    val secondHintWords: List<List<Coord>> = listOf(
+        path(6 to 4, 5 to 4, 5 to 5, 4 to 4),
+        path(6 to 4, 6 to 3, 6 to 2, 7 to 2),
+        path(1 to 5, 1 to 4, 0 to 4, 0 to 3),
+    )
+
+    private fun path(vararg cells: Pair<Int, Int>) = cells.map { (row, col) -> Coord(row, col) }
+
+    private fun cells(array: JSONArray): List<Coord> =
+        (0 until array.length()).map { array.getJSONArray(it).let { cell -> Coord(cell.getInt(0), cell.getInt(1)) } }
 }
