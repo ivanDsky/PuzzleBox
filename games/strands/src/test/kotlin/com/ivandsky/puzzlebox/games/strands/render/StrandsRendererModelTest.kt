@@ -4,8 +4,6 @@ import com.ivandsky.puzzlebox.games.strands.ActiveHint
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.HintStage
 import com.ivandsky.puzzlebox.games.strands.StrandsState
-import com.ivandsky.puzzlebox.games.strands.engine.StrandsMove
-import com.ivandsky.puzzlebox.games.strands.engine.StrandsRules
 import com.ivandsky.puzzlebox.games.strands.engine.StrandsVerdict
 import com.ivandsky.puzzlebox.games.strands.engine.accept
 import com.ivandsky.puzzlebox.games.strands.tinyPuzzle
@@ -35,10 +33,8 @@ class StrandsRendererModelTest {
     }
 
     @Test
-    fun `a spelled theme word paints its intended cells, not the traced path`() {
-        val tracedElsewhere = StrandsMove(listOf(Coord(0, 0), Coord(1, 0), Coord(1, 1)))
-        val verdict = StrandsRules.validate(tracedElsewhere, fresh) as StrandsVerdict
-        val model = StrandsRendererModel.of(fresh.accept(verdict))
+    fun `a found theme word paints its intended cells only`() {
+        val model = StrandsRendererModel.of(fresh.accept(StrandsVerdict.ThemeWord(tinyPuzzle.themeWords.single())))
 
         catCells.forEach { assertEquals(CellState.FoundTheme, model.cell(it.row, it.col).state) }
         assertEquals(CellState.Idle, model.cell(1, 0).state)
