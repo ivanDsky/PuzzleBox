@@ -49,8 +49,9 @@ internal class SlotOpening(
          *  [puzzleNumber] is the day's number from the cache's history (ADR-0004), if any. */
         class Fetched(val puzzle: Puzzle, val banner: String?, val puzzleNumber: Int?) : Origin
 
-        /** Nothing to play; [message] is the copy. */
-        class Unavailable(val message: String) : Origin
+        /** Nothing to play; [message] is the copy; [retryable] offers Retry (false when the
+         *  source has said the day doesn't exist or can't be trusted — retrying won't help). */
+        class Unavailable(val message: String, val retryable: Boolean = true) : Origin
     }
 
     suspend fun open(slot: PlaySlot): Origin {
@@ -88,8 +89,11 @@ internal class SlotOpening(
         when (val opened = pastDays(slot.gameId, slot.day, puzzleNumberOf(slot))) {
             is PastDayOutcome.Ready -> Origin.Restored(opened.session)
             PastDayOutcome.Missing -> Origin.Unavailable(DAY_MISSING)
-            PastDayOutcome.OutOfRange -> Origin.Unavailable(PAST_DAY_OUT_OF_RANGE)
-            is PastDayOutcome.Failed -> Origin.Unavailable(pastDayUnavailableMessage(slot.day, opened.error))
+            PastDayOutcome.OutOfRange -> Origin.Unavailable(PAST_DAY_OUT_OF_RANGE, retryable = false)
+            is PastDayOutcome.Failed -> Origin.Unavailable(
+                pastDayUnavailableMessage(slot.day, opened.error),
+                retryable = opened.error is FetchError.Unavailable || opened.error is FetchError.Throttled,
+            )
             is PastDayOutcome.Unreadable -> Origin.Unavailable(DAY_UNREADABLE)
         }
 
@@ -110,7 +114,9 @@ internal const val PAST_DAY_OUT_OF_RANGE = "This puzzle isn't available."
 /** Why an archive day that isn't on the device could not be fetched (SC9). */
 internal fun pastDayUnavailableMessage(day: LocalDate, error: FetchError): String = when (error) {
     is FetchError.NotFound -> PAST_DAY_OUT_OF_RANGE
-    is FetchError.Unavailable -> "You're offline. ${day.format(PAST_DAY)} needs a connection the first time it opens."
+    // Unavailable covers 5xx and unreadable bodies too, so offline is named as likely, not certain.
+    is FetchError.Unavailable ->
+        "Couldn't load ${day.format(PAST_DAY)}. You may be offline — it needs a connection the first time it opens."
     is FetchError.Untrusted -> "This puzzle couldn't be read. Try again later."
     is FetchError.Throttled -> "Can't load ${day.format(PAST_DAY)} right now. Wait a minute and try again."
 }

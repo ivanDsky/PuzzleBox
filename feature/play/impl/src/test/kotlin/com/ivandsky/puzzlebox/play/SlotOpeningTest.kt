@@ -17,6 +17,7 @@ import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -122,6 +123,7 @@ class SlotOpeningTest {
         val origin = opening.open(todaySlot) as SlotOpening.Origin.Unavailable
 
         assertEquals(unavailableMessage(offline), origin.message)
+        assertTrue(origin.retryable)
     }
 
     @Test
@@ -129,6 +131,7 @@ class SlotOpeningTest {
         val origin = opening.open(PlaySlot(alpha, yesterday)) as SlotOpening.Origin.Unavailable
 
         assertEquals("That day is no longer saved on this device.", origin.message)
+        assertTrue(origin.retryable)
         assertEquals(0, daily.todayCalls(alpha))
     }
 
@@ -144,25 +147,30 @@ class SlotOpeningTest {
     }
 
     @Test
-    fun `each past-day failure names its cause`() = runTest {
+    fun `each past-day failure names its cause and offers Retry only where it can help`() = runTest {
         daily.setArchiveRange(alpha, today.minusDays(30)..today)
-        val outside = PlaySlot(alpha, today.minusDays(31))
-        assertEquals(
-            "This puzzle isn't available.",
-            (opening.open(outside) as SlotOpening.Origin.Unavailable).message,
-        )
+        val outside = opening.open(PlaySlot(alpha, today.minusDays(31))) as SlotOpening.Origin.Unavailable
+        assertEquals("This puzzle isn't available.", outside.message)
+        assertFalse(outside.retryable)
 
-        mapOf(
-            FetchError.NotFound("404") to "This puzzle isn't available.",
-            FetchError.Unavailable("offline") to
-                "You're offline. Tuesday, November 3, 2026 needs a connection the first time it opens.",
-            FetchError.Untrusted("gate") to "This puzzle couldn't be read. Try again later.",
-            FetchError.Throttled("cooldown") to
+        listOf(
+            Triple(FetchError.NotFound("404"), "This puzzle isn't available.", false),
+            Triple(
+                FetchError.Unavailable("http 503"),
+                "Couldn't load Tuesday, November 3, 2026. You may be offline — it needs a connection the first time it opens.",
+                true,
+            ),
+            Triple(FetchError.Untrusted("gate"), "This puzzle couldn't be read. Try again later.", false),
+            Triple(
+                FetchError.Throttled("cooldown"),
                 "Can't load Tuesday, November 3, 2026 right now. Wait a minute and try again.",
-        ).forEach { (error, copy) ->
+                true,
+            ),
+        ).forEach { (error, copy, retryable) ->
             daily.setDay(alpha, yesterday, DailyDay.Failed(error))
             val origin = opening.open(PlaySlot(alpha, yesterday)) as SlotOpening.Origin.Unavailable
             assertEquals(copy, origin.message)
+            assertEquals("Retry for $error", retryable, origin.retryable)
         }
         assertEquals(0, daily.todayCalls(alpha))
     }

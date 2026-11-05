@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.LoadPastDay
@@ -114,6 +115,14 @@ class ActivePlayTest {
         play.load()
         assertEquals(2, daily.todayCalls(game))
         assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+    }
+
+    @Test
+    fun `a past day the source says doesn't exist is an error without retry`() {
+        val past = day.minusDays(1)
+        daily.setDay(game, past, DailyDay.Failed(FetchError.NotFound("404")))
+        val play = store.open(GameKey(game.value, past.toString()))!!
+        assertEquals(PlayBoardStatus.Unavailable(PAST_DAY_OUT_OF_RANGE, retryable = false), play.board.value.status)
     }
 
     @Test

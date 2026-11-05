@@ -119,7 +119,7 @@ class ActivePlay internal constructor(
             val status = when (val opened = opening.open(slot)) {
                 is SlotOpening.Origin.Fetched -> adopt(controller, opened)
                 is SlotOpening.Origin.Restored -> resume(controller, opened.session)
-                is SlotOpening.Origin.Unavailable -> PlayBoardStatus.Unavailable(opened.message)
+                is SlotOpening.Origin.Unavailable -> PlayBoardStatus.Unavailable(opened.message, opened.retryable)
             }
             if (gen == generation) _board.value = Board(controller, status)
         }
