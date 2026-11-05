@@ -77,7 +77,7 @@ internal fun StrandsHintControl(
 
 /** NYT's 80 × 45 pill, lifted to the 48 dp touch floor. */
 private val HintWidth = 96.dp
-private val HintHeight = 48.dp
+internal val HintHeight = 48.dp
 private val HintStroke = 1.dp
 
 /** A waiting hint draws a heavier outline, NYT's active button. */

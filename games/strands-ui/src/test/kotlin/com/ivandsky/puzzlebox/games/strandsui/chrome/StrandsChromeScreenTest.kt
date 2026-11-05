@@ -140,6 +140,20 @@ class StrandsChromeScreenTest {
     }
 
     @Test
+    @Config(qualifiers = "w360dp-h640dp-420dpi")
+    fun `the solve leaves a height-bound phone board exactly where it was`() {
+        val controller = tall()
+        show(controller, PlayLayout.SinglePane)
+        (0 until 7).forEach { row -> controller.play((0 until 6).map { Coord(row, it) }) }
+        rule.onNodeWithTag("strands.hint").assertExists()
+        val before = rule.onNodeWithTag("strands.board").getBoundsInRoot()
+
+        controller.play((0 until 6).map { Coord(7, it) })
+        rule.onNodeWithTag("strands.hint").assertDoesNotExist()
+        assertEquals(before, rule.onNodeWithTag("strands.board").getBoundsInRoot())
+    }
+
+    @Test
     fun `three non-theme words fill the meter and make a hint available, whose press outlines a word`() {
         val controller = adopted()
         show(controller, PlayLayout.SinglePane)
