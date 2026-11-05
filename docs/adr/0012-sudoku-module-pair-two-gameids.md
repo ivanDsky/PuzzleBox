@@ -32,6 +32,11 @@ LinkedIn has no 9x9. It is wanted only so the engine can be exercised at 9x9.
 ## Consequences
 - A real 9x9 source later replaces the bundled `DailySource`, and the debug gate moves. The
   engine and UI stay untouched.
-- A future size (e.g. 4x4) is one variant row plus a source.
+- A future size (e.g. 4x4) that is its own GameId is one variant row and a source in the game
+  module, plus wiring: a `SudokuGames` entry, the module pair in `appModules`, and a
+  `GAME_ORDER` line.
+- The 9x9 classes (`BundledSudokuDailySource`, `SudokuSamples`, `sudokuModule`,
+  `sudokuUiModule`) live in `main` source sets and ship in release, unregistered. Only the
+  module registration is gated by build type.
 - The "one pair per game" wording in ADR-0008 now reads "one pair per game family". Tests that
   list game ids (DI graph, E2E seen-sets) list the ids per build type.
