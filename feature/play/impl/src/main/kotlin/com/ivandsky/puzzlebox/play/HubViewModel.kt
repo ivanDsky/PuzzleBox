@@ -19,7 +19,9 @@ internal data class HubRow(
 /**
  * The games hub's state holder: the [PlaySessionStore]'s playable games in registry order,
  * each marked in progress when [ObservePlayProgress] has a save for it today (A13, SC11).
- * Before the first progress emission no row is.
+ * Before the first progress emission no row is. Progress is collected only while the hub
+ * is observed (plus a 5 s grace), so a hub left in a back stack across a deep sleep
+ * re-reads the day's cues when it shows again.
  */
 class HubViewModel(store: PlaySessionStore, progress: ObservePlayProgress) : ViewModel() {
 
@@ -27,5 +29,13 @@ class HubViewModel(store: PlaySessionStore, progress: ObservePlayProgress) : Vie
 
     internal val rows: StateFlow<List<HubRow>> = progress()
         .map { p -> playable.map { (game, name) -> HubRow(game, name, inProgress = game in p.inProgress) } }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, playable.map { (game, name) -> HubRow(game, name) })
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
+            playable.map { (game, name) -> HubRow(game, name) },
+        )
+
+    private companion object {
+        const val STOP_TIMEOUT_MS = 5_000L
+    }
 }

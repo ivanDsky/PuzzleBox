@@ -57,9 +57,13 @@ class ActivePlay internal constructor(
     /**
      * What the result route reads. [badge] is the A4 verdict for THIS play — null while
      * the write is in flight or the baseline is unknown; [label] is the result screen's
-     * game line ("Zip · #123").
+     * game line ("Zip · #123"); [solve] is the win this record belongs to, null until
+     * this session wins (a load or replay clears it).
      */
-    data class Record(val badge: Boolean?, val writeFailed: Boolean, val label: String)
+    data class Record(val badge: Boolean?, val writeFailed: Boolean, val label: String, val solve: Solve? = null)
+
+    /** A win's frozen facts, as the result key carries them. */
+    data class Solve(val timeMs: Long, val hints: Int)
 
     val gameId: GameId get() = plugin.definition.id
 
@@ -188,6 +192,7 @@ class ActivePlay internal constructor(
     private fun onWon(record: CompletionRecord) {
         writer.discard()
         lastWon = record
+        _record.update { it.copy(solve = Solve(record.time, record.hints)) }
         emit(record)
     }
 

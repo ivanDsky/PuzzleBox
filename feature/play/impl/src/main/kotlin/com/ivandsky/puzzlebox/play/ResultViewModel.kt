@@ -11,9 +11,11 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
@@ -29,15 +31,18 @@ data class ResultUiState(
 )
 
 /**
- * The result route's state holder for [key]'s slot. With the slot's play live
- * ([PlaySessionStore.peek]) the badge, label and record-write retry come from it. After
- * process death (no live play) the badge is a (time, hints) match against the slot's
- * completion records, and retry is hidden (A15, N20).
+ * The result route's state holder for [key]'s slot. The slot's live play
+ * ([PlaySessionStore.peek]) speaks for this result only while it holds THIS solve — won,
+ * with the key's time and hints: then the badge, label and record-write retry come from
+ * it. Otherwise (process death, or another stack replayed or re-solved the slot) the badge
+ * is a (time, hints) match against the slot's completion records and retry is hidden
+ * (A15, N20); a live play still names the label.
  *
  * [primary] (A7, SC10): on today's slot it is Next — [progress]'s next unsolved game after
- * this one, named by [games] — or AllDone when none is left, and null until progress first
- * lands, so the screen never shows a Done that turns into Next. Any other day's result (a
- * replay) offers Done from the first frame.
+ * this one that the [store] can play, named by [games] — or AllDone when none is left, and
+ * null until progress first lands, so the screen never shows a Done that turns into Next.
+ * Any other day's result (a replay) offers Done from the first frame. Progress is collected
+ * only while the screen is observed (plus a 5 s grace), so a day change is re-read.
  */
 class ResultViewModel(
     key: ResultKey,
@@ -49,37 +54,49 @@ class ResultViewModel(
 ) : ViewModel() {
 
     private val slot = PlaySlot(GameId(key.gameId), LocalDate.parse(key.day))
+    private val solve = ActivePlay.Solve(key.timeMs, key.hintsUsed)
     private val live: ActivePlay? = store.peek(slot)
+    private val playable: Set<GameId> = store.playable.mapTo(HashSet()) { (game, _) -> game }
+
+    private val fromRecords: Flow<ResultUiState> = completions.observeRecords().map { records ->
+        val matched = records.any {
+            it.puzzleRef.gameId == slot.gameId && it.puzzleRef.date == slot.day &&
+                it.time == key.timeMs && it.hints == key.hintsUsed
+        }
+        ResultUiState(isRecord = if (matched) true else null)
+    }
 
     val state: StateFlow<ResultUiState> = if (live != null) {
-        live.record.map(::resultOf).stateIn(viewModelScope, SharingStarted.Eagerly, resultOf(live.record.value))
+        combine(live.record, fromRecords, ::resultOf)
+            .stateIn(viewModelScope, SharingStarted.Eagerly, resultOf(live.record.value, ResultUiState()))
     } else {
-        completions.observeRecords()
-            .map { records ->
-                val matched = records.any {
-                    it.puzzleRef.gameId == slot.gameId && it.puzzleRef.date == slot.day &&
-                        it.time == key.timeMs && it.hints == key.hintsUsed
-                }
-                ResultUiState(isRecord = if (matched) true else null)
-            }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, ResultUiState())
+        fromRecords.stateIn(viewModelScope, SharingStarted.Eagerly, ResultUiState())
     }
 
     val primary: StateFlow<ResultPrimaryAction?> =
         if (calendar.today(slot.gameId) == slot.day) {
             progress().map { p ->
-                p.nextUnsolved(after = slot.gameId)
+                p.copy(order = p.order.filter { it in playable })
+                    .nextUnsolved(after = slot.gameId)
                     ?.let { ResultPrimaryAction.Next(it, games.displayName(it)) }
                     ?: ResultPrimaryAction.AllDone
-            }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
         } else {
             MutableStateFlow(ResultPrimaryAction.Done)
         }
 
     fun retryRecordWrite() {
-        live?.retryRecordWrite()
+        live?.takeIf { it.record.value.solve == solve }?.retryRecordWrite()
     }
 
-    private fun resultOf(record: ActivePlay.Record) =
-        ResultUiState(isRecord = record.badge, writeFailed = record.writeFailed, label = record.label)
+    private fun resultOf(record: ActivePlay.Record, fromRecords: ResultUiState) =
+        if (record.solve == solve) {
+            ResultUiState(isRecord = record.badge, writeFailed = record.writeFailed, label = record.label)
+        } else {
+            fromRecords.copy(label = record.label)
+        }
+
+    private companion object {
+        const val STOP_TIMEOUT_MS = 5_000L
+    }
 }

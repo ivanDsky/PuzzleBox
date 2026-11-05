@@ -1,6 +1,11 @@
 package com.ivandsky.puzzlebox.app.e2e
 
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
 import com.ivandsky.puzzlebox.data.di.dataModule
@@ -40,10 +45,10 @@ import org.robolectric.annotation.Config
 
 /**
  * Persistence rows over the real shell: N19 / A24 (a kill with no saved state resumes the
- * same board, elapsed time and undo from a file-backed Room database), N20 / SC9 (a Result
- * restored after process death renders and its actions work) and SC8 (a solve deletes the
- * save, the cap holds at 8, a pinned clock across midnight keeps the live board's day while
- * the cues move on).
+ * same board, elapsed time and undo from a file-backed Room database), N20 / SC9 (a solve's
+ * Result, saved and restored into a fresh process, renders and its actions work) and SC8 (a
+ * solve deletes the save, the cap holds at 8, a pinned clock across midnight keeps the live
+ * board's day, labelled yesterday's, while the cues move on).
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -100,21 +105,21 @@ class ProcessDeathE2ETest {
     }
 
     @Test
-    fun `N20 a Result restored after process death renders, and Play again reopens its day`() =
-        shellRobot(pastResult, graph = replayableGraph()) {
-            assertRoute(RESULT)
-            awaitText("Solved!")
+    fun `N20 a Result saved from Play renders after process death, and Play again reopens its day`() = shellRobot(playHub) {
+        solveThenDie(todaySlot)
+        awaitText("Solved!")
 
-            tap(PLAY_AGAIN)
+        rule.onNodeWithTag(PLAY_AGAIN).performScrollTo().performClick()
+        rule.waitForIdle()
 
-            assertState(stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey, GameKey(ZIP, "$PAST_DAY"))))
-            assertRoute(GAME)
-        }
+        assertState(stacks(tab = PlayKey, play = listOf(PlayKey, GameKey(ZIP, "$E2E_TODAY"))))
+        assertRoute(GAME)
+    }
 
     @Test
-    fun `N20 a Result restored after process death returns to its origin on Done`() =
-        shellRobot(pastResult, graph = replayableGraph()) {
-            assertRoute(RESULT)
+    fun `N20 a History replay's Result saved before process death returns to its origin on Done`() =
+        shellRobot(pastGame, graph = replayableGraph()) {
+            solveThenDie(pastSlot)
 
             tap(DONE)
 
@@ -123,19 +128,16 @@ class ProcessDeathE2ETest {
         }
 
     @Test
-    fun `N20 today's Result restored after process death opens the next game on Next`() {
-        val todayResult = stacks(tab = PlayKey, play = listOf(PlayKey, ResultKey(ZIP, "$E2E_TODAY", TIME_MS, 0)))
-        shellRobot(todayResult) {
-            assertRoute(RESULT)
-            awaitText("Solved!")
+    fun `N20 today's Result saved before process death opens the next game on Next`() = shellRobot(playHub) {
+        solveThenDie(todaySlot)
+        awaitText("Solved!")
 
-            tap(NEXT)
+        tap(NEXT)
 
-            val next = state.currentStack.last()
-            assertTrue("Next opens another game's today: $state", next is GameKey && next.gameId != ZIP && next.day == null)
-            assertState(stacks(tab = PlayKey, play = listOf(PlayKey, next)))
-            assertRoute(GAME)
-        }
+        val next = state.currentStack.last()
+        assertTrue("Next opens another game's today: $state", next is GameKey && next.gameId != ZIP && next.day == null)
+        assertState(stacks(tab = PlayKey, play = listOf(PlayKey, next)))
+        assertRoute(GAME)
     }
 
     @Test
@@ -193,6 +195,8 @@ class ProcessDeathE2ETest {
         tapTab(PlayKey)
         assertState(stacks(tab = PlayKey, play = listOf(PlayKey, GameKey(ZIP))))
         assertRoute(GAME)
+        awaitTag(PAST_DAY_LABEL)
+        rule.onNodeWithText("Yesterday's puzzle").assertIsDisplayed()
         assertEquals("the live board keeps its day and trace", MID_GAME, rule.runOnIdle { zip().session?.path })
         assertNull("no board opened for the new day", rule.runOnIdle { store.peek(PlaySlot(ZipDefinition.id, E2E_TODAY.plusDays(1))) })
     }
@@ -200,14 +204,38 @@ class ProcessDeathE2ETest {
     private val ShellRobot.store: PlaySessionStore get() = graph.koin.get()
     private val ShellRobot.saves: SavedPlayRepository get() = graph.koin.get()
 
-    /** The live play of [todaySlot] (read off the main thread only while the activity is stopped). */
-    private fun ShellRobot.zip(): ZipPlayController =
-        checkNotNull(store.peek(todaySlot)) { "no live zip play for $E2E_TODAY" }.controller as ZipPlayController
+    /** The live play of [slot] (read off the main thread only while the activity is stopped). */
+    private fun ShellRobot.zip(slot: PlaySlot = todaySlot): ZipPlayController =
+        checkNotNull(store.peek(slot)) { "no live zip play for ${slot.day}" }.controller as ZipPlayController
 
-    /** Waits until today's live Zip has its session, and returns it. */
-    private fun ShellRobot.awaitZip(): ZipSession {
-        rule.waitUntil(TIMEOUT_MS) { rule.runOnIdle { store.peek(todaySlot) }?.let { (it.controller as ZipPlayController).session } != null }
-        return checkNotNull(rule.runOnIdle { zip().session })
+    /** Waits until [slot]'s live Zip has its session, and returns it. */
+    private fun ShellRobot.awaitZip(slot: PlaySlot = todaySlot): ZipSession {
+        rule.waitUntil(TIMEOUT_MS) { rule.runOnIdle { store.peek(slot) }?.let { (it.controller as ZipPlayController).session } != null }
+        return checkNotNull(rule.runOnIdle { zip(slot).session })
+    }
+
+    /**
+     * Solves [slot]'s board (opening today's from the hub), then dies with saved state: every
+     * ViewModel and the Koin graph go (the fakes are the disk), and the navigator's saved
+     * bundle comes back to a fresh shell. The restored Result has no live play behind it.
+     */
+    private fun ShellRobot.solveThenDie(slot: PlaySlot) {
+        if (slot == todaySlot) openGame(ZIP)
+        awaitZip(slot)
+        rule.runOnIdle { ZipPlayFixture.solution.forEach { zip(slot).extend(it) } }
+        assertRoute(RESULT)
+        val saved = state
+        val top = saved.currentStack.last()
+        assertTrue("the solve's Result on top: $saved", top is ResultKey && top.day == "${slot.day}")
+
+        rule.runOnIdle { rule.activity.viewModelStore.clear() }
+        graph.stop()
+        graph.start()
+        restoreState()
+
+        assertState(saved)
+        assertRoute(RESULT)
+        assertNull("no live play survives the process", rule.runOnIdle { store.peek(slot) })
     }
 
     private fun ShellRobot.awaitText(text: String) {
@@ -216,7 +244,7 @@ class ProcessDeathE2ETest {
 
     private fun ZipPlayController.extend(cell: Cell) = onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
 
-    /** [PAST_DAY] is a captured, cached day, so its Result's "Play again" has a board to open. */
+    /** [PAST_DAY] is a captured, cached day, so its History replay has a board to open. */
     private fun replayableGraph() = E2eKoinGraph(E2E_TODAY).apply {
         daily.setHistory(ZipDefinition.id, listOf(ZipPlayFixture.entry(E2E_TODAY), ZipPlayFixture.entry(PAST_DAY)))
         daily.setCached(ZipDefinition.id, PAST_DAY, ZipPlayFixture.envelope())
@@ -231,10 +259,11 @@ class ProcessDeathE2ETest {
 
     private val playHub = stacks(tab = PlayKey)
 
-    /** A History replay's Result as the restored navigation state hands it to a fresh process. */
-    private val pastResult = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey, ResultKey(ZIP, "$PAST_DAY", TIME_MS, 0)))
+    /** A History replay of [PAST_DAY], open on Home's stack. */
+    private val pastGame = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey, GameKey(ZIP, "$PAST_DAY")))
 
     private val todaySlot = PlaySlot(ZipDefinition.id, E2E_TODAY)
+    private val pastSlot = PlaySlot(ZipDefinition.id, PAST_DAY)
 
     private companion object {
         const val HISTORY = "route.history"
@@ -245,7 +274,7 @@ class ProcessDeathE2ETest {
         const val DONE = "result.done"
         const val ZIP = "zip"
         const val CAP = 8
-        const val TIME_MS = 12_340L
+        const val PAST_DAY_LABEL = "game.past_day"
         const val SAVE_GAP_MS = 5L
         const val TIMEOUT_MS = 5_000L
         val PAST_DAY: LocalDate = LocalDate.of(2026, 10, 30)

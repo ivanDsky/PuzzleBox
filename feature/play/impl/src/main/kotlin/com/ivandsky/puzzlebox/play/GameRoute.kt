@@ -23,9 +23,11 @@ import org.koin.core.parameter.parametersOf
 /**
  * One [GameKey]'s board on any stack (A9, N21): the entry's [GameViewModel] opens the
  * slot's live play in the [PlaySessionStore], and this draws its board and status under a
- * top bar whose Up is [onBack], the same navigator pop as system back. There is no
- * BackHandler (predictive back stays the scene's) and no saveable blob: the store's slot
- * row is what survives process death (A8, A11).
+ * top bar whose Up is [onBack], the same navigator pop as system back. The bar carries no
+ * title (the board draws its own header) unless the board was kept across its game's
+ * midnight, when it reads "Yesterday's puzzle". There is no BackHandler (predictive back
+ * stays the scene's) and no saveable blob: the store's slot row is what survives process
+ * death (A8, A11).
  */
 @Composable
 internal fun GameRoute(
@@ -37,9 +39,11 @@ internal fun GameRoute(
 ) {
     val viewModel: GameViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val play = viewModel.play
+    val pastDay by viewModel.pastDay.collectAsStateWithLifecycle()
     Column(modifier = modifier.testTag("route.game")) {
         CompactTopBar(
-            title = play?.record?.collectAsStateWithLifecycle()?.value?.label.orEmpty(),
+            title = if (pastDay) PAST_DAY else "",
+            modifier = if (pastDay) Modifier.testTag("game.past_day") else Modifier,
             navigationIcon = {
                 IconButton(onClick = onBack, modifier = Modifier.testTag("game.up")) {
                     Icon(
@@ -67,3 +71,4 @@ internal fun GameRoute(
 }
 
 private const val UNPLAYABLE = "This game isn't available in this build."
+private const val PAST_DAY = "Yesterday's puzzle"

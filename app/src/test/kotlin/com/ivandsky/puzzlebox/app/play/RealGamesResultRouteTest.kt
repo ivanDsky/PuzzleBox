@@ -91,11 +91,13 @@ class RealGamesResultRouteTest {
                 }
             }
             composeRule.waitForIdle()
+            // The route speaks for the live play only for the solve it holds (F2): key it by that solve.
+            val solved = composeRule.runOnIdle { checkNotNull(zip().session) }
             var replayed = false
             composeRule.setContent {
                 PuzzleBoxTheme(darkTheme = false) {
                     ResultRoute(
-                        key = ResultKey(ZipDefinition.id.value, today.toString(), 12_340, 0),
+                        key = ResultKey(ZipDefinition.id.value, today.toString(), solved.elapsedMs, solved.hintsUsed),
                         onPlayAgain = { replayed = true },
                         onNext = {},
                         onDone = {},

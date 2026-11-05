@@ -7,13 +7,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.app.nav.PuzzleBoxNavShell
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
@@ -70,7 +70,7 @@ fun PuzzleBoxApp(
     val selected = navigator.state.tab
     val anyInProgress by remember(observePlayProgress) {
         observePlayProgress().map { it.anyInProgress }
-    }.collectAsState(initial = false)
+    }.collectAsStateWithLifecycle(initialValue = false)
     val badged = if (anyInProgress) setOf(PlayKey) else emptySet()
 
     Scaffold(
