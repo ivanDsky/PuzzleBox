@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
@@ -38,14 +40,17 @@ import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
 private val SelectedBorder = 2.dp
 private val DAY_GROUP_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, MMM d")
 
 /**
- * History's list column (spec A18): the tabs, the tab's stats and weeks, then its paged
- * rows grouped under a day label. A tab with nothing in it shows only the empty state.
+ * History's list column (spec A18): the tabs, the tab's stats and month calendar, then
+ * its paged rows grouped under a day label. A day picked on the calendar swaps the pages
+ * for that day's rows from the state, under a pill that clears it. A tab with nothing
+ * in it shows only the empty state.
  */
 @Composable
 internal fun ListPane(
@@ -53,6 +58,8 @@ internal fun ListPane(
     state: HistoryUiState,
     selectedTab: GameId?,
     onSelectTab: (GameId?) -> Unit,
+    onShowMonth: (YearMonth) -> Unit,
+    onSelectDay: (LocalDate?) -> Unit,
     selectedKey: String?,
     onDayClick: (HistoryDayRow) -> Unit,
     onBack: () -> Unit,
@@ -101,7 +108,7 @@ internal fun ListPane(
             }
             return@LazyColumn
         }
-        // Stats and weeks are always items 2 and 3 (rows start at 4), filled once they load.
+        // Stats and the calendar are always items 2 and 3 (rows start at 4), filled once they load.
         item(key = "stats") {
             state.stats?.let { stats ->
                 HistoryStatsHeader(
@@ -112,15 +119,47 @@ internal fun ListPane(
                 )
             }
         }
-        item(key = "weeks") {
-            if (state.weeks.isNotEmpty()) {
-                HistoryWeekStrips(
-                    weeks = state.weeks,
-                    total = state.dotsPerDay,
+        item(key = "calendar") {
+            HistoryCalendar(
+                state = state,
+                onShowMonth = onShowMonth,
+                onSelectDay = onSelectDay,
+                cardColor = cardColor,
+                modifier = Modifier.padding(horizontal = Spacing.lg),
+            )
+        }
+        state.selectedDay?.let { day ->
+            item(key = "day_filter") {
+                DayFilterPill(
+                    day = day,
+                    today = state.today,
+                    onClear = { onSelectDay(null) },
+                    modifier = Modifier.padding(start = Spacing.lg, top = Spacing.sm),
+                )
+            }
+            val dayRows = state.rows.filter { it.day == day }
+            if (dayRows.isEmpty()) {
+                item(key = "day_empty") {
+                    Text(
+                        text = "Nothing played on this day.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .padding(horizontal = Spacing.lg, vertical = Spacing.md)
+                            .testTag("history.day_empty"),
+                    )
+                }
+            }
+            items(items = dayRows, key = { it.key }, contentType = { "row" }) { row ->
+                HistoryRowView(
+                    row = row,
+                    selected = row.key == selectedKey,
+                    onClick = { onDayClick(row) },
                     cardColor = cardColor,
                     modifier = Modifier.padding(horizontal = Spacing.lg),
                 )
             }
+            return@LazyColumn
         }
         items(
             count = days.itemCount,
@@ -208,10 +247,10 @@ private fun HistoryRowView(
             }
             val record = row.record
             if (record == null) {
-                Text(
+                AccentPill(
                     text = "Keep going",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    brand = row.brand,
+                    style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier.testTag("history.unfinished.${row.key}"),
                 )
             } else {
@@ -236,6 +275,12 @@ private fun HistoryRowView(
 /** The game's fastest numbered solve, in its accent (history.md §2). */
 @Composable
 internal fun BestPill(brand: GameBrand, modifier: Modifier = Modifier) {
+    AccentPill(text = "Best", brand = brand, style = MaterialTheme.typography.labelSmall, modifier = modifier)
+}
+
+/** A small tag on [brand]'s accent container: "Best", or "Keep going" on an unfinished row. */
+@Composable
+private fun AccentPill(text: String, brand: GameBrand, style: TextStyle, modifier: Modifier = Modifier) {
     val accent = brand.accent.colors()
     Surface(
         modifier = modifier,
@@ -244,8 +289,8 @@ internal fun BestPill(brand: GameBrand, modifier: Modifier = Modifier) {
         contentColor = accent.onContainer,
     ) {
         Text(
-            text = "Best",
-            style = MaterialTheme.typography.labelSmall,
+            text = text,
+            style = style,
             modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs / 2),
         )
     }

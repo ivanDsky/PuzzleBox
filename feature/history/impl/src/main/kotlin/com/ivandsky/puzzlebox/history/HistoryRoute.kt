@@ -41,6 +41,8 @@ fun HistoryRoute(
         state = uiState,
         selectedTab = selectedTab,
         onSelectTab = viewModel::select,
+        onShowMonth = viewModel::showMonth,
+        onSelectDay = viewModel::selectDay,
         onReplay = onReplay,
         modifier = modifier.testTag("route.history"),
     )

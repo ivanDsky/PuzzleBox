@@ -4,10 +4,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -20,16 +24,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
-import com.ivandsky.puzzlebox.designsystem.PrimaryButton
+import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
-import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
+
+private val ReplayHeight = 56.dp
 
 /** Expanded-width detail placeholder until a day is selected (home's DetailPane voice). */
 @Composable
@@ -148,24 +155,37 @@ internal fun DayDetailPane(
                     )
                 }
             }
-            if (row.record != null) {
-                SecondaryButton(
-                    text = "Play again",
-                    onClick = onReplay,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("history.play_again"),
-                )
-            } else {
-                PrimaryButton(
-                    text = "Keep going",
-                    onClick = onReplay,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("history.keep_going"),
-                )
-            }
+            ReplayButton(row, onReplay)
         }
+    }
+}
+
+/**
+ * The detail's one action, full width in the game's accent (the hub's pill pattern): a
+ * tonal accent-container "Play again" once solved, a filled accent "Keep going" while
+ * the day is unfinished.
+ */
+@Composable
+private fun ReplayButton(row: HistoryDayRow, onReplay: () -> Unit) {
+    val accent = row.brand.accent.colors()
+    val size = Modifier.fillMaxWidth().heightIn(min = ReplayHeight)
+    if (row.record != null) {
+        FilledTonalButton(
+            onClick = onReplay,
+            shape = PillShape,
+            colors = ButtonDefaults.filledTonalButtonColors(
+                containerColor = accent.container,
+                contentColor = accent.onContainer,
+            ),
+            modifier = size.testTag("history.play_again"),
+        ) { Text(text = "Play again", style = MaterialTheme.typography.labelLarge) }
+    } else {
+        Button(
+            onClick = onReplay,
+            shape = PillShape,
+            colors = ButtonDefaults.buttonColors(containerColor = accent.accent, contentColor = accent.onAccent),
+            modifier = size.testTag("history.keep_going"),
+        ) { Text(text = "Keep going", style = MaterialTheme.typography.labelLarge) }
     }
 }
 

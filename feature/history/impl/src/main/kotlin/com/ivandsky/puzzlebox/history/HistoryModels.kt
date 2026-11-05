@@ -70,3 +70,15 @@ internal fun List<HistoryDayRow>.markBest(): List<HistoryDayRow> {
         .toSet()
     return map { if (it.key in best) it.copy(isBest = true) else it }
 }
+
+/**
+ * The brands of [rows]' numbered solves per day, in [order] — practice never fills a
+ * dot, the same rule as the streak.
+ */
+internal fun solvedByDay(rows: List<HistoryDayRow>, order: List<GameId>): Map<LocalDate, List<GameBrand>> {
+    val rank = order.withIndex().associate { (index, id) -> id to index }
+    return rows
+        .filter { it.counts }
+        .sortedBy { rank[it.gameId] ?: Int.MAX_VALUE }
+        .groupBy({ it.day }, { it.brand })
+}

@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.history
 
 import androidx.paging.testing.asSnapshot
+import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
@@ -11,6 +13,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -242,26 +245,81 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `the weeks run Monday to Sunday, newest first, with practice left out`() {
-        val today = HistoryTestSupport.TODAY // a Tuesday
+    fun `calendar dots leave out practice and unfinished days, in tab order`() {
+        val today = HistoryTestSupport.TODAY
+        val zip = GameBrand.Neutral.copy(accent = AccentSlot.Blue)
+        val tango = GameBrand.Neutral.copy(accent = AccentSlot.Orange)
         val rows = listOf(
-            HistoryDayRow(today, 1, ZIP, "Zip", record = HistoryTestSupport.record(today)),
-            HistoryDayRow(today.minusDays(1), null, TANGO, "Tango", record = HistoryTestSupport.tangoRecord(today.minusDays(1))),
-            HistoryDayRow(today.minusDays(2), 2, ZIP, "Zip"),
+            HistoryDayRow(today, 1, TANGO, "Tango", brand = tango, record = HistoryTestSupport.tangoRecord(today)),
+            HistoryDayRow(today, 1, ZIP, "Zip", brand = zip, record = HistoryTestSupport.record(today)),
+            HistoryDayRow(today.minusDays(1), null, TANGO, "Tango", brand = tango, record = HistoryTestSupport.tangoRecord(today.minusDays(1))),
+            HistoryDayRow(today.minusDays(2), 2, ZIP, "Zip", brand = zip),
         )
 
-        val weeks = historyWeeks(today, rows, listOf(ZIP, TANGO))
+        val solved = solvedByDay(rows, listOf(ZIP, TANGO))
 
-        assertEquals(HISTORY_WEEKS, weeks.size)
-        assertTrue(weeks.all { week -> week.size == 7 && week.first().date.dayOfWeek == DayOfWeek.MONDAY })
-        assertTrue("newest week first", weeks[0].first().date > weeks[1].first().date)
-        assertTrue("this week holds today", weeks[0].any { it.date == today })
-        // today - 2 is Sunday: the end of last week.
-        val shown = weeks.flatten().associateBy { it.date }
-        assertEquals(1, shown.getValue(today).solved.size)
-        assertTrue(shown.getValue(today).isToday)
-        assertTrue("practice fills no dot", shown.getValue(today.minusDays(1)).solved.isEmpty())
-        assertTrue("an unfinished day fills no dot", shown.getValue(today.minusDays(2)).solved.isEmpty())
+        assertEquals(setOf(today), solved.keys)
+        assertEquals(listOf(zip, tango), solved.getValue(today))
+    }
+
+    @Test
+    fun `a month grid is whole Monday-first weeks around the month`() {
+        val month = YearMonth.of(2026, 11) // starts on a Sunday, ends on a Monday
+
+        val weeks = monthGrid(month)
+
+        assertTrue(weeks.all { week -> week.size == 7 && week.first().dayOfWeek == DayOfWeek.MONDAY })
+        assertEquals(month.atDay(1), weeks.first().last())
+        assertEquals(month.atEndOfMonth(), weeks.last().first())
+        assertEquals(month.lengthOfMonth(), weeks.flatten().count { YearMonth.from(it) == month })
+    }
+
+    @Test
+    fun `the calendar month stays between the oldest row's month and today's`() = runTest {
+        val today = HistoryTestSupport.TODAY
+        val oldest = LocalDate.of(2026, 9, 15)
+        val daily = FakeDailyRepository().apply {
+            setHistory(ZIP, listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(oldest)))
+        }
+        val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository())
+        val current = YearMonth.from(today)
+
+        val opened = viewModel.uiState.first { it.rows.isNotEmpty() }
+        assertEquals(current, opened.month)
+        assertEquals(YearMonth.from(oldest), opened.earliestMonth)
+
+        viewModel.showMonth(current.minusMonths(1))
+        assertEquals(current.minusMonths(1), viewModel.uiState.first { it.month != current }.month)
+
+        viewModel.showMonth(YearMonth.of(2020, 1))
+        assertEquals(YearMonth.from(oldest), viewModel.uiState.first { it.month != current.minusMonths(1) }.month)
+
+        viewModel.showMonth(current.plusMonths(3))
+        assertEquals(current, viewModel.uiState.first { it.month != YearMonth.from(oldest) }.month)
+    }
+
+    @Test
+    fun `a picked day toggles, ignores later days, and survives a tab switch`() = runTest {
+        val today = HistoryTestSupport.TODAY
+        val daily = FakeDailyRepository().apply {
+            setHistory(ZIP, listOf(HistoryTestSupport.entry(today.minusDays(1))))
+        }
+        val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository())
+        suspend fun picked() = viewModel.uiState.first { it.rows.isNotEmpty() || it.selectedDay != null }.selectedDay
+
+        viewModel.selectDay(today.plusDays(1))
+        advanceUntilIdle()
+        assertNull(picked())
+
+        viewModel.selectDay(today.minusDays(1))
+        assertEquals(today.minusDays(1), viewModel.uiState.first { it.selectedDay != null }.selectedDay)
+
+        viewModel.select(TANGO)
+        val tango = viewModel.uiState.first { it.rows.isEmpty() && it.dotsPerDay == 1 }
+        assertEquals("the pick stays across tabs", today.minusDays(1), tango.selectedDay)
+
+        viewModel.selectDay(today.minusDays(1))
+        assertNull("the same day again clears it", viewModel.uiState.first { it.selectedDay == null }.selectedDay)
     }
 
     @Test
