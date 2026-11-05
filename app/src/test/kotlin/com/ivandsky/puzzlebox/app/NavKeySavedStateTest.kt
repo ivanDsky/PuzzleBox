@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app
 
 import android.app.Application
+import android.os.Looper
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.serialization.NavBackStackSerializer
@@ -16,11 +17,13 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import kotlinx.serialization.PolymorphicSerializer
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
@@ -41,6 +44,18 @@ class NavKeySavedStateTest {
             listOf(ProfileKey, CatalogKey),
         ),
     )
+
+    /**
+     * `NavBackStack` is snapshot state, so building one writes the global snapshot. That
+     * write posts Compose's apply notification to the main looper — once per sandbox, gated
+     * until it runs. Robolectric clears the looper between tests, so an unrun post would
+     * silence every later global write in this sandbox (History's paged rows never arrive
+     * in the E2E rows). Run it before the test ends.
+     */
+    @After
+    fun flushSnapshotNotifications() {
+        shadowOf(Looper.getMainLooper()).idle()
+    }
 
     @Test
     fun `every key round-trips through the saved-state configuration`() {

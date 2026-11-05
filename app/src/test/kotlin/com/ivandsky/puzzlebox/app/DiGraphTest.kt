@@ -113,7 +113,8 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<GameCalendar>())
             assertNotNull(koin.get<ObservePlayProgress>())
             assertNotNull(koin.get<HubViewModel>())
-            assertNotNull(koin.get<GameViewModel> { parametersOf(GameKey("zip")) }.play)
+            // A past, uncached day: the slot opens as a cache miss, never today's network fetch.
+            assertNotNull(koin.get<GameViewModel> { parametersOf(GameKey("zip", "2000-01-01")) }.play)
             assertNotNull(koin.get<ResultViewModel> { parametersOf(ResultKey("zip", "2026-11-04", 12_340L, 0)) })
         } finally {
             stopKoin() // close() alone leaves the JVM-global context registered for later tests
