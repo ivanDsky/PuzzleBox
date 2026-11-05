@@ -20,10 +20,14 @@ ViewModel (F7).
    duplicate id throws). Games' controllers also implement the ADR-0006
    `PlayClock`/`PlayHints`/`PlayUndo` seams. `Board` is the game's one chrome-free board:
    its daily `Screen` and the tutorial both draw it. `tutorial` is the game's ordered
-   `TutorialStep`s (instruction, puzzle, ref). `TutorialSession` is the step machine
-   (lessons → ready, or skipped); `TutorialHost` draws it. `TutorialSandbox` builds each
-   lesson's controller with an environment that drops session changes and turns a win into
-   the next step, so a lesson never reaches the record emitter or the session store.
+   `TutorialStep`s (instruction, puzzle, ref, `guided`). `TutorialSession` is the step
+   machine (lessons → ready, or skipped); a win marks the lesson `solved` and `next()`
+   moves on, so `TutorialHost` can hold the solved board for a short beat before the next
+   lesson. `TutorialSandbox` builds each lesson's controller with an environment that drops
+   session changes and turns a win into that beat, so a lesson never reaches the record
+   emitter or the session store. A `guided` step asks the controller to show its answer
+   through the optional `PlayGuide` capability (answers come from the game's own solver)
+   and fails loudly when the controller can't guide.
    `PlayChrome` takes an optional `onHowToPlay` that shows the "How to play" button.
    `core/game-ui` never references `feature/play`.
 2. Each `games/*-ui` module ships exactly one controller and one `GamePlayUi`, bound in its
