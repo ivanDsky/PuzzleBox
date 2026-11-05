@@ -31,6 +31,10 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.queensPlugin
 import com.ivandsky.puzzlebox.games.queensui.QueensPlayUi
+import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
+import com.ivandsky.puzzlebox.games.strands.strandsPlugin
+import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayController
+import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayUi
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
@@ -113,8 +117,8 @@ class RealGamesPlayRouteTest {
                     single { daily }
                     single<CompletionRepository> { FakeCompletionRepository() }
                     // The hub names games from the registry (A5), in the app's order.
-                    single { GameRegistry(listOf(zipPlugin, tangoPlugin, queensPlugin)) }
-                    single { GamePlayRegistry(listOf(ZipPlayUi(), TangoPlayUi(), QueensPlayUi())) }
+                    single { GameRegistry(listOf(zipPlugin, tangoPlugin, queensPlugin, strandsPlugin)) }
+                    single { GamePlayRegistry(listOf(ZipPlayUi(), TangoPlayUi(), QueensPlayUi(), StrandsPlayUi())) }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     // Every real game shares the America/Los_Angeles cadence zone.
                     single<GameCalendar> { FakeGameCalendar(cadenceToday) }
@@ -123,7 +127,7 @@ class RealGamesPlayRouteTest {
                     // Every tutorial seen: these paths are about the boards; the lessons have their own tests.
                     single<UserPreferencesRepository> {
                         FakeUserPreferencesRepository(
-                            seen = setOf(ZipDefinition.id, TangoDefinition.id, QueensDefinition.id),
+                            seen = setOf(ZipDefinition.id, TangoDefinition.id, QueensDefinition.id, StrandsDefinition.id),
                         )
                     }
                 },
@@ -167,9 +171,11 @@ class RealGamesPlayRouteTest {
         composeRule.onNodeWithTag("hub.row.zip").assertExists()
         composeRule.onNodeWithTag("hub.row.tango").assertExists()
         composeRule.onNodeWithTag("hub.row.queens").assertExists()
+        composeRule.onNodeWithTag("hub.row.strands").assertExists()
         composeRule.onNodeWithText("Zip").assertExists()
         composeRule.onNodeWithText("Tango").assertExists()
         composeRule.onNodeWithText("Queens").assertExists()
+        composeRule.onNodeWithText("Strands").assertExists()
     }
 
     @Test
@@ -190,6 +196,22 @@ class RealGamesPlayRouteTest {
         }
         composeRule.onNodeWithTag("play.side_panel").assertExists()
         composeRule.onNodeWithText("Daily · #301").assertExists()
+        composeRule.onNodeWithTag("route.hub").assertDoesNotExist()
+    }
+
+    @Test
+    fun `picking strands pushes its game and loads today's board`() {
+        startGraph()
+        composeRule.setContent { PlayStack() }
+
+        pick(StrandsDefinition.id)
+
+        composeRule.runOnIdle {
+            assertEquals(listOf<NavKey>(PlayKey, GameKey(StrandsDefinition.id.value)), navigator.state.currentStack)
+            val strands = play(StrandsDefinition.id)!!.controller as StrandsPlayController
+            assertEquals(StrandsPlayFixture.puzzle, strands.session?.state?.puzzle)
+        }
+        composeRule.onNodeWithTag("strands.board").assertExists()
         composeRule.onNodeWithTag("route.hub").assertDoesNotExist()
     }
 
