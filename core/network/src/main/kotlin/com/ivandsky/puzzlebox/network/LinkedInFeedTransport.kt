@@ -24,7 +24,7 @@ import retrofit2.Response
  *    resurfaces as [FetchError.Throttled] — never as "no data". No silent looping: the
  *    ladder keeps walking once, then reports.
  * 3. If the request names a [FeedRequest.persistedQuery], GET
- *    `voyager/api/graphql?variables=<v>&queryId=<id>` with both params verbatim (ADR-0013).
+ *    `voyager/api/graphql?variables=<v>&queryId=<id>` with both params verbatim (ADR-0016).
  *    It runs after the stream because the stream's `JSESSIONID` cookie is what the
  *    csrf-token echo signs it with.
  * 4. If the request carries a [FeedRequest.graphqlBody], POST it through the session

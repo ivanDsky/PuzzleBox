@@ -1,5 +1,5 @@
 # PROFILE.md — written by init-profile, read by /start
-# version: 0.12.0 (semver source of truth, per deliver: feature → minor, fix → patch (every bugfix, however small); 0.12.0 = Mini Sudoku (LinkedIn daily) + debug 9x9 Sudoku on one engine; 0.11.0 = per-tab back stacks, games hub, saved plays per (game, day) that resume after process death (replaces 0.9.0's kept sessions); 0.10.1 = Queens lesson 2 taps, dashed ghost crowns, Tango lesson 4 copy; 0.10.0 = first-play tutorials + How to play, Home Today card, plain copy; 0.9.0 = kept sessions + Continue, feedback caption slot, contrast floors, honest best; 0.8.0 = Play tab opens the game picker; core|game chrome split; command-based undo/redo; 0.7.0 = merge of Queens and Tango runs)
+# version: 0.13.0 (semver source of truth, per deliver: feature → minor, fix → patch (every bugfix, however small); 0.13.0 = Mini Sudoku (LinkedIn daily) + debug 9x9 Sudoku on one engine; 0.12.0 = NYT Strands (fifth game: drag board, hints, rating) + past puzzles by date for archive games, per-game rank order, per-game saved-play cap; 0.11.0 = per-tab back stacks, games hub, saved plays per (game, day) that resume after process death (replaces 0.9.0's kept sessions); 0.10.1 = Queens lesson 2 taps, dashed ghost crowns, Tango lesson 4 copy; 0.10.0 = first-play tutorials + How to play, Home Today card, plain copy; 0.9.0 = kept sessions + Continue, feedback caption slot, contrast floors, honest best; 0.8.0 = Play tab opens the game picker; core|game chrome split; command-based undo/redo; 0.7.0 = merge of Queens and Tango runs)
 # 1.0.0 = public release of ALL games (Zip, Queens, Tango, MiniSudoku, Strands) in a
 # good tested state. Until then the app is ALPHA: 0.x.y forever; minor = phase/feature
 # milestone, patch = fix rounds.
@@ -35,7 +35,7 @@
 always  # user ruling 2026-10-31: every review gate publishes a localhost HTML review page (REVIEW.md contract + archify diagrams); served on LAN :8777
 
 ## Delivery
-- changes: pr  # user ruling 2026-11-05 (sudoku run): land runs as PRs from the run branch, as #5/#6
+- changes: pr   # user ruling 2026-11-05 (strands run): runs land as a PR from the run branch into main
 
 ## Testing style
 - runner: ./gradlew :app:testDebugUnitTest   # JVM unit tests against fakes

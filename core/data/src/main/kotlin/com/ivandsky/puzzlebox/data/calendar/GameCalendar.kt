@@ -13,6 +13,9 @@ interface GameCalendar {
     /** The game's current day, or null when the registry does not know [game]. */
     fun today(game: GameId): LocalDate?
 
+    /** The game's day at [epochMs] (its cadence zone), or null when the registry does not know [game]. */
+    fun dayAt(game: GameId, epochMs: Long): LocalDate?
+
     /** Emits the game's current day now, then again at each cadence-zone midnight.
      *  Empty for an unregistered game. */
     fun observeToday(game: GameId): Flow<LocalDate>

@@ -14,7 +14,7 @@ import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
-import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
@@ -76,7 +76,7 @@ class DiGraphTest : KoinTest {
             // The generic daily stack: one repository over every game's DailySource.
             assertNotNull(koin.get<DailyRepository>())
             assertEquals(
-                setOf(GameId("zip"), GameId("tango"), GameId("queens"), GameId("minisudoku"), GameId("sudoku")),
+                setOf(GameId("zip"), GameId("tango"), GameId("queens"), GameId("minisudoku"), GameId("sudoku"), GameId("strands")),
                 koin.getAll<DailySource>().map { it.gameId }.toSet(),
             )
             assertNotNull(koin.get<UserPreferencesRepository>())
@@ -92,7 +92,7 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<HistoryViewModel>())
             assertNotNull(koin.get<ObserveGameHistory>())
             assertNotNull(koin.get<ComputeStreak>())
-            assertNotNull(koin.get<GetReplaySession>())
+            assertNotNull(koin.get<LoadPastDay>())
             assertNotNull(koin.get<ObserveTodayLeaderboard>())
             // Today's featured game (Profile's board, the leaderboard) is the registry's first.
             assertEquals(GameId("zip"), koin.get<GetFeaturedGame>()().id)
@@ -101,7 +101,7 @@ class DiGraphTest : KoinTest {
             // registry in picker order, and every game's play UI is registered — a
             // missing entry is a wiring bug, loudly here.
             val games = koin.get<GameRegistry>().all.map { it.definition.id.value }
-            assertEquals(listOf("zip", "tango", "queens", "minisudoku", "sudoku"), games)
+            assertEquals(listOf("zip", "tango", "queens", "strands", "minisudoku", "sudoku"), games)
             val playUis = koin.get<GamePlayRegistry>()
             for (id in games) assertNotNull("no play UI registered for $id", playUis[GameId(id)])
             // The one shared play session store resolves off the real graph.

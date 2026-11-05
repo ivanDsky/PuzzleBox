@@ -14,7 +14,7 @@ val miniSudokuModule: Module = module {
     single(qualifier = qualifier(SudokuGames.MINI.id.value)) { LinkedInMiniSudokuDailySource(get()) } bind DailySource::class
 }
 
-/** Classic 9x9 Sudoku's registration: the plugin and the bundled daily (debug builds only, ADR-0012). */
+/** Classic 9x9 Sudoku's registration: the plugin and the bundled daily (debug builds only, ADR-0015). */
 val sudokuModule: Module = module {
     single(qualifier = qualifier(SudokuGames.CLASSIC.id.value)) { sudokuPlugin(SudokuGames.CLASSIC) }
     single(qualifier = qualifier(SudokuGames.CLASSIC.id.value)) { BundledSudokuDailySource() } bind DailySource::class

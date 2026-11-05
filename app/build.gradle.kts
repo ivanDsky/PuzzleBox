@@ -13,7 +13,7 @@ android {
     defaultConfig {
         applicationId = "com.ivandsky.puzzlebox"
         versionCode = 24
-        versionName = "0.12.0"
+        versionName = "0.13.0"
         // Device tests run on a plain Application; each test starts its own E2eKoinGraph.
         testInstrumentationRunner = "com.ivandsky.puzzlebox.app.device.PuzzleBoxTestRunner"
     }
@@ -52,7 +52,7 @@ android {
 }
 
 // AGP host-tests only the debug build type by default; ReleaseGameModulesTest needs the
-// release source set to prove debug-only games stay out of the release graph (ADR-0012).
+// release source set to prove debug-only games stay out of the release graph (ADR-0015).
 androidComponents {
     beforeVariants(selector().withBuildType("release")) { variant ->
         variant.hostTests[com.android.build.api.variant.HostTestBuilder.UNIT_TEST_TYPE]?.enable = true
@@ -84,6 +84,8 @@ dependencies {
     implementation(projects.games.tangoUi)
     implementation(projects.games.sudoku)
     implementation(projects.games.sudokuUi)
+    implementation(projects.games.strands)
+    implementation(projects.games.strandsUi)
     implementation(projects.core.navigation)
     // The shell composes every feature's entries and registers every feature's keys.
     implementation(projects.feature.home.api)

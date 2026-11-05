@@ -145,4 +145,43 @@ class HistoryViewModelTest {
         assertEquals(2, state.rows.size) // two games, two distinct days, no rows lost
         assertEquals(2, state.streak) // consecutive captured days
     }
+
+    @Test
+    fun `an archived solved day is listed but leaves the streak unchanged`() = runTest {
+        val archivedDay = LocalDate.of(2026, 10, 31)
+        val daily = FakeDailyRepository().apply {
+            setHistory(
+                ZIP,
+                listOf(
+                    HistoryTestSupport.entry(LocalDate.of(2026, 11, 2)),
+                    HistoryTestSupport.entry(LocalDate.of(2026, 11, 1)),
+                    HistoryTestSupport.entry(archivedDay).copy(archived = true),
+                ),
+            )
+        }
+        val completions = FakeCompletionRepository(listOf(HistoryTestSupport.record(archivedDay)))
+
+        val state = HistoryTestSupport.viewModel(daily, completions).uiState.first { it.rows.isNotEmpty() }
+
+        assertEquals(3, state.rows.size)
+        assertEquals(HistoryTestSupport.record(archivedDay), state.recordsByKey[ZIP to archivedDay])
+        assertEquals(2, state.streak)
+    }
+
+    @Test
+    fun `a day from another year shows its year, a current-year day does not`() = runTest {
+        val daily = FakeDailyRepository().apply {
+            setHistory(
+                ZIP,
+                listOf(
+                    HistoryTestSupport.entry(LocalDate.of(2026, 11, 1)),
+                    HistoryTestSupport.entry(LocalDate.of(2024, 3, 4)).copy(archived = true),
+                ),
+            )
+        }
+
+        val rows = viewModel(daily).uiState.first { it.rows.isNotEmpty() }.rows
+
+        assertEquals(listOf("Sunday, November 1", "Monday, March 4, 2024"), rows.map { it.headline })
+    }
 }

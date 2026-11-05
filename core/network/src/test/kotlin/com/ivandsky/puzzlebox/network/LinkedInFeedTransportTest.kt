@@ -17,7 +17,7 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * The one LinkedIn ladder every game's DailySource rides (research R-19-1, ADR-0013), against
+ * The one LinkedIn ladder every game's DailySource rides (research R-19-1, ADR-0016), against
  * MockWebServer: stream GET → persisted-query GET (when named) → graphql POST (when the
  * request carries a body) → page-shell GET (when asked). The request's `accepts` — the
  * game's extractor — decides which body wins.

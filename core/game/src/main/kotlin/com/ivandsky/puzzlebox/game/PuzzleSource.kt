@@ -3,9 +3,11 @@ package com.ivandsky.puzzlebox.game
 import java.time.LocalDate
 
 /**
- * Where puzzles come from (F1 §2). Implementations live outward of core: the LinkedIn
- * daily adapter (ticket 12) and Strands' NYT adapter (Phase 3) in core/data, the in-memory
- * test fake in core:testing, the games archive later (ADR-0002, purely additive).
+ * Where puzzles come from (F1 §2). Implementations live outward of core: each game
+ * module's `DailySource` feed adapter and the in-memory test fake in core:testing. The
+ * archive is not a separate adapter: a source that serves past days declares
+ * `DailySource.archiveSince` and the daily repository reads it by date (ADR-0012,
+ * amending ADR-0002).
  */
 interface PuzzleSource {
     /** Fetches the puzzle for [date], or a typed failure — fetch callers degrade to cache (A7/A8). */
@@ -29,6 +31,12 @@ sealed interface FetchError {
      * reads as "no data".
      */
     data class Throttled(val detail: String? = null) : FetchError
+
+    /**
+     * The source answered that it has no puzzle for the date (NYT 404: before the first
+     * day, or not published). Not a connectivity problem — retrying won't help.
+     */
+    data class NotFound(val detail: String? = null) : FetchError
 
     /** Payload arrived but the engine could not trust it (A16 oracle gate failed). Never playable. */
     data class Untrusted(val detail: String) : FetchError

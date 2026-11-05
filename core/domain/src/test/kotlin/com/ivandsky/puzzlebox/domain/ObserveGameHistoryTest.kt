@@ -115,4 +115,29 @@ class ObserveGameHistoryTest {
         assertEquals(listOf(newest, mid, oldest), rows.map { it.day })
         assertEquals(listOf(beta, alpha, alpha), rows.map { it.gameId })
     }
+
+    @Test
+    fun `an archived solved day keeps its row and carries the archived flag`() = runTest {
+        val day = LocalDate.of(2024, 3, 4)
+        val rows = gameHistoryDays(
+            daily = daily(entry(alpha, day).copy(archived = true)),
+            games = games,
+            completions = FakeCompletionRepository(listOf(record(alpha, day))),
+        ).first()
+
+        assertEquals(true, rows.single().archived)
+        assertEquals(record(alpha, day), rows.single().record)
+    }
+
+    @Test
+    fun `a record-only row is not archived`() = runTest {
+        val day = LocalDate.of(2026, 11, 1)
+        val rows = gameHistoryDays(
+            daily = daily(),
+            games = games,
+            completions = FakeCompletionRepository(listOf(record(beta, day))),
+        ).first()
+
+        assertEquals(false, rows.single().archived)
+    }
 }

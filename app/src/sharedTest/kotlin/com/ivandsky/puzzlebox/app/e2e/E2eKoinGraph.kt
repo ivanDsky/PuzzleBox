@@ -56,6 +56,7 @@ class E2eKoinGraph(
             com.ivandsky.puzzlebox.games.queens.QueensDefinition.id,
             com.ivandsky.puzzlebox.games.sudoku.SudokuGames.MINI.id,
             com.ivandsky.puzzlebox.games.sudoku.SudokuGames.CLASSIC.id,
+            com.ivandsky.puzzlebox.games.strands.StrandsDefinition.id,
         ),
     )
     val identity = FakeIdentityService()

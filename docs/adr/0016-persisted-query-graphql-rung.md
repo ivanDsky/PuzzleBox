@@ -1,4 +1,4 @@
-# ADR-0013 — Persisted-query GraphQL GET rung in the LinkedIn feed transport
+# ADR-0016 — Persisted-query GraphQL GET rung in the LinkedIn feed transport
 
 Date: 2026-11-05 · Status: accepted · Source: sudoku run research 01, spec A3–A4 · Amends the FeedRequest ladder (research R-19-1)
 

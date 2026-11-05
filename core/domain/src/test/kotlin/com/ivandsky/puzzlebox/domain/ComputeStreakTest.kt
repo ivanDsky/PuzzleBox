@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain
 
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -9,7 +10,12 @@ class ComputeStreakTest {
 
     private val d = { day: Int -> LocalDate.of(2026, 11, day) }
 
-    private val streakEndingAtNewest = ComputeStreak()
+    private val compute = ComputeStreak()
+
+    private fun streakEndingAtNewest(days: List<LocalDate>) = compute(days.map(::captured))
+
+    private fun captured(day: LocalDate, archived: Boolean = false) =
+        GameHistoryDay(GameId("zip"), day, puzzleNumber = null, record = null, archived = archived)
 
     @Test
     fun `no captures is no streak`() {
@@ -44,5 +50,12 @@ class ComputeStreakTest {
     @Test
     fun `duplicates count once`() {
         assertEquals(2, streakEndingAtNewest(listOf(d(3), d(3), d(4), d(4))))
+    }
+
+    @Test
+    fun `an archived day neither extends nor bridges the run`() {
+        val days = listOf(captured(d(4)), captured(d(5)), captured(d(6), archived = true), captured(d(3), archived = true))
+        assertEquals(2, compute(days))
+        assertEquals(1, compute(listOf(captured(d(2)), captured(d(3), archived = true), captured(d(4)))))
     }
 }

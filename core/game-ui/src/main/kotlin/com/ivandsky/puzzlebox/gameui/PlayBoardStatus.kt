@@ -13,8 +13,9 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 sealed interface PlayBoardStatus {
     data object Loading : PlayBoardStatus
 
-    /** Nothing playable; [message] drives the error copy. Retry re-runs the fetch. */
-    data class Unavailable(val message: String) : PlayBoardStatus
+    /** Nothing playable; [message] drives the error copy. Retry re-runs the fetch, offered
+     *  only when [retryable] — a day the source says doesn't exist won't appear on retry. */
+    data class Unavailable(val message: String, val retryable: Boolean = true) : PlayBoardStatus
 
     /** Board in hand. [banner] non-null = playing the SAVED puzzle because the fetch
      *  failed — surfaced as a banner, the board stays playable. */
@@ -22,15 +23,16 @@ sealed interface PlayBoardStatus {
 }
 
 /**
- * The board area while no board is drawn: the retryable error for [PlayBoardStatus.Unavailable],
- * the loading indicator otherwise. Test tags are `"$tagPrefix.error"` / `"$tagPrefix.loading"`.
+ * The board area while no board is drawn: the error for [PlayBoardStatus.Unavailable] (with
+ * Retry when it is retryable), the loading indicator otherwise. Test tags are
+ * `"$tagPrefix.error"` / `"$tagPrefix.loading"`.
  */
 @Composable
 fun PlayBoardFallback(status: PlayBoardStatus, onRetry: () -> Unit, tagPrefix: String) {
     when (status) {
         is PlayBoardStatus.Unavailable -> BoardError(
             message = status.message,
-            onRetry = onRetry,
+            onRetry = onRetry.takeIf { status.retryable },
             // A short board area (landscape phone, split screen) scrolls so Retry stays reachable.
             modifier = Modifier
                 .verticalScroll(rememberScrollState())

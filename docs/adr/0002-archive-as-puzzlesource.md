@@ -1,6 +1,6 @@
 # ADR-0002 — Games archive is a future PuzzleSource adapter
 
-Date: 2026-10-31 · Status: accepted · Source: F1 §2; user ruling (archive = interface seam only in Phase 1)
+Date: 2026-10-31 · Status: accepted, amended by ADR-0012 (2026-11-05) · Source: F1 §2; user ruling (archive = interface seam only in Phase 1)
 
 ## Context
 The product vision includes an archive of past games (browse/replay any previous day) and

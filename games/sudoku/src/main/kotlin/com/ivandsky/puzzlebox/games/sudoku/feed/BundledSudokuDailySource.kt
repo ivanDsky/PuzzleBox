@@ -11,7 +11,7 @@ import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
-/** The 9x9 game has no live feed (ADR-0012): every date serves [SudokuSamples.classic]. */
+/** The 9x9 game has no live feed (ADR-0015): every date serves [SudokuSamples.classic]. */
 class BundledSudokuDailySource : DailySource {
 
     override val gameId: GameId = SudokuGames.CLASSIC.id

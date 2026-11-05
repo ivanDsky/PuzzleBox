@@ -32,7 +32,7 @@ internal interface LinkedInGamesApi {
     ): Response<ResponseBody>
 
     /**
-     * Persisted-query rung (ADR-0013; cookie jar + csrf echo). Both params are pre-encoded
+     * Persisted-query rung (ADR-0016; cookie jar + csrf echo). Both params are pre-encoded
      * so Rest.li syntax like `(gameTypeId:7)` reaches LinkedIn unescaped.
      */
     @GET("voyager/api/graphql")

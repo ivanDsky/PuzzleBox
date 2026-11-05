@@ -1,4 +1,4 @@
-# ADR-0012 — One module pair hosts two Sudoku GameIds; 9x9 is debug-only
+# ADR-0015 — One module pair hosts two Sudoku GameIds; 9x9 is debug-only
 
 Date: 2026-11-05 · Status: accepted · Source: sudoku run spec A1, A2, A19 · Amends ADR-0008 §1 (one pair per game)
 

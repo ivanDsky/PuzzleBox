@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.game
 
 /**
- * What one game's LinkedIn feed asks of the network (research R-19-1, ADR-0013). The
+ * What one game's LinkedIn feed asks of the network (research R-19-1, ADR-0016). The
  * transport walks a fixed ladder and returns the first body [accepts] approves:
  *
  * 1. Streaming screen-load GET of `/<path>?skipStartScreen=true` with the

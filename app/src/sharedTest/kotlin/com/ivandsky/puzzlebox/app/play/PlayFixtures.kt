@@ -10,6 +10,11 @@ import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.queensVariantId
+import com.ivandsky.puzzlebox.games.strands.Coord as StrandsCoord
+import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
+import com.ivandsky.puzzlebox.games.strands.StrandsPuzzle
+import com.ivandsky.puzzlebox.games.strands.StrandsWord
+import com.ivandsky.puzzlebox.games.strands.codec.StrandsCodec
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
@@ -163,6 +168,31 @@ object MiniSudokuPlayFixture {
     fun envelope(): Puzzle = Puzzle(SudokuGames.MINI.id, puzzle.variant.id, SudokuCodec.VERSION, SudokuCodec.encode(puzzle))
 }
 
+/**
+ * A 4×4 Strands board whose words are its rows: PIES, BAKE (the spangram, edge to edge),
+ * TART and CAKE. [rows] in order solve it.
+ */
+object StrandsPlayFixture {
+    val rows: List<String> = listOf("PIES", "BAKE", "TART", "CAKE")
+
+    val puzzle: StrandsPuzzle = run {
+        val words = rows.mapIndexed { r, text -> StrandsWord(text, text.indices.map { StrandsCoord(r, it) }) }
+        StrandsPuzzle(
+            rows = 4,
+            cols = 4,
+            letters = rows.joinToString(""),
+            clue = "Bake sale",
+            spangram = words[1],
+            themeWords = words - words[1],
+            validWords = rows.toSet(),
+            constructors = "Tess Tester",
+        )
+    }
+
+    /** Envelope as DailyRepository hands it to the UI (payload = codec bytes). */
+    fun envelope(): Puzzle = StrandsCodec.envelope(puzzle)
+}
+
 /** Scripts [game] on this fake: its [today] outcome and its captured days. */
 fun FakeDailyRepository.script(
     game: GameId,
@@ -179,3 +209,4 @@ fun freshDailyForAllGames(): FakeDailyRepository = FakeDailyRepository()
     .script(TangoDefinition.id, DailyToday.Fresh(TangoPlayFixture.envelope()))
     .script(QueensDefinition.id, DailyToday.Fresh(QueensPlayFixture.envelope()))
     .script(SudokuGames.MINI.id, DailyToday.Fresh(MiniSudokuPlayFixture.envelope()))
+    .script(StrandsDefinition.id, DailyToday.Fresh(StrandsPlayFixture.envelope()))

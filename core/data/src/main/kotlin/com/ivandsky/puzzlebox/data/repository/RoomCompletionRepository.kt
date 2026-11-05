@@ -5,9 +5,11 @@ import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
 import com.ivandsky.puzzlebox.data.model.toModel
 import com.ivandsky.puzzlebox.database.CompletionDao
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -42,6 +44,14 @@ internal class RoomCompletionRepository(
             rows.mapNotNull { it.toModel(registry) }
         }
 
-    // PuzzleRefKeys.encode leads every key with "$gameId/".
-    override suspend fun bestTimeMs(game: GameId): Long? = dao.bestTimeMs("${game.value}/")
+    // PuzzleRefKeys.encode leads every key with "$gameId/". A game this build does not
+    // ship ranks time-first, the shared default.
+    override suspend fun best(game: GameId): BestScore? {
+        val prefix = "${game.value}/"
+        val row = when (registry[game]?.score?.rankOrder ?: RankOrder.TimeThenHints) {
+            RankOrder.TimeThenHints -> dao.bestByTime(prefix)
+            RankOrder.HintsThenTime -> dao.bestByHints(prefix)
+        }
+        return row?.let { BestScore(it.timeMs, it.hints) }
+    }
 }

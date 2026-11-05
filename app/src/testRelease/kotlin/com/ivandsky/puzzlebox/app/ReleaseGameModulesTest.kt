@@ -14,7 +14,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
-/** Release keeps the debug-only 9x9 game out of the graph (ADR-0012). */
+/** Release keeps the debug-only 9x9 game out of the graph (ADR-0015). */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
 class ReleaseGameModulesTest {
@@ -29,7 +29,7 @@ class ReleaseGameModulesTest {
         try {
             // GameRegistry's definition runs requireEveryGamePlayable; resolving it is the check.
             val games = koin.get<GameRegistry>().all.map { it.definition.id.value }
-            assertEquals(listOf("zip", "tango", "queens", "minisudoku"), games)
+            assertEquals(listOf("zip", "tango", "queens", "strands", "minisudoku"), games)
             val sources = koin.getAll<DailySource>().map { it.gameId }.toSet()
             assertTrue(GameId("minisudoku") in sources)
             assertTrue(GameId("sudoku") !in sources)
