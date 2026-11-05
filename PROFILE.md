@@ -1,5 +1,5 @@
 # PROFILE.md — written by init-profile, read by /start
-# version: 0.8.0 (semver source of truth, per deliver: feature → minor, fix → patch; 0.8.0 = Play tab opens the game picker; core|game chrome split; command-based undo/redo; 0.7.0 = merge of Queens and Tango runs)
+# version: 0.9.0 (semver source of truth, per deliver: feature → minor, fix → patch; 0.9.0 = kept sessions + Continue, feedback caption slot, contrast floors, honest best; 0.8.0 = Play tab opens the game picker; core|game chrome split; command-based undo/redo; 0.7.0 = merge of Queens and Tango runs)
 # 1.0.0 = public release of ALL games (Zip, Queens, Tango, MiniSudoku, Strands) in a
 # good tested state. Until then the app is ALPHA: 0.x.y forever; minor = phase/feature
 # milestone, patch = fix rounds.

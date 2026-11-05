@@ -27,7 +27,7 @@ the build instead of a review.
    game through `GamePlayController` (ADR-0007).
 4. **Cross-feature business logic lives in `core:domain`** as use cases (`domainModule`):
    `ComputeStreak`, `GetFeaturedGame`, `GetReplaySession`, `ObserveGameHistory`,
-   `ObserveTodayLeaderboard`. Features call use cases or `core:data` repositories, never
+   `ObserveTodayLeaderboard`, `ObserveTodaySet`. Features call use cases or `core:data` repositories, never
    each other's ViewModels.
 5. **Navigation is api/impl.** `feature:<name>:api` holds only the feature's `@Serializable`
    NavKeys and a `<name>NavKeys()` polymorphic registration (`core:navigation`'s

@@ -185,24 +185,20 @@ class QueensBoardUiTest {
         assertTrue(QueensBoardModel.of(state.session).violations.isNotEmpty())
     }
 
-    /** R-2 with A14 revised (fix round 6): while a violation is live the one-line rule
-     *  caption shows — with NO toggle involved; it clears when the conflict does. */
+    /** Ticket 08: the rule line moved to the shared caption slot (controller
+     *  PlayFeedback.violation) — the controls never grow a conditional caption row, so
+     *  the board does not jump when a conflict appears. */
     @Test
-    fun `violation surfaces the rule caption always-on`() {
+    fun `a live conflict adds no caption row to the controls`() {
         val state = setContent(QueensUiFixtures.session())
         state.onTap(1); state.onTap(1) // X then queen at (0,1)
-        composeRule.waitForIdle()
-        composeRule.onNodeWithTag("queens/violation_caption").assertDoesNotExist()
         state.onTap(2) // AUTO X is a mark: one tap places the queen at (0,2) — same row → conflict
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("queens/violation_caption").assertExists()
+        assertTrue(QueensBoardModel.of(state.session).violations.isNotEmpty())
+        composeRule.onNodeWithTag("queens/violation_caption").assertDoesNotExist()
         composeRule.onNodeWithText(
             "Rule conflict — queens can't touch or share a row, column, or region",
-        ).assertExists()
-        // resolving the conflict clears the caption (undo the second queen)
-        state.undo()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithTag("queens/violation_caption").assertDoesNotExist()
+        ).assertDoesNotExist()
     }
 
     /** R-1 (fix round 4): the armed-move two-tap language is gone — no caption, no

@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.testing.repository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,4 +40,10 @@ class FakeCompletionRepository(records: List<CompletionRecord> = emptyList()) : 
 
     override fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
         all.map { rows -> rows.filter { it.puzzleRef == puzzleRef } }
+
+    /** Rows are verbatim, so the record is each identity's FIRST stored row (A4 stamping). */
+    override suspend fun bestTimeMs(game: GameId): Long? =
+        all.value.filter { it.puzzleRef.gameId == game }
+            .distinctBy { Triple(it.puzzleRef.gameId, it.puzzleRef.date, it.puzzleRef.puzzleNumber) }
+            .minOfOrNull { it.time }
 }

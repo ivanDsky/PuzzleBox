@@ -68,7 +68,7 @@ fun TangoPlayScreen(
         status,
         controller.session,
         controller.hintCell,
-        controller.rejection,
+        controller.lastRejection,
         controller.suppressedSets,
     ) {
         controller.rendererModel()
@@ -94,6 +94,7 @@ fun TangoPlayScreen(
                     hints = controller,
                     undo = controller,
                     banner = ready?.banner,
+                    feedback = controller,
                 )
             },
         )

@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.engine.ZipValidation
 import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
+import com.ivandsky.puzzlebox.gameui.playCaption
 import java.time.Instant
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicLong
@@ -111,7 +112,58 @@ class ZipPlayControllerTest {
 
         assertEquals(1, c.session?.mistakeCount)
         assertEquals(emptyList<Cell>(), c.session?.path)
-        assertTrue(c.rejection?.reason is ZipValidation.Reason.WrongStart)
+        assertTrue(c.feedback.rejectedMove?.reason is ZipValidation.Reason.WrongStart)
+        assertEquals("Start at 1", playCaption(c, c))
+    }
+
+    @Test
+    fun `an out-of-order drag yields the rejection caption until the next accepted move`() {
+        // Wall-free board: 0→4 then down the right edge reaches waypoint 3 (24) before 2 (12).
+        val open = ZipPlayFixture.puzzle().let { it.copy(board = it.board.copy(walls = emptySet())) }
+        val c = readyController(envelope = ZipPlayFixture.envelope(open))
+        extend(c, 0, 1, 2, 3, 4, 9, 14, 19)
+        extend(c, 24)
+
+        assertEquals(8, c.session?.path?.size)
+        assertTrue(c.feedback.rejectedMove?.reason is ZipValidation.Reason.WrongWaypointOrder)
+        assertEquals("Go to 2 first", c.rejection)
+        assertEquals("Go to 2 first", playCaption(c, c))
+
+        extend(c, 18) // adjacent to 19, not a waypoint: accepted
+        assertNull(playCaption(c, c))
+    }
+
+    @Test
+    fun `a board-refused waypoint skip is explained but never counted, a far wander stays silent`() {
+        val open = ZipPlayFixture.puzzle().let { it.copy(board = it.board.copy(walls = emptySet())) }
+        val c = readyController(envelope = ZipPlayFixture.envelope(open))
+        extend(c, 0, 1, 2, 3, 4, 9, 14, 19)
+        val mistakes = c.session?.mistakeCount
+
+        c.onDragEvent(DragEvent.Refused(GridCell(4, 0))) // untraced, far from the tail → NotAdjacent
+        assertNull(playCaption(c, c))
+
+        c.onDragEvent(DragEvent.Refused(GridCell(4, 4))) // waypoint 3 before 2
+        assertEquals("Go to 2 first", playCaption(c, c))
+        assertEquals(mistakes, c.session?.mistakeCount)
+        assertEquals(8, c.session?.path?.size)
+    }
+
+    @Test
+    fun `a plain hint has no caption, a trimming hint says what it fixed`() {
+        val plain = readyController()
+        plain.hint()
+        assertNull(playCaption(plain, plain))
+
+        val c = readyController(envelope = ZipPlayFixture.envelope(ZipPlayFixture.branchyPuzzle()))
+        ZipPlayFixture.deadTrace().forEach { c.onDragEvent(DragEvent.Extend(GridCell(it.idx / 5, it.idx % 5))) }
+        c.hint()
+
+        assertEquals("Fixed your path up to 1", c.hintCaption)
+        assertEquals("Fixed your path up to 1", playCaption(c, c))
+
+        extend(c, 9) // the next solution cell after the auto-placed 4: accepted
+        assertNull(playCaption(c, c))
     }
 
     @Test

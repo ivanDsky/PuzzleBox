@@ -66,9 +66,6 @@ object TangoBoardSpec {
     /** HintReveal tint alpha over the hint cell (§2/§7 — highlight without hiding the glyph). */
     const val hintTintAlpha: Float = 0.9f
 
-    /** Caption slot height — fixed one-line slot so text fades, layout never jumps (§4). */
-    val captionSlotHeight: Dp = 20.dp
-
     // ---- pitch-derived dp (call sites read these, never the raw fractions) ----
 
     /** Glyph box size at a given pitch and board size. */

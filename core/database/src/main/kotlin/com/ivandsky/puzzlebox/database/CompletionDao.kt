@@ -26,4 +26,16 @@ interface CompletionDao {
             "WHERE puzzleRef = :puzzleRef AND isRecord = 0 ORDER BY completedAtMs ASC",
     )
     fun observeReplays(puzzleRef: String): Flow<List<CompletionEntity>>
+
+    /**
+     * The minimum time over the record rows (first solves; replays never rank, A10) whose
+     * key starts with [prefix] — a game's rows by `"$gameId/"`; null when none. `substr`,
+     * not LIKE: a `_` in a game id would be a wildcard, and the trailing slash keeps
+     * `zip`/`zip2` apart.
+     */
+    @Query(
+        "SELECT MIN(timeMs) FROM completions " +
+            "WHERE isRecord = 1 AND substr(puzzleRef, 1, length(:prefix)) = :prefix",
+    )
+    suspend fun bestTimeMs(prefix: String): Long?
 }

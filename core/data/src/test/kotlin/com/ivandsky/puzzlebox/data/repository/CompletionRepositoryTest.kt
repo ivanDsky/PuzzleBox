@@ -4,9 +4,11 @@ import androidx.room.Room
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
+import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
@@ -110,5 +112,24 @@ class CompletionRepositoryTest {
         val day = LocalDate.of(2026, 10, 31)
         assertTrue(repository.observeRecords().first().isEmpty())
         assertTrue(repository.observeReplays(Ref(alpha, day, 592)).first().isEmpty())
+    }
+
+    @Test
+    fun `best time is the game's fastest first solve, never a replay, never merged across games`() = runTest {
+        val day = LocalDate.of(2026, 10, 31)
+        assertNull(repository.bestTimeMs(alpha))
+
+        repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 2))
+        repository.onCompleted(completion(day, 592, timeMs = 71_000, hints = 0)) // replay
+        repository.onCompleted(completion(day.plusDays(1), 593, timeMs = 88_000, hints = 1))
+        // Faster rows of other games: a different id, a longer id sharing the prefix, and
+        // an id whose `_` would be a LIKE wildcard matching "alpha".
+        repository.onCompleted(completion(day, 592, timeMs = 30_000, hints = 0).copy(puzzleRef = Ref(beta, day, 592)))
+        repository.onCompleted(completion(day, 592, timeMs = 20_000, hints = 0).copy(puzzleRef = Ref(GameId("alpha2"), day, 592)))
+
+        assertEquals("the 71 s replay never ranks", 88_000L, repository.bestTimeMs(alpha))
+        assertEquals(30_000L, repository.bestTimeMs(beta))
+        assertEquals(20_000L, repository.bestTimeMs(GameId("alpha2")))
+        assertNull(repository.bestTimeMs(GameId("alph_")))
     }
 }

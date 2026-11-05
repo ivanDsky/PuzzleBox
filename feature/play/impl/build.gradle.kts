@@ -13,6 +13,8 @@ dependencies {
     implementation(projects.feature.home.api)
     implementation(projects.core.common)
     implementation(projects.core.data)
+    // The picker's today's set (ObserveTodaySet, spec A14).
+    implementation(projects.core.domain)
     implementation(projects.core.game)
     // ADR-0001/ADR-0007: play is game-agnostic — every game reaches it through the
     // core:game-ui play seam (GamePlayUi/GamePlayController), never a games:* edge.

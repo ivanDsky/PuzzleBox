@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.data.di
 
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.DataStoreKeptSessionRepository
+import com.ivandsky.puzzlebox.data.repository.KeptSessionRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstDailyRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineUserPreferencesRepository
 import com.ivandsky.puzzlebox.data.repository.RoomCompletionRepository
@@ -16,7 +18,7 @@ import org.koin.dsl.module
  * Game-agnostic data wiring. Games plug in through Koin, never through this module:
  * every game module binds its `DailySource` (collected here by `getAll`), and `app`
  * binds the `GameRegistry` the repositories decode through. Room, the LinkedIn
- * transport and the preferences DataStore come from the included source modules.
+ * transport and the preferences and kept-session DataStores come from the included source modules.
  */
 val dataModule = module {
     includes(databaseModule, networkModule, datastoreModule)
@@ -32,4 +34,6 @@ val dataModule = module {
     // feature modules consume the interface only (pinned ticket-15 contract).
     single<CompletionRepository> { RoomCompletionRepository(get(), get(), get()) }
     single<UserPreferencesRepository> { OfflineUserPreferencesRepository(get()) }
+    // Kept sessions (spec A3): Home and Play both read them, so they live behind core data.
+    single<KeptSessionRepository> { DataStoreKeptSessionRepository(get()) }
 }

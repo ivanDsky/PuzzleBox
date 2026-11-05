@@ -99,7 +99,7 @@ class DragTraceTest {
     }
 
     @Test
-    fun `wandering over invalid cells never extends or cancels`() {
+    fun `wandering over invalid cells never extends or cancels, only reports refusals`() {
         setContent()
         composeRule.onNodeWithTag("trace").performTouchInput {
             down(cellCenter(3, 3))
@@ -109,7 +109,10 @@ class DragTraceTest {
             up()
         }
         composeRule.waitForIdle()
-        assertEquals(emptyList<DragEvent>(), events)
+        assertEquals(
+            listOf(GridCell(3, 3), GridCell(3, 4), GridCell(4, 4), GridCell(2, 2)).map(DragEvent::Refused),
+            events,
+        )
     }
 
     @Test
@@ -128,14 +131,14 @@ class DragTraceTest {
     fun `drawing across an earlier traced cell never slashes the path`() {
         setContent(path = listOf(GridCell(0, 0), GridCell(0, 1), GridCell(0, 2), GridCell(1, 2)))
         composeRule.onNodeWithTag("trace").performTouchInput {
-            down(cellCenter(1, 0)) // untraced, non-adjacent to the tail — a fresh wander
+            down(cellCenter(1, 0)) // untraced, non-adjacent to the tail → refused
             moveTo(cellCenter(1, 1)) // adjacent to the tail → the only extend of the stroke
             moveTo(cellCenter(0, 1)) // traced, but not the previous cell → ignored (R1)
             moveTo(cellCenter(1, 1)) // tail re-entry → no-op
             up()
         }
         composeRule.waitForIdle()
-        assertEquals(listOf(DragEvent.Extend(GridCell(1, 1))), events)
+        assertEquals(listOf(DragEvent.Refused(GridCell(1, 0)), DragEvent.Extend(GridCell(1, 1))), events)
     }
 
     @Test
@@ -143,13 +146,13 @@ class DragTraceTest {
         setContent(path = listOf(GridCell(2, 1), GridCell(2, 2), GridCell(1, 2), GridCell(0, 2)))
         composeRule.onNodeWithTag("trace").performTouchInput {
             down(cellCenter(2, 2)) // traced, NOT the previous cell — touch-down retracts nothing
-            moveTo(cellCenter(1, 1)) // untraced, hook-rejected → ignored
+            moveTo(cellCenter(1, 1)) // untraced, hook-rejected → refused, trace untouched
             moveTo(cellCenter(1, 2)) // previous → retract one
             moveTo(cellCenter(2, 2)) // previous again → retract one
             up()
         }
         composeRule.waitForIdle()
-        assertEquals(listOf(DragEvent.Retract(2), DragEvent.Retract(1)), events)
+        assertEquals(listOf(DragEvent.Refused(GridCell(1, 1)), DragEvent.Retract(2), DragEvent.Retract(1)), events)
     }
 
     @Test

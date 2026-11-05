@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
  * Floor: the result never drops below cellsPerSide × [QueensBoardDefaults.cellMinSize]
  * unless the pane itself is smaller — the board-level gesture surface (clamped cellAt,
  * per-cell-enter haptics, instant pressed highlight) is the touch target, per §6.
+ * The floor never forces the board above the pane (spec A9: a 12×12 fits 360dp).
  */
 fun queensBoardSideFor(
     paneWidth: Dp,
@@ -21,7 +22,7 @@ fun queensBoardSideFor(
     reservedTop: Dp,
     reservedBottom: Dp,
     cellsPerSide: Int,
-    panePadding: Dp = 16.dp * 2,
+    panePadding: Dp = queensPanePaddingFor(cellsPerSide),
 ): Dp {
     val widthBound = paneWidth - panePadding
     val heightBound = paneHeight - reservedTop - reservedBottom - panePadding
@@ -31,3 +32,12 @@ fun queensBoardSideFor(
     // Cap by readability, floor by the gesture surface, never above what the pane offers.
     return minOf(available, cap).coerceAtLeast(minOf(available, floor))
 }
+
+/** Total horizontal gutter around the board: 16dp per side, shrinking to 8dp from
+ *  [QueensBoardDefaults.compactGutterFromCells] cells so dense boards keep their cells. */
+fun queensPanePaddingFor(cellsPerSide: Int): Dp =
+    if (cellsPerSide >= QueensBoardDefaults.compactGutterFromCells) {
+        QueensBoardDefaults.compactGutter * 2
+    } else {
+        QueensBoardDefaults.gutter * 2
+    }

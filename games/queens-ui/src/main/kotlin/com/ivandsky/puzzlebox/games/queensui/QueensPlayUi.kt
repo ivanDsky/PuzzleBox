@@ -86,16 +86,15 @@ private fun BoxScope.BoardArea(controller: QueensPlayController, status: PlayBoa
         val boardState = controller.board
         if (status is PlayBoardStatus.Ready && boardState != null) {
             // §6 sizing policy: the board side is computed — pane space after chrome,
-            // capped by cellMaxSize per cell, floored by cellMinSize per cell. The
-            // horizontal pane padding is the chrome reserved here; the side panel is
-            // already excluded by the scaffold's board-pane weight.
+            // capped by cellMaxSize per cell, never above the pane. The gutter shrinks
+            // to 8dp at n ≥ 10 (queensPanePaddingFor); the side panel is already
+            // excluded by the scaffold's board-pane weight.
             val side = queensBoardSideFor(
                 paneWidth = maxWidth,
                 paneHeight = maxHeight,
                 reservedTop = 0.dp,
                 reservedBottom = 0.dp,
                 cellsPerSide = boardState.session.puzzle.size,
-                panePadding = Spacing.lg * 2,
             )
             QueensPlayBoard(
                 state = boardState,
@@ -119,6 +118,7 @@ private fun SidePanel(controller: QueensPlayController, status: PlayBoardStatus)
         hints = controller,
         undo = controller,
         banner = ready?.banner,
+        feedback = controller,
         modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
     ) {
         controller.board?.let { QueensPlayControls(state = it) }

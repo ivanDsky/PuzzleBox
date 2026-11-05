@@ -118,7 +118,9 @@ class QueensPlayWiringTest {
         // straight on a Queens board.
         composeRule.onNodeWithTag("play.picker").assertExists()
         composeRule.onNodeWithTag("play.picker_queens").performClick()
-        composeRule.onNodeWithTag("queens.board").assertExists()
+        // pick() reads the kept sessions (DataStore on IO) before the board starts —
+        // work Compose idling doesn't track.
+        composeRule.waitUntil(10_000) { composeRule.onAllNodesWithTag("queens.board").fetchSemanticsNodes().isNotEmpty() }
 
         // The board is bound to a real session off the graph, with today's ref.
         composeRule.waitUntil(10_000) { queens()?.board != null }

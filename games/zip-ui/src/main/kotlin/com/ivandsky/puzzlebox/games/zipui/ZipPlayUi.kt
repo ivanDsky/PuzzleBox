@@ -74,7 +74,8 @@ fun ZipPlayScreen(
     modifier: Modifier = Modifier,
 ) {
     val ready = status as? PlayBoardStatus.Ready
-    val model = remember(controller, status, controller.session, controller.hintCell, controller.rejection) {
+    val rejected = controller.feedback.rejectedMove
+    val model = remember(controller, status, controller.session, controller.hintCell, rejected) {
         controller.rendererModel()
     }
 
@@ -98,6 +99,7 @@ fun ZipPlayScreen(
                     hints = controller,
                     undo = controller,
                     banner = ready?.banner,
+                    feedback = controller,
                 )
             },
         )

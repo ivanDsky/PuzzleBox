@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.gameui
 
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
@@ -20,11 +19,10 @@ fun HintButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    TextButton(
+    AppTextButton(
+        text = if (count == 0) "Hint" else "Hint · $count",
         onClick = onHint,
         modifier = modifier,
         enabled = enabled,
-    ) {
-        Text(if (count == 0) "Hint" else "Hint · $count")
-    }
+    )
 }

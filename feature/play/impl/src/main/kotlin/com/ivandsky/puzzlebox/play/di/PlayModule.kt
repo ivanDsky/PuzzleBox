@@ -9,7 +9,8 @@ import org.koin.dsl.module
 /**
  * Play feature wiring. The [com.ivandsky.puzzlebox.game.GameRegistry] and the
  * [com.ivandsky.puzzlebox.gameui.GamePlayRegistry] come from the app's aggregation
- * (ADR-0001: one registration per game); the repositories from :core:data's dataModule.
+ * (ADR-0001: one registration per game); the repositories (kept sessions included) from
+ * :core:data's dataModule and the picker's today's set from :core:domain's domainModule.
  * This module names no game.
  *
  * Ticket 23: [PlaySessionStore] is a single so the live play outlives the play entry's
@@ -17,7 +18,7 @@ import org.koin.dsl.module
  * navigation and "Play again" resets in place. The route VMs are thin views over it.
  */
 val playModule = module {
-    single { PlaySessionStore(games = get(), ui = get(), daily = get(), completions = get()) }
-    viewModel { PlayViewModel(get()) }
+    single { PlaySessionStore(games = get(), ui = get(), daily = get(), completions = get(), kept = get()) }
+    viewModel { PlayViewModel(store = get(), todaySet = get(), games = get()) }
     viewModel { ResultViewModel(get()) }
 }

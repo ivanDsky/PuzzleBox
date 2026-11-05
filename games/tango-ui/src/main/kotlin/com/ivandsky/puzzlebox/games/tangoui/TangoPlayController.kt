@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import com.ivandsky.puzzlebox.gameui.PlayFeedback
 import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
@@ -61,7 +62,7 @@ class TangoPlayController(
     private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
     private val today: () -> LocalDate = { TangoDefinition.cadence.today() },
-) : GamePlayController, PlayClock, PlayHints, PlayUndo {
+) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback {
 
     var session by mutableStateOf<TangoSession?>(null)
         private set
@@ -71,7 +72,7 @@ class TangoPlayController(
     /** The last hint's WHY (§6 hint caption — the reveal names the deduction class). */
     var hintWhy by mutableStateOf<TangoHint.Why?>(null)
         private set
-    var rejection by mutableStateOf<TangoVerdict.Rejected?>(null)
+    var lastRejection by mutableStateOf<TangoVerdict.Rejected?>(null)
         private set
     var nowMs by mutableStateOf(0L)
         private set
@@ -101,7 +102,7 @@ class TangoPlayController(
             .mapTo(mutableSetOf()) { it.cells }
 
     fun onPlacement(placement: TangoPlacement) {
-        rejection = null // next input clears the violation caption (Zip hintArrow discipline)
+        lastRejection = null // next input clears the violation verdict (Zip hintArrow discipline)
         hintCell = null
         hintWhy = null
         armSettle()
@@ -139,7 +140,7 @@ class TangoPlayController(
         suppressedSets = violatingSets(current.puzzle, next.grid()) - before
         if (runningSince == null && !next.isComplete) runningSince = placedAt
         updateSession(if (next.isComplete) foldRunning(next) else next)
-        if (mistake != null) rejection = TangoVerdict.Rejected(mistake, move.idx)
+        if (mistake != null) lastRejection = TangoVerdict.Rejected(mistake, move.idx)
     }
 
     /**
@@ -152,7 +153,7 @@ class TangoPlayController(
         val current = session ?: return
         val next = step(current)
         if (next == current) return // nothing to move, or the session is complete
-        rejection = null
+        lastRejection = null
         armSettle()
         suppressedSets = violatingSets(current.puzzle, next.grid()) - violatingSets(current.puzzle, current.grid())
         if (runningSince == null) runningSince = now()
@@ -296,12 +297,9 @@ class TangoPlayController(
     private fun hasPlayed(s: TangoSession): Boolean =
         s.placements.isNotEmpty() || s.history.canUndo || s.history.canRedo
 
-    //region PlayHints
-
+    //region PlayHints + PlayFeedback
     override val hintsUsed: Int get() = session?.hintsUsed ?: 0
-
     override val hintEnabled: Boolean get() = session?.isComplete == false
-
     /** The hint's WHY sentence (§6), shown by the shared chrome until the next input. */
     override val hintCaption: String?
         get() {
@@ -312,7 +310,9 @@ class TangoPlayController(
                 why,
             )
         }
-
+    /** §6 state-driven live-grid violation (outranks [hintCaption]); placements LAND, so no [rejection]. */
+    override val violation: String? get() = rendererModel()?.let(TangoSemantics::firstViolationPhrase)
+    override val rejection: String? get() = null
     //endregion
 
     /** Result's "Play again": a fresh session of the same puzzle, every transient reveal
@@ -321,7 +321,7 @@ class TangoPlayController(
         val current = session ?: return
         hintCell = null
         hintWhy = null
-        rejection = null
+        lastRejection = null
         runningSince = null
         commit(TangoSession(ref = current.ref, puzzle = current.puzzle))
     }
@@ -339,7 +339,7 @@ class TangoPlayController(
         return TangoRendererModel.of(
             TangoState(current.puzzle, current.grid()),
             hint = hint,
-            verdict = rejection,
+            verdict = lastRejection,
             suppressedSets = suppressedSets,
         ).copy(hintWhy = null)
     }

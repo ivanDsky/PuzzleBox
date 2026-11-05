@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -9,6 +10,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -57,15 +60,20 @@ fun PlayRoute(
     val restored = remember(restoredSession) { restoredSession?.let(SessionBlob::decode) }
     var restoredConsumed by remember { mutableStateOf(false) }
 
+    // The result's finished play stays live for its record and "Play again" (whose replay
+    // resets it before this entry exists). An entry composed over it while still finished
+    // — the Play tab after a solve — is a new visit: never its screen (each game's screen
+    // hands a complete session off again, and the reload would blank the result's
+    // badge); the play is dropped and the picker shows.
+    val finishedAtEntry = remember { viewModel.active?.takeIf { it.controller.isComplete } }
+
     // One-shot per play instance: adopt a persisted session or the replay blob (both are
     // SessionBlob envelopes naming their game — fix-round-1 C1 unified them), else fetch
     // the picked game's board. Priority: saveable first (mid-play rotation AND process
     // death — the saveable outlives the store single, whose restart lives in
-    // PlaySessionStore.restore), then the replay blob, once per play instance. A play
-    // carried over from a FINISHED result is stale: a completed session at a fresh
-    // non-replay entry means a fresh fetch. The live mid-result play (result → Play
-    // again) is kept untouched.
+    // PlaySessionStore.restore), then the replay blob, once per play instance.
     LaunchedEffect((state as? PlayUiState.Playing)?.play) {
+        finishedAtEntry?.let(viewModel::dropFinished)
         val saved = savedSession
         savedSession = null
         val envelope = saved?.let(SessionBlob::decode)
@@ -80,13 +88,25 @@ fun PlayRoute(
         }
     }
 
-    // Mid-game exit releases the play so the next play entry picks again (a popped play
-    // never resumes). The solved handoff does NOT pass through here: the result keeps
-    // the play's scope for the record write.
+    // Mid-game exit keeps the session and releases the play, so the next play entry
+    // picks again and the picker offers to continue (ADR-0010). The entry's saveable is
+    // dropped too: navigation may retain this entry, and its pre-leave bytes (older than
+    // the kept session's clock fold) must never resurrect the game on return. The solved
+    // handoff does NOT pass through here: the result keeps the play's scope for the
+    // record write.
     BackHandler {
-        viewModel.end()
+        savedSession = null
+        viewModel.leave()
         onBack()
     }
+    // Background (ON_STOP, which every process death follows) keeps the live session.
+    // ON_STOP reaches only a COMPOSED route, so leaving composition with the app still
+    // resumed (a tab switch, then a kill in the background) keeps it too. Both are
+    // no-ops after back's leave (no live play), for a finished play (needsLoad, so the
+    // result handoff keeps nothing) and for a play never started; the clock fold is
+    // idempotent, so rotation's dispose-then-ON_STOP banks nothing twice.
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.background() }
+    DisposableEffect(viewModel) { onDispose { viewModel.background() } }
 
     when (val current = state) {
         is PlayUiState.Picker -> GamePicker(
@@ -95,13 +115,15 @@ fun PlayRoute(
             modifier = modifier,
         )
 
-        is PlayUiState.Playing -> current.ui.Screen(
-            controller = current.controller,
-            status = current.status,
-            layout = layout,
-            onRetry = current.play::load,
-            onSolved = onSolved,
-            modifier = modifier,
-        )
+        is PlayUiState.Playing -> if (current.controller !== finishedAtEntry?.controller) {
+            current.ui.Screen(
+                controller = current.controller,
+                status = current.status,
+                layout = layout,
+                onRetry = current.play::load,
+                onSolved = onSolved,
+                modifier = modifier,
+            )
+        }
     }
 }

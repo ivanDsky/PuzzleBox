@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
+import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.Restored
@@ -29,8 +30,10 @@ import java.time.LocalDate
 
 /**
  * A stand-in game play UI (feature:play:impl never sees a real game, ADR-0007 §7): its
- * session is a readable string — `fake|<moves>|<complete>|<date>|<number>` — so tests
- * can assert exactly what was adopted, published and restored.
+ * session is a readable string — `fake|<moves>|<complete>|<date>|<number>|<elapsedMs>`
+ * — so tests can assert exactly what was adopted, published and restored. Its clock is
+ * the real games' shape: the first move opens a window, a background fold banks it into
+ * the session (and publishes), folding a paused clock banks nothing.
  */
 class FakePlayUi(override val gameId: GameId) : GamePlayUi {
 
@@ -73,7 +76,7 @@ class FakeController(
     private val game: GameId,
     private val env: PlayEnvironment,
     private val ui: FakePlayUi,
-) : GamePlayController {
+) : GamePlayController, PlayClock {
 
     var puzzle: Puzzle? = null
         private set
@@ -86,6 +89,44 @@ class FakeController(
     var replays by mutableIntStateOf(0)
         private set
 
+    /** Banked clock time (in the session bytes) and the open running window, if any. */
+    var bankedMs = 0L
+        private set
+    private var windowMs: Long? = null
+    private var windows = 0
+
+    /** How many background folds actually banked time. */
+    var folds = 0
+        private set
+
+    override val clockWindow: Any? get() = windowMs?.let { windows }
+
+    override fun tick() = Unit
+
+    override fun onBackground() {
+        val window = windowMs ?: return
+        bankedMs += window
+        windowMs = null
+        folds++
+        publish()
+    }
+
+    override fun onForeground() {
+        if (windowMs == null && moves > 0 && !isComplete) openWindow()
+    }
+
+    override fun displayedElapsedMs(): Long = bankedMs + (windowMs ?: 0L)
+
+    /** Running play time passes (the tick loop's job in a real game). */
+    fun advance(ms: Long) {
+        windowMs = windowMs?.plus(ms)
+    }
+
+    private fun openWindow() {
+        windows++
+        windowMs = 0L
+    }
+
     override fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt {
         ui.rejectWith?.let { return Adopt.Rejected(it) }
         this.puzzle = puzzle
@@ -96,10 +137,12 @@ class FakeController(
 
     override fun adoptRestored(bytes: ByteArray): Restored? {
         val parts = bytes.decodeToString().split('|')
-        if (parts.size != 5 || parts[0] != "fake") return null
+        if (parts.size !in 5..6 || parts[0] != "fake") return null
         moves = parts[1].toInt()
         isComplete = parts[2].toBoolean()
         ref = TestGames.Ref(game, LocalDate.parse(parts[3]), parts[4].toIntOrNull())
+        bankedMs = parts.getOrNull(5)?.toLong() ?: 0L
+        windowMs = null
         return Restored(ref)
     }
 
@@ -107,23 +150,28 @@ class FakeController(
         replays++
         moves = 0
         isComplete = false
+        bankedMs = 0L
+        windowMs = null
         publish()
     }
 
-    /** One committed move: published like every game's session change. */
+    /** One committed move: opens the clock on the first, published like every game's change. */
     fun move() {
         moves++
+        if (windowMs == null) openWindow()
         publish()
     }
 
-    /** The win transition: one completion record for the adopted identity. */
+    /** The win transition: the clock stops, then one completion record for the adopted identity. */
     fun win() {
+        windowMs?.let { bankedMs += it }
+        windowMs = null
         isComplete = true
         publish()
         env.onWon(record(ref!!))
     }
 
-    fun bytes(): ByteArray = encode(moves, isComplete, ref)
+    fun bytes(): ByteArray = encode(moves, isComplete, ref, bankedMs)
 
     private fun publish() = env.onSessionChanged(bytes())
 
@@ -132,12 +180,18 @@ class FakeController(
 
         fun record(ref: PuzzleRef) = CompletionRecord(ref, TIME_MS, 0, RecordStats(1, "{}"))
 
-        fun encode(moves: Int, complete: Boolean, ref: PuzzleRef?): ByteArray =
-            "fake|$moves|$complete|${ref?.date}|${ref?.puzzleNumber}".encodeToByteArray()
+        fun encode(moves: Int, complete: Boolean, ref: PuzzleRef?, elapsedMs: Long = 0L): ByteArray =
+            "fake|$moves|$complete|${ref?.date}|${ref?.puzzleNumber}|$elapsedMs".encodeToByteArray()
 
         /** A [SessionBlob] envelope of a fake session, as the route's saveable holds it. */
-        fun envelope(game: GameId, moves: Int, complete: Boolean = false, day: LocalDate, number: Int? = 7): SessionBlob.Decoded =
-            SessionBlob.Decoded(game, encode(moves, complete, TestGames.Ref(game, day, number)))
+        fun envelope(
+            game: GameId,
+            moves: Int,
+            complete: Boolean = false,
+            day: LocalDate,
+            number: Int? = 7,
+            elapsedMs: Long = 0L,
+        ): SessionBlob.Decoded = SessionBlob.Decoded(game, encode(moves, complete, TestGames.Ref(game, day, number), elapsedMs))
     }
 }
 
