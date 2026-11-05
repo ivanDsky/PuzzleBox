@@ -8,13 +8,22 @@ import com.ivandsky.puzzlebox.app.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.IdentityService
-import com.ivandsky.puzzlebox.domain.GetFeaturedGame
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
+import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.model.ThemeMode
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -27,35 +36,69 @@ private const val SIGN_IN_GOOGLE_UNAVAILABLE_MESSAGE =
 private const val SIGN_IN_RETRY_MESSAGE = "Sign-in failed. Please try again."
 
 /**
- * Profile's state holder: today's identity-gated board ([ObserveTodayLeaderboard]) plus
- * the sign-in flow's own progress/outcome, shown while signed out. The board is the
- * featured game's ([GetFeaturedGame]), so its display name rides along for the copy.
- * The activity context the credential sheet needs (I2) is passed per call and never stored.
+ * Profile's state holder (A20): the lifetime record ([ObserveGameStats], all games and each
+ * registered one, plus the days played off [ObserveGameHistory]), today's identity-gated
+ * board ([ObserveTodayLeaderboard]), the sign-in flow's own progress/outcome while signed
+ * out, and the app's theme ([UserPreferencesRepository], N4). The activity context the
+ * credential sheet needs (I2) is passed per call and never stored.
  */
 class ProfileViewModel(
     private val identityService: IdentityService,
     private val idTokenProvider: GoogleIdTokenProvider,
     observeTodayLeaderboard: ObserveTodayLeaderboard,
-    featuredGame: GetFeaturedGame,
+    observeGameStats: ObserveGameStats,
+    observeGameHistory: ObserveGameHistory,
+    registry: GameRegistry,
+    brands: GamePlayRegistry,
+    private val preferences: UserPreferencesRepository,
 ) : ViewModel() {
 
-    private val signIn = MutableStateFlow(ProfileUiState.SignedOut())
+    private val signIn = MutableStateFlow(ProfileUiState.Account.SignedOut())
 
-    private val gameName: String = featuredGame().displayName
+    private val seedRows: List<ProfileUiState.GameRow> = registry.all.map { plugin ->
+        val id = plugin.definition.id
+        ProfileUiState.GameRow(id, plugin.definition.displayName, brands.brandOf(id), solved = 0, bestTimeMs = null)
+    }
 
-    val uiState: StateFlow<ProfileUiState> =
+    private val account: Flow<ProfileUiState.Account> =
         combine(observeTodayLeaderboard(), signIn) { today, prompt ->
             when (today) {
                 TodayLeaderboard.SignedOut -> prompt
-                is TodayLeaderboard.SignedIn -> ProfileUiState.SignedIn(today.identity, today.board, gameName)
+                is TodayLeaderboard.SignedIn -> ProfileUiState.Account.SignedIn(today.identity, today.board)
             }
+        }
+
+    private val daysPlayed: Flow<Int> = observeGameHistory()
+        .map { days -> days.filter { it.record != null && it.puzzleNumber != null }.map { it.day }.distinct().size }
+        .distinctUntilChanged()
+
+    private val gameRows: Flow<List<ProfileUiState.GameRow>> =
+        if (seedRows.isEmpty()) {
+            flowOf(emptyList())
+        } else {
+            val perGame = seedRows.map { row ->
+                observeGameStats(row.gameId).map { row.copy(solved = it.solved, bestTimeMs = it.bestTimeMs) }
+            }
+            combine(perGame) { it.toList() }
+        }
+
+    private val initialAccount: ProfileUiState.Account = identityService.current.value
+        ?.let { ProfileUiState.Account.SignedIn(it, TodayLeaderboard.Board.Loading) }
+        ?: signIn.value
+
+    val uiState: StateFlow<ProfileUiState> =
+        combine(account, observeGameStats(), daysPlayed, gameRows, preferences.themeMode) { account, stats, days, games, theme ->
+            ProfileUiState(account, stats, days, games, theme)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = identityService.current.value
-                ?.let { ProfileUiState.SignedIn(it, TodayLeaderboard.Board.Loading, gameName) }
-                ?: signIn.value,
+            initialValue = ProfileUiState(account = initialAccount, games = seedRows),
         )
+
+    /** Appearance (N4): persisted; the app root re-themes from the stored mode. */
+    fun onSetThemeMode(mode: ThemeMode) {
+        viewModelScope.launch { preferences.setThemeMode(mode) }
+    }
 
     fun onSignIn(activityContext: Context) {
         viewModelScope.launch {

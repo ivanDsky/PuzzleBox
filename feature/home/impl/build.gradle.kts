@@ -24,7 +24,7 @@ dependencies {
     // GameGlyph, WeekStrip and the per-game brands (GamePlayRegistry) for the Today tiles,
     // streak card and recent chips.
     implementation(projects.core.gameUi)
-    // ThemeMode/GameId appear in Home's public composables.
+    // GameId appears in Home's public composables.
     api(projects.core.model)
     testImplementation(projects.core.testing)
 }

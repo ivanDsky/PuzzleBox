@@ -25,7 +25,6 @@ import com.ivandsky.puzzlebox.gameui.playLayoutFor
 import com.ivandsky.puzzlebox.history.historyLayoutFor
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.homeLayoutFor
-import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
@@ -43,8 +42,6 @@ import org.koin.compose.koinInject
 @Composable
 fun PuzzleBoxApp(
     windowWidthSizeClass: WindowWidthSizeClass,
-    themeMode: ThemeMode,
-    onSetThemeMode: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,
     navigator: Navigator = rememberNavigator(),
     todaySet: ObserveTodaySet = koinInject(),
@@ -102,8 +99,6 @@ fun PuzzleBoxApp(
                 homeLayout = layout,
                 playLayout = playLayout,
                 historyLayout = historyLayout,
-                themeMode = themeMode,
-                onSetThemeMode = onSetThemeMode,
                 modifier = Modifier.weight(1f),
             )
         }

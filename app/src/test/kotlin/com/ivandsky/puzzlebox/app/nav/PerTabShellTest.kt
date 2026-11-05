@@ -34,7 +34,6 @@ import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
-import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
@@ -102,8 +101,6 @@ class PerTabShellTest {
         PuzzleBoxTheme(darkTheme = false) {
             PuzzleBoxApp(
                 windowWidthSizeClass = WindowWidthSizeClass.Compact,
-                themeMode = ThemeMode.SYSTEM,
-                onSetThemeMode = {},
                 navigator = rememberNavigator().also { navigator = it },
             )
         }
@@ -151,6 +148,17 @@ class PerTabShellTest {
 
         composeRule.onNodeWithText(CATALOG_BUTTON).assertExists()
         assertEquals(listOf<NavKey>(ProfileKey), state().currentStack)
+    }
+
+    @Test
+    fun `a profile game row opens that game's history on the profile stack - N3`() {
+        composeRule.setContent { Shell() }
+        tap(PROFILE_TAB)
+
+        composeRule.onNodeWithTag("profile.game.tango").performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(listOf<NavKey>(ProfileKey, HistoryKey("tango")), state().currentStack)
     }
 
     @Test

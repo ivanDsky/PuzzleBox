@@ -32,7 +32,6 @@ import com.ivandsky.puzzlebox.home.di.homeModule
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
-import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.navigation.navigationState
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -112,8 +111,6 @@ class HomeRouteTest {
             PuzzleBoxTheme {
                 HomeRoute(
                     layout = HomeLayout.SinglePane,
-                    themeMode = ThemeMode.SYSTEM,
-                    onSetThemeMode = {},
                     onOpenGame = onOpenGame,
                     onOpenProfile = {},
                 )
@@ -200,7 +197,7 @@ class HomeRouteTest {
         startGraph(FakeDailyRepository(), FakeCompletionRepository())
         val navigator = Navigator(navigationState(HomeKey, PlayKey))
         val provider = entryProvider {
-            homeEntry(navigator, HomeLayout.SinglePane, ThemeMode.SYSTEM, onSetThemeMode = {})
+            homeEntry(navigator, HomeLayout.SinglePane)
         }
         composeRule.setContent {
             PuzzleBoxTheme { provider(HomeKey).Content() }

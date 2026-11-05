@@ -6,7 +6,6 @@ import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.HomeRoute
 import com.ivandsky.puzzlebox.home.api.HomeKey
-import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
@@ -19,14 +18,10 @@ import com.ivandsky.puzzlebox.profile.api.ProfileKey
 fun EntryProviderScope<NavKey>.homeEntry(
     navigator: Navigator,
     layout: HomeLayout,
-    themeMode: ThemeMode,
-    onSetThemeMode: (ThemeMode) -> Unit,
 ) {
     entry<HomeKey> {
         HomeRoute(
             layout = layout,
-            themeMode = themeMode,
-            onSetThemeMode = onSetThemeMode,
             onOpenGame = { id -> navigator.pushOnce(GameKey(id.value)) },
             // A6: the account card is a tab switch, not a push. Home's stack is untouched,
             // so Home (bar or back from the Profile root) returns to it as it was.

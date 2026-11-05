@@ -11,7 +11,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -23,7 +23,6 @@ import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.WeekDay
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.model.ThemeMode
 import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -36,7 +35,7 @@ import org.robolectric.annotation.Config
 
 /**
  * Robolectric compose tests (A17): pane choice, the Today tiles and the one CTA (A10), the
- * Offline tile (A12), the streak card's week (A8) and the theme dialog, no emulator. Copy
+ * Offline tile (A12), the streak card's week (A8) and the absent theme control (N4), no emulator. Copy
  * is never pinned: tags, enabled state and callbacks only (the CTA is checked to NAME its
  * game, not for its wording).
  */
@@ -49,12 +48,10 @@ class HomeScreenTest {
 
     private fun setContent(
         layout: HomeLayout,
-        themeMode: ThemeMode = ThemeMode.SYSTEM,
         history: List<HistoryDay> = emptyList(),
         today: MutableState<List<HomeUiState.TodayRow>> = mutableStateOf(TODAY),
         playTarget: GameId? = GameId("tango"),
         identity: Identity? = null,
-        onSetThemeMode: (ThemeMode) -> Unit = {},
         onOpenGame: (GameId) -> Unit = {},
         onOpenProfile: () -> Unit = {},
     ) {
@@ -63,8 +60,6 @@ class HomeScreenTest {
                 HomeScreen(
                     layout = layout,
                     state = state(today.value, history, playTarget, identity),
-                    themeMode = themeMode,
-                    onSetThemeMode = onSetThemeMode,
                     onOpenGame = onOpenGame,
                     onOpenProfile = onOpenProfile,
                     modifier = Modifier,
@@ -225,23 +220,11 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `theme dialog opens and reports the selection`() {
-        var selected: ThemeMode? = null
-        setContent(HomeLayout.SinglePane, onSetThemeMode = { selected = it })
+    fun `home has no theme control - N4`() {
+        setContent(HomeLayout.SinglePane)
 
-        composeRule.onNodeWithContentDescription("Appearance").performClick()
-        composeRule.onNodeWithText("Dark").performClick()
-
-        composeRule.runOnIdle { check(selected == ThemeMode.DARK) { "expected DARK, was $selected" } }
-    }
-
-    @Test
-    fun `theme dialog reflects the current mode`() {
-        setContent(HomeLayout.SinglePane, themeMode = ThemeMode.LIGHT)
-
-        composeRule.onNodeWithContentDescription("Appearance").performClick()
-
-        composeRule.onNodeWithText("Light").assertIsSelected()
+        // Appearance moved to Profile (N4): the header carries no gear.
+        composeRule.onAllNodesWithContentDescription("Appearance").assertCountEquals(0)
     }
 
     @Test
