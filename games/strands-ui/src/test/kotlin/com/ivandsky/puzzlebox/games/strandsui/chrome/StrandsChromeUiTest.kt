@@ -82,15 +82,15 @@ class StrandsChromeUiTest {
     }
 
     @Test
-    fun `with no hint available the control is disabled and reads its progress in thirds`() {
+    fun `with no hint available the control announces unavailable with its thirds, and still presses`() {
         var presses = 0
         show { StrandsHintControl(HintUi(available = false, meterThirds = 2), onHint = { presses++ }, reduceMotion = true) }
         rule.onNodeWithTag("strands.hint")
-            .assertIsNotEnabled()
+            .assertIsEnabled()
             .assert(hasContentDescription(StrandsCopy.HINT))
-            .assert(hasStateDescription("2 of 3 words toward the next hint"))
+            .assert(hasStateDescription("No hint available, 2 of 3 words toward the next hint"))
             .performClick()
-        assertEquals(0, presses)
+        assertEquals(1, presses)
     }
 
     @Test

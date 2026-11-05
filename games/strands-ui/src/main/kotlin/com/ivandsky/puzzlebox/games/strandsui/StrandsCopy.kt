@@ -34,6 +34,9 @@ internal object StrandsCopy {
 
     fun hintProgress(thirds: Int): String = "$thirds of 3 words toward the next hint"
 
+    /** The unavailable pill stays pressable (it opens "Need a hint?"), so TalkBack must say no hint is waiting. */
+    fun hintUnavailable(thirds: Int): String = "No hint available, ${hintProgress(thirds)}"
+
     fun headerLine(puzzleNumber: Int?, credit: String): String =
         puzzleNumber?.let { "${number(it)} · $credit" } ?: credit
 

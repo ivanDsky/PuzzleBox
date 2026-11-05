@@ -21,9 +21,10 @@ import com.ivandsky.puzzlebox.games.strandsui.StrandsCopy
 
 /**
  * The Strands hint control (SC4): a "Hint" pill that is its own thirds meter. It says whether
- * a hint is waiting and how close the next one is, never how many were used, and it is
- * enabled only while a hint is available. TalkBack hears "Hint, available" or
- * "Hint, n of 3 words toward the next hint".
+ * a hint is waiting and how close the next one is, never how many were used. With none
+ * waiting it looks dim and announces unavailable but stays pressable, as on NYT: the press
+ * opens the A7 "Need a hint?" modal and spends nothing. TalkBack hears "Hint, available" or
+ * "Hint, No hint available, n of 3 words toward the next hint".
  */
 @Composable
 internal fun StrandsHintControl(
@@ -35,10 +36,9 @@ internal fun StrandsHintControl(
     val board = LocalBoardColors.current
     val colors = MaterialTheme.colorScheme
     val fill = rememberMeterFill(hintMeterFraction(hint), reduceMotion)
-    val state = if (hint.available) StrandsCopy.HINT_AVAILABLE else StrandsCopy.hintProgress(hint.meterThirds)
+    val state = if (hint.available) StrandsCopy.HINT_AVAILABLE else StrandsCopy.hintUnavailable(hint.meterThirds)
     Surface(
         onClick = onHint,
-        enabled = hint.available,
         shape = MaterialTheme.shapes.extraLarge,
         color = colors.surface,
         border = if (hint.available) {

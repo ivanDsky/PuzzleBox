@@ -1,9 +1,13 @@
 package com.ivandsky.puzzlebox.games.strandsui
 
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -12,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -34,7 +39,8 @@ import com.ivandsky.puzzlebox.games.strandsui.chrome.WordSlotLine
  * word slot, the counter and the board; the shared chrome (clock, How to play) with the hint
  * control sits after it on a phone and beside it on a tablet. No undo and no shared hint
  * control (A15: the hint is Strands' own economy). A finished board stays on screen with its
- * rating word and hands its time and hints to [onSolved] once per completion.
+ * rating word and hands its time and hints to [onSolved] once per completion. A tap anywhere
+ * off the board drops a half-traced word, as on NYT.
  */
 @Composable
 internal fun StrandsPlayScreen(
@@ -52,22 +58,47 @@ internal fun StrandsPlayScreen(
         onSolved(solved.elapsedMs, solved.state.hintsUsed)
     }
     val reduceMotion = rememberReducedMotion()
-    Box(modifier.fillMaxSize()) {
-        AdaptivePlayScaffold(
-            layout = layout,
-            modifier = Modifier.fillMaxSize(),
-            board = { BoardPane(controller, status, layout, reduceMotion, onRetry) },
-            side = { SidePanel(controller, status, reduceMotion, onHowToPlay) },
-        )
+    val header = controller.header
+    Box(modifier.fillMaxSize().clearTraceOnBackgroundTap(controller)) {
+        if (status is PlayBoardStatus.Ready && header != null && layout == PlayLayout.SinglePane) {
+            // One scroll for the whole phone page: 8 rows of 48 dp cells (SC11) plus the chrome
+            // outgrow a landscape phone, and the scaffold's fixed side pane would leave the
+            // board a sliver. NYT's page scrolls the same way.
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).testTag("strands.scroll")) {
+                BoardColumn(controller, header, twoPane = false, reduceMotion)
+                SidePanel(controller, status, reduceMotion, onHowToPlay)
+            }
+        } else {
+            AdaptivePlayScaffold(
+                layout = layout,
+                modifier = Modifier.fillMaxSize(),
+                board = { BoardPane(controller, status, reduceMotion, onRetry) },
+                side = { SidePanel(controller, status, reduceMotion, onHowToPlay) },
+            )
+        }
     }
     controller.hintDialog?.let { dialog -> HintModal(dialog, controller::dismissHintDialog) }
 }
+
+/**
+ * Runs after every child (pointer events bubble up): the board, buttons and the scroll
+ * consume their own downs and drags, so only a clean tap on the background lands here.
+ */
+private fun Modifier.clearTraceOnBackgroundTap(controller: StrandsPlayController): Modifier =
+    pointerInput(controller) {
+        awaitEachGesture {
+            awaitFirstDown()
+            // An empty trace has nothing to drop; clearing it would wipe the verdict shown.
+            if (waitForUpOrCancellation() != null && controller.trace.path.isNotEmpty()) {
+                controller.onTrace(TraceInput.outside())
+            }
+        }
+    }
 
 @Composable
 private fun BoardPane(
     controller: StrandsPlayController,
     status: PlayBoardStatus,
-    layout: PlayLayout,
     reduceMotion: Boolean,
     onRetry: () -> Unit,
 ) {
@@ -78,15 +109,22 @@ private fun BoardPane(
         }
         return
     }
-    // A phone column scrolls, so the board keeps its 48 dp cells (SC11) on a short window;
-    // a tablet pane bounds the board's height instead (A37), so it shrinks to fit.
-    val twoPane = layout == PlayLayout.TwoPane
-    val scroll = if (twoPane) Modifier else Modifier.verticalScroll(rememberScrollState())
+    BoardColumn(controller, header, twoPane = true, reduceMotion, Modifier.fillMaxSize())
+}
+
+/** On a tablet pane the board's height is bound (A37), so it shrinks to fit beside the chrome. */
+@Composable
+private fun BoardColumn(
+    controller: StrandsPlayController,
+    header: StrandsHeader,
+    twoPane: Boolean,
+    reduceMotion: Boolean,
+    modifier: Modifier = Modifier,
+) {
     val model = controller.model
     Column(
-        Modifier
-            .fillMaxSize()
-            .then(scroll)
+        modifier
+            .fillMaxWidth()
             .padding(horizontal = Spacing.lg, vertical = Spacing.md)
             .testTag("strands.board_area"),
         horizontalAlignment = Alignment.CenterHorizontally,
