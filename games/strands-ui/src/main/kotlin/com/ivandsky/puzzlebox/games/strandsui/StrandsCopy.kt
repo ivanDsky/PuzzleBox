@@ -57,7 +57,7 @@ internal object StrandsCopy {
     const val TUTORIAL_TRACE = "Tap letters next to each other to spell a word, then tap the last letter again to submit. You can drag instead."
     const val TUTORIAL_SPANGRAM = "Theme words fill the board. The spangram touches two opposite sides."
 
-    fun found(count: Int, total: Int): String = "$count of $total theme words found"
+    fun found(count: Int, total: Int): String = "$count of $total theme words found."
 
     fun number(puzzleNumber: Int): String = "No. $puzzleNumber"
 

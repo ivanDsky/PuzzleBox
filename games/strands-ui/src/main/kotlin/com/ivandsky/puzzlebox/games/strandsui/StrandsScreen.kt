@@ -5,11 +5,11 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -17,8 +17,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isFinite
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
@@ -27,17 +31,17 @@ import com.ivandsky.puzzlebox.gameui.PlayChrome
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.rememberReducedMotion
 import com.ivandsky.puzzlebox.games.strands.StrandsRating
-import com.ivandsky.puzzlebox.games.strandsui.chrome.FoundCounter
+import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 import com.ivandsky.puzzlebox.games.strandsui.chrome.HintModal
 import com.ivandsky.puzzlebox.games.strandsui.chrome.StrandsHeaderLine
-import com.ivandsky.puzzlebox.games.strandsui.chrome.StrandsHintControl
+import com.ivandsky.puzzlebox.games.strandsui.chrome.StrandsHintRow
 import com.ivandsky.puzzlebox.games.strandsui.chrome.ThemeCard
 import com.ivandsky.puzzlebox.games.strandsui.chrome.WordSlotLine
 
 /**
  * The Strands play screen (A37): the board pane stacks the theme card, the header line, the
- * word slot, the counter and the board; the shared chrome (clock, How to play) with the hint
- * control sits after it on a phone and beside it on a tablet. No undo and no shared hint
+ * word slot, the board and the hint row under it (counter and Hint, as on NYT); the shared
+ * chrome (title, clock, How to play) sits after it on a phone and beside it on a tablet. No undo and no shared hint
  * control (A15: the hint is Strands' own economy). A finished board stays on screen with its
  * rating word and hands its time and hints to [onSolved] once per completion. A tap anywhere
  * off the board drops a half-traced word, as on NYT.
@@ -64,16 +68,19 @@ internal fun StrandsPlayScreen(
             // One scroll for the whole phone page: 8 rows of 48 dp cells (SC11) plus the chrome
             // outgrow a landscape phone, and the scaffold's fixed side pane would leave the
             // board a sliver. NYT's page scrolls the same way.
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).testTag("strands.scroll")) {
-                BoardColumn(controller, header, twoPane = false, reduceMotion)
-                SidePanel(controller, status, reduceMotion, onHowToPlay)
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                val viewport = maxHeight
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).testTag("strands.scroll")) {
+                    BoardColumn(controller, header, reduceMotion, fitHeight = viewport)
+                    SidePanel(controller, status, onHowToPlay)
+                }
             }
         } else {
             AdaptivePlayScaffold(
                 layout = layout,
                 modifier = Modifier.fillMaxSize(),
                 board = { BoardPane(controller, status, reduceMotion, onRetry) },
-                side = { SidePanel(controller, status, reduceMotion, onHowToPlay) },
+                side = { SidePanel(controller, status, onHowToPlay) },
             )
         }
     }
@@ -109,43 +116,81 @@ private fun BoardPane(
         }
         return
     }
-    BoardColumn(controller, header, twoPane = true, reduceMotion, Modifier.fillMaxSize())
+    BoardColumn(controller, header, reduceMotion, fitHeight = null, Modifier.fillMaxSize())
 }
 
-/** On a tablet pane the board's height is bound (A37), so it shrinks to fit beside the chrome. */
+/**
+ * The theme card, header line and word slot, then the board, then the hint row as wide as the
+ * board (NYT's grid and row under it). The board takes the height the rest leaves (A37): the
+ * tablet pane's height, or on a phone [fitHeight], the viewport the page scrolls in, so its
+ * cells shrink toward the 48 dp floor before the hint row is pushed off screen.
+ */
 @Composable
 private fun BoardColumn(
     controller: StrandsPlayController,
     header: StrandsHeader,
-    twoPane: Boolean,
     reduceMotion: Boolean,
+    fitHeight: Dp?,
     modifier: Modifier = Modifier,
 ) {
     val model = controller.model
-    Column(
-        modifier
+    Layout(
+        contents = listOf(
+            {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    ThemeCard(header.clue, controller.solvedHints?.let(StrandsRating::of), Modifier.fillMaxWidth())
+                    StrandsHeaderLine(header)
+                    WordSlotLine(controller.slot, model.foundCount, model.totalCount, reduceMotion, Modifier.fillMaxWidth())
+                }
+            },
+            { StrandsBoard(controller) },
+            {
+                StrandsHintRow(
+                    found = model.foundCount,
+                    total = model.totalCount,
+                    // A solved board has no hint to give (NYT drops it too).
+                    hint = controller.hint.takeUnless { controller.isComplete },
+                    onHint = controller::pressHint,
+                    reduceMotion = reduceMotion,
+                )
+            },
+        ),
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md)
+            .padding(horizontal = Spacing.lg, vertical = BoardColumnPadding)
             .testTag("strands.board_area"),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterVertically),
-    ) {
-        ThemeCard(
-            clue = header.clue,
-            rating = controller.solvedHints?.let(StrandsRating::of),
-            modifier = Modifier.widthIn(max = BoardMaxWidth),
-        )
-        StrandsHeaderLine(header)
-        WordSlotLine(
-            slot = controller.slot,
-            found = model.foundCount,
-            total = model.totalCount,
-            reduceMotion = reduceMotion,
-            modifier = Modifier.widthIn(max = BoardMaxWidth),
-        )
-        FoundCounter(found = model.foundCount, total = model.totalCount)
-        val boardHeight = if (twoPane) Modifier.weight(1f, fill = false) else Modifier
-        StrandsBoard(controller, boardHeight.widthIn(max = BoardMaxWidth))
+    ) { (top, board, row), constraints ->
+        val width = constraints.maxWidth
+        val gap = Spacing.sm.roundToPx()
+        // The widest the board can be; the chrome above and the row's height are set by it.
+        val widest = if (model.rows == 0) width else {
+            (strandsCellSizeFor(width.toDp(), Dp.Infinity, model.rows, model.cols) * model.cols).roundToPx().coerceAtMost(width)
+        }
+        val topPlaceable = top.single().measure(Constraints(maxWidth = widest))
+        val rowHeight = row.single().maxIntrinsicHeight(widest)
+        val fit = when {
+            constraints.hasBoundedHeight -> constraints.maxHeight
+            fitHeight != null && fitHeight.isFinite -> (fitHeight - BoardColumnPadding * 2).roundToPx()
+            else -> null
+        }
+        val boardBudget = fit?.let { (it - topPlaceable.height - rowHeight - gap * 2).coerceAtLeast(0).toDp() } ?: Dp.Infinity
+        val cell = if (model.rows == 0) 0.dp else strandsCellSizeFor(width.toDp(), boardBudget, model.rows, model.cols)
+        val boardWidth = (cell * model.cols).roundToPx().coerceAtMost(width).takeIf { it > 0 } ?: widest
+        val boardPlaceable = board.single().measure(Constraints.fixed(width, (cell * model.rows).roundToPx()))
+        val rowPlaceable = row.single().measure(Constraints.fixedWidth(boardWidth))
+        val total = topPlaceable.height + gap + boardPlaceable.height + gap + rowPlaceable.height
+        val height = total.coerceIn(constraints.minHeight, constraints.maxHeight)
+        layout(width, height) {
+            // A tablet pane is taller than the stack: centre it, as the old column did.
+            var y = ((height - total) / 2).coerceAtLeast(0)
+            for (placeable in listOf(topPlaceable, boardPlaceable, rowPlaceable)) {
+                placeable.placeRelative((width - placeable.width) / 2, y)
+                y += placeable.height + gap
+            }
+        }
     }
 }
 
@@ -153,7 +198,6 @@ private fun BoardColumn(
 private fun SidePanel(
     controller: StrandsPlayController,
     status: PlayBoardStatus,
-    reduceMotion: Boolean,
     onHowToPlay: (() -> Unit)?,
 ) {
     val ready = status as? PlayBoardStatus.Ready
@@ -167,17 +211,8 @@ private fun SidePanel(
         banner = ready?.banner,
         onHowToPlay = onHowToPlay,
         modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
-    ) {
-        if (ready != null && controller.header != null) {
-            StrandsHintControl(
-                hint = controller.hint,
-                onHint = controller::pressHint,
-                reduceMotion = reduceMotion,
-                modifier = Modifier.align(Alignment.End),
-            )
-        }
-    }
+    )
 }
 
-/** NYT's board is 324 px wide; 360 dp leaves the letters room on a tablet pane. */
-private val BoardMaxWidth = 360.dp
+/** Keeps the hint row clear of the screen edge without costing the board a row of cells. */
+private val BoardColumnPadding = Spacing.sm

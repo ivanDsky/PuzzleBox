@@ -39,8 +39,8 @@ class StrandsChromeCopyTest {
 
     @Test
     fun `a verdict is announced with its copy, then the counter`() {
-        assertEquals("Not in word list. 1 of 4 theme words found", StrandsCopy.announcement("Not in word list", 1, 4))
-        assertEquals("Spangram! 2 of 4 theme words found", StrandsCopy.announcement("Spangram!", 2, 4))
+        assertEquals("Not in word list. 1 of 4 theme words found.", StrandsCopy.announcement("Not in word list", 1, 4))
+        assertEquals("Spangram! 2 of 4 theme words found.", StrandsCopy.announcement("Spangram!", 2, 4))
     }
 
     @Test

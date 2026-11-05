@@ -70,7 +70,7 @@ class StrandsChromeUiTest {
         rule.onNodeWithTag("strands.theme_label").assertTextEquals(StrandsCopy.THEME_LABEL)
         rule.onNodeWithTag("strands.clue").assertTextEquals("Bake sale \uD83C\uDF70")
         rule.onNodeWithTag("strands.header_line").assertTextEquals("No. 669 · by Tess Tester")
-        rule.onNodeWithTag("strands.counter").assertTextEquals("1 of 4 theme words found")
+        rule.onNodeWithTag("strands.counter").assertTextEquals("1 of 4 theme words found.")
     }
 
     @Test
@@ -139,7 +139,7 @@ class StrandsChromeUiTest {
         }
         rule.onNodeWithTag("strands.slot")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
-            .assert(hasContentDescription("PIES. 1 of 4 theme words found"))
+            .assert(hasContentDescription("PIES. 1 of 4 theme words found."))
     }
 
     @Test

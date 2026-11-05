@@ -4,11 +4,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -25,6 +27,9 @@ import com.ivandsky.puzzlebox.games.strandsui.WordSlot
  * Motion is held still (reduce motion on) so each pane is the state's resting frame.
  */
 private val header = StrandsHeader(clue = "Bake sale", puzzleNumber = 669, credit = StrandsCopy.credit("Tess Tester"))
+
+/** Six 48 dp columns: the narrowest board the row has to fit under. */
+private val PreviewBoardWidth = 288.dp
 
 @Composable
 private fun ChromePane(content: @Composable () -> Unit) {
@@ -46,7 +51,29 @@ internal fun StrandsChromeInPlayPreview() = ChromePane {
     ThemeCard(clue = header.clue, rating = null)
     StrandsHeaderLine(header)
     WordSlotLine(WordSlot.Tracing("TAR"), found = 1, total = 4, reduceMotion = true)
-    FoundCounter(found = 1, total = 4)
+    StrandsHintRow(
+        found = 1,
+        total = 4,
+        hint = HintUi(available = false, meterThirds = 1),
+        onHint = {},
+        reduceMotion = true,
+        modifier = Modifier.width(PreviewBoardWidth),
+    )
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun StrandsHintRowPreview() = ChromePane {
+    StrandsHintRow(
+        found = 3,
+        total = 4,
+        hint = HintUi(available = true, meterThirds = 0),
+        onHint = {},
+        reduceMotion = true,
+        modifier = Modifier.width(PreviewBoardWidth),
+    )
+    // Solved: no hint left to give.
+    StrandsHintRow(found = 4, total = 4, hint = null, onHint = {}, reduceMotion = true, Modifier.width(PreviewBoardWidth))
 }
 
 @PuzzleBoxPreviews

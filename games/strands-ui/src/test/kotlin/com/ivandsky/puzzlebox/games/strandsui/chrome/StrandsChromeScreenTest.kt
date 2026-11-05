@@ -1,6 +1,10 @@
 package com.ivandsky.puzzlebox.games.strandsui.chrome
 
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.unit.width
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
@@ -81,7 +85,7 @@ class StrandsChromeScreenTest {
 
     private fun assertChromeInBoardPane() {
         val inBoardPane = hasAnyAncestor(hasTestTag("strands.board_area"))
-        for (tag in listOf("strands.theme_card", "strands.slot", "strands.counter", "strands.header_line")) {
+        for (tag in listOf("strands.theme_card", "strands.slot", "strands.counter", "strands.header_line", "strands.hint")) {
             rule.onNode(hasTestTag(tag) and inBoardPane).assertExists()
         }
     }
@@ -90,14 +94,49 @@ class StrandsChromeScreenTest {
     fun `the phone column carries the theme card, slot and counter in the board pane`() {
         show(adopted(), PlayLayout.SinglePane)
         assertChromeInBoardPane()
-        rule.onNodeWithTag("strands.hint").assertExists()
     }
 
     @Test
     fun `the tablet panes carry the theme card, slot and counter in the board pane`() {
         show(adopted(), PlayLayout.TwoPane)
         assertChromeInBoardPane()
-        rule.onNode(hasTestTag("strands.hint") and hasAnyAncestor(hasTestTag("play.side_panel"))).assertExists()
+        rule.onNode(hasTestTag("strands.hint") and hasAnyAncestor(hasTestTag("play.side_panel"))).assertDoesNotExist()
+    }
+
+    @Test
+    fun `the hint row sits under the board, as wide as it`() {
+        show(adopted(), PlayLayout.TwoPane)
+        val board = rule.onNodeWithTag("strands.board").getBoundsInRoot()
+        val row = rule.onNodeWithTag("strands.hint_row").getBoundsInRoot()
+        assertTrue(row.top >= board.bottom)
+        assertEquals(board.width.value, row.width.value, 0.5f)
+        assertEquals(board.left.value, row.left.value, 0.5f)
+    }
+
+    @Test
+    fun `a tablet pane sizes the board to its height, not a narrow cap`() {
+        show(adopted(), PlayLayout.TwoPane)
+        // 4 columns at the 64 dp cap: the pane is tall enough for the largest cell.
+        rule.onNodeWithTag("strands.board").assertWidthIsEqualTo(64.dp * 4)
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h640dp-420dpi")
+    fun `on a 360 x 640 phone the hint row under an 8-row board shows without scrolling`() {
+        show(tall(), PlayLayout.SinglePane)
+        val screen = rule.onRoot().getBoundsInRoot()
+        val row = rule.onNodeWithTag("strands.hint_row").getBoundsInRoot()
+        assertTrue("hint row ends at ${row.bottom}, screen at ${screen.bottom}", row.bottom <= screen.bottom)
+        rule.onNodeWithTag("strands.board").assertHeightIsAtLeast(48.dp * 8)
+    }
+
+    @Test
+    fun `a solved board drops the Hint and keeps the counter`() {
+        val controller = adopted()
+        show(controller, PlayLayout.SinglePane)
+        (0 until 4).forEach { controller.play(StrandsUiFixtures.row(it)) }
+        rule.onNodeWithTag("strands.hint").assertDoesNotExist()
+        rule.onNodeWithTag("strands.counter").assertExists()
     }
 
     @Test
@@ -140,7 +179,7 @@ class StrandsChromeScreenTest {
         val controller = adopted()
         show(controller, PlayLayout.SinglePane)
         controller.play(listOf(Coord(0, 0), Coord(0, 1)))
-        rule.onNodeWithTag("strands.slot").assert(hasContentDescription("Too short. 0 of 4 theme words found"))
+        rule.onNodeWithTag("strands.slot").assert(hasContentDescription("Too short. 0 of 4 theme words found."))
     }
 
     @Test
@@ -150,7 +189,7 @@ class StrandsChromeScreenTest {
         (0 until 4).forEach { controller.play(StrandsUiFixtures.row(it)) }
         rule.waitForIdle()
         rule.onNodeWithTag("strands.theme_label").assertTextEquals("Perfect!")
-        rule.onNodeWithTag("strands.counter").assertTextEquals("4 of 4 theme words found")
+        rule.onNodeWithTag("strands.counter").assertTextEquals("4 of 4 theme words found.")
         rule.onNode(hasTestTag("strands.clue") and hasAnyAncestor(hasTestTag("strands.board_area"))).assertExists()
         assertEquals(listOf(0), solved)
     }
@@ -181,8 +220,7 @@ class StrandsChromeScreenTest {
     @Test
     @Config(qualifiers = "w640dp-h360dp-land-420dpi")
     fun `on a landscape phone the 8-row board keeps 48 dp cells and scrolls into view`() {
-        val controller = StrandsPlayController(PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}))
-        assertEquals(Adopt.Adopted, controller.adoptToday(StrandsCodec.envelope(tallPuzzle), StrandsUiFixtures.ref))
+        val controller = tall()
         show(controller, PlayLayout.SinglePane)
 
         rule.onNodeWithTag("strands.scroll").assert(hasScrollAction())
@@ -192,6 +230,9 @@ class StrandsChromeScreenTest {
         assertEquals(listOf(Coord(7, 5)), controller.trace.path)
         rule.onNodeWithTag("strands.hint").performScrollTo().assertIsDisplayed()
     }
+
+    private fun tall() = StrandsPlayController(PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}))
+        .also { assertEquals(Adopt.Adopted, it.adoptToday(StrandsCodec.envelope(tallPuzzle), StrandsUiFixtures.ref)) }
 
     private fun unavailable(thirds: Int) = "No hint available, $thirds of 3 words toward the next hint"
 
