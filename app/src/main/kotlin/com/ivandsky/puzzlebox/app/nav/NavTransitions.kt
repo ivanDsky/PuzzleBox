@@ -8,7 +8,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -43,8 +42,8 @@ internal object NavMotion {
     const val PopFadeInDelayMillis = MotionTokens.NavPopEnterDelay
     const val PopFadeInMillis = MotionTokens.NavPopEnter
 
-    /** Result's scale-in: one critically damped ~0.3 s spring. Its pop scales back out on
-     *  the back clock. */
+    /** Result's scale-in: one critically damped ~0.3 s spring. Back never scales: a Result
+     *  pops like any screen (S9 HITL: a visible shrink on back read as slow). */
     const val ResultScale = 0.92f
     const val ResultDamping = MotionTokens.SpringDampingDefault
     const val ResultStiffness = MotionTokens.SpringStiffnessDefault
@@ -52,9 +51,6 @@ internal object NavMotion {
     /** Predictive back scrubs this timeline linearly with the gesture's progress; NavDisplay
      *  settles the remainder from the live value on commit or cancel, on the back clock. */
     const val PredictiveMillis = PopTravelMillis
-
-    /** Outgoing screen at full progress. A/B: 0.90 vs 0.95. */
-    const val PredictiveScale = 0.90f
 
     /** Outgoing screen's shift toward the gesture, as a fraction of the width. */
     const val PredictiveShiftFraction = 0.08f
@@ -72,7 +68,7 @@ internal object NavMotion {
  * - Reduced motion: an opacity-only fade-through for every case (A20).
  * - Owner tab differs (tab switch, or back from a tab root to Home): fade-through, no
  *   direction (A19).
- * - Result: a push scales it in; a pop scales it back out the way it came.
+ * - Result: a push scales it in; its pop is an ordinary back.
  * - Otherwise shared-axis X: forward enters from the end edge, back from the start edge.
  */
 internal fun navTransition(
@@ -83,13 +79,13 @@ internal fun navTransition(
     layoutDirection: LayoutDirection,
 ): ContentTransform = when {
     reduceMotion || from[OWNER_TAB] != to[OWNER_TAB] -> fadeThrough(pop)
-    (if (pop) from else to)[ENTRY_KEY] is ResultKey -> if (pop) resultExit() else resultEntrance()
+    !pop && to[ENTRY_KEY] is ResultKey -> resultEntrance()
     else -> sharedAxisX(forward = !pop, layoutDirection)
 }
 
 /**
  * Predictive back: a gesture-scrubbed preview of the real destination. Within a tab the
- * outgoing screen shrinks and shifts with the swipe ([swipeEdge], a [NavigationEvent] edge)
+ * outgoing screen shifts with the swipe (no scale) ([swipeEdge], a [NavigationEvent] edge)
  * over the destination; across tabs, or under reduced motion, the scrub is opacity only.
  */
 internal fun predictivePopTransition(
@@ -115,7 +111,7 @@ internal fun predictivePopTransition(
             easing = LinearEasing,
         ),
     )
-    return destination togetherWith (scaleOut(scrub, targetScale = NavMotion.PredictiveScale) + shift + lateFade)
+    return destination togetherWith (shift + lateFade)
 }
 
 private fun fadeThrough(pop: Boolean): ContentTransform =
@@ -138,11 +134,6 @@ private fun resultEntrance(): ContentTransform =
     (fadeIn(resultSpring()) + scaleIn(resultSpring(), initialScale = NavMotion.ResultScale)) togetherWith
         fadeOut(fadeOutSpec(pop = false))
 
-private fun resultExit(): ContentTransform {
-    val back = tween<Float>(NavMotion.PopTravelMillis, easing = MotionTokens.EasingStandard)
-    return fadeIn(fadeInSpec(pop = true)) togetherWith
-        (fadeOut(back) + scaleOut(back, targetScale = NavMotion.ResultScale))
-}
 
 private fun fadeInSpec(pop: Boolean): FiniteAnimationSpec<Float> = tween(
     durationMillis = if (pop) NavMotion.PopFadeInMillis else NavMotion.FadeInMillis,
