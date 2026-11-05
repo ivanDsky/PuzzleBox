@@ -18,11 +18,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
+import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 
-/** Leaderboard v1 (brief §3): today's board, name + time + hints, own row highlighted. */
+/**
+ * Leaderboard v1 (brief §3): today's board, name + time + hints, own row highlighted.
+ * [gameName] is the board's game (the featured one), named in the empty-board line.
+ */
 @Composable
-internal fun LeaderboardSection(board: TodayLeaderboard.Board, myUid: String) {
+internal fun LeaderboardSection(board: TodayLeaderboard.Board, gameName: String, myUid: String) {
     Column(
         modifier = Modifier.fillMaxWidth().testTag("leaderboard"),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -49,7 +53,7 @@ internal fun LeaderboardSection(board: TodayLeaderboard.Board, myUid: String) {
             }
             is TodayLeaderboard.Board.Loaded -> if (board.snapshot.entries.isEmpty()) {
                 Text(
-                    text = "No entries yet today — finish today's Zip to be first.",
+                    text = "No one has finished today's $gameName yet.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -102,22 +106,9 @@ private fun LeaderboardRow(rank: Int, entry: LeaderboardEntry, isSelf: Boolean) 
                 .padding(start = 10.dp),
         )
         Text(
-            text = "${formatTime(entry.timeMs)} · ${entry.hints} ${if (entry.hints == 1) "hint" else "hints"}",
+            text = "${formatDuration(entry.timeMs)} · ${entry.hints} ${if (entry.hints == 1) "hint" else "hints"}",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-    }
-}
-
-/** Score contract display (A3): m:ss, hours only when they exist — same as history. */
-private fun formatTime(timeMs: Long): String {
-    val totalSeconds = timeMs / 1000
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-    return if (hours > 0) {
-        "%d:%02d:%02d".format(hours, minutes, seconds)
-    } else {
-        "%d:%02d".format(minutes, seconds)
     }
 }

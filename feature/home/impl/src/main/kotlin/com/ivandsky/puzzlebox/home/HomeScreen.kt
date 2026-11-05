@@ -14,13 +14,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.luminance
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.model.ThemeMode
+import java.time.LocalDate
 
-/** One row in the history teaser. Phase 0 renders the day only; scores land in Phase 1. */
-data class HistoryDay(
-    val isoDay: String,
-    val headline: String,
-    val gameName: String,
-)
+/**
+ * One puzzle day in the history teaser: [isoDay] is its unique key, [games] every game
+ * played that day in registry order.
+ */
+data class HistoryDay(val isoDay: String, val headline: String, val games: List<GameResult>) {
+    /** One game's result that day; [time] is the solve time, null when opened but not solved. */
+    data class GameResult(val gameName: String, val time: String?)
+}
 
 /**
  * The real Home screen (A12, A15): Today card, history teaser, account card.
@@ -29,15 +32,17 @@ data class HistoryDay(
  * app shell (ticket 17): play today, open the full history, open the account
  * surface — no in-screen placeholder behavior. [today] is today's set (A15), one row
  * per registered game; game-title strings render from it and from
- * [HistoryDay.gameName], never from a hardcoded id. [resume] relabels today's action
+ * [HistoryDay.games], never from a hardcoded id. [resume] relabels today's action
  * "Resume" (A13, SC11); [onPlayToday] opens the state's play target, and the play
- * restores its save.
+ * restores its save. [puzzleDay] is the header's date: the puzzle roll-over day (A9),
+ * never the phone's.
  */
 @Composable
 fun HomeScreen(
     layout: HomeLayout,
     today: List<HomeUiState.TodayRow>,
     identity: Identity? = null,
+    puzzleDay: LocalDate,
     themeMode: ThemeMode,
     onSetThemeMode: (ThemeMode) -> Unit,
     onOpenHistory: () -> Unit = {},
@@ -66,6 +71,7 @@ fun HomeScreen(
                 ListPane(
                     today = today,
                     identity = identity,
+                    puzzleDay = puzzleDay,
                     themeMode = themeMode,
                     onOpenTheme = { showThemeDialog = true },
                     onOpenHistory = onOpenHistory,
@@ -96,6 +102,7 @@ fun HomeScreen(
             ListPane(
                 today = today,
                 identity = identity,
+                puzzleDay = puzzleDay,
                 themeMode = themeMode,
                 onOpenTheme = { showThemeDialog = true },
                 onOpenHistory = onOpenHistory,

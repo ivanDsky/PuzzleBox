@@ -90,7 +90,7 @@ class ResultScreenTest {
     fun `shows normalized a3 facts`() {
         setContent()
         composeRule.onNodeWithText("Solved!").assertExists()
-        composeRule.onNodeWithText("01:35").assertExists()
+        composeRule.onNodeWithText("1:35").assertExists()
         composeRule.onNodeWithText("1 hint").assertExists()
     }
 
@@ -99,7 +99,7 @@ class ResultScreenTest {
         setContent(verdict = RecordVerdict.NewBest, previousBestMs = 120_000)
         composeRule.onNodeWithTag("result.record_badge").assertExists()
         composeRule.onNodeWithText("New best").assertExists()
-        composeRule.onNodeWithText("Previous best 02:00").assertExists()
+        composeRule.onNodeWithText("Previous best 2:00").assertExists()
     }
 
     @Test
@@ -120,7 +120,7 @@ class ResultScreenTest {
     fun `not a new best shows no badge and the previous best`() {
         setContent(verdict = RecordVerdict.NotBest, previousBestMs = 80_000)
         composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
-        composeRule.onNodeWithText("Best 01:20").assertExists()
+        composeRule.onNodeWithText("Best 1:20").assertExists()
     }
 
     @Test
@@ -134,7 +134,7 @@ class ResultScreenTest {
     fun `a replay claims no badge and says it was a replay beside the best`() {
         setContent(verdict = RecordVerdict.Replay, previousBestMs = 80_000)
         composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
-        composeRule.onNodeWithText("Replay · Best 01:20").assertExists()
+        composeRule.onNodeWithText("Replay · Best 1:20").assertExists()
     }
 
     @Test

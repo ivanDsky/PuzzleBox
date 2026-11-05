@@ -31,17 +31,17 @@ class TimerBarTest {
                 TimerBar(elapsedMs = 65_000, modifier = Modifier.requiredSize(width = 200.dp, height = 40.dp))
             }
         }
-        composeRule.onNodeWithText("01:05").assertExists()
+        composeRule.onNodeWithText("1:05").assertExists()
     }
 
     @Test
-    fun `zero elapsed renders 00_00`() {
+    fun `zero elapsed renders 0_00`() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 TimerBar(elapsedMs = 0, modifier = Modifier.requiredSize(width = 200.dp, height = 40.dp))
             }
         }
-        composeRule.onNodeWithText("00:00").assertExists()
+        composeRule.onNodeWithText("0:00").assertExists()
     }
 }
 

@@ -55,7 +55,8 @@ class HistoryViewModel(
             HistoryUiState(
                 rows = rows,
                 recordsByKey = merged.mapNotNull { day -> day.record?.let { (day.gameId to day.day) to it } }.toMap(),
-                streak = computeStreak(rows.map(HistoryDayRow::day)),
+                // Practice solves (no edition number) never count toward the streak.
+                streak = computeStreak(merged.filter { it.record != null && it.puzzleNumber != null }.map { it.day }),
             )
         }
         .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)

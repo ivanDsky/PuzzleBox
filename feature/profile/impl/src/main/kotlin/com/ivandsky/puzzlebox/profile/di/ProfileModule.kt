@@ -25,6 +25,7 @@ fun profileModule(@StringRes serverClientIdRes: Int): Module = module {
             identityService = get<IdentityService>(),
             idTokenProvider = get<GoogleIdTokenProvider>(),
             observeTodayLeaderboard = get(),
+            featuredGame = get(),
         )
     }
 }

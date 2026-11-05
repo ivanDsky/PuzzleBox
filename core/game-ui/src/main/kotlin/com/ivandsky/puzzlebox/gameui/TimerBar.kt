@@ -16,15 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalTimerFill
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import java.util.Locale
-
-/** MM:SS wall clock for play surfaces. Locale-stable, JVM-testable. */
-fun formatClock(ms: Long): String {
-    val totalSeconds = ms / 1000
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return String.format(Locale.ROOT, "%02d:%02d", minutes, seconds)
-}
+import com.ivandsky.puzzlebox.designsystem.formatDuration
 
 /**
  * Elapsed-play readout (F1 §3 "Timer bar + state"). Start-on-first-move and pause-on-
@@ -43,7 +35,7 @@ fun TimerBar(
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         Text(
-            text = formatClock(elapsedMs),
+            text = formatDuration(elapsedMs),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )

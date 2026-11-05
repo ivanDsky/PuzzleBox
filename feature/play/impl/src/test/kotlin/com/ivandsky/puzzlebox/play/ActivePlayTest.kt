@@ -136,6 +136,19 @@ class ActivePlayTest {
     }
 
     @Test
+    fun `a practice win (no edition number) still writes its record but never gets a best verdict`() {
+        daily.setHistory(game, emptyList())
+        val play = loaded()
+        val practice = TestGames.Ref(game, day, null)
+
+        ui.latest.win()
+
+        assertEquals(listOf(FakeController.record(practice)), records())
+        assertNull(play.record.value.verdict)
+        assertFalse(play.record.value.writeFailed)
+    }
+
+    @Test
     fun `a win on an already-solved puzzle is a replay beside the record's best`() {
         completions.setRecords(listOf(FakeController.record(ref)))
         val play = loaded()

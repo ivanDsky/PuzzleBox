@@ -287,7 +287,7 @@ class TangoPlayController(
             val ref = session?.ref ?: return "Daily"
             return when {
                 ref.date != today() -> "Replay · ${ref.date.format(REPLAY_DATE)}"
-                else -> ref.puzzleNumber?.let { "Daily · #$it" } ?: "Daily"
+                else -> ref.puzzleNumber?.let { "Daily · #$it" } ?: "Practice"
             }
         }
 

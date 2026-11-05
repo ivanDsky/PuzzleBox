@@ -117,11 +117,13 @@ private fun DayDetail(
             style = MaterialTheme.typography.displaySmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        Text(
-            text = "Daily ${day.gameName}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        day.games.forEach { game ->
+            Text(
+                text = "${game.gameName} ${game.resultText}",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Text(
             text = "You can play this day again from History.",
             style = MaterialTheme.typography.bodyMedium,

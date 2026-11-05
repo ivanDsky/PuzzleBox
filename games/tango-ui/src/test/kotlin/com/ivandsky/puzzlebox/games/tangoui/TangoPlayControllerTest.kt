@@ -18,6 +18,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -240,7 +241,7 @@ class TangoPlayControllerTest {
     }
 
     @Test
-    fun `subtitle is Daily numbered, Daily unnumbered, or Replay by date`() {
+    fun `subtitle is Daily numbered, Practice unnumbered, or Replay by date`() {
         val s = loaded()
         assertEquals("Daily · #301", s.subtitle)
 
@@ -253,7 +254,8 @@ class TangoPlayControllerTest {
         assertEquals("Replay · Mar 9", archived.subtitle)
 
         val unnumbered = loaded(puzzleNumber = null)
-        assertEquals("Daily", unnumbered.subtitle)
+        assertNotEquals("practice never reads as the not-yet-loaded daily", controller().subtitle, unnumbered.subtitle)
+        assertFalse("practice never claims an edition", unnumbered.subtitle.contains("#"))
     }
 
     @Test
