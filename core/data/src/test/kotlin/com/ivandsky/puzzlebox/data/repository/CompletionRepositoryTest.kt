@@ -117,7 +117,7 @@ class CompletionRepositoryTest {
     @Test
     fun `best time is the game's fastest first solve, never a replay, never merged across games`() = runTest {
         val day = LocalDate.of(2026, 10, 31)
-        assertNull(repository.bestTimeMs(alpha))
+        assertNull(repository.best(alpha))
 
         repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 2))
         repository.onCompleted(completion(day, 592, timeMs = 71_000, hints = 0)) // replay
@@ -127,9 +127,9 @@ class CompletionRepositoryTest {
         repository.onCompleted(completion(day, 592, timeMs = 30_000, hints = 0).copy(puzzleRef = Ref(beta, day, 592)))
         repository.onCompleted(completion(day, 592, timeMs = 20_000, hints = 0).copy(puzzleRef = Ref(GameId("alpha2"), day, 592)))
 
-        assertEquals("the 71 s replay never ranks", 88_000L, repository.bestTimeMs(alpha))
-        assertEquals(30_000L, repository.bestTimeMs(beta))
-        assertEquals(20_000L, repository.bestTimeMs(GameId("alpha2")))
-        assertNull(repository.bestTimeMs(GameId("alph_")))
+        assertEquals("the 71 s replay never ranks", 88_000L, repository.best(alpha)?.timeMs)
+        assertEquals(30_000L, repository.best(beta)?.timeMs)
+        assertEquals(20_000L, repository.best(GameId("alpha2"))?.timeMs)
+        assertNull(repository.best(GameId("alph_")))
     }
 }

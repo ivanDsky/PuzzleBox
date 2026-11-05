@@ -47,15 +47,17 @@ class HistoryViewModel(
     observeGameHistory: ObserveGameHistory,
     private val computeStreak: ComputeStreak,
     private val registry: GameRegistry,
+    private val today: () -> LocalDate = LocalDate::now,
 ) : ViewModel() {
 
     private val history: Flow<HistoryUiState> = observeGameHistory()
         .map { merged ->
-            val rows = merged.map { it.toRow(registry.displayName(it.gameId)) }.sortedWith(HISTORY_ROW_ORDER)
+            val currentYear = today().year
+            val rows = merged.map { it.toRow(registry.displayName(it.gameId), currentYear) }.sortedWith(HISTORY_ROW_ORDER)
             HistoryUiState(
                 rows = rows,
                 recordsByKey = merged.mapNotNull { day -> day.record?.let { (day.gameId to day.day) to it } }.toMap(),
-                streak = computeStreak(rows.map(HistoryDayRow::day)),
+                streak = computeStreak(merged),
             )
         }
         .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)

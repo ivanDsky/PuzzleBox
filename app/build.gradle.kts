@@ -12,8 +12,8 @@ android {
 
     defaultConfig {
         applicationId = "com.ivandsky.puzzlebox"
-        versionCode = 12
-        versionName = "0.11.0"
+        versionCode = 22
+        versionName = "0.12.0"
         // Device tests run on a plain Application; each test starts its own E2eKoinGraph.
         testInstrumentationRunner = "com.ivandsky.puzzlebox.app.device.PuzzleBoxTestRunner"
     }
@@ -68,6 +68,8 @@ dependencies {
     implementation(projects.games.queensUi)
     implementation(projects.games.tango)
     implementation(projects.games.tangoUi)
+    implementation(projects.games.strands)
+    implementation(projects.games.strandsUi)
     implementation(projects.core.navigation)
     // The shell composes every feature's entries and registers every feature's keys.
     implementation(projects.feature.home.api)

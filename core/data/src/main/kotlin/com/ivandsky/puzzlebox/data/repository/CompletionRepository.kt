@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.data.repository
 
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.model.GameId
@@ -19,7 +20,7 @@ interface CompletionRepository {
 
     fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>>
 
-    /** The game's best time (spec A10): the minimum over the record rows (first solves)
-     *  of [game] — replays never rank; null = the game has no completion yet. */
-    suspend fun bestTimeMs(game: GameId): Long?
+    /** The game's best (spec A10, A25): the top record row (first solves) of [game] by the
+     *  game's own rank order (ADR-0013) — replays never rank; null = no completion yet. */
+    suspend fun best(game: GameId): BestScore?
 }

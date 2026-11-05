@@ -20,13 +20,14 @@ the build instead of a review.
    (wire extraction, parsing, trust gate) as a `DailySource` (`core:game`) bound
    `bind DailySource::class`; `core:data`'s `OfflineFirstDailyRepository` collects every
    source by `gameId` and is the `DailyRepository` (fetch-today with cache degrade,
-   cache-only `cached`/`observeHistory`).
+   cache-only `observeHistory`, and a by-date `day` read that fetches a missed
+   past day only for a source declaring `archiveSince`, ADR-0012).
 3. **`GamePlayRegistry` (`core:game-ui`) has a single owner.** Each `games:<id>-ui` module
    binds exactly one `GamePlayUi` under its id qualifier; `app` builds
    `GamePlayRegistry(getAll())` once (a duplicate id throws). `feature:play:impl` drives any
    game through `GamePlayController` (ADR-0007).
 4. **Cross-feature business logic lives in `core:domain`** as use cases (`domainModule`):
-   `ComputeStreak`, `GetFeaturedGame`, `GetReplaySession`, `ObserveGameHistory`,
+   `ComputeStreak`, `GetFeaturedGame`, `LoadPastDay`, `ObserveGameHistory`,
    `ObserveTodayLeaderboard`, `ObserveTodaySet`. Features call use cases or `core:data` repositories, never
    each other's ViewModels.
 5. **Navigation is api/impl.** `feature:<name>:api` holds only the feature's `@Serializable`

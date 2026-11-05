@@ -66,6 +66,15 @@ class CadenceGameCalendarTest {
     }
 
     @Test
+    fun `dayAt reads an instant in each game's cadence zone`() = runTest {
+        val calendar = calendar()
+
+        assertEquals(LocalDate.of(2026, 11, 4), calendar.dayAt(zip, startMs))
+        assertEquals(LocalDate.of(2026, 11, 5), calendar.dayAt(queens, startMs))
+        assertNull(calendar.dayAt(GameId("strands"), startMs))
+    }
+
+    @Test
     fun `observeToday emits now then the new day after the zone midnight`() = runTest {
         calendar().observeToday(zip).test {
             assertEquals(LocalDate.of(2026, 11, 4), awaitItem())
