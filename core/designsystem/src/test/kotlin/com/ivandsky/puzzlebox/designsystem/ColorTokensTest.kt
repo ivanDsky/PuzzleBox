@@ -42,7 +42,7 @@ class ColorTokensTest {
 
     @Test
     fun `primary-as-text role meets WCAG AA on every surface it renders on`() {
-        // SecondaryButton renders the primary hue as text (Buttons.kt). The light
+        // AppTextButton renders the primary hue as text (AppTextButton.kt). The light
         // value is the darker accessible step; dark keeps colorScheme.primary itself,
         // which already clears AA. Surfaces: white (surface + lowest container), the
         // Home cards, and the dialog surface (surfaceContainerHigh).

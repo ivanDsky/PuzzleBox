@@ -24,6 +24,7 @@ private val Baloo2 = FontFamily(
     baloo(FontWeight.Medium),
     baloo(FontWeight.SemiBold),
     baloo(FontWeight.Bold),
+    baloo(FontWeight.ExtraBold),
 )
 
 private fun playful(weight: FontWeight, size: Int, line: Int, tracking: Double) = TextStyle(
@@ -34,20 +35,51 @@ private fun playful(weight: FontWeight, size: Int, line: Int, tracking: Double) 
     letterSpacing = tracking.sp,
 )
 
+// The nine type roles (spec A4, identity §2.3). Eight ride M3 slots below; Wordmark is
+// the custom ninth. One Headline per screen; section heads are Title.
+private val Display = playful(FontWeight.Bold, 40, 44, -0.5)
+private val Headline = playful(FontWeight.Bold, 28, 34, -0.25)
+private val Title = playful(FontWeight.Bold, 20, 26, 0.0)
+private val TitleSmall = playful(FontWeight.SemiBold, 16, 22, 0.0)
+private val Body = playful(FontWeight.Medium, 16, 24, 0.1)
+private val BodySmall = playful(FontWeight.Medium, 14, 20, 0.1)
+private val Label = playful(FontWeight.SemiBold, 13, 16, 0.2)
+
+/** Kicker role ("TODAY", the date): callers pass upper-cased text — a TextStyle can't. */
+private val Eyebrow = playful(FontWeight.Bold, 12, 16, 1.2)
+
+/** The Wordmark role: the "PuzzleBox" name in the top bar, nowhere else. */
+val WordmarkTextStyle: TextStyle = playful(FontWeight.ExtraBold, 24, 28, -0.5)
+
+/** Primary button label (identity §2.4): Label at 16/20 weight 700. */
+internal val PrimaryButtonTextStyle: TextStyle = Label.copy(
+    fontWeight = FontWeight.Bold,
+    fontSize = 16.sp,
+    lineHeight = 20.sp,
+)
+
+/**
+ * Tabular digits (Baloo 2 `tnum`, spec A4): every time from [formatDuration] renders
+ * through this so a ticking clock doesn't jitter as digit widths change.
+ */
+fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
+
+// Each role's own slot first; the unused slots alias to the nearest role.
 val AppTypography = Typography(
-    displayLarge = playful(FontWeight.Bold, 57, 64, -0.25),
-    displayMedium = playful(FontWeight.Bold, 45, 52, -0.25),
-    displaySmall = playful(FontWeight.Bold, 36, 44, 0.0),
-    headlineLarge = playful(FontWeight.Bold, 32, 40, 0.0),
-    headlineMedium = playful(FontWeight.Bold, 28, 36, 0.0),
-    headlineSmall = playful(FontWeight.Bold, 24, 32, 0.0),
-    titleLarge = playful(FontWeight.Bold, 22, 28, 0.0),
-    titleMedium = playful(FontWeight.SemiBold, 16, 24, 0.15),
-    titleSmall = playful(FontWeight.SemiBold, 14, 20, 0.1),
-    bodyLarge = playful(FontWeight.Medium, 16, 24, 0.25),
-    bodyMedium = playful(FontWeight.Medium, 14, 20, 0.25),
-    bodySmall = playful(FontWeight.Medium, 12, 16, 0.4),
-    labelLarge = playful(FontWeight.SemiBold, 14, 20, 0.1),
-    labelMedium = playful(FontWeight.SemiBold, 12, 16, 0.5),
-    labelSmall = playful(FontWeight.SemiBold, 11, 16, 0.5),
+    displayLarge = Display,
+    displayMedium = Display,
+    displaySmall = Display,
+    headlineLarge = Headline,
+    headlineMedium = Headline,
+    headlineSmall = Title,
+    titleLarge = Title,
+    titleMedium = TitleSmall,
+    titleSmall = TitleSmall,
+    bodyLarge = Body,
+    bodyMedium = BodySmall,
+    bodySmall = BodySmall,
+    labelLarge = Label,
+    // Nav-bar labels: M3's NavigationBar reads labelMedium, and the nav runs Label at 12/16.
+    labelMedium = Label.copy(fontSize = 12.sp),
+    labelSmall = Eyebrow,
 )

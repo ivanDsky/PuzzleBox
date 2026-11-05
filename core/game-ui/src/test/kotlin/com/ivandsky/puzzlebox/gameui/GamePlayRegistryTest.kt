@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.model.GameId
 import org.junit.Assert.assertEquals
@@ -19,7 +20,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-private class FakePlayUi(override val gameId: GameId) : GamePlayUi {
+private open class FakePlayUi(override val gameId: GameId) : GamePlayUi {
     override fun createController(env: PlayEnvironment): GamePlayController = error("unused")
 
     override val tutorial: List<TutorialStep> get() = emptyList()
@@ -39,6 +40,9 @@ private class FakePlayUi(override val gameId: GameId) : GamePlayUi {
     ) = Unit
 }
 
+/** A fake that registers its own brand; [FakePlayUi] itself keeps the default (neutral). */
+private class BrandedPlayUi(gameId: GameId, override val brand: GameBrand) : FakePlayUi(gameId)
+
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -53,6 +57,21 @@ class GamePlayRegistryTest {
         val registry = GamePlayRegistry(listOf(fake))
         assertSame(fake, registry[GameId("fake")])
         assertNull(registry[GameId("missing")])
+    }
+
+    @Test
+    fun `brandOf returns each registered brand and neutral for an unbranded or unknown id`() {
+        val registry = GamePlayRegistry(
+            listOf(
+                BrandedPlayUi(GameId("blue"), GameBrand(AccentSlot.Blue)),
+                BrandedPlayUi(GameId("violet"), GameBrand(AccentSlot.Violet)),
+                FakePlayUi(GameId("plain")),
+            ),
+        )
+        assertEquals(AccentSlot.Blue, registry.brandOf(GameId("blue")).accent)
+        assertEquals(AccentSlot.Violet, registry.brandOf(GameId("violet")).accent)
+        assertEquals(GameBrand.Neutral, registry.brandOf(GameId("plain")))
+        assertEquals(GameBrand.Neutral, registry.brandOf(GameId("missing")))
     }
 
     @Test
