@@ -1,18 +1,21 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
 import com.ivandsky.puzzlebox.gameui.unavailableMessage
+import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.LocalDate
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -42,14 +45,23 @@ class ActivePlayTest {
         setHistory(game, listOf(DailyEntry(game, day, 7, "alpha/v1", 0L)))
     }
     private val completions = FakeCompletionRepository()
+    private val dispatcher = UnconfinedTestDispatcher()
+    private val calendar = FakeGameCalendar(day)
+    private val saved = FakeSavedPlayRepository()
+    private val lane = WriteLane()
 
     private val store = PlaySessionStore(
         games = fakes.games,
         ui = fakes.registry,
-        daily = daily,
+        opening = SlotOpening(daily, GetReplaySession(daily, fakes.games), saved, calendar, fakes.games, lane),
+        writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
         completions = completions,
-        today = { day },
-        scopeFactory = { CoroutineScope(Job() + UnconfinedTestDispatcher()) },
+        calendar = calendar,
+        dispatchers = object : DispatcherProvider {
+            override val main = dispatcher
+            override val io = dispatcher
+            override val default = dispatcher
+        },
     )
 
     private fun play(): ActivePlay = store.start(game) {}!!

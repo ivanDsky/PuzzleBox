@@ -1,23 +1,24 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
@@ -41,16 +42,28 @@ class PlaySessionStoreTest {
         setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
         setToday(beta, DailyToday.Fresh(TestGames.puzzle(beta)))
     }
-    private val scopes = mutableListOf<CoroutineScope>()
-
-    private fun store(ui: GamePlayRegistry = fakes.registry) = PlaySessionStore(
-        games = fakes.games,
-        ui = ui,
-        daily = daily,
-        completions = FakeCompletionRepository(),
-        today = { day },
-        scopeFactory = { CoroutineScope(Job() + UnconfinedTestDispatcher()).also { scopes += it } },
-    )
+    private fun store(
+        ui: GamePlayRegistry = fakes.registry,
+        completions: FakeCompletionRepository = FakeCompletionRepository(),
+    ): PlaySessionStore {
+        val dispatcher = UnconfinedTestDispatcher()
+        val calendar = FakeGameCalendar(day)
+        val saved = FakeSavedPlayRepository()
+        val lane = WriteLane()
+        return PlaySessionStore(
+            games = fakes.games,
+            ui = ui,
+            opening = SlotOpening(daily, GetReplaySession(daily, fakes.games), saved, calendar, fakes.games, lane),
+            writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
+            completions = completions,
+            calendar = calendar,
+            dispatchers = object : DispatcherProvider {
+                override val main = dispatcher
+                override val io = dispatcher
+                override val default = dispatcher
+            },
+        )
+    }
 
     private fun ByteArray.decoded() = SessionBlob.decode(this)!!
 
@@ -69,7 +82,7 @@ class PlaySessionStoreTest {
         assertTrue(play.needsLoad)
 
         assertNull(store.start(GameId("not-a-game")) {})
-        assertNull(PlaySessionStore(fakes.games, GamePlayRegistry(emptyList()), daily, FakeCompletionRepository()).start(alpha) {})
+        assertNull(store(GamePlayRegistry(emptyList())).start(alpha) {})
         assertSame(play, store.active.value)
     }
 
@@ -135,7 +148,9 @@ class PlaySessionStoreTest {
         assertNotSame(stale, active)
         assertEquals(alpha, active.gameId)
         assertEquals(1, fakes[alpha].latest.moves)
-        assertFalse("the released play's scope is cancelled", scopes.first().isActive)
+        // The released play's scope is cancelled: a late load launches nothing.
+        stale!!.load()
+        assertEquals(0, daily.todayCalls(beta))
     }
 
     @Test
@@ -212,16 +227,19 @@ class PlaySessionStoreTest {
     fun `F6 end releases the play, cancels its scope and drops the sink`() {
         val store = store()
         val sink = mutableListOf<ByteArray>()
-        store.start(alpha) { sink += it }!!.load()
+        val play = store.start(alpha) { sink += it }!!
+        play.load()
         val controller = fakes[alpha].latest
         val writes = sink.size
 
         store.end()
 
         assertNull(store.active.value)
-        assertFalse(scopes.single().isActive)
         controller.move()
         assertEquals(writes, sink.size)
+        // The play's scope is cancelled: a late load launches nothing.
+        play.load()
+        assertEquals(1, daily.todayCalls(alpha))
 
         // The next entry picks again: nothing is resumed or backfilled.
         val next = mutableListOf<ByteArray>()
@@ -234,9 +252,7 @@ class PlaySessionStoreTest {
     @Test
     fun `a superseded controller's late win writes nothing`() {
         val completions = FakeCompletionRepository()
-        val store = PlaySessionStore(fakes.games, fakes.registry, daily, completions, today = { day }, scopeFactory = {
-            CoroutineScope(Job() + UnconfinedTestDispatcher())
-        })
+        val store = store(completions = completions)
         daily.setHistory(alpha, listOf(DailyEntry(alpha, day, 7, "alpha/v1", 0L)))
         val play = store.start(alpha) {}!!
         play.load()

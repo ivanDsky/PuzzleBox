@@ -1,16 +1,19 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
+import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -32,13 +35,22 @@ class PlayViewModelsTest {
         setHistory(alpha, listOf(DailyEntry(alpha, day, 7, "alpha/v1", 0L)))
     }
     private val completions = FakeCompletionRepository()
+    private val dispatcher = main.testDispatcher
+    private val calendar = FakeGameCalendar(day)
+    private val saved = FakeSavedPlayRepository()
+    private val lane = WriteLane()
     private val store = PlaySessionStore(
         games = fakes.games,
         ui = fakes.registry,
-        daily = daily,
+        opening = SlotOpening(daily, GetReplaySession(daily, fakes.games), saved, calendar, fakes.games, lane),
+        writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
         completions = completions,
-        today = { day },
-        scopeFactory = { CoroutineScope(Job() + main.testDispatcher) },
+        calendar = calendar,
+        dispatchers = object : DispatcherProvider {
+            override val main = dispatcher
+            override val io = dispatcher
+            override val default = dispatcher
+        },
     )
 
     @Test

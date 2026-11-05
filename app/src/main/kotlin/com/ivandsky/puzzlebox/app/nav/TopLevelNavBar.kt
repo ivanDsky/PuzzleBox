@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.app.nav
 
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -9,6 +11,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -17,12 +21,14 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 /**
  * The bottom bar for the single-pane shapes: one item per [topLevelDestinations] entry,
  * tagged with [TopLevelDestination.tag]; the item whose key is [selected] carries the
- * selected semantics.
+ * selected semantics. Items whose key is in [badged] carry a badge dot (A13, SC11); the
+ * caller decides which keys, so the bar never names a tab.
  */
 @Composable
 internal fun TopLevelNavBar(
     selected: NavKey,
     onSelect: (NavKey) -> Unit,
+    badged: Set<NavKey> = emptySet(),
     modifier: Modifier = Modifier,
 ) {
     NavigationBar(modifier = modifier) {
@@ -30,7 +36,7 @@ internal fun TopLevelNavBar(
             NavigationBarItem(
                 selected = selected == destination.key,
                 onClick = { onSelect(destination.key) },
-                icon = { Icon(destination.icon, contentDescription = null) },
+                icon = { TabIcon(destination, badged = destination.key in badged) },
                 label = { Text(destination.label) },
                 modifier = Modifier.testTag(destination.tag),
             )
@@ -38,11 +44,12 @@ internal fun TopLevelNavBar(
     }
 }
 
-/** The rail for the two-pane shape; same items, tags and selection as [TopLevelNavBar]. */
+/** The rail for the two-pane shape; same items, tags, selection and badges as [TopLevelNavBar]. */
 @Composable
 internal fun TopLevelNavRail(
     selected: NavKey,
     onSelect: (NavKey) -> Unit,
+    badged: Set<NavKey> = emptySet(),
     modifier: Modifier = Modifier,
 ) {
     NavigationRail(modifier = modifier) {
@@ -50,7 +57,7 @@ internal fun TopLevelNavRail(
             NavigationRailItem(
                 selected = selected == destination.key,
                 onClick = { onSelect(destination.key) },
-                icon = { Icon(destination.icon, contentDescription = null) },
+                icon = { TabIcon(destination, badged = destination.key in badged) },
                 label = { Text(destination.label) },
                 modifier = Modifier.testTag(destination.tag),
             )
@@ -58,11 +65,36 @@ internal fun TopLevelNavRail(
     }
 }
 
+/** Content description of the badge dot, announced alongside the tab label. */
+internal const val IN_PROGRESS_BADGE_DESCRIPTION = "Game in progress"
+
+/** Test tag of a badge dot: `<tab tag>.badge`. */
+internal fun badgeTag(destination: TopLevelDestination): String = "${destination.tag}.badge"
+
+@Composable
+private fun TabIcon(destination: TopLevelDestination, badged: Boolean) {
+    if (badged) {
+        BadgedBox(
+            badge = {
+                Badge(
+                    Modifier
+                        .testTag(badgeTag(destination))
+                        .semantics { contentDescription = IN_PROGRESS_BADGE_DESCRIPTION },
+                )
+            },
+        ) {
+            Icon(destination.icon, contentDescription = null)
+        }
+    } else {
+        Icon(destination.icon, contentDescription = null)
+    }
+}
+
 @PuzzleBoxPreviews
 @Composable
 internal fun TopLevelNavBarPreview() {
     PuzzleBoxTheme {
-        TopLevelNavBar(selected = PlayKey, onSelect = {})
+        TopLevelNavBar(selected = PlayKey, onSelect = {}, badged = setOf(PlayKey))
     }
 }
 
@@ -70,6 +102,6 @@ internal fun TopLevelNavBarPreview() {
 @Composable
 internal fun TopLevelNavRailPreview() {
     PuzzleBoxTheme {
-        TopLevelNavRail(selected = PlayKey, onSelect = {})
+        TopLevelNavRail(selected = PlayKey, onSelect = {}, badged = setOf(PlayKey))
     }
 }

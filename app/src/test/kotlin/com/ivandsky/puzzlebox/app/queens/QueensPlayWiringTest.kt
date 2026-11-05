@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app.queens
 
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -118,7 +119,10 @@ class QueensPlayWiringTest {
         // straight on a Queens board.
         composeRule.onNodeWithTag("play.picker").assertExists()
         composeRule.onNodeWithTag("play.picker_queens").performClick()
-        composeRule.onNodeWithTag("queens.board").assertExists()
+        // Opening reads the saved-play row off the real Room graph first: the board lands async.
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodesWithTag("queens.board").fetchSemanticsNodes().isNotEmpty()
+        }
 
         // The board is bound to a real session off the graph, with today's ref.
         composeRule.waitUntil(10_000) { queens()?.board != null }

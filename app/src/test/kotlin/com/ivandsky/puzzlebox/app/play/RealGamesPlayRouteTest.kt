@@ -7,9 +7,13 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.ivandsky.puzzlebox.common.di.commonModule
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -35,7 +39,9 @@ import com.ivandsky.puzzlebox.games.zipui.ZipPlayUi
 import com.ivandsky.puzzlebox.play.PlayRoute
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.di.playModule
+import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -80,6 +86,10 @@ class RealGamesPlayRouteTest {
         // the app's picker order.
         single { GameRegistry(listOf(zipPlugin, tangoPlugin, queensPlugin)) }
         single { GamePlayRegistry(listOf(ZipPlayUi(), TangoPlayUi(), QueensPlayUi())) }
+        single<SavedPlayRepository> { FakeSavedPlayRepository() }
+        // Every real game shares the America/Los_Angeles cadence zone.
+        single<GameCalendar> { FakeGameCalendar(cadenceToday) }
+        factory { GetReplaySession(get(), get()) }
     }
 
     private fun koinWith(
@@ -87,7 +97,7 @@ class RealGamesPlayRouteTest {
         completions: CompletionRepository = FakeCompletionRepository(),
     ): KoinApplication {
         stopKoin() // tests share the JVM-global Koin context
-        return startKoin { modules(dataModule(daily, completions), playModule) }
+        return startKoin { modules(commonModule, dataModule(daily, completions), playModule) }
     }
 
     private fun tango(koin: KoinApplication): TangoPlayController =
