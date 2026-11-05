@@ -113,6 +113,16 @@ class StrandsPlayControllerTest {
     }
 
     @Test
+    fun `a found word is handed over once`() {
+        val c = adopted()
+        c.play(StrandsUiFixtures.row(0))
+
+        assertEquals(FoundEvent(StrandsUiFixtures.row(0), spangram = false, seq = 1), c.takeFound())
+        assertNull(c.takeFound())
+        assertNull(c.lastFound)
+    }
+
+    @Test
     fun `a rejected word changes nothing and is not persisted, but each verdict bumps seq`() {
         val c = adopted()
         c.play(listOf(Coord(0, 0), Coord(0, 1), Coord(0, 2)))

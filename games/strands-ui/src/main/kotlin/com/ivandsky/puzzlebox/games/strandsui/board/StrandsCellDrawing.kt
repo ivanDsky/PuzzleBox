@@ -1,9 +1,9 @@
 package com.ivandsky.puzzlebox.games.strandsui.board
 
+import androidx.compose.animation.core.Easing
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import com.ivandsky.puzzlebox.designsystem.BoardColors
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
 import com.ivandsky.puzzlebox.games.strandsui.FoundEvent
@@ -69,14 +69,14 @@ internal object StrandsCellDrawing {
 
 /**
  * The value at [progress] (0..1) through keyframes [at] → [values], each leg eased with
- * the standard curve. [at] starts at 0 and ends at 1, like CSS keyframe percentages.
+ * [easing] (the motion pattern's). [at] starts at 0 and ends at 1, like CSS keyframe percentages.
  */
-internal fun keyframes(progress: Float, at: FloatArray, values: FloatArray): Float {
+internal fun keyframes(progress: Float, at: FloatArray, values: FloatArray, easing: Easing): Float {
     val p = progress.coerceIn(0f, 1f)
     for (i in 1 until at.size) {
         if (p <= at[i]) {
             val leg = (p - at[i - 1]) / (at[i] - at[i - 1])
-            val eased = MotionTokens.EasingStandard.transform(leg)
+            val eased = easing.transform(leg)
             return values[i - 1] + (values[i] - values[i - 1]) * eased
         }
     }

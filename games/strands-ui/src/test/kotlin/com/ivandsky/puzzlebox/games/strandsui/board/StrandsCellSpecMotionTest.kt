@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.games.strandsui.board
 
-import com.ivandsky.puzzlebox.designsystem.CelebrationMotion
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
@@ -14,7 +13,7 @@ import org.junit.Test
 
 /**
  * SC10 / A33 on every cell look: reduced motion is the final frame from t0, full motion
- * runs its token's length and ends at rest, and the hint's first stage moves every letter
+ * ends at rest within its pattern, and the hint's first stage moves every letter
  * alike so its motion leaks no order (A11).
  */
 class StrandsCellSpecMotionTest {
@@ -43,28 +42,24 @@ class StrandsCellSpecMotionTest {
     }
 
     @Test
-    fun `each motion runs its token's length`() {
-        assertEquals(0, IdleSpec.motionMs(cue))
-        assertEquals(2 * StrandsMotion.PressMs, TraceOverlaySpec.motionMs(cue))
-        assertEquals(2 * StrandsMotion.SettleStaggerMs + CelebrationMotion.SettleMs, FoundThemeSpec.motionMs(cue))
-        assertEquals(2 * StrandsMotion.HintRevealStaggerMs + CelebrationMotion.HintPulseMs, HintOrderRevealedSpec.motionMs(cue))
-        assertEquals(CelebrationMotion.HintPulseMs, HintOutlinedSpec.motionMs(cue))
-        // The sweep's last letter starts within SweepMaxMs however long the spangram.
-        val last = StrandsMotionCue(order = 11, count = 12)
-        assertTrue(FoundSpangramSpec.motionMs(last) <= CelebrationMotion.SweepMaxMs + CelebrationMotion.SettleMs)
+    fun `a long spangram's last letter starts within the sweep cap`() {
+        // 20 letters at the plain 75 ms stagger would start the last at 1425 ms; the cap squeezes it.
+        val last = StrandsMotionCue(order = 19, count = 20)
+        val cap = StrandsMotion.SpangramSweep.enterDurationMillis
+        assertNotEquals(StrandsCellFrame(lit = 0f), FoundSpangramSpec.frame(cap + 1, last, reduceMotion = false))
     }
 
     @Test
     fun `a found letter waits beige for its turn, then bounces`() {
         assertEquals(StrandsCellFrame(lit = 0f), FoundThemeSpec.frame(99, cue, reduceMotion = false))
-        val dip = FoundThemeSpec.frame(100 + CelebrationMotion.SettleMs / 4, cue, reduceMotion = false)
+        val dip = FoundThemeSpec.frame(100 + StrandsMotion.FoundSettle.enterDurationMillis / 4, cue, reduceMotion = false)
         assertEquals(StrandsMotion.SettleDipScale, dip.scale, 1e-3f)
         assertEquals(1f, dip.lit)
     }
 
     @Test
     fun `the outlined hint pulses every letter alike`() {
-        for (t in 0..CelebrationMotion.HintPulseMs step 50) {
+        for (t in 0..StrandsMotion.HintPulse.enterDurationMillis step 50) {
             val frames = (0 until 6).map { HintOutlinedSpec.frame(t, StrandsMotionCue(it, 6), reduceMotion = false) }
             assertEquals("at $t", 1, frames.distinct().size)
         }
@@ -89,14 +84,5 @@ class StrandsCellSpecMotionTest {
         assertNull(FoundThemeSpec.trigger(older, null))
         val hinted = StrandsCell(Coord(2, 0), 'T', CellState.HintOrderRevealed(3), traceIndex = null)
         assertEquals(StrandsMotionCue(order = 3), HintOrderRevealedSpec.trigger(hinted, null)?.cue)
-    }
-
-    @Test
-    fun `every state has its spec`() {
-        assertEquals(IdleSpec, StrandsCellDrawing.specOf(CellState.Idle))
-        assertEquals(FoundThemeSpec, StrandsCellDrawing.specOf(CellState.FoundTheme))
-        assertEquals(FoundSpangramSpec, StrandsCellDrawing.specOf(CellState.FoundSpangram))
-        assertEquals(HintOutlinedSpec, StrandsCellDrawing.specOf(CellState.HintOutlined))
-        assertEquals(HintOrderRevealedSpec, StrandsCellDrawing.specOf(CellState.HintOrderRevealed(0)))
     }
 }

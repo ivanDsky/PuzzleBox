@@ -56,6 +56,7 @@ class StrandsPlayController(
         private set
     var slot: WordSlot by mutableStateOf(WordSlot.Empty)
         private set
+    /** The word just found, until the board takes it with [takeFound]; then null, so a re-entered board rests. */
     var lastFound by mutableStateOf<FoundEvent?>(null)
         private set
     var hintDialog by mutableStateOf<HintDialog?>(null)
@@ -87,6 +88,9 @@ class StrandsPlayController(
         get() = session?.state?.takeIf { it.isComplete }?.hintsUsed
 
     override val isComplete: Boolean get() = session?.state?.isComplete == true
+
+    /** Hands the found word to the board once: rotation, re-entry or relayout never replays it. */
+    fun takeFound(): FoundEvent? = lastFound.also { lastFound = null }
 
     //region input
 

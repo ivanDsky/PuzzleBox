@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.games.strandsui.board
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import com.ivandsky.puzzlebox.designsystem.BoardColors
-import com.ivandsky.puzzlebox.designsystem.CelebrationMotion
 import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
 import com.ivandsky.puzzlebox.games.strandsui.FoundEvent
@@ -28,7 +27,7 @@ internal object HintOrderRevealedSpec : StrandsCellSpec {
         return StrandsMotionTrigger(key = state, cue = StrandsMotionCue(order = state.index))
     }
 
-    override fun motionMs(cue: StrandsMotionCue): Int = delayMs(cue) + CelebrationMotion.HintPulseMs
+    override fun motionMs(cue: StrandsMotionCue): Int = delayMs(cue) + StrandsMotion.HintPulse.enterDurationMillis
 
     override fun frame(elapsedMs: Int, cue: StrandsMotionCue, reduceMotion: Boolean): StrandsCellFrame =
         HintOutlinedSpec.pulse(elapsedMs - delayMs(cue), reduceMotion)

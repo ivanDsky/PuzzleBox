@@ -3,6 +3,9 @@ package com.ivandsky.puzzlebox.games.strandsui.board
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedback
@@ -13,13 +16,18 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.TouchInjectionScope
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.strands.Coord
@@ -32,6 +40,9 @@ import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -42,8 +53,9 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The board's own input on the real controller over the fixture board (A12): a drag spells
  * a word, taps spell and submit one, a diagonal through a corner skips the side letters,
- * TalkBack's double-tap is a tap (SC12), a touch beside the board clears the trace, and
- * each outcome buzzes. A 400 × 300 dp host gives a 64 dp cell and gutters on both sides.
+ * TalkBack's double-tap is a tap and each letter is one stop (SC12), a touch beside the board
+ * clears the trace, each outcome buzzes, and a found word settles once: a board composed
+ * afresh rests (A33). A 400 × 300 dp host gives a 64 dp cell and gutters on both sides.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -59,6 +71,9 @@ class StrandsBoardGestureTest {
         PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}),
     ).also { assertEquals(Adopt.Adopted, it.adoptToday(StrandsUiFixtures.envelope(), StrandsUiFixtures.ref)) }
 
+    /** Unmount and remount the board, as rotation or re-entry does. */
+    private var mounted by mutableStateOf(true)
+
     private fun show() = rule.setContent {
         val haptics = object : HapticFeedback {
             override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) {
@@ -67,7 +82,7 @@ class StrandsBoardGestureTest {
         }
         PuzzleBoxTheme(darkTheme = false) {
             CompositionLocalProvider(LocalHapticFeedback provides haptics) {
-                Box(Modifier.size(400.dp, 300.dp).testTag("host")) { StrandsBoard(controller) }
+                Box(Modifier.size(400.dp, 300.dp).testTag("host")) { if (mounted) StrandsBoard(controller) }
             }
         }
     }
@@ -79,6 +94,8 @@ class StrandsBoardGestureTest {
     /** The centre of [at] on the 4 × 4 board, in the board node's own coordinates. */
     private fun TouchInjectionScope.centreOf(at: Coord) =
         Offset(width * (at.col + 0.5f) / 4, height * (at.row + 0.5f) / 4)
+
+    private fun pixels(at: Coord): IntArray = cell(at).captureToImage().toPixelMap().buffer
 
     private fun stateOf(at: Coord) = controller.model.cells[at.row * controller.model.cols + at.col].state
 
@@ -172,5 +189,41 @@ class StrandsBoardGestureTest {
 
         assertEquals(HapticFeedbackType.Reject, buzzes.last())
         assertEquals(emptyList<Coord>(), controller.trace.path)
+    }
+
+    @Test
+    fun `each letter is one TalkBack stop that carries its state`() {
+        show()
+        // The tree TalkBack walks: the drawn letter is no stop of its own.
+        rule.onAllNodesWithText("C").assertCountEquals(0)
+        cell(Coord(3, 0)).onChildren().assertCountEquals(0)
+        cell(Coord(3, 0)).assert(hasContentDescription("C"))
+    }
+
+    @Test
+    fun `a found word settles once, and a board composed afresh rests`() {
+        show()
+        val first = Coord(0, 0)
+        rule.mainClock.autoAdvance = false
+        StrandsUiFixtures.row(0).forEach(controller::tap)
+        controller.tap(StrandsUiFixtures.row(0).last())
+        rule.mainClock.advanceTimeByFrame()
+        val settling = pixels(first)
+        rule.mainClock.advanceTimeBy(SETTLED_MS)
+        val rest = pixels(first)
+        // Taking the event does not cut the settle short: its first frame is still beige.
+        assertFalse(settling.contentEquals(rest))
+        assertNull(controller.lastFound)
+
+        mounted = false
+        rule.mainClock.advanceTimeByFrame()
+        mounted = true
+        rule.mainClock.advanceTimeByFrame()
+        assertTrue(pixels(first).contentEquals(rest))
+    }
+
+    private companion object {
+        /** Past the whole four-letter settle and its stagger. */
+        const val SETTLED_MS = 3_000L
     }
 }

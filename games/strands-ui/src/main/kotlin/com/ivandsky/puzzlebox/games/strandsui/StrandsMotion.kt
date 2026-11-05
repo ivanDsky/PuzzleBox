@@ -108,7 +108,7 @@ internal object StrandsMotion {
     /** Letter n of the spangram starts at n × [SweepStaggerMs], squeezed so the last starts within the cap. */
     fun sweepDelayMs(index: Int, letters: Int): Int {
         if (letters <= 1) return 0
-        val stagger = minOf(SweepStaggerMs, CelebrationMotion.SweepMaxMs / (letters - 1))
+        val stagger = minOf(SweepStaggerMs, SpangramSweep.enterDurationMillis / (letters - 1))
         return index * stagger
     }
 }

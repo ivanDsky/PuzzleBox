@@ -6,7 +6,6 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import com.ivandsky.puzzlebox.designsystem.BoardColors
-import com.ivandsky.puzzlebox.designsystem.CelebrationMotion
 import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
 import com.ivandsky.puzzlebox.games.strandsui.FoundEvent
 import com.ivandsky.puzzlebox.games.strandsui.StrandsCopy
@@ -18,6 +17,7 @@ import com.ivandsky.puzzlebox.games.strandsui.StrandsMotion
  * pulses at once, whatever its place in the word, so the motion leaks no order.
  */
 internal object HintOutlinedSpec : StrandsCellSpec {
+    private val Pulse = StrandsMotion.HintPulse
     private val PulseAt = floatArrayOf(0f, StrandsMotion.HintDipAt, StrandsMotion.HintSwellAt, 1f)
     private val PulseScale = floatArrayOf(1f, StrandsMotion.PressScale, StrandsMotion.HintSwellScale, 1f)
 
@@ -31,15 +31,15 @@ internal object HintOutlinedSpec : StrandsCellSpec {
     override fun trigger(cell: StrandsCell, found: FoundEvent?): StrandsMotionTrigger =
         StrandsMotionTrigger(key = cell.state, cue = StrandsMotionCue())
 
-    override fun motionMs(cue: StrandsMotionCue): Int = CelebrationMotion.HintPulseMs
+    override fun motionMs(cue: StrandsMotionCue): Int = Pulse.enterDurationMillis
 
     override fun frame(elapsedMs: Int, cue: StrandsMotionCue, reduceMotion: Boolean): StrandsCellFrame =
         pulse(elapsedMs, reduceMotion)
 
     /** One ring pulse [localMs] after its own start. */
     fun pulse(localMs: Int, reduceMotion: Boolean): StrandsCellFrame {
-        if (reduceMotion || localMs <= 0 || localMs >= CelebrationMotion.HintPulseMs) return StrandsCellFrame.Rest
-        return StrandsCellFrame(ringScale = keyframes(localMs.toFloat() / CelebrationMotion.HintPulseMs, PulseAt, PulseScale))
+        if (reduceMotion || localMs <= 0 || localMs >= Pulse.enterDurationMillis) return StrandsCellFrame.Rest
+        return StrandsCellFrame(ringScale = keyframes(localMs.toFloat() / Pulse.enterDurationMillis, PulseAt, PulseScale, Pulse.enterEasing))
     }
 
     override fun DrawScope.decorate(colors: BoardColors, tokenRadius: Float, frame: StrandsCellFrame) {

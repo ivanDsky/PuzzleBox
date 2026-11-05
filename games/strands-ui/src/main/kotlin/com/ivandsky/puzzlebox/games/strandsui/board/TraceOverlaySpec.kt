@@ -25,6 +25,6 @@ internal object TraceOverlaySpec : StrandsCellSpec {
     override fun frame(elapsedMs: Int, cue: StrandsMotionCue, reduceMotion: Boolean): StrandsCellFrame {
         val total = motionMs(cue)
         if (reduceMotion || elapsedMs >= total) return StrandsCellFrame.Rest
-        return StrandsCellFrame(scale = keyframes(elapsedMs.toFloat() / total, PulseAt, PulseScale))
+        return StrandsCellFrame(scale = keyframes(elapsedMs.toFloat() / total, PulseAt, PulseScale, StrandsMotion.PressPulse.enterEasing))
     }
 }

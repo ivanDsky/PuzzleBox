@@ -1,7 +1,5 @@
 package com.ivandsky.puzzlebox.designsystem
 
-import kotlin.math.sqrt
-
 /**
  * Long celebration and feedback motion (Strands spec A33). [MotionTokens] keeps feedback
  * under ~160 ms; a found word's bounce, a hint's attention pulse and a meter fill are
@@ -23,16 +21,4 @@ object CelebrationMotion {
 
     /** The hint meter filling a third. */
     val MeterFillMs: Int = MotionTokens.DurationMedium
-
-    /** NYT's react-flip-toolkit `noWobble` spring stiffness. */
-    const val SpringStiffness = 200f
-
-    /**
-     * `noWobble` is specified as stiffness 200 and damping 26 at unit mass; Compose's spring
-     * takes a damping ratio instead: ratio = damping / (2 * sqrt(stiffness * mass)), so
-     * 26 / (2 * sqrt(200)) ≈ 0.919, just under critical damping.
-     */
-    val SpringDampingRatio: Float = (NoWobbleDamping / (2.0 * sqrt(SpringStiffness.toDouble()))).toFloat()
-
-    private const val NoWobbleDamping = 26.0
 }

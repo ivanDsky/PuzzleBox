@@ -53,16 +53,23 @@ import com.ivandsky.puzzlebox.gameui.rememberReducedMotion
  * Strands' one board, chrome-free ([com.ivandsky.puzzlebox.gameui.GamePlayUi.Board]): the
  * daily screen and the tutorial both draw it. Draws nothing until [controller] holds a
  * puzzle. Every step goes through the controller first; the buzz is read from what it made
- * of the step ([StrandsHaptics]).
+ * of the step ([StrandsHaptics]). A found word is taken from the controller once and played
+ * from local state, so a board composed afresh (rotation, re-entry) rests instead of replaying it.
  */
 @Composable
 internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier = Modifier) {
     val model = controller.model
     if (model.rows == 0) return
     val haptics = LocalHapticFeedback.current
+    var playing by remember { mutableStateOf<FoundEvent?>(null) }
+    val pending = controller.lastFound
+    LaunchedEffect(pending) {
+        if (pending != null) controller.takeFound()?.let { playing = it }
+    }
     StrandsBoardContent(
         model = model,
-        found = controller.lastFound,
+        // The pending event plays from its first frame; the taken copy carries it on (same seq, same trigger).
+        found = pending ?: playing,
         reduceMotion = rememberReducedMotion(),
         trace = { controller.trace },
         onTrace = { step ->

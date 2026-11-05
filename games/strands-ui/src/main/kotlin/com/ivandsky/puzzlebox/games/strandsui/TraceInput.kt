@@ -24,7 +24,7 @@ object TraceInput {
         return startAt(at)
     }
 
-    fun dragStart(trace: Trace, at: Coord): TraceStep = startAt(at)
+    fun dragStart(at: Coord): TraceStep = startAt(at)
 
     /** Over the previous cell: back up one. Over an adjacent unused cell: append. Else nothing changes. */
     fun dragTo(trace: Trace, at: Coord): TraceStep {

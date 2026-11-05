@@ -67,7 +67,7 @@ internal fun BoxScope.StrandsGestureLayer(
                             if (over == last) return@forEachInnerCellAlong
                             if (!dragging) {
                                 dragging = true
-                                currentOnTrace(TraceInput.dragStart(currentTrace(), start))
+                                currentOnTrace(TraceInput.dragStart(start))
                             }
                             currentOnTrace(TraceInput.dragTo(currentTrace(), over))
                             last = over

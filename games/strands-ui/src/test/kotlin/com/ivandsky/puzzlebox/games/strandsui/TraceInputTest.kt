@@ -50,8 +50,7 @@ class TraceInputTest {
 
     @Test
     fun `a drag start always begins a fresh trace`() {
-        assertEquals(TraceStep.Updated(traceOf(c)), TraceInput.dragStart(traceOf(a, b), c))
-        assertEquals(TraceStep.Updated(traceOf(a)), TraceInput.dragStart(Trace(), a))
+        assertEquals(TraceStep.Updated(traceOf(c)), TraceInput.dragStart(c))
     }
 
     @Test
