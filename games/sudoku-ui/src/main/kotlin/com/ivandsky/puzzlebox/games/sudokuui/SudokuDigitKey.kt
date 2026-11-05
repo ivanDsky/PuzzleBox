@@ -8,7 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,7 +23,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.Spacing
 
 private const val TABULAR_FIGURES = "tnum"
 
@@ -70,10 +68,9 @@ internal fun SudokuDigitKey(
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
+        // No vertical padding: the digit and count lines (28 + 16) must fit a 48dp key unclipped.
         Column(
-            modifier = Modifier
-                .padding(vertical = Spacing.xs)
-                .clearAndSetSemantics {},
+            modifier = Modifier.clearAndSetSemantics {},
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
