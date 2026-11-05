@@ -2,12 +2,14 @@ package com.ivandsky.puzzlebox.play.di
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.play.GameViewModel
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.PlayViewModel
 import com.ivandsky.puzzlebox.play.ResultViewModel
 import com.ivandsky.puzzlebox.play.SlotOpening
 import com.ivandsky.puzzlebox.play.SlotWriter
 import com.ivandsky.puzzlebox.play.WriteLane
+import com.ivandsky.puzzlebox.play.api.GameKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -47,6 +49,7 @@ val playModule = module {
             dispatchers = dispatchers,
         )
     }
+    viewModel { (key: GameKey) -> GameViewModel(key, get()) }
     viewModel { PlayViewModel(get()) }
     viewModel { ResultViewModel(get()) }
 }

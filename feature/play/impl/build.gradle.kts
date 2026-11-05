@@ -22,4 +22,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(projects.core.testing)
+    // GameRouteTest: system back through a real NavDisplay scene, as the app shell hosts it.
+    testImplementation(libs.androidx.navigation3.ui)
 }
