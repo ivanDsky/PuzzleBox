@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.DragTraceBoard
+import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.GridCell
@@ -39,6 +40,8 @@ private const val HINT_ARROW_FADE_MS = 300
 /** Zip's one play registration (ADR-0001): its controller, its board and its play screen. */
 class ZipPlayUi : GamePlayUi {
     override val gameId: GameId get() = ZipDefinition.id
+
+    override val brand: GameBrand get() = ZipBrand
 
     override fun createController(env: PlayEnvironment): GamePlayController = ZipPlayController(env)
 
