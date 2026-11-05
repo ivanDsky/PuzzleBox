@@ -16,11 +16,12 @@ import java.time.LocalDate
 
 /**
  * LinkedIn's daily Mini Sudoku: raw body -> [MiniSudokuGameExtractor] -> [MiniSudokuWireParser]
- * -> canonical [SudokuCodec] bytes in a [Puzzle] envelope under `gameId=minisudoku`, with the
- * fetch-time [com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef].
+ * -> [SudokuUniquenessGate] -> canonical [SudokuCodec] bytes in a [Puzzle] envelope under
+ * `gameId=minisudoku`, with the fetch-time [com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef].
  *
- * A body without the puzzle, or a puzzle that fails parsing, is [FetchError.Unavailable];
- * transport errors pass through unchanged.
+ * A body without the puzzle, or a puzzle that fails parsing, is [FetchError.Unavailable].
+ * A parsed puzzle whose givens do not solve uniquely to the shipped solution is
+ * [FetchError.Untrusted] and never playable. Transport errors pass through unchanged.
  */
 class LinkedInMiniSudokuDailySource(private val transport: FeedTransport) : DailySource {
 
@@ -37,6 +38,9 @@ class LinkedInMiniSudokuDailySource(private val transport: FeedTransport) : Dail
         val daily = when (val parsed = MiniSudokuWireParser.parse(match.miniSudokuGamePuzzleJson, date, match.editionText, variant)) {
             is DecodeResult.Ok -> parsed.value
             is DecodeResult.Err -> return FetchResult.Err(FetchError.Unavailable("wire parse failed: ${parsed.error}"))
+        }
+        if (!SudokuUniquenessGate.isTrusted(daily.puzzle)) {
+            return FetchResult.Err(FetchError.Untrusted("givens do not solve uniquely to the shipped solution"))
         }
         val envelope = Puzzle(
             gameId = SudokuGames.MINI.id,
