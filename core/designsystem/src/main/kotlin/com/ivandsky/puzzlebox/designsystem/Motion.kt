@@ -24,6 +24,13 @@ object MotionTokens {
     const val NavTransitionEnterDelay = 90
     const val NavTransitionExit = 90
 
+    // Back is quicker than forward: the destination is a screen the user just left, so it
+    // returns in ~180ms instead of ~300ms (S9 HITL: the 0.11 back felt slow).
+    const val NavPopTravel = 180
+    const val NavPopEnter = 120
+    const val NavPopEnterDelay = 60
+    const val NavPopExit = 60
+
     // Material 3 emphasized curves: decelerate on the way in, accelerate on the way out.
     val EasingStandard = CubicBezierEasing(0.2f, 0f, 0f, 1f)
     val EasingEmphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)

@@ -24,7 +24,7 @@ import kotlin.math.roundToInt
  * HITL round on the Tab S9 tunes these; nothing below hardcodes a duration or a distance.
  */
 internal object NavMotion {
-    /** Shared-axis X (push/pop): both screens travel together for this long. */
+    /** Shared-axis X push: both screens travel together for this long. */
     val AxisTravelMillis = MotionTokens.DurationLong
 
     /** Travel distance as a fraction of the container width. A/B: 1/12 of the width vs 30 dp. */
@@ -36,14 +36,22 @@ internal object NavMotion {
     const val FadeInDelayMillis = MotionTokens.NavTransitionEnterDelay
     const val FadeInMillis = MotionTokens.NavTransitionEnter
 
-    /** Result's scale-in (and its pop's scale-out): one critically damped ~0.3 s spring. */
+    /** Back (every pop, and the settle after a predictive-back release) is quicker than
+     *  forward: the same shapes on a shorter clock. */
+    const val PopTravelMillis = MotionTokens.NavPopTravel
+    const val PopFadeOutMillis = MotionTokens.NavPopExit
+    const val PopFadeInDelayMillis = MotionTokens.NavPopEnterDelay
+    const val PopFadeInMillis = MotionTokens.NavPopEnter
+
+    /** Result's scale-in: one critically damped ~0.3 s spring. Its pop scales back out on
+     *  the back clock. */
     const val ResultScale = 0.92f
     const val ResultDamping = MotionTokens.SpringDampingDefault
     const val ResultStiffness = MotionTokens.SpringStiffnessDefault
 
     /** Predictive back scrubs this timeline linearly with the gesture's progress; NavDisplay
-     *  settles the remainder from the live value on commit or cancel. */
-    val PredictiveMillis = MotionTokens.DurationLong
+     *  settles the remainder from the live value on commit or cancel, on the back clock. */
+    const val PredictiveMillis = PopTravelMillis
 
     /** Outgoing screen at full progress. A/B: 0.90 vs 0.95. */
     const val PredictiveScale = 0.90f
@@ -74,7 +82,7 @@ internal fun navTransition(
     reduceMotion: Boolean,
     layoutDirection: LayoutDirection,
 ): ContentTransform = when {
-    reduceMotion || from[OWNER_TAB] != to[OWNER_TAB] -> fadeThrough()
+    reduceMotion || from[OWNER_TAB] != to[OWNER_TAB] -> fadeThrough(pop)
     (if (pop) from else to)[ENTRY_KEY] is ResultKey -> if (pop) resultExit() else resultEntrance()
     else -> sharedAxisX(forward = !pop, layoutDirection)
 }
@@ -110,36 +118,42 @@ internal fun predictivePopTransition(
     return destination togetherWith (scaleOut(scrub, targetScale = NavMotion.PredictiveScale) + shift + lateFade)
 }
 
-private fun fadeThrough(): ContentTransform =
-    fadeIn(fadeInSpec()) togetherWith fadeOut(fadeOutSpec())
+private fun fadeThrough(pop: Boolean): ContentTransform =
+    fadeIn(fadeInSpec(pop)) togetherWith fadeOut(fadeOutSpec(pop))
 
 private fun sharedAxisX(forward: Boolean, layoutDirection: LayoutDirection): ContentTransform {
     // +1 points at the end edge in screen coordinates; the incoming screen starts there on a
     // push and at the start edge on a pop, and the outgoing screen travels the other way.
     val endward = if (layoutDirection == LayoutDirection.Ltr) 1 else -1
     val from = if (forward) endward else -endward
-    val travel = tween<IntOffset>(NavMotion.AxisTravelMillis, easing = MotionTokens.EasingStandard)
+    val pop = !forward
+    val millis = if (pop) NavMotion.PopTravelMillis else NavMotion.AxisTravelMillis
+    val travel = tween<IntOffset>(millis, easing = MotionTokens.EasingStandard)
     val distance = { width: Int -> (width * NavMotion.AxisTravelFraction).roundToInt() }
-    return (slideInHorizontally(travel) { from * distance(it) } + fadeIn(fadeInSpec())) togetherWith
-        (slideOutHorizontally(travel) { -from * distance(it) } + fadeOut(fadeOutSpec()))
+    return (slideInHorizontally(travel) { from * distance(it) } + fadeIn(fadeInSpec(pop))) togetherWith
+        (slideOutHorizontally(travel) { -from * distance(it) } + fadeOut(fadeOutSpec(pop)))
 }
 
 private fun resultEntrance(): ContentTransform =
     (fadeIn(resultSpring()) + scaleIn(resultSpring(), initialScale = NavMotion.ResultScale)) togetherWith
-        fadeOut(fadeOutSpec())
+        fadeOut(fadeOutSpec(pop = false))
 
-private fun resultExit(): ContentTransform =
-    fadeIn(fadeInSpec()) togetherWith
-        (fadeOut(resultSpring()) + scaleOut(resultSpring(), targetScale = NavMotion.ResultScale))
+private fun resultExit(): ContentTransform {
+    val back = tween<Float>(NavMotion.PopTravelMillis, easing = MotionTokens.EasingStandard)
+    return fadeIn(fadeInSpec(pop = true)) togetherWith
+        (fadeOut(back) + scaleOut(back, targetScale = NavMotion.ResultScale))
+}
 
-private fun fadeInSpec(): FiniteAnimationSpec<Float> = tween(
-    durationMillis = NavMotion.FadeInMillis,
-    delayMillis = NavMotion.FadeInDelayMillis,
+private fun fadeInSpec(pop: Boolean): FiniteAnimationSpec<Float> = tween(
+    durationMillis = if (pop) NavMotion.PopFadeInMillis else NavMotion.FadeInMillis,
+    delayMillis = if (pop) NavMotion.PopFadeInDelayMillis else NavMotion.FadeInDelayMillis,
     easing = MotionTokens.EasingEmphasizedDecelerate,
 )
 
-private fun fadeOutSpec(): FiniteAnimationSpec<Float> =
-    tween(NavMotion.FadeOutMillis, easing = MotionTokens.EasingEmphasizedAccelerate)
+private fun fadeOutSpec(pop: Boolean): FiniteAnimationSpec<Float> = tween(
+    if (pop) NavMotion.PopFadeOutMillis else NavMotion.FadeOutMillis,
+    easing = MotionTokens.EasingEmphasizedAccelerate,
+)
 
 private fun resultSpring(): FiniteAnimationSpec<Float> =
     spring(dampingRatio = NavMotion.ResultDamping, stiffness = NavMotion.ResultStiffness)
