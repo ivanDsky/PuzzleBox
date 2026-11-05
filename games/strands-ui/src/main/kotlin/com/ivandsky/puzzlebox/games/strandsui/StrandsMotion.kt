@@ -23,6 +23,16 @@ internal object StrandsMotion {
     const val SweepStaggerMs = 75
     const val HintRevealStaggerMs = 300
 
+    /** NYT `Pulser bounce` on a found letter: 1 → dip → overshoot → rebound → 1, keyframes evenly spaced over [CelebrationMotion.SettleMs]. */
+    const val SettleDipScale = 0.62f
+    const val SettleOvershootScale = 1.13f
+    const val SettleReboundScale = 0.95f
+
+    /** NYT `pulseHintOutline`'s live first second: dip to [PressScale] at [HintDipAt], swell to [HintSwellScale] at [HintSwellAt], rest by the end. */
+    const val HintSwellScale = 1.1f
+    const val HintDipAt = 0.15f
+    const val HintSwellAt = 0.38f
+
     val PressPulse = MotionPattern(
         name = "PressPulse",
         description = "A letter added to the trace dips to $PressScale and springs back.",
@@ -67,6 +77,33 @@ internal object StrandsMotion {
         exitDurationMillis = MotionTokens.DurationShort,
         exitEasing = MotionTokens.EasingStandard,
     )
+
+    val HintMeterFill = MotionPattern(
+        name = "HintMeterFill",
+        description = "The hint button fills a third for each non-theme word, left to right.",
+        enterDurationMillis = CelebrationMotion.MeterFillMs,
+        enterEasing = MotionTokens.EasingStandard,
+        exitDurationMillis = CelebrationMotion.MeterFillMs,
+        exitEasing = MotionTokens.EasingStandard,
+    )
+
+    /** The whole shake: [ShakeCycles] cycles of [ShakeMs]; CSS stops 1.5 iterations mid-cycle, back at rest. */
+    val ShakeTotalMs: Int = (ShakeMs * ShakeCycles).toInt()
+
+    /**
+     * The shake's sideways offset [elapsedMs] into it, in units of [ShakePx]: each cycle runs
+     * NYT's keyframes 0 → −1 → +1 → 0, every segment eased in; zero outside the shake.
+     */
+    fun shakeOffset(elapsedMs: Int): Float {
+        if (elapsedMs <= 0 || elapsedMs >= ShakeTotalMs) return 0f
+        val segments = (elapsedMs % ShakeMs).toFloat() / ShakeMs * SHAKE_KEYFRAMES.lastIndex
+        val segment = segments.toInt()
+        val eased = RejectShake.enterEasing.transform(segments - segment)
+        val from = SHAKE_KEYFRAMES[segment]
+        return from + (SHAKE_KEYFRAMES[segment + 1] - from) * eased
+    }
+
+    private val SHAKE_KEYFRAMES = floatArrayOf(0f, -1f, 1f, 0f)
 
     /** Letter n of the spangram starts at n × [SweepStaggerMs], squeezed so the last starts within the cap. */
     fun sweepDelayMs(index: Int, letters: Int): Int {
