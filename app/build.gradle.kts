@@ -12,8 +12,8 @@ android {
 
     defaultConfig {
         applicationId = "com.ivandsky.puzzlebox"
-        versionCode = 9
-        versionName = "0.9.0"
+        versionCode = 10
+        versionName = "0.10.0"
     }
 
     buildTypes {
