@@ -17,15 +17,15 @@ import java.time.LocalDate
  * the day's baseline, never a second record (A4 — owned and tested in :feature:play:impl /
  * :core:data).
  */
-sealed interface ReplayOutcome {
+sealed interface PastDayOutcome {
     /** Play-route arg: the play entry starts blob.game's flow and calls adoptRestored. */
-    data class Ready(val session: ByteArray) : ReplayOutcome
+    data class Ready(val session: ByteArray) : PastDayOutcome
 
     /** The day is no longer in the cache (stale list), or the game is unregistered — nothing to replay. */
-    data object Missing : ReplayOutcome
+    data object Missing : PastDayOutcome
 
     /** The cached payload failed the engine decode — never playable (A16). */
-    data class Unreadable(val error: DecodeError) : ReplayOutcome
+    data class Unreadable(val error: DecodeError) : PastDayOutcome
 }
 
 /**
@@ -34,18 +34,18 @@ sealed interface ReplayOutcome {
  * ([com.ivandsky.puzzlebox.game.GamePlugin.replaySession]) decodes and wraps it, so the
  * envelope names the game without any nav-shape change (ADR-0005).
  */
-class GetReplaySession(
+class OpenPastDay(
     private val daily: DailyRepository,
     private val registry: GameRegistry,
 ) {
 
-    suspend operator fun invoke(game: GameId, day: LocalDate, puzzleNumber: Int?): ReplayOutcome {
-        val cached = daily.cached(game, day) ?: return ReplayOutcome.Missing
+    suspend operator fun invoke(game: GameId, day: LocalDate, puzzleNumber: Int?): PastDayOutcome {
+        val cached = daily.cached(game, day) ?: return PastDayOutcome.Missing
         // A game no registration authored is never replayed.
-        val plugin = registry[game] ?: return ReplayOutcome.Missing
+        val plugin = registry[game] ?: return PastDayOutcome.Missing
         return when (val session = plugin.replaySession(cached, day, puzzleNumber)) {
-            is DecodeResult.Ok -> ReplayOutcome.Ready(session.value)
-            is DecodeResult.Err -> ReplayOutcome.Unreadable(session.error)
+            is DecodeResult.Ok -> PastDayOutcome.Ready(session.value)
+            is DecodeResult.Err -> PastDayOutcome.Unreadable(session.error)
         }
     }
 }

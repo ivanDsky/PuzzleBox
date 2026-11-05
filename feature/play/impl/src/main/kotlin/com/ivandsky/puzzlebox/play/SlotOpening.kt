@@ -4,8 +4,8 @@ import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
-import com.ivandsky.puzzlebox.domain.GetReplaySession
-import com.ivandsky.puzzlebox.domain.ReplayOutcome
+import com.ivandsky.puzzlebox.domain.OpenPastDay
+import com.ivandsky.puzzlebox.domain.PastDayOutcome
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.first
  */
 internal class SlotOpening(
     private val daily: DailyRepository,
-    private val replays: GetReplaySession,
+    private val replays: OpenPastDay,
     private val saved: SavedPlayRepository,
     private val calendar: GameCalendar,
     private val games: GameRegistry,
@@ -81,9 +81,9 @@ internal class SlotOpening(
 
     private suspend fun build(slot: PlaySlot): Origin =
         when (val replay = replays(slot.gameId, slot.day, puzzleNumberOf(slot))) {
-            is ReplayOutcome.Ready -> Origin.Restored(replay.session)
-            ReplayOutcome.Missing -> Origin.Unavailable(DAY_MISSING)
-            is ReplayOutcome.Unreadable -> Origin.Unavailable(DAY_UNREADABLE)
+            is PastDayOutcome.Ready -> Origin.Restored(replay.session)
+            PastDayOutcome.Missing -> Origin.Unavailable(DAY_MISSING)
+            is PastDayOutcome.Unreadable -> Origin.Unavailable(DAY_UNREADABLE)
         }
 
     /** The day's puzzleNumber from the cache's history rows (null when the day has none). */

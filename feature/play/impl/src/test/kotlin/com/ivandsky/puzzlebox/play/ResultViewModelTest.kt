@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.play
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
-import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.OpenPastDay
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -78,7 +78,7 @@ class ResultViewModelTest {
     private fun store(games: GameRegistry, ui: GamePlayRegistry) = PlaySessionStore(
         games = games,
         ui = ui,
-        opening = SlotOpening(daily, GetReplaySession(daily, games), saved, calendar, games, lane),
+        opening = SlotOpening(daily, OpenPastDay(daily, games), saved, calendar, games, lane),
         writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
         completions = completions,
         calendar = calendar,

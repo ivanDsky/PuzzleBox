@@ -2,7 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
-import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.OpenPastDay
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
@@ -38,7 +38,7 @@ class SlotOpeningTest {
     private val saved = FakeSavedPlayRepository()
     private val opening = SlotOpening(
         daily = daily,
-        replays = GetReplaySession(daily, games),
+        replays = OpenPastDay(daily, games),
         saved = saved,
         calendar = FakeGameCalendar(today),
         games = games,

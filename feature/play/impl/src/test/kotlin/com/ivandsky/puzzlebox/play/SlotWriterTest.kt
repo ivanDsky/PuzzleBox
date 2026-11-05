@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
-import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.OpenPastDay
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -133,7 +133,7 @@ class SlotWriterTest {
         val saved = recording(latency = 50.milliseconds)
         val daily = FakeDailyRepository()
         val games = TestGames.registry(listOf(alpha))
-        val opening = SlotOpening(daily, GetReplaySession(daily, games), saved, FakeGameCalendar(today), games, lane)
+        val opening = SlotOpening(daily, OpenPastDay(daily, games), saved, FakeGameCalendar(today), games, lane)
         val released = writer(saved)
         released.offer(blob(1), 0L)
 

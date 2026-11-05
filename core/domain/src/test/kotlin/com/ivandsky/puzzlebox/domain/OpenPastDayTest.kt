@@ -20,23 +20,23 @@ import org.junit.Test
  * envelope), and untrustable inputs never launch (A16). Per-game round-trips live with
  * each game (ZipPluginTest, TangoReplaySessionTest, QueensPluginTest).
  */
-class GetReplaySessionTest {
+class OpenPastDayTest {
 
     private val day: LocalDate = LocalDate.of(2026, 10, 31)
 
     private fun replay(daily: FakeDailyRepository, games: List<GameId> = listOf(alpha, beta)) =
-        GetReplaySession(daily, TestGames.registry(games))
+        OpenPastDay(daily, TestGames.registry(games))
 
     @Test
     fun `missing pieces launch nothing`() = runTest {
         val empty = FakeDailyRepository()
-        assertEquals(ReplayOutcome.Missing, replay(empty)(alpha, day, puzzleNumber = 592))
-        assertEquals(ReplayOutcome.Missing, replay(empty)(beta, day, puzzleNumber = 301))
+        assertEquals(PastDayOutcome.Missing, replay(empty)(alpha, day, puzzleNumber = 592))
+        assertEquals(PastDayOutcome.Missing, replay(empty)(beta, day, puzzleNumber = 301))
 
         // A cached day of a game no registration authored is never replayed.
         val unregistered = GameId("not-a-game")
         val daily = FakeDailyRepository().apply { setCached(unregistered, day, TestGames.puzzle(unregistered)) }
-        assertEquals(ReplayOutcome.Missing, replay(daily)(unregistered, day, puzzleNumber = 1))
+        assertEquals(PastDayOutcome.Missing, replay(daily)(unregistered, day, puzzleNumber = 1))
     }
 
     @Test
@@ -44,7 +44,7 @@ class GetReplaySessionTest {
         val cached = TestGames.puzzle(beta, tag = 7)
         val daily = FakeDailyRepository().apply { setCached(beta, day, cached) }
 
-        val ready = replay(daily)(beta, day, puzzleNumber = 301) as ReplayOutcome.Ready
+        val ready = replay(daily)(beta, day, puzzleNumber = 301) as PastDayOutcome.Ready
 
         // The envelope NAMES the game (ADR-0005) — the play route dispatches on it.
         assertEquals(beta, SessionBlob.decode(ready.session)?.game)
@@ -56,7 +56,7 @@ class GetReplaySessionTest {
         val cached = TestGames.puzzle(alpha)
         val daily = FakeDailyRepository().apply { setCached(alpha, day, cached) }
 
-        val ready = replay(daily)(alpha, day, puzzleNumber = null) as ReplayOutcome.Ready
+        val ready = replay(daily)(alpha, day, puzzleNumber = null) as PastDayOutcome.Ready
 
         assertArrayEquals(TestGames.replayBlob(alpha, cached, day, null), ready.session)
     }
@@ -67,7 +67,7 @@ class GetReplaySessionTest {
         val daily = FakeDailyRepository().apply { setCached(alpha, day, corrupt) }
 
         assertEquals(
-            ReplayOutcome.Unreadable(DecodeError.Malformed("not a alpha payload")),
+            PastDayOutcome.Unreadable(DecodeError.Malformed("not a alpha payload")),
             replay(daily)(alpha, day, puzzleNumber = 592),
         )
     }

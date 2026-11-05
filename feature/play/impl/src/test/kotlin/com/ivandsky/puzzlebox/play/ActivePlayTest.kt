@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.play
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
-import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.OpenPastDay
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
@@ -58,7 +58,7 @@ class ActivePlayTest {
     private val store = PlaySessionStore(
         games = fakes.games,
         ui = fakes.registry,
-        opening = SlotOpening(daily, GetReplaySession(daily, fakes.games), saved, calendar, fakes.games, lane),
+        opening = SlotOpening(daily, OpenPastDay(daily, fakes.games), saved, calendar, fakes.games, lane),
         writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
         completions = completions,
         calendar = calendar,

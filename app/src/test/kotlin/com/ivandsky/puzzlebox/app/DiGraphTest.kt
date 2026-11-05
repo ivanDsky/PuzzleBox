@@ -14,7 +14,7 @@ import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
-import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.OpenPastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
@@ -92,7 +92,7 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<HistoryViewModel>())
             assertNotNull(koin.get<ObserveGameHistory>())
             assertNotNull(koin.get<ComputeStreak>())
-            assertNotNull(koin.get<GetReplaySession>())
+            assertNotNull(koin.get<OpenPastDay>())
             assertNotNull(koin.get<ObserveTodayLeaderboard>())
             // Today's featured game (Profile's board, the leaderboard) is the registry's first.
             assertEquals(GameId("zip"), koin.get<GetFeaturedGame>()().id)
