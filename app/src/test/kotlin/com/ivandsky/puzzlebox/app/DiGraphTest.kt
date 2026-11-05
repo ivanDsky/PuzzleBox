@@ -76,7 +76,7 @@ class DiGraphTest : KoinTest {
             // The generic daily stack: one repository over every game's DailySource.
             assertNotNull(koin.get<DailyRepository>())
             assertEquals(
-                setOf(GameId("zip"), GameId("tango"), GameId("queens")),
+                setOf(GameId("zip"), GameId("tango"), GameId("queens"), GameId("strands")),
                 koin.getAll<DailySource>().map { it.gameId }.toSet(),
             )
             assertNotNull(koin.get<UserPreferencesRepository>())
@@ -101,7 +101,7 @@ class DiGraphTest : KoinTest {
             // registry in picker order, and every game's play UI is registered — a
             // missing entry is a wiring bug, loudly here.
             val games = koin.get<GameRegistry>().all.map { it.definition.id.value }
-            assertEquals(listOf("zip", "tango", "queens"), games)
+            assertEquals(listOf("zip", "tango", "queens", "strands"), games)
             val playUis = koin.get<GamePlayRegistry>()
             for (id in games) assertNotNull("no play UI registered for $id", playUis[GameId(id)])
             // The one shared play session store resolves off the real graph.

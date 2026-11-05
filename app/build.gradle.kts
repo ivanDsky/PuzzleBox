@@ -68,6 +68,8 @@ dependencies {
     implementation(projects.games.queensUi)
     implementation(projects.games.tango)
     implementation(projects.games.tangoUi)
+    implementation(projects.games.strands)
+    implementation(projects.games.strandsUi)
     implementation(projects.core.navigation)
     // The shell composes every feature's entries and registers every feature's keys.
     implementation(projects.feature.home.api)
