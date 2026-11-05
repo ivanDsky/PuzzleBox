@@ -2,10 +2,15 @@ package com.ivandsky.puzzlebox.gameui
 
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.testing.repository.RankOrderCases
+import com.ivandsky.puzzlebox.testing.repository.RankOrderCases.Outcome
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** Spec A10: "New best" only on a strictly lower SHOWN time of a first solve; replays never rank. */
+/**
+ * Spec A10: "New best" only on a strictly lower SHOWN time of a first solve; replays never
+ * rank. A26: a hints-first game ranks fewer hints first, equal hints falling to time.
+ */
 class RecordVerdictTest {
 
     private fun timeFirst(previousBestMs: Long?, timeMs: Long, replay: Boolean) = RecordVerdict.of(
@@ -46,5 +51,29 @@ class RecordVerdictTest {
     fun `a replay is a replay however fast, and with no best on record`() {
         assertEquals(RecordVerdict.Replay, timeFirst(previousBestMs = 95_000, timeMs = 3_000, replay = true))
         assertEquals(RecordVerdict.Replay, timeFirst(previousBestMs = null, timeMs = 3_000, replay = true))
+    }
+
+    @Test
+    fun `every rank-order contract case gets its verdict`() {
+        for (case in RankOrderCases.all) {
+            val expected = when (case.outcome) {
+                Outcome.NewBest -> RecordVerdict.NewBest
+                Outcome.TiedBest -> RecordVerdict.TiedBest
+                Outcome.NotBest -> RecordVerdict.NotBest
+                Outcome.Replay -> RecordVerdict.Replay
+            }
+            val actual = RecordVerdict.of(case.previous, case.play.timeMs, case.play.hints, case.replay, case.order)
+            assertEquals(case.name, expected, actual)
+        }
+    }
+
+    @Test
+    fun `hints-first ranks fewer hints over a faster time`() {
+        val previous = BestScore(timeMs = 60_000, hints = 2)
+        val of = { timeMs: Long, hints: Int -> RecordVerdict.of(previous, timeMs, hints, replay = false, order = RankOrder.HintsThenTime) }
+        assertEquals("fewer hints, slower", RecordVerdict.NewBest, of(90_000, 0))
+        assertEquals("more hints, faster", RecordVerdict.NotBest, of(30_000, 3))
+        assertEquals("equal hints falls to time", RecordVerdict.NewBest, of(59_000, 2))
+        assertEquals("equal hints, same second", RecordVerdict.TiedBest, of(60_400, 2))
     }
 }

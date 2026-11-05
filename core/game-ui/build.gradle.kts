@@ -17,4 +17,7 @@ dependencies {
     // The chrome's "How to play" icon (core set only; libs.versions.toml icon policy).
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.kotlinx.coroutines.core)
+
+    // RecordVerdictTest runs core:testing's shared RankOrderCases table (ADR-0013).
+    testImplementation(projects.core.testing)
 }

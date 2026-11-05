@@ -149,7 +149,7 @@ fun ResultScreen(
             RecordTag(verdict)
             BestLine(verdict, previousBest, rankOrder)
             Text(
-                text = if (hintsUsed == 1) "1 hint" else "$hintsUsed hints",
+                text = hintCount(hintsUsed),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
