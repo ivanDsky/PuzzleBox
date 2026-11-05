@@ -138,6 +138,7 @@ private fun TangoBoard(controller: TangoPlayController, modifier: Modifier) {
         controller.hintCell,
         controller.lastRejection,
         controller.suppressedSets,
+        controller.guidance.answer,
     ) {
         controller.rendererModel()
     } ?: return

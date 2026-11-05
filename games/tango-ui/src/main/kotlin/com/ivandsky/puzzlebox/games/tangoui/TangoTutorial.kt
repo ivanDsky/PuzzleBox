@@ -26,11 +26,10 @@ import java.time.LocalDate
  * sits right after two moons and the tap that breaks it names three in a row. Lesson 4's
  * open square breaks no run, so only the count decides it.
  *
- * No intended tap ever breaks a rule, even for a moment. Lessons 2–4 answer with suns
- * (one tap each). Lesson 1's moon square passes through a sun on its way to a moon, and
- * that sun is only legal while its row and its column each still have an open sun. So
- * lesson 1 opens three squares, and the moon square comes first in reading order: tap it
- * twice, then the two suns. A two-square board can't do this in any tap order.
+ * Lesson 1 teaches input before any rule, so it is guided (spec A12): the board ghosts
+ * each open square's answer and holds back rule marks, and any tap order reaches the
+ * win. No intended tap in lessons 2–4 ever breaks a rule, even for a moment: they
+ * answer with suns, one tap each.
  */
 internal object TangoTutorial {
 
@@ -46,6 +45,7 @@ internal object TangoTutorial {
             ".M.S",
             ".MSM",
             "MSMS",
+            guided = true,
         ),
         lesson(
             "Never put three suns or moons in a row.",
@@ -79,6 +79,7 @@ internal object TangoTutorial {
         instruction: String,
         vararg rows: String,
         markers: List<TangoMarker> = emptyList(),
+        guided: Boolean = false,
     ): TutorialStep {
         val cells = rows.joinToString("")
         val givens = cells.withIndex()
@@ -94,6 +95,7 @@ internal object TangoTutorial {
                 payload = TangoCodec.encode(puzzle),
             ),
             ref = tangoPlugin.refOf(day, null),
+            guided = guided,
         )
     }
 }

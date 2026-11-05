@@ -29,7 +29,7 @@ class TangoTutorialTest {
 
     private val steps = TangoTutorial.steps
 
-    /** Each lesson's intended taps, in order (a sun is one tap, a moon two; lesson 1's moon first). */
+    /** Each lesson's intended taps, in order (a sun is one tap, a moon two). Lesson 1 is guided, so any order works. */
     private val taps = listOf(
         listOf(4, 4, 6, 8),
         listOf(6),
@@ -44,9 +44,12 @@ class TangoTutorialTest {
         env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), onSessionChanged = {}, onWon = { won += it }),
     )
 
-    /** A controller that adopted [step]'s board, the way the tutorial sandbox does. */
+    /** A controller that adopted [step]'s board, and guides it if the step is guided, the way the tutorial sandbox does. */
     private fun adopted(step: TutorialStep, won: MutableList<CompletionRecord> = mutableListOf()) =
-        controller(won).also { assertEquals(Adopt.Adopted, it.adoptToday(step.puzzle, step.ref)) }
+        controller(won).also {
+            assertEquals(Adopt.Adopted, it.adoptToday(step.puzzle, step.ref))
+            if (step.guided) it.guide()
+        }
 
     /** One tap on [idx], through the board's own tap cycle. */
     private fun TangoPlayController.tap(idx: Int) {
@@ -98,8 +101,8 @@ class TangoTutorialTest {
     }
 
     @Test
-    fun `no intended tap ever breaks a rule, not even for a moment`() {
-        for ((step, lessonTaps) in steps.zip(taps)) {
+    fun `no intended tap in an unguided lesson ever breaks a rule, not even for a moment`() {
+        for ((step, lessonTaps) in steps.zip(taps).filterNot { (step, _) -> step.guided }) {
             val s = adopted(step)
 
             for ((count, idx) in lessonTaps.withIndex()) {

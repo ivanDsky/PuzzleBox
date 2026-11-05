@@ -158,7 +158,8 @@ object TangoSemantics {
     /**
      * StateDescription: "given sun" / "sun" / "moon" / "empty", prefixed "violates: "
      * + rule phrase when the cell carries a violation on the live grid (§10.6
-     * redundancy — the state-driven scan, not the transient rejection).
+     * redundancy — the state-driven scan, not the transient rejection). A guided
+     * lesson's ghost adds its [ghostPhrase], so TalkBack hears what the board shows.
      */
     fun cellStateDescription(model: TangoRendererModel, idx: Int): String {
         val render = model.cells.getOrNull(idx)
@@ -168,8 +169,12 @@ object TangoSemantics {
             null -> "empty"
         }
         val violation = violationPhraseAt(model, idx)
-        return if (violation == null) value else "violates: $violation"
+        val state = if (violation == null) value else "violates: $violation"
+        return model.ghosts[idx]?.let { "$state, ${ghostPhrase(it)}" } ?: state
     }
+
+    /** The ghost's spoken nudge on a guided square: "try a moon". */
+    fun ghostPhrase(answer: TangoCell): String = "try a ${singular(answer)}"
 
     /**
      * The rule-naming phrase for the offending cell on the LIVE grid, or null when
