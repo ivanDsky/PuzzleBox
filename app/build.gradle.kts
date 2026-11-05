@@ -12,8 +12,8 @@ android {
 
     defaultConfig {
         applicationId = "com.ivandsky.puzzlebox"
-        versionCode = 15
-        versionName = "0.13.0"
+        versionCode = 16
+        versionName = "0.13.1"
         // Device tests run on a plain Application; each test starts its own E2eKoinGraph.
         testInstrumentationRunner = "com.ivandsky.puzzlebox.app.device.PuzzleBoxTestRunner"
     }
