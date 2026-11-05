@@ -115,7 +115,7 @@ class RealGamesResultRouteTest {
                 assertTrue(zip().session?.isComplete == false)
             }
         } finally {
-            koin.close()
+            stopKoin() // close() alone leaves the JVM-global context registered for later tests
         }
     }
 }

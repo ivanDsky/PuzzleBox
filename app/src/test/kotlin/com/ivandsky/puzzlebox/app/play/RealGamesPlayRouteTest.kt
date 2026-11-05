@@ -99,7 +99,7 @@ class RealGamesPlayRouteTest {
 
     @After
     fun tearDown() {
-        koin?.close()
+        stopKoin() // close() alone leaves the JVM-global context registered for later tests
     }
 
     private fun startGraph(daily: DailyRepository = freshDailyForAllGames()) {

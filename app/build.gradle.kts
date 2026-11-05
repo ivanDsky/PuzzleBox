@@ -34,6 +34,11 @@ android {
         // The ShowkaseBrowserScreenshotTest screenshot suite needs heap headroom.
         unitTests.all { test ->
             test.maxHeapSize = "2g"
+            // One graphics mode for every class keeps one Robolectric sandbox per sdk, so the
+            // native runtime (and its fonts copy through a JVM-global zip FileSystem) loads
+            // once per JVM. Mixed LEGACY/NATIVE sandboxes collided there under load
+            // (FileSystemAlreadyExistsException, then UnsatisfiedLinkError; robolectric#10116).
+            test.systemProperty("robolectric.graphicsMode", "NATIVE")
         }
     }
 }
