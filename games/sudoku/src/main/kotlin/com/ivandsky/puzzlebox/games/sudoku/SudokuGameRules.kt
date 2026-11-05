@@ -1,23 +1,20 @@
 package com.ivandsky.puzzlebox.games.sudoku
 
 import com.ivandsky.puzzlebox.game.GameRules
-import com.ivandsky.puzzlebox.game.Hint
 import com.ivandsky.puzzlebox.game.Move
 import com.ivandsky.puzzlebox.game.MoveVerdict
+import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHint
+import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHints
 import com.ivandsky.puzzlebox.games.sudoku.engine.rules.SudokuConflicts
 
 /**
  * The plugin's rules facade. Validation is total: a foreign move gets a typed verdict, never
  * a throw. Completion is rule-based: any full board without a conflict is solved, the same
- * check [SudokuSession] stamps its win with.
+ * check [SudokuSession] stamps its win with. Hints climb the [SudokuHints] ladder.
  */
 object SudokuGameRules : GameRules<SudokuState> {
 
-    /** The first cell whose digit is missing or wrong, with the solution's digit. */
-    data class Reveal(val idx: Int, val digit: Int) : Hint
-
-    /** Nothing left to hint: the board is solved. */
-    data object Solved : Hint
+    private val hints = SudokuHints()
 
     override fun validate(move: Move, state: SudokuState): MoveVerdict {
         if (isComplete(state)) return SudokuValidation.Complete
@@ -32,11 +29,7 @@ object SudokuGameRules : GameRules<SudokuState> {
 
     override fun isComplete(state: SudokuState): Boolean = SudokuConflicts.isSolved(state.board)
 
-    override fun hint(state: SudokuState): Hint {
-        val solution = state.puzzle.solution
-        val idx = solution.indices.firstOrNull { state.board.digitAt(it) != solution[it] } ?: return Solved
-        return Reveal(idx, solution[idx])
-    }
+    override fun hint(state: SudokuState): SudokuHint = hints.hint(state.puzzle, state.board)
 
     private fun digitVerdict(state: SudokuState, idx: Int, digit: Int): SudokuValidation =
         if (digit !in 1..state.board.geometry.size) SudokuValidation.OutOfRange else cellVerdict(state, idx)

@@ -13,6 +13,8 @@ import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuSessionCodec
+import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHint
+import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHints
 import com.ivandsky.puzzlebox.games.sudoku.render.SudokuRendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import org.junit.Assert.assertArrayEquals
@@ -103,12 +105,14 @@ class SudokuPluginTest {
     }
 
     @Test
-    fun `hint reveals the first open cell and renders it`() {
+    fun `hint climbs the ladder and renders its target cell`() {
         val state = plugin.stateOf(SudokuSession(ref = null, puzzle = puzzle))
         val hint = plugin.rules.hint(state)
-        assertEquals(SudokuGameRules.Reveal(0, 4), hint)
+        assertEquals(SudokuHints().hint(puzzle, state.board), hint)
+        val place = hint as SudokuHint.Place
+        assertEquals(puzzle.solution[place.cell], place.digit)
         val model = plugin.rendererModel(state, hint, null)
-        assertEquals(0, model.hintCell)
+        assertEquals(place.cell, model.hintCell)
         assertEquals(SudokuRendererModel.Status.IDLE, model.status)
         assertEquals(KnownSolutions.PEANUT_450_PRESETS.toSet(), model.givens)
         assertEquals(puzzle.givens, model.digits)
@@ -125,7 +129,7 @@ class SudokuPluginTest {
         assertEquals(SudokuRendererModel.Status.PLAYING, model.status)
         val solved = SudokuBoard(puzzle.geometry, puzzle.solution.map { SudokuCell.Entry(it) })
         assertEquals(SudokuRendererModel.Status.COMPLETE, SudokuRendererModel.of(SudokuState(puzzle, solved), null).status)
-        assertEquals(SudokuGameRules.Solved, SudokuGameRules.hint(SudokuState(puzzle, solved)))
+        assertEquals(SudokuHint.None, SudokuGameRules.hint(SudokuState(puzzle, solved)))
     }
 
     @Test

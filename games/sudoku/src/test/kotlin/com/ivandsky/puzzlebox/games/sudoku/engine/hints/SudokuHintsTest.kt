@@ -102,11 +102,12 @@ class SudokuHintsTest {
 
     @Test
     fun `every hinted digit equals the solution, through eliminations and reveals`() {
-        val hints = playOut(hard)
-        assertTrue(hints.any { it is SudokuHint.Reveal })
+        val revealed = playOut(hard, SudokuHints(emptyList()))
+        assertTrue(revealed.any { it is SudokuHint.Reveal })
         assertTrue(
-            hints.filterIsInstance<SudokuHint.Place>().map { it.technique }.containsAll(singles),
+            revealed.filterIsInstance<SudokuHint.Place>().map { it.technique }.containsAll(singles),
         )
+        assertTrue(playOut(hard).any { it is SudokuHint.Place && it.via != null })
     }
 
     @Test
@@ -177,7 +178,7 @@ class SudokuHintsTest {
         val candidates = SudokuCandidates.of(hard, board)
         val expected = candidates.indices.filter { board.digitAt(it) == 0 }.minBy { Integer.bitCount(candidates[it]) }
 
-        assertEquals(SudokuHint.Reveal(expected, hard.solution[expected]), SudokuHints().hint(hard, board))
+        assertEquals(SudokuHint.Reveal(expected, hard.solution[expected]), SudokuHints(emptyList()).hint(hard, board))
     }
 
     @Test

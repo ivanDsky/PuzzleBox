@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGameRules
 import com.ivandsky.puzzlebox.games.sudoku.SudokuState
 import com.ivandsky.puzzlebox.games.sudoku.digit
+import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHint
 
 /**
  * Plain drawable facts for a board, row-major: [digits] (0 = none), the [givens] cells,
@@ -40,7 +41,11 @@ data class SudokuRendererModel(
                 digits = board.cells.map { it.digit },
                 givens = board.cells.indices.filterTo(mutableSetOf()) { board.cells[it] is SudokuCell.Given },
                 notes = board.cells.map { (it as? SudokuCell.Notes)?.mask ?: 0 },
-                hintCell = (hint as? SudokuGameRules.Reveal)?.idx,
+                hintCell = when (hint) {
+                    is SudokuHint.Place -> hint.cell
+                    is SudokuHint.Reveal -> hint.cell
+                    else -> null
+                },
                 status = status,
             )
         }
