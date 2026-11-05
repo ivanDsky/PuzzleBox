@@ -20,7 +20,7 @@ the build instead of a review.
    (wire extraction, parsing, trust gate) as a `DailySource` (`core:game`) bound
    `bind DailySource::class`; `core:data`'s `OfflineFirstDailyRepository` collects every
    source by `gameId` and is the `DailyRepository` (fetch-today with cache degrade,
-   cache-only `cached`/`observeHistory`, and a by-date `day` read that fetches a missed
+   cache-only `observeHistory`, and a by-date `day` read that fetches a missed
    past day only for a source declaring `archiveSince`, ADR-0012).
 3. **`GamePlayRegistry` (`core:game-ui`) has a single owner.** Each `games:<id>-ui` module
    binds exactly one `GamePlayUi` under its id qualifier; `app` builds
