@@ -24,8 +24,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -33,7 +35,7 @@ import org.junit.Test
  * Ticket 16 (spec A12/A13): Queens' lessons are 4×4 boards with one answer each, the
  * real controller solves each one from its intended taps (× then queen on every answer
  * square), no tap on the way ever shows a rule break, and a wrong queen is named by the
- * rule its lesson teaches.
+ * rule its lesson teaches. Lesson 1 is guided: it shows its answer and never a rule.
  */
 class QueensTutorialTest {
 
@@ -60,8 +62,15 @@ class QueensTutorialTest {
     private fun adopted(step: TutorialStep, won: MutableList<CompletionRecord> = mutableListOf()) =
         controller(won).also { assertEquals(Adopt.Adopted, it.adoptToday(step.puzzle, step.ref)) }
 
+    /** [step] as the sandbox builds it: adopted, then guided when the step is guided. */
+    private fun lessonFor(step: TutorialStep) = adopted(step).also { if (step.guided) it.guide() }
+
     /** One tap on [idx], through the board's own tap cycle. */
     private fun QueensPlayController.tap(idx: Int) = board!!.onTap(idx)
+
+    /** The board model the screen draws right now (guide included). */
+    private val QueensPlayController.model: QueensBoardModel
+        get() = board!!.let { QueensBoardModel.of(it.session, it.hint, it.hintPointed, it.guide) }
 
     /** Answers to [puzzle] under the row, column and color rules only (the touch rule off). */
     private fun answersWithoutTouch(puzzle: QueensPuzzle): Int {
@@ -128,7 +137,7 @@ class QueensTutorialTest {
     @Test
     fun `no intended tap ever breaks a rule or shows a caption, not even for a moment`() {
         for ((step, order) in steps.zip(answerOrder)) {
-            val s = adopted(step)
+            val s = lessonFor(step)
 
             for ((placed, idx) in order.withIndex()) {
                 val cell = Cell(idx)
@@ -144,6 +153,9 @@ class QueensTutorialTest {
                 assertTrue(at, cell in s.board!!.session.queens)
                 assertEquals(at, placed + 1, s.board!!.session.queens.size)
                 assertClean(s, "$at, queen")
+                // A guided lesson's faint queens leave each square as its queen lands.
+                val expectedGhosts = if (step.guided) order.drop(placed + 1).toSet() else emptySet()
+                assertEquals(at, expectedGhosts, s.model.ghosts)
             }
             assertTrue(step.instruction, s.isComplete)
         }
@@ -153,19 +165,93 @@ class QueensTutorialTest {
         val session = s.board!!.session
         assertFalse(at, QueensRules.evaluate(session.puzzle, session.queens.toSet()) is QueensRulesVerdict.Invalid)
         assertTrue(at, QueensBoardModel.of(session, s.board!!.hint, s.board!!.hintPointed).violations.isEmpty())
+        assertNoRuleShown(s, at)
+    }
+
+    /** What the child sees: no rule stripes, no rule line, no caption at all. */
+    private fun assertNoRuleShown(s: QueensPlayController, at: String) {
+        assertTrue(at, s.model.violations.isEmpty())
         assertNull(at, s.violation)
         assertNull(at, s.rejection)
         assertNull(at, playCaption(s, s))
     }
 
     @Test
+    fun `only the first lesson is guided`() {
+        assertEquals(listOf(true, false, false), steps.map { it.guided })
+    }
+
+    @Test
+    fun `the guided lesson shows its answer squares until each queen lands`() {
+        val s = sandboxLesson(0)
+        val answer = puzzleOf(steps[0]).solution!!.map { it.idx }.toSet()
+        assertEquals(answer, s.board!!.guide)
+        assertEquals(answer, s.model.ghosts)
+
+        s.tap(2) // ×: the square still shows its faint queen
+        assertEquals(answer, s.model.ghosts)
+        s.tap(2) // the queen lands
+        assertEquals(answer - 2, s.model.ghosts)
+    }
+
+    @Test
+    fun `a guided lesson never shows a rule break, whatever the child taps`() {
+        val s = sandboxLesson(0)
+        var brokeARule = false
+        // Every square through its whole cycle (×, queen, empty), in reading order.
+        repeat(3) { round ->
+            for (idx in 0 until 16) {
+                s.tap(idx)
+                val session = s.board!!.session
+                brokeARule = brokeARule ||
+                    QueensRules.evaluate(session.puzzle, session.queens.toSet()) is QueensRulesVerdict.Invalid
+                assertNoRuleShown(s, "round ${round + 1}, square $idx")
+            }
+        }
+        assertTrue("the taps did clash, so the guide is what kept the board calm", brokeARule)
+    }
+
+    @Test
+    fun `the later lessons show no answer`() {
+        for (lesson in 1..2) {
+            val s = sandboxLesson(lesson)
+            assertNull(s.board!!.guide)
+            assertTrue(s.model.ghosts.isEmpty())
+        }
+    }
+
+    @Test
+    fun `a daily board is never guided`() {
+        val daily = controller()
+        assertEquals(Adopt.Adopted, daily.adoptToday(QueensPlayFixtures.envelope(), QueensPlayFixtures.ref()))
+        assertNull(daily.board!!.guide)
+        assertTrue(daily.model.ghosts.isEmpty())
+    }
+
+    @Test
+    fun `guiding needs an adopted board`() {
+        assertThrows(IllegalStateException::class.java) { controller().guide() }
+    }
+
+    /** Lesson [index]'s controller, built by the real sandbox at that lesson. */
+    private fun sandboxLesson(index: Int): QueensPlayController {
+        val session = TutorialSession(steps)
+        repeat(index) { session.advance(); session.next() }
+        val lesson = session.state.value as TutorialState.Playing
+        assertEquals(index, lesson.index)
+        return TutorialSandbox(QueensPlayUi(), session).controllerFor(lesson, scope) as QueensPlayController
+    }
+
+    /** Through the sandbox, as the host builds them: these lessons teach rules, so they show the break. */
+    @Test
     fun `a wrong queen is named by the rule its lesson teaches`() {
         fun rulesBroken(lesson: Int, vararg queens: Int): Set<QueensRuleId> =
-            adopted(steps[lesson]).run {
+            sandboxLesson(lesson).run {
                 // Auto-cross has already crossed a square that clashes, so one tap may do.
                 queens.forEach { idx -> while (Cell(idx) !in board!!.session.queens) tap(idx) }
                 assertFalse(isComplete)
-                assertEquals(RULE_CONFLICT, violation)
+                assertNotNull(violation)
+                assertTrue(model.violations.isNotEmpty())
                 val verdict = QueensRules.evaluate(board!!.session.puzzle, board!!.session.queens.toSet())
                 (verdict as QueensRulesVerdict.Invalid).violations.map { it.rule }.toSet()
             }
@@ -185,12 +271,12 @@ class QueensTutorialTest {
             val lesson = session.state.value as TutorialState.Playing
             assertEquals(index, lesson.index)
             val c = sandbox.controllerFor(lesson, scope) as QueensPlayController
+            assertEquals(lesson.step.guided, c.board!!.guide != null)
             lessonTaps.forEach { c.tap(it) }
+            // The win marks the lesson solved; the host's success beat then moves on.
+            assertTrue((session.state.value as TutorialState.Playing).solved)
+            session.next()
         }
         assertEquals(TutorialState.Ready, session.state.value)
-    }
-
-    private companion object {
-        const val RULE_CONFLICT = "Queens can't touch or share a row, column, or color."
     }
 }

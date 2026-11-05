@@ -15,14 +15,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 
 /**
  * One cell: region fill, the state glyph with its §3 entrance/exit motion, the §5.5
- * hint overlay + pulse + stage-2 crown ghost, and the A14 violation cue. All animation
- * runs through one presence Animatable per cell — reduced motion collapses every
- * transition to an instant state change.
+ * hint overlay + pulse + stage-2 crown ghost, the guided lesson's answer ghost (spec
+ * A12), and the A14 violation cue. All animation runs through one presence Animatable
+ * per cell — reduced motion collapses every transition to an instant state change.
  */
 @Composable
 internal fun QueensCell(
@@ -151,15 +154,27 @@ internal fun QueensCell(
                     },
             )
         }
-        if (pointed && shown == QueensCellVisual.EMPTY) {
-            // §5.5 stage 2: the crown ghost — the forced cell's silhouette at reduced
-            // alpha, above the emphasized overlay. "This cell, exactly."
-            Canvas(Modifier.fillMaxSize()) {
+        // §5.5 stage 2 and the guided lesson (spec A12) share the crown ghost — the
+        // queen's silhouette at reduced alpha, above the emphasized overlay. "This cell,
+        // exactly." A guided ghost stays over an × until the queen itself lands.
+        val guided = idx in model.ghosts && shown != QueensCellVisual.QUEEN
+        if ((pointed && shown == QueensCellVisual.EMPTY) || guided) {
+            val ghost = if (guided) {
+                Modifier
+                    .semantics { contentDescription = GHOST_DESCRIPTION }
+                    .testTag("queens.ghost.$idx")
+            } else {
+                Modifier
+            }
+            Canvas(Modifier.fillMaxSize().then(ghost)) {
                 drawQueen(ink, QueensBoardDefaults.queenHeightFraction, alpha = QueensBoardDefaults.hintGhostAlpha)
             }
         }
     }
 }
+
+/** TalkBack's line for a guided lesson's answer ghost (spec A12). */
+private const val GHOST_DESCRIPTION = "A queen goes here"
 
 @Composable
 private fun currentIsDarkTheme(): Boolean {

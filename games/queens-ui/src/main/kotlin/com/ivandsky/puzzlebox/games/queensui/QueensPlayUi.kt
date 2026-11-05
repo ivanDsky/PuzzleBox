@@ -95,8 +95,11 @@ private fun BoxScope.BoardArea(controller: QueensPlayController, status: PlayBoa
             .testTag("queens.board_area"),
         contentAlignment = Alignment.Center,
     ) {
-        if (status is PlayBoardStatus.Ready && controller.board != null) {
-            QueensBoard(controller, Modifier)
+        val board = controller.board
+        if (status is PlayBoardStatus.Ready && board != null) {
+            // The daily pane's §6 gutter lives here, not in the board: the tutorial
+            // host pads its own board pane, as it does for every game.
+            QueensBoard(controller, Modifier.padding(queensPanePaddingFor(board.session.puzzle.size) / 2))
         } else {
             PlayBoardFallback(status, onRetry, tagPrefix = "queens")
         }
@@ -105,28 +108,30 @@ private fun BoxScope.BoardArea(controller: QueensPlayController, status: PlayBoa
 
 /**
  * Queens' one board, chrome-free ([GamePlayUi.Board]): the daily pane and the tutorial
- * host both draw it, so a lesson's tap cycle is the daily one. It sizes itself to the
- * space it is given and draws nothing until [controller] holds a session.
+ * host both draw it, so a lesson's tap cycle is the daily one. It fills the space it is
+ * given up to the §6 cap — the caller owns any gutter — and draws nothing until
+ * [controller] holds a session.
  */
 @Composable
 private fun QueensBoard(controller: QueensPlayController, modifier: Modifier) {
     val boardState = controller.board ?: return
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
-        // §6 sizing policy: the board side is computed — pane space after chrome,
-        // capped by cellMaxSize per cell, never above the pane. The gutter shrinks
-        // to 8dp at n ≥ 10 (queensPanePaddingFor); the side panel is already
-        // excluded by the scaffold's board-pane weight.
+        // §6 sizing policy: the board side is computed — the space given, capped by
+        // queensBoardMaxSideFor (64dp per cell on a daily, PlayBoardMaxWidth on a
+        // lesson), never above the pane. The side panel is already excluded by the
+        // scaffold's board-pane weight.
         val side = queensBoardSideFor(
             paneWidth = maxWidth,
             paneHeight = maxHeight,
             reservedTop = 0.dp,
             reservedBottom = 0.dp,
             cellsPerSide = boardState.session.puzzle.size,
+            panePadding = 0.dp,
         )
         QueensPlayBoard(
             state = boardState,
             modifier = Modifier
-                .size(side) // side already reserves the pane padding via queensBoardSideFor
+                .size(side)
                 .testTag("queens.board"),
         )
     }

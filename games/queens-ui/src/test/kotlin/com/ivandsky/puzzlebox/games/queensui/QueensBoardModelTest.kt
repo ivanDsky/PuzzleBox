@@ -38,6 +38,23 @@ class QueensBoardModelTest {
         assertTrue(QueensBoardModel.of(QueensUiFixtures.session()).violations.isEmpty())
     }
 
+    /** Spec A12: a guided lesson shows the answer squares still open and no stripes. */
+    @Test
+    fun `a guide ghosts the open answer squares and holds back the stripes`() {
+        val answer = QueensUiFixtures.solutionCells.map { it.idx }.toSet()
+        val clash = QueensUiFixtures.session()
+            .withQueenPlaced(Cell(1), QueensUiFixtures.T0)
+            .withQueenPlaced(Cell(2), QueensUiFixtures.T0) // same row → row violation
+        val guided = QueensBoardModel.of(clash, guide = answer)
+        assertTrue(guided.violations.isEmpty())
+        assertEquals(answer - 1, guided.ghosts) // the answer queen at 1 has landed
+        // Unguided, the same board stripes and ghosts nothing.
+        val daily = QueensBoardModel.of(clash)
+        assertTrue(daily.violations.isNotEmpty())
+        assertTrue(daily.ghosts.isEmpty())
+        assertEquals(answer, QueensBoardModel.of(QueensUiFixtures.session(), guide = answer).ghosts)
+    }
+
     @Test
     fun `region hint maps to its region cells`() {
         val hints = com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHints()

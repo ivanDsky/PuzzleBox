@@ -69,7 +69,7 @@ private fun QueensPlayBoardContent(
     state: QueensBoardState,
     modifier: Modifier,
 ) {
-    val model = QueensBoardModel.of(state.session, state.hint, state.hintPointed)
+    val model = QueensBoardModel.of(state.session, state.hint, state.hintPointed, state.guide)
     val boardTokens = LocalBoardColors.current
     val haptics = LocalHapticFeedback.current
     var pressedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }

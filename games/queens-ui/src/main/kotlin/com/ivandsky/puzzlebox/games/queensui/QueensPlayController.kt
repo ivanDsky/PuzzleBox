@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayFeedback
+import com.ivandsky.puzzlebox.gameui.PlayGuide
 import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
@@ -41,11 +42,14 @@ import java.time.Instant
  * Session persistence (R-4): every committed session reaches
  * [PlayEnvironment.onSessionChanged] as codec bytes, including the initial session of a
  * fresh adopt/replay so a process death before the first move still restores.
+ *
+ * Guided lesson (spec A12): [guide] marks the adopted board's answer with faint crowns
+ * and holds back the rule caption ([violation]) until the lesson is done.
  */
 class QueensPlayController(
     private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
-) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback {
+) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
     /** The live interaction holder, null until a session is adopted. */
     var board by mutableStateOf<QueensBoardState?>(null)
@@ -116,6 +120,11 @@ class QueensPlayController(
         publish(fresh)
     }
 
+    /** Spec A12: the adopted board shows its answer and no rule caption (tutorial only). */
+    override fun guide() {
+        checkNotNull(board) { "guide() needs an adopted board" }.guide()
+    }
+
     //endregion
 
     //region PlayClock (F2 §2: active foreground play only)
@@ -184,10 +193,13 @@ class QueensPlayController(
     override val hintCaption: String? get() = board?.hintCaption
 
     /** A14 always-on conflict line (R-2): live while any rule break stands; derived from
-     *  the observable board session, so the shared caption slot recomposes with it. */
+     *  the observable board session, so the shared caption slot recomposes with it. A
+     *  guided lesson has no rule yet, so it never shows the line. */
     override val violation: String?
         get() = board?.let { b ->
-            RULE_CONFLICT.takeIf { QueensBoardModel.of(b.session, b.hint, b.hintPointed).violations.isNotEmpty() }
+            RULE_CONFLICT.takeIf {
+                QueensBoardModel.of(b.session, b.hint, b.hintPointed, b.guide).violations.isNotEmpty()
+            }
         }
 
     /** Queens refuses no input: every tap is a legal mark/queen cycle step. */

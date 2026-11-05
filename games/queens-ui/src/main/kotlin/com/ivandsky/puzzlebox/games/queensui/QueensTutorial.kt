@@ -16,7 +16,9 @@ import java.time.LocalDate
  * board's colors force its answer fast, and each answer is shipped as the solution.
  * Cells are row-major: 0 1 2 3 / 4 5 6 7 / 8 9 10 11 / 12 13 14 15.
  *
- * 1. The tap cycle: three colors are one square each, so the queens are plain to see.
+ * 1. The tap cycle, guided: three colors are one square each, so the queens are plain
+ *    to see, and the board shows a faint queen on each answer square. No rule is taught
+ *    yet, so this lesson never shows a rule caption or rule stripes.
  * 2. Row, column and color: one color is a single square, and each queen after it is
  *    the last free square of its color, row or column. These rules alone decide it.
  * 3. No touching: without that rule the board has six answers. The top's lone square
@@ -37,6 +39,7 @@ internal object QueensTutorial {
             "Tap once for ×. Tap twice for a queen.",
             rows = listOf("0010", "2000", "0003", "0000"),
             queens = listOf(2, 4, 11, 13),
+            guided = true,
         ),
         lesson(
             "One queen in each row, column and color.",
@@ -50,8 +53,16 @@ internal object QueensTutorial {
         ),
     )
 
-    /** One lesson from its [rows] of region ids (one digit per square) and its answer [queens]. */
-    private fun lesson(instruction: String, rows: List<String>, queens: List<Int>): TutorialStep {
+    /**
+     * One lesson from its [rows] of region ids (one digit per square) and its answer
+     * [queens]. A [guided] lesson shows that answer on the board.
+     */
+    private fun lesson(
+        instruction: String,
+        rows: List<String>,
+        queens: List<Int>,
+        guided: Boolean = false,
+    ): TutorialStep {
         val puzzle = QueensPuzzle(
             size = rows.size,
             regions = rows.joinToString("").map { it.digitToInt() },
@@ -66,6 +77,7 @@ internal object QueensTutorial {
                 payload = QueensCodec.encode(puzzle),
             ),
             ref = queensPlugin.refOf(day, null),
+            guided = guided,
         )
     }
 }

@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHints
+import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSolver
 import java.time.Instant
 
 /**
@@ -42,6 +43,11 @@ import java.time.Instant
  * every committed session — start the window, or fold it into the session's banked
  * [QueensSession.elapsedMs] on a win — BEFORE the session is stored and the win record
  * is built, so the record carries the real duration. [bankElapsed] folds a pause.
+ *
+ * Guided lesson (spec A12): calling guide() solves the board once and keeps the answer
+ * in the [guide] property; the board model then draws a faint crown on every answer
+ * square still without a queen and holds back the rule stripes and caption. A daily is
+ * never guided.
  *
  * Win flow (Zip's win→result-route pattern, F2 §7): the [QueensSession.completedAt]
  * TRANSITION builds ONE [com.ivandsky.puzzlebox.game.CompletionRecord] through the
@@ -85,7 +91,17 @@ class QueensBoardState(
     var winEmitted by mutableStateOf(false)
         private set
 
+    /** A guided lesson's answer squares (row-major); null when the board is not guided. */
+    var guide by mutableStateOf<Set<Int>?>(null)
+        private set
+
     private var lastHintCellIdx: Int? = null
+
+    /** Turns on the guided lesson (spec A12): the solver's answer becomes [guide]. */
+    fun guide() {
+        val answer = checkNotNull(QueensSolver().solve(session.puzzle)) { "a guided Queens board must be solvable" }
+        guide = answer.map { it.idx }.toSet()
+    }
 
     //region input
 
@@ -208,15 +224,15 @@ class QueensBoardState(
 /**
  * The §5.5 caption text for the active hint (fix round 6). The region is always named
  * by its palette color (the pulsed fill); the deduction names the unit whose every
- * other cell is blocked. null = nothing to show (no hint, or a no-op hint).
+ * other square is blocked. null = nothing to show (no hint, or a no-op hint).
  */
 internal fun queensHintCaption(hint: QueensHint?): String? = when (hint) {
     is QueensHint.Region -> {
         val color = QueensRegionPalette.hueName(hint.region)
         when (hint.reason?.kind) {
-            HintReason.Kind.ROW -> "The $color queen goes in this row. The other cells are blocked."
-            HintReason.Kind.COLUMN -> "The $color queen goes in this column. The other cells are blocked."
-            HintReason.Kind.REGION -> "The $color queen goes here. The other $color cells are blocked."
+            HintReason.Kind.ROW -> "The $color queen goes in this row. The other squares are blocked."
+            HintReason.Kind.COLUMN -> "The $color queen goes in this column. The other squares are blocked."
+            HintReason.Kind.REGION -> "The $color queen goes here. The other $color squares are blocked."
             // Solver-only forcing: the honest fallback (never a fabricated reason).
             null -> "Hint — the $color region"
         }

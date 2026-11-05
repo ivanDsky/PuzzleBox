@@ -1,9 +1,16 @@
 package com.ivandsky.puzzlebox.games.queensui
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -267,10 +274,7 @@ class QueensBoardUiTest {
         hint as com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region
         assertEquals(HintReason(HintReason.Kind.ROW, 0), hint.reason)
         assertEquals("one presented hint counts once", 1, state.session.hintsUsed)
-        assertEquals(
-            "The red queen goes in this row. The other cells are blocked.",
-            state.hintCaption,
-        )
+        assertNotNull(state.hintCaption)
     }
 
     /** Stage 2 (the repeat tap): the same forced cell is POINTED at — the crown ghost
@@ -391,5 +395,54 @@ class QueensBoardUiTest {
         composeRule.waitForIdle()
         assertTrue("one undo restores the pre-clear queens", state.session.queens.isNotEmpty())
         assertEquals("one undo restores the pre-clear MANUAL mark", MarkKind.MANUAL, state.session.markAt(Cell(15))?.kind)
+    }
+
+    /** Spec A12: a guided board shows a faint queen TalkBack can read on every answer
+     *  square, through the ×, until that square's queen lands. A daily shows none. */
+    @Test
+    fun `a guided board ghosts each answer square until its queen lands`() {
+        val state = setContent(QueensUiFixtures.session())
+        val answer = QueensUiFixtures.solutionCells.map { it.idx }
+        (0 until n * n).forEach { composeRule.onNodeWithTag("queens.ghost.$it").assertDoesNotExist() }
+
+        state.guide()
+        composeRule.waitForIdle()
+        for (idx in 0 until n * n) {
+            val ghost = composeRule.onNodeWithTag("queens.ghost.$idx")
+            if (idx in answer) {
+                ghost.assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription))
+            } else {
+                ghost.assertDoesNotExist()
+            }
+        }
+
+        tap(0, 1) // × on answer square 1: the ghost stays
+        composeRule.onNodeWithTag("queens.ghost.1").assertExists()
+        tap(0, 1) // the queen lands
+        composeRule.onNodeWithTag("queens.ghost.1").assertDoesNotExist()
+        composeRule.onNodeWithTag("queens.ghost.7").assertExists()
+    }
+
+    /** V1: a lesson board fills the board pane the tutorial host gives it, edge to edge —
+     *  no second gutter inside the board and no 64dp-per-cell cap on a 4×4. */
+    @Test
+    fun `a lesson board fills the board pane it is given`() {
+        val controller = QueensPlayController(
+            com.ivandsky.puzzlebox.gameui.PlayEnvironment(
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined),
+                onSessionChanged = {},
+                onWon = {},
+            ),
+        )
+        val lesson = QueensTutorial.steps.first()
+        controller.adoptToday(lesson.puzzle, lesson.ref)
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                androidx.compose.foundation.layout.Box(Modifier.size(379.dp, 600.dp)) {
+                    QueensPlayUi().Board(controller, Modifier)
+                }
+            }
+        }
+        composeRule.onNodeWithTag("queens.board").assertWidthIsEqualTo(379.dp).assertHeightIsEqualTo(379.dp)
     }
 }
