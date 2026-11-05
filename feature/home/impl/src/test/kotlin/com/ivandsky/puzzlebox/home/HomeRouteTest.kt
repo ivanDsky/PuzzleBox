@@ -2,15 +2,19 @@ package com.ivandsky.puzzlebox.home
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.KeptSessionRepository
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import com.ivandsky.puzzlebox.testing.repository.FakeKeptSessionRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.domain.di.domainModule
@@ -21,6 +25,7 @@ import com.ivandsky.puzzlebox.home.di.homeModule
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import java.time.LocalDate
+import java.time.ZoneOffset
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -82,6 +87,7 @@ class HomeRouteTest {
                     single<GameRegistry> { TestGames.registry(listOf(GameId("zip"))) }
                     single<CompletionRepository> { completions }
                     single<IdentityService> { fakeIdentity }
+                    single<KeptSessionRepository> { FakeKeptSessionRepository() }
                 },
                 domainModule,
                 homeModule,
@@ -136,5 +142,31 @@ class HomeRouteTest {
         composeRule.onNodeWithText("November 1").assertExists()
         composeRule.onNodeWithText("Daily queens").assertExists()
         composeRule.onNodeWithText("No games yet").assertDoesNotExist()
+    }
+
+    @Test
+    fun `today card follows today's set - a zip solve flips the done count`() = kotlinx.coroutines.test.runTest {
+        val completions = FakeCompletionRepository()
+        setContent(FakeDailyRepository(), completions)
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText("Not started").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("home.today_summary").assertTextEquals("0 of 1 done")
+        composeRule.onNodeWithTag("home.today_status_zip").assertTextEquals("Not started")
+
+        // The test plugin's cadence is Daily(UTC): this record is on Zip's own today.
+        completions.onCompleted(
+            CompletionRecord(
+                puzzleRef = TestGames.Ref(GameId("zip"), LocalDate.now(ZoneOffset.UTC), 592),
+                time = 36_000L,
+                hints = 0,
+                stats = RecordStats(schemaVersion = 1, blob = "{}"),
+            ),
+        )
+
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText("1 of 1 done").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("home.today_status_zip").assertTextEquals("Solved · 0:36 ✓")
     }
 }

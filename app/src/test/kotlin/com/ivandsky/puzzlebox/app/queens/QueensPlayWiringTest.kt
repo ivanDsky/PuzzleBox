@@ -47,8 +47,9 @@ import org.robolectric.annotation.Config
  * records a history entry through the app's real CompletionRepository (the same
  * emitter → repository path Zip's play uses).
  *
- * The daily feed is the only overridden binding (Robolectric must not touch the
- * network); Room, the flow, and the registry lines are the real graph.
+ * The daily feed and the seen-tutorial prefs are the only overridden bindings
+ * (Robolectric must not touch the network, and the board opens without the lessons);
+ * Room, the flow, and the registry lines are the real graph.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
@@ -95,6 +96,16 @@ class QueensPlayWiringTest {
                                 listOf(DailyEntry(QueensDefinition.id, QueensDefinition.cadence.today(), 42, "queens/n8", 0L)),
                             )
                         }
+                    }
+                    // Every tutorial seen: this path is about the board; the lessons have their own tests.
+                    single<com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository> {
+                        com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository(
+                            seen = setOf(
+                                com.ivandsky.puzzlebox.games.zip.ZipDefinition.id,
+                                com.ivandsky.puzzlebox.games.tango.TangoDefinition.id,
+                                QueensDefinition.id,
+                            ),
+                        )
                     }
                 },
             ),

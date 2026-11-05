@@ -21,14 +21,22 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.model.GameId
 
-/** Queens' one play registration (ADR-0001): its controller and its play screen. */
+/** Queens' one play registration (ADR-0001): its controller, its board and its play screen. */
 class QueensPlayUi : GamePlayUi {
     override val gameId: GameId get() = QueensDefinition.id
 
     override fun createController(env: PlayEnvironment): GamePlayController = QueensPlayController(env)
+
+    override val tutorial: List<TutorialStep> get() = QueensTutorial.steps
+
+    @Composable
+    override fun Board(controller: GamePlayController, modifier: Modifier) {
+        QueensBoard(controller as QueensPlayController, modifier)
+    }
 
     @Composable
     override fun Screen(
@@ -37,9 +45,10 @@ class QueensPlayUi : GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
+        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     ) {
-        QueensPlayScreen(controller as QueensPlayController, status, layout, onRetry, onSolved, modifier)
+        QueensPlayScreen(controller as QueensPlayController, status, layout, onRetry, onSolved, modifier, onHowToPlay)
     }
 }
 
@@ -49,6 +58,7 @@ class QueensPlayUi : GamePlayUi {
  * solved transition hands the frozen result facts (time, hints) to the caller's
  * [onSolved] — the app navigates to the opaque result ROUTE (fix round 6; the modal
  * overlay is deleted). The record write already runs in the play feature's store.
+ * [onHowToPlay] (null = no button) reopens the tutorial from the chrome.
  */
 @Composable
 fun QueensPlayScreen(
@@ -58,6 +68,7 @@ fun QueensPlayScreen(
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
+    onHowToPlay: (() -> Unit)? = null,
 ) {
     // Win → result route (Zip's handoff): ONE navigation trigger per completion —
     // keyed on the completedAt instance so a replay (new completion) hands off again.
@@ -70,46 +81,64 @@ fun QueensPlayScreen(
             layout = layout,
             modifier = Modifier.fillMaxSize(),
             board = { BoardArea(controller, status, onRetry) },
-            side = { SidePanel(controller, status) },
+            side = { SidePanel(controller, status, onHowToPlay) },
         )
     }
 }
 
+/** The board pane: Queens' one board once a puzzle is ready, the shared fallback otherwise. */
 @Composable
 private fun BoxScope.BoardArea(controller: QueensPlayController, status: PlayBoardStatus, onRetry: () -> Unit) {
-    BoxWithConstraints(
+    Box(
         Modifier
             .fillMaxSize()
             .testTag("queens.board_area"),
         contentAlignment = Alignment.Center,
     ) {
-        val boardState = controller.board
-        if (status is PlayBoardStatus.Ready && boardState != null) {
-            // §6 sizing policy: the board side is computed — pane space after chrome,
-            // capped by cellMaxSize per cell, never above the pane. The gutter shrinks
-            // to 8dp at n ≥ 10 (queensPanePaddingFor); the side panel is already
-            // excluded by the scaffold's board-pane weight.
-            val side = queensBoardSideFor(
-                paneWidth = maxWidth,
-                paneHeight = maxHeight,
-                reservedTop = 0.dp,
-                reservedBottom = 0.dp,
-                cellsPerSide = boardState.session.puzzle.size,
-            )
-            QueensPlayBoard(
-                state = boardState,
-                modifier = Modifier
-                    .size(side) // side already reserves the pane padding via queensBoardSideFor
-                    .testTag("queens.board"),
-            )
+        val board = controller.board
+        if (status is PlayBoardStatus.Ready && board != null) {
+            // The daily pane's §6 gutter lives here, not in the board: the tutorial
+            // host pads its own board pane, as it does for every game.
+            QueensBoard(controller, Modifier.padding(queensPanePaddingFor(board.session.puzzle.size) / 2))
         } else {
             PlayBoardFallback(status, onRetry, tagPrefix = "queens")
         }
     }
 }
 
+/**
+ * Queens' one board, chrome-free ([GamePlayUi.Board]): the daily pane and the tutorial
+ * host both draw it, so a lesson's tap cycle is the daily one. It fills the space it is
+ * given up to the §6 cap — the caller owns any gutter — and draws nothing until
+ * [controller] holds a session.
+ */
 @Composable
-private fun SidePanel(controller: QueensPlayController, status: PlayBoardStatus) {
+private fun QueensBoard(controller: QueensPlayController, modifier: Modifier) {
+    val boardState = controller.board ?: return
+    BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
+        // §6 sizing policy: the board side is computed — the space given, capped by
+        // queensBoardMaxSideFor (64dp per cell on a daily, PlayBoardMaxWidth on a
+        // lesson), never above the pane. The side panel is already excluded by the
+        // scaffold's board-pane weight.
+        val side = queensBoardSideFor(
+            paneWidth = maxWidth,
+            paneHeight = maxHeight,
+            reservedTop = 0.dp,
+            reservedBottom = 0.dp,
+            cellsPerSide = boardState.session.puzzle.size,
+            panePadding = 0.dp,
+        )
+        QueensPlayBoard(
+            state = boardState,
+            modifier = Modifier
+                .size(side)
+                .testTag("queens.board"),
+        )
+    }
+}
+
+@Composable
+private fun SidePanel(controller: QueensPlayController, status: PlayBoardStatus, onHowToPlay: (() -> Unit)?) {
     val ready = status as? PlayBoardStatus.Ready
     PlayChrome(
         title = "Queens",
@@ -119,6 +148,7 @@ private fun SidePanel(controller: QueensPlayController, status: PlayBoardStatus)
         undo = controller,
         banner = ready?.banner,
         feedback = controller,
+        onHowToPlay = onHowToPlay,
         modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
     ) {
         controller.board?.let { QueensPlayControls(state = it) }

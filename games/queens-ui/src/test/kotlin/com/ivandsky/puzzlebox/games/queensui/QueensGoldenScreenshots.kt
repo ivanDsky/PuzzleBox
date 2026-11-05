@@ -84,12 +84,16 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
             0f,
         )
         // §6 sizing policy decides the board side for this pane — computed, never eyeballed.
+        // The 4×4 fixture stands in for a daily board, so it keeps the daily per-cell cap
+        // (a real 4×4 is a lesson and would fill the pane).
         val pane = if (widthLabel == "compact") 360 to 640 else 1280 to 900
+        val n = QueensUiFixtures.puzzle().size
         val side = queensBoardSideFor(
             paneWidth = pane.first.dp, paneHeight = pane.second.dp,
             reservedTop = 56.dp,
             reservedBottom = if (controls) 72.dp else 0.dp,
-            cellsPerSide = QueensUiFixtures.puzzle().size,
+            cellsPerSide = n,
+            maxSide = QueensBoardDefaults.cellMaxSize * n,
         )
         composeRule.setContent {
             // Fidelity fix (fix round 3): `currentIsDarkTheme()` reads the configuration's

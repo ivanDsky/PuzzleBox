@@ -104,6 +104,17 @@ internal fun QueensBoardSolvedPreview() {
 }
 
 @PuzzleBoxPreviews
+@Composable
+internal fun QueensBoardGuidedPreview() {
+    // Spec A12, lesson 1: faint queens on the answer squares still open — over the ×
+    // on square 7 too — and none on the queen already placed.
+    val state = previewState(queens = listOf(1), manual = listOf(7)).also { it.guide() }
+    PuzzleBoxTheme {
+        QueensPlayBoard(state, Modifier.fillMaxWidth())
+    }
+}
+
+@PuzzleBoxPreviews
 @Preview(name = "Expanded width", widthDp = 1280, heightDp = 800, showBackground = true)
 @Composable
 internal fun QueensBoardExpandedPreview() {

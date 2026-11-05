@@ -49,7 +49,7 @@ object TangoSemantics {
                     cells = setOf(marker.cellIdx, neighbor(marker, n)!!),
                     reason = TangoVerdict.Reason.MarkerConflict,
                     marker = marker,
-                    phrase = markerConflictPhrase(marker),
+                    phrase = markerConflictPhrase(marker.kind),
                 )
             }
         }
@@ -158,7 +158,8 @@ object TangoSemantics {
     /**
      * StateDescription: "given sun" / "sun" / "moon" / "empty", prefixed "violates: "
      * + rule phrase when the cell carries a violation on the live grid (§10.6
-     * redundancy — the state-driven scan, not the transient rejection).
+     * redundancy — the state-driven scan, not the transient rejection). A guided
+     * lesson's ghost adds its [ghostPhrase], so TalkBack hears what the board shows.
      */
     fun cellStateDescription(model: TangoRendererModel, idx: Int): String {
         val render = model.cells.getOrNull(idx)
@@ -168,8 +169,12 @@ object TangoSemantics {
             null -> "empty"
         }
         val violation = violationPhraseAt(model, idx)
-        return if (violation == null) value else "violates: $violation"
+        val state = if (violation == null) value else "violates: $violation"
+        return model.ghosts[idx]?.let { "$state, ${ghostPhrase(it)}" } ?: state
     }
+
+    /** The ghost's spoken nudge on a guided square: "try a moon". */
+    fun ghostPhrase(answer: TangoCell): String = "try a ${singular(answer)}"
 
     /**
      * The rule-naming phrase for the offending cell on the LIVE grid, or null when
@@ -221,11 +226,10 @@ object TangoSemantics {
         }
     }
 
-    /** "= pair mismatch — these cells must match." / "× pair mismatch — these cells must differ." */
-    private fun markerConflictPhrase(marker: TangoRendererModel.MarkerRender): String {
-        val symbol = if (marker.kind == TangoMarkerKind.SAME) "=" else "×"
-        val requirement = if (symbol == "=") "match" else "differ"
-        return "$symbol pair mismatch — these cells must $requirement."
+    /** The broken edge's caption, in the lesson's own words (= the same, × different). */
+    internal fun markerConflictPhrase(kind: TangoMarkerKind): String = when (kind) {
+        TangoMarkerKind.SAME -> "These two must be the same."
+        TangoMarkerKind.OPPOSITE -> "These two must be different."
     }
 
     /** Custom action labels (§9): the gesture model; commits are final-only (I4). */

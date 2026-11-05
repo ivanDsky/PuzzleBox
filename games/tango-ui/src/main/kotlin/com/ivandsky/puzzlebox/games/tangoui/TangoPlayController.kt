@@ -8,10 +8,12 @@ import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.BROKEN_PUZZLE_MESSAGE
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayFeedback
+import com.ivandsky.puzzlebox.gameui.PlayGuide
 import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
@@ -62,7 +64,7 @@ class TangoPlayController(
     private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
     private val today: () -> LocalDate = { TangoDefinition.cadence.today() },
-) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback {
+) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
     var session by mutableStateOf<TangoSession?>(null)
         private set
@@ -80,6 +82,7 @@ class TangoPlayController(
     override val isComplete: Boolean get() = session?.isComplete == true
 
     private val rules = TangoRules
+    internal val guidance = TangoGuide()
 
     /** The running timer window; folds into [TangoSession.elapsedMs] on pause/background.
      *  Compose state on purpose: the clock loop keys off [clockWindow], so every change
@@ -120,8 +123,8 @@ class TangoPlayController(
             is TangoVerdict.Rejected if verdict.reason == TangoVerdict.Reason.LockedGiven ||
                 verdict.reason == TangoVerdict.Reason.ForeignMove -> Unit
 
-            // A rule-violating placement LANDS (§6): mistake + rule-naming caption.
-            is TangoVerdict.Rejected -> land(current, move, placedAt = now(), mistake = verdict.reason, before = before)
+            // A rule-violating placement LANDS (§6): mistake + rule-naming caption, none while guided.
+            is TangoVerdict.Rejected -> land(current, move, now(), verdict.reason.takeUnless { guidance.active }, before)
         }
     }
 
@@ -183,10 +186,10 @@ class TangoPlayController(
     override fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt {
         val tango = when (val decoded = TangoCodec.decode(puzzle.payload)) {
             is DecodeResult.Ok -> decoded.value
-            is DecodeResult.Err -> return Adopt.Rejected(UNTRUSTED_COPY)
+            is DecodeResult.Err -> return Adopt.Rejected(BROKEN_PUZZLE_MESSAGE)
         }
         // A15: an ambiguous puzzle is never playable — the untrusted unavailable state.
-        if (!TangoUniqueness.isUniquelySolvable(tango)) return Adopt.Rejected(UNTRUSTED_COPY)
+        if (!TangoUniqueness.isUniquelySolvable(tango)) return Adopt.Rejected(BROKEN_PUZZLE_MESSAGE)
         // Round-trip the initial session through the callback too: the route's saveable
         // must exist from load, not first placement (C1 process-death window).
         updateSession(TangoSession(ref = ref as TangoPuzzleRef, puzzle = tango))
@@ -214,11 +217,8 @@ class TangoPlayController(
     //endregion
 
     /**
-     * Hint (spec hints bullet, Zip parity): the ONE counted hint AUTO-PLACES the
-     * forced move as an ordinary, undoable [TangoPlace] and keeps its WHY for the
-     * caption until the next input. The board highlight is 04's known gap (renderer
-     * model carries no hint payload) — the reveal is the auto-placement itself plus
-     * the side-panel caption. Undoing it does not refund the hint.
+     * Hint (spec hints bullet, Zip parity): the ONE counted hint AUTO-PLACES the forced move as an ordinary,
+     * undoable [TangoPlace], highlights it and captions its WHY until the next input. Undo refunds nothing.
      */
     override fun requestHint() {
         val current = session ?: return
@@ -297,7 +297,7 @@ class TangoPlayController(
     private fun hasPlayed(s: TangoSession): Boolean =
         s.placements.isNotEmpty() || s.history.canUndo || s.history.canRedo
 
-    //region PlayHints + PlayFeedback
+    //region PlayHints + PlayFeedback + PlayGuide
     override val hintsUsed: Int get() = session?.hintsUsed ?: 0
     override val hintEnabled: Boolean get() = session?.isComplete == false
     /** The hint's WHY sentence (§6), shown by the shared chrome until the next input. */
@@ -313,6 +313,7 @@ class TangoPlayController(
     /** §6 state-driven live-grid violation (outranks [hintCaption]); placements LAND, so no [rejection]. */
     override val violation: String? get() = rendererModel()?.let(TangoSemantics::firstViolationPhrase)
     override val rejection: String? get() = null
+    override fun guide() { session?.puzzle?.let(guidance::start) }
     //endregion
 
     /** Result's "Play again": a fresh session of the same puzzle, every transient reveal
@@ -341,7 +342,7 @@ class TangoPlayController(
             hint = hint,
             verdict = lastRejection,
             suppressedSets = suppressedSets,
-        ).copy(hintWhy = null)
+        ).copy(hintWhy = null).let(guidance::apply)
     }
 
     /** Versioned session bytes (A19/F2 §2) — what [PlayEnvironment.onSessionChanged] receives. */
@@ -367,9 +368,6 @@ class TangoPlayController(
     //endregion
 
     private companion object {
-        /** §6 Unavailable (payload untrusted, A15/A16) — the same copy both games share. */
-        const val UNTRUSTED_COPY = "Today's puzzle failed verification, so it can't be played. Try again later."
-
         val REPLAY_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d")
     }
 }

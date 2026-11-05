@@ -80,7 +80,7 @@ fun HistoryScreen(
                     launch { snackbarHostState.showSnackbar("That day is no longer saved on this device.") }
                 is HistoryEvent.ReplayUnreadable ->
                     launch {
-                        snackbarHostState.showSnackbar("This puzzle's data couldn't be read, so it can't be replayed.")
+                        snackbarHostState.showSnackbar("This day didn't load right, so it can't be played again.")
                     }
             }
         }

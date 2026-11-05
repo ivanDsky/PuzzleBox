@@ -50,9 +50,20 @@ object QueensBoardDefaults {
     const val hintPulseCycles: Int = 2
     const val hintPointedAlphaBoost: Float = 3f
     const val hintGhostAlpha: Float = 0.45f
+    // The ghost is a dashed crown outline, so it never reads as a placed (solid) queen.
+    const val ghostOutlineAlpha: Float = 0.7f
+    val ghostStrokeWeight: Dp = 2.dp
+    val ghostDash: Dp = 5.dp
 
-    // §6 upper bound: cell visual size caps at 64dp; larger panes pad instead.
+    // Guided lesson (spec A12): a queen off the answer carries a faint × in its corner
+    // (Tango's guide badge size), so a lesson with every answer placed never looks stuck.
+    const val strayBadgeFraction: Float = 0.4f
+
+    // §6 upper bound: cell visual size caps at 64dp; larger panes pad instead. The cap
+    // holds from 5 cells per side (every daily, A9); a smaller lesson board fills its
+    // pane up to the shared PlayBoardMaxWidth, like Tango's and Zip's (queensBoardMaxSideFor).
     val cellMaxSize: Dp = 64.dp
+    const val perCellCapFromCells: Int = 5
 
     // §6 lower bound reasoning: compact worst case (10x10 on 360dp) bottoms out here.
     val cellMinSize: Dp = 32.dp

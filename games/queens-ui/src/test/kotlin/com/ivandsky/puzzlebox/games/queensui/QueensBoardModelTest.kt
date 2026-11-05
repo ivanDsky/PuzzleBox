@@ -38,6 +38,42 @@ class QueensBoardModelTest {
         assertTrue(QueensBoardModel.of(QueensUiFixtures.session()).violations.isEmpty())
     }
 
+    /** Spec A12: a guided lesson shows the answer squares still open and no stripes. */
+    @Test
+    fun `a guide ghosts the open answer squares and holds back the stripes`() {
+        val answer = QueensUiFixtures.solutionCells.map { it.idx }.toSet()
+        val clash = QueensUiFixtures.session()
+            .withQueenPlaced(Cell(1), QueensUiFixtures.T0)
+            .withQueenPlaced(Cell(2), QueensUiFixtures.T0) // same row → row violation
+        val guided = QueensBoardModel.of(clash, guide = answer)
+        assertTrue(guided.violations.isEmpty())
+        assertEquals(answer - 1, guided.ghosts) // the answer queen at 1 has landed
+        // Unguided, the same board stripes and ghosts nothing.
+        val daily = QueensBoardModel.of(clash)
+        assertTrue(daily.violations.isNotEmpty())
+        assertTrue(daily.ghosts.isEmpty())
+        assertEquals(answer, QueensBoardModel.of(QueensUiFixtures.session(), guide = answer).ghosts)
+    }
+
+    /** N1: a queen off the answer keeps its cue once every answer queen has landed, so a
+     *  guided lesson that is not won still shows what to take away. */
+    @Test
+    fun `a guide marks a queen off the answer even when every answer has landed`() {
+        val answer = QueensUiFixtures.solutionCells.map { it.idx }.toSet()
+        val stray = (0 until QueensUiFixtures.puzzle().cellCount).first { it !in answer }
+        // The stray lands first, as on the device (p2-57): the answer alone would win.
+        val board = (listOf(stray) + answer).fold(QueensUiFixtures.session()) { s, idx ->
+            s.withQueenPlaced(Cell(idx), QueensUiFixtures.T0)
+        }
+        val guided = QueensBoardModel.of(board, guide = answer)
+        assertFalse(guided.win)
+        assertTrue(guided.ghosts.isEmpty())
+        assertEquals(setOf(stray), guided.strays)
+        assertTrue(guided.violations.isEmpty())
+        // A daily marks no strays: its rules speak through the stripes instead.
+        assertTrue(QueensBoardModel.of(board).strays.isEmpty())
+    }
+
     @Test
     fun `region hint maps to its region cells`() {
         val hints = com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHints()

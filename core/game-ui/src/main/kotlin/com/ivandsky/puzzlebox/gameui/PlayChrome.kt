@@ -6,6 +6,11 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import androidx.compose.material3.Surface
@@ -19,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -111,7 +117,8 @@ fun PlayClockEffects(clock: PlayClock) {
  * reserved caption slot ([PlayCaptionSlot] over [playCaption]: violation > rejection >
  * hint), the record-of-truth timer, and undo/redo (§5/§9: controls ≥ 48 dp — the M3
  * buttons carry their own floor). Seams are nullable so a game opts out of a control it
- * does not have; [gameControls] is the game-specific remainder.
+ * does not have; [onHowToPlay] (null = no button) reopens the game's tutorial (spec A11);
+ * [gameControls] is the game-specific remainder.
  */
 @Composable
 fun PlayChrome(
@@ -123,6 +130,7 @@ fun PlayChrome(
     banner: String?,
     modifier: Modifier = Modifier,
     feedback: PlayFeedback? = null,
+    onHowToPlay: (() -> Unit)? = null,
     gameControls: @Composable ColumnScope.() -> Unit = {},
 ) {
     if (clock != null) PlayClockEffects(clock)
@@ -146,6 +154,19 @@ fun PlayChrome(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            if (onHowToPlay != null) {
+                // Newer M3 IconButtons measure 40 dp; the floor is 48 dp (§9).
+                IconButton(
+                    onClick = onHowToPlay,
+                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag("play.how_to_play"),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Info,
+                        contentDescription = "How to play",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             if (hints != null) {
                 HintButton(

@@ -268,7 +268,7 @@ class QueensPlayControllerTest {
         assertNull(state.violation)
         board.onTap(2) // AUTO X → queen at (0,2): same row → conflict
         assertEquals(
-            "Rule conflict — queens can't touch or share a row, column, or region",
+            "Queens can't touch or share a row, column, or color.",
             state.violation,
         )
         assertNull(state.rejection)

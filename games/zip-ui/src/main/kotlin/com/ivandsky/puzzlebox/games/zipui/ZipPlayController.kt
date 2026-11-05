@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.BROKEN_PUZZLE_MESSAGE
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GridCell
@@ -17,7 +18,6 @@ import com.ivandsky.puzzlebox.gameui.PlayFeedback
 import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
-import com.ivandsky.puzzlebox.gameui.untrustedDecodeMessage
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.ZipSession
@@ -128,7 +128,7 @@ class ZipPlayController(
     override fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt {
         val zip = when (val decoded = ZipCodec.decode(puzzle.payload)) {
             is DecodeResult.Ok -> decoded.value
-            is DecodeResult.Err -> return Adopt.Rejected(untrustedDecodeMessage(decoded.error))
+            is DecodeResult.Err -> return Adopt.Rejected(BROKEN_PUZZLE_MESSAGE)
         }
         session = ZipSession(ref = ref as ZipPuzzleRef, puzzle = zip)
         return Adopt.Adopted

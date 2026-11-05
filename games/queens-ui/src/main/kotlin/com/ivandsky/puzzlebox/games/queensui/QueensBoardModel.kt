@@ -18,7 +18,10 @@ enum class QueensCellVisual { EMPTY, X_MANUAL, X_AUTO, QUEEN }
  *
  * Violations are ALWAYS ON (A14 revised, fix round 6 — the Auto-check toggle is
  * deleted): the rules pipeline's attributed offending cells (typed verdict from
- * queens-02) render stripes + caption whenever a conflict is live.
+ * queens-02) render stripes + caption whenever a conflict is live. The one exception is
+ * a guided lesson (spec A12): it teaches input before any rule, so the guide passed to
+ * [of] holds the stripes back and instead shows [ghosts] — faint crowns on the answer
+ * squares that still lack a queen — and [strays], the queens off the answer.
  *
  * [hintCell] is the staged ladder's stage 2 (fix round 6): a repeat hint tap on the
  * same forced cell POINTS at it — a crown ghost renders over the region pulse.
@@ -33,16 +36,22 @@ data class QueensBoardModel(
     val hintCells: Set<Int>, // region cells (Region hint) or offending cells (Incorrect hint)
     val hintCell: Int?, // stage 2: the pointed forced cell (crown ghost)
     val win: Boolean,
+    val ghosts: Set<Int> = emptySet(), // guided lesson: answer squares still without a queen
+    val strays: Set<Int> = emptySet(), // guided lesson: queens on squares outside the answer
 ) {
     val cellCount: Int get() = n * n
 
     companion object {
 
-        /** state, hint, stage-2 flag → drawable model (the RendererModel contract shape). */
+        /**
+         * state, hint, stage-2 flag, guided answer → drawable model (the RendererModel
+         * contract shape). A non-null [guide] is the answer's row-major indices.
+         */
         fun of(
             session: QueensSession,
             hint: QueensHint? = null,
             hintPointed: Boolean = false,
+            guide: Set<Int>? = null,
         ): QueensBoardModel {
             val puzzle = session.puzzle
             val queenSet = session.queens.toSet()
@@ -54,7 +63,7 @@ data class QueensBoardModel(
                     else -> QueensCellVisual.EMPTY
                 }
             }
-            val violations = if (!session.isComplete) {
+            val violations = if (guide == null && !session.isComplete) {
                 when (val verdict = QueensRules.evaluate(puzzle, queenSet)) {
                     is QueensRulesVerdict.Invalid -> verdict.violations.map { it.cell.idx }.toSet()
                     else -> emptySet()
@@ -79,6 +88,8 @@ data class QueensBoardModel(
                 hintCells = hintCells,
                 hintCell = hintCell,
                 win = session.isComplete,
+                ghosts = guide.orEmpty() - queenSet.map { it.idx }.toSet(),
+                strays = guide?.let { answer -> queenSet.map { it.idx }.toSet() - answer }.orEmpty(),
             )
         }
     }

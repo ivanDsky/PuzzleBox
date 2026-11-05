@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.KeptSession
 import com.ivandsky.puzzlebox.data.repository.KeptSessionRepository
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -28,6 +29,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeKeptSessionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import org.junit.After
 import org.junit.Rule
 import org.koin.core.KoinApplication
@@ -37,9 +39,9 @@ import org.koin.dsl.module
 
 /**
  * The play route over stand-in games (feature:play:impl never sees a real game), shared by
- * [PlayRouteTest] (entering: picker, start, restore) and [PlayRouteExitTest] (leaving:
- * back, a new entry, disposal). The same paths over the real games live in the app's
- * RealGamesPlayRouteTest.
+ * [PlayRouteTest] (entering: picker, start, restore), [PlayRouteExitTest] (leaving:
+ * back, a new entry, disposal) and [PlayRouteTutorialTest] (first play and How to play).
+ * The same paths over the real games live in the app's RealGamesPlayRouteTest.
  */
 abstract class PlayRouteHarness {
 
@@ -63,6 +65,7 @@ abstract class PlayRouteHarness {
         daily: DailyRepository = freshDaily(),
         completions: CompletionRepository = FakeCompletionRepository(),
         kept: KeptSessionRepository = FakeKeptSessionRepository(),
+        prefs: UserPreferencesRepository = FakeUserPreferencesRepository(),
     ): KoinApplication {
         stopKoin() // tests share the JVM-global Koin context
         return startKoin {
@@ -71,6 +74,7 @@ abstract class PlayRouteHarness {
                     single { daily }
                     single { completions }
                     single { kept }
+                    single { prefs }
                     single<GameRegistry> { fakes.games }
                     single<GamePlayRegistry> { fakes.registry }
                     factory { ObserveTodaySet(games = get(), completions = get(), kept = get()) }
