@@ -53,7 +53,7 @@ class SudokuPlayControllerTest {
     @Test
     fun `adopting 450 publishes the fresh session`() {
         val c = adopted()
-        assertEquals(peanut450, c.session!!.puzzle)
+        assertEquals(peanut450, c.board!!.session.puzzle)
         assertEquals(ref, savedSession().ref)
         assertFalse(c.isComplete)
     }
@@ -61,8 +61,8 @@ class SudokuPlayControllerTest {
     @Test
     fun `placing a digit publishes a session that decodes back with that entry`() {
         val c = adopted()
-        c.select(0)
-        c.place(4)
+        c.board!!.select(0)
+        c.board!!.input(4)
         assertEquals(SudokuCell.Entry(4), savedSession().board.cells[0])
         assertTrue(c.canUndo)
     }
@@ -70,9 +70,9 @@ class SudokuPlayControllerTest {
     @Test
     fun `placing on a given changes nothing`() {
         val c = adopted()
-        c.select(2)
+        c.board!!.select(2)
         val before = saved.size
-        c.place(1)
+        c.board!!.input(1)
         assertEquals(before, saved.size)
     }
 
@@ -80,19 +80,19 @@ class SudokuPlayControllerTest {
     fun `a foreign envelope is rejected`() {
         val c = controller()
         assertTrue(c.adoptToday(envelope(gameId = SudokuGames.CLASSIC.id), ref) is Adopt.Rejected)
-        assertNull(c.session)
+        assertNull(c.board)
     }
 
     @Test
     fun `solving emits one win record with the banked time`() {
         val c = adopted()
         val open = givens.indices.filter { givens[it] == 0 }
-        c.select(open.first())
-        c.place(solution[open.first()])
+        c.board!!.select(open.first())
+        c.board!!.input(solution[open.first()])
         clockMs += 5_000
         for (idx in open.drop(1)) {
-            c.select(idx)
-            c.place(solution[idx])
+            c.board!!.select(idx)
+            c.board!!.input(solution[idx])
         }
         assertTrue(c.isComplete)
         assertEquals(1, won.size)
@@ -102,18 +102,18 @@ class SudokuPlayControllerTest {
 
     @Test
     fun `restore brings back the entry without re-emitting`() {
-        adopted().apply { select(0); place(4) }
+        adopted().board!!.apply { select(0); input(4) }
         val c = controller()
         assertEquals(Restored(ref), c.adoptRestored(saved.last()))
-        assertEquals(SudokuCell.Entry(4), c.session!!.board.cells[0])
+        assertEquals(SudokuCell.Entry(4), c.board!!.session.board.cells[0])
         assertTrue(won.isEmpty())
     }
 
     @Test
     fun `undo reverts the placement`() {
         val c = adopted()
-        c.select(0)
-        c.place(4)
+        c.board!!.select(0)
+        c.board!!.input(4)
         c.undo()
         assertEquals(SudokuCell.Empty, savedSession().board.cells[0])
     }
@@ -121,14 +121,14 @@ class SudokuPlayControllerTest {
     @Test
     fun `selecting and the notes toggle leave the clock stopped, a placement starts it`() {
         val c = adopted()
-        c.select(0)
+        c.board!!.select(0)
         c.board!!.toggleNotesMode()
         clockMs += 3_000
         c.tick()
         assertNull(c.clockWindow)
         assertEquals(0L, c.displayedElapsedMs())
         c.board!!.toggleNotesMode()
-        c.place(4)
+        c.board!!.input(4)
         assertNotNull(c.clockWindow)
         clockMs += 2_000
         c.tick()
@@ -148,8 +148,8 @@ class SudokuPlayControllerTest {
     @Test
     fun `background folds the running window and foreground reopens it`() {
         val c = adopted()
-        c.select(0)
-        c.place(4)
+        c.board!!.select(0)
+        c.board!!.input(4)
         clockMs += 1_500
         c.onBackground()
         assertNull(c.clockWindow)
@@ -174,23 +174,23 @@ class SudokuPlayControllerTest {
     @Test
     fun `a given refuses input through the feedback seam`() {
         val c = adopted()
-        c.select(2)
-        c.place(1)
+        c.board!!.select(2)
+        c.board!!.input(1)
         assertEquals("That number is part of the puzzle.", c.rejection)
     }
 
     @Test
     fun `restore keeps notes mode and starts with no selection`() {
-        adopted().apply {
+        adopted().board!!.apply {
             select(0)
-            board!!.toggleNotesMode()
-            place(4)
+            toggleNotesMode()
+            input(4)
         }
         val c = controller()
         c.adoptRestored(saved.last())
-        assertTrue(c.session!!.notesMode)
-        assertEquals(SudokuCell.Notes(1 shl 3), c.session!!.board.cells[0])
-        assertNull(c.selected)
+        assertTrue(c.board!!.session.notesMode)
+        assertEquals(SudokuCell.Notes(1 shl 3), c.board!!.session.board.cells[0])
+        assertNull(c.board!!.selected)
         assertNotNull(c.clockWindow)
     }
 }

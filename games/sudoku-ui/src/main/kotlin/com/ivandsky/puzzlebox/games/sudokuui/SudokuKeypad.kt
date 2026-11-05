@@ -3,10 +3,12 @@ package com.ivandsky.puzzlebox.games.sudokuui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -24,8 +26,9 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.rememberReducedMotion
 
 /**
- * The Sudoku keypad: Notes and Erase as tonal buttons above a single row of digit keys
- * 1..N. It fills the caller's width; key sizing is the caller's layout, not SudokuSizing.
+ * The Sudoku keypad: Notes and Erase as tonal buttons above the digit keys 1..N in [rows]
+ * rows (SudokuLayout.keyRows). Every digit key gets the same width, so a short last row
+ * (9 keys in 2 rows: 5 + 4) sits centred under the full one. It fills the caller's width.
  */
 @Composable
 fun SudokuKeypad(
@@ -34,6 +37,7 @@ fun SudokuKeypad(
     onErase: () -> Unit,
     onToggleNotes: () -> Unit,
     modifier: Modifier = Modifier,
+    rows: Int = 1,
 ) {
     val reducedMotion = rememberReducedMotion()
     Column(
@@ -58,24 +62,34 @@ fun SudokuKeypad(
                 Text("Erase")
             }
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            model.remaining.forEachIndexed { index, remaining ->
-                val digit = index + 1
-                SudokuDigitKey(
-                    digit = digit,
-                    remaining = remaining,
-                    notesMode = model.notesMode,
-                    reducedMotion = reducedMotion,
-                    onClick = { onDigit(digit) },
-                    modifier = Modifier.weight(1f),
-                )
+        val keysPerRow = (model.size + rows - 1) / rows
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val keyWidth = (maxWidth - DIGIT_GAP * (keysPerRow - 1)) / keysPerRow
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                model.remaining.chunked(keysPerRow).forEachIndexed { row, rowRemaining ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(DIGIT_GAP, Alignment.CenterHorizontally),
+                    ) {
+                        rowRemaining.forEachIndexed { column, remaining ->
+                            val digit = row * keysPerRow + column + 1
+                            SudokuDigitKey(
+                                digit = digit,
+                                remaining = remaining,
+                                notesMode = model.notesMode,
+                                reducedMotion = reducedMotion,
+                                onClick = { onDigit(digit) },
+                                modifier = Modifier.width(keyWidth),
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
+
+private val DIGIT_GAP = Spacing.xs
 
 /**
  * Tonal like Erase, but a toggle: Material's tonal button only exposes a Button role,

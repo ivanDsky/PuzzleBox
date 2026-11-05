@@ -39,18 +39,7 @@ class SudokuPlayController(
     var board by mutableStateOf<SudokuBoardState?>(null)
         private set
 
-    val session: SudokuSession? get() = board?.session
-
-    // The play UI selects and places through these until it draws the board state directly.
-    val selected: Int? get() = board?.selected
-
-    fun select(idx: Int) {
-        board?.select(idx)
-    }
-
-    fun place(digit: Int) {
-        board?.input(digit)
-    }
+    private val session: SudokuSession? get() = board?.session
 
     override val isComplete: Boolean get() = session?.isComplete == true
 

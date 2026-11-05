@@ -59,6 +59,22 @@ internal fun SudokuKeypadNinePreview() {
 @PuzzleBoxPreviews
 @Preview(name = "Compact width", widthDp = 360, showBackground = true)
 @Composable
+internal fun SudokuKeypadNineTwoRowsPreview() {
+    PuzzleBoxTheme {
+        SudokuKeypad(
+            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = false),
+            onDigit = {},
+            onErase = {},
+            onToggleNotes = {},
+            modifier = Modifier.padding(Spacing.lg),
+            rows = 2,
+        )
+    }
+}
+
+@PuzzleBoxPreviews
+@Preview(name = "Compact width", widthDp = 360, showBackground = true)
+@Composable
 internal fun SudokuKeypadNineNotesPreview() {
     PuzzleBoxTheme {
         SudokuKeypad(

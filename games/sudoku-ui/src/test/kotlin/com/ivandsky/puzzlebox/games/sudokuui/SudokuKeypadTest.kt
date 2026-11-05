@@ -1,23 +1,30 @@
 package com.ivandsky.puzzlebox.games.sudokuui
 
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGeometry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -135,6 +142,30 @@ class SudokuKeypadTest {
         toggle.assert(hasStateDescription("On"))
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.On))
         composeRule.onNodeWithContentDescription("Note 1, 6 left").assertExists()
+    }
+
+    @Test
+    fun `two rows split nine digits five over four with every key at least 48dp`() {
+        composeRule.setContent {
+            PuzzleBoxTheme {
+                SudokuKeypad(
+                    model = SudokuKeypadModel(9, List(9) { 9 }, notesMode = false),
+                    onDigit = {},
+                    onErase = {},
+                    onToggleNotes = {},
+                    modifier = Modifier.width(320.dp),
+                    rows = 2,
+                )
+            }
+        }
+        val keys = (1..9).map { composeRule.onNodeWithContentDescription("$it, 9 left").getUnclippedBoundsInRoot() }
+
+        assertEquals(1, keys.take(5).map { it.top }.distinct().size)
+        assertEquals(1, keys.drop(5).map { it.top }.distinct().size)
+        assertTrue(keys[5].top > keys[0].bottom)
+        keys.forEach { assertTrue("key $it is under 48dp", it.width >= 48.dp && it.height >= 48.dp) }
+        // The short row is centred under the full one: half a key in from either edge.
+        assertTrue(keys[5].left > keys[0].left && keys[8].right < keys[4].right)
     }
 
     private fun setKeypad(
