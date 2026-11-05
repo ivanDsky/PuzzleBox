@@ -4,11 +4,12 @@ import com.ivandsky.puzzlebox.game.GameRules
 import com.ivandsky.puzzlebox.game.Hint
 import com.ivandsky.puzzlebox.game.Move
 import com.ivandsky.puzzlebox.game.MoveVerdict
+import com.ivandsky.puzzlebox.games.sudoku.engine.rules.SudokuConflicts
 
 /**
  * The plugin's rules facade. Validation is total: a foreign move gets a typed verdict, never
- * a throw. Completion is "every digit matches the solution" until ticket 09 makes it
- * rule-based; [SudokuSession] reads it from here so both stay in step.
+ * a throw. Completion is rule-based: any full board without a conflict is solved, the same
+ * check [SudokuSession] stamps its win with.
  */
 object SudokuGameRules : GameRules<SudokuState> {
 
@@ -29,8 +30,7 @@ object SudokuGameRules : GameRules<SudokuState> {
         }
     }
 
-    override fun isComplete(state: SudokuState): Boolean =
-        state.puzzle.solution.indices.all { state.board.digitAt(it) == state.puzzle.solution[it] }
+    override fun isComplete(state: SudokuState): Boolean = SudokuConflicts.isSolved(state.board)
 
     override fun hint(state: SudokuState): Hint {
         val solution = state.puzzle.solution

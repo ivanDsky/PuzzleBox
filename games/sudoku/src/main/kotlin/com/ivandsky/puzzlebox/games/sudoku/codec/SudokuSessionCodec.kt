@@ -1,13 +1,17 @@
 package com.ivandsky.puzzlebox.games.sudoku.codec
 
+import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameSessionCodec
 import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
+import com.ivandsky.puzzlebox.games.sudoku.SudokuCommand
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
+import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCommandCodec.Reader
+import com.ivandsky.puzzlebox.games.sudoku.engine.rules.SudokuConflicts
 import com.ivandsky.puzzlebox.model.GameId
 import java.io.ByteArrayOutputStream
 import java.time.Instant
@@ -15,7 +19,7 @@ import java.time.LocalDate
 
 /**
  * Session bytes v1, puzzle embedded by value so an unfinished day survives offline.
- * Multi-byte fields are little-endian:
+ * Multi-byte fields are little-endian; `cell` and `command` are [SudokuCommandCodec]'s:
  *
  * ```
  * 0   u8    formatVersion = 1
@@ -23,34 +27,28 @@ import java.time.LocalDate
  *     u8    flags                         (bit0 completedAt, bit1 ref, bit2 notesMode)
  *     [bit1] u8 gameIdLen; ASCII gameId, i64 epochDay, u8 hasNumber, [hasNumber] i32 puzzleNumber
  *     N² x cell                           (row-major)
+ *     u16   doneCount; doneCount x command        (undo stack, oldest first)
+ *     u16   undoneCount; undoneCount x command    (redo stack, bottom first)
  *     [bit0] i64 completedAt epochMilli
  *     i64   elapsedMs
  *     i32   hintsUsed
- *
- * cell = u8 kind, then
- *   0 Empty
- *   1 Given  u8 digit
- *   2 Entry  u8 digit, u16 notes
- *   3 Notes  u16 mask
  * ```
  *
- * The undo history is not stored yet (ticket 09): a restored session starts with an empty one.
- * Decode never throws. Anything truncated, out of range, inconsistent with the puzzle's givens
- * or followed by trailing bytes is [DecodeResult.Err], which the caller treats as a fresh start.
+ * Decode never throws. Anything truncated, out of range, inconsistent with the puzzle's givens,
+ * followed by trailing bytes, or whose history does not walk back and forth from the stored
+ * board is [DecodeResult.Err], which the caller treats as a fresh start.
  */
 object SudokuSessionCodec : GameSessionCodec<SudokuSession> {
 
     const val VERSION: Int = 1
 
+    /** Decode bound on each history list; [serialize] keeps only the newest this many. */
+    const val MAX_HISTORY: Int = 10_000
+
     private const val FLAG_COMPLETED = 1
     private const val FLAG_REF = 2
     private const val FLAG_NOTES_MODE = 4
     private const val KNOWN_FLAGS = FLAG_COMPLETED or FLAG_REF or FLAG_NOTES_MODE
-
-    private const val CELL_EMPTY = 0
-    private const val CELL_GIVEN = 1
-    private const val CELL_ENTRY = 2
-    private const val CELL_NOTES = 3
 
     override fun serialize(session: SudokuSession): ByteArray {
         val puzzleBytes = SudokuCodec.encode(session.puzzle)
@@ -77,7 +75,9 @@ object SudokuSessionCodec : GameSessionCodec<SudokuSession> {
             if (number != null) out.writeLe(number.toLong(), bytes = 4)
         }
 
-        session.board.cells.forEach { out.writeCell(it) }
+        session.board.cells.forEach { SudokuCommandCodec.writeCell(out, it) }
+        writeHistory(out, session.history.done)
+        writeHistory(out, session.history.undone)
         session.completedAt?.let { out.writeLe(it.toEpochMilli(), bytes = 8) }
         out.writeLe(session.elapsedMs, bytes = 8)
         out.writeLe(session.hintsUsed.toLong(), bytes = 4)
@@ -104,12 +104,25 @@ object SudokuSessionCodec : GameSessionCodec<SudokuSession> {
         for (idx in 0 until puzzle.geometry.cellCount) {
             cells += readCell(reader, puzzle, idx) ?: return malformed("malformed cell $idx")
         }
+        val board = SudokuBoard(puzzle.geometry, cells)
+
+        val done = when (val decoded = readHistory(reader, puzzle, "undo")) {
+            is DecodeResult.Ok -> decoded.value
+            is DecodeResult.Err -> return decoded
+        }
+        val undone = when (val decoded = readHistory(reader, puzzle, "redo")) {
+            is DecodeResult.Ok -> decoded.value
+            is DecodeResult.Err -> return decoded
+        }
+        val history = CommandHistory<SudokuBoard, SudokuCommand>(done, undone)
+        if (!walksFrom(board, history)) return malformed("history does not walk from the stored board")
 
         val completedAt = if (flags and FLAG_COMPLETED != 0) {
             Instant.ofEpochMilli(reader.i64() ?: return malformed("truncated completedAt"))
         } else {
             null
         }
+        if ((completedAt != null) != SudokuConflicts.isSolved(board)) return malformed("completion disagrees with the board")
         val elapsedMs = reader.i64()?.takeIf { it >= 0 } ?: return malformed("missing or negative elapsedMs")
         val hintsUsed = reader.i32()?.takeIf { it >= 0 } ?: return malformed("missing or negative hintsUsed")
         if (!reader.atEnd()) return malformed("trailing bytes after session")
@@ -118,7 +131,8 @@ object SudokuSessionCodec : GameSessionCodec<SudokuSession> {
             SudokuSession(
                 ref = ref,
                 puzzle = puzzle,
-                board = SudokuBoard(puzzle.geometry, cells),
+                board = board,
+                history = history,
                 completedAt = completedAt,
                 elapsedMs = elapsedMs,
                 hintsUsed = hintsUsed,
@@ -141,73 +155,54 @@ object SudokuSessionCodec : GameSessionCodec<SudokuSession> {
 
     /** Null when the cell is malformed or disagrees with the puzzle about which cells are given. */
     private fun readCell(reader: Reader, puzzle: SudokuPuzzle, idx: Int): SudokuCell? {
-        val size = puzzle.geometry.size
-        val fullMask = (1 shl size) - 1
+        val cell = SudokuCommandCodec.readCell(reader, puzzle.geometry.size) ?: return null
         val given = puzzle.givens[idx]
-        val cell = when (reader.u8()) {
-            CELL_EMPTY -> SudokuCell.Empty
-            CELL_GIVEN -> SudokuCell.Given(reader.u8()?.takeIf { it in 1..size } ?: return null)
-            CELL_ENTRY -> {
-                val digit = reader.u8()?.takeIf { it in 1..size } ?: return null
-                SudokuCell.Entry(digit, reader.u16()?.takeIf { it and fullMask.inv() == 0 } ?: return null)
-            }
-            CELL_NOTES -> SudokuCell.Notes(reader.u16()?.takeIf { it != 0 && it and fullMask.inv() == 0 } ?: return null)
-            else -> return null
-        }
         val consistent = if (given == 0) cell !is SudokuCell.Given else cell == SudokuCell.Given(given)
         return cell.takeIf { consistent }
     }
 
-    private fun ByteArrayOutputStream.writeCell(cell: SudokuCell) {
-        when (cell) {
-            SudokuCell.Empty -> write(CELL_EMPTY)
-            is SudokuCell.Given -> {
-                write(CELL_GIVEN)
-                write(cell.digit)
-            }
-            is SudokuCell.Entry -> {
-                write(CELL_ENTRY)
-                write(cell.digit)
-                writeLe(cell.notes.toLong(), bytes = 2)
-            }
-            is SudokuCell.Notes -> {
-                write(CELL_NOTES)
-                writeLe(cell.mask.toLong(), bytes = 2)
-            }
-        }
+    private fun writeHistory(out: ByteArrayOutputStream, commands: List<SudokuCommand>) {
+        // Dropping the far end only shortens how far undo or redo reaches; the board is untouched.
+        val kept = commands.takeLast(MAX_HISTORY)
+        out.writeLe(kept.size.toLong(), bytes = 2)
+        kept.forEach { SudokuCommandCodec.write(out, it) }
     }
 
-    private fun ByteArrayOutputStream.writeLe(value: Long, bytes: Int) {
-        repeat(bytes) { write(((value shr (it * 8)) and 0xFF).toInt()) }
+    private fun readHistory(reader: Reader, puzzle: SudokuPuzzle, stack: String): DecodeResult<List<SudokuCommand>> {
+        val count = reader.u16() ?: return malformed("truncated $stack count")
+        if (count > MAX_HISTORY) return malformed("$stack history of $count commands exceeds $MAX_HISTORY")
+        val commands = ArrayList<SudokuCommand>(count)
+        repeat(count) {
+            commands += SudokuCommandCodec.read(reader, puzzle) ?: return malformed("malformed $stack command $it")
+        }
+        return DecodeResult.Ok(commands)
     }
+
+    /**
+     * True when every undo from [board] and every redo after it is the exact inverse step it
+     * claims, so a restored session can never undo into a board its commands were not built on.
+     */
+    private fun walksFrom(board: SudokuBoard, history: CommandHistory<SudokuBoard, SudokuCommand>): Boolean {
+        var state = board
+        for (command in history.done.asReversed()) {
+            if (!command.fitsOpenCell(state)) return false
+            val previous = command.revert(state)
+            if (command.apply(previous) != state) return false
+            state = previous
+        }
+        state = board
+        for (command in history.undone.asReversed()) {
+            if (!command.fitsOpenCell(state)) return false
+            val next = command.apply(state)
+            if (command.revert(next) != state) return false
+            state = next
+        }
+        return true
+    }
+
+    /** A note toggle is the one command that throws on a filled cell; every other kind is total. */
+    private fun SudokuCommand.fitsOpenCell(state: SudokuBoard): Boolean =
+        this !is SudokuCommand.ToggleNote || state.cells[idx].let { it == SudokuCell.Empty || it is SudokuCell.Notes }
 
     private fun malformed(detail: String): DecodeResult.Err = DecodeResult.Err(DecodeError.Malformed(detail))
-
-    /** Bounds-checked little-endian reads; null instead of reading past the end. */
-    private class Reader(private val bytes: ByteArray) {
-        private var pos = 0
-
-        fun atEnd(): Boolean = pos == bytes.size
-
-        fun u8(): Int? = le(1)?.toInt()
-
-        fun u16(): Int? = le(2)?.toInt()
-
-        fun i32(): Int? = le(4)?.toInt()
-
-        fun i64(): Long? = le(8)
-
-        fun bytes(count: Int): ByteArray? {
-            if (count > bytes.size - pos) return null
-            return bytes.copyOfRange(pos, pos + count).also { pos += count }
-        }
-
-        private fun le(count: Int): Long? {
-            if (count > bytes.size - pos) return null
-            var value = 0L
-            repeat(count) { value = value or ((bytes[pos + it].toLong() and 0xFF) shl (it * 8)) }
-            pos += count
-            return value
-        }
-    }
 }
