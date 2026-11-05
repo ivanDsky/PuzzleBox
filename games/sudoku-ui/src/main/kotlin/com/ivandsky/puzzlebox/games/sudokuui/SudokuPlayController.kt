@@ -16,9 +16,7 @@ import com.ivandsky.puzzlebox.gameui.PlayGuide
 import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
-import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
 import com.ivandsky.puzzlebox.games.sudoku.SudokuDefinition
-import com.ivandsky.puzzlebox.games.sudoku.SudokuMoves
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.SudokuScoreModel
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
@@ -27,9 +25,9 @@ import java.time.Duration
 import java.time.Instant
 
 /**
- * Plays one [definition]'s board: adopt / restore / replay, the clock, select + place, undo,
- * and publishing every committed session. The session decides every rule; this class only
- * routes input and owns the process-local running window (Queens parity).
+ * Plays one [definition]'s board: adopt / restore / replay and the clock. Every game decision
+ * lives in the session and the [SudokuBoardState]; this class owns the process-local running
+ * window and publishes every stored session as codec bytes (Queens parity).
  */
 class SudokuPlayController(
     private val definition: SudokuDefinition,
@@ -37,11 +35,22 @@ class SudokuPlayController(
     private val now: () -> Instant = Instant::now,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
-    var session by mutableStateOf<SudokuSession?>(null)
+    /** The live interaction holder, null until a session is adopted. */
+    var board by mutableStateOf<SudokuBoardState?>(null)
         private set
 
-    var selected by mutableStateOf<Int?>(null)
-        private set
+    val session: SudokuSession? get() = board?.session
+
+    // The play UI selects and places through these until it draws the board state directly.
+    val selected: Int? get() = board?.selected
+
+    fun select(idx: Int) {
+        board?.select(idx)
+    }
+
+    fun place(digit: Int) {
+        board?.input(digit)
+    }
 
     override val isComplete: Boolean get() = session?.isComplete == true
 
@@ -72,8 +81,7 @@ class SudokuPlayController(
             is DecodeResult.Ok -> {
                 val s = restored.value
                 runningSince = null
-                selected = null
-                session = s
+                board = boardFor(s)
                 // The running clock is process-local: a restored game in progress reopens it now.
                 if (!s.isComplete && s.hasProgress()) openWindow()
                 Restored(s.ref)
@@ -88,10 +96,22 @@ class SudokuPlayController(
 
     private fun start(fresh: SudokuSession) {
         runningSince = null
-        selected = null
-        session = fresh
+        board = boardFor(fresh)
         // Published before the first move so a process death right after adopt still restores.
         publish(fresh)
+    }
+
+    private fun boardFor(session: SudokuSession) = SudokuBoardState(
+        initialSession = session,
+        score = score,
+        onWinRecord = env.onWon,
+        now = now,
+        onSessionChanged = ::publish,
+        settle = ::settle,
+    )
+
+    private fun publish(s: SudokuSession) {
+        env.onSessionChanged(SudokuSessionCodec.serialize(s))
     }
 
     /** Lessons have one open cell and no rule to hold back, so guiding changes nothing yet. */
@@ -99,39 +119,14 @@ class SudokuPlayController(
 
     //endregion
 
-    //region input
-
-    fun select(idx: Int) {
-        selected = idx
-    }
-
-    fun place(digit: Int) {
-        val current = session ?: return
-        val idx = selected ?: return
-        val command = SudokuMoves.place(current.board, idx, digit) ?: return
-        commit(current.withCommand(command, now()))
-    }
-
-    private fun commit(next: SudokuSession) {
-        val previous = session
-        val settled = if (next.isComplete) {
-            foldRunning(next)
-        } else {
-            if (runningSince == null) openWindow()
-            next
-        }
-        session = settled
-        publish(settled)
-        if (previous?.isComplete == false && settled.isComplete) score.completion(settled)?.let(env.onWon)
-    }
-
-    private fun publish(s: SudokuSession) {
-        env.onSessionChanged(SudokuSessionCodec.serialize(s))
-    }
-
-    //endregion
-
     //region PlayClock
+
+    /** Opens the window on the first committed command or counted hint; a win folds it in. */
+    private fun settle(next: SudokuSession): SudokuSession {
+        if (next.isComplete) return foldRunning(next)
+        if (runningSince == null) openWindow()
+        return next
+    }
 
     private fun openWindow() {
         val start = now()
@@ -150,10 +145,9 @@ class SudokuPlayController(
     }
 
     override fun onBackground() {
-        val current = session ?: return
         val rs = runningSince ?: return
         runningSince = null
-        session = current.copy(elapsedMs = current.elapsedMs + Duration.between(rs, now()).toMillis())
+        board?.bankElapsed(Duration.between(rs, now()).toMillis())
     }
 
     override fun onForeground() {
@@ -175,36 +169,32 @@ class SudokuPlayController(
 
     override val hintsUsed: Int get() = session?.hintsUsed ?: 0
 
-    // The hint ladder lands with the interaction layer (ticket 16); until then the button stays off.
-    override val hintEnabled: Boolean get() = false
+    override val hintEnabled: Boolean get() = session?.isComplete == false
 
-    override val hintCaption: String? get() = null
+    override val hintCaption: String? get() = board?.hintCaption
 
-    override fun requestHint() = Unit
+    override fun requestHint() {
+        board?.requestHint()
+    }
 
-    override val canUndo: Boolean get() = session?.let { !it.isComplete && it.history.canUndo } ?: false
+    override val canUndo: Boolean get() = board?.canUndo ?: false
 
-    override val canRedo: Boolean get() = session?.let { !it.isComplete && it.history.canRedo } ?: false
+    override val canRedo: Boolean get() = board?.canRedo ?: false
 
     override fun undo() {
-        val current = session?.takeIf { !it.isComplete } ?: return
-        val step = current.history.undo(current.board) ?: return
-        commit(current.copy(board = step.state, history = step.history))
+        board?.undo()
     }
 
     override fun redo() {
-        val current = session?.takeIf { !it.isComplete } ?: return
-        val step = current.history.redo(current.board) ?: return
-        commit(current.copy(board = step.state, history = step.history))
+        board?.redo()
     }
 
-    override val violation: String? get() = null
+    override val violation: String? get() = board?.violation
 
-    override val rejection: String? get() = null
+    override val rejection: String? get() = board?.rejection
 
     //endregion
 
-    /** The restored history is empty (codec v1), so progress also counts banked time and entries. */
-    private fun SudokuSession.hasProgress(): Boolean =
-        history.canUndo || elapsedMs > 0 || hintsUsed > 0 || board.cells.any { it is SudokuCell.Entry || it is SudokuCell.Notes }
+    // Undoing every move empties the history but keeps the banked time, so that counts too.
+    private fun SudokuSession.hasProgress(): Boolean = hasStarted || elapsedMs > 0
 }

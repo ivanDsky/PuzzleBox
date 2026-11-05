@@ -19,6 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -115,5 +116,81 @@ class SudokuPlayControllerTest {
         c.place(4)
         c.undo()
         assertEquals(SudokuCell.Empty, savedSession().board.cells[0])
+    }
+
+    @Test
+    fun `selecting and the notes toggle leave the clock stopped, a placement starts it`() {
+        val c = adopted()
+        c.select(0)
+        c.board!!.toggleNotesMode()
+        clockMs += 3_000
+        c.tick()
+        assertNull(c.clockWindow)
+        assertEquals(0L, c.displayedElapsedMs())
+        c.board!!.toggleNotesMode()
+        c.place(4)
+        assertNotNull(c.clockWindow)
+        clockMs += 2_000
+        c.tick()
+        assertEquals(2_000L, c.displayedElapsedMs())
+    }
+
+    @Test
+    fun `a counted hint starts the clock`() {
+        val c = adopted()
+        assertTrue(c.hintEnabled)
+        c.requestHint()
+        assertEquals(1, c.hintsUsed)
+        assertNotNull(c.hintCaption)
+        assertNotNull(c.clockWindow)
+    }
+
+    @Test
+    fun `background folds the running window and foreground reopens it`() {
+        val c = adopted()
+        c.select(0)
+        c.place(4)
+        clockMs += 1_500
+        c.onBackground()
+        assertNull(c.clockWindow)
+        clockMs += 60_000
+        c.onForeground()
+        assertNotNull(c.clockWindow)
+        assertEquals(1_500L, c.displayedElapsedMs())
+    }
+
+    @Test
+    fun `solving by hint reveals emits the win once and disables hints`() {
+        val c = adopted()
+        repeat(givens.count { it == 0 } * 2) { c.requestHint() }
+        assertTrue(c.isComplete)
+        c.requestHint()
+        c.undo()
+        assertEquals(1, won.size)
+        assertFalse(c.hintEnabled)
+        assertNull(c.clockWindow)
+    }
+
+    @Test
+    fun `a given refuses input through the feedback seam`() {
+        val c = adopted()
+        c.select(2)
+        c.place(1)
+        assertEquals("That number is part of the puzzle.", c.rejection)
+    }
+
+    @Test
+    fun `restore keeps notes mode and starts with no selection`() {
+        adopted().apply {
+            select(0)
+            board!!.toggleNotesMode()
+            place(4)
+        }
+        val c = controller()
+        c.adoptRestored(saved.last())
+        assertTrue(c.session!!.notesMode)
+        assertEquals(SudokuCell.Notes(1 shl 3), c.session!!.board.cells[0])
+        assertNull(c.selected)
+        assertNotNull(c.clockWindow)
     }
 }
