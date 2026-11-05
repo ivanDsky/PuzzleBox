@@ -13,7 +13,6 @@ import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
-import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
@@ -22,11 +21,8 @@ import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
-import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,12 +32,13 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Robolectric compose coverage for the history browser (A17): empty state reuse, lazy
- * day rows, the streak teaser, record-informed detail, and the replay hand-off —
- * Ready reaches the shell, Missing/Unreadable (A16) stay put with a message.
+ * day rows, the streak teaser, record-informed detail, and the replay hand-off — a
+ * replay reports the (game, day) to the shell and never builds a session blob (ticket
+ * 11); the play store resolves the day's slot, so cache state never blocks the tap.
  * Fix round 5, defect C: rows are per-game via the game-agnostic merged history — a
  * solved Queens day lists and details exactly like a captured day. tango-05: Zip and
  * Tango share the calendar without colliding, labels name the game, and a tango replay
- * hands a tango-named envelope.
+ * reports the tango game.
  *
  * Drives [HistoryRoute] over a real [HistoryViewModel] (production use cases, fake
  * repositories, stand-in game plugins) — the route's exact projection.
@@ -54,7 +51,7 @@ class HistoryScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private var handedToShell: ByteArray? = null
+    private var handedToShell: Pair<GameId, LocalDate>? = null
     private var shellBacks = 0
 
     private fun setContent(
@@ -80,7 +77,7 @@ class HistoryScreenTest {
                 HistoryRoute(
                     layout = layout,
                     onBack = {},
-                    onReplay = { session -> handedToShell = session },
+                    onReplay = { game, day -> handedToShell = game to day },
                     viewModel = viewModel,
                 )
             }
@@ -145,7 +142,7 @@ class HistoryScreenTest {
     }
 
     @Test
-    fun `won day detail shows its record and hands the replay blob to the shell`() {
+    fun `won day detail shows its record and reports the replayed game and day`() {
         val day = LocalDate.of(2026, 11, 3)
         val cached = TestGames.puzzle(ZIP)
         setContent(
@@ -161,10 +158,8 @@ class HistoryScreenTest {
         composeRule.onNodeWithTag("history.replay").performClick()
         composeRule.waitForIdle()
 
-        val handed = handedToShell
-        assertNotNull("shell must receive the Ready launch", handed)
-        // The handed blob keeps the replayed DAY's identity, never today's (A4).
-        assertArrayEquals(TestGames.replayBlob(ZIP, cached, day, HistoryTestSupport.PUZZLE_NUMBER), handed)
+        // The replayed DAY's identity, never today's (A4, N18).
+        assertEquals(ZIP to day, handedToShell)
     }
 
     @Test
@@ -189,7 +184,7 @@ class HistoryScreenTest {
     }
 
     @Test
-    fun `tango detail hands the shell a tango-named envelope`() {
+    fun `tango detail reports the tango game and day`() {
         val day = LocalDate.of(2026, 11, 3)
         val cached = TestGames.puzzle(TANGO)
         setContent(
@@ -207,11 +202,7 @@ class HistoryScreenTest {
         composeRule.onNodeWithTag("history.replay").performClick()
         composeRule.waitForIdle()
 
-        val handed = handedToShell
-        assertNotNull(handed)
-        // The envelope NAMES the game — the play route dispatches tango (ADR-0005).
-        assertEquals(TANGO, SessionBlob.decode(handed!!)?.game)
-        assertArrayEquals(TestGames.replayBlob(TANGO, cached, day, HistoryTestSupport.TANGO_PUZZLE_NUMBER), handed)
+        assertEquals(TANGO to day, handedToShell)
     }
 
     @Test
@@ -228,38 +219,21 @@ class HistoryScreenTest {
         composeRule.onNodeWithTag("history.replay").performClick()
         composeRule.waitForIdle()
 
-        assertNotNull(handedToShell)
+        assertEquals(ZIP to day, handedToShell)
     }
 
     @Test
-    fun `stale day blocks replay with a message`() {
+    fun `uncached day still reports its replay - the play store resolves the slot`() {
         val day = LocalDate.of(2026, 11, 3)
-        // Listed, but its payload is no longer cached.
+        // Listed, but its payload is no longer cached: History no longer reads the cache.
         setContent(listOf(HistoryTestSupport.entry(day)))
 
         awaitTag("history.row.zip/$day")
         composeRule.onNodeWithTag("history.row.zip/$day").performClick()
         composeRule.onNodeWithTag("history.replay").performClick()
+        composeRule.waitForIdle()
 
-        awaitText("That day is no longer saved on this device.")
-        assertNull(handedToShell)
-    }
-
-    @Test
-    fun `unreadable payload blocks replay with a message (A16)`() {
-        val day = LocalDate.of(2026, 11, 3)
-        val corrupt = Puzzle(ZIP, TestGames.variant(ZIP), 1, byteArrayOf(0))
-        setContent(
-            zips = listOf(HistoryTestSupport.entry(day)),
-            cached = mapOf(ZIP to day to corrupt),
-        )
-
-        awaitTag("history.row.zip/$day")
-        composeRule.onNodeWithTag("history.row.zip/$day").performClick()
-        composeRule.onNodeWithTag("history.replay").performClick()
-
-        awaitText("This puzzle's data couldn't be read, so it can't be replayed.")
-        assertNull(handedToShell)
+        assertEquals(ZIP to day, handedToShell)
     }
 
     @Test

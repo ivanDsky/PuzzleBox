@@ -9,5 +9,5 @@ import org.koin.dsl.module
  * [com.ivandsky.puzzlebox.game.GameRegistry] from the app's aggregation (ADR-0001).
  */
 val historyModule = module {
-    viewModel { HistoryViewModel(get(), get(), get(), get()) }
+    viewModel { HistoryViewModel(get(), get(), get()) }
 }

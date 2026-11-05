@@ -5,6 +5,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.ivandsky.puzzlebox.model.GameId
+import java.time.LocalDate
 import org.koin.androidx.compose.koinViewModel
 
 /**
@@ -12,15 +14,14 @@ import org.koin.androidx.compose.koinViewModel
  * The pane layout is decided once at the app shell (ticket 07 policy) and passed in; UI
  * below this point stays repository-free.
  *
- * Replay (ticket 14 → 13, generalized in tango-05): a ready replay hands the play route
- * a self-describing [com.ivandsky.puzzlebox.game.SessionBlob]; [onReplay] is the shell's
- * navigation into the play entry.
+ * Replay (ticket 11): [onReplay] reports the replayed (game, day); the shell opens that
+ * day's game slot, which the play store builds or resumes.
  */
 @Composable
 fun HistoryRoute(
     layout: HistoryLayout,
     onBack: () -> Unit,
-    onReplay: (ByteArray) -> Unit,
+    onReplay: (GameId, LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HistoryViewModel = koinViewModel(),
 ) {
@@ -34,8 +35,6 @@ fun HistoryRoute(
         allRows = uiState.rows,
         recordsByKey = uiState.recordsByKey,
         streak = uiState.streak,
-        events = viewModel.events,
-        onReplayDay = viewModel::onReplay,
         onReplay = onReplay,
         modifier = modifier,
     )

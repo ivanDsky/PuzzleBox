@@ -3,6 +3,8 @@ package com.ivandsky.puzzlebox.home
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -17,11 +19,18 @@ import com.ivandsky.puzzlebox.domain.di.domainModule
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.home.di.homeModule
+import com.ivandsky.puzzlebox.home.navigation.homeEntry
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.navigation.navigationState
+import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import java.time.LocalDate
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -73,7 +82,26 @@ class HomeRouteTest {
         stopKoin()
     }
 
-    private fun setContent(daily: FakeDailyRepository, completions: CompletionRepository) {
+    private fun setContent(
+        daily: FakeDailyRepository,
+        completions: CompletionRepository,
+        onPlayToday: (GameId) -> Unit = {},
+    ) {
+        startGraph(daily, completions)
+        composeRule.setContent {
+            PuzzleBoxTheme {
+                HomeRoute(
+                    layout = HomeLayout.SinglePane,
+                    themeMode = ThemeMode.SYSTEM,
+                    onSetThemeMode = {},
+                    onPlayToday = onPlayToday,
+                    onOpenProfile = {},
+                )
+            }
+        }
+    }
+
+    private fun startGraph(daily: FakeDailyRepository, completions: CompletionRepository) {
         val fakeIdentity = FakeIdentityService()
         startKoin {
             modules(
@@ -87,16 +115,36 @@ class HomeRouteTest {
                 homeModule,
             )
         }
+    }
+
+    @Test
+    fun `play today reports the featured game id`() {
+        val played = mutableListOf<GameId>()
+        setContent(FakeDailyRepository(), FakeCompletionRepository(), onPlayToday = { played += it })
+
+        composeRule.onNodeWithText("Play today").performClick()
+
+        composeRule.runOnIdle { assertEquals(listOf(GameId("zip")), played) }
+    }
+
+    @Test
+    fun `home entry pushes today's featured game once on the home stack - N8 N9`() {
+        startGraph(FakeDailyRepository(), FakeCompletionRepository())
+        val navigator = Navigator(navigationState(HomeKey, PlayKey))
+        val provider = entryProvider {
+            homeEntry(navigator, HomeLayout.SinglePane, ThemeMode.SYSTEM, onSetThemeMode = {})
+        }
         composeRule.setContent {
-            PuzzleBoxTheme {
-                HomeRoute(
-                    layout = HomeLayout.SinglePane,
-                    themeMode = ThemeMode.SYSTEM,
-                    onSetThemeMode = {},
-                    onPlayToday = {},
-                    onOpenProfile = {},
-                )
-            }
+            PuzzleBoxTheme { provider(HomeKey).Content() }
+        }
+
+        // A double tap still lands one game: back from it returns to Home.
+        composeRule.onNodeWithText("Play today").performClick()
+        composeRule.onNodeWithText("Play today").performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(HomeKey, navigator.state.tab)
+            assertEquals(listOf(HomeKey, GameKey("zip")), navigator.state.currentStack)
         }
     }
 

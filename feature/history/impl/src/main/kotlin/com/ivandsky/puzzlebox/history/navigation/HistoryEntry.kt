@@ -6,10 +6,9 @@ import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.HistoryRoute
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.play.api.ReplayKey
-import java.util.Base64
+import com.ivandsky.puzzlebox.play.api.GameKey
 
-/** History's route: a replayed day pushes [ReplayKey] carrying the day's session blob. */
+/** History's route: a replayed day pushes [GameKey] for that (game, day) once. */
 fun EntryProviderScope<NavKey>.historyEntry(
     navigator: Navigator,
     layout: HistoryLayout,
@@ -18,8 +17,8 @@ fun EntryProviderScope<NavKey>.historyEntry(
         HistoryRoute(
             layout = layout,
             onBack = { navigator.pop() },
-            onReplay = { session ->
-                navigator.push(ReplayKey(Base64.getEncoder().encodeToString(session)))
+            onReplay = { game, day ->
+                navigator.pushOnce(GameKey(game.value, day.toString()))
             },
         )
     }

@@ -1,24 +1,16 @@
 package com.ivandsky.puzzlebox.history
 
 import androidx.paging.testing.asSnapshot
-import com.ivandsky.puzzlebox.game.DecodeError
-import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
-import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -31,7 +23,6 @@ import org.junit.Test
  *
  * tango-05: the pager pages the MERGED both-games row list — the merge order (day
  * desc, capture recency, game tiebreak) is covered in the dedicated merge tests.
- * Replay answers (Ready/Missing/Unreadable) arrive as one-shot [HistoryEvent]s.
  */
 class HistoryViewModelTest {
 
@@ -52,11 +43,6 @@ class HistoryViewModelTest {
 
     private fun viewModel(daily: FakeDailyRepository): HistoryViewModel =
         HistoryTestSupport.viewModel(daily, FakeCompletionRepository())
-
-    private fun TestScope.collected(daily: FakeDailyRepository): HistoryViewModel =
-        viewModel(daily).also { vm ->
-            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
-        }
 
     @Test
     fun `initial load is one lazy page, not the whole history`() = runTest {
@@ -158,57 +144,5 @@ class HistoryViewModelTest {
 
         assertEquals(2, state.rows.size) // two games, two distinct days, no rows lost
         assertEquals(2, state.streak) // consecutive captured days
-    }
-
-    // ------------------------------------------------------------------
-    // Replay hand-off (ticket 14 → 13; tango-05).
-    // ------------------------------------------------------------------
-
-    @Test
-    fun `replay of a cached day answers Ready with the day's session blob`() = runTest {
-        val day = LocalDate.of(2026, 11, 3)
-        val cached = TestGames.puzzle(ZIP)
-        val daily = seededRepo(0).apply {
-            addEntry(HistoryTestSupport.entry(day))
-            setCached(ZIP, day, cached)
-        }
-        val vm = collected(daily)
-
-        vm.onReplay(ZIP, day)
-        val event = vm.events.first()
-
-        assertTrue(event is HistoryEvent.ReplayReady)
-        // The row's puzzleNumber rides into the blob: the replayed DAY's identity (A4).
-        assertArrayEquals(
-            TestGames.replayBlob(ZIP, cached, day, HistoryTestSupport.PUZZLE_NUMBER),
-            (event as HistoryEvent.ReplayReady).session,
-        )
-    }
-
-    @Test
-    fun `replay of an uncached day answers Missing`() = runTest {
-        val day = LocalDate.of(2026, 11, 3)
-        val vm = collected(seededRepo(0).apply { addEntry(HistoryTestSupport.entry(day)) })
-
-        vm.onReplay(ZIP, day)
-
-        assertEquals(HistoryEvent.ReplayMissing, vm.events.first())
-    }
-
-    @Test
-    fun `replay of a corrupt payload answers Unreadable (A16)`() = runTest {
-        val day = LocalDate.of(2026, 11, 3)
-        val daily = seededRepo(0).apply {
-            addEntry(HistoryTestSupport.entry(day))
-            setCached(ZIP, day, Puzzle(ZIP, TestGames.variant(ZIP), 1, byteArrayOf(0)))
-        }
-        val vm = collected(daily)
-
-        vm.onReplay(ZIP, day)
-
-        assertEquals(
-            HistoryEvent.ReplayUnreadable(DecodeError.Malformed("not a zip payload")),
-            vm.events.first(),
-        )
     }
 }

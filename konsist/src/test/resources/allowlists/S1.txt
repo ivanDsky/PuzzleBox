@@ -33,7 +33,7 @@ core/game/src/main/kotlin/com/ivandsky/puzzlebox/game/PuzzleSource.kt 3  # S1
 core/game/src/main/kotlin/com/ivandsky/puzzlebox/game/Records.kt 3  # S1
 core/testing/src/main/kotlin/com/ivandsky/puzzlebox/testing/game/TestGames.kt 2  # S1
 feature/history/impl/src/main/kotlin/com/ivandsky/puzzlebox/history/HistoryModels.kt 2  # S1
-feature/history/impl/src/main/kotlin/com/ivandsky/puzzlebox/history/HistoryViewModel.kt 3  # S1
+feature/history/impl/src/main/kotlin/com/ivandsky/puzzlebox/history/HistoryViewModel.kt 2  # S1
 feature/home/impl/src/main/kotlin/com/ivandsky/puzzlebox/home/HomeScreen.kt 2  # S1
 feature/home/impl/src/main/kotlin/com/ivandsky/puzzlebox/home/HomeViewModel.kt 2  # S1
 feature/play/impl/src/main/kotlin/com/ivandsky/puzzlebox/play/PlayViewModel.kt 2  # S1
