@@ -123,6 +123,5 @@ private fun SudokuChrome(
         banner = ready?.banner,
         feedback = controller,
         onHowToPlay = onHowToPlay,
-        gameControls = {},
     )
 }
