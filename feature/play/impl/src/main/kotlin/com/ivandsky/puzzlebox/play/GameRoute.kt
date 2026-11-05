@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.GameKey
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -31,7 +32,7 @@ internal fun GameRoute(
     key: GameKey,
     layout: PlayLayout,
     onBack: () -> Unit,
-    onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
+    onSolved: (slot: PlaySlot, timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: GameViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
@@ -58,7 +59,7 @@ internal fun GameRoute(
                 status = board.status,
                 layout = layout,
                 onRetry = play::retry,
-                onSolved = onSolved,
+                onSolved = { timeMs, hintsUsed -> onSolved(play.slot, timeMs, hintsUsed) },
                 modifier = Modifier,
             )
         }

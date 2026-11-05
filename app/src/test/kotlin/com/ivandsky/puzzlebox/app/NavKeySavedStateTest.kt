@@ -37,7 +37,7 @@ class NavKeySavedStateTest {
         tab = PlayKey,
         stacks = listOf(
             listOf(HomeKey, HistoryKey, GameKey("zip", "2026-03-09")),
-            listOf(PlayKey, ResultKey(61_200, 2)),
+            listOf(PlayKey, ResultKey("zip", "2026-03-09", 61_200, 2)),
             listOf(ProfileKey, CatalogKey),
         ),
     )

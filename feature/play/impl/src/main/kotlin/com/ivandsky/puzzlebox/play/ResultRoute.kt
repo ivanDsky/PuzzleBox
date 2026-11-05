@@ -1,45 +1,64 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.gameui.ResultScreen
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.play.api.ResultKey
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 /**
- * The result screen's DI-bound entry point (HomeRoute pattern). The frozen facts ride
- * the nav key (process-death stable); the record badge and the write-failure affordance
- * read the live play through [ResultViewModel] when one exists — the record write is
- * never awaited here, it completes async as today (F2 §7).
+ * The result screen's DI-bound entry point for [key]'s slot. The frozen facts ride the
+ * key (process-death stable); the badge and the write-failure retry come from
+ * [ResultViewModel] — the record write is never awaited here (F2 §7).
  *
- * "Play again" resets the session to a fresh play of the SAME puzzle via
- * [ResultViewModel.replay] before handing navigation back to the app callback, which
- * pops the result and pushes a fresh play entry over the store's live play.
+ * Up and Done both hand back [onDone] (a pop to the game's origin, SC4). "Play again"
+ * hands back [onPlayAgain]: the app replaces this entry with the game, whose open resets
+ * the solved live play to a fresh attempt. [onNext] is Next's hand-off (17 adds its UI).
  */
 @Composable
 fun ResultRoute(
-    timeMs: Long,
-    hintsUsed: Int,
+    key: ResultKey,
     onPlayAgain: () -> Unit,
+    onNext: (GameId) -> Unit,
+    onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel: ResultViewModel = koinViewModel()
+    val viewModel: ResultViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val state by viewModel.state.collectAsStateWithLifecycle()
-    ResultScreen(
-        timeMs = timeMs,
-        hintsUsed = hintsUsed,
-        onPlayAgain = {
-            // Fresh session, same puzzle (A9) — before the entry swap, so the play
-            // route finds the live play already reset.
-            viewModel.replay()
-            onPlayAgain()
-        },
-        modifier = modifier.testTag("route.result"),
-        isRecord = state.isRecord,
-        writeFailed = state.writeFailed,
-        onRetryWrite = viewModel::retryRecordWrite,
-        label = state.label,
-    )
+    Column(modifier = modifier.testTag("route.result")) {
+        CompactTopBar(
+            // The result body already names the puzzle; the bar only carries Up.
+            title = "",
+            navigationIcon = {
+                IconButton(onClick = onDone, modifier = Modifier.testTag("result.up")) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+        )
+        ResultScreen(
+            timeMs = key.timeMs,
+            hintsUsed = key.hintsUsed,
+            onPlayAgain = onPlayAgain,
+            isRecord = state.isRecord,
+            writeFailed = state.writeFailed,
+            onRetryWrite = viewModel::retryRecordWrite,
+            label = state.label,
+        )
+    }
 }

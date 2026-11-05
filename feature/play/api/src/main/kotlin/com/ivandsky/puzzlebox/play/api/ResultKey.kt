@@ -6,12 +6,11 @@ import kotlinx.serialization.Serializable
 
 // Serial name pinned to the pre-split class name so an older saved back stack still restores.
 /**
- * Solved-session result (ticket 23, spec UIUX-01 A3/A9): a proper route, not an overlay.
- * The frozen A3 facts ride the key so the surface renders even after process death; the
- * record badge is live flow state — the record write is fire-and-observe, never awaited.
- * Solving replaces everything above Home with this entry, so the system back (a plain
- * pop) lands on Home — back never surprises (senior-UX wayfinding).
+ * A solved play's result (A5, A7, N4–N6): [gameId] and [day] name the play's slot (an
+ * ISO date, always resolved), and the frozen facts ride the key so the surface renders
+ * after process death (N20). Solving replaces the game with this entry, so back lands
+ * on the game's origin (SC4).
  */
 @Serializable
 @SerialName("com.ivandsky.puzzlebox.app.nav.Result")
-data class ResultKey(val timeMs: Long, val hintsUsed: Int) : NavKey
+data class ResultKey(val gameId: String, val day: String, val timeMs: Long, val hintsUsed: Int) : NavKey

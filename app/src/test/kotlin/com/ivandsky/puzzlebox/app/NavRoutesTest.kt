@@ -54,7 +54,7 @@ class NavRoutesTest {
     @Test
     fun `every primary-flow key resolves to a registered entry`() {
         val keys = listOf<NavKey>(
-            HomeKey, PlayKey, HistoryKey, GameKey("zip", "2026-03-09"), ResultKey(95_000, 1), ProfileKey, CatalogKey,
+            HomeKey, PlayKey, HistoryKey, GameKey("zip", "2026-03-09"), ResultKey("zip", "2026-03-09", 95_000, 1), ProfileKey, CatalogKey,
         )
 
         keys.forEach { key ->

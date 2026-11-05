@@ -147,7 +147,7 @@ class TabNavigationE2ETest {
             stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey)) to HISTORY,
             stacks(tab = PlayKey) to HUB,
             stacks(tab = PlayKey, play = listOf(PlayKey, GameKey(ZIP))) to GAME,
-            stacks(tab = PlayKey, play = listOf(PlayKey, ResultKey(timeMs = 1_000L, hintsUsed = 0))) to RESULT,
+            stacks(tab = PlayKey, play = listOf(PlayKey, ResultKey(ZIP, "2026-03-09", timeMs = 1_000L, hintsUsed = 0))) to RESULT,
             stacks(tab = ProfileKey) to PROFILE,
             stacks(tab = ProfileKey, profile = listOf(ProfileKey, CatalogKey)) to CATALOG,
         ).forEach { (seed, route) ->

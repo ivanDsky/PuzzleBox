@@ -105,7 +105,7 @@ class GameRouteTest {
     fun `a game key renders its board tagged route game`() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                GameRoute(key = key, layout = PlayLayout.SinglePane, onBack = {}, onSolved = { _, _ -> })
+                GameRoute(key = key, layout = PlayLayout.SinglePane, onBack = {}, onSolved = { _, _, _ -> })
             }
         }
         composeRule.waitForIdle()
@@ -131,7 +131,7 @@ class GameRouteTest {
                     entryProvider = entryProvider {
                         entry<RootKey> { Text("root") }
                         entry<GameKey> { k ->
-                            GameRoute(key = k, layout = PlayLayout.SinglePane, onBack = { back() }, onSolved = { _, _ -> })
+                            GameRoute(key = k, layout = PlayLayout.SinglePane, onBack = { back() }, onSolved = { _, _, _ -> })
                         }
                     },
                 )
@@ -160,7 +160,7 @@ class GameRouteTest {
             PuzzleBoxTheme(darkTheme = false) {
                 owners.forEach { owner ->
                     CompositionLocalProvider(LocalViewModelStoreOwner provides owner) {
-                        GameRoute(key = key, layout = PlayLayout.SinglePane, onBack = {}, onSolved = { _, _ -> })
+                        GameRoute(key = key, layout = PlayLayout.SinglePane, onBack = {}, onSolved = { _, _, _ -> })
                     }
                 }
             }

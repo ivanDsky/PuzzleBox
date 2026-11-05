@@ -272,7 +272,7 @@ class NavTransitionsTest {
         val homeRoot = entry(HomeKey, HomeKey)
         val playRoot = entry(PlayKey, PlayKey)
         val game = entry(PlayKey, GameKey("zip"))
-        val result = entry(PlayKey, ResultKey(timeMs = 61_000, hintsUsed = 0))
+        val result = entry(PlayKey, ResultKey(gameId = "zip", day = "2026-03-09", timeMs = 61_000, hintsUsed = 0))
 
         val DpRect.centerX: Float get() = (left.value + right.value) / 2
     }

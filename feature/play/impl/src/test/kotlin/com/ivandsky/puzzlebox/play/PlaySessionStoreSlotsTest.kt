@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -169,6 +170,19 @@ class PlaySessionStoreSlotsTest {
         assertSame(kept, store.peek(slot))
         assertArrayEquals(blob(beta, fakes[beta].latest.bytes()), saved.rows[betaSlot])
         assertNotSame(released, store.open(GameKey(beta.value, today.toString())))
+    }
+
+    @Test
+    fun `a result key keeps its slot's play live`() = runTest {
+        val store = store()
+        val play = store.open(todayKey)!!
+        store.open(GameKey(beta.value, today.toString()))
+
+        store.retain(listOf(ResultKey(alpha.value, today.toString(), 1_000L, 0)))
+        runCurrent()
+
+        assertSame("the result names its game's slot", play, store.peek(slot))
+        assertNull(store.peek(PlaySlot(beta, today)))
     }
 
     @Test

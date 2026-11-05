@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.play.SlotOpening
 import com.ivandsky.puzzlebox.play.SlotWriter
 import com.ivandsky.puzzlebox.play.WriteLane
 import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.ResultKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -49,5 +50,5 @@ val playModule = module {
         )
     }
     viewModel { (key: GameKey) -> GameViewModel(key, get()) }
-    viewModel { ResultViewModel(get()) }
+    viewModel { (key: ResultKey) -> ResultViewModel(key, get(), get(), get()) }
 }
