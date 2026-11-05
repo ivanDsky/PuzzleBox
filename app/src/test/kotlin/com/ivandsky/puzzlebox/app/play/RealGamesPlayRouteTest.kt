@@ -35,6 +35,7 @@ import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.strandsPlugin
 import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayController
 import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayUi
+import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
@@ -127,7 +128,7 @@ class RealGamesPlayRouteTest {
                     // Every tutorial seen: these paths are about the boards; the lessons have their own tests.
                     single<UserPreferencesRepository> {
                         FakeUserPreferencesRepository(
-                            seen = setOf(ZipDefinition.id, TangoDefinition.id, QueensDefinition.id, StrandsDefinition.id),
+                            seen = setOf(ZipDefinition.id, TangoDefinition.id, QueensDefinition.id, SudokuGames.MINI.id, StrandsDefinition.id),
                         )
                     }
                 },

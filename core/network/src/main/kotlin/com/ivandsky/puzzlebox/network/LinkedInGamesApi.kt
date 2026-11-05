@@ -15,9 +15,10 @@ import retrofit2.http.Query
  * sign-in), parameterised by the game's route ([path], e.g. `games/zip/`). The primary
  * route is the screen-load GET LinkedIn's own web client sends: stateless, cookieless,
  * csrf-free — gated only by the `x-li-rsc-stream` + `x-li-initial-url` header pair. The
- * response is a React Flight stream carrying the plain-quoted puzzle object. [stream] and
- * [graphql] return a [Response] wrapper so the throttle signature (empty 200 + `location`
- * header) is observable. Parsing is each game's extractor's job — never a pinned path.
+ * response is a React Flight stream carrying the plain-quoted puzzle object. [stream],
+ * [persistedQuery] and [graphql] return a [Response] wrapper so the throttle signature
+ * (empty 200 + `location` header) is observable. Parsing is each game's extractor's job —
+ * never a pinned path.
  */
 internal interface LinkedInGamesApi {
 
@@ -28,6 +29,16 @@ internal interface LinkedInGamesApi {
         @Header("x-li-initial-url") initialUrl: String,
         @Header("x-li-rsc-stream") rscStream: String = "true",
         @Query("skipStartScreen") skipStartScreen: Boolean = true,
+    ): Response<ResponseBody>
+
+    /**
+     * Persisted-query rung (ADR-0016; cookie jar + csrf echo). Both params are pre-encoded
+     * so Rest.li syntax like `(gameTypeId:7)` reaches LinkedIn unescaped.
+     */
+    @GET("voyager/api/graphql")
+    suspend fun persistedQuery(
+        @Query("variables", encoded = true) variables: String,
+        @Query("queryId", encoded = true) queryId: String,
     ): Response<ResponseBody>
 
     /** GraphQL rung (session seams: cookie jar + csrf echo); [body] is the raw query JSON. */
