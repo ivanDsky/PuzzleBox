@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -129,6 +130,20 @@ class PlaySessionStore(
 
     /** The app went to the background (ON_STOP): keep the live play, which stays live. */
     fun background() = keepLive()
+
+    /**
+     * How to play opened over [play] (spec A11): its clock folds through the same hook a
+     * background uses, and stays paused while the tutorial shows (the screen and its
+     * clock loop are gone meanwhile). Nothing is kept and the session is untouched.
+     */
+    fun pauseClock(play: ActivePlay) {
+        if (live === play) play.foldClock()
+    }
+
+    /** The tutorial over [play] closed: its clock reopens where it paused, as on foreground. */
+    fun resumeClock(play: ActivePlay) {
+        if (live === play) (play.controller as? PlayClock)?.onForeground()
+    }
 
     /** A new play entry opened over [play], the result's FINISHED play (the Play tab after
      *  a solve): it is dropped so the entry shows the picker. Nothing is kept (a solve

@@ -85,7 +85,7 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<ComputeStreak>())
             assertNotNull(koin.get<GetReplaySession>())
             assertNotNull(koin.get<ObserveTodayLeaderboard>())
-            // Today's featured game (Home's hero, Profile's board) is the registry's first.
+            // Today's featured game (Profile's board, the leaderboard) is the registry's first.
             assertEquals(GameId("zip"), koin.get<GetFeaturedGame>()().id)
 
             // Game aggregation (ADR-0001): every game module's plugin lands in the

@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.queensPlugin
 import com.ivandsky.puzzlebox.games.queensui.QueensPlayUi
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
@@ -81,6 +82,12 @@ class RealGamesPlayRouteTest {
         // The picker's today's set (A14) over in-memory kept sessions (ADR-0010).
         single<com.ivandsky.puzzlebox.data.repository.KeptSessionRepository> {
             com.ivandsky.puzzlebox.testing.repository.FakeKeptSessionRepository()
+        }
+        // Every tutorial seen: these paths are about the boards; the lessons have their own tests.
+        single<com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository> {
+            com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository(
+                seen = setOf(ZipDefinition.id, TangoDefinition.id, QueensDefinition.id),
+            )
         }
         factory { com.ivandsky.puzzlebox.domain.ObserveTodaySet(get(), get(), get()) }
     }

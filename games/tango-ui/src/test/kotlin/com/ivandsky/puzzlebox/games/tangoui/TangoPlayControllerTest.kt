@@ -88,7 +88,7 @@ class TangoPlayControllerTest {
         )
 
         val rejected = adopt as Adopt.Rejected
-        assertTrue(rejected.message.contains("failed verification")) // §6 exact copy
+        assertTrue(rejected.message.contains("didn't load right"))
         assertNull(s.session)
     }
 
@@ -98,7 +98,7 @@ class TangoPlayControllerTest {
 
         val adopt = s.adoptToday(TangoPlayFixture.envelope(TangoPlayFixture.ambiguous), TangoPlayFixture.ref(today))
 
-        assertTrue((adopt as Adopt.Rejected).message.contains("failed verification"))
+        assertTrue((adopt as Adopt.Rejected).message.contains("didn't load right"))
         assertNull(s.session)
     }
 

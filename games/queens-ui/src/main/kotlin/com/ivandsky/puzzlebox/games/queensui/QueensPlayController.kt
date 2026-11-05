@@ -7,14 +7,15 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.BROKEN_PUZZLE_MESSAGE
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayFeedback
+import com.ivandsky.puzzlebox.gameui.PlayGuide
 import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
-import com.ivandsky.puzzlebox.gameui.untrustedDecodeMessage
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
@@ -41,11 +42,14 @@ import java.time.Instant
  * Session persistence (R-4): every committed session reaches
  * [PlayEnvironment.onSessionChanged] as codec bytes, including the initial session of a
  * fresh adopt/replay so a process death before the first move still restores.
+ *
+ * Guided lesson (spec A12): [guide] marks the adopted board's answer with faint crowns
+ * and holds back the rule caption ([violation]) until the lesson is done.
  */
 class QueensPlayController(
     private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
-) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback {
+) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
     /** The live interaction holder, null until a session is adopted. */
     var board by mutableStateOf<QueensBoardState?>(null)
@@ -66,7 +70,7 @@ class QueensPlayController(
     override fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt {
         val queens = when (val decoded = QueensCodec.decode(puzzle.payload)) {
             is DecodeResult.Ok -> decoded.value
-            is DecodeResult.Err -> return Adopt.Rejected(untrustedDecodeMessage(decoded.error))
+            is DecodeResult.Err -> return Adopt.Rejected(BROKEN_PUZZLE_MESSAGE)
         }
         val fresh = QueensSession(ref = ref as QueensPuzzleRef, puzzle = queens)
         board = boardFor(fresh)
@@ -114,6 +118,11 @@ class QueensPlayController(
         val fresh = QueensSession(ref = current.ref, puzzle = current.puzzle)
         board = boardFor(fresh)
         publish(fresh)
+    }
+
+    /** Spec A12: the adopted board shows its answer and no rule caption (tutorial only). */
+    override fun guide() {
+        checkNotNull(board) { "guide() needs an adopted board" }.guide()
     }
 
     //endregion
@@ -184,10 +193,13 @@ class QueensPlayController(
     override val hintCaption: String? get() = board?.hintCaption
 
     /** A14 always-on conflict line (R-2): live while any rule break stands; derived from
-     *  the observable board session, so the shared caption slot recomposes with it. */
+     *  the observable board session, so the shared caption slot recomposes with it. A
+     *  guided lesson has no rule yet, so it never shows the line. */
     override val violation: String?
         get() = board?.let { b ->
-            RULE_CONFLICT.takeIf { QueensBoardModel.of(b.session, b.hint, b.hintPointed).violations.isNotEmpty() }
+            RULE_CONFLICT.takeIf {
+                QueensBoardModel.of(b.session, b.hint, b.hintPointed, b.guide).violations.isNotEmpty()
+            }
         }
 
     /** Queens refuses no input: every tap is a legal mark/queen cycle step. */
@@ -211,6 +223,6 @@ class QueensPlayController(
     //endregion
 
     private companion object {
-        const val RULE_CONFLICT = "Rule conflict — queens can't touch or share a row, column, or region"
+        const val RULE_CONFLICT = "Queens can't touch or share a row, column, or color."
     }
 }

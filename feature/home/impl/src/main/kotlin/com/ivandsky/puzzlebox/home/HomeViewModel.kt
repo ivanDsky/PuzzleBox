@@ -4,44 +4,57 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
-import com.ivandsky.puzzlebox.domain.GameSummary
-import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 
-/** Everything Home renders: the featured game, the signed-in player, the history teaser. */
+/** Everything Home renders: today's set, the signed-in player, the history teaser. */
 data class HomeUiState(
-    val featured: GameSummary,
+    val today: List<TodayRow>,
     val identity: Identity?,
     val history: List<HistoryDay>,
-)
+) {
+    /** One game in the Today card (A15); [status] is null until today's set first emits. */
+    data class TodayRow(val game: GameId, val displayName: String, val status: TodayStatus?)
+}
 
 /**
- * Home's state holder: observes the GAME-AGNOSTIC merged history ([ObserveGameHistory] —
+ * Home's state holder. The Today card is [ObserveTodaySet] (A15): every registered game in
+ * registry order with its status, seeded from [registry] so the first frame already lists
+ * every game. The teaser observes the GAME-AGNOSTIC merged history ([ObserveGameHistory] —
  * every game's completion records UNION every registered game's captured days; fix
- * round 5, defect C). Per-game names and the featured game resolve against :app's
- * [GameRegistry], so a new game appears here purely by registering its plugin. The
- * initial state is the first frame Home always showed: an empty teaser and the current
- * identity.
+ * round 5, defect C); per-game names resolve against :app's [GameRegistry], so a new game
+ * appears here purely by registering its plugin.
  */
 class HomeViewModel(
     observeGameHistory: ObserveGameHistory,
-    getFeaturedGame: GetFeaturedGame,
+    todaySet: ObserveTodaySet,
     identityService: IdentityService,
     private val registry: GameRegistry,
 ) : ViewModel() {
 
-    private val featured = getFeaturedGame()
+    private val seed = registry.all.map {
+        HomeUiState.TodayRow(it.definition.id, it.definition.displayName, status = null)
+    }
+
+    // Seeded so the teaser never waits on today's set (it reads Room and DataStore).
+    private val today = todaySet()
+        .map { entries -> entries.map { HomeUiState.TodayRow(it.game, it.displayName, it.status) } }
+        .onStart { emit(seed) }
 
     val uiState: StateFlow<HomeUiState> =
-        combine(observeGameHistory(), identityService.current) { days, identity ->
+        combine(today, observeGameHistory(), identityService.current) { rows, days, identity ->
             HomeUiState(
-                featured = featured,
+                today = rows,
                 identity = identity,
                 history = days.map { day ->
                     HistoryDay(
@@ -54,7 +67,7 @@ class HomeViewModel(
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = HomeUiState(featured, identityService.current.value, emptyList()),
+            initialValue = HomeUiState(seed, identityService.current.value, emptyList()),
         )
 
     private companion object {

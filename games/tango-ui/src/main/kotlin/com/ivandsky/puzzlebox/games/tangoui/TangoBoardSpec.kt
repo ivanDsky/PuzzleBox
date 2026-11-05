@@ -66,6 +66,13 @@ object TangoBoardSpec {
     /** HintReveal tint alpha over the hint cell (§2/§7 — highlight without hiding the glyph). */
     const val hintTintAlpha: Float = 0.9f
 
+    /** Guide ghost alpha (spec A12): the lesson's answer glyph, faint until the square
+     *  matches (Queens' hint-ghost precedent, a touch lighter for a whole board of them). */
+    const val ghostAlpha: Float = 0.4f
+
+    /** Guide ghost beside a wrong glyph: a corner badge, fraction of the cell box. */
+    const val ghostBadgeFraction: Float = 0.4f
+
     // ---- pitch-derived dp (call sites read these, never the raw fractions) ----
 
     /** Glyph box size at a given pitch and board size. */

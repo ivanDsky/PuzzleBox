@@ -18,6 +18,10 @@ import org.junit.Test
  */
 class TangoSemanticsTest {
 
+    // Which edge's caption wins is the behaviour; its wording is the game's to change.
+    private val SAME_PHRASE = TangoSemantics.markerConflictPhrase(TangoMarkerKind.SAME)
+    private val OPPOSITE_PHRASE = TangoSemantics.markerConflictPhrase(TangoMarkerKind.OPPOSITE)
+
     private fun model(
         cells: Map<Int, TangoCell> = emptyMap(),
         givens: Set<Int> = emptySet(),
@@ -101,21 +105,21 @@ class TangoSemanticsTest {
     }
 
     @Test
-    fun `marker conflict copy names the symbol and requirement`() {
+    fun `a broken marker captions its own kind on both of its cells`() {
         // The scan needs ACTUAL conflicting values on the edge (I2): same-marker whose
         // two cells differ.
         val same = model(
             cells = mapOf(0 to TangoCell.SUN, 1 to TangoCell.MOON),
             markers = listOf(TangoRendererModel.MarkerRender(0, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME)),
         )
-        assertEquals("= pair mismatch — these cells must match.", TangoSemantics.violationPhraseAt(same, 0))
-        assertEquals("= pair mismatch — these cells must match.", TangoSemantics.violationPhraseAt(same, 1))
+        assertEquals(SAME_PHRASE, TangoSemantics.violationPhraseAt(same, 0))
+        assertEquals(SAME_PHRASE, TangoSemantics.violationPhraseAt(same, 1))
         // Opposite-marker whose two cells match.
         val opposite = model(
             cells = mapOf(0 to TangoCell.SUN, 6 to TangoCell.SUN),
             markers = listOf(TangoRendererModel.MarkerRender(0, TangoEdgeSide.DOWN, TangoMarkerKind.OPPOSITE)),
         )
-        assertEquals("× pair mismatch — these cells must differ.", TangoSemantics.violationPhraseAt(opposite, 6))
+        assertEquals(OPPOSITE_PHRASE, TangoSemantics.violationPhraseAt(opposite, 6))
     }
 
     /** I2: the SPECIFIC broken edge marks + captions — satisfied edges stay silent. */
@@ -130,8 +134,8 @@ class TangoSemanticsTest {
                 TangoRendererModel.MarkerRender(0, TangoEdgeSide.DOWN, TangoMarkerKind.OPPOSITE),
             ),
         )
-        assertEquals("× pair mismatch — these cells must differ.", TangoSemantics.violationPhraseAt(m, 0))
-        assertEquals("× pair mismatch — these cells must differ.", TangoSemantics.violationPhraseAt(m, 6))
+        assertEquals(OPPOSITE_PHRASE, TangoSemantics.violationPhraseAt(m, 0))
+        assertEquals(OPPOSITE_PHRASE, TangoSemantics.violationPhraseAt(m, 6))
         // Satisfied = edge stays plain.
         assertNull(TangoSemantics.violationPhraseAt(m, 1))
         // And the reverse: satisfied × (sun/moon) with broken = (sun/moon) captions "=".
@@ -142,7 +146,7 @@ class TangoSemanticsTest {
                 TangoRendererModel.MarkerRender(0, TangoEdgeSide.DOWN, TangoMarkerKind.OPPOSITE),
             ),
         )
-        assertEquals("= pair mismatch — these cells must match.", TangoSemantics.violationPhraseAt(flip, 0))
+        assertEquals(SAME_PHRASE, TangoSemantics.violationPhraseAt(flip, 0))
         assertNull(TangoSemantics.violationPhraseAt(flip, 6))
     }
 
@@ -165,7 +169,7 @@ class TangoSemanticsTest {
             ),
             markers = listOf(TangoRendererModel.MarkerRender(0, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME)),
         )
-        assertEquals("= pair mismatch — these cells must match.", TangoSemantics.firstViolationPhrase(m))
+        assertEquals(SAME_PHRASE, TangoSemantics.firstViolationPhrase(m))
     }
 
     // ---- §9 marker phrasing on affected cells ----

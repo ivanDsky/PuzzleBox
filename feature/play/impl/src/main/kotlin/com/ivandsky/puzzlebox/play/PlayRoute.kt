@@ -15,6 +15,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.TutorialHost
 import org.koin.androidx.compose.koinViewModel
 
 /**
@@ -41,6 +42,10 @@ import org.koin.androidx.compose.koinViewModel
  * play is released and the blob's game starts, restoring through its own codec. The
  * adopt-vs-load priority is the ticket-13 one: saved session → replay blob → fresh
  * fetch, in that order, once per play instance.
+ *
+ * Tutorials (spec A11): the first pick of a game whose tutorial is not seen shows
+ * [TutorialHost] before its board, and the chrome's How to play reopens it over the
+ * live play. The view model holds the open tutorial, so a rotation keeps its step.
  */
 @Composable
 fun PlayRoute(
@@ -71,8 +76,14 @@ fun PlayRoute(
     // SessionBlob envelopes naming their game — fix-round-1 C1 unified them), else fetch
     // the picked game's board. Priority: saveable first (mid-play rotation AND process
     // death — the saveable outlives the store single, whose restart lives in
-    // PlaySessionStore.restore), then the replay blob, once per play instance.
-    LaunchedEffect((state as? PlayUiState.Playing)?.play) {
+    // PlaySessionStore.restore), then the replay blob, once per play instance. How to
+    // play over a play keeps the same instance, so opening or closing it re-adopts nothing.
+    val livePlay = when (val current = state) {
+        is PlayUiState.Playing -> current.play
+        is PlayUiState.Tutorial -> current.over
+        is PlayUiState.Picker -> null
+    }
+    LaunchedEffect(livePlay) {
         finishedAtEntry?.let(viewModel::dropFinished)
         val saved = savedSession
         savedSession = null
@@ -122,8 +133,18 @@ fun PlayRoute(
                 layout = layout,
                 onRetry = current.play::load,
                 onSolved = onSolved,
+                onHowToPlay = if (current.ui.tutorial.isEmpty()) null else viewModel::howToPlay,
                 modifier = modifier,
             )
         }
+
+        // First play of a game, or How to play: the board waits behind the lessons, and
+        // Skip or "Let's play" hands back (to the picked game's board on a first play).
+        is PlayUiState.Tutorial -> TutorialHost(
+            ui = current.ui,
+            session = current.session,
+            onFinished = { viewModel.closeTutorial(sink) },
+            modifier = modifier,
+        )
     }
 }

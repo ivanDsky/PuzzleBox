@@ -27,7 +27,7 @@ fun HomeRoute(
 
     HomeScreen(
         layout = layout,
-        game = uiState.featured,
+        today = uiState.today,
         identity = uiState.identity,
         themeMode = themeMode,
         onSetThemeMode = onSetThemeMode,

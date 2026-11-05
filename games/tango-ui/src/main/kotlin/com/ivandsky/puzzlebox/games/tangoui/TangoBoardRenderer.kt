@@ -49,8 +49,9 @@ import kotlin.math.sin
  * §2–§7): sun/moon glyphs as vectors in cell content (silhouette identity, §3 fills),
  * `=`/`×` constraints as non-interactive [EdgeOverlay.Mark] decorations (A12),
  * violations as tint + dashed border (the rule-naming caption is the shared
- * chrome's, via [TangoPlayController.violation]), per-cell
- * TalkBack semantics (§9), tap-cycle placement via [TangoTapPolicy].
+ * chrome's, via [TangoPlayController.violation]), a guided lesson's answer as faint
+ * ghost glyphs ([TangoRendererModel.ghosts]), per-cell TalkBack semantics (§9),
+ * tap-cycle placement via [TangoTapPolicy].
  */
 class TangoBoardRenderer(
     private val onPlacement: ((TangoPlacement) -> Unit)? = null,
@@ -137,7 +138,6 @@ private fun Cell(
     val violating = violationPhrase != null
     val hinted = model.hintCell == idx
     val scheme = MaterialTheme.colorScheme
-    val boardColors = LocalBoardColors.current
     val gridLineWeight = BoardTokens.boardGridLineWeight
     val reducedMotion = rememberReducedMotion()
     // ViolationFlash retired (user QA 2026-11-02): the 1→0.86 cell scale read as a
@@ -195,18 +195,12 @@ private fun Cell(
             },
         contentAlignment = Alignment.Center,
     ) {
-        when (render?.value) {
-            TangoCell.SUN -> SunGlyph(
-                Modifier.fillMaxSize(),
-                fill = boardColors.sunFill,
-                n = model.n,
-            )
-            TangoCell.MOON -> MoonGlyph(
-                Modifier.fillMaxSize(),
-                fill = boardColors.moonFill,
-                n = model.n,
-            )
-            null -> Unit
+        render?.value?.let { Glyph(it, Modifier.fillMaxSize(), model.n) }
+        // Guide ghost (spec A12): the lesson's answer, faint, until the square matches —
+        // full size on an empty square, a corner badge beside a wrong glyph.
+        model.ghosts[idx]?.let { answer ->
+            val badge = Modifier.align(Alignment.TopEnd).fillMaxSize(TangoBoardSpec.ghostBadgeFraction)
+            Glyph(answer, if (render?.value == null) Modifier.fillMaxSize() else badge, model.n, TangoBoardSpec.ghostAlpha)
         }
 
         // Per-cell TalkBack semantics (§9): one focusable node per cell, row-major;
@@ -234,6 +228,16 @@ private fun Cell(
                     }
                 },
         )
+    }
+}
+
+/** The sun or moon in its board fill, at [alpha] of that fill's own alpha (1 = the placed glyph). */
+@Composable
+private fun Glyph(value: TangoCell, modifier: Modifier, n: Int, alpha: Float = 1f) {
+    val colors = LocalBoardColors.current
+    when (value) {
+        TangoCell.SUN -> SunGlyph(modifier, colors.sunFill.copy(alpha = colors.sunFill.alpha * alpha), n)
+        TangoCell.MOON -> MoonGlyph(modifier, colors.moonFill.copy(alpha = colors.moonFill.alpha * alpha), n)
     }
 }
 
