@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.model.GameId
@@ -111,7 +112,7 @@ class ResultViewModelTest {
         val play = solveLive()
         val state = vm().state.value
         assertEquals(RecordVerdict.FirstSolve, state.verdict)
-        assertNull(state.previousBestMs)
+        assertNull(state.previousBest)
         assertFalse(state.writeFailed)
         assertEquals(play.record.value.label, state.label)
     }
@@ -123,7 +124,7 @@ class ResultViewModelTest {
         solveLive()
         val state = vm().state.value
         assertEquals(RecordVerdict.NewBest, state.verdict)
-        assertEquals(slower, state.previousBestMs)
+        assertEquals(BestScore(slower, hints = 0), state.previousBest)
     }
 
     @Test

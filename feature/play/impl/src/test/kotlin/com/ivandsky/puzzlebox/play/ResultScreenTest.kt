@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.model.GameId
@@ -78,7 +79,7 @@ class ResultScreenTest {
                     onPrimary = onPrimary,
                     onPlayAgain = onPlayAgain,
                     verdict = verdict,
-                    previousBestMs = previousBestMs,
+                    previousBest = previousBestMs?.let { BestScore(it, hints = 0) },
                     writeFailed = writeFailed,
                     onRetryWrite = onRetryWrite,
                 )

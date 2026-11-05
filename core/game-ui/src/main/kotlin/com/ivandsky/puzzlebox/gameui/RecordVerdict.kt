@@ -1,5 +1,8 @@
 package com.ivandsky.puzzlebox.gameui
 
+import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.RankOrder
+
 /**
  * The result's honest-best verdict (spec A10, user ruling 2026-11-04): what THIS solve's
  * time means against the game's previous best — the minimum time over the game's first
@@ -24,16 +27,18 @@ sealed interface RecordVerdict {
 
     companion object {
         /**
-         * [previousBestMs] null = the game had no first solve before this one; [replay]
-         * wins over every time comparison. Times compare in whole seconds, as
-         * [formatClock] shows them: a win by milliseconds that reads as the same time is a
-         * tie, not a new best (the badge would contradict the best shown beside it).
+         * [previous] null = the game had no first solve before this one; [replay] wins
+         * over every comparison. [order] is the game's rank order (ADR-0013). Times compare
+         * in whole seconds, as [formatClock] shows them: a win by milliseconds that reads
+         * as the same time is a tie, not a new best (the badge would contradict the best
+         * shown beside it). Time-first ignores hints, as the shown best does.
          */
-        fun of(previousBestMs: Long?, timeMs: Long, replay: Boolean): RecordVerdict = when {
+        @Suppress("UNUSED_PARAMETER")
+        fun of(previous: BestScore?, timeMs: Long, hints: Int, replay: Boolean, order: RankOrder): RecordVerdict = when {
             replay -> Replay
-            previousBestMs == null -> FirstSolve
-            timeMs / 1000 < previousBestMs / 1000 -> NewBest
-            timeMs / 1000 == previousBestMs / 1000 -> TiedBest
+            previous == null -> FirstSolve
+            timeMs / 1000 < previous.timeMs / 1000 -> NewBest
+            timeMs / 1000 == previous.timeMs / 1000 -> TiedBest
             else -> NotBest
         }
     }

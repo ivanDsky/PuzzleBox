@@ -2,9 +2,11 @@ package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.result.AppResult
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.CompletionRecordEmitter
@@ -30,7 +32,7 @@ import kotlinx.coroutines.launch
  * play feature owns around it — the opening → adopt lifecycle (A7/A8 degrade states
  * first-class, A11 restore order through [opening]), the record identity (ADR-0004), the
  * record write (F2 §7 fire-and-observe, on [recordScope] so a release never cancels it),
- * the A10 verdict derived from the session-start best-time baseline, and the slot's saves: every
+ * the A10 verdict derived from the session-start best baseline, and the slot's saves: every
  * in-progress session change is offered to [writer], a solve discards the row (A10).
  *
  * Every [load] adopts into a NEW controller; callbacks and async results of an older
@@ -57,16 +59,17 @@ class ActivePlay internal constructor(
 
     /**
      * What the result route reads. [verdict] is the A10 verdict for THIS play — null while
-     * the write is in flight or the baseline is unknown; [previousBestMs] is the game's
-     * best before this session (null with no completion, or until [verdict] lands);
+     * the write is in flight or the baseline is unknown; [previousBest] is the game's best
+     * before this session by [rankOrder] (null with no completion, or until [verdict] lands);
      * [label] is the result screen's game line ("Zip · #123"); [solve] is the win this
      * record belongs to, null until this session wins (a load or replay clears it).
      */
     data class Record(
         val verdict: RecordVerdict?,
-        val previousBestMs: Long?,
+        val previousBest: BestScore?,
         val writeFailed: Boolean,
         val label: String,
+        val rankOrder: RankOrder,
         val solve: Solve? = null,
     )
 
@@ -91,12 +94,12 @@ class ActivePlay internal constructor(
 
     private var ref: PuzzleRef? = null
 
-    /** The game's best time BEFORE this session and whether this puzzle was already
+    /** The game's best BEFORE this session and whether this puzzle was already
      *  solved (a replay), read at session start (A10): the verdict is derived from this
      *  baseline, never from the stored rows after the write. [baselineKnown] false = the
      *  read has not landed (the verdict stays null). */
     private var baselineKnown = false
-    private var baselineBestMs: Long? = null
+    private var baselineBest: BestScore? = null
     private var baselineReplay = false
     private var lastWon: CompletionRecord? = null
 
@@ -213,7 +216,7 @@ class ActivePlay internal constructor(
 
     private fun emit(record: CompletionRecord) {
         val token = recordToken
-        _record.update { it.copy(verdict = null, previousBestMs = null, writeFailed = false) }
+        _record.update { it.copy(verdict = null, previousBest = null, writeFailed = false) }
         CompletionRecordEmitter(recordScope) { r ->
             completions.onCompleted(r)
             AppResult.Ok(Unit)
@@ -227,8 +230,8 @@ class ActivePlay internal constructor(
                         it
                     } else {
                         it.copy(
-                            verdict = RecordVerdict.of(baselineBestMs, record.time, baselineReplay),
-                            previousBestMs = baselineBestMs,
+                            verdict = RecordVerdict.of(baselineBest, record.time, record.hints, baselineReplay, rankOrder),
+                            previousBest = baselineBest,
                         )
                     }
                 }
@@ -241,7 +244,7 @@ class ActivePlay internal constructor(
         recordToken++
         this.ref = ref
         baselineKnown = false
-        baselineBestMs = null
+        baselineBest = null
         baselineReplay = false
         lastWon = null
         _record.value = blankRecord(labelFor(ref))
@@ -253,10 +256,10 @@ class ActivePlay internal constructor(
         if (ref == null) return
         val token = recordToken
         scope.launch {
-            val best = completions.bestTimeMs(ref.gameId)
+            val best = completions.best(ref.gameId)
             val solved = replay || completions.observeRecords().first().any { it.puzzleRef.sameIdentity(ref) }
             if (token == recordToken) {
-                baselineBestMs = best
+                baselineBest = best
                 baselineReplay = solved
                 baselineKnown = true
             }
@@ -267,7 +270,9 @@ class ActivePlay internal constructor(
         gameId == other.gameId && date == other.date && puzzleNumber == other.puzzleNumber
 
     private fun blankRecord(label: String) =
-        Record(verdict = null, previousBestMs = null, writeFailed = false, label = label)
+        Record(verdict = null, previousBest = null, writeFailed = false, label = label, rankOrder = rankOrder)
+
+    private val rankOrder: RankOrder get() = plugin.score.rankOrder
 
     private fun labelFor(ref: PuzzleRef?): String {
         val name = plugin.definition.displayName

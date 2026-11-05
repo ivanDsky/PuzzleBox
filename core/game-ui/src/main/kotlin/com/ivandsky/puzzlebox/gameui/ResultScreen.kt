@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
@@ -55,7 +57,8 @@ private val CompactHeight = 480.dp
  *
  * The badge renders from the in-memory [verdict] whenever it lands — this screen NEVER
  * waits on the record write (F2 §7 fire-and-observe, unchanged); null means the write is
- * still in flight or the verdict is unknown. [previousBestMs] is the best before this play. A failed write stays
+ * still in flight or the verdict is unknown. [previousBest] is the best before this play,
+ * ranked and shown by the game's [rankOrder]. A failed write stays
  * surfaced and retryable here, where the player actually is after solving.
  *
  * Core | game split: this shell is the same for every game. A game tweaks it through
@@ -74,7 +77,8 @@ fun ResultScreen(
     onPlayAgain: (() -> Unit)?,
     modifier: Modifier = Modifier,
     verdict: RecordVerdict? = null,
-    previousBestMs: Long? = null,
+    previousBest: BestScore? = null,
+    rankOrder: RankOrder = RankOrder.TimeThenHints,
     writeFailed: Boolean = false,
     onRetryWrite: () -> Unit = {},
     label: String? = null,
@@ -143,7 +147,7 @@ fun ResultScreen(
             )
             // The run's ONE accent moment: the best badge — no confetti, no second accent.
             RecordTag(verdict)
-            BestLine(verdict, previousBestMs)
+            BestLine(verdict, previousBest, rankOrder)
             Text(
                 text = if (hintsUsed == 1) "1 hint" else "$hintsUsed hints",
                 style = MaterialTheme.typography.bodyLarge,
@@ -195,7 +199,7 @@ internal fun ResultScreenLivePreview() {
             onPrimary = {},
             onPlayAgain = {},
             verdict = RecordVerdict.NewBest,
-            previousBestMs = 112_000,
+            previousBest = BestScore(112_000, hints = 0),
             label = "Zip · #42",
         )
     }
@@ -241,7 +245,7 @@ internal fun ResultScreenReplayPreview() {
             onPrimary = {},
             onPlayAgain = {},
             verdict = RecordVerdict.Replay,
-            previousBestMs = 88_000,
+            previousBest = BestScore(88_000, hints = 0),
             label = "Zip · #41",
         )
     }

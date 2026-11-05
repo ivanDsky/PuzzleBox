@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.RankOrder
 
 /** The widest the stacked result actions grow: equal-width buttons, never a full tablet pane. */
 private val ActionsMaxWidth = 360.dp
@@ -64,9 +66,10 @@ internal fun RecordTag(verdict: RecordVerdict?, modifier: Modifier = Modifier) {
  * beat, a slower solve the standing best to chase, a replay says it was one. A first
  * solve has no previous best, and a tie's hero time IS the best: no line.
  */
+@Suppress("UNUSED_PARAMETER")
 @Composable
-internal fun BestLine(verdict: RecordVerdict?, previousBestMs: Long?) {
-    val best = previousBestMs?.let(::formatClock)
+internal fun BestLine(verdict: RecordVerdict?, previousBest: BestScore?, rankOrder: RankOrder) {
+    val best = previousBest?.let { formatClock(it.timeMs) }
     val line = when (verdict) {
         RecordVerdict.NewBest -> best?.let { "Previous best $it" }
         RecordVerdict.NotBest -> best?.let { "Best $it" }

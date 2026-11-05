@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.nextUnsolved
+import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.model.GameId
@@ -20,13 +22,15 @@ import kotlinx.coroutines.flow.stateIn
 
 /**
  * The result route's live facts. [verdict] is the A10 verdict for THIS play — null while
- * the write is in flight/unknown, or when no live play holds this solve; [previousBestMs]
- * is the game's best before this play; [label] is null without a live play; [writeFailed]
- * (the retry affordance) is only ever true for a live play holding this solve.
+ * the write is in flight/unknown, or when no live play holds this solve; [previousBest]
+ * is the game's best before this play, ranked by [rankOrder]; [label] is null without a
+ * live play; [writeFailed] (the retry affordance) is only ever true for a live play
+ * holding this solve.
  */
 data class ResultUiState(
     val verdict: RecordVerdict? = null,
-    val previousBestMs: Long? = null,
+    val previousBest: BestScore? = null,
+    val rankOrder: RankOrder = RankOrder.TimeThenHints,
     val writeFailed: Boolean = false,
     val label: String? = null,
 )
@@ -88,7 +92,8 @@ class ResultViewModel(
         if (record.solve == solve) {
             ResultUiState(
                 verdict = record.verdict,
-                previousBestMs = record.previousBestMs,
+                previousBest = record.previousBest,
+                rankOrder = record.rankOrder,
                 writeFailed = record.writeFailed,
                 label = record.label,
             )
