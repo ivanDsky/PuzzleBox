@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -18,6 +19,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
+import java.time.LocalDate
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,6 +51,7 @@ class HomeScreenTest {
                     layout = layout,
                     today = today.value,
                     identity = identity,
+                    puzzleDay = LocalDate.of(2026, 11, 4),
                     themeMode = themeMode,
                     onSetThemeMode = onSetThemeMode,
                     history = history,
@@ -126,10 +129,31 @@ class HomeScreenTest {
 
     @Test
     fun `history rows render a formatted headline per day`() {
-        setContent(HomeLayout.TwoPane, history = listOf(HistoryDay("2026-10-30", "October 30", "Zip")))
+        setContent(
+            HomeLayout.TwoPane,
+            history = listOf(HistoryDay("2026-10-30", "October 30", listOf(HistoryDay.GameResult("Zip", "0:42")))),
+        )
 
         composeRule.onNodeWithText("October 30").assertExists()
         composeRule.onNodeWithText("No games yet").assertDoesNotExist()
+    }
+
+    @Test
+    fun `selecting a two-game day on two pane selects exactly that row`() {
+        val twoGames = listOf(HistoryDay.GameResult("Zip", "0:42"), HistoryDay.GameResult("Tango", null))
+        setContent(
+            HomeLayout.TwoPane,
+            history = listOf(
+                HistoryDay("2026-11-03", "November 3", twoGames),
+                HistoryDay("2026-11-02", "November 2", twoGames.take(1)),
+                HistoryDay("2026-11-01", "November 1", twoGames.takeLast(1)),
+            ),
+        )
+
+        composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo().performClick()
+
+        composeRule.onAllNodes(isSelected()).assertCountEquals(1)
+        composeRule.onNodeWithTag("home.history_row_2026-11-03").assertIsSelected()
     }
 
     @Test

@@ -36,7 +36,7 @@ import org.robolectric.annotation.Config
 class ResultIsolationE2ETest {
 
     @Test
-    fun `a Result on Home keeps its badge while Play replays and re-solves the same slot`() = shellRobot {
+    fun `a Result on Home keeps its badge while Play replays and re-solves the same slot`() = shellRobot(graph = numberedGraph()) {
         tapText(PLAY_TODAY)
         solveZip()
         val first = state.currentStack.last()
@@ -61,6 +61,11 @@ class ResultIsolationE2ETest {
         assertEquals(listOf(HomeKey, first), state.stacks.first())
         assertRoute(RESULT)
         awaitBadge()
+    }
+
+    /** A numbered daily (#592): an unnumbered one is practice and never earns a verdict badge. */
+    private fun numberedGraph() = E2eKoinGraph(E2E_TODAY).apply {
+        daily.setHistory(ZipDefinition.id, listOf(ZipPlayFixture.entry(E2E_TODAY)))
     }
 
     /**

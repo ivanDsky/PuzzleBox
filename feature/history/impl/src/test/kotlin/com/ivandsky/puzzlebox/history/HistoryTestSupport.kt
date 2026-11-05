@@ -4,12 +4,15 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 
@@ -30,11 +33,15 @@ object HistoryTestSupport {
 
     val registry: GameRegistry = TestGames.registry(listOf(ZIP, TANGO, QUEENS))
 
+    /** Fixed clock: 12:00 UTC Nov 3 2026 is the morning of Nov 3 in LA, so the puzzle day is [TODAY]. */
+    val TODAY: LocalDate = LocalDate.of(2026, 11, 3)
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-11-03T12:00:00Z"), ZoneOffset.UTC)
+
     /** History's ViewModel over [daily]/[completions] and the production use cases. */
     fun viewModel(daily: DailyRepository, completions: CompletionRepository): HistoryViewModel =
         HistoryViewModel(
             observeGameHistory = ObserveGameHistory(registry, daily, completions),
-            computeStreak = ComputeStreak(),
+            computeStreak = ComputeStreak(puzzleDay = GetPuzzleDay(registry, clock)),
             registry = registry,
         )
 

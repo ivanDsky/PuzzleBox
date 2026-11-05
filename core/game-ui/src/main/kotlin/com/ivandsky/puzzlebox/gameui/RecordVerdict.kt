@@ -26,7 +26,7 @@ sealed interface RecordVerdict {
         /**
          * [previousBestMs] null = the game had no first solve before this one; [replay]
          * wins over every time comparison. Times compare in whole seconds, as
-         * [formatClock] shows them: a win by milliseconds that reads as the same time is a
+         * [formatDuration] shows them: a win by milliseconds that reads as the same time is a
          * tie, not a new best (the badge would contradict the best shown beside it).
          */
         fun of(previousBestMs: Long?, timeMs: Long, replay: Boolean): RecordVerdict = when {

@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.EmptyState
@@ -46,6 +47,7 @@ import kotlinx.coroutines.delay
 internal fun ListPane(
     today: List<HomeUiState.TodayRow>,
     identity: Identity?,
+    puzzleDay: LocalDate,
     themeMode: ThemeMode,
     onOpenTheme: () -> Unit,
     onOpenHistory: () -> Unit,
@@ -67,7 +69,7 @@ internal fun ListPane(
     ) {
         LargeTopBar(
             title = "PuzzleBox",
-            subtitle = todayHeadline(),
+            subtitle = puzzleDay.format(HEADER_DATE),
             actions = {
                 IconButton(onClick = onOpenTheme) {
                     Icon(
@@ -193,7 +195,7 @@ private fun HistoryRow(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Daily ${day.gameName}",
+                    text = day.games.joinToString(" · ") { "${it.gameName} ${it.resultText}" },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -207,17 +209,20 @@ private fun HistoryRow(
             }
         }
     }
+    val tagged = modifier
+        .fillMaxWidth()
+        .testTag("home.history_row_${day.isoDay}")
     if (onClick != null) {
         Surface(
+            selected = selected,
             onClick = onClick,
-            modifier = modifier.fillMaxWidth(),
-            enabled = true,
+            modifier = tagged,
             shape = MaterialTheme.shapes.small,
             color = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
         ) { rowContent() }
     } else {
         Surface(
-            modifier = modifier.fillMaxWidth(),
+            modifier = tagged,
             shape = MaterialTheme.shapes.small,
             color = Color.Transparent,
         ) { rowContent() }
@@ -248,5 +253,7 @@ private fun StaggeredItem(
     ) { content() }
 }
 
-private fun todayHeadline(): String =
-    LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM d"))
+/** The game's solve time, or "–" when it was opened but not solved. */
+internal val HistoryDay.GameResult.resultText: String get() = time ?: "–"
+
+private val HEADER_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d")

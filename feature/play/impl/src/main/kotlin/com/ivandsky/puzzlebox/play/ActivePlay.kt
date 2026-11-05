@@ -221,9 +221,10 @@ class ActivePlay internal constructor(
             if (token != recordToken) return@emit
             when (result) {
                 // A10 verdict for THIS play against the session-start best; an unknown
-                // baseline (the write raced the baseline read) stays null.
+                // baseline (the write raced the baseline read) stays null. A practice
+                // puzzle (no edition number) never ranks: its verdict stays null.
                 is AppResult.Ok -> _record.update {
-                    if (!baselineKnown) {
+                    if (!baselineKnown || record.puzzleRef.puzzleNumber == null) {
                         it
                     } else {
                         it.copy(

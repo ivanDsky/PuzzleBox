@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.formatDuration
 
 /** The widest the stacked result actions grow: equal-width buttons, never a full tablet pane. */
 private val ActionsMaxWidth = 360.dp
@@ -66,7 +67,7 @@ internal fun RecordTag(verdict: RecordVerdict?, modifier: Modifier = Modifier) {
  */
 @Composable
 internal fun BestLine(verdict: RecordVerdict?, previousBestMs: Long?) {
-    val best = previousBestMs?.let(::formatClock)
+    val best = previousBestMs?.let(::formatDuration)
     val line = when (verdict) {
         RecordVerdict.NewBest -> best?.let { "Previous best $it" }
         RecordVerdict.NotBest -> best?.let { "Best $it" }

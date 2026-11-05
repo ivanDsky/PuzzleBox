@@ -215,7 +215,7 @@ class HomeRouteTest {
             composeRule.onAllNodesWithText("November 1").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("November 1").assertExists()
-        composeRule.onNodeWithText("Daily queens").assertExists()
+        composeRule.onNodeWithTag("home.history_row_2026-11-01").assertExists()
         composeRule.onNodeWithText("No games yet").assertDoesNotExist()
     }
 
