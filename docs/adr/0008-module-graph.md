@@ -32,11 +32,12 @@ the build instead of a review.
 5. **Navigation is api/impl.** `feature:<name>:api` holds only the feature's `@Serializable`
    NavKeys and a `<name>NavKeys()` polymorphic registration (`core:navigation`'s
    `navKeySavedStateConfiguration`); `feature:<name>:impl` holds screens, ViewModels, Koin
-   module and the `<name>Entry` builder `app` installs in `PuzzleBoxApp`. A feature that
-   navigates elsewhere depends on the target's `api` only. Every key pins `@SerialName` to
-   the class name it was first saved under (`com.ivandsky.puzzlebox.app.nav.*`), so a back
-   stack saved before a key moved still restores; `app/nav/PuzzleBoxNavKeys.kt` registers
-   every feature's keys.
+   module and the `<name>Entry` builder `app` installs in `puzzleBoxEntryProvider`. A feature that
+   navigates elsewhere depends on the target's `api` only. *(Amended 2026-11-04, ADR-0010.)*
+   Every key's `@SerialName` uses the `com.ivandsky.puzzlebox.app.nav.*` prefix by convention,
+   new keys included; compatibility of saved navigation is versioned by `NAVIGATION_STATE_KEY`
+   (a bundle under another key, or one that fails to decode, starts fresh), not by pins.
+   `app/nav/PuzzleBoxNavKeys.kt` registers every feature's keys.
 6. **Forbidden edges, enforced by `checkModuleGraph`.** The convention plugins
    `puzzlebox.android.application`, `puzzlebox.android.library` and `puzzlebox.jvm.library`
    register a `checkModuleGraph` task in every module

@@ -5,16 +5,18 @@ import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.game.FetchError
+import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
 import com.ivandsky.puzzlebox.gameui.unavailableMessage
+import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.LocalDate
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -27,16 +29,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The play feature's game-agnostic half of a play, over a stand-in game: fetch → adopt
- * (A7/A8 degrade states first-class), the record identity (ADR-0004), the fire-and-observe
- * record write (F2 §7) and the A4 badge from the session-start baseline. The game halves
- * (decode, moves, onWon once per win) are pinned in each games:*-ui controller test.
+ * The play feature's game-agnostic half of a play, over a stand-in game: opening → adopt
+ * (A7/A8 degrade states first-class, A11 a saved row before the network), the record
+ * identity (ADR-0004), the fire-and-observe record write (F2 §7) and the A4 badge from the
+ * session-start baseline. The game halves (decode, moves, onWon once per win) are pinned
+ * in each games:*-ui controller test.
  */
 class ActivePlayTest {
 
     private val game = TestGames.alpha
     private val day = LocalDate.parse("2026-10-31")
     private val ref = TestGames.Ref(game, day, 7)
+    private val key = GameKey(game.value, day.toString())
 
     private val fakes = FakeGames(listOf(game))
     private val ui get() = fakes[game]
@@ -64,9 +68,11 @@ class ActivePlayTest {
         },
     )
 
-    private fun play(): ActivePlay = store.start(game) {}!!
+    /** Today's slot opened (and loaded) through the store. */
+    private fun loaded(): ActivePlay = store.open(key)!!
 
-    private fun loaded(): ActivePlay = play().also { it.load() }
+    /** The slot's saved row holds [session], as a released or app-stopped play left it. */
+    private fun savedRow(session: ByteArray) = runBlocking { saved.save(PlaySlot(game, day), SessionBlob.encode(game, session)) }
 
     private fun records() = runBlocking { completions.observeRecords().first() }
 
@@ -77,7 +83,6 @@ class ActivePlayTest {
         assertSame(ui.latest, play.controller)
         assertEquals(ref, ui.latest.ref)
         assertEquals(TestGames.puzzle(game).payload.toList(), ui.latest.puzzle!!.payload.toList())
-        assertFalse(play.needsLoad)
     }
 
     @Test
@@ -103,7 +108,6 @@ class ActivePlayTest {
         val play = loaded()
         assertEquals(PlayBoardStatus.Unavailable(unavailableMessage(error)), play.board.value.status)
         assertNull(ui.latest.puzzle)
-        assertTrue(play.needsLoad)
 
         daily.setToday(game, DailyToday.Fresh(TestGames.puzzle(game)))
         play.load()
@@ -116,7 +120,6 @@ class ActivePlayTest {
         ui.rejectWith = "untrusted"
         val play = loaded()
         assertEquals(PlayBoardStatus.Unavailable("untrusted"), play.board.value.status)
-        assertTrue(play.needsLoad)
     }
 
     @Test
@@ -129,7 +132,6 @@ class ActivePlayTest {
         assertEquals(listOf(FakeController.record(ref)), records())
         assertEquals(true, play.record.value.badge)
         assertFalse(play.record.value.writeFailed)
-        assertTrue(play.needsLoad) // a finished session means a fresh entry fetches
     }
 
     @Test
@@ -186,23 +188,22 @@ class ActivePlayTest {
 
     @Test
     fun `result label names the puzzle number when known`() {
-        assertEquals("Alpha", play().record.value.label)
-        assertEquals("Alpha · #7", loaded().record.value.label)
+        val play = loaded()
+        assertEquals("Alpha · #7", play.record.value.label)
 
         daily.setHistory(game, emptyList())
-        val unnumbered = loaded()
-        assertEquals("Alpha", unnumbered.record.value.label)
+        play.load()
+        assertEquals("Alpha", play.record.value.label)
     }
 
     @Test
-    fun `a restored in-progress session adopts without fetching and keeps its identity`() {
-        val play = play()
-        play.adoptRestored(FakeController.envelope(game, moves = 2, day = day).session)
+    fun `a saved in-progress session resumes without fetching and keeps its identity`() {
+        savedRow(FakeController.envelope(game, moves = 2, day = day).session)
+        val play = loaded()
         assertEquals(0, daily.todayCalls(game))
         assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
         assertEquals(2, ui.latest.moves)
         assertEquals("Alpha · #7", play.record.value.label)
-        assertFalse(play.needsLoad)
 
         ui.latest.win()
         assertEquals(true, play.record.value.badge)
@@ -210,9 +211,9 @@ class ActivePlayTest {
     }
 
     @Test
-    fun `a restored completed session shows the win without re-emitting`() {
-        val play = play()
-        play.adoptRestored(FakeController.envelope(game, moves = 5, complete = true, day = day).session)
+    fun `a saved completed session shows the win without re-emitting`() {
+        savedRow(FakeController.envelope(game, moves = 5, complete = true, day = day).session)
+        val play = loaded()
         assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
         assertTrue(play.controller.isComplete)
         assertTrue(records().isEmpty())
@@ -220,54 +221,22 @@ class ActivePlayTest {
     }
 
     @Test
-    fun `corrupt saved bytes fall back to a normal load`() {
-        val play = play()
-        val created = ui.controllers.size
-        play.adoptRestored("not a session".encodeToByteArray())
-        assertEquals(1, daily.todayCalls(game))
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
-        assertEquals(ref, ui.latest.ref)
-        assertEquals("no throwaway controller for the unreadable blob", created + 1, ui.controllers.size)
+    fun `a saved session the game cannot read is unavailable, never a loop`() {
+        savedRow("not a session".encodeToByteArray())
+        val play = loaded()
+        assertEquals(PlayBoardStatus.Unavailable("This saved game couldn't be read."), play.board.value.status)
+        assertEquals(0, daily.todayCalls(game))
     }
 
     @Test
-    fun `a record write in flight across a restore still delivers its badge`() {
-        val gate = CompletableDeferred<Unit>()
-        completions.writeGate = gate
+    fun `a superseded controller's late win writes nothing`() {
         val play = loaded()
-        ui.latest.move()
-        val lagging = ui.latest.bytes()
-        ui.latest.win()
+        val superseded = ui.latest
+        play.load() // retry → a new controller
+
+        superseded.win()
+        assertTrue(records().isEmpty())
         assertNull(play.record.value.badge)
-
-        // A restore of the SAME puzzle (a saveable that missed the winning commit) adopts
-        // into a new controller while the win's write is still running.
-        play.adoptRestored(lagging)
-        gate.complete(Unit)
-
-        assertEquals(listOf(FakeController.record(ref)), records())
-        assertEquals(true, play.record.value.badge)
-    }
-
-    @Test
-    fun `a failed record write in flight across a restore still surfaces and retries`() {
-        val gate = CompletableDeferred<Unit>()
-        completions.writeGate = gate
-        completions.fail = true
-        val play = loaded()
-        ui.latest.move()
-        val lagging = ui.latest.bytes()
-        ui.latest.win()
-
-        play.adoptRestored(lagging)
-        gate.complete(Unit)
-        assertTrue(play.record.value.writeFailed)
-
-        completions.fail = false
-        play.retryRecordWrite()
-        assertFalse(play.record.value.writeFailed)
-        assertEquals(true, play.record.value.badge)
-        assertEquals(1, records().size)
     }
 
     @Test

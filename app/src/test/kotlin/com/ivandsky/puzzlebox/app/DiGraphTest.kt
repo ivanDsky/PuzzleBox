@@ -5,15 +5,18 @@ import com.ivandsky.puzzlebox.app.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObservePlayProgress
 import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -21,7 +24,12 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.history.HistoryViewModel
 import com.ivandsky.puzzlebox.home.HomeViewModel
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.play.GameViewModel
+import com.ivandsky.puzzlebox.play.HubViewModel
 import com.ivandsky.puzzlebox.play.PlaySessionStore
+import com.ivandsky.puzzlebox.play.ResultViewModel
+import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.ResultKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
@@ -29,6 +37,7 @@ import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
+import org.koin.core.parameter.parametersOf
 import org.koin.test.KoinTest
 import org.koin.test.verify.verify
 import org.robolectric.RobolectricTestRunner
@@ -97,6 +106,15 @@ class DiGraphTest : KoinTest {
             for (id in games) assertNotNull("no play UI registered for $id", playUis[GameId(id)])
             // The one shared play session store resolves off the real graph.
             assertNotNull(koin.get<PlaySessionStore>())
+
+            // Navigation-ux bindings (arch-8): saved plays, the per-game calendar, the
+            // progress cues, and the play routes' ViewModels with their key parameters.
+            assertNotNull(koin.get<SavedPlayRepository>())
+            assertNotNull(koin.get<GameCalendar>())
+            assertNotNull(koin.get<ObservePlayProgress>())
+            assertNotNull(koin.get<HubViewModel>())
+            assertNotNull(koin.get<GameViewModel> { parametersOf(GameKey("zip")) }.play)
+            assertNotNull(koin.get<ResultViewModel> { parametersOf(ResultKey("zip", "2026-11-04", 12_340L, 0)) })
         } finally {
             stopKoin() // close() alone leaves the JVM-global context registered for later tests
         }

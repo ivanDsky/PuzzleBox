@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.games.tangoui.TangoPlacement
 import com.ivandsky.puzzlebox.games.tangoui.TangoPlayController
 import com.ivandsky.puzzlebox.games.tangoui.TangoPlayUi
 import com.ivandsky.puzzlebox.play.PlaySessionStore
+import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -75,8 +76,7 @@ class TangoCompeteLoopTest {
             factory { GetReplaySession(get(), get()) }
         }
         val store = koinApplication { modules(fakes, playModule) }.koin.get<PlaySessionStore>()
-        val play = store.start(TangoDefinition.id) {}!!
-        play.load()
+        val play = store.open(GameKey(TangoDefinition.id.value))!!
         val s = play.controller as TangoPlayController
 
         fakeNow = fakeNow.plusMillis(90_000)

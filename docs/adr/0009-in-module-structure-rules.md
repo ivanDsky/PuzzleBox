@@ -1,6 +1,6 @@
 # ADR-0009 — In-module structure rules (`:konsist`)
 
-Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7)
+Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5)
 
 ## Context
 ADR-0008 guards the edges between modules. It says nothing about what is inside a module:
@@ -74,7 +74,7 @@ returns these findings:
   fixtures are protected files: a worker does not edit them to make a test pass.
 
 Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1.
-S0, P3, P4 and P7 have none.
+S0, P3, P4, P7 and P8 have none.
 
 ### Payload cross-reference
 The `design-architecture` payload (`references/rules-architecture.md`) states four of these as
@@ -86,7 +86,7 @@ prose rules; the tests are their mechanical form and add no stricter bar:
 - Rule 20, one public top-level type per file (private helpers, extensions, typealiases and
   previews excepted): S1.
 
-The other rules (S0, S4, S5, P1, P4–P7) have no payload twin. Dependency direction between
+The other rules (S0, S4, S5, P1, P4–P8) have no payload twin. Dependency direction between
 modules stays in ADR-0008.
 
 ### Adding a rule
@@ -295,6 +295,21 @@ Android-free modules import nothing from Android.
 - **Accepted misses:** Android types reached through a typealias or a project wrapper declared in
   another module are not seen. A local value named `android` followed by a member access matches.
 - **How to fix:** remove the import; put the Android code in an Android module behind an interface.
+
+## P8
+Navigation keys carry only ids, ISO day strings and primitives (navigation-ux spec A5).
+
+- **Scope:** production classes and objects with a direct `NavKey` supertype, plain or qualified. A
+  type that holds NavKeys (such as `NavigationState`) is not a key.
+- **Detection:** each property the key declares, primary-constructor `val`s included, must have a
+  declared type whose simple name, `?` and type arguments removed, is `String`, `Int`, `Long`,
+  `Boolean`, `Short`, `Byte`, `Char`, `Float` or `Double`. A `ByteArray`, a collection, a model type
+  or a property with no declared type is a violation. The violation lists the properties.
+- **Accepted misses:** a key reached through an intermediate supertype (`data class K : BaseKey`,
+  `interface BaseKey : NavKey`) is not judged. A typealias to a banned type, or a project class
+  named like a primitive (`String`), passes. A string that is not an id or an ISO day is not seen.
+- **How to fix:** pass the id or the day as a string and load the rest in the destination's
+  ViewModel. Saved state and process death restore the key, so it must stay small and stable.
 
 ## Consequences
 - A structure regression fails `./gradlew :konsist:test` with the rule, the file, a fix hint and
