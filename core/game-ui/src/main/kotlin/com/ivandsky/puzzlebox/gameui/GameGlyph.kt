@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.LocalDesignVariants
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -32,10 +33,16 @@ private const val GLYPH_STROKE = 2f
 /**
  * A game's glyph in its accent (identity §2.5): outlined in the accent on the accent
  * container, or, when [solid], in onAccent (white in light) on the accent itself.
+ * [solid] defaults to the glyph style in [LocalDesignVariants] (outlined in release).
  * [GameGlyphSize.Inline] draws the bare glyph in the accent, with no well.
  */
 @Composable
-fun GameGlyph(brand: GameBrand, size: GameGlyphSize, modifier: Modifier = Modifier, solid: Boolean = false) {
+fun GameGlyph(
+    brand: GameBrand,
+    size: GameGlyphSize,
+    modifier: Modifier = Modifier,
+    solid: Boolean = LocalDesignVariants.current.glyphSolid,
+) {
     val accent = brand.accent.colors()
     if (size.box == size.glyph) {
         Icon(brand.glyph, contentDescription = null, modifier = modifier.size(size.glyph), tint = accent.accent)

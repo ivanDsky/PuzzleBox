@@ -53,6 +53,34 @@ internal val DarkAccentTokens: Map<AccentSlot, GameAccent> = mapOf(
     ),
 )
 
+// The Soft trial set (spec A7, AccentSet.Soft): each Vivid colour at ~55% of its
+// saturation with its lightness kept, so contrast with the on-colours stays close to Vivid.
+// Neutral is shared with Vivid.
+
+internal val SoftLightAccentTokens: Map<AccentSlot, GameAccent> = mapOf(
+    AccentSlot.Blue to GameAccent(Color(0xFF438AAB), Color(0xFFFFFFFF), Color(0xFFDEEBF2), Color(0xFF1B3544)),
+    AccentSlot.Orange to GameAccent(Color(0xFFB6773D), Color(0xFFFFFFFF), Color(0xFFF4E6D7), Color(0xFF462B14)),
+    AccentSlot.Violet to GameAccent(Color(0xFF8E7DCF), Color(0xFFFFFFFF), Color(0xFFEBE8F8), Color(0xFF382E5F)),
+    AccentSlot.Teal to GameAccent(Color(0xFF30827D), Color(0xFFFFFFFF), Color(0xFFD7EBE9), Color(0xFF0E322F)),
+    AccentSlot.Pink to GameAccent(Color(0xFFBC6484), Color(0xFFFFFFFF), Color(0xFFF6E2E9), Color(0xFF4B2030)),
+    AccentSlot.Neutral to LightAccentTokens.getValue(AccentSlot.Neutral),
+)
+
+internal val SoftDarkAccentTokens: Map<AccentSlot, GameAccent> = mapOf(
+    AccentSlot.Blue to GameAccent(Color(0xFF7EB6D0), Color(0xFFD7E8F1), Color(0xFF1D3643), Color(0xFFD7E8F1)),
+    AccentSlot.Orange to GameAccent(Color(0xFFD59E6F), Color(0xFFF2E1D1), Color(0xFF3E2B19), Color(0xFFF2E1D1)),
+    AccentSlot.Violet to GameAccent(Color(0xFFB8ACE7), Color(0xFFE9E5F8), Color(0xFF3E385C), Color(0xFFE9E5F8)),
+    AccentSlot.Teal to GameAccent(Color(0xFF6BB5AF), Color(0xFFD3EBE8), Color(0xFF173431), Color(0xFFD3EBE8)),
+    AccentSlot.Pink to GameAccent(Color(0xFFE29CB2), Color(0xFFF6E2E9), Color(0xFF492633), Color(0xFFF6E2E9)),
+    AccentSlot.Neutral to DarkAccentTokens.getValue(AccentSlot.Neutral),
+)
+
+/** The accent palette for [set] in the light or dark scheme; [PuzzleBoxTheme] provides it. */
+internal fun accentPalette(set: AccentSet, darkTheme: Boolean): Map<AccentSlot, GameAccent> = when (set) {
+    AccentSet.Vivid -> if (darkTheme) DarkAccentTokens else LightAccentTokens
+    AccentSet.Soft -> if (darkTheme) SoftDarkAccentTokens else SoftLightAccentTokens
+}
+
 /**
  * This slot's colours in the RESOLVED theme ([LocalAccentPalette], provided by
  * [PuzzleBoxTheme]), so a forced appearance opposite the system still flips them.

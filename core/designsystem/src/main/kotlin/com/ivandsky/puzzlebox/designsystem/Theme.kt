@@ -40,18 +40,21 @@ val LocalAccentPalette = staticCompositionLocalOf { LightAccentTokens }
 /**
  * Theme composition root (ticket 10): the promoted style IS the token set — Baloo 2
  * typography, C3 light scheme, C6 dark scheme. The [darkTheme] request picks the
- * scheme; no variant parameters remain.
+ * scheme. The debug design settings' [DesignVariantsStore] picks the accent set and is
+ * provided as [LocalDesignVariants]; release always reads [DesignVariants.Default].
  */
 @Composable
 fun PuzzleBoxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
+    val variants = DesignVariantsStore.current
     CompositionLocalProvider(
+        LocalDesignVariants provides variants,
         LocalPrimaryText provides if (darkTheme) DarkPrimaryText else LightPrimaryText,
         LocalTimerFill provides if (darkTheme) DarkTimerFill else LightTimerFill,
         LocalBoardColors provides if (darkTheme) DarkBoardTokens else LightBoardTokens,
-        LocalAccentPalette provides if (darkTheme) DarkAccentTokens else LightAccentTokens,
+        LocalAccentPalette provides accentPalette(variants.accentSet, darkTheme),
     ) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
