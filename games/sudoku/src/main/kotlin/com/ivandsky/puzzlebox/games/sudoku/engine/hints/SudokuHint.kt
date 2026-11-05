@@ -15,7 +15,8 @@ sealed interface SudokuHint : Hint {
     /**
      * [digit] goes in [cell] by [technique]. [unit] is the box or line that justifies a hidden
      * single and null for a naked single. [via] is the hardest elimination needed to reach the
-     * single, null when singles alone were enough.
+     * single, null when singles alone were enough. [struck] holds the cells, ascending, whose
+     * candidates those eliminations cleared on the way; empty when singles alone were enough.
      */
     data class Place(
         val cell: Int,
@@ -23,6 +24,7 @@ sealed interface SudokuHint : Hint {
         val technique: SudokuTechnique,
         val unit: SudokuUnit?,
         val via: SudokuTechnique?,
+        val struck: List<Int>,
     ) : SudokuHint
 
     /** No technique applies: the solution's digit for one open cell. */

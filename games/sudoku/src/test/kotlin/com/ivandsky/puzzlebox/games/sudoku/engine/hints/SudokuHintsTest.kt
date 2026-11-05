@@ -96,7 +96,7 @@ class SudokuHintsTest {
             val places = hints.filterIsInstance<SudokuHint.Place>()
             assertEquals(puzzle.givens.count { it == 0 }, places.size)
             assertEquals(places.size + 1, hints.size)
-            assertTrue(places.all { it.technique in singles && it.via == null })
+            assertTrue(places.all { it.technique in singles && it.via == null && it.struck.isEmpty() })
         }
     }
 
@@ -137,7 +137,7 @@ class SudokuHintsTest {
         assertEquals(1 shl 5, candidates[0])
 
         val hint = SudokuHints().hint(puzzle, SudokuBoard.of(puzzle))
-        assertEquals(SudokuHint.Place(0, 6, SudokuTechnique.NAKED_SINGLE, null, null), hint)
+        assertEquals(SudokuHint.Place(0, 6, SudokuTechnique.NAKED_SINGLE, null, null, emptyList()), hint)
     }
 
     @Test
@@ -186,12 +186,14 @@ class SudokuHintsTest {
         val board = stalled(hard)
         val target = SudokuCandidates.of(hard, board).let { c -> c.indices.first { c[it] != 0 } }
         var narrowed = 0
+        var narrowedCell = -1
         val idle = TestStep(SudokuTechnique.NAKED_PAIR) { _, _ -> false }
         val hardOnce = TestStep(SudokuTechnique.CLAIMING) { _, candidates ->
             // Clears one false candidate, once, from a cell with at least three, so no single appears.
             val cell = candidates.indices.firstOrNull { Integer.bitCount(candidates[it]) >= 3 && it != target }
             if (narrowed > 0 || cell == null) return@TestStep false
             narrowed++
+            narrowedCell = cell
             val falseBit = Integer.highestOneBit(candidates[cell] and (1 shl (hard.solution[cell] - 1)).inv())
             candidates[cell] = candidates[cell] and falseBit.inv()
             true
@@ -212,6 +214,29 @@ class SudokuHintsTest {
         assertTrue(hint.technique in singles)
         assertEquals(1, narrowed)
         assertEquals(1, collapsed)
+        assertEquals(listOf(narrowedCell, target).sorted(), hint.struck)
+    }
+
+    @Test
+    fun `pointing that unlocks a single strikes exactly the cells its passes cleared`() {
+        val board = stalled(hard)
+        val pointing = EliminationSteps.DEFAULT.first { it.technique == SudokuTechnique.POINTING }
+        val cleared = sortedSetOf<Int>()
+        val recording = TestStep(SudokuTechnique.POINTING) { geometry, candidates ->
+            val before = candidates.copyOf()
+            pointing.eliminate(geometry, candidates).also {
+                cleared += candidates.indices.filter { candidates[it] != before[it] }
+            }
+        }
+        val pointedOnly = SudokuHints(listOf(recording)).hint(hard, board) as SudokuHint.Place
+
+        val hint = SudokuHints().hint(hard, board) as SudokuHint.Place
+
+        assertEquals(SudokuTechnique.POINTING, hint.via)
+        assertEquals(pointedOnly, hint)
+        // grid2's first stall takes several pointing passes; the struck cells are their union.
+        assertEquals(listOf(5, 9, 11, 14, 23), cleared.toList())
+        assertEquals(cleared.toList(), hint.struck)
     }
 
     private class TestStep(
