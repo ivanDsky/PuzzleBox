@@ -172,8 +172,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   week, `GetNextRollover`, identity, cache-only history teaser via `ObserveGameHistory`;
   `di/HomeModule`), `HomeScreen` with `HomeListPane`/`HomeDetailPane` stacking
   `HomeTodaySection` (`TodayTile` grid + one CTA / rollover countdown)/`HomeStreakSection`/
-  `HomeRecentSection`/`HomeCards`, `ThemeDialog`, `HomeLayout` + `homeLayoutFor` pure pane
-  policy.
+  `HomeRecentSection`/`HomeCards`, `HomeLayout` + `homeLayoutFor` pure pane policy.
 - `feature/play/impl/` (`:feature:play:impl`) — the one game-agnostic play surface (ADR-0006,
   ADR-0007; no `games:*` dependency): `PlaySessionStore` (Koin single: one `ActivePlay` per
   `PlaySlot`, `open(GameKey)`/`peek(slot)`/`retain(keys)`/`flush()`, `playable` games, pins a
@@ -193,9 +192,11 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   day's `GameKey` on Home's stack, which resumes or replays the slot.
 - `feature/profile/impl/` (`:feature:profile:impl`) — packages kept from the app:
   `app/screens/` (`ProfileRoute`, `ProfileScreen`, `ProfileLeaderboard`, `ProfileViewModel`
-  over `ObserveTodayLeaderboard`, `ProfileUiState`), `app/auth/GoogleIdTokenProvider`
-  (Credential Manager, typed `Unavailable.Reason`), `profile/di/ProfileModule`
-  (`profileModule(serverClientIdRes)`), `profile/navigation/ProfileEntry`.
+  over `ObserveTodayLeaderboard` + `ObserveGameStats`/`ObserveGameHistory` (the record) +
+  `UserPreferencesRepository` (Appearance), `ProfileUiState`), `profile/ProfileRecord`
+  (header, lifetime grid, per-game rows opening `HistoryKey(game)`), `profile/AppearanceRow`,
+  `app/auth/GoogleIdTokenProvider` (Credential Manager, typed `Unavailable.Reason`),
+  `profile/di/ProfileModule` (`profileModule(serverClientIdRes)`), `profile/navigation/ProfileEntry`.
 - `backend/firebase/` (`:backend:firebase`) — implements the `core:data` seams:
   `FirebaseIdentityService` over an internal `AuthGateway`/`FirebaseAuthGateway`,
   `FirestoreLeaderboardStore` + `FirestoreLeaderboardRepository` (dedupe on (uid, puzzleRef)),

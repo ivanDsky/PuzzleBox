@@ -20,7 +20,6 @@ import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
-import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.ActivePlay
 import com.ivandsky.puzzlebox.play.PlaySessionStore
@@ -109,8 +108,6 @@ class ShellSessionLifecycleTest {
             PuzzleBoxTheme(darkTheme = false) {
                 PuzzleBoxApp(
                     windowWidthSizeClass = WindowWidthSizeClass.Compact,
-                    themeMode = ThemeMode.SYSTEM,
-                    onSetThemeMode = {},
                     navigator = rememberNavigator().also { navigator = it },
                 )
             }

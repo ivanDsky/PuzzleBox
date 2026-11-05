@@ -40,7 +40,6 @@ import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -129,8 +128,6 @@ class ShellRobot internal constructor(
             PuzzleBoxTheme(darkTheme = false) {
                 PuzzleBoxApp(
                     windowWidthSizeClass = calculateWindowSizeClass(rule.activity).widthSizeClass,
-                    themeMode = ThemeMode.SYSTEM,
-                    onSetThemeMode = {},
                     navigator = rememberNavigator(initial).also { navigator = it },
                 )
             }

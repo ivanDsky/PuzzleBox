@@ -19,7 +19,6 @@ import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
-import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -88,8 +87,6 @@ class ImmersivePlayShellTest {
         PuzzleBoxTheme(darkTheme = false) {
             PuzzleBoxApp(
                 windowWidthSizeClass = WindowWidthSizeClass.Compact,
-                themeMode = ThemeMode.SYSTEM,
-                onSetThemeMode = {},
                 navigator = rememberNavigator(initial).also { navigator = it },
             )
         }

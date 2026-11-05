@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,7 +21,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LargeTopBar
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.format.DateTimeFormatter
@@ -31,13 +28,12 @@ import kotlinx.coroutines.delay
 
 /**
  * The left pane and the whole single-pane screen share one stacked column on the app
- * background (identity §2.8): the header with the theme gear, then Today, the streak
+ * background (identity §2.8): the header, then Today, the streak
  * card, the recent days and the account card, each entering in turn.
  */
 @Composable
 internal fun ListPane(
     state: HomeUiState,
-    onOpenTheme: () -> Unit,
     onOpenHistory: () -> Unit,
     selectedDay: String?,
     onDayClick: (String) -> Unit,
@@ -54,15 +50,6 @@ internal fun ListPane(
         LargeTopBar(
             title = "PuzzleBox",
             subtitle = state.puzzleDay.format(HEADER_DATE),
-            actions = {
-                IconButton(onClick = onOpenTheme) {
-                    Icon(
-                        imageVector = PuzzleIcons.Appearance,
-                        contentDescription = "Appearance",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
         )
         Column(
             modifier = Modifier.padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.xxl),

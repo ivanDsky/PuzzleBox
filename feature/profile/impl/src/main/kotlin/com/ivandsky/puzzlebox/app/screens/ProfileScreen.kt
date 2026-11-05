@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,65 +13,94 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import com.ivandsky.puzzlebox.designsystem.AppTextButton
-import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.designsystem.AppTextButton
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.SecondaryButton
+import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.domain.TodayLeaderboard
+import com.ivandsky.puzzlebox.gameui.GameBrand
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.ThemeMode
+import com.ivandsky.puzzlebox.profile.AppearanceRow
+import com.ivandsky.puzzlebox.profile.GameRows
+import com.ivandsky.puzzlebox.profile.LifetimeGrid
+import com.ivandsky.puzzlebox.profile.ProfileHeader
+import java.time.LocalDate
 
+/**
+ * Profile (A20), top to bottom: the name and "Playing since", the lifetime grid, one row
+ * per game ([onOpenHistory], N3), the account (sign-in and today's board), Appearance
+ * (N4), and — only when [onOpenCatalog] is given (debug builds) — the catalog link.
+ */
 @Composable
 internal fun ProfileContent(
     state: ProfileUiState,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
-    onOpenCatalog: () -> Unit,
+    onSetThemeMode: (ThemeMode) -> Unit,
+    onOpenHistory: (GameId) -> Unit,
+    onOpenCatalog: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
+    val account = state.account
     Column(
         modifier = modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(horizontal = Spacing.xl, vertical = Spacing.xxl),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        when (state) {
-            is ProfileUiState.SignedOut -> SignedOutSection(state, onSignIn)
-            is ProfileUiState.SignedIn -> SignedInSection(state, onSignOut)
+        val name = when (account) {
+            is ProfileUiState.Account.SignedIn -> account.identity.displayName.ifEmpty { "Player" }
+            is ProfileUiState.Account.SignedOut -> "Guest player"
+        }
+        ProfileHeader(name = name, playingSince = state.stats.playingSince)
+        LifetimeGrid(stats = state.stats, daysPlayed = state.daysPlayed)
+        if (state.games.isNotEmpty()) {
+            GameRows(games = state.games, onOpenHistory = onOpenHistory)
         }
         HorizontalDivider()
-        SecondaryButton(
-            text = "Design system catalog",
-            onClick = onOpenCatalog,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        when (account) {
+            is ProfileUiState.Account.SignedOut -> SignedOutSection(account, onSignIn)
+            is ProfileUiState.Account.SignedIn -> SignedInSection(account, onSignOut)
+        }
+        HorizontalDivider()
+        AppearanceRow(current = state.themeMode, onSelect = onSetThemeMode)
+        if (onOpenCatalog != null) {
+            SecondaryButton(
+                text = "Design system catalog",
+                onClick = onOpenCatalog,
+                modifier = Modifier.fillMaxWidth().testTag("profile.catalog"),
+            )
+        }
     }
 }
 
 @Composable
-private fun SignedOutSection(state: ProfileUiState.SignedOut, onSignIn: () -> Unit) {
+private fun SignedOutSection(account: ProfileUiState.Account.SignedOut, onSignIn: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth().testTag("profile-signed-out"),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Text(
-            text = "Profile",
-            style = MaterialTheme.typography.displaySmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = "Sign in with Google to put your records on the daily leaderboard.",
+            text = "Sign in with Google to put your times on the daily leaderboard.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Button(onClick = onSignIn, enabled = !state.signingIn) {
-            Text(if (state.signingIn) "Signing in…" else "Sign in with Google")
+        Button(onClick = onSignIn, enabled = !account.signingIn) {
+            Text(if (account.signingIn) "Signing in…" else "Sign in with Google")
         }
-        state.signInMessage?.let { message ->
+        account.signInMessage?.let { message ->
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodySmall,
@@ -82,34 +112,55 @@ private fun SignedOutSection(state: ProfileUiState.SignedOut, onSignIn: () -> Un
 }
 
 @Composable
-private fun SignedInSection(
-    state: ProfileUiState.SignedIn,
-    onSignOut: () -> Unit,
-) {
-    val identity = state.identity
+private fun SignedInSection(account: ProfileUiState.Account.SignedIn, onSignOut: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth().testTag("profile-signed-in"),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = identity.displayName.ifEmpty { "Player" },
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = "Signed in with Google",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                text = "Signed in with Google",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
             AppTextButton(text = "Sign out", onClick = onSignOut)
         }
+        LeaderboardSection(account.board, myUid = account.identity.uid)
+    }
+}
 
-        LeaderboardSection(state.board, gameName = state.gameName, myUid = identity.uid)
+@PuzzleBoxPreviews
+@Composable
+internal fun ProfileContentPreview() {
+    PuzzleBoxTheme {
+        ProfileContent(
+            state = ProfileUiState(
+                account = ProfileUiState.Account.SignedIn(
+                    identity = Identity(uid = "u1", displayName = "Ann", photoUrl = null),
+                    board = TodayLeaderboard.Board.Unavailable,
+                ),
+                stats = ProfileUiState.NO_STATS.copy(
+                    solved = 42,
+                    bestStreak = 9,
+                    hintFree = 30,
+                    playingSince = LocalDate.of(2026, 3, 1),
+                ),
+                daysPlayed = 21,
+                games = listOf(
+                    ProfileUiState.GameRow(GameId("zip"), "Zip", GameBrand.Neutral, solved = 20, bestTimeMs = 41_000),
+                    ProfileUiState.GameRow(GameId("tango"), "Tango", GameBrand.Neutral, solved = 22, bestTimeMs = null),
+                ),
+                themeMode = ThemeMode.DARK,
+            ),
+            onSignIn = {},
+            onSignOut = {},
+            onSetThemeMode = {},
+            onOpenHistory = {},
+            onOpenCatalog = {},
+        )
     }
 }

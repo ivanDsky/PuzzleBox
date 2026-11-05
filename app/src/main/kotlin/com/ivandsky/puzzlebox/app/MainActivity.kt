@@ -12,13 +12,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.model.ThemeMode
-import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -53,12 +51,9 @@ class MainActivity : ComponentActivity(), KoinComponent {
                     }
                 }
 
-                val scope = rememberCoroutineScope()
                 PuzzleBoxTheme(darkTheme = darkTheme) {
                     PuzzleBoxApp(
                         windowWidthSizeClass = windowSize.widthSizeClass,
-                        themeMode = mode,
-                        onSetThemeMode = { newMode -> scope.launch { preferences.setThemeMode(newMode) } },
                     )
                 }
             }

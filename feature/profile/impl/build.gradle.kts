@@ -10,8 +10,12 @@ dependencies {
     implementation(projects.feature.profile.api)
     // Identity + leaderboard contracts (IdentityService, LeaderboardEntry) in the VM/screen.
     implementation(projects.core.data)
-    // ObserveTodayLeaderboard: today's board is the featured game's.
+    // ObserveTodayLeaderboard (today's board) and ObserveGameStats/ObserveGameHistory (the record).
     implementation(projects.core.domain)
+    // Per-game brands (GamePlayRegistry) and GameGlyph for the game rows.
+    implementation(projects.core.gameUi)
+    // A game row opens that game's History tab (api edge only).
+    implementation(projects.feature.history.api)
 
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.core)

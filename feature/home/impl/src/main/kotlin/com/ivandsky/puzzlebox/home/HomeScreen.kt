@@ -12,7 +12,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.model.ThemeMode
 
 /**
  * One puzzle day in the recent list: [isoDay] is its unique key, [games] every game
@@ -26,7 +25,6 @@ internal data class HistoryDay(val isoDay: String, val headline: String, val gam
 /**
  * The real Home screen (A10–A12, A15): Today tiles and the one CTA, the streak card, the
  * recent days, the account card. Single-pane on compact widths; list-detail on expanded.
- * The theme choice is hoisted to the composition root — this screen only edits it.
  * Destinations are hoisted to the app shell (ticket 17): [onOpenGame] opens a game (a
  * tile, or the CTA's [HomeUiState.playTarget]; the play restores its save), plus the full
  * history and the account surface. Game titles render from [state]'s rows, never from a
@@ -36,14 +34,11 @@ internal data class HistoryDay(val isoDay: String, val headline: String, val gam
 internal fun HomeScreen(
     layout: HomeLayout,
     state: HomeUiState,
-    themeMode: ThemeMode,
-    onSetThemeMode: (ThemeMode) -> Unit,
     onOpenGame: (GameId) -> Unit,
     onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenHistory: () -> Unit = {},
 ) {
-    var showThemeDialog by rememberSaveable { mutableStateOf(false) }
     var selectedDay by rememberSaveable { mutableStateOf<String?>(null) }
 
     Box(modifier.fillMaxSize()) {
@@ -51,7 +46,6 @@ internal fun HomeScreen(
             Row(Modifier.fillMaxSize()) {
                 ListPane(
                     state = state,
-                    onOpenTheme = { showThemeDialog = true },
                     onOpenHistory = onOpenHistory,
                     selectedDay = selectedDay,
                     onDayClick = { selectedDay = it },
@@ -74,7 +68,6 @@ internal fun HomeScreen(
         } else {
             ListPane(
                 state = state,
-                onOpenTheme = { showThemeDialog = true },
                 onOpenHistory = onOpenHistory,
                 selectedDay = null,
                 onDayClick = {},
@@ -84,13 +77,5 @@ internal fun HomeScreen(
                 modifier = Modifier.fillMaxSize(),
             )
         }
-    }
-
-    if (showThemeDialog) {
-        ThemeDialog(
-            current = themeMode,
-            onSelect = onSetThemeMode,
-            onDismiss = { showThemeDialog = false },
-        )
     }
 }

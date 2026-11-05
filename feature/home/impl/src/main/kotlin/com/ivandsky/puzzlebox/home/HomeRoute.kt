@@ -7,7 +7,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.model.ThemeMode
 import org.koin.androidx.compose.koinViewModel
 
 /**
@@ -21,8 +20,6 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun HomeRoute(
     layout: HomeLayout,
-    themeMode: ThemeMode,
-    onSetThemeMode: (ThemeMode) -> Unit,
     onOpenGame: (GameId) -> Unit,
     onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
@@ -38,8 +35,6 @@ fun HomeRoute(
     HomeScreen(
         layout = layout,
         state = uiState,
-        themeMode = themeMode,
-        onSetThemeMode = onSetThemeMode,
         onOpenGame = onOpenGame,
         onOpenProfile = onOpenProfile,
         onOpenHistory = onOpenHistory,
