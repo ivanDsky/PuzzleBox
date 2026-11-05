@@ -34,7 +34,12 @@ LinkedIn has no 9x9. It is wanted only so the engine can be exercised at 9x9.
   engine and UI stay untouched.
 - A future size (e.g. 4x4) that is its own GameId is one variant row and a source in the game
   module, plus wiring: a `SudokuGames` entry, the module pair in `appModules`, and a
-  `GAME_ORDER` line.
+  `GAME_ORDER` line. In `:games:sudoku-ui` it also needs a `SudokuTutorial` `BOARDS` entry
+  (three lesson boards for that size) and, if the `SudokuGrid` stroke weights (one branch for
+  sizes up to 6, one above) do not suit it, a new branch in `gridStrokes`.
+- A new elimination technique is an `EliminationStep` file, one line in
+  `EliminationSteps.DEFAULT` and a `SudokuTechnique` entry. Hint captions name only the single
+  ("After ruling out some numbers, ..."), so `SudokuHintCaptions` does not change.
 - The 9x9 classes (`BundledSudokuDailySource`, `SudokuSamples`, `sudokuModule`,
   `sudokuUiModule`) live in `main` source sets and ship in release, unregistered. Only the
   module registration is gated by build type.

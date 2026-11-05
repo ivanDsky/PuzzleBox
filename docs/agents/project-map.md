@@ -180,6 +180,12 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   (`SudokuUiModules`: `miniSudokuUiModule`, `sudokuUiModule`): `SudokuGrid` + `SudokuKeypad`,
   `SudokuBoardState`, pure `SudokuSizing`/`SudokuLayout`, `SudokuMotion`, `SudokuHaptics`,
   `SudokuTutorial`.
+  Extending Sudoku (ADR-0012): a new board size is a `SudokuVariants` row and a source, a
+  `SudokuTutorial` `BOARDS` entry, and a `gridStrokes` branch in `SudokuGrid` if neither
+  stroke weight suits it; as its own GameId it also needs a `SudokuGames` entry, its module
+  pair in `appModules` and a `GAME_ORDER` line. A new elimination technique is an
+  `EliminationStep` file, a line in `EliminationSteps.DEFAULT` and a `SudokuTechnique` entry;
+  captions name only the single, so `SudokuHintCaptions` stays unchanged.
 - `feature/home/impl/` (`:feature:home:impl`) — `navigation/HomeEntry`, `HomeRoute` +
   `HomeViewModel` (today's set via `ObserveTodaySet`, identity, cache-only history teaser via
   `ObserveGameHistory`; `di/HomeModule`), `HomeScreen` with `HomeListPane`/`HomeDetailPane`/
