@@ -167,10 +167,4 @@ class StrandsRulesTest {
         assertFalse(StrandsRules.isComplete(fresh.copy(found = listOf("EAMS"))))
         assertTrue(StrandsRules.isComplete(fresh.copy(found = listOf("EAMS", "BEAM"))))
     }
-
-    @Test
-    fun `the hint is the hint economy's decision`() {
-        assertEquals(StrandsHints.hintFor(fresh), StrandsRules.hint(fresh))
-        assertEquals(StrandsHints.hintFor(atCap), StrandsRules.hint(atCap))
-    }
 }

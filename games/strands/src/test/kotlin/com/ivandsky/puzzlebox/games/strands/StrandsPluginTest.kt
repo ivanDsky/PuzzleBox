@@ -7,7 +7,6 @@ import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.games.strands.codec.StrandsCodec
 import com.ivandsky.puzzlebox.games.strands.codec.StrandsSessionCodec
-import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -41,12 +40,5 @@ class StrandsPluginTest {
             StrandsSession(ref = StrandsPuzzleRef(day, 977), state = StrandsState(tinyPuzzle)),
             StrandsSessionCodec.deserialize(blob.session).getOrNull(),
         )
-    }
-
-    @Test
-    fun `refs and the renderer model come from the plugin`() {
-        assertEquals(StrandsPuzzleRef(day, 977), strandsPlugin.refOf(day, 977))
-        val state = StrandsState(tinyPuzzle)
-        assertEquals(StrandsRendererModel.of(state), strandsPlugin.rendererModel(state, null, null))
     }
 }

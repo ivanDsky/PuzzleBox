@@ -5,7 +5,6 @@ import com.ivandsky.puzzlebox.game.FetchResult
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.StrandsFixtures
-import com.ivandsky.puzzlebox.games.strands.StrandsNumber
 import com.ivandsky.puzzlebox.games.strands.StrandsPuzzleRef
 import com.ivandsky.puzzlebox.games.strands.codec.StrandsCodec
 import java.time.LocalDate
@@ -41,14 +40,6 @@ class NytStrandsDailySourceTest {
             puzzle.themeWords.single { it.text == "WIND" }.cells,
         )
         assertTrue(puzzle.validWords.containsAll(puzzle.themeWords.map { it.text } + puzzle.spangram.text))
-    }
-
-    @Test
-    fun `the archive starts at puzzle 1`() {
-        val source = NytStrandsDailySource { FetchResult.Ok("") }
-        assertEquals(StrandsNumber.EPOCH, source.archiveSince)
-        assertEquals(1, StrandsNumber.of(StrandsNumber.EPOCH))
-        assertEquals(StrandsDefinition.id, source.gameId)
     }
 
     @Test

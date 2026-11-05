@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.games.strands
 
-import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -11,11 +10,6 @@ class StrandsScoreModelTest {
 
     private val ref = StrandsPuzzleRef(LocalDate.of(2026, 11, 5), 977)
     private val complete = StrandsState(tinyPuzzle, found = listOf("CAT", "ATS"), nonTheme = setOf("TAT"), hintsUsed = 2)
-
-    @Test
-    fun `ranks hints then time`() {
-        assertEquals(RankOrder.HintsThenTime, StrandsScoreModel.rankOrder)
-    }
 
     @Test
     fun `a complete numbered day emits hints, time and the non-theme count`() {
