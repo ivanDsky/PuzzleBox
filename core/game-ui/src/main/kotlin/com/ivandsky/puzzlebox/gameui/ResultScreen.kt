@@ -31,10 +31,11 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
  * The badge renders from the in-memory [verdict] whenever it lands — this screen NEVER
  * waits on the record write (F2 §7 fire-and-observe, unchanged); [verdict] null means
  * the write is still in flight or the verdict is unknown. A10: "New best" only on a
- * strictly faster time (with the "Previous best" it beat), "First solve" on the game's
- * first completion, otherwise no badge and "Best m:ss" from [previousBestMs]. A failed
- * write stays surfaced and
- * retryable here, where the player actually is after solving.
+ * strictly faster time (with the "Previous best" it beat), "Tied your best!" on the same
+ * shown time, "First solve" on the game's first completion; a slower solve shows no
+ * badge and "Best m:ss"; a replay shows no badge and "Replay · Best m:ss" (replays never
+ * rank). A failed write stays surfaced and retryable here, where the player actually is
+ * after solving.
  *
  * Core | game split: this shell is the same for every game. A game tweaks it through
  * [label] (its own line under the headline — game name + puzzle number), which
@@ -93,8 +94,9 @@ fun ResultScreen(
         // primary pair — no confetti, no second accent.
         val badge = when (verdict) {
             RecordVerdict.NewBest -> "New best"
+            RecordVerdict.TiedBest -> "Tied your best!"
             RecordVerdict.FirstSolve -> "First solve"
-            RecordVerdict.NotBest, null -> null
+            RecordVerdict.NotBest, RecordVerdict.Replay, null -> null
         }
         if (badge != null) {
             Surface(
@@ -110,13 +112,15 @@ fun ResultScreen(
                 )
             }
         }
-        // The speed player's payoff: a new best shows the time it beat; otherwise the
-        // standing best to chase. A first solve has no previous best to show.
-        val bestLine = when {
-            previousBestMs == null -> null
-            verdict == RecordVerdict.NewBest -> "Previous best ${formatClock(previousBestMs)}"
-            verdict == RecordVerdict.NotBest -> "Best ${formatClock(previousBestMs)}"
-            else -> null
+        // The speed player's payoff: a new best shows the time it beat; a slower solve
+        // the standing best to chase; a replay says it was one. A first solve has no
+        // previous best, and a tie's hero time IS the best.
+        val best = previousBestMs?.let(::formatClock)
+        val bestLine = when (verdict) {
+            RecordVerdict.NewBest -> best?.let { "Previous best $it" }
+            RecordVerdict.NotBest -> best?.let { "Best $it" }
+            RecordVerdict.Replay -> best?.let { "Replay · Best $it" } ?: "Replay"
+            RecordVerdict.TiedBest, RecordVerdict.FirstSolve, null -> null
         }
         if (bestLine != null) {
             Text(

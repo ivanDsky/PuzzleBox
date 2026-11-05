@@ -41,6 +41,9 @@ class FakeCompletionRepository(records: List<CompletionRecord> = emptyList()) : 
     override fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
         all.map { rows -> rows.filter { it.puzzleRef == puzzleRef } }
 
+    /** Rows are verbatim, so the record is each identity's FIRST stored row (A4 stamping). */
     override suspend fun bestTimeMs(game: GameId): Long? =
-        all.value.filter { it.puzzleRef.gameId == game }.minOfOrNull { it.time }
+        all.value.filter { it.puzzleRef.gameId == game }
+            .distinctBy { Triple(it.puzzleRef.gameId, it.puzzleRef.date, it.puzzleRef.puzzleNumber) }
+            .minOfOrNull { it.time }
 }

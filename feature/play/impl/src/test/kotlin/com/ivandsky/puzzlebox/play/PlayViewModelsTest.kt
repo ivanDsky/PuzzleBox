@@ -195,7 +195,7 @@ class PlayViewModelsTest {
         fakes[alpha].latest.win()
         assertEquals(
             ResultUiState(
-                verdict = RecordVerdict.NotBest,
+                verdict = RecordVerdict.Replay,
                 previousBestMs = FakeController.TIME_MS,
                 writeFailed = false,
                 label = "Alpha · #7",

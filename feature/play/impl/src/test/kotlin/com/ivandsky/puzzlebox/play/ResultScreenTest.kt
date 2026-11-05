@@ -106,6 +106,20 @@ class ResultScreenTest {
     }
 
     @Test
+    fun `a tie shows the tie badge and no second best line`() {
+        setContent(verdict = RecordVerdict.TiedBest, previousBestMs = 95_000)
+        composeRule.onNodeWithText("Tied your best!").assertExists()
+        composeRule.onNodeWithTag("result.previous_best").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a replay claims no badge and says it was a replay beside the best`() {
+        setContent(verdict = RecordVerdict.Replay, previousBestMs = 80_000)
+        composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
+        composeRule.onNodeWithText("Replay · Best 01:20").assertExists()
+    }
+
+    @Test
     fun `play again hands back to navigation`() {
         var replayed = 0
         setContent(onPlayAgain = { replayed++ })

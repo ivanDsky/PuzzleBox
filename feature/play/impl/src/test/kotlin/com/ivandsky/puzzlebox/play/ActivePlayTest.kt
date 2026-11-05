@@ -125,24 +125,24 @@ class ActivePlayTest {
     }
 
     @Test
-    fun `a win on an already-recorded puzzle is not a new best`() {
+    fun `a win on an already-solved puzzle is a replay beside the record's best`() {
         completions.setRecords(listOf(FakeController.record(ref)))
         val play = loaded()
         ui.latest.win()
-        assertEquals(RecordVerdict.NotBest, play.record.value.verdict)
-        assertEquals("an equal time shows the best it tied", FakeController.TIME_MS, play.record.value.previousBestMs)
+        assertEquals(RecordVerdict.Replay, play.record.value.verdict)
+        assertEquals("a replay shows the best it plays against", FakeController.TIME_MS, play.record.value.previousBestMs)
         assertEquals(2, records().size)
     }
 
     @Test
-    fun `a replay faster than the record is a new best`() {
+    fun `a replay faster than the record is still a replay and never ranks`() {
         // The game's best is a slower record of this very puzzle (FirstWinPolicy keeps it
-        // the record); the replay beats it, so the verdict is honest about the time.
+        // the record); the replay beats it on a known board, so it earns no best (A10).
         val slower = FakeController.TIME_MS + 10_000
         completions.setRecords(listOf(FakeController.record(ref).copy(time = slower, isRecord = true)))
         val play = loaded()
         ui.latest.win()
-        assertEquals(RecordVerdict.NewBest, play.record.value.verdict)
+        assertEquals(RecordVerdict.Replay, play.record.value.verdict)
         assertEquals(slower, play.record.value.previousBestMs)
     }
 
@@ -167,7 +167,7 @@ class ActivePlayTest {
     }
 
     @Test
-    fun `replay after a win emits again and is not a new best`() {
+    fun `replay after a win emits again and is a replay`() {
         val play = loaded()
         ui.latest.win()
         assertEquals(RecordVerdict.FirstSolve, play.record.value.verdict)
@@ -179,7 +179,7 @@ class ActivePlayTest {
 
         ui.latest.win()
         assertEquals(2, records().size)
-        assertEquals(RecordVerdict.NotBest, play.record.value.verdict)
+        assertEquals(RecordVerdict.Replay, play.record.value.verdict)
     }
 
     @Test

@@ -19,7 +19,7 @@ interface CompletionRepository {
 
     fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>>
 
-    /** The game's best time (spec A10): the minimum over every completion of [game],
-     *  replays included; null = the game has no completion yet. */
+    /** The game's best time (spec A10): the minimum over the record rows (first solves)
+     *  of [game] — replays never rank; null = the game has no completion yet. */
     suspend fun bestTimeMs(game: GameId): Long?
 }

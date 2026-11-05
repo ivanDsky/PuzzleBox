@@ -110,11 +110,13 @@ class ActivePlay internal constructor(
 
     private var ref: PuzzleRef? = null
 
-    /** The game's best time BEFORE this session, read at session start (A10): the
-     *  verdict is derived from this baseline, never from the stored rows after the write.
-     *  [baselineKnown] false = the read has not landed (the verdict stays null). */
+    /** The game's best time BEFORE this session and whether this puzzle was already
+     *  solved (a replay), read at session start (A10): the verdict is derived from this
+     *  baseline, never from the stored rows after the write. [baselineKnown] false = the
+     *  read has not landed (the verdict stays null). */
     private var baselineKnown = false
     private var baselineBestMs: Long? = null
+    private var baselineReplay = false
     private var lastWon: CompletionRecord? = null
 
     /** Fetch-today → board (A7/A8): Fresh plays; Cached plays with a degrade banner;
@@ -177,12 +179,13 @@ class ActivePlay internal constructor(
     /** True when the live controller already holds exactly [bytes] (rotation's restore). */
     internal fun holds(bytes: ByteArray): Boolean = held?.contentEquals(bytes) == true
 
-    /** Result's "Play again": a fresh session of the SAME puzzle (A9) — the verdict resets
-     *  until the new write lands and the A10 baseline is re-read. The banner stays. */
+    /** Result's "Play again": a fresh session of the SAME puzzle (A9), always a replay —
+     *  the verdict resets until the new write lands and the A10 baseline is re-read. The
+     *  banner stays. */
     fun replay() {
         if (_board.value.status !is PlayBoardStatus.Ready) return
         resetRecord(ref)
-        refreshBaseline(ref)
+        refreshBaseline(ref, replay = true)
         controller.replay()
     }
 
@@ -232,7 +235,7 @@ class ActivePlay internal constructor(
                         it
                     } else {
                         it.copy(
-                            verdict = RecordVerdict.of(baselineBestMs, record.time),
+                            verdict = RecordVerdict.of(baselineBestMs, record.time, baselineReplay),
                             previousBestMs = baselineBestMs,
                         )
                     }
@@ -247,21 +250,29 @@ class ActivePlay internal constructor(
         this.ref = ref
         baselineKnown = false
         baselineBestMs = null
+        baselineReplay = false
         lastWon = null
         _record.value = blankRecord(labelFor(ref))
     }
 
-    private fun refreshBaseline(ref: PuzzleRef?) {
+    /** [replay] true = known without a read (Play again: the solve's write may still be in
+     *  flight). Otherwise a record row with this ref's identity (ADR-0004) makes it one. */
+    private fun refreshBaseline(ref: PuzzleRef?, replay: Boolean = false) {
         if (ref == null) return
         val token = recordToken
         scope.launch {
             val best = completions.bestTimeMs(ref.gameId)
+            val solved = replay || completions.observeRecords().first().any { it.puzzleRef.sameIdentity(ref) }
             if (token == recordToken) {
                 baselineBestMs = best
+                baselineReplay = solved
                 baselineKnown = true
             }
         }
     }
+
+    private fun PuzzleRef.sameIdentity(other: PuzzleRef) =
+        gameId == other.gameId && date == other.date && puzzleNumber == other.puzzleNumber
 
     private fun blankRecord(label: String) =
         Record(verdict = null, previousBestMs = null, writeFailed = false, label = label)
