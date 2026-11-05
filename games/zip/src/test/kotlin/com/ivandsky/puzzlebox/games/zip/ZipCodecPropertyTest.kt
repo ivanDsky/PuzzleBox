@@ -131,9 +131,10 @@ class ZipCodecPropertyTest {
     @Test
     fun `unknown variant key is UnknownVariant`() {
         val bytes = ZipCodec.encode(canonicalPuzzle()).let { mutated ->
-            // rewrite the variant key in place: "zip/n5" -> "zip/n4" (same length)
+            // rewrite the variant key in place: "zip/n5" -> "zip/n9" (same length; n4 is
+            // now a tutorial regime, so it would be a size mismatch, not an unknown id)
             val keyStart = 2
-            "zip/n4".toByteArray(Charsets.UTF_8).forEachIndexed { i, b -> mutated[keyStart + i] = b }
+            "zip/n9".toByteArray(Charsets.UTF_8).forEachIndexed { i, b -> mutated[keyStart + i] = b }
             mutated
         }
         val error = (ZipCodec.decode(bytes) as? com.ivandsky.puzzlebox.game.DecodeResult.Err)?.error

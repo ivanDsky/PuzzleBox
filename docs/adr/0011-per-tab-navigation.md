@@ -1,7 +1,7 @@
-# ADR-0010 — Per-tab navigation over one immutable state
+# ADR-0011 — Per-tab navigation over one immutable state
 
 Date: 2026-11-04 · Status: accepted · Source: navigation-ux run (design-it-twice nav A/B/C and
-play A/B/C, stage-B review rulings)
+play A/B/C, stage-B review rulings) · Supersedes ADR-0010 (kept sessions)
 
 ## Context
 Up to 0.8 the app kept one `NavBackStack<NavKey>`: picking a tab reset the stack to that tab's
@@ -60,6 +60,17 @@ its own stack, lets any stack show any game's board, and keeps in-progress plays
    window and the window's end writes the latest blob (`SlotWriter`). It is a trailing
    throttle, not a debounce: continuous moves cannot starve the save, and a change is on disk
    within 500 ms. Every save, delete and opening read runs through one store-wide `WriteLane`.
+7. **Supersedes ADR-0010 (kept sessions, 0.9–0.10).** The per-slot `saved_plays` rows replace
+   the per-game kept-session DataStore. A slot write carries the session's displayed elapsed
+   ms (`saved_plays.elapsedMs`, schema v6) beside its blob. `ObserveTodaySet` reads today's
+   status from saved rows plus records: Solved beats a save, so a replay never downgrades it.
+   Home's "Play today", the hub's status lines, the Play tab dot (any game in progress) and
+   Result's Next (`nextUnsolved` over playable games) all read that one set. The 0.10
+   `kept_sessions` DataStore file is not migrated: it stays on disk unread, and those
+   half-played boards start fresh. A game's first-play tutorial is the `GameKey` entry's
+   (`GameViewModel`'s `TutorialGate`), not the store's: while it shows the board's
+   composition is gone, so the chrome's clock effect has folded the clock, and nothing
+   pauses the store's play.
 
 ### Why immutable state, not the recipe's mutable `NavBackStack`s
 The Navigation3 multiple-back-stacks recipe keeps one mutable `NavBackStack` per tab plus a

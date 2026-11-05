@@ -9,8 +9,9 @@ import kotlinx.coroutines.flow.Flow
  */
 interface SavedPlayRepository {
 
-    /** Upserts [blob] for [slot] and stamps it as the most recently updated slot. */
-    suspend fun save(slot: PlaySlot, blob: ByteArray)
+    /** Upserts [blob] and the play's displayed [elapsedMs] for [slot], and stamps it as the
+     *  most recently updated slot. */
+    suspend fun save(slot: PlaySlot, blob: ByteArray, elapsedMs: Long)
 
     /** The saved blob of [slot], or null when none is saved. */
     suspend fun load(slot: PlaySlot): ByteArray?
@@ -18,6 +19,7 @@ interface SavedPlayRepository {
     /** Removes the saved play of [slot]; a no-op when none exists. */
     suspend fun delete(slot: PlaySlot)
 
-    /** Every slot with a saved play; re-emits on each save, eviction and delete. */
-    fun observeInProgress(): Flow<Set<PlaySlot>>
+    /** Every slot with a saved play → its elapsed ms at the last save; re-emits on each
+     *  save, eviction and delete. */
+    fun observeInProgress(): Flow<Map<PlaySlot, Long>>
 }

@@ -14,6 +14,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -50,10 +51,10 @@ class SlotWriterTest {
     ) : SavedPlayRepository by disk {
         val writes = mutableListOf<Pair<Long, ByteArray>>()
 
-        override suspend fun save(slot: PlaySlot, blob: ByteArray) {
+        override suspend fun save(slot: PlaySlot, blob: ByteArray, elapsedMs: Long) {
             delay(latency)
             writes += now() to blob
-            disk.save(slot, blob)
+            disk.save(slot, blob, elapsedMs)
         }
 
         /** The stored rows, as last written. */
@@ -69,7 +70,7 @@ class SlotWriterTest {
         val saved = recording()
         val writer = writer(saved)
         val offers = (0 until 10).map { n ->
-            writer.offer(blob(n))
+            writer.offer(blob(n), 0L)
             (currentTime to n).also { advanceTimeBy(100) }
         }
         // The writer runs in backgroundScope, which advanceUntilIdle does not wait for.
@@ -90,9 +91,9 @@ class SlotWriterTest {
     fun `discard after offer leaves no row`() = runTest {
         val saved = recording()
         val writer = writer(saved)
-        writer.offer(blob(1))
+        writer.offer(blob(1), 0L)
         advanceTimeBy(301)
-        writer.offer(blob(2))
+        writer.offer(blob(2), 0L)
 
         writer.discard()
         advanceUntilIdle()
@@ -105,7 +106,7 @@ class SlotWriterTest {
     fun `flush writes the pending save immediately`() = runTest {
         val saved = recording()
         val writer = writer(saved)
-        writer.offer(blob(1))
+        writer.offer(blob(1), 0L)
 
         writer.flush()
 
@@ -116,19 +117,31 @@ class SlotWriterTest {
     }
 
     @Test
+    fun `the written row carries the latest offer's elapsed time`() = runTest {
+        val saved = recording()
+        val writer = writer(saved)
+        writer.offer(blob(1), 1_000L)
+        writer.offer(blob(2), 2_500L)
+
+        writer.flush()
+
+        assertEquals(mapOf(slot to 2_500L), saved.observeInProgress().first())
+    }
+
+    @Test
     fun `a release then reopen reads the released save`() = runTest {
         val saved = recording(latency = 50.milliseconds)
         val daily = FakeDailyRepository()
         val games = TestGames.registry(listOf(alpha))
         val opening = SlotOpening(daily, GetReplaySession(daily, games), saved, FakeGameCalendar(today), games, lane)
         val released = writer(saved)
-        released.offer(blob(1))
+        released.offer(blob(1), 0L)
 
         // Release: the final save is queued now; its slow write is still in flight.
         backgroundScope.launch(start = CoroutineStart.UNDISPATCHED) { released.flush() }
         val reopened = writer(saved)
         val origin = opening.open(slot)
-        reopened.offer(blob(2))
+        reopened.offer(blob(2), 0L)
         reopened.flush()
         runCurrent()
 

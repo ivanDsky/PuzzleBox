@@ -74,6 +74,10 @@ class TangoCompeteLoopTest {
             single { GameRegistry(listOf(tangoPlugin)) }
             single { GamePlayRegistry(listOf(tangoUi)) }
             factory { GetReplaySession(get(), get()) }
+            factory { com.ivandsky.puzzlebox.domain.ObserveTodaySet(get(), get(), get(), get()) }
+            single<com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository> {
+                com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository(seen = setOf(TangoDefinition.id))
+            }
         }
         val store = koinApplication { modules(fakes, playModule) }.koin.get<PlaySessionStore>()
         val play = store.open(GameKey(TangoDefinition.id.value))!!

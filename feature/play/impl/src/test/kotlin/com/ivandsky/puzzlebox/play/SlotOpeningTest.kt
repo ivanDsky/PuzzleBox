@@ -48,7 +48,7 @@ class SlotOpeningTest {
     @Test
     fun `a valid save is restored before the network`() = runTest {
         val blob = SessionBlob.encode(alpha, byteArrayOf(1, 2, 3))
-        saved.save(todaySlot, blob)
+        saved.save(todaySlot, blob, elapsedMs = 0L)
         daily.setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
 
         val origin = opening.open(todaySlot)
@@ -59,7 +59,7 @@ class SlotOpeningTest {
 
     @Test
     fun `an undecodable save is deleted and today is fetched`() = runTest {
-        saved.save(todaySlot, byteArrayOf(7, 7))
+        saved.save(todaySlot, byteArrayOf(7, 7), elapsedMs = 0L)
         val puzzle = TestGames.puzzle(alpha)
         daily.setToday(alpha, DailyToday.Fresh(puzzle))
 
@@ -71,7 +71,7 @@ class SlotOpeningTest {
 
     @Test
     fun `a save naming another game is undecodable for the slot`() = runTest {
-        saved.save(todaySlot, SessionBlob.encode(TestGames.beta, byteArrayOf(1)))
+        saved.save(todaySlot, SessionBlob.encode(TestGames.beta, byteArrayOf(1)), elapsedMs = 0L)
         daily.setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
 
         assertTrue(opening.open(todaySlot) is SlotOpening.Origin.Fetched)
@@ -131,7 +131,7 @@ class SlotOpeningTest {
     @Test
     fun `an unregistered game is unavailable and keeps its save`() = runTest {
         val slot = PlaySlot(TestGames.beta, today)
-        saved.save(slot, SessionBlob.encode(TestGames.beta, byteArrayOf(1)))
+        saved.save(slot, SessionBlob.encode(TestGames.beta, byteArrayOf(1)), elapsedMs = 0L)
 
         assertTrue(opening.open(slot) is SlotOpening.Origin.Unavailable)
         assertEquals(setOf(slot), saved.rows.keys)

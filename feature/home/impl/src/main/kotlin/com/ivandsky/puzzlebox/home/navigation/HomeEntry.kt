@@ -12,7 +12,7 @@ import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 
 /**
- * Home's route: the Today card pushes today's featured [GameKey] once on Home's stack
+ * Home's route: the Today card pushes its play target's [GameKey] once on Home's stack
  * (A6, N8/N9: back returns to Home), the history teaser pushes [HistoryKey] on Home's
  * stack, and the account card selects the Profile tab.
  */

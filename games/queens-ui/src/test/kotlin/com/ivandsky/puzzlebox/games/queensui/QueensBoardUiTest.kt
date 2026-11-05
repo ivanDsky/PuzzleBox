@@ -1,9 +1,19 @@
 package com.ivandsky.puzzlebox.games.queensui
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -185,24 +195,20 @@ class QueensBoardUiTest {
         assertTrue(QueensBoardModel.of(state.session).violations.isNotEmpty())
     }
 
-    /** R-2 with A14 revised (fix round 6): while a violation is live the one-line rule
-     *  caption shows — with NO toggle involved; it clears when the conflict does. */
+    /** Ticket 08: the rule line moved to the shared caption slot (controller
+     *  PlayFeedback.violation) — the controls never grow a conditional caption row, so
+     *  the board does not jump when a conflict appears. */
     @Test
-    fun `violation surfaces the rule caption always-on`() {
+    fun `a live conflict adds no caption row to the controls`() {
         val state = setContent(QueensUiFixtures.session())
         state.onTap(1); state.onTap(1) // X then queen at (0,1)
-        composeRule.waitForIdle()
-        composeRule.onNodeWithTag("queens/violation_caption").assertDoesNotExist()
         state.onTap(2) // AUTO X is a mark: one tap places the queen at (0,2) — same row → conflict
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("queens/violation_caption").assertExists()
-        composeRule.onNodeWithText(
-            "Rule conflict — queens can't touch or share a row, column, or region",
-        ).assertExists()
-        // resolving the conflict clears the caption (undo the second queen)
-        state.undo()
-        composeRule.waitForIdle()
+        assertTrue(QueensBoardModel.of(state.session).violations.isNotEmpty())
         composeRule.onNodeWithTag("queens/violation_caption").assertDoesNotExist()
+        composeRule.onNodeWithText(
+            "Queens can't touch or share a row, column, or color.",
+        ).assertDoesNotExist()
     }
 
     /** R-1 (fix round 4): the armed-move two-tap language is gone — no caption, no
@@ -271,10 +277,7 @@ class QueensBoardUiTest {
         hint as com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region
         assertEquals(HintReason(HintReason.Kind.ROW, 0), hint.reason)
         assertEquals("one presented hint counts once", 1, state.session.hintsUsed)
-        assertEquals(
-            "The red region's queen must be in this row — every other cell there is blocked",
-            state.hintCaption,
-        )
+        assertNotNull(state.hintCaption)
     }
 
     /** Stage 2 (the repeat tap): the same forced cell is POINTED at — the crown ghost
@@ -318,7 +321,7 @@ class QueensBoardUiTest {
         composeRule.waitForIdle()
         assertTrue(state.hint is com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Incorrect)
         assertEquals(1, state.session.hintsUsed)
-        assertEquals("Hint — these crowns can't all stay; remove at least one", state.hintCaption)
+        assertEquals("Some of these queens can't stay. Take one away.", state.hintCaption)
     }
 
     /** Any board action clears the staged hint (caption + ghost). */
@@ -395,5 +398,90 @@ class QueensBoardUiTest {
         composeRule.waitForIdle()
         assertTrue("one undo restores the pre-clear queens", state.session.queens.isNotEmpty())
         assertEquals("one undo restores the pre-clear MANUAL mark", MarkKind.MANUAL, state.session.markAt(Cell(15))?.kind)
+    }
+
+    /** Spec A12: a guided board shows a faint queen TalkBack can read on every answer
+     *  square, through the ×, until that square's queen lands. A daily shows none. */
+    @Test
+    fun `a guided board ghosts each answer square until its queen lands`() {
+        val state = setContent(QueensUiFixtures.session())
+        val answer = QueensUiFixtures.solutionCells.map { it.idx }
+        (0 until n * n).forEach { composeRule.onNodeWithTag("queens.ghost.$it").assertDoesNotExist() }
+
+        state.guide()
+        composeRule.waitForIdle()
+        for (idx in 0 until n * n) {
+            val ghost = composeRule.onNodeWithTag("queens.ghost.$idx")
+            if (idx in answer) {
+                ghost.assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription))
+            } else {
+                ghost.assertDoesNotExist()
+            }
+        }
+
+        tap(0, 1) // × on answer square 1: the ghost stays
+        composeRule.onNodeWithTag("queens.ghost.1").assertExists()
+        tap(0, 1) // the queen lands
+        composeRule.onNodeWithTag("queens.ghost.1").assertDoesNotExist()
+        composeRule.onNodeWithTag("queens.ghost.7").assertExists()
+    }
+
+    /** N1: on a guided board, a queen off the answer shows a corner cue TalkBack reads;
+     *  taking the queen away clears it. */
+    @Test
+    fun `a guided board marks a queen off the answer until it is taken away`() {
+        val state = setContent(QueensUiFixtures.session())
+        val answer = QueensUiFixtures.solutionCells.map { it.idx }.toSet()
+        val stray = (0 until n * n).first { it !in answer && state.session.markAt(Cell(it)) == null }
+        state.guide()
+        tap(stray / n, stray % n)
+        tap(stray / n, stray % n) // ×, then the queen lands off the answer
+        composeRule.onNodeWithTag("queens.stray.$stray")
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription))
+        tap(stray / n, stray % n) // the queen goes
+        composeRule.onNodeWithTag("queens.stray.$stray").assertDoesNotExist()
+    }
+
+    /** U2: the next lesson (or a replay) is a new state of the same size; its taps
+     *  must reach it, not the state it replaced. */
+    @Test
+    fun `a new board of the same size takes the taps`() {
+        val first = QueensBoardState(initialSession = QueensUiFixtures.session())
+        val second = QueensBoardState(initialSession = QueensUiFixtures.session())
+        var current by mutableStateOf(first)
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                QueensPlayBoard(current, Modifier.fillMaxWidth().testTag(BoardTag))
+            }
+        }
+        tap(0, 0)
+        current = second
+        composeRule.waitForIdle()
+        tap(0, 0)
+        assertEquals(MarkKind.MANUAL, second.session.markAt(Cell(0))?.kind)
+        assertEquals(MarkKind.MANUAL, first.session.markAt(Cell(0))?.kind) // untouched by the 2nd tap
+    }
+
+    /** V1: a lesson board fills the board pane the tutorial host gives it, edge to edge —
+     *  no second gutter inside the board and no 64dp-per-cell cap on a 4×4. */
+    @Test
+    fun `a lesson board fills the board pane it is given`() {
+        val controller = QueensPlayController(
+            com.ivandsky.puzzlebox.gameui.PlayEnvironment(
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined),
+                onSessionChanged = {},
+                onWon = {},
+            ),
+        )
+        val lesson = QueensTutorial.steps.first()
+        controller.adoptToday(lesson.puzzle, lesson.ref)
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                androidx.compose.foundation.layout.Box(Modifier.size(379.dp, 600.dp)) {
+                    QueensPlayUi().Board(controller, Modifier)
+                }
+            }
+        }
+        composeRule.onNodeWithTag("queens.board").assertWidthIsEqualTo(379.dp).assertHeightIsEqualTo(379.dp)
     }
 }

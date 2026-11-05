@@ -22,7 +22,7 @@ abstract class SavedPlayRepositoryContract {
 
     @Test
     fun `saved blob loads back`() = runTest {
-        repository.save(slot("zip", 1), byteArrayOf(1, 2, 3))
+        repository.save(slot("zip", 1), byteArrayOf(1, 2, 3), elapsedMs = 0L)
 
         assertArrayEquals(byteArrayOf(1, 2, 3), repository.load(slot("zip", 1)))
         assertNull(repository.load(slot("zip", 2)))
@@ -30,29 +30,29 @@ abstract class SavedPlayRepositoryContract {
 
     @Test
     fun `saving a slot again overwrites its blob`() = runTest {
-        repository.save(slot("zip", 1), byteArrayOf(1))
-        repository.save(slot("zip", 1), byteArrayOf(2, 3))
+        repository.save(slot("zip", 1), byteArrayOf(1), elapsedMs = 1_000L)
+        repository.save(slot("zip", 1), byteArrayOf(2, 3), elapsedMs = 4_000L)
 
         assertArrayEquals(byteArrayOf(2, 3), repository.load(slot("zip", 1)))
-        assertEquals(setOf(slot("zip", 1)), repository.observeInProgress().first())
+        assertEquals(mapOf(slot("zip", 1) to 4_000L), repository.observeInProgress().first())
     }
 
     @Test
     fun `delete is idempotent`() = runTest {
-        repository.save(slot("zip", 1), byteArrayOf(1))
+        repository.save(slot("zip", 1), byteArrayOf(1), elapsedMs = 0L)
 
         repository.delete(slot("zip", 1))
         repository.delete(slot("zip", 1))
         repository.delete(slot("tango", 3))
 
         assertNull(repository.load(slot("zip", 1)))
-        assertEquals(emptySet<PlaySlot>(), repository.observeInProgress().first())
+        assertEquals(emptyMap<PlaySlot, Long>(), repository.observeInProgress().first())
     }
 
     @Test
     fun `the newest save is always kept`() = runTest {
         for (day in 1..20) {
-            repository.save(slot("zip", day), byteArrayOf(day.toByte()))
+            repository.save(slot("zip", day), byteArrayOf(day.toByte()), elapsedMs = 0L)
             assertArrayEquals(byteArrayOf(day.toByte()), repository.load(slot("zip", day)))
         }
         assertEquals(true, slot("zip", 20) in repository.observeInProgress().first())
@@ -61,13 +61,13 @@ abstract class SavedPlayRepositoryContract {
     @Test
     fun `observeInProgress tracks save and delete`() = runTest {
         val slots = repository.observeInProgress()
-        assertEquals(emptySet<PlaySlot>(), slots.first())
+        assertEquals(emptyMap<PlaySlot, Long>(), slots.first())
 
-        repository.save(slot("zip", 1), byteArrayOf(1))
-        repository.save(slot("tango", 1), byteArrayOf(2))
-        assertEquals(setOf(slot("zip", 1), slot("tango", 1)), slots.first())
+        repository.save(slot("zip", 1), byteArrayOf(1), elapsedMs = 10L)
+        repository.save(slot("tango", 1), byteArrayOf(2), elapsedMs = 20L)
+        assertEquals(mapOf(slot("zip", 1) to 10L, slot("tango", 1) to 20L), slots.first())
 
         repository.delete(slot("zip", 1))
-        assertEquals(setOf(slot("tango", 1)), slots.first())
+        assertEquals(mapOf(slot("tango", 1) to 20L), slots.first())
     }
 }

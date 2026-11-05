@@ -25,12 +25,19 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 private val ActionsMaxWidth = 360.dp
 
 /**
- * The new-record badge (tag `result.record_badge`): a tonal tag, not a button — chip
- * height and radius, a leading trophy and the tertiary (amber) pair, so it never borrows
- * the lime fill or the 48 dp height of the actions below it.
+ * The honest-best badge (tag `result.record_badge`, A10): "New best", "Tied your best!" or
+ * "First solve"; nothing for a slower solve, a replay or an unknown verdict. A tonal tag,
+ * not a button — chip height and radius, a leading trophy and the tertiary (amber) pair,
+ * so it never borrows the lime fill or the 48 dp height of the actions below it.
  */
 @Composable
-internal fun RecordTag(modifier: Modifier = Modifier) {
+internal fun RecordTag(verdict: RecordVerdict?, modifier: Modifier = Modifier) {
+    val text = when (verdict) {
+        RecordVerdict.NewBest -> "New best"
+        RecordVerdict.TiedBest -> "Tied your best!"
+        RecordVerdict.FirstSolve -> "First solve"
+        RecordVerdict.NotBest, RecordVerdict.Replay, null -> return
+    }
     Surface(
         shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.tertiaryContainer,
@@ -47,9 +54,31 @@ internal fun RecordTag(modifier: Modifier = Modifier) {
                 contentDescription = null,
                 modifier = Modifier.size(18.dp),
             )
-            Text(text = "New personal record", style = MaterialTheme.typography.labelLarge)
+            Text(text = text, style = MaterialTheme.typography.labelLarge)
         }
     }
+}
+
+/**
+ * The speed player's payoff (tag `result.previous_best`): a new best shows the time it
+ * beat, a slower solve the standing best to chase, a replay says it was one. A first
+ * solve has no previous best, and a tie's hero time IS the best: no line.
+ */
+@Composable
+internal fun BestLine(verdict: RecordVerdict?, previousBestMs: Long?) {
+    val best = previousBestMs?.let(::formatClock)
+    val line = when (verdict) {
+        RecordVerdict.NewBest -> best?.let { "Previous best $it" }
+        RecordVerdict.NotBest -> best?.let { "Best $it" }
+        RecordVerdict.Replay -> best?.let { "Replay · Best $it" } ?: "Replay"
+        RecordVerdict.TiedBest, RecordVerdict.FirstSolve, null -> null
+    } ?: return
+    Text(
+        text = line,
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.testTag("result.previous_best"),
+    )
 }
 
 /**

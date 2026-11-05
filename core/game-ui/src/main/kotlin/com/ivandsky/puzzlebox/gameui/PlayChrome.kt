@@ -6,8 +6,13 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -48,10 +54,11 @@ interface PlayClock {
 }
 
 /**
- * The hint seam. The game owns what a hint is; the chrome draws the button, the count and
- * the caption. [hintsUsed] is the session's A3 count, [hintEnabled] folds the game's own
- * gating (complete, cooldown, nothing loaded), [hintCaption] is the reveal's explanation
- * (null = none), and [requestHint] runs the game's hint.
+ * The hint seam. The game owns what a hint is; the chrome draws the button and the count,
+ * and its caption slot shows [hintCaption] below any [PlayFeedback] message. [hintsUsed]
+ * is the session's A3 count, [hintEnabled] folds the game's own gating (complete,
+ * cooldown, nothing loaded), [hintCaption] is the reveal's explanation (null = none), and
+ * [requestHint] runs the game's hint.
  */
 interface PlayHints {
     val hintsUsed: Int
@@ -118,10 +125,12 @@ fun PlayClockEffects(clock: PlayClock) {
 
 /**
  * The play chrome every game shares (tango-05, split core | game 2026-11-03): title /
- * subtitle voice, the hint control with its caption, the degrade banner (§6 copy passed
- * in), the record-of-truth timer, and undo/redo (§5/§9: controls ≥ 48 dp — the M3
+ * subtitle voice, the hint control, the degrade banner (§6 copy passed in), the one
+ * reserved caption slot ([PlayCaptionSlot] over [playCaption]: violation > rejection >
+ * hint), the record-of-truth timer, and undo/redo (§5/§9: controls ≥ 48 dp — the M3
  * buttons carry their own floor). Seams are nullable so a game opts out of a control it
- * does not have; [gameControls] is the game-specific remainder.
+ * does not have; [onHowToPlay] (null = no button) reopens the game's tutorial (spec A11);
+ * [gameControls] is the game-specific remainder.
  */
 @Composable
 fun PlayChrome(
@@ -132,6 +141,8 @@ fun PlayChrome(
     undo: PlayUndo?,
     banner: String?,
     modifier: Modifier = Modifier,
+    feedback: PlayFeedback? = null,
+    onHowToPlay: (() -> Unit)? = null,
     gameControls: @Composable ColumnScope.() -> Unit = {},
 ) {
     if (clock != null) PlayClockEffects(clock)
@@ -155,6 +166,19 @@ fun PlayChrome(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            if (onHowToPlay != null) {
+                // Newer M3 IconButtons measure 40 dp; the floor is 48 dp (§9).
+                IconButton(
+                    onClick = onHowToPlay,
+                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag("play.how_to_play"),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Info,
+                        contentDescription = "How to play",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             if (hints != null) {
                 HintButton(
@@ -182,16 +206,7 @@ fun PlayChrome(
             }
         }
 
-        hints?.hintCaption?.let { caption ->
-            Text(
-                text = caption,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("play.hint_caption"),
-            )
-        }
+        PlayCaptionSlot(caption = playCaption(feedback, hints))
 
         if (clock != null) TimerBar(elapsedMs = clock.displayedElapsedMs())
 
@@ -209,15 +224,17 @@ fun UndoRedoRow(undo: PlayUndo, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        OutlinedButton(
+        SecondaryButton(
+            text = "Undo",
             onClick = undo::undo,
             enabled = undo.canUndo,
             modifier = Modifier.testTag("play.undo"),
-        ) { Text("Undo") }
-        OutlinedButton(
+        )
+        SecondaryButton(
+            text = "Redo",
             onClick = undo::redo,
             enabled = undo.canRedo,
             modifier = Modifier.testTag("play.redo"),
-        ) { Text("Redo") }
+        )
     }
 }

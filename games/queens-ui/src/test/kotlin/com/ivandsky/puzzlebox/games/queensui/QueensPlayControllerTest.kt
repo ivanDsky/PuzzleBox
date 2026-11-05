@@ -257,6 +257,25 @@ class QueensPlayControllerTest {
         assertTrue("a finished session must fetch fresh", ready.isComplete)
     }
 
+    /** Ticket 08: the conflict line is the controller's PlayFeedback.violation — the
+     *  shared caption slot shows it; the controls no longer grow a conditional row. */
+    @Test
+    fun `a live conflict surfaces as the feedback violation and clears when resolved`() {
+        val state = readyBoard()
+        val board = state.board!!
+        assertNull(state.violation)
+        board.onTap(1); board.onTap(1) // X then queen at (0,1)
+        assertNull(state.violation)
+        board.onTap(2) // AUTO X → queen at (0,2): same row → conflict
+        assertEquals(
+            "Queens can't touch or share a row, column, or color.",
+            state.violation,
+        )
+        assertNull(state.rejection)
+        state.undo()
+        assertNull(state.violation)
+    }
+
     private fun solve(board: QueensBoardState) {
         // The §5 tap cycle: markless → MANUAL X → queen — two taps per solution cell.
         for (cell in QueensPlayFixtures.solution) {

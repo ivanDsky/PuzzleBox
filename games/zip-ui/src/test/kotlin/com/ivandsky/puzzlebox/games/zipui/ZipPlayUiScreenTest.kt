@@ -133,7 +133,7 @@ class ZipPlayUiScreenTest {
     fun `degraded ready shows the banner but stays playable`() {
         readyController(banner = degradeBannerMessage(FetchError.Unavailable("offline")))
         composeRule.onNodeWithTag("play.degrade_banner").assertExists()
-        composeRule.onNodeWithText("Offline — playing today's saved puzzle.").assertExists()
+        composeRule.onNodeWithText("You're offline. Playing today's saved puzzle.").assertExists()
         composeRule.onNodeWithTag("play.board").assertExists()
     }
 

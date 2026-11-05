@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 6,
-    "identityHash": "dcd829b8d4f14fe553d30ec6439a9ec0",
+    "identityHash": "b9ea56504e72c7b16bfad20690c921a2",
     "entities": [
       {
         "tableName": "puzzle_dailies",
@@ -136,7 +136,7 @@
       },
       {
         "tableName": "saved_plays",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`gameId` TEXT NOT NULL, `day` TEXT NOT NULL, `blob` BLOB NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`gameId`, `day`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`gameId` TEXT NOT NULL, `day` TEXT NOT NULL, `blob` BLOB NOT NULL, `elapsedMs` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`gameId`, `day`))",
         "fields": [
           {
             "fieldPath": "gameId",
@@ -157,6 +157,12 @@
             "notNull": true
           },
           {
+            "fieldPath": "elapsedMs",
+            "columnName": "elapsedMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
             "fieldPath": "updatedAt",
             "columnName": "updatedAt",
             "affinity": "INTEGER",
@@ -174,7 +180,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'dcd829b8d4f14fe553d30ec6439a9ec0')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b9ea56504e72c7b16bfad20690c921a2')"
     ]
   }
 }

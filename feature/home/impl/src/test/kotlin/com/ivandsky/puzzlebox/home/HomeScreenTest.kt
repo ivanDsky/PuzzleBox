@@ -12,9 +12,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.assertTextEquals
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.GameSummary
+import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
 import org.junit.Rule
@@ -35,10 +36,10 @@ class HomeScreenTest {
         layout: HomeLayout,
         themeMode: ThemeMode = ThemeMode.SYSTEM,
         history: List<HistoryDay> = emptyList(),
-        game: GameSummary = GameSummary(GameId("zip"), "Zip"),
+        today: MutableState<List<HomeUiState.TodayRow>> = mutableStateOf(TODAY),
         identity: Identity? = null,
         onSetThemeMode: (ThemeMode) -> Unit = {},
-        resumeFeatured: MutableState<Boolean> = mutableStateOf(false),
+        resume: MutableState<Boolean> = mutableStateOf(false),
         onPlayToday: () -> Unit = {},
         onOpenProfile: () -> Unit = {},
     ) {
@@ -46,12 +47,12 @@ class HomeScreenTest {
             PuzzleBoxTheme {
                 HomeScreen(
                     layout = layout,
-                    game = game,
+                    today = today.value,
                     identity = identity,
                     themeMode = themeMode,
                     onSetThemeMode = onSetThemeMode,
                     history = history,
-                    resumeFeatured = resumeFeatured.value,
+                    resume = resume.value,
                     onPlayToday = onPlayToday,
                     onOpenProfile = onOpenProfile,
                     modifier = Modifier,
@@ -74,6 +75,46 @@ class HomeScreenTest {
 
         composeRule.onNodeWithTag("home.today_card").assertExists()
         composeRule.onNodeWithTag("home.detail_pane").assertExists()
+    }
+
+    @Test
+    fun `today card lists every game with its status and the done count`() {
+        setContent(HomeLayout.SinglePane)
+
+        composeRule.onNodeWithTag("home.today_summary").assertTextEquals("1 of 4 done")
+        composeRule.onNodeWithTag("home.today_row_zip").assertExists()
+        composeRule.onNodeWithTag("home.today_status_zip").assertTextEquals("Solved · 0:36 ✓")
+        composeRule.onNodeWithTag("home.today_status_tango").assertTextEquals("In progress · 0:42")
+        composeRule.onNodeWithTag("home.today_status_queens").assertTextEquals("Not started")
+        // Status not known yet: the row still lists the game, with no status line.
+        composeRule.onNodeWithTag("home.today_row_pinpoint").assertExists()
+        composeRule.onNodeWithTag("home.today_status_pinpoint").assertDoesNotExist()
+        composeRule.onNodeWithText("Pinpoint").assertExists()
+    }
+
+    @Test
+    fun `the done count flips when a game becomes solved`() {
+        val today = mutableStateOf(TODAY)
+        setContent(HomeLayout.SinglePane, today = today)
+        composeRule.onNodeWithTag("home.today_summary").assertTextEquals("1 of 4 done")
+
+        today.value = TODAY.map {
+            if (it.game == GameId("tango")) it.copy(status = TodayStatus.Solved(61_000L)) else it
+        }
+
+        composeRule.onNodeWithTag("home.today_summary").assertTextEquals("2 of 4 done")
+        composeRule.onNodeWithTag("home.today_status_tango").assertTextEquals("Solved · 1:01 ✓")
+    }
+
+    @Test
+    fun `two pane detail lists every game with its status and the done count`() {
+        setContent(HomeLayout.TwoPane)
+
+        composeRule.onNodeWithTag("home.detail_today_summary").assertTextEquals("1 of 4 done")
+        composeRule.onNodeWithTag("home.detail_today_status_zip").assertTextEquals("Solved · 0:36 ✓")
+        composeRule.onNodeWithTag("home.detail_today_status_tango").assertTextEquals("In progress · 0:42")
+        composeRule.onNodeWithTag("home.detail_today_status_queens").assertTextEquals("Not started")
+        composeRule.onNodeWithTag("home.detail_today_row_pinpoint").assertExists()
     }
 
     @Test
@@ -114,14 +155,14 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `today card label switches to resume when the featured game is in progress - SC11`() {
+    fun `today card label switches to resume when a game of today is in progress - SC11`() {
         val resume = mutableStateOf(false)
         var played = 0
-        setContent(HomeLayout.SinglePane, resumeFeatured = resume, onPlayToday = { played++ })
+        setContent(HomeLayout.SinglePane, resume = resume, onPlayToday = { played++ })
         composeRule.onNodeWithText("Play today").assertExists()
         composeRule.onNodeWithText("Resume").assertDoesNotExist()
 
-        // Today's featured game gains a save: the same card now offers to resume it.
+        // A game of today's set gains a save: the same card now offers to resume it.
         composeRule.runOnIdle { resume.value = true }
 
         composeRule.onNodeWithText("Play today").assertDoesNotExist()
@@ -131,7 +172,7 @@ class HomeScreenTest {
 
     @Test
     fun `two pane reads resume on the card and the detail action`() {
-        setContent(HomeLayout.TwoPane, resumeFeatured = mutableStateOf(true))
+        setContent(HomeLayout.TwoPane, resume = mutableStateOf(true))
 
         composeRule.onAllNodesWithText("Resume").assertCountEquals(2)
         composeRule.onNodeWithText("Play today").assertDoesNotExist()
@@ -189,5 +230,15 @@ class HomeScreenTest {
         composeRule.onNodeWithText("Ivan D.").assertExists()
         composeRule.onNodeWithText("Competing on leaderboards.").assertExists()
         composeRule.onNodeWithText("Profile").assertExists()
+    }
+
+    private companion object {
+        /** Registry order; Pinpoint's status is not known yet. */
+        val TODAY = listOf(
+            HomeUiState.TodayRow(GameId("zip"), "Zip", TodayStatus.Solved(36_000L)),
+            HomeUiState.TodayRow(GameId("tango"), "Tango", TodayStatus.InProgress(42_000L)),
+            HomeUiState.TodayRow(GameId("queens"), "Queens", TodayStatus.NotStarted),
+            HomeUiState.TodayRow(GameId("pinpoint"), "Pinpoint", status = null),
+        )
     }
 }

@@ -21,64 +21,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ivandsky.puzzlebox.data.identity.Identity
-import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.GameSummary
-
-/** The primary action's label: "Resume" when today's featured game has a save (A13, SC11). */
-internal fun playTodayLabel(resume: Boolean): String = if (resume) "Resume" else "Play today"
-
-/** The one filled card: today's game, its tagline, and the primary action — [resume] relabels it. */
-@Composable
-internal fun TodayCard(
-    game: GameSummary,
-    resume: Boolean,
-    onPlayToday: () -> Unit,
-    cardColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag("home.today_card"),
-        shape = MaterialTheme.shapes.large,
-        color = cardColor,
-    ) {
-        Column(
-            modifier = Modifier.padding(Spacing.xxl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Text(
-                text = "Daily · ${game.displayName}",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = game.displayName,
-                style = MaterialTheme.typography.displayMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = "Trace one continuous path through every square. A new puzzle every day.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            PrimaryButton(
-                text = playTodayLabel(resume),
-                onClick = onPlayToday,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = Spacing.md)
-                    .testTag("home.play_today"),
-            )
-        }
-    }
-}
 
 /** The account card: signed-out teaser that opens the Profile account surface (A15). */
 @Composable

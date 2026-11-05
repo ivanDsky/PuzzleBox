@@ -8,15 +8,16 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.BROKEN_PUZZLE_MESSAGE
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import com.ivandsky.puzzlebox.gameui.PlayFeedback
 import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
-import com.ivandsky.puzzlebox.gameui.untrustedDecodeMessage
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.ZipSession
@@ -30,8 +31,6 @@ import com.ivandsky.puzzlebox.games.zip.engine.ZipValidation
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import com.ivandsky.puzzlebox.games.zip.zipPlugin
 import java.time.Instant
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
  * The Zip play controller (ticket 13): one adopted board → engine → win transition. Owns
@@ -46,7 +45,9 @@ import kotlinx.coroutines.launch
 class ZipPlayController(
     private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
-) : GamePlayController, PlayClock, PlayHints, PlayUndo {
+    /** Ticket 06: the refusal/trim messages the shared caption slot shows. */
+    val feedback: ZipFeedback = ZipFeedback(env.scope),
+) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback by feedback {
 
     var session by mutableStateOf<ZipSession?>(null)
         private set
@@ -63,8 +64,6 @@ class ZipPlayController(
     val hintHistory = mutableStateListOf<HintEvent>()
 
     private var lastHintAtMs: Long? = null
-    var rejection by mutableStateOf<ZipRendererModel.RejectedMove?>(null)
-        private set
     var nowMs by mutableStateOf(0L)
         private set
 
@@ -95,6 +94,8 @@ class ZipPlayController(
 
             // R1 tap on the first traced cell: the trace empties to the start state.
             DragEvent.Clear -> commit(current.withMove(ZipMove.Reset, now()))
+            // A7: the board refused a cell before it became a move — explain, never count.
+            is DragEvent.Refused -> feedback.refused(current, cellOf(event.cell, board.n))
         }
     }
 
@@ -127,7 +128,7 @@ class ZipPlayController(
     override fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt {
         val zip = when (val decoded = ZipCodec.decode(puzzle.payload)) {
             is DecodeResult.Ok -> decoded.value
-            is DecodeResult.Err -> return Adopt.Rejected(untrustedDecodeMessage(decoded.error))
+            is DecodeResult.Err -> return Adopt.Rejected(BROKEN_PUZZLE_MESSAGE)
         }
         session = ZipSession(ref = ref as ZipPuzzleRef, puzzle = zip)
         return Adopt.Adopted
@@ -163,12 +164,14 @@ class ZipPlayController(
         val puzzle = current.puzzle
         val fromIdx = current.path.lastOrNull()?.idx
         var next = current
+        var kept: List<Cell>? = null // the trimmed prefix, when the hint fixed a dead trace
         var resolved = rules.hint(ZipState(puzzle, next.path))
         if (resolved is ZipHint.Backtrack) {
             next = next.withMove(
                 if (resolved.trimTo < 0) ZipMove.Reset else ZipMove.RetractTo(next.path[resolved.trimTo]),
                 now(),
             )
+            kept = next.path
             resolved = rules.hint(ZipState(puzzle, next.path))
         }
         val step = resolved as? ZipHint.Step
@@ -185,6 +188,7 @@ class ZipPlayController(
         }
         next = next.withHintApplied()
         commit(next)
+        kept?.let { feedback.trimmed(puzzle.board, it) }
         hintCell = (resolved as? ZipHint.Step)?.cell?.idx
         val atMs = now().toEpochMilli()
         lastHintAtMs = atMs
@@ -200,8 +204,8 @@ class ZipPlayController(
     override val hintEnabled: Boolean
         get() = session?.isComplete == false && !hintCooldownActive()
 
-    /** Zip's hint is the placed arrow, not prose. */
-    override val hintCaption: String? get() = null
+    /** Zip's hint is the placed arrow; prose only when the free trim fixed the trace. */
+    override val hintCaption: String? get() = feedback.hintCaption
 
     override fun requestHint() = hint()
 
@@ -253,7 +257,7 @@ class ZipPlayController(
         val current = session ?: return
         hintCell = null
         hintArrow = null
-        rejection = null
+        feedback.clear()
         lastHintAtMs = null
         hintHistory.clear()
         commit(ZipSession(ref = current.ref, puzzle = current.puzzle))
@@ -265,7 +269,7 @@ class ZipPlayController(
     fun rendererModel(): ZipRendererModel? {
         val current = session ?: return null
         val hint = hintCell?.let { ZipHint.Step(Cell(it)) }
-        return ZipRendererModel.of(ZipState(current.puzzle, current.path), hint, rejection)
+        return ZipRendererModel.of(ZipState(current.puzzle, current.path), hint, feedback.rejectedMove)
     }
 
     /** Versioned session bytes (A19/F2 §2) — what [PlayEnvironment.onSessionChanged] receives. */
@@ -275,8 +279,10 @@ class ZipPlayController(
 
     //region internals
 
+    /** An accepted change: the hint highlight and every caption message retire. */
     private fun commit(next: ZipSession) {
         hintCell = null
+        feedback.onAccepted()
         updateSession(next)
     }
 
@@ -289,21 +295,15 @@ class ZipPlayController(
 
     private fun reject(current: ZipSession, cell: Cell, reason: ZipValidation.Reason) {
         updateSession(current.withRejection()) // mistake analytics only, never scored (A3)
-        rejection = ZipRendererModel.RejectedMove(cell.idx, reason)
-        env.scope.launch {
-            delay(REJECTION_CLEAR_MS)
-            if (rejection?.cellIdx == cell.idx) rejection = null
-        }
+        feedback.reject(current.puzzle.board, cell, reason)
     }
 
     private fun cellOf(cell: GridCell, n: Int) = Cell(cell.row * n + cell.col)
 
     //endregion
 
+    /** User-set hint cooldown (2026-11-02). */
     private companion object {
-        const val REJECTION_CLEAR_MS = 600L
-
-        /** User-set hint cooldown (2026-11-02). */
         const val HINT_COOLDOWN_MS = 5_000L
     }
 }

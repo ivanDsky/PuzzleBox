@@ -19,7 +19,7 @@ dependencies {
     implementation(projects.core.data)
     // HomeViewModel resolves per-game names against the app's GameRegistry.
     implementation(projects.core.game)
-    // GameSummary (the featured game) appears in HomeScreen's public signature.
+    // TodayStatus (today's set) appears in HomeUiState, part of HomeScreen's public signature.
     api(projects.core.domain)
     // ThemeMode/GameId appear in Home's public composables.
     api(projects.core.model)

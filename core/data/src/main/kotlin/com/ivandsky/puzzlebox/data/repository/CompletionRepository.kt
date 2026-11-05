@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.data.repository
 
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -17,4 +18,8 @@ interface CompletionRepository {
     fun observeRecords(): Flow<List<CompletionRecord>> // record rows only
 
     fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>>
+
+    /** The game's best time (spec A10): the minimum over the record rows (first solves)
+     *  of [game] — replays never rank; null = the game has no completion yet. */
+    suspend fun bestTimeMs(game: GameId): Long?
 }

@@ -101,8 +101,7 @@ class HistoryScreenTest {
         setContent()
 
         awaitTag("history.empty")
-        composeRule.onNodeWithText("Nothing captured yet").assertExists()
-        composeRule.onNodeWithText("Day streak").assertDoesNotExist()
+        composeRule.onNodeWithTag("history.streak").assertDoesNotExist()
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.data.di
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.game.FakeDailySource
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
@@ -47,6 +48,7 @@ class DataModuleGraphTest : KoinTest {
             assertNotNull(koin.get<FeedTransport>())
             assertNotNull(koin.get<DailyRepository>())
             assertNotNull(koin.get<CompletionRepository>())
+            assertNotNull(koin.get<UserPreferencesRepository>())
             assertNotNull(koin.get<PuzzleDailyDao>())
         } finally {
             koinApp.close()

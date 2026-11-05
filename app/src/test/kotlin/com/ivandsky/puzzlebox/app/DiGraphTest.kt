@@ -16,7 +16,7 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
-import com.ivandsky.puzzlebox.domain.ObservePlayProgress
+import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -94,7 +94,7 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<ComputeStreak>())
             assertNotNull(koin.get<GetReplaySession>())
             assertNotNull(koin.get<ObserveTodayLeaderboard>())
-            // Today's featured game (Home's hero, Profile's board) is the registry's first.
+            // Today's featured game (Profile's board, the leaderboard) is the registry's first.
             assertEquals(GameId("zip"), koin.get<GetFeaturedGame>()().id)
 
             // Game aggregation (ADR-0001): every game module's plugin lands in the
@@ -111,7 +111,7 @@ class DiGraphTest : KoinTest {
             // progress cues, and the play routes' ViewModels with their key parameters.
             assertNotNull(koin.get<SavedPlayRepository>())
             assertNotNull(koin.get<GameCalendar>())
-            assertNotNull(koin.get<ObservePlayProgress>())
+            assertNotNull(koin.get<ObserveTodaySet>())
             assertNotNull(koin.get<HubViewModel>())
             // A past, uncached day: the slot opens as a cache miss, never today's network fetch.
             assertNotNull(koin.get<GameViewModel> { parametersOf(GameKey("zip", "2000-01-01")) }.play)

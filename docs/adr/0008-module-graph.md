@@ -27,13 +27,13 @@ the build instead of a review.
    game through `GamePlayController` (ADR-0007).
 4. **Cross-feature business logic lives in `core:domain`** as use cases (`domainModule`):
    `ComputeStreak`, `GetFeaturedGame`, `GetReplaySession`, `ObserveGameHistory`,
-   `ObserveTodayLeaderboard`. Features call use cases or `core:data` repositories, never
+   `ObserveTodayLeaderboard`, `ObserveTodaySet`. Features call use cases or `core:data` repositories, never
    each other's ViewModels.
 5. **Navigation is api/impl.** `feature:<name>:api` holds only the feature's `@Serializable`
    NavKeys and a `<name>NavKeys()` polymorphic registration (`core:navigation`'s
    `navKeySavedStateConfiguration`); `feature:<name>:impl` holds screens, ViewModels, Koin
    module and the `<name>Entry` builder `app` installs in `puzzleBoxEntryProvider`. A feature that
-   navigates elsewhere depends on the target's `api` only. *(Amended 2026-11-04, ADR-0010.)*
+   navigates elsewhere depends on the target's `api` only. *(Amended 2026-11-04, ADR-0011.)*
    Every key's `@SerialName` uses the `com.ivandsky.puzzlebox.app.nav.*` prefix by convention,
    new keys included; compatibility of saved navigation is versioned by `NAVIGATION_STATE_KEY`
    (a bundle under another key, or one that fails to decode, starts fresh), not by pins.

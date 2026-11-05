@@ -1,0 +1,57 @@
+package com.ivandsky.puzzlebox.domain
+
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PlaySlot
+import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+
+/**
+ * Today's set (spec A14, A12/A13): every registered game in [GameRegistry.all] order, with
+ * its status on its own calendar day ([GameCalendar.observeToday], never the device date;
+ * a rollover re-emits). Solved = a completion record with `ref.gameId == game && ref.date
+ * == today` (the identity [ObserveGameHistory] uses) and beats a saved play. InProgress =
+ * a saved play in the (game, today) slot, at its elapsed time when last saved. Anything
+ * else, another day's saved play included, is NotStarted.
+ */
+class ObserveTodaySet(
+    private val registry: GameRegistry,
+    private val saved: SavedPlayRepository,
+    private val completions: CompletionRepository,
+    private val calendar: GameCalendar,
+) {
+
+    operator fun invoke(): Flow<List<TodayEntry>> {
+        val games = registry.all.map { it.definition }
+        return combine(todays(games.map { it.id }), saved.observeInProgress(), completions.observeRecords()) {
+                today, slots, records ->
+            games.map { definition ->
+                val day = today.getValue(definition.id)
+                val solved = records.firstOrNull {
+                    it.puzzleRef.gameId == definition.id && it.puzzleRef.date == day
+                }
+                val elapsed = slots[PlaySlot(definition.id, day)]
+                val status = when {
+                    solved != null -> TodayStatus.Solved(solved.time)
+                    elapsed != null -> TodayStatus.InProgress(elapsed)
+                    else -> TodayStatus.NotStarted
+                }
+                TodayEntry(definition.id, definition.displayName, status)
+            }
+        }.distinctUntilChanged()
+    }
+
+    private fun todays(order: List<GameId>): Flow<Map<GameId, LocalDate>> =
+        if (order.isEmpty()) {
+            flowOf(emptyMap())
+        } else {
+            combine(order.map { id -> calendar.observeToday(id).map { id to it } }) { it.toMap() }
+        }
+}

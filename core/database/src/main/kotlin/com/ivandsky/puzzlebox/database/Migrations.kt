@@ -97,6 +97,7 @@ object Migrations {
                     "`gameId` TEXT NOT NULL, " +
                     "`day` TEXT NOT NULL, " +
                     "`blob` BLOB NOT NULL, " +
+                    "`elapsedMs` INTEGER NOT NULL, " +
                     "`updatedAt` INTEGER NOT NULL, " +
                     "PRIMARY KEY(`gameId`, `day`))",
             )

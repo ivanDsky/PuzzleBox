@@ -25,7 +25,7 @@ interface SavedPlayDao {
     suspend fun delete(gameId: String, day: String)
 
     /** Every slot, newest first, without blobs. */
-    @Query("SELECT gameId, day FROM saved_plays ORDER BY updatedAt DESC")
+    @Query("SELECT gameId, day, elapsedMs FROM saved_plays ORDER BY updatedAt DESC")
     fun observeSlots(): Flow<List<SavedPlaySlotRow>>
 
     @Upsert

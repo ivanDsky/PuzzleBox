@@ -4,8 +4,8 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
-import com.ivandsky.puzzlebox.domain.ObservePlayProgress
 import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
+import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import java.time.LocalDate
 import org.koin.dsl.module
 
@@ -19,7 +19,7 @@ val domainModule = module {
     factory { GetFeaturedGame(registry = get()) }
     factory { ComputeStreak() }
     factory { GetReplaySession(daily = get(), registry = get()) }
-    factory { ObservePlayProgress(registry = get(), saved = get(), completions = get(), calendar = get()) }
+    factory { ObserveTodaySet(registry = get(), saved = get(), completions = get(), calendar = get()) }
     factory {
         ObserveTodayLeaderboard(
             identity = get(),

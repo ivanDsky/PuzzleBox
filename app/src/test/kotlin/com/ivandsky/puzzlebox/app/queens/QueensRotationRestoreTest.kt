@@ -100,7 +100,21 @@ class QueensRotationRestoreTest {
             modules(PuzzleBoxApplication.appModules)
         }
         koinApp.koin.loadModules(
-            listOf(module { single<DailyRepository> { repo } }),
+            listOf(
+                module {
+                    single<DailyRepository> { repo }
+                    // Every tutorial seen: this path is about the board; the lessons have their own tests.
+                    single<com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository> {
+                        com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository(
+                            seen = setOf(
+                                com.ivandsky.puzzlebox.games.zip.ZipDefinition.id,
+                                com.ivandsky.puzzlebox.games.tango.TangoDefinition.id,
+                                QueensDefinition.id,
+                            ),
+                        )
+                    }
+                },
+            ),
             allowOverride = true,
         )
         return repo

@@ -69,7 +69,7 @@ private fun QueensPlayBoardContent(
     state: QueensBoardState,
     modifier: Modifier,
 ) {
-    val model = QueensBoardModel.of(state.session, state.hint, state.hintPointed)
+    val model = QueensBoardModel.of(state.session, state.hint, state.hintPointed, state.guide)
     val boardTokens = LocalBoardColors.current
     val haptics = LocalHapticFeedback.current
     var pressedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -86,7 +86,9 @@ private fun QueensPlayBoardContent(
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .pointerInput(model.n) {
+            // Keyed on the state too: the next lesson or a replay brings a new state of
+            // the same size, and the gestures must feed it, not the solved one.
+            .pointerInput(state, model.n) {
                 detectTapGestures(
                     onPress = {
                         tryAwaitRelease()
@@ -103,14 +105,14 @@ private fun QueensPlayBoardContent(
                     },
                 )
             }
-            .pointerInput(model.n) {
+            .pointerInput(state, model.n) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     downCell = cellOf(down.position.x, down.position.y, size.width.toFloat())
                     pressedCell = downCell
                 }
             }
-            .pointerInput(model.n) {
+            .pointerInput(state, model.n) {
                 detectDragGestures(
                     onDragStart = { offset ->
                         val cell = downCell ?: cellOf(offset.x, offset.y, size.width.toFloat())

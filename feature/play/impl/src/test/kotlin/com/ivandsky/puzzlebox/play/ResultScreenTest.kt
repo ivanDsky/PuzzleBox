@@ -12,12 +12,13 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.GetReplaySession
-import com.ivandsky.puzzlebox.domain.ObservePlayProgress
+import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.ResultScreen
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -43,8 +44,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Ticket 23: the win-moment coverage, rewritten from the deleted WinOverlay to the
- * result ROUTE. The A3 facts render (time hero, hints), the record badge is conditional
- * on the in-memory verdict — present when stamped, absent while the write is in flight
+ * result ROUTE. The A3 facts render (time hero, hints), the A10 badge is conditional
+ * on the in-memory verdict — "New best" / "First solve", absent while the write is in flight
  * (fire-and-observe, never waited on) — and "Play again" hands back to navigation.
  * Ticket 17: each primary action (Next, All done, a replay's Done) shows its own tag.
  */
@@ -60,7 +61,8 @@ class ResultScreenTest {
     private val day = TestGames.definition(game).cadence.today()
 
     private fun setContent(
-        isRecord: Boolean? = null,
+        verdict: RecordVerdict? = null,
+        previousBestMs: Long? = null,
         writeFailed: Boolean = false,
         primary: ResultPrimaryAction? = ResultPrimaryAction.Done,
         onPrimary: () -> Unit = {},
@@ -75,7 +77,8 @@ class ResultScreenTest {
                     primary = primary,
                     onPrimary = onPrimary,
                     onPlayAgain = onPlayAgain,
-                    isRecord = isRecord,
+                    verdict = verdict,
+                    previousBestMs = previousBestMs,
                     writeFailed = writeFailed,
                     onRetryWrite = onRetryWrite,
                 )
@@ -92,22 +95,46 @@ class ResultScreenTest {
     }
 
     @Test
-    fun `record badge appears when stamped`() {
-        setContent(isRecord = true)
+    fun `new best badge appears on a faster solve with the time it beat`() {
+        setContent(verdict = RecordVerdict.NewBest, previousBestMs = 120_000)
         composeRule.onNodeWithTag("result.record_badge").assertExists()
-        composeRule.onNodeWithText("New personal record").assertExists()
+        composeRule.onNodeWithText("New best").assertExists()
+        composeRule.onNodeWithText("Previous best 02:00").assertExists()
+    }
+
+    @Test
+    fun `first solve badge appears on the game's first completion`() {
+        setContent(verdict = RecordVerdict.FirstSolve)
+        composeRule.onNodeWithText("First solve").assertExists()
+        composeRule.onNodeWithTag("result.previous_best").assertDoesNotExist()
     }
 
     @Test
     fun `record badge absent while the write is still in flight`() {
-        setContent(isRecord = null)
+        setContent(verdict = null, previousBestMs = 80_000)
         composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
+        composeRule.onNodeWithTag("result.previous_best").assertDoesNotExist()
     }
 
     @Test
-    fun `record badge absent when the play is not a record`() {
-        setContent(isRecord = false)
+    fun `not a new best shows no badge and the previous best`() {
+        setContent(verdict = RecordVerdict.NotBest, previousBestMs = 80_000)
         composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
+        composeRule.onNodeWithText("Best 01:20").assertExists()
+    }
+
+    @Test
+    fun `a tie shows the tie badge and no second best line`() {
+        setContent(verdict = RecordVerdict.TiedBest, previousBestMs = 95_000)
+        composeRule.onNodeWithText("Tied your best!").assertExists()
+        composeRule.onNodeWithTag("result.previous_best").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a replay claims no badge and says it was a replay beside the best`() {
+        setContent(verdict = RecordVerdict.Replay, previousBestMs = 80_000)
+        composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
+        composeRule.onNodeWithText("Replay · Best 01:20").assertExists()
     }
 
     @Test
@@ -215,7 +242,8 @@ class ResultScreenTest {
                 }
             }
             composeRule.onNodeWithText("Solved!").assertExists()
-            composeRule.onNodeWithTag("result.record_badge").assertExists()
+            // The verdict is in memory: the game's first solve badge renders.
+            composeRule.onNodeWithText("First solve").assertExists()
             composeRule.onNodeWithText("Alpha · #7").assertExists()
 
             composeRule.onNodeWithTag("result.up").performClick()
@@ -296,7 +324,7 @@ class ResultScreenTest {
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<GameCalendar> { FakeGameCalendar(day) }
                     factory { GetReplaySession(get(), get()) }
-                    factory { ObservePlayProgress(get(), get(), get(), get()) }
+                    factory { ObserveTodaySet(get(), get(), get(), get()) }
                 },
                 playModule,
             )

@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.home
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.entryProvider
@@ -132,7 +134,7 @@ class HomeRouteTest {
     }
 
     @Test
-    fun `play today reports the featured game id`() {
+    fun `play today reports the first unsolved game id`() {
         val played = mutableListOf<GameId>()
         setContent(FakeDailyRepository(), FakeCompletionRepository(), onPlayToday = { played += it })
 
@@ -144,7 +146,7 @@ class HomeRouteTest {
     @Test
     fun `a saved featured play reads resume and still reports the featured game - SC11`() = kotlinx.coroutines.test.runTest {
         val saved = FakeSavedPlayRepository()
-        saved.save(PlaySlot(GameId("zip"), today), byteArrayOf(1))
+        saved.save(PlaySlot(GameId("zip"), today), byteArrayOf(1), elapsedMs = 0L)
         val played = mutableListOf<GameId>()
         setContent(FakeDailyRepository(), FakeCompletionRepository(), saved, onPlayToday = { played += it })
 
@@ -159,7 +161,7 @@ class HomeRouteTest {
     }
 
     @Test
-    fun `home entry pushes today's featured game once on the home stack - N8 N9`() {
+    fun `home entry pushes today's play target once on the home stack - N8 N9`() {
         startGraph(FakeDailyRepository(), FakeCompletionRepository())
         val navigator = Navigator(navigationState(HomeKey, PlayKey))
         val provider = entryProvider {
@@ -215,5 +217,31 @@ class HomeRouteTest {
         composeRule.onNodeWithText("November 1").assertExists()
         composeRule.onNodeWithText("Daily queens").assertExists()
         composeRule.onNodeWithText("No games yet").assertDoesNotExist()
+    }
+
+    @Test
+    fun `today card follows today's set - a zip solve flips the done count`() = kotlinx.coroutines.test.runTest {
+        val completions = FakeCompletionRepository()
+        setContent(FakeDailyRepository(), completions)
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText("Not started").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("home.today_summary").assertTextEquals("0 of 1 done")
+        composeRule.onNodeWithTag("home.today_status_zip").assertTextEquals("Not started")
+
+        // The graph's calendar pins Zip's today: this record is on it.
+        completions.onCompleted(
+            CompletionRecord(
+                puzzleRef = TestGames.Ref(GameId("zip"), today, 592),
+                time = 36_000L,
+                hints = 0,
+                stats = RecordStats(schemaVersion = 1, blob = "{}"),
+            ),
+        )
+
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText("1 of 1 done").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("home.today_status_zip").assertTextEquals("Solved · 0:36 ✓")
     }
 }

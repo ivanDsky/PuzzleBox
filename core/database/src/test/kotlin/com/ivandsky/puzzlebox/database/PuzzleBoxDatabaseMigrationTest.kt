@@ -239,14 +239,16 @@ class PuzzleBoxDatabaseMigrationTest {
         }
         // The v6 saved plays store starts empty and takes blob rows keyed by (gameId, day).
         db.execSQL(
-            "INSERT INTO saved_plays (gameId, day, blob, updatedAt) VALUES ('zip', '2026-11-01', x'0102', 9000)",
+            "INSERT INTO saved_plays (gameId, day, blob, elapsedMs, updatedAt) " +
+                "VALUES ('zip', '2026-11-01', x'0102', 4200, 9000)",
         )
-        db.query("SELECT gameId, day, LENGTH(blob), updatedAt FROM saved_plays").use { cursor ->
+        db.query("SELECT gameId, day, LENGTH(blob), elapsedMs, updatedAt FROM saved_plays").use { cursor ->
             assertTrue(cursor.moveToFirst())
             assertEquals("zip", cursor.getString(0))
             assertEquals("2026-11-01", cursor.getString(1))
             assertEquals(2, cursor.getInt(2))
-            assertEquals(9000L, cursor.getLong(3))
+            assertEquals(4200L, cursor.getLong(3))
+            assertEquals(9000L, cursor.getLong(4))
         }
         db.close()
     }

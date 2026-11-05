@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.TutorialHost
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.GameKey
 import org.koin.androidx.compose.koinViewModel
@@ -28,6 +29,10 @@ import org.koin.core.parameter.parametersOf
  * midnight, when it reads "Yesterday's puzzle". There is no BackHandler (predictive back
  * stays the scene's) and no saveable blob: the store's slot row is what survives process
  * death (A8, A11).
+ *
+ * A game's first play shows its tutorial before the board, and the chrome's How to play
+ * reopens it over the live play (spec A11); Skip or "Let's play" hands back to the board.
+ * The bar's Up stays, so back leaves the game from a tutorial too.
  */
 @Composable
 internal fun GameRoute(
@@ -57,15 +62,27 @@ internal fun GameRoute(
         if (play == null) {
             PlayBoardFallback(PlayBoardStatus.Unavailable(UNPLAYABLE), onRetry = {}, tagPrefix = "game")
         } else {
-            val board by play.board.collectAsStateWithLifecycle()
-            play.ui.Screen(
-                controller = board.controller,
-                status = board.status,
-                layout = layout,
-                onRetry = play::retry,
-                onSolved = { timeMs, hintsUsed -> onSolved(play.slot, timeMs, hintsUsed) },
-                modifier = Modifier,
-            )
+            val tutorial by viewModel.tutorial.collectAsStateWithLifecycle()
+            when (val gate = tutorial) {
+                TutorialGate.Checking -> PlayBoardFallback(PlayBoardStatus.Loading, onRetry = {}, tagPrefix = "game")
+                is TutorialGate.Open -> TutorialHost(
+                    ui = play.ui,
+                    session = gate.session,
+                    onFinished = viewModel::closeTutorial,
+                )
+                TutorialGate.Closed -> {
+                    val board by play.board.collectAsStateWithLifecycle()
+                    play.ui.Screen(
+                        controller = board.controller,
+                        status = board.status,
+                        layout = layout,
+                        onRetry = play::retry,
+                        onSolved = { timeMs, hintsUsed -> onSolved(play.slot, timeMs, hintsUsed) },
+                        onHowToPlay = if (play.ui.tutorial.isEmpty()) null else viewModel::howToPlay,
+                        modifier = Modifier,
+                    )
+                }
+            }
         }
     }
 }

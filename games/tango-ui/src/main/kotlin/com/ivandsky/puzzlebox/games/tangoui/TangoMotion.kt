@@ -21,9 +21,3 @@ val ViolationFlash = MotionPattern(
 
 // ViolationFlash cell-scale retired (user QA 2026-11-02): 1→0.86 read as a
 // permanently shrunken glyph. Violations carry through tint + dashed border.
-
-/** Caption fade-in duration for both ViolationFlash and HintReveal (§7). */
-val captionFadeMillis = MotionTokens.DurationShort
-
-/** Caption fade-out — faster than the entrance (§7: exit faster than enter). */
-val captionFadeOutMillis = MotionTokens.NavTransitionExit

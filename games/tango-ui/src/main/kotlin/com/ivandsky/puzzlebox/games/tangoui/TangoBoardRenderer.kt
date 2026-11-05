@@ -1,9 +1,5 @@
 package com.ivandsky.puzzlebox.games.tangoui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -12,10 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,16 +24,12 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import com.ivandsky.puzzlebox.designsystem.BoardTokens
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.EdgeOverlay
@@ -59,8 +48,10 @@ import kotlin.math.sin
  * Maps [TangoRendererModel] onto the shared game-ui [BoardGrid] (design-direction
  * §2–§7): sun/moon glyphs as vectors in cell content (silhouette identity, §3 fills),
  * `=`/`×` constraints as non-interactive [EdgeOverlay.Mark] decorations (A12),
- * violations as tint + dashed border + rule-naming caption (§6 copy), per-cell
- * TalkBack semantics (§9), tap-cycle placement via [TangoTapPolicy].
+ * violations as tint + dashed border (the rule-naming caption is the shared
+ * chrome's, via [TangoPlayController.violation]), a guided lesson's answer as faint
+ * ghost glyphs ([TangoRendererModel.ghosts]), per-cell TalkBack semantics (§9),
+ * tap-cycle placement via [TangoTapPolicy].
  */
 class TangoBoardRenderer(
     private val onPlacement: ((TangoPlacement) -> Unit)? = null,
@@ -130,7 +121,6 @@ class TangoBoardRenderer(
                     },
                 )
             }
-            CaptionSlot(tango)
         }
     }
 }
@@ -148,7 +138,6 @@ private fun Cell(
     val violating = violationPhrase != null
     val hinted = model.hintCell == idx
     val scheme = MaterialTheme.colorScheme
-    val boardColors = LocalBoardColors.current
     val gridLineWeight = BoardTokens.boardGridLineWeight
     val reducedMotion = rememberReducedMotion()
     // ViolationFlash retired (user QA 2026-11-02): the 1→0.86 cell scale read as a
@@ -206,18 +195,12 @@ private fun Cell(
             },
         contentAlignment = Alignment.Center,
     ) {
-        when (render?.value) {
-            TangoCell.SUN -> SunGlyph(
-                Modifier.fillMaxSize(),
-                fill = boardColors.sunFill,
-                n = model.n,
-            )
-            TangoCell.MOON -> MoonGlyph(
-                Modifier.fillMaxSize(),
-                fill = boardColors.moonFill,
-                n = model.n,
-            )
-            null -> Unit
+        render?.value?.let { Glyph(it, Modifier.fillMaxSize(), model.n) }
+        // Guide ghost (spec A12): the lesson's answer, faint, until the square matches —
+        // full size on an empty square, a corner badge beside a wrong glyph.
+        model.ghosts[idx]?.let { answer ->
+            val badge = Modifier.align(Alignment.TopEnd).fillMaxSize(TangoBoardSpec.ghostBadgeFraction)
+            Glyph(answer, if (render?.value == null) Modifier.fillMaxSize() else badge, model.n, TangoBoardSpec.ghostAlpha)
         }
 
         // Per-cell TalkBack semantics (§9): one focusable node per cell, row-major;
@@ -245,6 +228,16 @@ private fun Cell(
                     }
                 },
         )
+    }
+}
+
+/** The sun or moon in its board fill, at [alpha] of that fill's own alpha (1 = the placed glyph). */
+@Composable
+private fun Glyph(value: TangoCell, modifier: Modifier, n: Int, alpha: Float = 1f) {
+    val colors = LocalBoardColors.current
+    when (value) {
+        TangoCell.SUN -> SunGlyph(modifier, colors.sunFill.copy(alpha = colors.sunFill.alpha * alpha), n)
+        TangoCell.MOON -> MoonGlyph(modifier, colors.moonFill.copy(alpha = colors.moonFill.alpha * alpha), n)
     }
 }
 
@@ -290,54 +283,4 @@ private fun MoonGlyph(modifier: Modifier, fill: Color, n: Int) {
         val crescent = Path().apply { op(disc, punchShape, PathOperation.Difference) }
         drawPath(crescent, fill)
     }
-}
-
-/**
- * Fixed one-line caption slot (§4, 20 dp): the STATE-DRIVEN violation phrase derived
- * from the live-grid scan (§6: marks persist until the board is legal again — not the
- * transient last-rejection), the hint's WHY copy while a hint reveal stands (§6/§7,
- * review M1 — one caption surface, never a second overlay), completion announces
- * "Puzzle solved" before the route handoff. Polite liveRegion, once per content
- * change; text fades (ViolationFlash exit ≤ entrance); layout never jumps.
- */
-@Composable
-private fun CaptionSlot(model: TangoRendererModel) {
-    val caption = when {
-        model.status == TangoRendererModel.Status.COMPLETE -> "Puzzle solved"
-        else -> TangoSemantics.firstViolationPhrase(model)
-            ?: model.hintWhy?.let { why -> TangoSemantics.hintPhrase(model, why) }
-    }
-    val reducedMotion = rememberReducedMotion()
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = TangoBoardSpec.captionSlotHeight)
-            .padding(top = Spacing.sm),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        if (reducedMotion) {
-            if (caption != null) CaptionText(caption)
-        } else {
-            AnimatedVisibility(
-                visible = caption != null,
-                enter = fadeIn(tween(captionFadeMillis, easing = MotionTokens.EasingEmphasizedDecelerate)),
-                exit = fadeOut(tween(captionFadeOutMillis, easing = MotionTokens.EasingEmphasizedAccelerate)),
-            ) {
-                CaptionText(caption.orEmpty())
-            }
-        }
-    }
-}
-
-@Composable
-private fun CaptionText(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
-        modifier = Modifier
-            .padding(start = Spacing.lg)
-            .semantics { liveRegion = LiveRegionMode.Polite },
-    )
 }

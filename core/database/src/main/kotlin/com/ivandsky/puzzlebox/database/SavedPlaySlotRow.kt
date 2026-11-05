@@ -4,4 +4,5 @@ package com.ivandsky.puzzlebox.database
 data class SavedPlaySlotRow(
     val gameId: String,
     val day: String,
+    val elapsedMs: Long,
 )

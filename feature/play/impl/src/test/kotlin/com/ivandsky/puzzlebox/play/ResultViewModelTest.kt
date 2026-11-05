@@ -4,11 +4,12 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.GetReplaySession
-import com.ivandsky.puzzlebox.domain.ObservePlayProgress
+import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -35,10 +36,11 @@ import org.junit.Test
 
 /**
  * The result VM for a [ResultKey]'s slot: live (the slot's play in the store, holding
- * this solve) it shows the play's badge, label and write retry; cold (after process
- * death, or once the live play replays or re-solves) the badge is a (time, hints) match
- * against the slot's completion records and retry is hidden. The primary action is Next
- * (the next unsolved playable daily) or AllDone on today's slot only.
+ * this solve) it shows the play's A10 verdict, previous best, label and write retry; once
+ * the live play replays or re-solves it keeps the verdict it saw and hides retry; cold
+ * (after process death) the verdict is unknown — the session-start baseline died with the
+ * play. The primary action
+ * is Next (the next unsolved playable daily) or AllDone on today's slot only.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ResultViewModelTest {
@@ -62,7 +64,7 @@ class ResultViewModelTest {
     private val saved = FakeSavedPlayRepository()
     private val lane = WriteLane()
     private val store = store(fakes.games, fakes.registry)
-    private val progress = ObservePlayProgress(fakes.games, saved, completions, calendar)
+    private val todaySet = ObserveTodaySet(fakes.games, saved, completions, calendar)
 
     /** Collectors standing in for the screen: [ResultViewModel.primary] only runs while observed. */
     private val screen = CoroutineScope(dispatcher + Job())
@@ -86,7 +88,7 @@ class ResultViewModelTest {
         },
     )
 
-    private fun vm(key: ResultKey = this.key) = ResultViewModel(key, store, completions, progress, fakes.games, calendar)
+    private fun vm(key: ResultKey = this.key) = ResultViewModel(key, store, todaySet, calendar)
 
     private fun ResultViewModel.observed() = apply {
         screen.launch { primary.collect {} }
@@ -105,12 +107,23 @@ class ResultViewModelTest {
         CompletionRecord(TestGames.Ref(game, date, 7), time, hints, RecordStats(1, "{}"), isRecord = true)
 
     @Test
-    fun `live result shows the play's badge and label`() {
+    fun `live result shows the play's verdict and label`() {
         val play = solveLive()
         val state = vm().state.value
-        assertEquals(true, state.isRecord)
+        assertEquals(RecordVerdict.FirstSolve, state.verdict)
+        assertNull(state.previousBestMs)
         assertFalse(state.writeFailed)
         assertEquals(play.record.value.label, state.label)
+    }
+
+    @Test
+    fun `live result carries the best this solve beat`() {
+        val slower = FakeController.TIME_MS + 10_000
+        completions.setRecords(listOf(record(slower, 0, date = day.minusDays(1))))
+        solveLive()
+        val state = vm().state.value
+        assertEquals(RecordVerdict.NewBest, state.verdict)
+        assertEquals(slower, state.previousBestMs)
     }
 
     @Test
@@ -124,46 +137,33 @@ class ResultViewModelTest {
         vm.retryRecordWrite()
         dispatcher.scheduler.runCurrent()
         assertFalse(vm.state.value.writeFailed)
-        assertEquals(true, vm.state.value.isRecord)
+        assertEquals(RecordVerdict.FirstSolve, vm.state.value.verdict)
     }
 
     @Test
     fun `a live play holding another solve never speaks for this result`() {
         val play = solveLive()
         val other = vm(key.copy(timeMs = FakeController.TIME_MS + 1))
-        assertEquals(ResultUiState(isRecord = null, writeFailed = false, label = play.record.value.label), other.state.value)
+        assertEquals(ResultUiState(label = play.record.value.label), other.state.value)
     }
 
     @Test
-    fun `a replay of the live play keeps this result's verdict from the records`() {
+    fun `a replay of the live play keeps this result's own verdict`() {
         val play = solveLive()
         val vm = vm()
-        assertEquals(true, vm.state.value.isRecord)
+        assertEquals(RecordVerdict.FirstSolve, vm.state.value.verdict)
 
         play.replay()
         dispatcher.scheduler.runCurrent()
-
-        // The replay's in-flight state (no badge yet) is not this result's; the record row is.
-        assertEquals(true, vm.state.value.isRecord)
-        assertFalse(vm.state.value.writeFailed)
+        // The replay's in-flight state (no verdict yet) is not this result's.
+        assertNull(play.record.value.verdict)
+        assertEquals(ResultUiState(verdict = RecordVerdict.FirstSolve, label = play.record.value.label), vm.state.value)
     }
 
     @Test
-    fun `cold result with a matching record shows the badge`() {
+    fun `cold result claims no verdict even with a matching record`() {
         completions.setRecords(listOf(record(FakeController.TIME_MS, 0)))
-        assertEquals(ResultUiState(isRecord = true, writeFailed = false, label = null), vm().state.value)
-    }
-
-    @Test
-    fun `cold result without a matching record claims no badge`() {
-        completions.setRecords(
-            listOf(
-                record(FakeController.TIME_MS + 1, 0),
-                record(FakeController.TIME_MS, 1),
-                record(FakeController.TIME_MS, 0, date = day.minusDays(1)),
-            ),
-        )
-        assertNull(vm().state.value.isRecord)
+        assertEquals(ResultUiState(), vm().state.value)
     }
 
     @Test
@@ -195,9 +195,7 @@ class ResultViewModelTest {
         val vm = ResultViewModel(
             key,
             store(three.games, playable),
-            completions,
-            ObservePlayProgress(three.games, saved, completions, calendar),
-            three.games,
+            ObserveTodaySet(three.games, saved, completions, calendar),
             calendar,
         ).observed()
         assertEquals(ResultPrimaryAction.Next(gamma, three.games.displayName(gamma)), vm.primary.value)

@@ -79,7 +79,7 @@ class PlayBackE2ETest {
     /** The left board is on "disk", and the hub's Zip row reads "In progress". */
     private fun ShellRobot.assertSavedAndInProgress() {
         rule.waitUntil(TIMEOUT_MS) { runBlocking { graph.saved.load(todaySlot) } != null }
-        val inProgressRow = hasTestTag(ZIP_ROW) and (hasText(IN_PROGRESS) or hasAnyDescendant(hasText(IN_PROGRESS)))
+        val inProgressRow = hasTestTag(ZIP_ROW) and (hasText(IN_PROGRESS, substring = true) or hasAnyDescendant(hasText(IN_PROGRESS, substring = true)))
         rule.waitUntil(TIMEOUT_MS) { rule.onAllNodes(inProgressRow).fetchSemanticsNodes().isNotEmpty() }
     }
 
