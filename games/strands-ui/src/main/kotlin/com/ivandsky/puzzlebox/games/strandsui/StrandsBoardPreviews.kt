@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.games.strandsui
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,8 +15,9 @@ import com.ivandsky.puzzlebox.games.strands.StrandsWord
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 
 /**
- * One pane per board and chrome state, light and dark (@PuzzleBoxPreviews), built from real
- * [StrandsState] values through the same [StrandsRendererModel] the play screen draws.
+ * One pane per board state, light and dark (@PuzzleBoxPreviews), built from real
+ * [StrandsState] values through the same [StrandsRendererModel] the play screen draws, at
+ * rest (reduced motion). The chrome's panes live in chrome/StrandsChromePreviews.kt.
  * The board is a 4×4: PIES, BAKE (the spangram, edge to edge), TART, CAKE.
  */
 private val previewPuzzle: StrandsPuzzle by lazy {
@@ -41,7 +41,14 @@ private fun model(state: StrandsState = StrandsState(previewPuzzle), trace: List
 @Composable
 private fun BoardPane(model: StrandsRendererModel) {
     PuzzleBoxTheme {
-        StrandsBoardContent(model = model, onTap = {}, modifier = Modifier.fillMaxWidth())
+        StrandsBoardContent(
+            model = model,
+            found = null,
+            reduceMotion = true,
+            trace = { Trace() },
+            onTrace = {},
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
@@ -80,27 +87,9 @@ internal fun StrandsBoardHintOrderPreview() =
 internal fun StrandsBoardSolvedPreview() =
     BoardPane(model(StrandsState(previewPuzzle, found = listOf("PIES", "BAKE", "TART", "CAKE"))))
 
+/** A tablet in landscape gives the board a short, wide pane: the cell binds on height (A37). */
 @PuzzleBoxPreviews
-@Preview(name = "Compact width", widthDp = 360, heightDp = 240, showBackground = true)
+@Preview(name = "Expanded landscape", widthDp = 640, heightDp = 220, showBackground = true)
 @Composable
-internal fun StrandsChromePreview() {
-    PuzzleBoxTheme {
-        Column {
-            StrandsClue(StrandsHeader(clue = "Bake sale", puzzleNumber = 669, credit = StrandsCopy.credit("PuzzleBox")))
-            StrandsSlotLine(WordSlot.Verdict(StrandsCopy.SPANGRAM, VerdictKind.Spangram, seq = 1))
-            StrandsControls(found = 2, total = 4, hint = HintUi(available = true, meterThirds = 1), onHint = {})
-        }
-    }
-}
-
-@PuzzleBoxPreviews
-@Preview(name = "Compact width", widthDp = 360, heightDp = 240, showBackground = true)
-@Composable
-internal fun StrandsChromeRejectedPreview() {
-    PuzzleBoxTheme {
-        Column {
-            StrandsSlotLine(WordSlot.Verdict(StrandsCopy.NOT_IN_WORD_LIST, VerdictKind.Reject, seq = 1))
-            StrandsControls(found = 0, total = 4, hint = HintUi(available = false, meterThirds = 2), onHint = {})
-        }
-    }
-}
+internal fun StrandsBoardShortPanePreview() =
+    BoardPane(model(StrandsState(previewPuzzle, found = listOf("BAKE")), trace = listOf(Coord(0, 0), Coord(0, 1))))

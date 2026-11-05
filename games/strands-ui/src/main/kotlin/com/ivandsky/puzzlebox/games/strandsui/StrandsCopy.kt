@@ -27,4 +27,10 @@ internal object StrandsCopy {
     fun number(puzzleNumber: Int): String = "No. $puzzleNumber"
 
     fun credit(constructors: String): String = "by $constructors"
+
+    // Board (TalkBack, SC12): "<letter>[, selected], <state>".
+    const val SELECTED = "selected"
+    const val STATE_THEME = "theme"
+    const val STATE_SPANGRAM = "spangram"
+    const val STATE_HINTED = "hinted"
 }
