@@ -15,8 +15,9 @@ android {
         applicationId = "com.ivandsky.puzzlebox"
         minSdk = 26
         targetSdk = 37
-        versionCode = 6
-        versionName = "0.6.0"
+        // Agent builds pass -PagentVersionCode/-PagentVersionName (deliver build_identity.py); the fallback is the committed release value.
+        versionCode = providers.gradleProperty("agentVersionCode").orNull?.toInt() ?: 6
+        versionName = providers.gradleProperty("agentVersionName").orNull ?: "0.6.0"
     }
 
     buildTypes {
