@@ -6,15 +6,20 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.ObservePlayProgress
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.ResultScreen
+import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -26,6 +31,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
@@ -121,66 +127,97 @@ class ResultScreenTest {
     }
 
     /**
-     * The route wiring end-to-end on the store: solving stamps the badge in memory (the
-     * write is fire-and-observe — the surface never waits for it), and "Play again"
-     * resets the SAME puzzle to a fresh session before handing back to navigation.
+     * The route wiring end-to-end on the store: the slot's solved live play stamps the
+     * badge and label (the write is fire-and-observe — the surface never waits for it),
+     * Up hands back to navigation, and "Play again" hands back so the game's reopen
+     * resets the SAME puzzle to a fresh session.
      */
     @Test
-    fun `result route reads the store's live play and replays the same puzzle`() {
+    fun `result route reads its slot's live play`() {
         val fakes = FakeGames(listOf(game))
         val daily = FakeDailyRepository().apply {
             setToday(game, DailyToday.Fresh(TestGames.puzzle(game)))
             setHistory(game, listOf(DailyEntry(game, day, 7, "alpha/v1", 0L)))
         }
+        val koin = startGraph(fakes, daily)
+        val store = koin.koin.get<PlaySessionStore>()
+        val gameKey = GameKey(game.value, day.toString())
+        try {
+            composeRule.runOnIdle { store.open(gameKey) }
+            composeRule.waitForIdle()
+            composeRule.runOnIdle { fakes[game].latest.win() }
+            composeRule.waitForIdle()
+            var replayed = false
+            var done = 0
+            composeRule.setContent {
+                PuzzleBoxTheme(darkTheme = false) {
+                    ResultRoute(
+                        key = ResultKey(game.value, day.toString(), FakeController.TIME_MS, 0),
+                        onPlayAgain = { replayed = true },
+                        onNext = {},
+                        onDone = { done++ },
+                    )
+                }
+            }
+            composeRule.onNodeWithText("Solved!").assertExists()
+            composeRule.onNodeWithTag("result.record_badge").assertExists()
+            composeRule.onNodeWithText("Alpha · #7").assertExists()
+
+            composeRule.onNodeWithTag("result.up").performClick()
+            composeRule.runOnIdle { assertEquals(1, done) }
+
+            composeRule.onNodeWithTag("result.play_again").performClick()
+            composeRule.runOnIdle {
+                assertTrue(replayed)
+                store.open(gameKey)
+                val controller = fakes[game].latest
+                assertEquals(1, controller.replays)
+                assertTrue(!controller.isComplete)
+            }
+        } finally {
+            koin.close()
+        }
+    }
+
+    @Test
+    fun `result route without a live play renders the key's facts and no badge`() {
+        val koin = startGraph(FakeGames(listOf(game)), FakeDailyRepository())
+        try {
+            composeRule.setContent {
+                PuzzleBoxTheme(darkTheme = false) {
+                    ResultRoute(
+                        key = ResultKey(game.value, day.toString(), 12_340, 0),
+                        onPlayAgain = {},
+                        onNext = {},
+                        onDone = {},
+                    )
+                }
+            }
+            composeRule.onNodeWithText("Solved!").assertExists()
+            composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
+            composeRule.onNodeWithTag("result.write_failed").assertDoesNotExist()
+        } finally {
+            koin.close()
+        }
+    }
+
+    private fun startGraph(fakes: FakeGames, daily: FakeDailyRepository): KoinApplication {
         stopKoin() // tests share the JVM-global Koin context
-        val koin = startKoin {
+        return startKoin {
             modules(
                 commonModule,
                 module {
                     single<GameRegistry> { fakes.games }
                     single<GamePlayRegistry> { fakes.registry }
-                    single<com.ivandsky.puzzlebox.data.repository.DailyRepository> { daily }
-                    single<com.ivandsky.puzzlebox.data.repository.CompletionRepository> { FakeCompletionRepository() }
+                    single<DailyRepository> { daily }
+                    single<CompletionRepository> { FakeCompletionRepository() }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<GameCalendar> { FakeGameCalendar(day) }
                     factory { GetReplaySession(get(), get()) }
+                    factory { ObservePlayProgress(get(), get(), get(), get()) }
                 },
                 playModule,
             )
-        }
-        val store = koin.koin.get<PlaySessionStore>()
-        try {
-            var replayed = false
-            composeRule.setContent {
-                PuzzleBoxTheme(darkTheme = false) {
-                    ResultRoute(timeMs = 12_340, hintsUsed = 0, onPlayAgain = { replayed = true })
-                }
-            }
-            // No live play yet (process-death route restore case): the frozen facts
-            // from the key render, no badge can be claimed.
-            composeRule.onNodeWithText("Solved!").assertExists()
-            composeRule.onNodeWithText("New personal record").assertDoesNotExist()
-
-            // Bring the store to a solved play the way a play-through would.
-            composeRule.runOnIdle { store.start(game, onSessionChanged = {})!!.load() }
-            composeRule.waitForIdle()
-            composeRule.runOnIdle { fakes[game].latest.win() }
-            composeRule.waitForIdle()
-            // The verdict is in memory: the badge renders; the facts and label show.
-            composeRule.onNodeWithTag("result.record_badge").assertExists()
-            composeRule.onNodeWithText("Alpha · #7").assertExists()
-
-            // "Play again": same puzzle, fresh session, then navigation is handed back.
-            composeRule.onNodeWithTag("result.play_again").performClick()
-            composeRule.runOnIdle {
-                assertTrue(replayed)
-                val controller = fakes[game].latest
-                assertEquals(1, controller.replays)
-                assertEquals(0, controller.moves)
-                assertTrue(!controller.isComplete)
-            }
-        } finally {
-            koin.close()
         }
     }
 }

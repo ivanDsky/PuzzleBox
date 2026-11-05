@@ -15,7 +15,8 @@ import com.ivandsky.puzzlebox.play.api.ResultKey
  * The play feature's routes. [PlayKey] is the Play tab's games hub: picking a game pushes
  * its [GameKey] (guarded against a double tap), so back returns to the hub (N2, N3). A
  * [GameKey] on any stack draws its slot's live play: Up is the navigator's back, and
- * solving replaces the board with its result.
+ * solving replaces the board with its slot's result, so back from there lands on the
+ * game's origin (SC4).
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
@@ -29,21 +30,24 @@ fun EntryProviderScope<NavKey>.playEntry(
             key = key,
             layout = layout,
             onBack = { navigator.pop() },
-            onSolved = { timeMs, hintsUsed -> navigator.replaceTop(ResultKey(timeMs, hintsUsed)) },
+            onSolved = { slot, timeMs, hintsUsed ->
+                navigator.replaceTop(ResultKey(slot.gameId.value, slot.day.toString(), timeMs, hintsUsed))
+            },
         )
     }
 }
 
 /**
- * The solved-session result; "Play again" pops back to the play entry beneath it, whose
- * session the result route has already reset to a fresh play of the same puzzle.
+ * A slot's result: "Play again" replaces it with the same day's game, which opens a
+ * fresh attempt (A9); Next replaces it with another game's today (17); Up and Done pop.
  */
 fun EntryProviderScope<NavKey>.resultEntry(navigator: Navigator) {
     entry<ResultKey> { key ->
         ResultRoute(
-            timeMs = key.timeMs,
-            hintsUsed = key.hintsUsed,
-            onPlayAgain = { navigator.pop() },
+            key = key,
+            onPlayAgain = { navigator.replaceTop(GameKey(key.gameId, key.day)) },
+            onNext = { game -> navigator.replaceTop(GameKey(game.value)) },
+            onDone = { navigator.pop() },
         )
     }
 }

@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.ResultKey
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -103,8 +104,9 @@ class PlaySessionStore internal constructor(
 
     /**
      * Releases every live slot that no key in [keys] names: a [GameKey] with a day names
-     * that day, a null-day one the slot it pinned. A released play folds its clock and
-     * queues its final save before this returns, so a reopen's read is ordered after it.
+     * that day, a null-day one the slot it pinned, and a [ResultKey] its play's slot (the
+     * result's badge and retry read it). A released play folds its clock and queues its
+     * final save before this returns, so a reopen's read is ordered after it.
      */
     fun retain(keys: Collection<NavKey>) {
         val gameKeys = keys.filterIsInstance<GameKey>().toSet()
@@ -112,6 +114,7 @@ class PlaySessionStore internal constructor(
         val named = gameKeys.mapNotNullTo(HashSet()) { key ->
             if (key.day == null) pinned[key] else PlaySlot(GameId(key.gameId), LocalDate.parse(key.day))
         }
+        keys.filterIsInstance<ResultKey>().mapTo(named) { PlaySlot(GameId(it.gameId), LocalDate.parse(it.day)) }
         val released = slots.filterKeys { it !in named }.values.toList()
         released.forEach { play ->
             slots.remove(play.slot)
