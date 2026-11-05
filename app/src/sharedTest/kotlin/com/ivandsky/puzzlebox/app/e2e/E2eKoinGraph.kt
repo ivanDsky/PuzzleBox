@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.app.e2e
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
@@ -23,7 +25,9 @@ import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.module.Module
 import org.koin.dsl.module
-import org.robolectric.RuntimeEnvironment
+
+/** The fixed "today" of every E2E run unless a row pins its own. */
+val E2E_TODAY: LocalDate = LocalDate.of(2026, 11, 4)
 
 /**
  * The one Koin graph every E2E test runs on: the production modules
@@ -33,7 +37,8 @@ import org.robolectric.RuntimeEnvironment
  * overriding by default), e.g. a file-backed database for process-death rows.
  *
  * The fakes outlive [stop]/[start]: a relaunch discards the graph and every single built
- * from it, while the fakes keep what a real disk would.
+ * from it, while the fakes keep what a real disk would. Shared by the JVM shell (Robolectric)
+ * and the device tests (androidTest), so both runners see one graph.
  */
 class E2eKoinGraph(
     today: LocalDate,
@@ -66,7 +71,7 @@ class E2eKoinGraph(
     fun start() {
         stopKoin()
         started = startKoin {
-            androidContext(RuntimeEnvironment.getApplication())
+            androidContext(ApplicationProvider.getApplicationContext<Context>())
             modules(PuzzleBoxApplication.appModules + fakes + overrides)
         }.koin
     }
