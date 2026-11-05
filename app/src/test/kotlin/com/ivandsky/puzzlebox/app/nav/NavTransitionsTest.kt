@@ -87,11 +87,17 @@ class NavTransitionsTest {
     }
 
     @Test
-    fun `a different owner tab fades only, in both directions`() {
-        val probe = Probe(composeRule)
+    fun `a tab switch fades only`() {
+        assertStill(Probe(composeRule).play(navTransition(homeRoot, playRoot, pop = false, reduceMotion = false, LTR)))
+    }
 
-        assertStill(probe.play(navTransition(homeRoot, playRoot, pop = false, reduceMotion = false, LTR)))
-        assertStill(probe.play(navTransition(playRoot, homeRoot, pop = true, reduceMotion = false, LTR)))
+    @Test
+    fun `back from a tab root to Home slides like every other back`() {
+        val frame = Probe(composeRule).play(navTransition(playRoot, homeRoot, pop = true, reduceMotion = false, LTR))
+
+        assertTrue("incoming starts toward the start: $frame", frame.incoming.right.value < frame.container.right.value - EPS)
+        assertTrue("outgoing leaves toward the end: $frame", frame.outgoing.left.value > frame.container.left.value + EPS)
+        assertUnscaled(frame.container, frame.incoming)
     }
 
     @Test
@@ -131,8 +137,8 @@ class NavTransitionsTest {
             navTransition(playRoot, homeRoot, pop = true, reduceMotion = true, LTR),
             navTransition(game, result, pop = false, reduceMotion = true, LTR),
             navTransition(result, playRoot, pop = true, reduceMotion = true, LTR),
-            predictivePopTransition(game, playRoot, NavigationEvent.EDGE_LEFT, reduceMotion = true),
-            predictivePopTransition(game, playRoot, NavigationEvent.EDGE_RIGHT, reduceMotion = true),
+            predictivePopTransition(NavigationEvent.EDGE_LEFT, reduceMotion = true),
+            predictivePopTransition(NavigationEvent.EDGE_RIGHT, reduceMotion = true),
         )
 
         cases.forEach { assertStill(probe.play(it)) }
@@ -142,22 +148,15 @@ class NavTransitionsTest {
     fun `predictive back shifts the screen toward the swipe, unscaled, over a still destination`() {
         val probe = Probe(composeRule)
 
-        val fromLeft = probe.play(predictivePopTransition(game, playRoot, NavigationEvent.EDGE_LEFT, reduceMotion = false), PREDICTIVE_HALF)
+        val fromLeft = probe.play(predictivePopTransition(NavigationEvent.EDGE_LEFT, reduceMotion = false), PREDICTIVE_HALF)
         assertUnscaled(fromLeft.container, fromLeft.outgoing)
         assertTrue("left-edge swipe pulls right: $fromLeft", fromLeft.outgoing.centerX > fromLeft.container.centerX + EPS)
         assertSameRect(fromLeft.container, fromLeft.incoming)
 
-        val fromRight = probe.play(predictivePopTransition(result, playRoot, NavigationEvent.EDGE_RIGHT, reduceMotion = false), PREDICTIVE_HALF)
+        val fromRight = probe.play(predictivePopTransition(NavigationEvent.EDGE_RIGHT, reduceMotion = false), PREDICTIVE_HALF)
         assertUnscaled(fromRight.container, fromRight.outgoing)
         assertTrue("right-edge swipe pulls left: $fromRight", fromRight.outgoing.centerX < fromRight.container.centerX - EPS)
         assertSameRect(fromRight.container, fromRight.incoming)
-    }
-
-    @Test
-    fun `predictive back across tabs scrubs opacity only`() {
-        assertStill(
-            Probe(composeRule).play(predictivePopTransition(playRoot, homeRoot, NavigationEvent.EDGE_LEFT, reduceMotion = false), PREDICTIVE_HALF),
-        )
     }
 
     @Test

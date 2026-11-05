@@ -66,10 +66,11 @@ internal object NavMotion {
  * The shell's one push/pop chooser over NavDisplay scene metadata ([OWNER_TAB],
  * [ENTRY_KEY]); [from] is the outgoing entry's, [to] the incoming one's.
  * - Reduced motion: an opacity-only fade-through for every case (A20).
- * - Owner tab differs (tab switch, or back from a tab root to Home): fade-through, no
- *   direction (A19).
- * - Result: a push scales it in; its pop is an ordinary back.
- * - Otherwise shared-axis X: forward enters from the end edge, back from the start edge.
+ * - Back, wherever it lands (within a tab, from a Result, from a tab root to Home): one
+ *   shared-axis X pop from the start edge, so every back looks the same (S9 HITL).
+ * - Forward to another owner tab (a tab switch): fade-through, no direction (A19).
+ * - Forward to a Result: it scales in.
+ * - Otherwise shared-axis X forward, entering from the end edge.
  */
 internal fun navTransition(
     from: Map<String, Any>,
@@ -78,25 +79,22 @@ internal fun navTransition(
     reduceMotion: Boolean,
     layoutDirection: LayoutDirection,
 ): ContentTransform = when {
-    reduceMotion || from[OWNER_TAB] != to[OWNER_TAB] -> fadeThrough(pop)
-    !pop && to[ENTRY_KEY] is ResultKey -> resultEntrance()
-    else -> sharedAxisX(forward = !pop, layoutDirection)
+    reduceMotion -> fadeThrough(pop)
+    pop -> sharedAxisX(forward = false, layoutDirection)
+    from[OWNER_TAB] != to[OWNER_TAB] -> fadeThrough(pop = false)
+    to[ENTRY_KEY] is ResultKey -> resultEntrance()
+    else -> sharedAxisX(forward = true, layoutDirection)
 }
 
 /**
- * Predictive back: a gesture-scrubbed preview of the real destination. Within a tab the
- * outgoing screen shifts with the swipe (no scale) ([swipeEdge], a [NavigationEvent] edge)
- * over the destination; across tabs, or under reduced motion, the scrub is opacity only.
+ * Predictive back: a gesture-scrubbed preview of the real destination, the same for every
+ * back. The outgoing screen shifts with the swipe ([swipeEdge], a [NavigationEvent] edge),
+ * unscaled, over the destination; under reduced motion the scrub is opacity only.
  */
-internal fun predictivePopTransition(
-    from: Map<String, Any>,
-    to: Map<String, Any>,
-    swipeEdge: Int,
-    reduceMotion: Boolean,
-): ContentTransform {
+internal fun predictivePopTransition(swipeEdge: Int, reduceMotion: Boolean): ContentTransform {
     val scrub = tween<Float>(NavMotion.PredictiveMillis, easing = LinearEasing)
     val destination = fadeIn(scrub, initialAlpha = NavMotion.PredictiveDestinationAlpha)
-    if (reduceMotion || from[OWNER_TAB] != to[OWNER_TAB]) {
+    if (reduceMotion) {
         return destination togetherWith fadeOut(scrub)
     }
     // A swipe from the right edge pulls the screen left; from the left (or no edge), right.
