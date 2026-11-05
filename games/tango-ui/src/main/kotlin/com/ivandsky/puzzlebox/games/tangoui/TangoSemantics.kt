@@ -49,7 +49,7 @@ object TangoSemantics {
                     cells = setOf(marker.cellIdx, neighbor(marker, n)!!),
                     reason = TangoVerdict.Reason.MarkerConflict,
                     marker = marker,
-                    phrase = markerConflictPhrase(marker),
+                    phrase = markerConflictPhrase(marker.kind),
                 )
             }
         }
@@ -226,11 +226,10 @@ object TangoSemantics {
         }
     }
 
-    /** "= pair mismatch — these cells must match." / "× pair mismatch — these cells must differ." */
-    private fun markerConflictPhrase(marker: TangoRendererModel.MarkerRender): String {
-        val symbol = if (marker.kind == TangoMarkerKind.SAME) "=" else "×"
-        val requirement = if (symbol == "=") "match" else "differ"
-        return "$symbol pair mismatch — these cells must $requirement."
+    /** The broken edge's caption, in the lesson's own words (= the same, × different). */
+    internal fun markerConflictPhrase(kind: TangoMarkerKind): String = when (kind) {
+        TangoMarkerKind.SAME -> "These two must be the same."
+        TangoMarkerKind.OPPOSITE -> "These two must be different."
     }
 
     /** Custom action labels (§9): the gesture model; commits are final-only (I4). */
