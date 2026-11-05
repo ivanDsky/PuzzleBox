@@ -103,11 +103,13 @@ class NavTransitionsTest {
     }
 
     @Test
-    fun `result pop exits along its entry path`() {
+    fun `result pop is an ordinary back, with no scale`() {
         val frame = Probe(composeRule).play(navTransition(result, playRoot, pop = true, reduceMotion = false, LTR))
 
-        assertShrunkInPlace(frame.container, frame.outgoing)
-        assertSameRect(frame.container, frame.incoming)
+        assertTrue("incoming starts toward the start: $frame", frame.incoming.right.value < frame.container.right.value - EPS)
+        assertTrue("outgoing leaves toward the end: $frame", frame.outgoing.left.value > frame.container.left.value + EPS)
+        assertUnscaled(frame.container, frame.outgoing)
+        assertUnscaled(frame.container, frame.incoming)
     }
 
     @Test
@@ -137,16 +139,16 @@ class NavTransitionsTest {
     }
 
     @Test
-    fun `predictive back shrinks the screen toward the swipe over a still destination`() {
+    fun `predictive back shifts the screen toward the swipe, unscaled, over a still destination`() {
         val probe = Probe(composeRule)
 
         val fromLeft = probe.play(predictivePopTransition(game, playRoot, NavigationEvent.EDGE_LEFT, reduceMotion = false), PREDICTIVE_HALF)
-        assertShrunk(fromLeft.container, fromLeft.outgoing)
+        assertUnscaled(fromLeft.container, fromLeft.outgoing)
         assertTrue("left-edge swipe pulls right: $fromLeft", fromLeft.outgoing.centerX > fromLeft.container.centerX + EPS)
         assertSameRect(fromLeft.container, fromLeft.incoming)
 
         val fromRight = probe.play(predictivePopTransition(result, playRoot, NavigationEvent.EDGE_RIGHT, reduceMotion = false), PREDICTIVE_HALF)
-        assertShrunk(fromRight.container, fromRight.outgoing)
+        assertUnscaled(fromRight.container, fromRight.outgoing)
         assertTrue("right-edge swipe pulls left: $fromRight", fromRight.outgoing.centerX < fromRight.container.centerX - EPS)
         assertSameRect(fromRight.container, fromRight.incoming)
     }
