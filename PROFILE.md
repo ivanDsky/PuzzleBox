@@ -15,6 +15,7 @@
 1. UI/UX (premium)          # tied #1 with architecture; detailed design direction set at spec/design stage
 1. architecture/SOLID       # tied #1 with UI/UX; equal review priority
 2. reactivity
+# non-goal: accessibility (TalkBack semantics, CVD cues, spoken labels) — user ruling 2026-11-04; not audited, ticketed or fixed unless asked
 
 ## Effort
 - level: thorough            # restored 2026-11-01 after brief downgrade: run default only; PER-TASK EFFORT IS THE RULE (effort-mapping.md): fast = contained fixes, standard = ordinary feature tickets, thorough = architecture/module/cross-cutting only; agent flags each ticket's level in the run plan
