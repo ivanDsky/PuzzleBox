@@ -1,16 +1,19 @@
 package com.ivandsky.puzzlebox.gameui
 
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import kotlinx.coroutines.test.TestScope
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -32,6 +35,9 @@ class TutorialHostTest {
         /** Well inside the success beat, and well past it. */
         const val MID_BEAT_MS = 400L
         const val PAST_THE_BEAT_MS = 1_000L
+
+        /** Either side of the hold's end, wider than a frame. */
+        const val HOLD_MARGIN_MS = 100L
     }
 
     @get:Rule
@@ -100,6 +106,40 @@ class TutorialHostTest {
         composeRule.onNodeWithTag("lesson.board").assertTextEquals("Board 2")
         composeRule.onNodeWithTag("tutorial.instruction").assertTextEquals("Lesson 2: tap Solve.")
         assertEquals(2, game.controllers.size)
+    }
+
+    @Test
+    fun `the success beat holds for the same length as before`() {
+        setHost()
+        composeRule.mainClock.autoAdvance = false
+
+        composeRule.onNodeWithTag("lesson.solve").performClick()
+        composeRule.mainClock.advanceTimeByFrame()
+        composeRule.mainClock.advanceTimeBy(MotionTokens.SolveHoldMillis - HOLD_MARGIN_MS)
+        composeRule.onNodeWithTag("tutorial.success").assertExists()
+        composeRule.onNodeWithTag("lesson.board").assertTextEquals("Board 1")
+
+        composeRule.mainClock.advanceTimeBy(2 * HOLD_MARGIN_MS)
+        composeRule.onNodeWithTag("tutorial.success").assertDoesNotExist()
+        composeRule.onNodeWithTag("lesson.board").assertTextEquals("Board 2")
+    }
+
+    @Test
+    fun `each cleared lesson says a different word from the one before`() {
+        setHost()
+        composeRule.mainClock.autoAdvance = false
+
+        val words = List(3) {
+            composeRule.onNodeWithTag("lesson.solve").performClick()
+            composeRule.mainClock.advanceTimeByFrame()
+            composeRule.mainClock.advanceTimeBy(MID_BEAT_MS)
+            val word = composeRule.onNodeWithTag("tutorial.success_word", useUnmergedTree = true)
+                .fetchSemanticsNode().config[SemanticsProperties.Text].joinToString()
+            composeRule.mainClock.advanceTimeBy(PAST_THE_BEAT_MS)
+            word
+        }
+
+        words.zipWithNext().forEach { (before, after) -> assertNotEquals(before, after) }
     }
 
     @Test

@@ -20,8 +20,8 @@ import org.koin.dsl.module
  * Play feature wiring. The [com.ivandsky.puzzlebox.game.GameRegistry] and the
  * [com.ivandsky.puzzlebox.gameui.GamePlayRegistry] come from the app's aggregation
  * (ADR-0001: one registration per game); the repositories (the tutorial-seen preferences
- * included) and the calendar from :core:data's dataModule, and today's set from
- * :core:domain's domainModule. This module names no game.
+ * included) and the calendar from :core:data's dataModule, and the use cases (today's
+ * set, history, stats, the rollover) from :core:domain's domainModule. This module names no game.
  *
  * [PlaySessionStore] is a single so live plays outlive their entries' compositions. Its
  * slot opening and every slot's writer share ONE [WriteLane], so a released slot's final
@@ -51,7 +51,7 @@ val playModule = module {
             dispatchers = dispatchers,
         )
     }
-    viewModel { HubViewModel(get(), get(), get()) }
+    viewModel { HubViewModel(get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
-    viewModel { (key: ResultKey) -> ResultViewModel(key, get(), get(), get()) }
+    viewModel { (key: ResultKey) -> ResultViewModel(key, get(), get(), get(), get(), get(), get(), get()) }
 }

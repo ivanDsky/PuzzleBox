@@ -74,11 +74,11 @@ class PlayFlowE2ETest {
     }
 
     @Test
-    fun `N5 SC10 Done when all is solved returns to the hub`() = shellRobot(playHub, graph = solvedOthersGraph()) {
+    fun `N5 SC10 Up when all is solved returns to the hub`() = shellRobot(playHub, graph = solvedOthersGraph()) {
         solveZipFromHub()
         awaitTag(ALL_DONE)
 
-        tap(DONE)
+        tap(UP)
 
         assertState(playHub)
         assertRoute(HUB)
@@ -124,11 +124,11 @@ class PlayFlowE2ETest {
     }
 
     @Test
-    fun `SC10 all solved shows all done instead of Next`() = shellRobot(playHub, graph = solvedOthersGraph()) {
+    fun `SC10 all solved shows the countdown instead of Next`() = shellRobot(playHub, graph = solvedOthersGraph()) {
         solveZipFromHub()
 
         awaitTag(ALL_DONE)
-        awaitTag(DONE)
+        awaitTag(COUNTDOWN)
         rule.onNodeWithTag(NEXT).assertDoesNotExist()
         assertRoute(RESULT)
     }
@@ -137,7 +137,7 @@ class PlayFlowE2ETest {
     fun `N8 Play today on Home pushes the featured game onto Home`() = shellRobot {
         assertRoute(HOME)
 
-        tapText(PLAY_TODAY)
+        tap(HOME_PLAY)
 
         assertState(stacks(tab = HomeKey, home = listOf(HomeKey, GameKey(ZIP))))
         assertRoute(GAME)
@@ -145,7 +145,7 @@ class PlayFlowE2ETest {
 
     @Test
     fun `N9 SC4 solving from Home, then back, returns to Home`() = shellRobot {
-        tapText(PLAY_TODAY)
+        tap(HOME_PLAY)
         awaitZip()
 
         solveZip()
@@ -158,13 +158,13 @@ class PlayFlowE2ETest {
     }
 
     @Test
-    fun `SC10 Done when all is solved from Home returns to Home`() = shellRobot(graph = solvedOthersGraph()) {
-        tapText(PLAY_TODAY)
+    fun `SC10 Up when all is solved from Home returns to Home`() = shellRobot(graph = solvedOthersGraph()) {
+        tap(HOME_PLAY)
         awaitZip()
         solveZip()
         awaitTag(ALL_DONE)
 
-        tap(DONE)
+        tap(UP)
 
         assertState(stacks(tab = HomeKey))
         assertRoute(HOME)
@@ -233,10 +233,11 @@ class PlayFlowE2ETest {
         const val GAME = "route.game"
         const val RESULT = "route.result"
         const val NEXT = "result.next"
-        const val DONE = "result.done"
+        const val UP = "result.up"
         const val PLAY_AGAIN = "result.playAgain"
         const val ALL_DONE = "result.all_done"
-        const val PLAY_TODAY = "Play today"
+        const val COUNTDOWN = "result.countdown"
+        const val HOME_PLAY = "home.today_play"
         const val ZIP = "zip"
         const val TANGO = "tango"
         const val QUEENS = "queens"

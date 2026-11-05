@@ -12,7 +12,6 @@ core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/TimerBar.kt  # S4
 feature/history/impl/src/main/kotlin/com/ivandsky/puzzlebox/history/HistoryRoute.kt  # S4
 feature/history/impl/src/main/kotlin/com/ivandsky/puzzlebox/history/HistoryScreen.kt  # S4
 feature/home/impl/src/main/kotlin/com/ivandsky/puzzlebox/home/HomeRoute.kt  # S4
-feature/home/impl/src/main/kotlin/com/ivandsky/puzzlebox/home/HomeScreen.kt  # S4
 feature/play/impl/src/main/kotlin/com/ivandsky/puzzlebox/play/ResultRoute.kt  # S4
 feature/profile/impl/src/main/kotlin/com/ivandsky/puzzlebox/app/screens/ProfileRoute.kt  # S4
 games/queens-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/queensui/QueensPlayUi.kt  # S4

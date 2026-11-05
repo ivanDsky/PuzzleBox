@@ -13,7 +13,8 @@ import com.ivandsky.puzzlebox.play.api.ResultKey
 
 /**
  * The play feature's routes. [PlayKey] is the Play tab's games hub: picking a game pushes
- * its [GameKey] (guarded against a double tap), so back returns to the hub (N2, N3). A
+ * its [GameKey] (guarded against a double tap), so back returns to the hub (N2, N3), and
+ * "Older puzzles" is [onOpenHistory] (the app opens History on the current stack). A
  * [GameKey] on any stack draws its slot's live play: Up is the navigator's back, and
  * solving replaces the board with its slot's result, so back from there lands on the
  * game's origin (SC4).
@@ -21,9 +22,14 @@ import com.ivandsky.puzzlebox.play.api.ResultKey
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
     layout: PlayLayout,
+    onOpenHistory: () -> Unit,
 ) {
     entry<PlayKey> {
-        HubRoute(onPick = { game -> navigator.pushOnce(GameKey(game.value)) })
+        HubRoute(
+            layout = layout,
+            onPick = { game -> navigator.pushOnce(GameKey(game.value)) },
+            onOpenHistory = onOpenHistory,
+        )
     }
     entry<GameKey> { key ->
         GameRoute(

@@ -6,15 +6,22 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
-import com.ivandsky.puzzlebox.domain.ObserveGameHistory
-import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.GameStats
+import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.playTarget
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.gameui.GameBrand
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.WeekDay
 import com.ivandsky.puzzlebox.model.GameId
+import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.flow.Flow
@@ -26,73 +33,113 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * Everything Home renders: today's set, the signed-in player, the history teaser, and
+ * Everything Home renders: today's set, the signed-in player, the recent days, and
  * [puzzleDay] — the puzzle roll-over day (A9) the header shows, not the phone's date.
- * [playTarget] is the game "Play today" opens (core:domain's `playTarget`: the first game
+ * [playTarget] is the game the one CTA opens (core:domain's `playTarget`: the first game
  * with an unfinished save, else the first unsolved one, else the first game; before the
- * set lands, the first game) — and [resume] says the first applies, so the action reads
- * "Resume".
+ * set lands, the first game). [stats] and [week] feed the streak card (A8): the solved-day
+ * numbers and the last 7 puzzle days, oldest first, ending on [puzzleDay]. [rolloverAt] is
+ * when the next puzzles land, the CTA's countdown once every game is solved.
  */
-data class HomeUiState(
+internal data class HomeUiState(
     val today: List<TodayRow>,
     val identity: Identity?,
     val history: List<HistoryDay>,
     val puzzleDay: LocalDate,
     val playTarget: GameId?,
+    val stats: GameStats,
+    val week: List<WeekDay>,
+    val rolloverAt: Instant,
 ) {
-    /** One game in the Today card (A15); [status] is null until today's set first emits. */
-    data class TodayRow(val game: GameId, val displayName: String, val status: TodayStatus?)
+    /** One game's Today tile (A10); [status] is null until today's set first emits. */
+    data class TodayRow(val game: GameId, val displayName: String, val status: TodayStatus?, val brand: GameBrand)
 
-    val resume: Boolean
-        get() = today.any { it.status is TodayStatus.InProgress }
+    /** The row the CTA names; null only for an empty set. */
+    val target: TodayRow?
+        get() = today.firstOrNull { it.game == playTarget }
+
+    /** Every game of today's set is solved: the CTA turns into the countdown. */
+    val allSolved: Boolean
+        get() = today.isNotEmpty() && today.all { it.status is TodayStatus.Solved }
 }
 
 /**
- * Home's state holder. The Today card is [ObserveTodaySet] (A15): every registered game in
+ * Home's state holder. The Today tiles are [ObserveTodaySet] (A10): every registered game in
  * registry order with its status, seeded from [registry] so the first frame already lists
- * every game. The teaser observes the GAME-AGNOSTIC merged history ([ObserveGameHistory] —
- * every game's completion records UNION every registered game's captured days; fix
- * round 5, defect C) and groups it by day: the newest [RECENT_DAYS] days before the
- * puzzle day (today lives in the Today card), each listing its games in registry order
- * (unregistered games last) with their solve time, or null when opened but not solved.
- * Per-game names resolve against :app's [GameRegistry], so a new game appears here purely
- * by registering its plugin. The header's day is [puzzleDay]'s result, re-read on every
- * emission. [syncToday] prefetches today's uncached puzzles (A12; the route calls it on
- * every resume), so a game that can't load reads Offline.
+ * every game. Each game's brand comes from [brands] ([GamePlayRegistry.brandOf], A2). The
+ * recent days observe the GAME-AGNOSTIC merged history ([ObserveGameHistory] — every game's
+ * completion records UNION every registered game's captured days; fix round 5, defect C)
+ * grouped by day: the newest [RECENT_DAYS] days before the puzzle day (today lives in the
+ * tiles), each listing its games in registry order (unregistered games last) with their
+ * solve time, or null when opened but not solved (A11). The same history builds the week:
+ * a day's solved dailies (practice plays excluded, as [ObserveGameStats] does). Per-game
+ * names resolve against :app's [GameRegistry], so a new game appears here purely by
+ * registering its plugin. The header's day and [GetNextRollover]'s instant are re-read on
+ * every emission. [syncToday] prefetches today's uncached puzzles (A12; the route calls it
+ * on every resume), so a game that can't load reads Offline.
  */
 class HomeViewModel(
     observeGameHistory: ObserveGameHistory,
+    observeGameStats: ObserveGameStats,
     todaySet: ObserveTodaySet,
     identityService: IdentityService,
     private val registry: GameRegistry,
+    private val brands: GamePlayRegistry,
     private val puzzleDay: GetPuzzleDay,
+    private val nextRollover: GetNextRollover,
     private val syncTodayPuzzles: SyncTodayPuzzles,
 ) : ViewModel() {
 
+    // Declared before uiState: its initial value already builds the week.
+    private val registryOrder: Comparator<GameHistoryDay> =
+        compareBy({ registryRank(it.gameId) }, { it.gameId.value })
+
     private val seed = registry.all.map {
-        HomeUiState.TodayRow(it.definition.id, it.definition.displayName, status = null)
+        val id = it.definition.id
+        HomeUiState.TodayRow(id, it.definition.displayName, status = null, brand = brands.brandOf(id))
     }
 
-    // Before the set lands every row is unknown and "Play today" opens the first game.
+    // Before the set lands every row is unknown and the CTA opens the first game.
     private val seedTarget = seed.firstOrNull()?.game
 
-    // Seeded (null) so the teaser never waits on today's set (it reads Room and DataStore).
+    // Seeded (null) so the recent days never wait on today's set (it reads Room and DataStore).
     private val today: Flow<List<TodayEntry>?> = todaySet().onStart<List<TodayEntry>?> { emit(null) }
 
-    val uiState: StateFlow<HomeUiState> =
-        combine(today, observeGameHistory(), identityService.current) { entries, days, identity ->
+    internal val uiState: StateFlow<HomeUiState> =
+        combine(
+            today,
+            observeGameHistory(),
+            observeGameStats(),
+            identityService.current,
+        ) { entries, days, stats, identity ->
             val day = puzzleDay()
             HomeUiState(
-                today = entries?.map { HomeUiState.TodayRow(it.game, it.displayName, it.status) } ?: seed,
+                today = entries?.map {
+                    HomeUiState.TodayRow(it.game, it.displayName, it.status, brands.brandOf(it.game))
+                } ?: seed,
                 identity = identity,
                 history = recentDays(days, before = day),
                 puzzleDay = day,
                 playTarget = if (entries == null) seedTarget else entries.playTarget(),
+                stats = stats,
+                week = week(days, endingOn = day),
+                rolloverAt = nextRollover(),
             )
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = HomeUiState(seed, identityService.current.value, emptyList(), puzzleDay(), seedTarget),
+            initialValue = puzzleDay().let { day ->
+                HomeUiState(
+                    today = seed,
+                    identity = identityService.current.value,
+                    history = emptyList(),
+                    puzzleDay = day,
+                    playTarget = seedTarget,
+                    stats = NO_STATS,
+                    week = week(emptyList(), endingOn = day),
+                    rolloverAt = nextRollover(),
+                )
+            },
         )
 
     fun syncToday() {
@@ -111,21 +158,48 @@ class HomeViewModel(
                     isoDay = day.toString(),
                     headline = day.format(HEADLINE),
                     games = games
-                        .sortedWith(compareBy({ registryRank(it.gameId) }, { it.gameId.value }))
+                        .sortedWith(registryOrder)
                         .map { game ->
                             HistoryDay.GameResult(
                                 gameName = registry.displayName(game.gameId),
+                                brand = brands.brandOf(game.gameId),
                                 time = game.record?.let { formatDuration(it.time) },
                             )
                         },
                 )
             }
 
+    /** The 7 puzzle days ending on [endingOn], oldest first, each with its solved dailies' brands. */
+    private fun week(days: List<GameHistoryDay>, endingOn: LocalDate): List<WeekDay> {
+        val solved = days
+            .filter { it.record != null && it.puzzleNumber != null && it.day > endingOn.minusDays(WEEK_DAYS) }
+            .sortedWith(registryOrder)
+            .groupBy({ it.day }, { it.gameId })
+        return (WEEK_DAYS - 1 downTo 0L).map { back ->
+            val date = endingOn.minusDays(back)
+            WeekDay(
+                date = date,
+                solved = solved[date].orEmpty().distinct().map(brands::brandOf),
+                isToday = back == 0L,
+            )
+        }
+    }
+
     private fun registryRank(id: GameId): Int =
         registry.all.indexOfFirst { it.definition.id == id }.let { if (it < 0) Int.MAX_VALUE else it }
 
     private companion object {
         const val RECENT_DAYS = 3
+        const val WEEK_DAYS = 7L
         val HEADLINE: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM d")
+        val NO_STATS = GameStats(
+            currentStreak = 0,
+            bestStreak = 0,
+            solved = 0,
+            bestTimeMs = null,
+            hintFree = 0,
+            averageTimeMs = null,
+            playingSince = null,
+        )
     }
 }

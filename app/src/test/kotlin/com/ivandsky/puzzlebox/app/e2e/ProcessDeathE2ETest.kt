@@ -107,7 +107,7 @@ class ProcessDeathE2ETest {
     @Test
     fun `N20 a Result saved from Play renders after process death, and Play again reopens its day`() = shellRobot(playHub) {
         solveThenDie(todaySlot)
-        awaitText("Solved!")
+        awaitTag(RESULT_SCREEN)
 
         rule.onNodeWithTag(PLAY_AGAIN).performScrollTo().performClick()
         rule.waitForIdle()
@@ -130,7 +130,7 @@ class ProcessDeathE2ETest {
     @Test
     fun `N20 today's Result saved before process death opens the next game on Next`() = shellRobot(playHub) {
         solveThenDie(todaySlot)
-        awaitText("Solved!")
+        awaitTag(RESULT_SCREEN)
 
         tap(NEXT)
 
@@ -185,13 +185,13 @@ class ProcessDeathE2ETest {
         rule.runOnIdle { MID_GAME.forEach { zip().extend(it) } }
         background()
         foreground()
-        tapTab(HomeKey)
-        awaitText("Resume")
+        switchTab(HomeKey)
+        awaitText(CONTINUE_ZIP)
 
         graph.calendar.setAll(E2E_TODAY.plusDays(1))
 
-        awaitText("Play today")
-        assertTrue("no resume cue for yesterday's save", rule.onAllNodesWithText("Resume").fetchSemanticsNodes().isEmpty())
+        awaitTag(HOME_PLAY)
+        rule.waitUntil(TIMEOUT_MS) { rule.onAllNodesWithText(CONTINUE_ZIP).fetchSemanticsNodes().isEmpty() }
         tapTab(PlayKey)
         assertState(stacks(tab = PlayKey, play = listOf(PlayKey, GameKey(ZIP))))
         assertRoute(GAME)
@@ -270,9 +270,13 @@ class ProcessDeathE2ETest {
         const val GAME = "route.game"
         const val RESULT = "route.result"
         const val PLAY_AGAIN = "result.playAgain"
+        const val RESULT_SCREEN = "result.screen"
         const val NEXT = "result.next"
         const val DONE = "result.done"
         const val ZIP = "zip"
+        const val HOME_PLAY = "home.today_play"
+        // Home's CTA for today's saved Zip play.
+        const val CONTINUE_ZIP = "Continue Zip"
         const val CAP = 8
         const val PAST_DAY_LABEL = "game.past_day"
         const val SAVE_GAP_MS = 5L

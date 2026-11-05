@@ -25,37 +25,39 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
 import androidx.paging.compose.LazyPagingItems
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
 /**
- * The history browser (A8): the days the app has captured or solved, newest first,
- * paged lazily — per game (fix round 5, defect C): every row carries its GameId and
- * game display name instead of assuming Zip; a solved Queens day lists exactly like a
- * solved Zip day. Phones — and portrait of any width — are single-pane (list, or a
- * day's detail with a back arrow); expanded landscape is list-detail side by side (07).
+ * The history browser (spec A18): tabs for All and each game, the tab's stats and last
+ * four weeks, then its days newest first, paged lazily and grouped by day. Every row
+ * carries its GameId, glyph and display name (fix round 5, defect C). Phones — and
+ * portrait of any width — are single-pane (list, or a day's detail with a back arrow);
+ * expanded landscape is list-detail side by side (07).
  *
- * Replay (A4, ticket 11): tapping a day opens its detail; "Replay this day" reports the
- * (game, day) through [onReplay] and the shell opens that day's game slot. The record badge on a row/detail is
- * cached-data only (A8): whether a record exists for the day, never its history of
- * replays. Rows are game-keyed and carry their game's display name (fix round 5,
- * defect C; tango-05): every identity (selection, record lookup, replay) is
- * (game, day), never day alone.
+ * Replay (A4, ticket 11): tapping a day opens its detail; "Play again" / "Keep going"
+ * reports the (game, day) through [onReplay] and the shell opens that day's game slot.
+ * Every identity (selection, best lookup, replay) is (game, day), never day alone
+ * (tango-05). A selection outside the [selectedTab] closes, back to the list.
  */
 @Composable
 fun HistoryScreen(
     layout: HistoryLayout,
     onBack: () -> Unit,
     days: LazyPagingItems<HistoryDayRow>,
-    allRows: List<HistoryDayRow>,
-    recordsByKey: Map<Pair<GameId, LocalDate>, CompletionRecord>,
-    streak: Int,
+    state: HistoryUiState,
+    selectedTab: GameId?,
+    onSelectTab: (GameId?) -> Unit,
     onReplay: (GameId, LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selectedKey by rememberSaveable { mutableStateOf<String?>(null) }
-    val selectedRow = selectedKey?.let { key -> allRows.firstOrNull { it.key == key } }
+    val selectedRow = selectedKey?.let { key -> state.rows.firstOrNull { it.key == key } }
+    // The selected tab's rows own the selection: a pick outside the new tab closes.
+    val selectTab: (GameId?) -> Unit = { game ->
+        if (game != null && selectedRow?.gameId != game) selectedKey = null
+        onSelectTab(game)
+    }
 
     // Single-pane (A16, N17): back from a day's detail returns to the day list first;
     // only enabled while a day shows, so the next back leaves History. Predictive, so
@@ -82,9 +84,9 @@ fun HistoryScreen(
             Row(Modifier.fillMaxSize()) {
                 ListPane(
                     days = days,
-                    streak = streak,
-                    capturedCount = allRows.size,
-                    recordsByKey = recordsByKey,
+                    state = state,
+                    selectedTab = selectedTab,
+                    onSelectTab = selectTab,
                     selectedKey = selectedRow?.key,
                     onDayClick = { selectedKey = it.key },
                     onBack = onBack,
@@ -108,7 +110,7 @@ fun HistoryScreen(
                     } else {
                         DayDetailPane(
                             row = selected,
-                            record = recordsByKey[selected.gameId to selected.day],
+                            gameBest = state.bestOf(selected),
                             onBackToDayList = null,
                             onReplay = { onReplay(selected.gameId, selected.day) },
                             cardColor = cardColor,
@@ -128,9 +130,9 @@ fun HistoryScreen(
                 if (selected == null) {
                     ListPane(
                         days = days,
-                        streak = streak,
-                        capturedCount = allRows.size,
-                        recordsByKey = recordsByKey,
+                        state = state,
+                        selectedTab = selectedTab,
+                        onSelectTab = selectTab,
                         selectedKey = null,
                         onDayClick = { selectedKey = it.key },
                         onBack = onBack,
@@ -140,7 +142,7 @@ fun HistoryScreen(
                 } else {
                     DayDetailPane(
                         row = selected,
-                        record = recordsByKey[selected.gameId to selected.day],
+                        gameBest = state.bestOf(selected),
                         onBackToDayList = { selectedKey = null },
                         onReplay = { onReplay(selected.gameId, selected.day) },
                         cardColor = cardColor,
@@ -151,6 +153,10 @@ fun HistoryScreen(
         }
     }
 }
+
+/** [row]'s game's best row in the tab, if it has a numbered solve. */
+private fun HistoryUiState.bestOf(row: HistoryDayRow): HistoryDayRow? =
+    rows.firstOrNull { it.gameId == row.gameId && it.isBest }
 
 /** Shared-axis pane swap (A12): arriving detail decelerates in, leaving accelerates out. */
 private fun AnimatedContentTransitionScope<HistoryDayRow?>.detailTransition(): ContentTransform =

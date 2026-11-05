@@ -1,5 +1,8 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -7,6 +10,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -14,7 +18,11 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayStatus
@@ -23,6 +31,7 @@ import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.todayStatusLine
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
@@ -48,11 +57,13 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The Play tab's games hub over stand-in games: one row per playable game in registry
- * order under `route.hub`, opening it prefetches today's puzzles once (A12) and picking a row
+ * The Play tab's games hub over stand-in games: one card per playable game in registry
+ * order under `route.hub`, opening it prefetches today's puzzles once (A12) and picking a card
  * reports that game without fetching again, and a game reads today's status
  * ([todayStatusLine]) and what a tap does: a save / Continue, a solve / Replay, a failed
- * fetch / Try again, otherwise Play (A13, A14, SC11).
+ * fetch / Try again, otherwise Play (A13, A14, SC11). Only the next unsolved game's button
+ * is filled, the header counts today's solves, a solved game shows its best time, and
+ * "Older puzzles" reports through its callback.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -90,6 +101,8 @@ class HubRouteTest {
                     factory { GetReplaySession(get(), get()) }
                     single { SyncTodayPuzzles(get(), get(), get()) }
                     factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
+                    factory { ObserveGameHistory(get(), get(), get()) }
+                    factory { ObserveGameStats(get(), ComputeStreak(GetPuzzleDay(get()))) }
                 },
                 playModule,
             )
@@ -101,12 +114,29 @@ class HubRouteTest {
         koin?.close()
     }
 
-    private fun setContent(onPick: (GameId) -> Unit) {
+    private fun setContent(onOpenHistory: () -> Unit = {}, onPick: (GameId) -> Unit) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                HubRoute(onPick = onPick)
+                HubRoute(layout = PlayLayout.SinglePane, onPick = onPick, onOpenHistory = onOpenHistory)
             }
         }
+    }
+
+    private fun solveZipToday() = runBlocking {
+        completions.onCompleted(
+            CompletionRecord(TestGames.Ref(zip, today, 7), time = 36_000L, hints = 0, stats = RecordStats(1, "{}")),
+        )
+    }
+
+    private fun awaitSolvedZip() {
+        val solved = todayStatusLine(TodayStatus.Solved(36_000L))
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText(solved, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun tagStartsWith(prefix: String) = SemanticsMatcher("test tag starts with $prefix") { node ->
+        node.config.getOrNull(SemanticsProperties.TestTag)?.startsWith(prefix) == true
     }
 
     @Test
@@ -175,19 +205,51 @@ class HubRouteTest {
     }
 
     @Test
-    fun `a game solved today reads solved with its time and replay`() {
-        runBlocking {
-            completions.onCompleted(
-                CompletionRecord(TestGames.Ref(zip, today, 7), time = 36_000L, hints = 0, stats = RecordStats(1, "{}")),
-            )
-        }
+    fun `a game solved today reads solved with its time, replay and its best time`() {
+        solveZipToday()
         setContent {}
 
-        val solved = todayStatusLine(TodayStatus.Solved(36_000L))
-        composeRule.waitUntil(5_000) {
-            composeRule.onAllNodesWithText(solved, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNodeWithTag("hub.status.zip", useUnmergedTree = true).assertTextEquals(solved)
+        awaitSolvedZip()
+        composeRule.onNodeWithTag("hub.status.zip", useUnmergedTree = true)
+            .assertTextEquals(todayStatusLine(TodayStatus.Solved(36_000L)))
         composeRule.onNodeWithTag("hub.action.zip", useUnmergedTree = true).assertTextEquals("Replay")
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithTag("hub.best.zip", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("hub.best.alpha", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `exactly one button is filled - the next unsolved game's`() {
+        solveZipToday()
+        setContent {}
+
+        awaitSolvedZip()
+        assertEquals(1, composeRule.onAllNodes(tagStartsWith("hub.filled.")).fetchSemanticsNodes().size)
+        composeRule.onNodeWithTag("hub.filled.alpha").assertExists()
+        composeRule.onNodeWithTag("hub.tonal.zip").assertExists()
+    }
+
+    @Test
+    fun `the header counts today's solved games`() {
+        solveZipToday()
+        setContent {}
+
+        awaitSolvedZip()
+        composeRule.onNodeWithTag("hub.summary").assertTextEquals(hubSummary(done = 1, total = 2))
+    }
+
+    @Test
+    fun `older puzzles calls back without picking a game`() {
+        var opened = 0
+        val picked = ArrayList<GameId>()
+        setContent(onOpenHistory = { opened++ }) { picked.add(it) }
+
+        composeRule.onNodeWithTag("hub.older").performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(1, opened)
+        assertEquals(emptyList<GameId>(), picked)
+        composeRule.onNodeWithTag("hub.more_coming").assertExists()
     }
 }
