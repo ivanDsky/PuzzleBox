@@ -1,8 +1,12 @@
 # PROFILE.md — written by init-profile, read by /start
-# version: 0.6.0 (semver source of truth, per deliver: feature → minor, fix → patch; 0.6.0 = Tango ships 2026-11-02)
 # 1.0.0 = public release of ALL games (Zip, Queens, Tango, MiniSudoku, Strands) in a
 # good tested state. Until then the app is ALPHA: 0.x.y forever; minor = phase/feature
 # milestone, patch = fix rounds.
+
+## Version
+- app-id: com.ivandsky.puzzlebox
+- app-name: PuzzleBox
+- version: 0.6.0  # semver source of truth; bumped ONLY on a user-requested release (on main, with the Gradle versionName fallback in one commit). 0.6.0 = Tango ships 2026-11-02. Installs use deliver build_identity.py: <semver>-<slug>.<n>
 
 ## Product (frame)
 # purpose: one app for daily logic puzzles — play official NYT/LinkedIn dailies, build and share custom games, compete via leaderboards and 1v1; Zip ships first
@@ -43,3 +47,8 @@ always  # user ruling 2026-10-31: every review gate publishes a localhost HTML r
 - NYT Strands: public API exists — no scraping needed
 - LinkedIn games (Zip, Queens, Tango, MiniSudoku): no public API — unofficial endpoints + session; research Unknown at spec time
 - Firebase: Auth Google-sign-in-only (no email/password); leaderboard / 1v1 backend decided at spec
+
+## Device access (Bug C session, 2026-11-02)
+- Tab (ivans-tab-s9-ultra, 100.93.158.113) supports wireless adb over Tailscale: user opens Developer options → Wireless debugging → "Pair device with pairing code" (code+port rotate EVERY open — pair within seconds of receiving), then `adb connect 100.93.158.113:<debug-port-from-main-screen>`. Paired 2026-11-02, persists.
+- Supervised-process PATH lacks sdk tools: use full path `/Users/ivandsky/Library/Android/sdk/platform-tools/adb`.
+- The tab runs ReVanced microG, not real GMS — Credential Manager Google-ID works ONLY with the type-first + `GoogleIdTokenCredential.createFrom(credential.data)` pattern (4b7b419). `is GoogleIdTokenCredential` checks silently drop microG tokens.
