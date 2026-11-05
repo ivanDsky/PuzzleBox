@@ -30,6 +30,12 @@ sealed interface FetchError {
      */
     data class Throttled(val detail: String? = null) : FetchError
 
+    /**
+     * The source answered that it has no puzzle for the date (NYT 404: before the first
+     * day, or not published). Not a connectivity problem — retrying won't help.
+     */
+    data class NotFound(val detail: String? = null) : FetchError
+
     /** Payload arrived but the engine could not trust it (A16 oracle gate failed). Never playable. */
     data class Untrusted(val detail: String) : FetchError
 }
