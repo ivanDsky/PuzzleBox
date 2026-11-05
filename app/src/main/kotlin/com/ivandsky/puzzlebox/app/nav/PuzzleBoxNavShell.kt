@@ -65,7 +65,7 @@ internal fun PuzzleBoxNavShell(
             navTransition(initialState.metadata, targetState.metadata, pop = true, reduceMotion, layoutDirection)
         },
         predictivePopTransitionSpec = { swipeEdge ->
-            predictivePopTransition(initialState.metadata, targetState.metadata, swipeEdge, reduceMotion)
+            predictivePopTransition(swipeEdge, reduceMotion)
         },
         onBack = { navigator.pop() },
     )
