@@ -27,7 +27,7 @@ the build instead of a review.
    `GamePlayRegistry(getAll())` once (a duplicate id throws). `feature:play:impl` drives any
    game through `GamePlayController` (ADR-0007).
 4. **Cross-feature business logic lives in `core:domain`** as use cases (`domainModule`):
-   `ComputeStreak`, `GetFeaturedGame`, `GetReplaySession`, `ObserveGameHistory`,
+   `ComputeStreak`, `GetFeaturedGame`, `LoadPastDay`, `ObserveGameHistory`,
    `ObserveTodayLeaderboard`, `ObserveTodaySet`. Features call use cases or `core:data` repositories, never
    each other's ViewModels.
 5. **Navigation is api/impl.** `feature:<name>:api` holds only the feature's `@Serializable`

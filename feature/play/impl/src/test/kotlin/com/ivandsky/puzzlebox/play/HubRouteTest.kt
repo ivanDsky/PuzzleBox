@@ -13,7 +13,7 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.OpenPastDay
+import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -78,7 +78,7 @@ class HubRouteTest {
                     single<GamePlayRegistry> { fakes.registry }
                     single<SavedPlayRepository> { saved }
                     single<GameCalendar> { FakeGameCalendar(today) }
-                    factory { OpenPastDay(get(), get()) }
+                    factory { LoadPastDay(get(), get()) }
                     factory { ObserveTodaySet(get(), get(), get(), get()) }
                 },
                 playModule,

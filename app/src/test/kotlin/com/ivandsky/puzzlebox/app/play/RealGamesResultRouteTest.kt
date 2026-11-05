@@ -9,7 +9,7 @@ import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
-import com.ivandsky.puzzlebox.domain.OpenPastDay
+import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
@@ -74,7 +74,7 @@ class RealGamesResultRouteTest {
                     single { GamePlayRegistry(listOf(ZipPlayUi())) }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<GameCalendar> { FakeGameCalendar(today) }
-                    factory { OpenPastDay(get(), get()) }
+                    factory { LoadPastDay(get(), get()) }
                     factory { ObserveTodaySet(get(), get(), get(), get()) }
                     // Tutorial seen: this path is about the result; the lessons have their own tests.
                     single<UserPreferencesRepository> {

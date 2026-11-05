@@ -27,7 +27,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.OpenPastDay
+import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -93,7 +93,7 @@ class GameRouteTest {
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<GameCalendar> { calendar }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
-                    factory { OpenPastDay(get(), get()) }
+                    factory { LoadPastDay(get(), get()) }
                 },
                 playModule,
             )

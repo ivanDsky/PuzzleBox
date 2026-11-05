@@ -58,10 +58,6 @@ internal class OfflineFirstDailyRepository(
         }
     }
 
-    override suspend fun cached(game: GameId, day: LocalDate): Puzzle? = withContext(dispatchers.io) {
-        cachedRow(game, day)
-    }
-
     override fun observeHistory(game: GameId): Flow<List<DailyEntry>> =
         dao.observeHistory(game.value).map { rows ->
             rows.map {

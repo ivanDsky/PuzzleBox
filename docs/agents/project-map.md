@@ -125,8 +125,8 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 - `core/domain/` (`:core:domain`) — use cases (package `com.ivandsky.puzzlebox.domain`, Koin
   `domainModule`): `ObserveGameHistory` (records UNION every registered game's captured days →
   `GameHistoryDay`), `GetFeaturedGame` (registry's first game as `GameSummary`),
-  `ComputeStreak`, `GetReplaySession` (cached puzzle → the game's replay blob as
-  `ReplayOutcome`), `ObserveTodayLeaderboard` (identity-gated featured-game board:
+  `ComputeStreak`, `LoadPastDay` (a past day by date — cached, or fetched once for an archive game — → the game's session blob as
+  `PastDayOutcome`), `ObserveTodayLeaderboard` (identity-gated featured-game board:
   `TodayLeaderboard`), `ObserveTodaySet` (saved plays + records + each game's calendar day →
   registry-order `TodayEntry` per game: Solved/InProgress(elapsed)/NotStarted; `nextUnsolved`). Android library.
 - `core/game/` (`:core:game`, pure JVM) — the orthogonal game contracts (ADR-0001):

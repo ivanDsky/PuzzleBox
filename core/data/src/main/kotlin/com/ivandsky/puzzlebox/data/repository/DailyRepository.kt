@@ -48,9 +48,6 @@ interface DailyRepository {
     /** Fetch-today → cache; on any fetch failure degrade to today's cache + the sealed error. */
     suspend fun today(game: GameId): DailyToday
 
-    /** Cache-only read for replay; null when the day wasn't captured (or the game isn't registered). */
-    suspend fun cached(game: GameId, day: LocalDate): Puzzle?
-
     /** [game]'s captured days, newest first (A8). Never touches the network nor loads payloads. */
     fun observeHistory(game: GameId): Flow<List<DailyEntry>>
 

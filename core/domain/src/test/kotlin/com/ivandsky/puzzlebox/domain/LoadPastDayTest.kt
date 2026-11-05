@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.domain
 
+import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.game.DecodeError
+import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.model.GameId
@@ -15,17 +17,18 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * The replay hand-off (ticket 14 → 13; tango-05 generalizes it): the day's cached payload
- * dispatches to the NAMED game's own plugin with THIS day's identity (ADR-0005
- * envelope), and untrustable inputs never launch (A16). Per-game round-trips live with
- * each game (ZipPluginTest, TangoReplaySessionTest, QueensPluginTest).
+ * Opening a past day (ticket 14 → 13; tango-05 generalizes it; ADR-0012): the day's
+ * puzzle — cached, or fetched for an archive source — dispatches to the NAMED game's own
+ * plugin with THIS day's identity (ADR-0005 envelope), each failure keeps its cause, and
+ * untrustable inputs never launch (A16). Per-game round-trips live with each game
+ * (ZipPluginTest, TangoReplaySessionTest, QueensPluginTest).
  */
-class OpenPastDayTest {
+class LoadPastDayTest {
 
     private val day: LocalDate = LocalDate.of(2026, 10, 31)
 
     private fun replay(daily: FakeDailyRepository, games: List<GameId> = listOf(alpha, beta)) =
-        OpenPastDay(daily, TestGames.registry(games))
+        LoadPastDay(daily, TestGames.registry(games))
 
     @Test
     fun `missing pieces launch nothing`() = runTest {
@@ -37,6 +40,36 @@ class OpenPastDayTest {
         val unregistered = GameId("not-a-game")
         val daily = FakeDailyRepository().apply { setCached(unregistered, day, TestGames.puzzle(unregistered)) }
         assertEquals(PastDayOutcome.Missing, replay(daily)(unregistered, day, puzzleNumber = 1))
+        assertEquals(0, daily.dayCalls(unregistered, day))
+    }
+
+    @Test
+    fun `an archive day fetched on open launches with the fetched puzzle number`() = runTest {
+        val fetched = TestGames.puzzle(alpha, tag = 3)
+        val daily = FakeDailyRepository().apply { setDay(alpha, day, DailyDay.Ready(fetched, 584)) }
+
+        val ready = replay(daily)(alpha, day, puzzleNumber = null) as PastDayOutcome.Ready
+
+        assertArrayEquals(TestGames.replayBlob(alpha, fetched, day, 584), ready.session)
+        assertEquals(1, daily.dayCalls(alpha, day))
+    }
+
+    @Test
+    fun `out-of-range and failed reads keep their cause`() = runTest {
+        val daily = FakeDailyRepository().apply {
+            setArchiveRange(alpha, day.minusDays(10)..day.minusDays(1))
+        }
+        assertEquals(PastDayOutcome.OutOfRange, replay(daily)(alpha, day, puzzleNumber = null))
+
+        listOf(
+            FetchError.Unavailable("offline"),
+            FetchError.NotFound("404"),
+            FetchError.Untrusted("gate"),
+            FetchError.Throttled("cooldown"),
+        ).forEach { error ->
+            daily.setDay(beta, day, DailyDay.Failed(error))
+            assertEquals(PastDayOutcome.Failed(error), replay(daily)(beta, day, puzzleNumber = 1))
+        }
     }
 
     @Test

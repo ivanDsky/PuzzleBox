@@ -11,7 +11,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
-import com.ivandsky.puzzlebox.domain.OpenPastDay
+import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.BestScore
@@ -346,7 +346,7 @@ class ResultScreenTest {
                     single<CompletionRepository> { FakeCompletionRepository() }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<GameCalendar> { FakeGameCalendar(day) }
-                    factory { OpenPastDay(get(), get()) }
+                    factory { LoadPastDay(get(), get()) }
                     factory { ObserveTodaySet(get(), get(), get(), get()) }
                 },
                 playModule,

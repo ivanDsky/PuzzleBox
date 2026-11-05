@@ -1,8 +1,9 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
-import com.ivandsky.puzzlebox.domain.OpenPastDay
+import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
@@ -23,8 +24,9 @@ import org.junit.Test
 
 /**
  * Origin precedence of a slot's opening (A11): a decodable save before the network, an
- * undecodable save dropped for a fresh start, today's fetch, a past day's replay build
- * carrying the day's puzzleNumber (arch-2), and Unavailable when nothing is playable.
+ * undecodable save dropped for a fresh start, today's fetch, a past day opened by date
+ * carrying the day's puzzleNumber (arch-2), and Unavailable — with copy naming the cause
+ * (SC9) — when nothing is playable.
  */
 class SlotOpeningTest {
 
@@ -38,7 +40,7 @@ class SlotOpeningTest {
     private val saved = FakeSavedPlayRepository()
     private val opening = SlotOpening(
         daily = daily,
-        replays = OpenPastDay(daily, games),
+        pastDays = LoadPastDay(daily, games),
         saved = saved,
         calendar = FakeGameCalendar(today),
         games = games,
@@ -123,8 +125,45 @@ class SlotOpeningTest {
     }
 
     @Test
-    fun `a past day missing from the cache is unavailable`() = runTest {
-        assertTrue(opening.open(PlaySlot(alpha, yesterday)) is SlotOpening.Origin.Unavailable)
+    fun `a cache-only game's uncaptured past day keeps the no-longer-saved copy`() = runTest {
+        val origin = opening.open(PlaySlot(alpha, yesterday)) as SlotOpening.Origin.Unavailable
+
+        assertEquals("That day is no longer saved on this device.", origin.message)
+        assertEquals(0, daily.todayCalls(alpha))
+    }
+
+    @Test
+    fun `an uncached archive day is fetched and opened with its fetched puzzleNumber`() = runTest {
+        val puzzle = TestGames.puzzle(alpha, tag = 5)
+        daily.setDay(alpha, yesterday, DailyDay.Ready(puzzle, 412))
+
+        val origin = opening.open(PlaySlot(alpha, yesterday)) as SlotOpening.Origin.Restored
+
+        assertArrayEquals(TestGames.replayBlob(alpha, puzzle, yesterday, 412), origin.session)
+        assertEquals(1, daily.dayCalls(alpha, yesterday))
+    }
+
+    @Test
+    fun `each past-day failure names its cause`() = runTest {
+        daily.setArchiveRange(alpha, today.minusDays(30)..today)
+        val outside = PlaySlot(alpha, today.minusDays(31))
+        assertEquals(
+            "This puzzle isn't available.",
+            (opening.open(outside) as SlotOpening.Origin.Unavailable).message,
+        )
+
+        mapOf(
+            FetchError.NotFound("404") to "This puzzle isn't available.",
+            FetchError.Unavailable("offline") to
+                "You're offline. Tuesday, November 3, 2026 needs a connection the first time it opens.",
+            FetchError.Untrusted("gate") to "This puzzle couldn't be read. Try again later.",
+            FetchError.Throttled("cooldown") to
+                "Can't load Tuesday, November 3, 2026 right now. Wait a minute and try again.",
+        ).forEach { (error, copy) ->
+            daily.setDay(alpha, yesterday, DailyDay.Failed(error))
+            val origin = opening.open(PlaySlot(alpha, yesterday)) as SlotOpening.Origin.Unavailable
+            assertEquals(copy, origin.message)
+        }
         assertEquals(0, daily.todayCalls(alpha))
     }
 

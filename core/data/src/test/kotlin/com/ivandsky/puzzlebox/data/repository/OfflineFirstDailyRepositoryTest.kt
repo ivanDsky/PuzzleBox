@@ -170,7 +170,7 @@ class OfflineFirstDailyRepositoryTest {
         val result = repository.today(GameId("strands"))
 
         assertTrue(result is DailyToday.Unavailable && result.error is FetchError.Unavailable)
-        assertNull(repository.cached(GameId("strands"), today))
+        assertEquals(DailyDay.NotCaptured, repository.day(GameId("strands"), today))
     }
 
     @Test
@@ -196,8 +196,8 @@ class OfflineFirstDailyRepositoryTest {
         repository.today(alpha)
         repository.today(beta)
 
-        assertEquals(alpha, repository.cached(alpha, today)!!.gameId)
-        assertEquals(beta, repository.cached(beta, today)!!.gameId)
+        assertEquals(alpha, (repository.day(alpha, today) as DailyDay.Ready).puzzle.gameId)
+        assertEquals(beta, (repository.day(beta, today) as DailyDay.Ready).puzzle.gameId)
         assertEquals(listOf(alpha), repository.observeHistory(alpha).first().map { it.gameId })
         assertEquals(listOf(beta), repository.observeHistory(beta).first().map { it.gameId })
 
@@ -209,15 +209,16 @@ class OfflineFirstDailyRepositoryTest {
     }
 
     @Test
-    fun `cached reads Room only and decodes the envelope`() = runTest {
-        assertNull(repository.cached(alpha, today))
+    fun `a captured day reads Room only and decodes the envelope`() = runTest {
+        assertEquals(DailyDay.NotCaptured, repository.day(alpha, today))
 
         alphaSource.nextPuzzle = TestGames.puzzle(alpha)
         repository.today(alpha)
 
-        assertEquals(alpha, repository.cached(alpha, today)!!.gameId)
-        assertNull(repository.cached(alpha, LocalDate.of(2020, 1, 1)))
-        assertNull(repository.cached(beta, today))
+        assertEquals(alpha, (repository.day(alpha, today) as DailyDay.Ready).puzzle.gameId)
+        assertEquals(DailyDay.NotCaptured, repository.day(alpha, LocalDate.of(2020, 1, 1)))
+        assertEquals(DailyDay.NotCaptured, repository.day(beta, today))
+        assertEquals(listOf(today), alphaSource.requestedDates)
     }
 
     @Test
@@ -234,7 +235,7 @@ class OfflineFirstDailyRepositoryTest {
             ),
         )
 
-        assertNull(repository.cached(alpha, today))
+        assertEquals(DailyDay.NotCaptured, repository.day(alpha, today))
     }
 
     @Test
@@ -264,7 +265,7 @@ class OfflineFirstDailyRepositoryTest {
     }
 
     @Test
-    fun `an archive miss in range fetches once, persists, then serves the cache`() = runTest {
+    fun `an archive miss in range fetches once, persists, then opens offline from the cache`() = runTest {
         val archive = archiveRepository()
         alphaSource.nextPuzzle = TestGames.puzzle(alpha, tag = 7)
         alphaSource.nextPuzzleNumber = 584
@@ -279,6 +280,7 @@ class OfflineFirstDailyRepositoryTest {
         assertEquals(1_000L, row.fetchedAtMs)
 
         alphaSource.nextPuzzle = null
+        alphaSource.nextError = FetchError.Unavailable("offline")
         val second = archive.day(alpha, pastDay)
 
         second as DailyDay.Ready
