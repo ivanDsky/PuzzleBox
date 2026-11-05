@@ -44,6 +44,7 @@ import com.ivandsky.puzzlebox.domain.GameSummary
 internal fun DetailPane(
     selected: HistoryDay?,
     game: GameSummary,
+    resumeFeatured: Boolean,
     onPlayToday: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -64,7 +65,7 @@ internal fun DetailPane(
         contentKey = { it?.isoDay },
     ) { day ->
         if (day == null) {
-            TodayDetail(game = game, onPlayToday = onPlayToday, modifier = Modifier.fillMaxSize())
+            TodayDetail(game = game, resume = resumeFeatured, onPlayToday = onPlayToday, modifier = Modifier.fillMaxSize())
         } else {
             DayDetail(day = day, modifier = Modifier.fillMaxSize())
         }
@@ -74,6 +75,7 @@ internal fun DetailPane(
 @Composable
 private fun TodayDetail(
     game: GameSummary,
+    resume: Boolean,
     onPlayToday: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -102,7 +104,7 @@ private fun TodayDetail(
                 modifier = Modifier.padding(horizontal = Spacing.xl),
             )
         }
-        PrimaryButton(text = "Play today", onClick = onPlayToday)
+        PrimaryButton(text = playTodayLabel(resume), onClick = onPlayToday)
         Spacer(Modifier.weight(1f))
     }
 }

@@ -1,0 +1,327 @@
+package com.ivandsky.puzzlebox.app.e2e
+
+import android.os.Bundle
+import android.os.Looper
+import android.os.Parcel
+import androidx.activity.BackEventCompat
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.LocalSaveableStateRegistry
+import androidx.compose.runtime.saveable.SaveableStateRegistry
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.StateRestorationTester
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.lifecycle.Lifecycle
+import androidx.navigation3.runtime.NavKey
+import com.ivandsky.puzzlebox.app.PuzzleBoxApp
+import com.ivandsky.puzzlebox.app.nav.NAVIGATION_STATE_KEY
+import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
+import com.ivandsky.puzzlebox.app.nav.rememberNavigator
+import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.model.ThemeMode
+import com.ivandsky.puzzlebox.navigation.NavigationState
+import com.ivandsky.puzzlebox.navigation.Navigator
+import java.time.LocalDate
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.runner.Description
+import org.junit.runners.model.Statement
+import org.robolectric.Shadows.shadowOf
+
+/** The fixed "today" of every E2E run unless a row pins its own. */
+val E2E_TODAY: LocalDate = LocalDate.of(2026, 11, 4)
+
+/**
+ * Runs [block] against the real app shell — [PuzzleBoxApp], its Navigator, NavDisplay and
+ * every feature entry — over [graph] (the production Koin modules with fakes on the
+ * edges), starting at [state]. The width class comes from the real window, so a row's
+ * `@Config(qualifiers = …)` picks bar or rail. The caller's test class runs on
+ * Robolectric with a plain `Application` (`@Config(application = Application::class)`),
+ * so the merged manifest's application never starts a second Koin.
+ */
+fun shellRobot(
+    state: NavigationState = puzzleBoxNavigationState(),
+    today: LocalDate = E2E_TODAY,
+    graph: E2eKoinGraph = E2eKoinGraph(today),
+    block: ShellRobot.() -> Unit,
+) {
+    graph.start()
+    try {
+        val robot = ShellRobot(graph, state)
+        val run = object : Statement() {
+            override fun evaluate() {
+                robot.launch()
+                robot.block()
+            }
+        }
+        robot.rule
+            .apply(run, Description.createTestDescription(ShellRobot::class.java, "shellRobot"))
+            .evaluate()
+    } finally {
+        graph.stop()
+    }
+}
+
+/**
+ * The E2E vocabulary: user gestures (tabs, taps, system and predictive back), lifecycle
+ * (background, saved-state restore, relaunch) and the row assertions. Every assertion of
+ * a state also checks SC2 (exactly one tab selected, the state's tab); every route
+ * assertion checks that the tag is the only `route.*` on screen (SC1). Failures print
+ * states in spec notation (`**Home**[Home] Play[Play] Profile[Profile]`).
+ */
+class ShellRobot internal constructor(
+    val graph: E2eKoinGraph,
+    private val initial: NavigationState,
+) {
+    val rule = createAndroidComposeRule<ComponentActivity>()
+
+    private val restoration = StateRestorationTester(rule)
+    private lateinit var navigator: Navigator
+    private lateinit var registry: SaveableStateRegistry
+    private var shown by mutableStateOf(true)
+    private var generation by mutableIntStateOf(0)
+    private var pendingLegacy: Bundle? = null
+    private var ignoreRestored = false
+    private var exits = 0
+
+    /** The live navigation state. */
+    val state: NavigationState get() = rule.runOnIdle { navigator.state }
+
+    internal fun launch() {
+        restoration.setContent {
+            // The system's stand-in: registered before the shell, so it only sees a back
+            // the shell leaves unhandled — the press that would leave the app.
+            BackHandler { exits++ }
+            if (shown) key(generation) { Shell() }
+        }
+        rule.waitForIdle()
+    }
+
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
+    @Composable
+    private fun Shell() {
+        val parent = checkNotNull(LocalSaveableStateRegistry.current)
+        val swapping = remember(parent) { SwappingRegistry(parent) }
+        registry = swapping
+        CompositionLocalProvider(LocalSaveableStateRegistry provides swapping) {
+            PuzzleBoxTheme(darkTheme = false) {
+                PuzzleBoxApp(
+                    windowWidthSizeClass = calculateWindowSizeClass(rule.activity).widthSizeClass,
+                    themeMode = ThemeMode.SYSTEM,
+                    onSetThemeMode = {},
+                    navigator = rememberNavigator(initial).also { navigator = it },
+                )
+            }
+        }
+    }
+
+    fun tapTab(key: NavKey) {
+        tap(topLevelDestinations.single { it.key == key }.tag)
+    }
+
+    fun tap(tag: String) {
+        awaitTag(tag)
+        rule.onNodeWithTag(tag).performClick()
+        rule.waitForIdle()
+    }
+
+    /** Taps the node showing [text], scrolling its screen to it first. */
+    fun tapText(text: String) {
+        rule.waitUntil(TIMEOUT_MS) { rule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithText(text).performScrollTo().performClick()
+        rule.waitForIdle()
+    }
+
+    /** Picks [gameId] on the Play hub and waits for its game screen. */
+    fun openGame(gameId: String) {
+        tap("hub.row.$gameId")
+        awaitTag(GAME_ROUTE)
+    }
+
+    fun awaitTag(tag: String) {
+        rule.waitUntil(TIMEOUT_MS) {
+            rule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    /** System back: one press through the activity's dispatcher. */
+    fun back() {
+        rule.runOnUiThread { rule.activity.onBackPressedDispatcher.onBackPressed() }
+        rule.waitForIdle()
+    }
+
+    /** A predictive back gesture from the left edge, scrubbed halfway, then [commit]ted or cancelled. */
+    fun predictiveBack(commit: Boolean) {
+        val dispatcher = rule.activity.onBackPressedDispatcher
+        rule.runOnUiThread { dispatcher.dispatchOnBackStarted(backEvent(0f)) }
+        rule.waitForIdle()
+        rule.runOnUiThread { dispatcher.dispatchOnBackProgressed(backEvent(0.5f)) }
+        rule.waitForIdle()
+        rule.runOnUiThread {
+            if (commit) dispatcher.onBackPressed() else dispatcher.dispatchOnBackCancelled()
+        }
+        rule.waitForIdle()
+    }
+
+    /** Home button: the activity stops (the shell flushes saves on ON_STOP). */
+    fun background() {
+        rule.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+        // A stopped activity draws no frames: idle the main looper, not the composition.
+        shadowOf(Looper.getMainLooper()).idle()
+    }
+
+    fun foreground() {
+        rule.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        rule.waitForIdle()
+    }
+
+    /** Saved-instance-state round trip (rotation or process death with a saved bundle). */
+    fun restoreState() {
+        ignoreRestored = false
+        restoration.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+    }
+
+    /** As [restoreState], with [legacy] handed back in the navigator's saved slot. */
+    fun restoreLegacy(legacy: Bundle) {
+        pendingLegacy = legacy
+        restoreState()
+        check(pendingLegacy == null) { "no saved navigation slot was restored" }
+    }
+
+    /**
+     * Process death without saved state: the composition, every ViewModel and the Koin graph
+     * are discarded; the fakes (the "disk") survive; the shell relaunches at the seed.
+     */
+    fun relaunch() {
+        rule.runOnIdle { shown = false }
+        rule.waitForIdle()
+        rule.runOnIdle { rule.activity.viewModelStore.clear() }
+        graph.stop()
+        graph.start()
+        ignoreRestored = true
+        rule.runOnIdle {
+            generation++
+            shown = true
+        }
+        rule.waitForIdle()
+    }
+
+    /** Size of the shell's saved state, parceled as the activity would hand it to the system. */
+    fun savedStateBytes(): Int {
+        val saved = rule.runOnIdle { registry.performSave() }
+        val parcel = Parcel.obtain()
+        return try {
+            parcel.writeMap(saved)
+            parcel.dataSize()
+        } finally {
+            parcel.recycle()
+        }
+    }
+
+    fun assertState(expected: NavigationState) {
+        val actual = state
+        assertEquals("expected $expected but was $actual", expected, actual)
+        assertSelectedTab(expected.tab)
+    }
+
+    /** SC2: every tab shows once, and exactly [tab] is selected. */
+    fun assertSelectedTab(tab: NavKey) {
+        val selected = topLevelDestinations.filter { destination ->
+            val nodes = rule.onAllNodesWithTag(destination.tag).fetchSemanticsNodes()
+            assertEquals("tab ${destination.label} shown once (state $state)", 1, nodes.size)
+            nodes.single().config.getOrNull(SemanticsProperties.Selected) == true
+        }
+        assertEquals("selected tabs (state $state)", listOf(tab), selected.map { it.key })
+    }
+
+    /** SC1: [tag] is displayed and is the only `route.*` tag on screen. */
+    fun assertRoute(tag: String) {
+        awaitTag(tag)
+        rule.onNodeWithTag(tag, useUnmergedTree = true).assertIsDisplayed()
+        val routes = rule.onAllNodes(isRoute, useUnmergedTree = true).fetchSemanticsNodes()
+            .map { it.config[SemanticsProperties.TestTag] }
+        assertEquals("routes on screen (state $state)", listOf(tag), routes)
+    }
+
+    /** The press fell through the shell: the app would have exited. */
+    fun assertExited() {
+        assertEquals("presses that left the app (state $state)", 1, exits)
+    }
+
+    /** Compact: the tabs sit side by side along the window's bottom edge. */
+    fun assertBottomBar() {
+        val tabs = tabBounds()
+        val window = rule.onRoot().fetchSemanticsNode().boundsInRoot
+        assertTrue("tabs share one row: $tabs (state $state)", tabs.all { it.top == tabs.first().top })
+        assertTrue("tabs run left to right: $tabs", tabs.zipWithNext().all { (a, b) -> a.right <= b.left })
+        assertTrue("bar hugs the bottom: $tabs in $window", tabs.first().bottom >= window.bottom - window.height / 4)
+    }
+
+    /** Expanded: the tabs stack in one column along the window's start edge. */
+    fun assertRail() {
+        val tabs = tabBounds()
+        val window = rule.onRoot().fetchSemanticsNode().boundsInRoot
+        assertTrue("tabs share one column: $tabs (state $state)", tabs.all { it.left == tabs.first().left })
+        assertTrue("tabs run top to bottom: $tabs", tabs.zipWithNext().all { (a, b) -> a.bottom <= b.top })
+        assertTrue("rail hugs the start: $tabs in $window", tabs.first().right <= window.left + window.width / 4)
+    }
+
+    private fun tabBounds(): List<Rect> = topLevelDestinations.map {
+        rule.onNodeWithTag(it.tag).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+    }
+
+    private fun backEvent(progress: Float) =
+        BackEventCompat(0f, 0f, progress, BackEventCompat.EDGE_LEFT)
+
+    /**
+     * The tester's registry, seen by the shell. On restore it can hand back a legacy bundle
+     * in place of the navigator's saved one, or nothing at all after a relaunch.
+     */
+    private inner class SwappingRegistry(
+        private val parent: SaveableStateRegistry,
+    ) : SaveableStateRegistry by parent {
+        override fun consumeRestored(key: String): Any? {
+            val restored = parent.consumeRestored(key)
+            val legacy = pendingLegacy
+            return when {
+                ignoreRestored -> null
+                legacy != null && (restored as? Bundle)?.containsKey(NAVIGATION_STATE_KEY) == true -> {
+                    pendingLegacy = null
+                    legacy
+                }
+                else -> restored
+            }
+        }
+    }
+
+    private companion object {
+        const val TIMEOUT_MS = 5_000L
+        const val GAME_ROUTE = "route.game"
+        val isRoute = SemanticsMatcher("test tag route.*") {
+            it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("route.") == true
+        }
+    }
+}

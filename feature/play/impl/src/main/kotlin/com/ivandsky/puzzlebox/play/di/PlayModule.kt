@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.play.GameViewModel
 import com.ivandsky.puzzlebox.play.PlaySessionStore
-import com.ivandsky.puzzlebox.play.PlayViewModel
 import com.ivandsky.puzzlebox.play.ResultViewModel
 import com.ivandsky.puzzlebox.play.SlotOpening
 import com.ivandsky.puzzlebox.play.SlotWriter
@@ -50,6 +49,5 @@ val playModule = module {
         )
     }
     viewModel { (key: GameKey) -> GameViewModel(key, get()) }
-    viewModel { PlayViewModel(get()) }
     viewModel { ResultViewModel(get()) }
 }

@@ -30,10 +30,14 @@ import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.GameSummary
 
-/** The one filled card: today's game, its tagline, and the primary action. */
+/** The primary action's label: "Resume" when today's featured game has a save (A13, SC11). */
+internal fun playTodayLabel(resume: Boolean): String = if (resume) "Resume" else "Play today"
+
+/** The one filled card: today's game, its tagline, and the primary action — [resume] relabels it. */
 @Composable
 internal fun TodayCard(
     game: GameSummary,
+    resume: Boolean,
     onPlayToday: () -> Unit,
     cardColor: Color,
     modifier: Modifier = Modifier,
@@ -65,7 +69,7 @@ internal fun TodayCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             PrimaryButton(
-                text = "Play today",
+                text = playTodayLabel(resume),
                 onClick = onPlayToday,
                 modifier = Modifier
                     .fillMaxWidth()

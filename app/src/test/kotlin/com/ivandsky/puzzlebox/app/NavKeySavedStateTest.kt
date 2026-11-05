@@ -11,8 +11,8 @@ import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavKeys
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
+import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import kotlinx.serialization.PolymorphicSerializer
@@ -36,7 +36,7 @@ class NavKeySavedStateTest {
     private val everyKey = NavigationState(
         tab = PlayKey,
         stacks = listOf(
-            listOf(HomeKey, HistoryKey, ReplayKey("blob")),
+            listOf(HomeKey, HistoryKey, GameKey("zip", "2026-03-09")),
             listOf(PlayKey, ResultKey(61_200, 2)),
             listOf(ProfileKey, CatalogKey),
         ),

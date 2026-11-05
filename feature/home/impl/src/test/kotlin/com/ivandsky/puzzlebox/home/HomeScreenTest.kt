@@ -1,6 +1,9 @@
 package com.ivandsky.puzzlebox.home
 
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -20,7 +23,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** Robolectric compose tests (A17): pane choice and theme dialog behavior, no emulator. */
+/** Robolectric compose tests (A17): pane choice, theme dialog and resume-cue behavior, no emulator. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class HomeScreenTest {
@@ -35,6 +38,7 @@ class HomeScreenTest {
         game: GameSummary = GameSummary(GameId("zip"), "Zip"),
         identity: Identity? = null,
         onSetThemeMode: (ThemeMode) -> Unit = {},
+        resumeFeatured: MutableState<Boolean> = mutableStateOf(false),
         onPlayToday: () -> Unit = {},
         onOpenProfile: () -> Unit = {},
     ) {
@@ -47,6 +51,7 @@ class HomeScreenTest {
                     themeMode = themeMode,
                     onSetThemeMode = onSetThemeMode,
                     history = history,
+                    resumeFeatured = resumeFeatured.value,
                     onPlayToday = onPlayToday,
                     onOpenProfile = onOpenProfile,
                     modifier = Modifier,
@@ -106,6 +111,30 @@ class HomeScreenTest {
         // the detail-pane CTA this test names.
         composeRule.onAllNodesWithText("Play today")[1].performClick()
         composeRule.runOnIdle { check(played) { "expected onPlayToday" } }
+    }
+
+    @Test
+    fun `today card label switches to resume when the featured game is in progress - SC11`() {
+        val resume = mutableStateOf(false)
+        var played = 0
+        setContent(HomeLayout.SinglePane, resumeFeatured = resume, onPlayToday = { played++ })
+        composeRule.onNodeWithText("Play today").assertExists()
+        composeRule.onNodeWithText("Resume").assertDoesNotExist()
+
+        // Today's featured game gains a save: the same card now offers to resume it.
+        composeRule.runOnIdle { resume.value = true }
+
+        composeRule.onNodeWithText("Play today").assertDoesNotExist()
+        composeRule.onNodeWithText("Resume").performClick()
+        composeRule.runOnIdle { check(played == 1) { "expected one onPlayToday, was $played" } }
+    }
+
+    @Test
+    fun `two pane reads resume on the card and the detail action`() {
+        setContent(HomeLayout.TwoPane, resumeFeatured = mutableStateOf(true))
+
+        composeRule.onAllNodesWithText("Resume").assertCountEquals(2)
+        composeRule.onNodeWithText("Play today").assertDoesNotExist()
     }
 
     @Test

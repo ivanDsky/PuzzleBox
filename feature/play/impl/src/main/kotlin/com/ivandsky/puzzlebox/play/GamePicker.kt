@@ -20,9 +20,8 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
- * The play tab's fresh-entry state (spec A14): the registered games side by side, no
- * new navigation pattern — picking a game starts that game's play in place. Both
- * entries ride the daily cadence; the picker never fetches (the play's load does).
+ * The games hub's list (tag `route.hub`): one row per playable game (`hub.row.<gameId>`),
+ * in the order given. Stateless; picking a row is [onPick].
  */
 @Composable
 internal fun GamePicker(
@@ -33,7 +32,7 @@ internal fun GamePicker(
     Column(
         modifier
             .fillMaxWidth()
-            .testTag("play.picker")
+            .testTag("route.hub")
             .padding(horizontal = Spacing.lg, vertical = Spacing.xl),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
@@ -48,8 +47,8 @@ internal fun GamePicker(
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("play.picker_${game.value}")
-                    // §9 touch floors: picker rows clear 48 dp with the padded content.
+                    .testTag("hub.row.${game.value}")
+                    // §9 touch floors: hub rows clear 48 dp with the padded content.
                     .heightIn(min = 56.dp)
                     .clickable(onClick = { onPick(game) }),
             ) {

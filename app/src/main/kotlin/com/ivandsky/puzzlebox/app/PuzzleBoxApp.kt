@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -12,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.app.nav.PuzzleBoxNavShell
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
@@ -120,10 +122,12 @@ private const val DEBUG_CATALOG_BINDING =
 @Composable
 internal fun CatalogScreen() {
     val debugBrowser = debugCatalogBrowser()
-    if (debugBrowser != null) {
-        debugBrowser()
-    } else {
-        CatalogUnavailableScreen()
+    Box(Modifier.testTag("route.catalog")) {
+        if (debugBrowser != null) {
+            debugBrowser()
+        } else {
+            CatalogUnavailableScreen()
+        }
     }
 }
 

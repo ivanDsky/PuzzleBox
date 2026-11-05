@@ -6,6 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.ui.NavDisplay
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -22,8 +25,13 @@ import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.queensVariantId
 import com.ivandsky.puzzlebox.games.queensui.QueensPlayController
-import com.ivandsky.puzzlebox.play.PlayRoute
+import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.navigation.NavigationState
+import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.PlaySessionStore
+import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.play.navigation.playEntry
 import org.junit.After
 import org.junit.Rule
 import org.junit.Assert.assertEquals
@@ -42,10 +50,10 @@ import org.robolectric.annotation.Config
 
 /**
  * R-4 (fix round 4, critical — data loss): a configuration change (rotation) must NOT
- * restart the Queens game. The play entry persists the live session through
- * `rememberSaveable` as [QueensSessionCodec] bytes (the Zip PlayRoute pattern, ticket
- * 13) and adopts it on recreation: identical session (marks, undo stack, provenance)
- * and NO refetch.
+ * restart the Queens game. The hub pushes Queens' game key; its slot's live play lives
+ * in the [PlaySessionStore] single, so a recreation reopens the same session (marks,
+ * undo stack, provenance) with NO refetch. After a process death the flushed saved-play
+ * row (real Room) is the only restore path, and it too restores with no refetch.
  *
  * Real recreation path: [android.app.Activity.recreate] under Robolectric saves the
  * instance state and rebuilds the host with it — the same save/restore a rotation runs.
@@ -98,10 +106,19 @@ class QueensRotationRestoreTest {
         return repo
     }
 
+    private val slot = PlaySlot(QueensDefinition.id, QueensDefinition.cadence.today())
+
+    /** The Play tab's stack; a field, so it outlives recreations as the shell's saved state does. */
+    private var navigator = Navigator(NavigationState(tab = PlayKey, stacks = listOf(listOf(PlayKey))))
+
     private fun setContent(activity: ComponentActivity) {
         activity.setContent {
             PuzzleBoxTheme {
-                PlayRoute(layout = PlayLayout.SinglePane, onBack = {}, onSolved = { _, _ -> })
+                NavDisplay(
+                    backStack = navigator.state.currentStack,
+                    onBack = { navigator.pop() },
+                    entryProvider = entryProvider { playEntry(navigator, PlayLayout.SinglePane) },
+                )
             }
         }
     }
@@ -115,14 +132,14 @@ class QueensRotationRestoreTest {
             idle()
             // The load is launched from a composition effect: drive frames, not just the looper.
             composeRule.waitForIdle()
-            if ((store.active.value?.controller as? QueensPlayController)?.board != null) return
+            if ((store.peek(slot)?.controller as? QueensPlayController)?.board != null) return
             Thread.sleep(10)
         }
         error("board never became ready")
     }
 
     private fun queens(store: PlaySessionStore): QueensPlayController =
-        store.active.value!!.controller as QueensPlayController
+        store.peek(slot)!!.controller as QueensPlayController
 
     /** A recreation pauses the clock, which banks the running window — so elapsed time may
      *  only grow across it; everything else (marks, queens, history) must be identical. */
@@ -140,9 +157,9 @@ class QueensRotationRestoreTest {
         controller.setup()
         setContent(controller.get())
         idle()
-        // The Play tab opens the picker; Queens is one of its games (the fix under test
-        // is that it no longer bypasses the picker with its own stack).
-        composeRule.onNodeWithTag("play.picker_queens").performClick()
+        // The Play tab opens the hub; Queens is one of its games (the fix under test
+        // is that it no longer bypasses the hub with its own stack).
+        composeRule.onNodeWithTag("hub.row.queens").performClick()
         idle()
         awaitBoard(flow)
 
@@ -188,19 +205,26 @@ class QueensRotationRestoreTest {
         assertEquals("still no refetch", 1, repo.todayCalls(QueensDefinition.id))
 
         // The critical leg (R-4): a process death while the entry is live — the activity,
-        // its ViewModels and the Koin graph are all gone, so the ONLY restore path is the
-        // saved-instance-state codec bytes. The session (marks, queens, undo stack,
-        // provenance) must come back with NO refetch.
+        // its ViewModels and the Koin graph are all gone. The shell's stop flush lands the
+        // session in the saved-play row, and the restored stack (Play → Queens) reopens it
+        // from there: marks, queens, undo stack and provenance come back with NO refetch.
         val saved = Bundle()
-        controller.pause().stop().saveInstanceState(saved).destroy()
+        controller.pause().stop().saveInstanceState(saved)
+        val flushed = flow.flush()
+        repeat(200) { if (!flushed.isCompleted) { idle(); Thread.sleep(10) } }
+        assertTrue("the stop flush landed", flushed.isCompleted)
+        controller.destroy()
         stopKoin()
         val freshRepo = startGraph() // a brand-new graph, a brand-new store
         val freshStore = koinApp.koin.get<PlaySessionStore>()
+        navigator = Navigator(
+            NavigationState(tab = PlayKey, stacks = listOf(listOf<NavKey>(PlayKey, GameKey(QueensDefinition.id.value)))),
+        )
         val reborn = Robolectric.buildActivity(ComponentActivity::class.java).setup(saved)
         setContent(reborn.get())
         idle()
         awaitBoard(freshStore)
         assertSameButClock("process death restores the exact live session", mid, queens(freshStore).board!!.session)
-        assertEquals("no refetch after process death — restore came from codec bytes", 0, freshRepo.todayCalls(QueensDefinition.id))
+        assertEquals("no refetch after process death — restore came from the saved row", 0, freshRepo.todayCalls(QueensDefinition.id))
     }
 }

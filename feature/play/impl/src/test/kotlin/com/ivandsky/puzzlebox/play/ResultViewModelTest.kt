@@ -4,8 +4,6 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.GetReplaySession
-import com.ivandsky.puzzlebox.game.FetchError
-import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -15,13 +13,12 @@ import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** The route VMs are thin views over the [PlaySessionStore]'s live play. */
-class PlayViewModelsTest {
+/** The result VM is a thin view over the [PlaySessionStore]'s live play. */
+class ResultViewModelTest {
 
     @get:Rule
     val main = MainDispatcherRule()
@@ -52,64 +49,6 @@ class PlayViewModelsTest {
             override val default = dispatcher
         },
     )
-
-    @Test
-    fun `a fresh entry is the picker with every playable game`() {
-        val vm = PlayViewModel(store)
-        assertEquals(PlayUiState.Picker(listOf(alpha to "Alpha", beta to "Beta")), vm.state.value)
-    }
-
-    @Test
-    fun `picking starts the game in place and the board follows the fetch`() {
-        val vm = PlayViewModel(store)
-        vm.pick(alpha) {}
-
-        val loading = vm.state.value as PlayUiState.Playing
-        assertSame(fakes[alpha], loading.ui)
-        assertEquals(PlayBoardStatus.Loading, loading.status)
-
-        vm.active!!.load()
-        val ready = vm.state.value as PlayUiState.Playing
-        assertEquals(PlayBoardStatus.Ready(banner = null), ready.status)
-        assertSame(fakes[alpha].latest, ready.controller)
-    }
-
-    @Test
-    fun `an unavailable fetch reaches the screen and retry refetches`() {
-        daily.setToday(alpha, DailyToday.Unavailable(FetchError.Unavailable("offline")))
-        val vm = PlayViewModel(store)
-        vm.pick(alpha) {}
-        vm.active!!.load()
-        assertTrue((vm.state.value as PlayUiState.Playing).status is PlayBoardStatus.Unavailable)
-
-        daily.setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
-        (vm.state.value as PlayUiState.Playing).play.load()
-        assertEquals(PlayBoardStatus.Ready(banner = null), (vm.state.value as PlayUiState.Playing).status)
-    }
-
-    @Test
-    fun `a VM created over a live play starts on it`() {
-        store.start(alpha) {}!!.load()
-        val state = PlayViewModel(store).state.value as PlayUiState.Playing
-        assertEquals(PlayBoardStatus.Ready(banner = null), state.status)
-    }
-
-    @Test
-    fun `end returns to the picker`() {
-        val vm = PlayViewModel(store)
-        vm.pick(alpha) {}
-        vm.end()
-        assertTrue(vm.state.value is PlayUiState.Picker)
-    }
-
-    @Test
-    fun `restore names its game`() {
-        val vm = PlayViewModel(store)
-        vm.restore(FakeController.envelope(alpha, moves = 4, day = day)) {}
-        val state = vm.state.value as PlayUiState.Playing
-        assertEquals(alpha, state.play.gameId)
-        assertEquals(4, fakes[alpha].latest.moves)
-    }
 
     @Test
     fun `result without a live play shows only the frozen facts`() {

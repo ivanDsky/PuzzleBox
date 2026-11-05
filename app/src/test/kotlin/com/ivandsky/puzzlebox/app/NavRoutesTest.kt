@@ -14,11 +14,10 @@ import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
-import java.util.Base64
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -31,7 +30,7 @@ import org.robolectric.annotation.Config
  * Ticket 17 nav-route regression: [puzzleBoxEntryProvider] builds the route table as a
  * plain key→entry lookup, so these tests resolve every key the wired flow pushes and
  * fail on a missing entry — the exact gap that would strand a tap on an unregistered
- * destination (Home→History, history→Replay, Play→Result, Profile→Catalog, and every
+ * destination (Home→History, history→Game, Play→Result, Profile→Catalog, and every
  * tab root) with no composition or Koin graph needed. Stack behaviour (per-tab stacks,
  * back, reselect) is pinned by NavigationStateTest and PerTabShellTest.
  */
@@ -54,9 +53,8 @@ class NavRoutesTest {
 
     @Test
     fun `every primary-flow key resolves to a registered entry`() {
-        val session = Base64.getEncoder().encodeToString(byteArrayOf(1, 2, 3))
         val keys = listOf<NavKey>(
-            HomeKey, PlayKey, HistoryKey, ReplayKey(session), ResultKey(95_000, 1), ProfileKey, CatalogKey,
+            HomeKey, PlayKey, HistoryKey, GameKey("zip", "2026-03-09"), ResultKey(95_000, 1), ProfileKey, CatalogKey,
         )
 
         keys.forEach { key ->
@@ -78,18 +76,6 @@ class NavRoutesTest {
         roots.forEach { root ->
             assertTrue(provider().invoke(root).contentKey.toString().contains(root.toString()))
         }
-    }
-
-    @Test
-    fun `replay resolution keeps the day's session blob intact`() {
-        // The history route base64-encodes the replay session into the key; the play
-        // entry decodes it back. Resolution must not mangle the carrier string.
-        val blob = byteArrayOf(0, 1, -1, 42, 7)
-        val encoded = Base64.getEncoder().encodeToString(blob)
-
-        val entry = provider().invoke(ReplayKey(encoded))
-
-        assertTrue(entry.contentKey.toString().contains(encoded))
     }
 
     @Test
