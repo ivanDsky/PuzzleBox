@@ -17,12 +17,14 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalTimerFill
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
+import com.ivandsky.puzzlebox.designsystem.tabular
 
 /**
  * Elapsed-play readout (F1 §3 "Timer bar + state"). Start-on-first-move and pause-on-
  * background are the GAME SESSION's semantics — the bar only renders the elapsed value it
  * is handed, counting UP against the optional [budgetMs] target (fills toward it, switches
- * to the tertiary hue once over; null budget = open-ended count-up).
+ * to the tertiary hue once over; null budget = open-ended count-up). The digits are
+ * tabular so the readout never jitters as it counts.
  */
 @Composable
 fun TimerBar(
@@ -36,7 +38,7 @@ fun TimerBar(
     ) {
         Text(
             text = formatDuration(elapsedMs),
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleMedium.tabular(),
             color = MaterialTheme.colorScheme.onSurface,
         )
         if (budgetMs != null) {

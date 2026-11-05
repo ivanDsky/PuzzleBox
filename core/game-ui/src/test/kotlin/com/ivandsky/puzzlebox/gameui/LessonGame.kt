@@ -77,7 +77,6 @@ class LessonGame(lessons: Int = 3, guided: Set<Int> = emptySet()) : GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
-        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     ) = Board(controller, modifier)
 

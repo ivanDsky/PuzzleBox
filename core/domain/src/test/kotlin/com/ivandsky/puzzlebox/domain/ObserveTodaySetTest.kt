@@ -1,7 +1,10 @@
 package com.ivandsky.puzzlebox.domain
 
 import app.cash.turbine.test
+import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
@@ -11,6 +14,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
@@ -19,7 +23,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** Today's set (A12–A14, SC10, SC11) over the core:testing fakes. */
+/** Today's set (A12–A14, SC10, SC11) over the core:testing fakes; Offline comes from [SyncTodayPuzzles]. */
 class ObserveTodaySetTest {
 
     private val gamma = GameId("gamma")
@@ -29,9 +33,18 @@ class ObserveTodaySetTest {
     private val saved = FakeSavedPlayRepository()
     private val completions = FakeCompletionRepository()
     private val calendar = FakeGameCalendar(today)
+    private val daily = FakeDailyRepository().apply {
+        listOf(alpha, beta, gamma).forEach { setToday(it, DailyToday.Fresh(TestGames.puzzle(it))) }
+    }
+    private val sync = SyncTodayPuzzles(TestGames.registry(listOf(alpha, beta, gamma)), daily, calendar)
 
     private fun todaySet(games: List<GameId> = listOf(alpha, beta, gamma)) =
-        ObserveTodaySet(TestGames.registry(games), saved, completions, calendar)()
+        ObserveTodaySet(TestGames.registry(games), saved, completions, calendar, daily, sync)()
+
+    /** Today's fetch for [game] finds nothing: no network, no cache. */
+    private fun failFetch(game: GameId) {
+        daily.setToday(game, DailyToday.Unavailable(FetchError.Unavailable()))
+    }
 
     private fun statuses(entries: List<TodayEntry>) = entries.associate { it.game to it.status }
 
@@ -121,6 +134,68 @@ class ObserveTodaySetTest {
             // Each game's day rolls over on its own flow; settle on the last emission.
             var after = awaitItem()
             while (after.any { it.status != TodayStatus.NotStarted }) after = awaitItem()
+        }
+    }
+
+    @Test
+    fun `a not-started game whose fetch failed reads Offline`() = runTest {
+        failFetch(alpha)
+        sync()
+
+        val status = statuses(todaySet().first())
+
+        assertEquals(TodayStatus.Offline, status[alpha])
+        assertEquals(TodayStatus.NotStarted, status[beta])
+    }
+
+    @Test
+    fun `a cached game is never Offline`() = runTest {
+        failFetch(alpha)
+        daily.setCached(alpha, today, TestGames.puzzle(alpha))
+        sync()
+
+        assertEquals(TodayStatus.NotStarted, statuses(todaySet().first())[alpha])
+    }
+
+    @Test
+    fun `a saved or solved play beats Offline`() = runTest {
+        failFetch(alpha)
+        failFetch(beta)
+        sync()
+        saved.save(PlaySlot(alpha, today), byteArrayOf(1), elapsedMs = 4_000L)
+        completions.setRecords(listOf(record(beta, today, time = 7_000L)))
+
+        val status = statuses(todaySet().first())
+
+        assertEquals(TodayStatus.InProgress(4_000L), status[alpha])
+        assertEquals(TodayStatus.Solved(7_000L), status[beta])
+    }
+
+    @Test
+    fun `capturing today's puzzle after a failed sync clears Offline`() = runTest {
+        failFetch(alpha)
+        sync()
+
+        todaySet(listOf(alpha)).test {
+            assertEquals(TodayStatus.Offline, awaitItem().single().status)
+
+            // The play route fetched it after all: the day is now in the cache.
+            daily.addEntry(DailyEntry(alpha, today, puzzleNumber = 1, variant = "alpha/v1", fetchedAtMs = 0L))
+            assertEquals(TodayStatus.NotStarted, awaitItem().single().status)
+        }
+    }
+
+    @Test
+    fun `a later successful sync clears Offline`() = runTest {
+        failFetch(alpha)
+        sync()
+
+        todaySet(listOf(alpha)).test {
+            assertEquals(TodayStatus.Offline, awaitItem().single().status)
+
+            daily.setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
+            sync()
+            assertEquals(TodayStatus.NotStarted, awaitItem().single().status)
         }
     }
 

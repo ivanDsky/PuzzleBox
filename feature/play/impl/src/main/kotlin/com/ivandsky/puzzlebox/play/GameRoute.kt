@@ -1,19 +1,34 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.gameui.GameGlyph
+import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
+import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.PlayOverflowItem
+import com.ivandsky.puzzlebox.gameui.TimerBar
 import com.ivandsky.puzzlebox.gameui.TutorialHost
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -22,14 +37,14 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * One [GameKey]'s board on any stack (A9, N21): the entry's [GameViewModel] opens the
- * slot's live play in the [PlaySessionStore], and this draws its board and status under a
- * top bar whose Up is [onBack], the same navigator pop as system back. The bar carries no
- * title (the board draws its own header) unless the board was kept across its game's
- * midnight, when it reads "Yesterday's puzzle". There is no BackHandler (predictive back
- * stays the scene's) and no saveable blob: the store's slot row is what survives process
- * death (A8, A11).
+ * slot's live play in the [PlaySessionStore], and this draws its board and status under
+ * the shared play top bar (A14): Up ([onBack], the same navigator pop as system back),
+ * the game's glyph, its name and number ("Yesterday's puzzle" when the board was kept
+ * across its game's midnight), then the timer, How to play and the game's overflow
+ * settings. There is no BackHandler (predictive back stays the scene's) and no saveable
+ * blob: the store's slot row is what survives process death (A8, A11).
  *
- * A game's first play shows its tutorial before the board, and the chrome's How to play
+ * A game's first play shows its tutorial before the board, and the bar's How to play
  * reopens it over the live play (spec A11); Skip or "Let's play" hands back to the board.
  * The bar's Up stays, so back leaves the game from a tutorial too.
  */
@@ -45,42 +60,111 @@ internal fun GameRoute(
     val play = viewModel.play
     val pastDay by viewModel.pastDay.collectAsStateWithLifecycle()
     Column(modifier = modifier.testTag("route.game")) {
-        CompactTopBar(
-            title = if (pastDay) PAST_DAY else "",
-            modifier = if (pastDay) Modifier.testTag("game.past_day") else Modifier,
-            navigationIcon = {
-                IconButton(onClick = onBack, modifier = Modifier.testTag("game.up")) {
+        if (play == null) {
+            PlayTopBar(title = if (pastDay) PAST_DAY else "", pastDay = pastDay, onBack = onBack)
+            PlayBoardFallback(PlayBoardStatus.Unavailable(UNPLAYABLE), onRetry = {}, tagPrefix = "game")
+            return@Column
+        }
+        val record by play.record.collectAsStateWithLifecycle()
+        val tutorial by viewModel.tutorial.collectAsStateWithLifecycle()
+        val board by play.board.collectAsStateWithLifecycle()
+        val playing = tutorial == TutorialGate.Closed
+        PlayTopBar(
+            title = if (pastDay) PAST_DAY else record.label,
+            pastDay = pastDay,
+            onBack = onBack,
+            glyph = { GameGlyph(play.ui.brand, GameGlyphSize.Badge) },
+        ) {
+            if (!playing) return@PlayTopBar
+            val clock = board.controller as? PlayClock
+            if (board.status is PlayBoardStatus.Ready && clock != null) {
+                TimerBar(clock.displayedElapsedMs(), Modifier.width(IntrinsicSize.Max).testTag("play.timer"))
+            }
+            if (play.ui.tutorial.isNotEmpty()) {
+                IconButton(onClick = viewModel::howToPlay, modifier = Modifier.testTag("play.how_to_play")) {
                     Icon(
-                        imageVector = PuzzleIcons.Back,
-                        contentDescription = "Back",
+                        imageVector = PuzzleIcons.HowTo,
+                        contentDescription = "How to play",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-            },
-        )
-        if (play == null) {
-            PlayBoardFallback(PlayBoardStatus.Unavailable(UNPLAYABLE), onRetry = {}, tagPrefix = "game")
-        } else {
-            val tutorial by viewModel.tutorial.collectAsStateWithLifecycle()
-            when (val gate = tutorial) {
-                TutorialGate.Checking -> PlayBoardFallback(PlayBoardStatus.Loading, onRetry = {}, tagPrefix = "game")
-                is TutorialGate.Open -> TutorialHost(
-                    ui = play.ui,
-                    session = gate.session,
-                    onFinished = viewModel::closeTutorial,
+            }
+            PlayOverflow(play.ui.overflowFor(board.controller))
+        }
+        when (val gate = tutorial) {
+            TutorialGate.Checking -> PlayBoardFallback(PlayBoardStatus.Loading, onRetry = {}, tagPrefix = "game")
+            is TutorialGate.Open -> TutorialHost(
+                ui = play.ui,
+                session = gate.session,
+                onFinished = viewModel::closeTutorial,
+            )
+            TutorialGate.Closed -> play.ui.Screen(
+                controller = board.controller,
+                status = board.status,
+                layout = layout,
+                onRetry = play::retry,
+                onSolved = { timeMs, hintsUsed -> onSolved(play.slot, timeMs, hintsUsed) },
+                modifier = Modifier,
+            )
+        }
+    }
+}
+
+/** The play top bar: Up, the game's [glyph] and [title], then the play [actions]. */
+@Composable
+private fun PlayTopBar(
+    title: String,
+    pastDay: Boolean,
+    onBack: () -> Unit,
+    glyph: @Composable () -> Unit = {},
+    actions: @Composable RowScope.() -> Unit = {},
+) {
+    CompactTopBar(
+        title = title,
+        modifier = if (pastDay) Modifier.testTag("game.past_day") else Modifier,
+        navigationIcon = {
+            IconButton(onClick = onBack, modifier = Modifier.testTag("game.up")) {
+                Icon(
+                    imageVector = PuzzleIcons.Back,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                TutorialGate.Closed -> {
-                    val board by play.board.collectAsStateWithLifecycle()
-                    play.ui.Screen(
-                        controller = board.controller,
-                        status = board.status,
-                        layout = layout,
-                        onRetry = play::retry,
-                        onSolved = { timeMs, hintsUsed -> onSolved(play.slot, timeMs, hintsUsed) },
-                        onHowToPlay = if (play.ui.tutorial.isEmpty()) null else viewModel::howToPlay,
-                        modifier = Modifier,
-                    )
-                }
+            }
+            glyph()
+        },
+        actions = actions,
+    )
+}
+
+/**
+ * The game's settings behind the bar's overflow button (A14), e.g. Queens' Auto-cross.
+ * A toggle shows a check while on; picking an item closes the menu. No items, no button.
+ */
+@Composable
+private fun PlayOverflow(items: List<PlayOverflowItem>) {
+    if (items.isEmpty()) return
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }, modifier = Modifier.testTag("play.overflow")) {
+            Icon(
+                imageVector = PuzzleIcons.More,
+                contentDescription = "More",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            items.forEach { item ->
+                val check: (@Composable () -> Unit)? =
+                    if (item.checked == true) ({ Icon(PuzzleIcons.Check, contentDescription = "On") }) else null
+                DropdownMenuItem(
+                    text = { Text(item.label) },
+                    onClick = {
+                        open = false
+                        item.onClick()
+                    },
+                    modifier = Modifier.testTag("play.overflow.item"),
+                    trailingIcon = check,
+                )
             }
         }
     }

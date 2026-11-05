@@ -191,6 +191,21 @@ class ZipPlayControllerTest {
         assertEquals(listOf(Cell(0)), c.session?.path)
     }
 
+    @Test
+    fun `the clear seam empties the trace as one undo unit and only while there is a trace`() {
+        val c = readyController()
+        assertFalse(c.edits.canClear)
+        extend(c, 0, 1, 2)
+        assertTrue(c.edits.canClear)
+
+        c.edits.clear()
+        assertEquals(emptyList<Cell>(), c.session?.path)
+        assertFalse(c.edits.canClear)
+
+        c.undo()
+        assertEquals(listOf(Cell(0), Cell(1), Cell(2)), c.session?.path)
+    }
+
     //endregion
 
     //region undo / redo (PlayUndo over the session's command history)

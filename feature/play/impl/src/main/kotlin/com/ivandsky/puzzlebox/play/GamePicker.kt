@@ -23,15 +23,15 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.gameui.todayStatusLine
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The games hub's list (tag `route.hub`, spec A14): one card per playable game
- * (`hub.row.<gameId>`), in the order given, with today's status — "Not started",
- * "In progress · m:ss" (a saved play, as a tonal tag: the A13 cue) or "Solved · m:ss ✓" —
- * and what a tap does (Play, Continue, Replay) in the primary-text colour before the
+ * (`hub.row.<gameId>`), in the order given, with today's status in Home's words
+ * ([todayStatusLine]; a saved play shows as a tonal tag: the A13 cue) and what a tap does
+ * (Play, Continue, Replay, or Try again when offline) in the primary-text colour before the
  * chevron. No status line until the status is known. Stateless; picking a card is [onPick].
  */
 @Composable
@@ -122,14 +122,14 @@ private fun StatusLine(status: TodayStatus, tag: String) {
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         ) {
             Text(
-                text = statusLine(status),
+                text = todayStatusLine(status),
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier.testTag(tag).padding(horizontal = Spacing.sm, vertical = Spacing.xs),
             )
         }
     } else {
         Text(
-            text = statusLine(status),
+            text = todayStatusLine(status),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.testTag(tag),
@@ -137,18 +137,12 @@ private fun StatusLine(status: TodayStatus, tag: String) {
     }
 }
 
-/** A row's status copy: the clock reads m:ss (0:42, 12:05). */
-internal fun statusLine(status: TodayStatus): String = when (status) {
-    TodayStatus.NotStarted -> "Not started"
-    is TodayStatus.InProgress -> "In progress · ${formatDuration(status.elapsedMs)}"
-    is TodayStatus.Solved -> "Solved · ${formatDuration(status.timeMs)} ✓"
-}
-
-/** What tapping a row does: a saved play continues, a solved day replays. */
+/** What tapping a row does: a saved play continues, a solved day replays, an offline one retries. */
 internal fun actionLabel(status: TodayStatus): String = when (status) {
     TodayStatus.NotStarted -> "Play"
     is TodayStatus.InProgress -> "Continue"
     is TodayStatus.Solved -> "Replay"
+    TodayStatus.Offline -> "Try again"
 }
 
 @PuzzleBoxPreviews

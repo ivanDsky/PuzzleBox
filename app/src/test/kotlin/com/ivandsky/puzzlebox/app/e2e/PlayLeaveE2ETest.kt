@@ -9,9 +9,11 @@ import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
 import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
+import com.ivandsky.puzzlebox.gameui.todayStatusLine
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipSession
@@ -294,7 +296,8 @@ class PlayLeaveE2ETest {
         const val BOARD_ERROR = "play.error"
         const val PLAY_TODAY = "Play today"
         const val RESUME = "Resume"
-        const val IN_PROGRESS = "In progress"
+        // The saved-play status line's words, without its clock.
+        val IN_PROGRESS = todayStatusLine(TodayStatus.InProgress(0L)).substringBefore(" ·")
         const val TRY_AGAIN = "Try again"
         const val ZIP = "zip"
         const val TANGO = "tango"

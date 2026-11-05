@@ -6,9 +6,11 @@ import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import java.time.Clock
@@ -37,13 +39,23 @@ object HistoryTestSupport {
     val TODAY: LocalDate = LocalDate.of(2026, 11, 3)
     private val clock: Clock = Clock.fixed(Instant.parse("2026-11-03T12:00:00Z"), ZoneOffset.UTC)
 
-    /** History's ViewModel over [daily]/[completions] and the production use cases. */
-    fun viewModel(daily: DailyRepository, completions: CompletionRepository): HistoryViewModel =
-        HistoryViewModel(
-            observeGameHistory = ObserveGameHistory(registry, daily, completions),
-            computeStreak = ComputeStreak(puzzleDay = GetPuzzleDay(registry, clock)),
+    /** History's ViewModel for [key] over [daily]/[completions] and the production use cases. */
+    fun viewModel(
+        daily: DailyRepository,
+        completions: CompletionRepository,
+        key: HistoryKey = HistoryKey(),
+    ): HistoryViewModel {
+        val observeGameHistory = ObserveGameHistory(registry, daily, completions)
+        return HistoryViewModel(
+            key = key,
+            observeGameHistory = observeGameHistory,
+            observeGameStats = ObserveGameStats(
+                observeGameHistory = observeGameHistory,
+                computeStreak = ComputeStreak(puzzleDay = GetPuzzleDay(registry, clock)),
+            ),
             registry = registry,
         )
+    }
 
     fun entry(day: LocalDate, puzzleNumber: Int? = PUZZLE_NUMBER, fetchedAtMs: Long = 0L) = DailyEntry(
         gameId = ZIP,

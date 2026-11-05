@@ -15,8 +15,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.gameui.todayStatusLine
 
 /** The primary action's label: "Resume" when a game of today's set has a save (A13, SC11). */
 internal fun playTodayLabel(resume: Boolean): String = if (resume) "Resume" else "Play today"
@@ -100,7 +100,7 @@ internal fun TodaySet(
                 )
                 row.status?.let { status ->
                     Text(
-                        text = statusLine(status),
+                        text = todayStatusLine(status),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.testTag("${tagPrefix}_status_${row.game.value}"),
@@ -114,10 +114,3 @@ internal fun TodaySet(
 /** "1 of 3 done": a game is done once today's puzzle is solved. */
 internal fun doneSummary(today: List<HomeUiState.TodayRow>): String =
     "${today.count { it.status is TodayStatus.Solved }} of ${today.size} done"
-
-/** The play picker's status copy (A14), so both surfaces read the same: the clock is m:ss. */
-internal fun statusLine(status: TodayStatus): String = when (status) {
-    TodayStatus.NotStarted -> "Not started"
-    is TodayStatus.InProgress -> "In progress · ${formatDuration(status.elapsedMs)}"
-    is TodayStatus.Solved -> "Solved · ${formatDuration(status.timeMs)} ✓"
-}

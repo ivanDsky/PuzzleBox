@@ -20,7 +20,7 @@ core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/DragTrace.kt 3  # S1
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/GamePlay.kt 6  # S1
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/GridGeometry.kt 2  # S1
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/PlayBoardStatus.kt 2  # S1
-core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/PlayChrome.kt 6  # S1
+core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/PlayChrome.kt 5  # S1
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/PlayScaffold.kt 2  # S1
 core/game/src/main/kotlin/com/ivandsky/puzzlebox/game/Command.kt 2  # S1
 core/game/src/main/kotlin/com/ivandsky/puzzlebox/game/DailySource.kt 2  # S1

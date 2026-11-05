@@ -11,4 +11,7 @@ sealed interface TodayStatus {
 
     /** Today's completion record exists; [timeMs] is its solve time. */
     data class Solved(val timeMs: Long) : TodayStatus
+
+    /** Nothing played, today's puzzle is not cached and the last [SyncTodayPuzzles] fetch failed. */
+    data object Offline : TodayStatus
 }

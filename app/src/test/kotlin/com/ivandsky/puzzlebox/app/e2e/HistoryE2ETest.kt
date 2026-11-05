@@ -63,7 +63,7 @@ class HistoryE2ETest {
             assertRoute(RESULT)
             val result = state.currentStack.last()
             assertTrue("result of the replayed day: $state", result is ResultKey && result.gameId == ZIP && result.day == "$REPLAY_DAY")
-            assertEquals(listOf(HomeKey, HistoryKey, result), state.currentStack)
+            assertEquals(listOf(HomeKey, HistoryKey(), result), state.currentStack)
             assertSelectedTab(HomeKey)
 
             back()
@@ -137,8 +137,8 @@ class HistoryE2ETest {
         profile: List<NavKey> = listOf(ProfileKey),
     ) = NavigationState(tab = tab, stacks = listOf(home, play, profile))
 
-    private val history = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey))
-    private val replaying = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey, GameKey(ZIP, "$REPLAY_DAY")))
+    private val history = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey()))
+    private val replaying = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey(), GameKey(ZIP, "$REPLAY_DAY")))
 
     private companion object {
         const val HOME = "route.home"

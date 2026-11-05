@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
+import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -75,6 +76,7 @@ class HistoryScreenTest {
             BackHandler { shellBacks++ }
             PuzzleBoxTheme {
                 HistoryRoute(
+                    key = HistoryKey(),
                     layout = layout,
                     onBack = {},
                     onReplay = { game, day -> handedToShell = game to day },

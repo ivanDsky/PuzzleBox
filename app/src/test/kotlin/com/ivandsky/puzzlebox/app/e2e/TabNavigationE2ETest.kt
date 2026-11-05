@@ -111,7 +111,7 @@ class TabNavigationE2ETest {
         val graph = E2eKoinGraph(E2E_TODAY).apply {
             daily.setHistory(ZipDefinition.id, List(HISTORY_DAYS) { ZipPlayFixture.entry(E2E_TODAY.minusDays(it.toLong())) })
         }
-        val history = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey))
+        val history = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey()))
         shellRobot(graph = graph) {
             tapText("See all")
             assertState(history)
@@ -144,7 +144,7 @@ class TabNavigationE2ETest {
     fun `SC13 compact width shows the bottom bar on every destination`() {
         listOf(
             stacks(tab = HomeKey) to HOME,
-            stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey)) to HISTORY,
+            stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey())) to HISTORY,
             stacks(tab = PlayKey) to HUB,
             stacks(tab = PlayKey, play = listOf(PlayKey, GameKey(ZIP))) to GAME,
             stacks(tab = PlayKey, play = listOf(PlayKey, ResultKey(ZIP, "2026-03-09", timeMs = 1_000L, hintsUsed = 0))) to RESULT,
@@ -179,7 +179,7 @@ class TabNavigationE2ETest {
     fun `SC14 the tab and all three stacks survive a restore, saved under 100 KB`() {
         val worst = stacks(
             tab = ProfileKey,
-            home = listOf(HomeKey, HistoryKey, GameKey(QUEENS)),
+            home = listOf(HomeKey, HistoryKey(), GameKey(QUEENS)),
             play = listOf(PlayKey, GameKey(ZIP)),
             profile = listOf(ProfileKey, CatalogKey),
         )

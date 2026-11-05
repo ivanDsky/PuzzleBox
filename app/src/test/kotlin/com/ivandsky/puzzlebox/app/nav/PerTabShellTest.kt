@@ -25,6 +25,7 @@ import androidx.savedstate.savedState
 import androidx.savedstate.serialization.encodeToSavedState
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
+import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -39,7 +40,6 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
-import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
@@ -81,7 +81,8 @@ class PerTabShellTest {
             androidContext(RuntimeEnvironment.getApplication())
             modules(
                 PuzzleBoxApplication.appModules + module {
-                    single<DailyRepository> { FakeDailyRepository() }
+                    // Home prefetches today's puzzles on resume: every game's fetch is scripted.
+                    single<DailyRepository> { freshDailyForAllGames() }
                     single<CompletionRepository> { FakeCompletionRepository() }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<IdentityService> { FakeIdentityService() }
@@ -169,7 +170,7 @@ class PerTabShellTest {
         val restoration = StateRestorationTester(composeRule)
         restoration.setContent { Shell() }
         composeRule.runOnIdle {
-            navigator.push(HistoryKey)
+            navigator.push(HistoryKey())
             navigator.selectTab(ProfileKey)
             navigator.push(CatalogKey)
         }

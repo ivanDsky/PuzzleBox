@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.play
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,7 +37,7 @@ import java.time.LocalDate
  * — so tests can assert exactly what was adopted, published and restored. Its clock is
  * the real games' shape: the first move opens a window, a background fold banks it into
  * the session (and publishes), folding a paused clock banks nothing. It has no tutorial
- * until a test calls [teach]; its screen offers How to play whenever the route passes it.
+ * until a test calls [teach]; the route's top bar then offers How to play.
  */
 class FakePlayUi(override val gameId: GameId) : GamePlayUi {
 
@@ -78,12 +77,10 @@ class FakePlayUi(override val gameId: GameId) : GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
-        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     ) {
         val fake = controller as FakeController
         Column {
-            if (onHowToPlay != null) Text("How to play", Modifier.testTag("play.how_to_play").clickable(onClick = onHowToPlay))
             if (status is PlayBoardStatus.Ready) {
                 // The real games' chrome clock: leaving the composition folds the window.
                 PlayClockEffects(fake)

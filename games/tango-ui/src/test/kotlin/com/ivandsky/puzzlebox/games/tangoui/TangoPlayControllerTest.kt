@@ -6,7 +6,6 @@ import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
-import com.ivandsky.puzzlebox.games.tango.TangoSession
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
@@ -18,7 +17,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -46,7 +44,6 @@ class TangoPlayControllerTest {
     ) = TangoPlayController(
         env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), onSessionChanged, onWon),
         now = { fakeNow },
-        today = { today },
     )
 
     /** A controller that adopted today's fixture under ref (today, [puzzleNumber]). */
@@ -238,24 +235,6 @@ class TangoPlayControllerTest {
         assertEquals(5_000L, s.session?.elapsedMs)
         assertNull(s.clockWindow)
         assertEquals(5_000L, s.displayedElapsedMs())
-    }
-
-    @Test
-    fun `subtitle is Daily numbered, Practice unnumbered, or Replay by date`() {
-        val s = loaded()
-        assertEquals("Daily · #301", s.subtitle)
-
-        val archived = controller()
-        archived.adoptRestored(
-            TangoSessionCodec.serialize(
-                TangoSession(ref = TangoPuzzleRef(LocalDate.parse("2026-03-09"), 12), puzzle = TangoPlayFixture.puzzle),
-            ),
-        )
-        assertEquals("Replay · Mar 9", archived.subtitle)
-
-        val unnumbered = loaded(puzzleNumber = null)
-        assertNotEquals("practice never reads as the not-yet-loaded daily", controller().subtitle, unnumbered.subtitle)
-        assertFalse("practice never claims an edition", unnumbered.subtitle.contains("#"))
     }
 
     @Test

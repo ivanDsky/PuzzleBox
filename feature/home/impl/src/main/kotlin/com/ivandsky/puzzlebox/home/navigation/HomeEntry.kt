@@ -31,7 +31,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
             // A6: the account card is a tab switch, not a push. Home's stack is untouched,
             // so Home (bar or back from the Profile root) returns to it as it was.
             onOpenProfile = { navigator.selectTab(ProfileKey) },
-            onOpenHistory = { navigator.pushOnce(HistoryKey) },
+            onOpenHistory = { navigator.pushOnce(HistoryKey()) },
         )
     }
 }
