@@ -59,7 +59,8 @@ object ZipWireParser {
             return DecodeResult.Err(DecodeError.Malformed("gridSize $gridSize outside 2..16"))
         }
         val variantId = VariantId("zip/n$gridSize")
-        val variant = ZipVariants.byId(variantId)
+        // Daily sizes only: the tutorial's tiny boards are never a daily (spec A18).
+        val variant = ZipVariants.dailyById(variantId)
             ?: return DecodeResult.Err(DecodeError.UnknownVariant(variantId.value))
 
         val orderedSequence = payload.array("orderedSequence")
