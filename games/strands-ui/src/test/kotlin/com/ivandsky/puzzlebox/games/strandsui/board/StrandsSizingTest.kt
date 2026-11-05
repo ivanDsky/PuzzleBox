@@ -8,7 +8,7 @@ import org.junit.Test
 
 /**
  * SC11 / A37 sizing on the real 6×8 board: every form factor keeps a 48 dp cell or more, a
- * big pane stops at the 64 dp cap, and a short two-pane binds on height.
+ * big pane stops at the 96 dp cap, and a short two-pane binds on height.
  */
 class StrandsSizingTest {
 

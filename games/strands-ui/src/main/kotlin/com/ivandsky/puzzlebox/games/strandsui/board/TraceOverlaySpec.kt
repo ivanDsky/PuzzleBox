@@ -6,7 +6,7 @@ import com.ivandsky.puzzlebox.games.strandsui.StrandsCopy
 import com.ivandsky.puzzlebox.games.strandsui.StrandsMotion
 
 /**
- * A letter in the live trace, over any base look: the beige selection token, and NYT's
+ * A letter in the live trace, over any base look: the blue selection token, and NYT's
  * `Pulse` as the letter joins (1 → [StrandsMotion.PressScale] → 1).
  */
 internal object TraceOverlaySpec : StrandsCellSpec {

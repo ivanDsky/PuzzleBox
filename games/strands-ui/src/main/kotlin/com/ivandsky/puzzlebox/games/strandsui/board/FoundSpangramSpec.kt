@@ -11,7 +11,7 @@ import com.ivandsky.puzzlebox.games.strandsui.StrandsCopy
 import com.ivandsky.puzzlebox.games.strandsui.StrandsMotion
 
 /**
- * The found spangram: the yellow token with an inset ring, its non-colour cue beside the
+ * The found spangram: the gold token with an inset ring, its non-colour cue beside the
  * thicker connector (A32), and the sweep: the settle bounce run edge to edge along the
  * word, [StrandsMotion.SweepStaggerMs] apart, squeezed so the last letter starts within
  * [StrandsMotion.SpangramSweep]'s length however long the word ([StrandsMotion.sweepDelayMs]).

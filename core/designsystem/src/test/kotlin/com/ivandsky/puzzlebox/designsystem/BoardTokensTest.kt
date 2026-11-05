@@ -153,13 +153,6 @@ class BoardTokensTest {
         }
     }
 
-    @Test
-    fun `strands tiles keep NYT's hues in both themes`() {
-        assertEquals(DarkBoardTokens.strandsThemeFill, LightBoardTokens.strandsThemeFill)
-        assertEquals(DarkBoardTokens.strandsSpangramFill, LightBoardTokens.strandsSpangramFill)
-        assertEquals(DarkBoardTokens.strandsSelectionFill, LightBoardTokens.strandsSelectionFill)
-    }
-
     private fun contrast(foreground: Color, background: Color): Float {
         val fg = foreground.luminance() + 0.05f
         val bg = background.luminance() + 0.05f

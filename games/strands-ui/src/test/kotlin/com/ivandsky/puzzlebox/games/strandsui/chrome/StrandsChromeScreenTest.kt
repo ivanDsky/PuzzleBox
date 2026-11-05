@@ -12,6 +12,8 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.assert
@@ -26,6 +28,7 @@ import com.ivandsky.puzzlebox.games.strands.HintStage
 import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayController
 import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayScreen
 import com.ivandsky.puzzlebox.games.strandsui.StrandsUiFixtures
+import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSpec
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.games.strands.StrandsPuzzle
 import com.ivandsky.puzzlebox.games.strands.StrandsWord
@@ -97,10 +100,32 @@ class StrandsChromeScreenTest {
     }
 
     @Test
-    fun `the tablet panes carry the theme card, slot and counter in the board pane`() {
+    fun `the tablet side panel carries the theme card, slot and found words, the board pane the hint row`() {
         show(adopted(), PlayLayout.TwoPane)
-        assertChromeInBoardPane()
-        rule.onNode(hasTestTag("strands.hint") and hasAnyAncestor(hasTestTag("play.side_panel"))).assertDoesNotExist()
+        val inSidePanel = hasAnyAncestor(hasTestTag("play.side_panel"))
+        val inBoardPane = hasAnyAncestor(hasTestTag("strands.board_area"))
+        for (tag in listOf("strands.theme_card", "strands.slot", "strands.header_line", "strands.found_words")) {
+            rule.onNode(hasTestTag(tag) and inSidePanel).assertExists()
+            rule.onNode(hasTestTag(tag) and inBoardPane).assertDoesNotExist()
+        }
+        for (tag in listOf("strands.counter", "strands.hint")) {
+            rule.onNode(hasTestTag(tag) and inBoardPane).assertExists()
+        }
+    }
+
+    @Test
+    fun `the found list grows a chip per word found, gold for the spangram, and keeps a slot per word left`() {
+        val controller = adopted()
+        show(controller, PlayLayout.TwoPane)
+        rule.onAllNodesWithTag("strands.missing_word").assertCountEquals(4)
+
+        controller.play(StrandsUiFixtures.row(0))
+        controller.play(StrandsUiFixtures.row(1))
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("strands.found_word").assert(hasContentDescription("PIES"))
+        rule.onNodeWithTag("strands.found_spangram").assert(hasContentDescription("BAKE, spangram"))
+        rule.onAllNodesWithTag("strands.missing_word").assertCountEquals(2)
     }
 
     @Test
@@ -116,8 +141,8 @@ class StrandsChromeScreenTest {
     @Test
     fun `a tablet pane sizes the board to its height, not a narrow cap`() {
         show(adopted(), PlayLayout.TwoPane)
-        // 4 columns at the 64 dp cap: the pane is tall enough for the largest cell.
-        rule.onNodeWithTag("strands.board").assertWidthIsEqualTo(64.dp * 4)
+        // 4 columns at the cap: the pane is tall and wide enough for the largest cell.
+        rule.onNodeWithTag("strands.board").assertWidthIsEqualTo(StrandsBoardSpec.CellMaxSize * 4)
     }
 
     @Test

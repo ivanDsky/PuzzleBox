@@ -29,8 +29,8 @@ class StrandsHitTestTest {
     @Test
     fun `a drag takes a cell at its centre and inside the circle, never at its corners`() {
         assertEquals(Coord(2, 3), StrandsHitTest.innerCellAt(geometry, 350f, 250f))
-        assertEquals(Coord(2, 3), StrandsHitTest.innerCellAt(geometry, 350f + 37f, 250f))
-        assertNull(StrandsHitTest.innerCellAt(geometry, 350f + 40f, 250f))
+        assertEquals(Coord(2, 3), StrandsHitTest.innerCellAt(geometry, 350f + 39f, 250f))
+        assertNull(StrandsHitTest.innerCellAt(geometry, 350f + 42f, 250f))
         for ((x, y) in listOf(301f to 201f, 399f to 201f, 301f to 299f, 399f to 299f)) {
             assertNull("corner $x,$y", StrandsHitTest.innerCellAt(geometry, x, y))
         }

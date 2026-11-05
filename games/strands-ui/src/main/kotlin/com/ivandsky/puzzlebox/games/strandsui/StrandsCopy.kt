@@ -7,6 +7,7 @@ internal object StrandsCopy {
     const val TITLE = "Strands"
     const val THEME_LABEL = "Today's theme"
     const val HINT = "Hint"
+    const val FOUND_WORDS = "Found words"
 
     const val EMPTY = "Enter a word to submit"
     const val TOO_SHORT = "Too short"

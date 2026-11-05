@@ -47,11 +47,12 @@ data class BoardColors(
     val sunFill: Color,
     val moonFill: Color,
 
-    // Strands (spec A32, research 03): NYT's palette on round letter tokens. The tile
-    // fills keep the same light hues in both modes, so the letter on them is always
-    // black (>= 4.5:1 on each fill). The hint ring is non-text (>= 3:1 vs
-    // boardSurface); an idle letter sits on the bare board (>= 4.5:1). Connectors
-    // take their word's fill: beige trace, blue theme, yellow spangram, ring-blue hint.
+    // Strands (spec A32): the app's brand hues on round letter tokens, read the way the
+    // rest of the app reads them — blue while you trace (Zip's live path), green for a found
+    // theme word (correct), gold for the spangram (special). The letter on a filled token is
+    // always black (>= 4.5:1 on each fill). The hint ring previews its word's green and is
+    // non-text (>= 3:1 vs boardSurface); an idle letter sits on the bare board (>= 4.5:1).
+    // Connectors take their word's fill.
     val strandsThemeFill: Color,
     val strandsSpangramFill: Color,
     val strandsSelectionFill: Color,
@@ -64,12 +65,9 @@ data class BoardColors(
     val strandsHintConnector: Color,
 )
 
-// NYT's Strands hues (research 03, CSS655 `--strands-*`): one value per role in both
-// modes, because NYT keeps them fixed and remaps only the page around them.
-private val StrandsBlue = Color(0xFFAEDFEE) // black text 14.59:1
-private val StrandsYellow = Color(0xFFF8CD05) // black text 13.73:1
-private val StrandsBeige = Color(0xFFDBD8C5) // black text 14.64:1
-private val StrandsDarkMint = Color(0xFF3F9EBC) // NYT's light-mode hint dash, 3.08:1 on white
+// Dark mode keeps the softened blue step Zip's trace settled on (T27: scheme #1CB0F6 read
+// as neon glare on dark); green and gold are the dark scheme's own primary and tertiary.
+private val DarkTracePowder = Color(0xFFB3CBD6) // = DarkBoardTokens.pathTrace, black text 12.3:1
 
 // Dark values alias the dark scheme (provenance per U2's table; ratios vs
 // boardSurface): gridline 4.59, wall 8.01, dot 9.70, label-on-dot 8.28,
@@ -89,16 +87,16 @@ val DarkBoardTokens = BoardColors(
     boardRegion = DarkColorScheme.surfaceContainerHigh, // future fill tint; stroke its boundary with wall/gridline when built
     sunFill = DarkColorScheme.tertiary, // #FFC800, 10.76:1 — dark scheme tertiary already cleared the bar; no new literal
     moonFill = Color(0xFFB3CBD6), // T27 "powder" literal, 9.89:1 — same hue as secondary, proven non-glaring
-    strandsThemeFill = StrandsBlue,
-    strandsSpangramFill = StrandsYellow,
-    strandsSelectionFill = StrandsBeige,
-    strandsHintRing = StrandsBlue, // NYT dark mode swaps the dash to strands-blue: 11.61:1
+    strandsThemeFill = DarkColorScheme.primary, // #6BDF17, black text 12.4:1
+    strandsSpangramFill = DarkColorScheme.tertiary, // #FFC800, black text 13.4:1
+    strandsSelectionFill = DarkTracePowder,
+    strandsHintRing = DarkColorScheme.primary,
     strandsTileText = Color.Black,
     strandsIdleLetter = DarkColorScheme.onSurface,
-    strandsTraceConnector = StrandsBeige,
-    strandsThemeConnector = StrandsBlue,
-    strandsSpangramConnector = StrandsYellow,
-    strandsHintConnector = StrandsBlue,
+    strandsTraceConnector = DarkTracePowder,
+    strandsThemeConnector = DarkColorScheme.primary,
+    strandsSpangramConnector = DarkColorScheme.tertiary,
+    strandsHintConnector = DarkColorScheme.primary,
 )
 
 // Light mirrors dark role-for-role: reuses plus the three new darker steps (dot
@@ -118,16 +116,16 @@ val LightBoardTokens = BoardColors(
     boardRegion = LightColorScheme.surfaceContainerHigh, // future fill tint
     sunFill = Color(0xFFC25A00), // new: orange family, darkest step clearing 3:1 with selection headroom — 4.42:1 on white
     moonFill = Color(0xFF0F78B4), // existing waypointDotOnPath light literal, blue family — 4.81:1
-    strandsThemeFill = StrandsBlue,
-    strandsSpangramFill = StrandsYellow,
-    strandsSelectionFill = StrandsBeige,
-    strandsHintRing = StrandsDarkMint,
+    strandsThemeFill = LightColorScheme.primary, // #58CC02, black text 10.2:1
+    strandsSpangramFill = DarkColorScheme.tertiary, // #FFC800 gold in both modes; light tertiary #FF9600 reads as Tango's sun
+    strandsSelectionFill = LightColorScheme.secondary, // #1CB0F6, black text 8.4:1
+    strandsHintRing = LightTimerFill, // #3A8200, the green step that clears 3:1 on white (4.8:1)
     strandsTileText = Color.Black,
     strandsIdleLetter = LightColorScheme.onSurface,
-    strandsTraceConnector = StrandsBeige,
-    strandsThemeConnector = StrandsBlue,
-    strandsSpangramConnector = StrandsYellow,
-    strandsHintConnector = StrandsDarkMint,
+    strandsTraceConnector = LightColorScheme.secondary,
+    strandsThemeConnector = LightColorScheme.primary,
+    strandsSpangramConnector = DarkColorScheme.tertiary,
+    strandsHintConnector = LightTimerFill,
 )
 
 object BoardTokens {

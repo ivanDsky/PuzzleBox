@@ -83,6 +83,10 @@ class StrandsPlayController(
         get() = session?.state?.let { HintUi(StrandsHints.available(it) > 0, StrandsHints.meterThirds(it)) }
             ?: HintUi(available = false, meterThirds = 0)
 
+    /** The words found so far, in the order found, for the tablet side panel's list. */
+    val foundWords: List<FoundWord>
+        get() = session?.state?.let { s -> s.found.map { FoundWord(it, spangram = it == s.puzzle.spangram.text) } }.orEmpty()
+
     /** The hints the finished board took; null while it is unsolved (A36 rating word). */
     val solvedHints: Int?
         get() = session?.state?.takeIf { it.isComplete }?.hintsUsed

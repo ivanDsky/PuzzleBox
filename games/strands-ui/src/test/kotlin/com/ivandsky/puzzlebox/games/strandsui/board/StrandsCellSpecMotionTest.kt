@@ -50,7 +50,7 @@ class StrandsCellSpecMotionTest {
     }
 
     @Test
-    fun `a found letter waits beige for its turn, then bounces`() {
+    fun `a found letter keeps the trace colour until its turn, then bounces`() {
         assertEquals(StrandsCellFrame(lit = 0f), FoundThemeSpec.frame(99, cue, reduceMotion = false))
         val dip = FoundThemeSpec.frame(100 + StrandsMotion.FoundSettle.enterDurationMillis / 4, cue, reduceMotion = false)
         assertEquals(StrandsMotion.SettleDipScale, dip.scale, 1e-3f)

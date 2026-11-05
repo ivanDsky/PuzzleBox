@@ -16,18 +16,18 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.games.strands.StrandsRating
 import com.ivandsky.puzzlebox.games.strandsui.StrandsCopy
 
 /**
- * NYT's theme card: a blue label band over the clue, verbatim (A34, emoji included). Once
- * the board is solved the band carries the [rating] word instead of the label (A36).
+ * NYT's theme card: a label band over the clue, verbatim (A34, emoji included). Once
+ * the board is solved the band carries the [rating] word instead of the label (A36). The
+ * band is the soft primary container, so the loud brand green stays on the found words.
  */
 @Composable
 internal fun ThemeCard(clue: String, rating: StrandsRating?, modifier: Modifier = Modifier) {
-    val board = LocalBoardColors.current
+    val band = MaterialTheme.colorScheme.primaryContainer
     Surface(
         shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.surface,
@@ -41,11 +41,11 @@ internal fun ThemeCard(clue: String, rating: StrandsRating?, modifier: Modifier 
                 text = rating?.let(StrandsCopy::rating) ?: StrandsCopy.THEME_LABEL,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = board.strandsTileText,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(board.strandsThemeFill)
+                    .background(band)
                     .padding(vertical = Spacing.xs)
                     .semantics { heading() }
                     .testTag("strands.theme_label"),

@@ -55,7 +55,7 @@ import org.robolectric.annotation.GraphicsMode
  * a word, taps spell and submit one, a diagonal through a corner skips the side letters,
  * TalkBack's double-tap is a tap and each letter is one stop (SC12), a touch beside the board
  * clears the trace, each outcome buzzes, and a found word settles once: a board composed
- * afresh rests (A33). A 400 × 300 dp host gives a 64 dp cell and gutters on both sides.
+ * afresh rests (A33). A 400 × 300 dp host gives a 75 dp cell and gutters on both sides.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -211,7 +211,7 @@ class StrandsBoardGestureTest {
         val settling = pixels(first)
         rule.mainClock.advanceTimeBy(SETTLED_MS)
         val rest = pixels(first)
-        // Taking the event does not cut the settle short: its first frame is still beige.
+        // Taking the event does not cut the settle short: its first frame is still the trace colour.
         assertFalse(settling.contentEquals(rest))
         assertNull(controller.lastFound)
 

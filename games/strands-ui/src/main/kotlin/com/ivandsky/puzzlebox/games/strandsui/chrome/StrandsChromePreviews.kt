@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.games.strands.StrandsRating
+import com.ivandsky.puzzlebox.games.strandsui.FoundWord
 import com.ivandsky.puzzlebox.games.strandsui.HintDialog
 import com.ivandsky.puzzlebox.games.strandsui.HintUi
 import com.ivandsky.puzzlebox.games.strandsui.StrandsCopy
@@ -87,6 +88,13 @@ internal fun StrandsThemeCardEmojiCluePreview() = ChromePane {
 @Composable
 internal fun StrandsThemeCardSolvedPreview() = ChromePane {
     for (rating in StrandsRating.entries) ThemeCard(clue = header.clue, rating = rating)
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun StrandsFoundWordsListPreview() = ChromePane {
+    FoundWordsList(words = emptyList(), total = 4)
+    FoundWordsList(words = listOf(FoundWord("PIES", spangram = false), FoundWord("BAKE", spangram = true)), total = 4)
 }
 
 @PuzzleBoxPreviews

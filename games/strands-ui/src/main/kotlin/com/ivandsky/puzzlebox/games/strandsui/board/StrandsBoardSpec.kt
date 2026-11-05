@@ -26,20 +26,21 @@ internal object StrandsBoardSpec {
     val HintDash: Dp = 6.dp
     val HintGap: Dp = 4.5.dp
 
-    /** The spangram's second cue (A32): a ring inset inside the yellow token. */
+    /** The spangram's second cue (A32): a ring inset inside the gold token. */
     val SpangramRingWidth: Dp = 2.dp
     val SpangramRingInset: Dp = 4.dp
 
     /**
      * A drag joins a cell only inside this circle, radius as a fraction of the pitch, so a
-     * diagonal stroke through a corner never picks up the side neighbour (A12). The corner
-     * sits 0.71 × pitch from each neighbouring centre, well outside 0.38.
+     * diagonal stroke through a corner never picks up the side neighbour (A12). A straight
+     * diagonal passes 0.71 × pitch from the side neighbours' centres, so 0.40 leaves 0.3 pitch
+     * of wobble while the circle spans 80% of the cell, the size of the drawn token.
      */
-    const val HitCircleFraction: Float = 0.38f
+    const val HitCircleFraction: Float = 0.40f
 
     /** SC11: no cell, and so no touch-down target, is ever smaller than this. */
     val TouchFloor: Dp = 48.dp
 
-    /** Readability cap on a large pane (QueensBoardDefaults.cellMaxSize precedent). */
-    val CellMaxSize: Dp = 64.dp
+    /** Cap on a large pane: a tablet's board grows to finger-sized cells, not a phone's. */
+    val CellMaxSize: Dp = 96.dp
 }

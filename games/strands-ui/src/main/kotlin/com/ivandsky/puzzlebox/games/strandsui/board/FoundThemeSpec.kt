@@ -10,8 +10,8 @@ import com.ivandsky.puzzlebox.games.strandsui.StrandsCopy
 import com.ivandsky.puzzlebox.games.strandsui.StrandsMotion
 
 /**
- * A found theme word: the blue token, and the settle as it is found. Letter n waits
- * n × [StrandsMotion.SettleStaggerMs], turns from beige to blue, and runs NYT's
+ * A found theme word: the green token, and the settle as it is found. Letter n waits
+ * n × [StrandsMotion.SettleStaggerMs], turns from the trace blue to green, and runs NYT's
  * `Pulser bounce`, both per [StrandsMotion.FoundSettle].
  */
 internal object FoundThemeSpec : StrandsCellSpec {
@@ -46,7 +46,7 @@ internal object FoundThemeSpec : StrandsCellSpec {
 
     /**
      * One letter's bounce [localMs] after its own start, eased by [easing] (the spangram
-     * sweep passes its own); before it, the letter still shows beige.
+     * sweep passes its own); before it, the letter still shows the trace colour.
      */
     fun settle(localMs: Int, reduceMotion: Boolean, easing: Easing = Settle.enterEasing): StrandsCellFrame = when {
         reduceMotion || localMs >= Settle.enterDurationMillis -> StrandsCellFrame.Rest

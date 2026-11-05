@@ -188,7 +188,7 @@ private fun LetterToken(
     }
 }
 
-/** The live trace overlays any base look; a found letter turns from beige to its colour as it lights. */
+/** The live trace overlays any base look; a found letter turns from the trace colour to its own as it lights. */
 private fun tokenFill(spec: StrandsCellSpec, traced: Boolean, frame: StrandsCellFrame, colors: BoardColors): Color? {
     if (traced) return TraceOverlaySpec.fill(colors)
     val fill = spec.fill(colors) ?: return null

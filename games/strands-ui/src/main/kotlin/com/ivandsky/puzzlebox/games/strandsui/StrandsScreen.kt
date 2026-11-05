@@ -37,14 +37,17 @@ import com.ivandsky.puzzlebox.games.strandsui.chrome.StrandsHeaderLine
 import com.ivandsky.puzzlebox.games.strandsui.chrome.StrandsHintRow
 import com.ivandsky.puzzlebox.games.strandsui.chrome.ThemeCard
 import com.ivandsky.puzzlebox.games.strandsui.chrome.WordSlotLine
+import com.ivandsky.puzzlebox.games.strandsui.chrome.FoundWordsList
 
 /**
- * The Strands play screen (A37): the board pane stacks the theme card, the header line, the
- * word slot, the board and the hint row under it (counter and Hint, as on NYT); the shared
- * chrome (title, clock, How to play) sits after it on a phone and beside it on a tablet. No undo and no shared hint
- * control (A15: the hint is Strands' own economy). A finished board stays on screen with its
- * rating word and hands its time and hints to [onSolved] once per completion. A tap anywhere
- * off the board drops a half-traced word, as on NYT.
+ * The Strands play screen (A37). On a phone one column stacks the theme card, the header
+ * line, the word slot, the board and the hint row under it (counter and Hint, as on NYT),
+ * then the shared chrome (title, clock, How to play). On a tablet the board pane keeps only
+ * the board and its hint row, so the board takes the pane's full height; the theme card,
+ * header line, word slot and the found-words list move into the side panel under the shared
+ * chrome. No undo and no shared hint control (A15: the hint is Strands' own economy). A
+ * finished board stays on screen with its rating word and hands its time and hints to
+ * [onSolved] once per completion. A tap anywhere off the board drops a half-traced word.
  */
 @Composable
 internal fun StrandsPlayScreen(
@@ -71,8 +74,8 @@ internal fun StrandsPlayScreen(
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val viewport = maxHeight
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).testTag("strands.scroll")) {
-                    BoardColumn(controller, header, reduceMotion, fitHeight = viewport)
-                    SidePanel(controller, status, onHowToPlay)
+                    BoardColumn(controller, header, reduceMotion, fitHeight = viewport, withChrome = true)
+                    SidePanel(controller, status, reduceMotion, onHowToPlay, withChrome = false)
                 }
             }
         } else {
@@ -80,7 +83,7 @@ internal fun StrandsPlayScreen(
                 layout = layout,
                 modifier = Modifier.fillMaxSize(),
                 board = { BoardPane(controller, status, reduceMotion, onRetry) },
-                side = { SidePanel(controller, status, onHowToPlay) },
+                side = { SidePanel(controller, status, reduceMotion, onHowToPlay, withChrome = true) },
             )
         }
     }
@@ -116,14 +119,14 @@ private fun BoardPane(
         }
         return
     }
-    BoardColumn(controller, header, reduceMotion, fitHeight = null, Modifier.fillMaxSize())
+    BoardColumn(controller, header, reduceMotion, fitHeight = null, withChrome = false, Modifier.fillMaxSize())
 }
 
 /**
- * The theme card, header line and word slot, then the board, then the hint row as wide as the
- * board (NYT's grid and row under it). The board takes the height the rest leaves (A37): the
- * tablet pane's height, or on a phone [fitHeight], the viewport the page scrolls in, so its
- * cells shrink toward the 48 dp floor before the hint row is pushed off screen.
+ * With [withChrome], the [PuzzleChrome] above, then the board, then the hint row as wide as
+ * the board (NYT's grid and row under it). The board takes the height the rest leaves (A37):
+ * the tablet pane's height, or on a phone [fitHeight], the viewport the page scrolls in, so
+ * its cells shrink toward the 48 dp floor before the hint row is pushed off screen.
  */
 @Composable
 private fun BoardColumn(
@@ -131,21 +134,13 @@ private fun BoardColumn(
     header: StrandsHeader,
     reduceMotion: Boolean,
     fitHeight: Dp?,
+    withChrome: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val model = controller.model
     Layout(
         contents = listOf(
-            {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    ThemeCard(header.clue, controller.solvedHints?.let(StrandsRating::of), Modifier.fillMaxWidth())
-                    StrandsHeaderLine(header)
-                    WordSlotLine(controller.slot, model.foundCount, model.totalCount, reduceMotion, Modifier.fillMaxWidth())
-                }
-            },
+            { if (withChrome) PuzzleChrome(controller, header, reduceMotion) },
             { StrandsBoard(controller) },
             {
                 StrandsHintRow(
@@ -169,24 +164,25 @@ private fun BoardColumn(
         val widest = if (model.rows == 0) width else {
             (strandsCellSizeFor(width.toDp(), Dp.Infinity, model.rows, model.cols) * model.cols).roundToPx().coerceAtMost(width)
         }
-        val topPlaceable = top.single().measure(Constraints(maxWidth = widest))
+        val topPlaceable = top.firstOrNull()?.measure(Constraints(maxWidth = widest))
+        val topHeight = topPlaceable?.let { it.height + gap } ?: 0
         val rowHeight = row.single().maxIntrinsicHeight(widest)
         val fit = when {
             constraints.hasBoundedHeight -> constraints.maxHeight
             fitHeight != null && fitHeight.isFinite -> (fitHeight - BoardColumnPadding * 2).roundToPx()
             else -> null
         }
-        val boardBudget = fit?.let { (it - topPlaceable.height - rowHeight - gap * 2).coerceAtLeast(0).toDp() } ?: Dp.Infinity
+        val boardBudget = fit?.let { (it - topHeight - rowHeight - gap).coerceAtLeast(0).toDp() } ?: Dp.Infinity
         val cell = if (model.rows == 0) 0.dp else strandsCellSizeFor(width.toDp(), boardBudget, model.rows, model.cols)
         val boardWidth = (cell * model.cols).roundToPx().coerceAtMost(width).takeIf { it > 0 } ?: widest
         val boardPlaceable = board.single().measure(Constraints.fixed(width, (cell * model.rows).roundToPx()))
         val rowPlaceable = row.single().measure(Constraints.fixedWidth(boardWidth))
-        val total = topPlaceable.height + gap + boardPlaceable.height + gap + rowPlaceable.height
+        val total = topHeight + boardPlaceable.height + gap + rowPlaceable.height
         val height = total.coerceIn(constraints.minHeight, constraints.maxHeight)
         layout(width, height) {
             // A tablet pane is taller than the stack: centre it, as the old column did.
             var y = ((height - total) / 2).coerceAtLeast(0)
-            for (placeable in listOf(topPlaceable, boardPlaceable, rowPlaceable)) {
+            for (placeable in listOfNotNull(topPlaceable, boardPlaceable, rowPlaceable)) {
                 placeable.placeRelative((width - placeable.width) / 2, y)
                 y += placeable.height + gap
             }
@@ -194,24 +190,46 @@ private fun BoardColumn(
     }
 }
 
+/** The puzzle's own chrome: the theme card, the header line and the word slot. */
+@Composable
+private fun PuzzleChrome(controller: StrandsPlayController, header: StrandsHeader, reduceMotion: Boolean) {
+    val model = controller.model
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        ThemeCard(header.clue, controller.solvedHints?.let(StrandsRating::of), Modifier.fillMaxWidth())
+        StrandsHeaderLine(header)
+        WordSlotLine(controller.slot, model.foundCount, model.totalCount, reduceMotion, Modifier.fillMaxWidth())
+    }
+}
+
+/** The shared chrome; [withChrome] (a tablet) adds the puzzle's chrome and the found-words list under it. */
 @Composable
 private fun SidePanel(
     controller: StrandsPlayController,
     status: PlayBoardStatus,
+    reduceMotion: Boolean,
     onHowToPlay: (() -> Unit)?,
+    withChrome: Boolean,
 ) {
     val ready = status as? PlayBoardStatus.Ready
+    val header = controller.header.takeIf { withChrome && ready != null }
     PlayChrome(
         title = StrandsCopy.TITLE,
-        // "No. n" lives on the board pane's header line, next to the credit.
+        // "No. n" lives on the header line, next to the credit.
         subtitle = "Daily",
         clock = controller,
         hints = null,
         undo = null,
         banner = ready?.banner,
         onHowToPlay = onHowToPlay,
-        modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
-    )
+        modifier = Modifier
+            .then(if (withChrome) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+    ) {
+        if (header != null) {
+            PuzzleChrome(controller, header, reduceMotion)
+            FoundWordsList(controller.foundWords, controller.model.totalCount, Modifier.padding(top = Spacing.sm))
+        }
+    }
 }
 
 /** Keeps the hint row clear of the screen edge without costing the board a row of cells. */
