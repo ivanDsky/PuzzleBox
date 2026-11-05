@@ -39,9 +39,12 @@ data class HistoryDayRow(
     val gameId: GameId,
     val gameName: String,
     val fetchedAtMs: Long = 0L,
+    /** The year "today" falls in; days from any other year spell theirs out (A23). */
+    val currentYear: Int = LocalDate.now().year,
 ) {
-    /** "Saturday, November 1" — the same date voice home's teaser uses. */
-    val headline: String = day.format(DAY_FORMAT)
+    /** "Saturday, November 1" — the same date voice home's teaser uses; an archive day
+     *  from another year reads "Monday, March 4, 2024" so it can't pass for this year's. */
+    val headline: String = day.format(if (day.year == currentYear) DAY_FORMAT else DAY_YEAR_FORMAT)
 
     val label: String
         get() = if (puzzleNumber != null) "Daily $gameName · Puzzle #$puzzleNumber" else "Daily $gameName"
@@ -51,16 +54,18 @@ data class HistoryDayRow(
 
     private companion object {
         val DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d")
+        val DAY_YEAR_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy")
     }
 }
 
 /** The row projection of one merged game-agnostic history day. */
-internal fun GameHistoryDay.toRow(gameName: String) = HistoryDayRow(
+internal fun GameHistoryDay.toRow(gameName: String, currentYear: Int) = HistoryDayRow(
     day = day,
     puzzleNumber = puzzleNumber,
     gameId = gameId,
     gameName = gameName,
     fetchedAtMs = fetchedAtMs,
+    currentYear = currentYear,
 )
 
 /** Score contract (A3): time + hints only. "1:35", hours only when they exist. */

@@ -5,18 +5,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.model.GameId
+import java.time.LocalDate
 import org.koin.androidx.compose.koinViewModel
 
 /**
  * The Play tab's root (A5, N2): the games hub lists the [PlaySessionStore]'s playable
  * games in registry order, each row marked with today's progress ([HubViewModel], A13,
  * SC11). Picking one is [onPick]; the entry pushes that game's key, so back from the board
- * returns here (N3) and an in-progress game resumes its save. The hub never opens or
- * fetches a play.
+ * returns here (N3) and an in-progress game resumes its save. A game with an archive also
+ * opens a past day by date, [onPickDay] (A22). The hub never opens or fetches a play.
  */
 @Composable
-internal fun HubRoute(onPick: (GameId) -> Unit, modifier: Modifier = Modifier) {
+internal fun HubRoute(
+    onPick: (GameId) -> Unit,
+    onPickDay: (GameId, LocalDate) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val viewModel: HubViewModel = koinViewModel()
     val rows by viewModel.rows.collectAsStateWithLifecycle()
-    GamePicker(rows = rows, onPick = onPick, modifier = modifier)
+    GamePicker(rows = rows, onPick = onPick, onPickDay = onPickDay, modifier = modifier)
 }

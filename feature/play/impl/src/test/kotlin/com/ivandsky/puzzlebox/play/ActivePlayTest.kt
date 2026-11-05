@@ -1,9 +1,10 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
-import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
@@ -58,7 +59,7 @@ class ActivePlayTest {
     private val store = PlaySessionStore(
         games = fakes.games,
         ui = fakes.registry,
-        opening = SlotOpening(daily, GetReplaySession(daily, fakes.games), saved, calendar, fakes.games, lane),
+        opening = SlotOpening(daily, LoadPastDay(daily, fakes.games), saved, calendar, fakes.games, lane),
         writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
         completions = completions,
         calendar = calendar,
@@ -117,6 +118,14 @@ class ActivePlayTest {
     }
 
     @Test
+    fun `a past day the source says doesn't exist is an error without retry`() {
+        val past = day.minusDays(1)
+        daily.setDay(game, past, DailyDay.Failed(FetchError.NotFound("404")))
+        val play = store.open(GameKey(game.value, past.toString()))!!
+        assertEquals(PlayBoardStatus.Unavailable(PAST_DAY_OUT_OF_RANGE, retryable = false), play.board.value.status)
+    }
+
+    @Test
     fun `an envelope the game rejects is never playable`() {
         ui.rejectWith = "untrusted"
         val play = loaded()
@@ -141,7 +150,7 @@ class ActivePlayTest {
         val play = loaded()
         ui.latest.win()
         assertEquals(RecordVerdict.Replay, play.record.value.verdict)
-        assertEquals("a replay shows the best it plays against", FakeController.TIME_MS, play.record.value.previousBestMs)
+        assertEquals("a replay shows the best it plays against", FakeController.TIME_MS, play.record.value.previousBest?.timeMs)
         assertEquals(2, records().size)
     }
 
@@ -154,7 +163,7 @@ class ActivePlayTest {
         val play = loaded()
         ui.latest.win()
         assertEquals(RecordVerdict.Replay, play.record.value.verdict)
-        assertEquals(slower, play.record.value.previousBestMs)
+        assertEquals(slower, play.record.value.previousBest?.timeMs)
     }
 
     @Test
@@ -164,7 +173,7 @@ class ActivePlayTest {
         val play = loaded()
         ui.latest.win()
         assertEquals(RecordVerdict.FirstSolve, play.record.value.verdict)
-        assertNull(play.record.value.previousBestMs)
+        assertNull(play.record.value.previousBest)
     }
 
     @Test
@@ -174,7 +183,7 @@ class ActivePlayTest {
         val play = loaded()
         ui.latest.win()
         assertEquals(RecordVerdict.NotBest, play.record.value.verdict)
-        assertEquals(faster, play.record.value.previousBestMs)
+        assertEquals(faster, play.record.value.previousBest?.timeMs)
     }
 
     @Test

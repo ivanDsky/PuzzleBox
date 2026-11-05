@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.RankOrder
 
 /** The widest the stacked result actions grow: equal-width buttons, never a full tablet pane. */
 private val ActionsMaxWidth = 360.dp
@@ -60,13 +62,20 @@ internal fun RecordTag(verdict: RecordVerdict?, modifier: Modifier = Modifier) {
 }
 
 /**
- * The speed player's payoff (tag `result.previous_best`): a new best shows the time it
+ * The speed player's payoff (tag `result.previous_best`): a new best shows the score it
  * beat, a slower solve the standing best to chase, a replay says it was one. A first
- * solve has no previous best, and a tie's hero time IS the best: no line.
+ * solve has no previous best, and a tie's hero time IS the best: no line. A hints-first
+ * game leads its best with the hints (A26) — "Best 0 hints · 01:42" — so the line ranks
+ * the way the badge beside it does; time-first shows the time alone.
  */
 @Composable
-internal fun BestLine(verdict: RecordVerdict?, previousBestMs: Long?) {
-    val best = previousBestMs?.let(::formatClock)
+internal fun BestLine(verdict: RecordVerdict?, previousBest: BestScore?, rankOrder: RankOrder) {
+    val best = previousBest?.let {
+        when (rankOrder) {
+            RankOrder.TimeThenHints -> formatClock(it.timeMs)
+            RankOrder.HintsThenTime -> "${hintCount(it.hints)} · ${formatClock(it.timeMs)}"
+        }
+    }
     val line = when (verdict) {
         RecordVerdict.NewBest -> best?.let { "Previous best $it" }
         RecordVerdict.NotBest -> best?.let { "Best $it" }
@@ -80,6 +89,9 @@ internal fun BestLine(verdict: RecordVerdict?, previousBestMs: Long?) {
         modifier = Modifier.testTag("result.previous_best"),
     )
 }
+
+/** "1 hint" / "N hints", as the result's hints line reads. */
+internal fun hintCount(hints: Int): String = if (hints == 1) "1 hint" else "$hints hints"
 
 /**
  * The primary action (tagged `result.next` or `result.done`) over "Play again", stacked

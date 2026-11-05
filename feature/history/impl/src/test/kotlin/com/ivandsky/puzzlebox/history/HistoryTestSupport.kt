@@ -31,11 +31,16 @@ object HistoryTestSupport {
     val registry: GameRegistry = TestGames.registry(listOf(ZIP, TANGO, QUEENS))
 
     /** History's ViewModel over [daily]/[completions] and the production use cases. */
-    fun viewModel(daily: DailyRepository, completions: CompletionRepository): HistoryViewModel =
+    fun viewModel(
+        daily: DailyRepository,
+        completions: CompletionRepository,
+        today: LocalDate = LocalDate.of(2026, 11, 5),
+    ): HistoryViewModel =
         HistoryViewModel(
             observeGameHistory = ObserveGameHistory(registry, daily, completions),
             computeStreak = ComputeStreak(),
             registry = registry,
+            today = { today },
         )
 
     fun entry(day: LocalDate, puzzleNumber: Int? = PUZZLE_NUMBER, fetchedAtMs: Long = 0L) = DailyEntry(

@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assume.assumeTrue
@@ -52,6 +53,19 @@ class SavedPlayRepositoryContractTest(private val adapter: String) : SavedPlayRe
 
         assertNull(repository.load(slot("zip", 1)))
         assertEquals((2..9).map { slot("zip", it) }.toSet(), repository.observeInProgress().first().keys)
+    }
+
+    @Test
+    fun `room adapter's cap is per game, so another game's slot survives`() = runTest {
+        assumeTrue(adapter == ROOM)
+        repository.save(slot("tango", 1), byteArrayOf(7), elapsedMs = 0L)
+        for (day in 1..9) repository.save(slot("strands", day), byteArrayOf(day.toByte()), elapsedMs = 0L)
+
+        assertArrayEquals(byteArrayOf(7), repository.load(slot("tango", 1)))
+        assertEquals(
+            (2..9).map { slot("strands", it) }.toSet() + slot("tango", 1),
+            repository.observeInProgress().first().keys,
+        )
     }
 
     companion object {

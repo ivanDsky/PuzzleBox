@@ -89,4 +89,20 @@ class GamePlayRegistryTest {
         composeRule.onNodeWithText("Try again").performClick()
         composeRule.runOnIdle { assertEquals(1, retried) }
     }
+
+    @Test
+    fun `a non-retryable unavailable status shows its copy without a retry`() {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                PlayBoardFallback(
+                    PlayBoardStatus.Unavailable("This puzzle isn't available.", retryable = false),
+                    onRetry = {},
+                    tagPrefix = "fake",
+                )
+            }
+        }
+        composeRule.onNodeWithTag("fake.error").assertExists()
+        composeRule.onNodeWithText("This puzzle isn't available.").assertExists()
+        composeRule.onNodeWithText("Try again").assertDoesNotExist()
+    }
 }

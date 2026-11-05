@@ -28,14 +28,23 @@ interface CompletionDao {
     fun observeReplays(puzzleRef: String): Flow<List<CompletionEntity>>
 
     /**
-     * The minimum time over the record rows (first solves; replays never rank, A10) whose
-     * key starts with [prefix] — a game's rows by `"$gameId/"`; null when none. `substr`,
-     * not LIKE: a `_` in a game id would be a wildcard, and the trailing slash keeps
-     * `zip`/`zip2` apart.
+     * The best record row (first solves; replays never rank, A10) whose key starts with
+     * [prefix] — a game's rows by `"$gameId/"` — time first, hints breaking ties; null when
+     * none. `substr`, not LIKE: a `_` in a game id would be a wildcard, and the trailing
+     * slash keeps `zip`/`zip2` apart.
      */
     @Query(
-        "SELECT MIN(timeMs) FROM completions " +
-            "WHERE isRecord = 1 AND substr(puzzleRef, 1, length(:prefix)) = :prefix",
+        "SELECT * FROM completions " +
+            "WHERE isRecord = 1 AND substr(puzzleRef, 1, length(:prefix)) = :prefix " +
+            "ORDER BY timeMs, hints LIMIT 1",
     )
-    suspend fun bestTimeMs(prefix: String): Long?
+    suspend fun bestByTime(prefix: String): CompletionEntity?
+
+    /** As [bestByTime], fewest hints first, time breaking ties (ADR-0013). */
+    @Query(
+        "SELECT * FROM completions " +
+            "WHERE isRecord = 1 AND substr(puzzleRef, 1, length(:prefix)) = :prefix " +
+            "ORDER BY hints, timeMs LIMIT 1",
+    )
+    suspend fun bestByHints(prefix: String): CompletionEntity?
 }

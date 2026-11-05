@@ -11,10 +11,11 @@ class PlayCopyTest {
     private val everyError: List<FetchError> = listOf(
         FetchError.Unavailable("no net"),
         FetchError.Throttled("cooldown"),
+        FetchError.NotFound("no puzzle"),
         FetchError.Untrusted("bad payload"),
     ).onEach { error ->
         when (error) {
-            is FetchError.Unavailable, is FetchError.Throttled, is FetchError.Untrusted -> Unit
+            is FetchError.Unavailable, is FetchError.Throttled, is FetchError.NotFound, is FetchError.Untrusted -> Unit
         }
     }
 
