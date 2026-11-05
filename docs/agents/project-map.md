@@ -180,8 +180,8 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   write, A10 verdict, slot saves with elapsed ms), `SlotOpening` (saved row → today's fetch → past-day replay build
   → Unavailable; undecodable row deleted), `SlotWriter` (per-slot 300 ms trailing-throttle
   saves, `discard` on solve), `WriteLane` (one Mutex-ordered lane for every saved-play I/O),
-  `HubRoute` + `HubViewModel` (Play tab's games hub: today's status line and Play/Continue/
-  Replay per game), `GameRoute` + `GameViewModel` (one `GameKey`'s board; first-play tutorial
+  `HubRoute` + `HubViewModel` (Play tab's games hub: buttonless tap-to-play cards with today's status
+  line and a live board thumbnail per game), `GameRoute` + `GameViewModel` (one `GameKey`'s board; first-play tutorial
   and How to play via `TutorialGate`), `ResultRoute` + `ResultViewModel` (verdict + previous
   best live, Play again, Next unsolved), `GamePicker`, `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
   `resultEntry`).
@@ -253,7 +253,9 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 - **E2E robot** (`app` tests, `e2e/`) — `shellRobot { … }` over `E2eKoinGraph` drives the real
   shell row by row in spec notation.
 - **`GamePlayRegistry`** (`core:game-ui`) — the game → UI seam; `:feature:play:impl` drives any
-  game through `GamePlayController`, so adding a game never touches Play.
+  game through `GamePlayController`, so adding a game never touches Play. Hub thumbnails go
+  through `GamePlayUi.previewModel(BoardPreview)` + `BoardThumbnail`, fed by `HubViewModel` from
+  `PlaySessionStore.latestSave` (in progress) or `DailyRepository.cached` (fresh / solved).
 - **Repository interfaces** (`core:data`) — `DailyRepository.today()` is network-first
   (`DailyToday.Cached` carries the fetch error), `cached()`/`observeHistory()` never touch the
   network; `CompletionRepository` stamps ADR-0004 first-win semantics via `FirstWinPolicy`

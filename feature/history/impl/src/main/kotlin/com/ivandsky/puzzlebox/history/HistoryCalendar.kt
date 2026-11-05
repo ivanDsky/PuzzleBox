@@ -1,290 +1,246 @@
 package com.ivandsky.puzzlebox.history
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.gameui.DayDots
-import com.ivandsky.puzzlebox.gameui.GameBrand
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
-import java.time.temporal.TemporalAdjusters
-import java.util.Locale
 
-private val DayCircle = 32.dp
-private val TodayRing = 2.dp
-private val FilterIcon = 16.dp
-private const val DIMMED = 0.38f
-private val MONTH_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
+private val MONTH_YEAR: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
+private val SHORT_MONTH: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM")
+private val SHORT_MONTH_YEAR: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM yyyy")
 
-/** [month] as whole Monday-to-Sunday weeks; the first and last week borrow the neighbours' days. */
-internal fun monthGrid(month: YearMonth): List<List<LocalDate>> {
-    val start = month.atDay(1).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-    val end = month.atEndOfMonth().with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
-    return generateSequence(start) { it.plusDays(1) }
-        .takeWhile { it <= end }
-        .chunked(DayOfWeek.entries.size)
-        .toList()
+/** "November 2026" for a week inside one month, "Oct – Nov 2026" or "Dec 2026 – Jan 2027" across two. */
+internal fun weekTitle(monday: LocalDate): String {
+    val first = YearMonth.from(monday)
+    val last = YearMonth.from(monday.plusDays(6))
+    return when {
+        first == last -> first.format(MONTH_YEAR)
+        first.year == last.year -> "${first.format(SHORT_MONTH)} – ${last.format(SHORT_MONTH_YEAR)}"
+        else -> "${first.format(SHORT_MONTH_YEAR)} – ${last.format(SHORT_MONTH_YEAR)}"
+    }
 }
 
 /**
- * History's month calendar (spec A18) in one card: "November 2026" with arrows back to
- * the oldest month with history and forward to the current one (swiping pages too), a
- * Monday-first weekday row, and each day's number over its [DayDots]. Today is ringed;
- * the selected day fills with ink. A day with any row can be tapped to filter the list
- * ([onSelectDay]; the selected day again clears it). Later days and the neighbouring
- * months' days are dimmed and never tap. Shows nothing until the state has a month.
+ * The week (its Monday) the calendar folds back to from [month], first match wins: the
+ * [selectedDay]'s week when it is in [month]; this week when [month] holds [today]; the
+ * week of [month]'s first day with a play ([daysWithRows]); else the week of the 1st.
+ */
+internal fun collapsedWeek(
+    month: YearMonth,
+    selectedDay: LocalDate?,
+    today: LocalDate,
+    daysWithRows: Set<LocalDate>,
+): LocalDate = weekOf(
+    selectedDay?.takeIf { YearMonth.from(it) == month }
+        ?: today.takeIf { YearMonth.from(it) == month }
+        ?: daysWithRows.filter { YearMonth.from(it) == month }.minOrNull()
+        ?: month.atDay(1),
+)
+
+/**
+ * History's calendar (spec A18) in one card, one week by default so the list stays in
+ * view. The header names the shown week's months (or the month) and toggles the month
+ * view; its arrows — and swipes — page by week, or by month when expanded, from the
+ * oldest row's week or month up to the current one. Expanding shows the shown week's
+ * Monday's month; folding back follows [collapsedWeek]. The card's height eases between
+ * the two (instant under reduced motion).
+ *
+ * Today is ringed and the selected day fills with ink. A day with any row taps to filter
+ * the list ([onSelectDay]; the selected day again clears it); later days never tap.
+ * [onShowCalendar] reports the day whose week or month to show, and the mode. Shows
+ * nothing until the state has a calendar day.
  */
 @Composable
 internal fun HistoryCalendar(
     state: HistoryUiState,
-    onShowMonth: (YearMonth) -> Unit,
+    onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit,
     onSelectDay: (LocalDate?) -> Unit,
     cardColor: Color,
     modifier: Modifier = Modifier,
 ) {
-    val month = state.month ?: return
+    val shown = state.calendarDay ?: return
     val today = state.today ?: return
-    val earliest = state.earliestMonth ?: month
-    val current = YearMonth.from(today)
+    val expanded = state.calendarExpanded
+    val pages = CalendarPages(expanded, today, earliest = state.earliestDay ?: shown)
+    val index = pages.indexOf(shown)
+    val reducedMotion = rememberReducedMotion()
     OutlinedCard(
         modifier = modifier.fillMaxWidth().testTag("history.calendar"),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.outlinedCardColors(containerColor = cardColor),
     ) {
         Column(
-            modifier = Modifier.padding(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            modifier = Modifier
+                .animateContentSize(
+                    if (reducedMotion) snap() else tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard),
+                )
+                .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             CalendarHeader(
-                month = month,
-                canGoBack = month > earliest,
-                canGoForward = month < current,
-                onShowMonth = onShowMonth,
+                title = if (expanded) YearMonth.from(shown).format(MONTH_YEAR) else weekTitle(weekOf(shown)),
+                expanded = expanded,
+                canGoBack = index < pages.count - 1,
+                canGoForward = index > 0,
+                onToggle = {
+                    if (expanded) {
+                        onShowCalendar(collapsedWeek(YearMonth.from(shown), state.selectedDay, today, state.daysWithRows), false)
+                    } else {
+                        onShowCalendar(weekOf(shown), true)
+                    }
+                },
+                onBack = { onShowCalendar(pages.dayAt(index + 1), expanded) },
+                onForward = { onShowCalendar(pages.dayAt(index - 1), expanded) },
             )
-            WeekdayRow()
-            MonthPager(
-                month = month,
-                earliest = earliest,
-                current = current,
-                onShowMonth = onShowMonth,
-            ) { shown ->
-                MonthGrid(shown, today, state, onSelectDay)
-            }
-        }
-    }
-}
-
-/** The month name and its arrows; the back arrow is the forward chevron turned around. */
-@Composable
-private fun CalendarHeader(
-    month: YearMonth,
-    canGoBack: Boolean,
-    canGoForward: Boolean,
-    onShowMonth: (YearMonth) -> Unit,
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = month.format(MONTH_FORMAT),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = Spacing.sm)
-                .testTag("history.calendar.month"),
-        )
-        IconButton(
-            onClick = { onShowMonth(month.minusMonths(1)) },
-            enabled = canGoBack,
-            modifier = Modifier.testTag("history.calendar.prev"),
-        ) {
-            Icon(imageVector = PuzzleIcons.Chevron, contentDescription = "Last month", modifier = Modifier.rotate(180f))
-        }
-        IconButton(
-            onClick = { onShowMonth(month.plusMonths(1)) },
-            enabled = canGoForward,
-            modifier = Modifier.testTag("history.calendar.next"),
-        ) {
-            Icon(imageVector = PuzzleIcons.Chevron, contentDescription = "Next month")
-        }
-    }
-}
-
-@Composable
-private fun WeekdayRow() {
-    val locale = Locale.getDefault()
-    Row(Modifier.fillMaxWidth()) {
-        DayOfWeek.entries.forEach { weekday ->
-            Text(
-                text = weekday.getDisplayName(TextStyle.NARROW, locale).uppercase(locale),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
-}
-
-/**
- * Swipeable months, newest at page 0 and older to its left (reverse layout), so a newly
- * loaded older month adds a page without moving the shown one. The arrows drive it
- * through [month]; a settled swipe reports its month through [onShowMonth].
- */
-@Composable
-private fun MonthPager(
-    month: YearMonth,
-    earliest: YearMonth,
-    current: YearMonth,
-    onShowMonth: (YearMonth) -> Unit,
-    page: @Composable (YearMonth) -> Unit,
-) {
-    fun pageOf(shown: YearMonth) = ChronoUnit.MONTHS.between(shown, current).toInt()
-    val pagerState = rememberPagerState(initialPage = pageOf(month)) { pageOf(earliest) + 1 }
-    val reducedMotion = rememberReducedMotion()
-    val report by rememberUpdatedState(onShowMonth)
-    LaunchedEffect(month) {
-        val target = pageOf(month)
-        if (pagerState.currentPage != target) {
-            if (reducedMotion) pagerState.scrollToPage(target) else pagerState.animateScrollToPage(target)
-        }
-    }
-    LaunchedEffect(pagerState, current) {
-        snapshotFlow { pagerState.settledPage }.collect { report(current.minusMonths(it.toLong())) }
-    }
-    HorizontalPager(
-        state = pagerState,
-        reverseLayout = true,
-        verticalAlignment = Alignment.Top,
-        modifier = Modifier.fillMaxWidth(),
-    ) { index ->
-        page(current.minusMonths(index.toLong()))
-    }
-}
-
-@Composable
-private fun MonthGrid(month: YearMonth, today: LocalDate, state: HistoryUiState, onSelectDay: (LocalDate?) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        monthGrid(month).forEach { week ->
-            Row(Modifier.fillMaxWidth()) {
-                week.forEach { date ->
-                    val inMonth = YearMonth.from(date) == month
-                    CalendarDay(
-                        date = date,
-                        inMonth = inMonth,
-                        isToday = date == today,
-                        selected = date == state.selectedDay,
-                        dimmed = !inMonth || date > today,
-                        tappable = inMonth && date <= today && date in state.daysWithRows,
-                        solved = state.solvedByDay[date].orEmpty(),
-                        total = state.dotsPerDay,
-                        onClick = { onSelectDay(date) },
-                        modifier = Modifier.weight(1f),
-                    )
+            // A new pager per mode: its pages are weeks or months.
+            key(expanded) {
+                CalendarPager(pages, index, onPage = { onShowCalendar(pages.dayAt(it), expanded) }) { page ->
+                    val day = pages.dayAt(page)
+                    if (expanded) {
+                        CalendarMonth(YearMonth.from(day), state, onSelectDay)
+                    } else {
+                        CalendarWeek(day, state, onSelectDay)
+                    }
                 }
             }
         }
     }
 }
 
-/** One day: its number (ringed today, ink-filled when selected) over its dots. */
-@Composable
-private fun CalendarDay(
-    date: LocalDate,
-    inMonth: Boolean,
-    isToday: Boolean,
-    selected: Boolean,
-    dimmed: Boolean,
-    tappable: Boolean,
-    solved: List<GameBrand>,
-    total: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = MaterialTheme.colorScheme
-    val circle = when {
-        selected -> Modifier.background(colors.onSurface, CircleShape)
-        isToday -> Modifier.border(TodayRing, colors.onSurface, CircleShape)
-        else -> Modifier
+/**
+ * The calendar's pages, newest (page 0, holding [today]) first: weeks, or months when
+ * [expanded], back to the one holding [earliest].
+ */
+private class CalendarPages(private val expanded: Boolean, private val today: LocalDate, earliest: LocalDate) {
+    val count: Int = indexOf(earliest) + 1
+
+    /** How many weeks (or months) [day] lies before today's. */
+    fun indexOf(day: LocalDate): Int = if (expanded) {
+        ChronoUnit.MONTHS.between(YearMonth.from(day), YearMonth.from(today)).toInt()
+    } else {
+        ChronoUnit.WEEKS.between(weekOf(day), weekOf(today)).toInt()
     }
-    Column(
-        modifier = modifier
-            .clip(MaterialTheme.shapes.small)
-            .clickable(enabled = tappable, onClick = onClick)
-            .then(if (inMonth) Modifier.testTag("history.calendar.day.$date") else Modifier)
-            .alpha(if (dimmed) DIMMED else 1f)
-            .padding(vertical = Spacing.xs),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        Box(modifier = Modifier.size(DayCircle).then(circle), contentAlignment = Alignment.Center) {
-            Text(
-                text = date.dayOfMonth.toString(),
-                style = MaterialTheme.typography.labelLarge.tabular(),
-                color = if (selected) colors.surface else colors.onSurface,
-            )
-        }
-        // Neighbouring and later days keep the dots' height, so every week row lines up.
-        DayDots(solved = solved, total = total, modifier = Modifier.alpha(if (inMonth && !dimmed) 1f else 0f))
+
+    /** The first day of page [index]: a Monday, or a month's 1st when expanded. */
+    fun dayAt(index: Int): LocalDate = if (expanded) {
+        YearMonth.from(today).minusMonths(index.toLong()).atDay(1)
+    } else {
+        weekOf(today).minusWeeks(index.toLong())
     }
 }
 
-/** The list's day filter: the day's name and a ✕; tapping it shows every day again. */
+/**
+ * The title, which toggles the month view (its chevron points down to expand, up to
+ * fold), and the arrows; the back arrow is the forward chevron turned around.
+ */
 @Composable
-internal fun DayFilterPill(day: LocalDate, today: LocalDate?, onClear: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        onClick = onClear,
-        modifier = modifier.testTag("history.day_filter"),
-        shape = PillShape,
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-    ) {
+private fun CalendarHeader(
+    title: String,
+    expanded: Boolean,
+    canGoBack: Boolean,
+    canGoForward: Boolean,
+    onToggle: () -> Unit,
+    onBack: () -> Unit,
+    onForward: () -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Row(
-            modifier = Modifier.padding(start = Spacing.md, end = Spacing.sm, top = Spacing.xs, bottom = Spacing.xs),
+            modifier = Modifier
+                .weight(1f)
+                .clip(PillShape)
+                .clickable(onClick = onToggle)
+                .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                .testTag("history.calendar.expand"),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            Text(text = dayGroupLabel(day, today), style = MaterialTheme.typography.labelLarge)
-            Icon(imageVector = PuzzleIcons.Close, contentDescription = "Show all days", modifier = Modifier.size(FilterIcon))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.testTag("history.calendar.month"),
+            )
+            Icon(
+                imageVector = PuzzleIcons.ExpandMore,
+                contentDescription = if (expanded) "Show one week" else "Show the month",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = if (expanded) Modifier.rotate(180f) else Modifier,
+            )
         }
+        IconButton(onClick = onBack, enabled = canGoBack, modifier = Modifier.testTag("history.calendar.prev")) {
+            Icon(imageVector = PuzzleIcons.Chevron, contentDescription = "Back", modifier = Modifier.rotate(180f))
+        }
+        IconButton(onClick = onForward, enabled = canGoForward, modifier = Modifier.testTag("history.calendar.next")) {
+            Icon(imageVector = PuzzleIcons.Chevron, contentDescription = "Forward")
+        }
+    }
+}
+
+/**
+ * Swipeable pages, newest at page 0 and older to its left (reverse layout), so a newly
+ * loaded older page adds on without moving the shown one. The arrows drive it through
+ * [index]; a settled swipe to another page reports it through [onPage].
+ */
+@Composable
+private fun CalendarPager(
+    pages: CalendarPages,
+    index: Int,
+    onPage: (Int) -> Unit,
+    content: @Composable (Int) -> Unit,
+) {
+    val count = pages.count
+    val pagerState = rememberPagerState(initialPage = index) { count }
+    val reducedMotion = rememberReducedMotion()
+    val shownIndex by rememberUpdatedState(index)
+    val report by rememberUpdatedState(onPage)
+    LaunchedEffect(index) {
+        if (pagerState.currentPage != index) {
+            if (reducedMotion) pagerState.scrollToPage(index) else pagerState.animateScrollToPage(index)
+        }
+    }
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }.collect { if (it != shownIndex) report(it) }
+    }
+    HorizontalPager(
+        state = pagerState,
+        reverseLayout = true,
+        verticalAlignment = Alignment.Top,
+        modifier = Modifier.fillMaxWidth(),
+    ) { page ->
+        content(page)
     }
 }

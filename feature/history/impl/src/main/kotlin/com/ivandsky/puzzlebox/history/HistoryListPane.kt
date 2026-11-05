@@ -40,14 +40,13 @@ import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
-import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
 private val SelectedBorder = 2.dp
 private val DAY_GROUP_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, MMM d")
 
 /**
- * History's list column (spec A18): the tabs, the tab's stats and month calendar, then
+ * History's list column (spec A18): the tabs, the tab's stats and week/month calendar, then
  * its paged rows grouped under a day label. A day picked on the calendar swaps the pages
  * for that day's rows from the state, under a pill that clears it. A tab with nothing
  * in it shows only the empty state.
@@ -58,7 +57,7 @@ internal fun ListPane(
     state: HistoryUiState,
     selectedTab: GameId?,
     onSelectTab: (GameId?) -> Unit,
-    onShowMonth: (YearMonth) -> Unit,
+    onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit,
     onSelectDay: (LocalDate?) -> Unit,
     selectedKey: String?,
     onDayClick: (HistoryDayRow) -> Unit,
@@ -122,7 +121,7 @@ internal fun ListPane(
         item(key = "calendar") {
             HistoryCalendar(
                 state = state,
-                onShowMonth = onShowMonth,
+                onShowCalendar = onShowCalendar,
                 onSelectDay = onSelectDay,
                 cardColor = cardColor,
                 modifier = Modifier.padding(horizontal = Spacing.lg),

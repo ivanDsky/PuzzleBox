@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import java.time.LocalDate
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,10 +25,12 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Robolectric coverage for History's month calendar (spec A18): a day with plays filters
- * the list to that day and the filter pill brings every day back; the arrows walk back to
- * the oldest month with history and never past the current one; later days and days with
- * no plays never select. Drives [HistoryRoute] over a real [HistoryViewModel]; tags only.
+ * Robolectric coverage for History's week/month calendar (spec A18): it opens on this
+ * week's seven days; its arrows page weeks back to the oldest row's week and never past
+ * this one; the title opens the month, whose arrows page months, and folds it back to a
+ * week. A day with plays filters the list to that day and the filter pill brings every
+ * day back; later days and days with no plays never select. Drives [HistoryRoute] over a
+ * real [HistoryViewModel]; tags only.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -68,12 +71,90 @@ class HistoryCalendarTest {
     private fun reachable(tag: String) =
         runCatching { composeRule.onNodeWithTag(LIST).performScrollToNode(hasTestTag(tag)) }.isSuccess
 
-    private fun dayTag(day: LocalDate) = "history.calendar.day.$day"
-
     private fun rowTag(day: LocalDate) = "history.row.${ZIP.value}/$day"
 
+    private fun dayTag(day: LocalDate) = "history.calendar.day.$day"
+
+    private fun waitForTag(tag: String) = composeRule.waitUntil(5_000) { hasTag(tag) }
+
+    private fun waitWithout(tag: String) = composeRule.waitUntil(5_000) { !hasTag(tag) }
+
+    /** Monday, November 2 — the start of [today]'s week. */
+    private val monday: LocalDate = today.minusDays(1)
+
     @Test
-    fun `a day with plays filters the list, and the filter pill brings every day back`() {
+    fun `it opens on this week's seven days`() {
+        setContent(listOf(HistoryTestSupport.entry(today)))
+        scrollTo(rowTag(today))
+
+        scrollTo("history.calendar.week")
+        (0L until 7L).forEach { assertTrue("day $it of this week", hasTag(dayTag(monday.plusDays(it)))) }
+        assertFalse("no day before this week", hasTag(dayTag(monday.minusDays(1))))
+        assertFalse("no day after this week", hasTag(dayTag(monday.plusDays(7))))
+        assertFalse("the month stays folded", hasTag("history.calendar.grid"))
+    }
+
+    @Test
+    fun `the arrows page weeks between the oldest row's week and this one`() {
+        val lastWeek = today.minusWeeks(1)
+        setContent(listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(lastWeek)))
+        scrollTo(rowTag(lastWeek))
+        scrollTo(dayTag(today))
+
+        composeRule.onNodeWithTag("history.calendar.next").assertIsNotEnabled()
+        composeRule.onNodeWithTag("history.calendar.prev").assertIsEnabled().performClick()
+
+        waitForTag(dayTag(lastWeek))
+        waitWithout(dayTag(today))
+        // Last week holds the oldest row: no further back, and forward is open again.
+        composeRule.onNodeWithTag("history.calendar.prev").assertIsNotEnabled()
+        composeRule.onNodeWithTag("history.calendar.next").assertIsEnabled().performClick()
+        waitForTag(dayTag(today))
+    }
+
+    @Test
+    fun `the title opens the month, whose arrows page months`() {
+        val october = LocalDate.of(2026, 10, 20)
+        setContent(listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(october)))
+        scrollTo(rowTag(today))
+        scrollTo("history.calendar.expand")
+
+        composeRule.onNodeWithTag("history.calendar.expand").performClick()
+        waitForTag("history.calendar.grid")
+        assertTrue("the whole month shows", hasTag(dayTag(LocalDate.of(2026, 11, 30))))
+
+        composeRule.onNodeWithTag("history.calendar.next").assertIsNotEnabled()
+        composeRule.onNodeWithTag("history.calendar.prev").assertIsEnabled().performClick()
+        waitForTag(dayTag(october))
+        waitForTag(dayTag(LocalDate.of(2026, 10, 1)))
+        // October holds the oldest row: no further back, and forward is open again.
+        composeRule.onNodeWithTag("history.calendar.prev").assertIsNotEnabled()
+        composeRule.onNodeWithTag("history.calendar.next").assertIsEnabled().performClick()
+        waitForTag(dayTag(LocalDate.of(2026, 11, 30)))
+    }
+
+    @Test
+    fun `folding the month shows one week again`() {
+        val october = LocalDate.of(2026, 10, 20)
+        setContent(listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(october)))
+        scrollTo(rowTag(today))
+        scrollTo("history.calendar.expand")
+        composeRule.onNodeWithTag("history.calendar.expand").performClick()
+        waitForTag("history.calendar.grid")
+        composeRule.onNodeWithTag("history.calendar.prev").performClick()
+        waitForTag(dayTag(LocalDate.of(2026, 10, 1)))
+
+        composeRule.onNodeWithTag("history.calendar.expand").performClick()
+
+        // October folds to the week of its first play.
+        waitForTag("history.calendar.week")
+        waitWithout("history.calendar.grid")
+        assertTrue(hasTag(dayTag(october)))
+        assertFalse(hasTag(dayTag(LocalDate.of(2026, 10, 1))))
+    }
+
+    @Test
+    fun `a day in the week filters the list, and the filter pill brings every day back`() {
         val picked = today.minusDays(1)
         setContent(listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(picked)))
         scrollTo(rowTag(today))
@@ -107,28 +188,11 @@ class HistoryCalendarTest {
     }
 
     @Test
-    fun `back shows the earlier month, and forward stops at the current month`() {
-        val october = LocalDate.of(2026, 10, 20)
-        setContent(listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(october)))
-        scrollTo(dayTag(today))
-
-        composeRule.onNodeWithTag("history.calendar.next").assertIsNotEnabled()
-        composeRule.onNodeWithTag("history.calendar.prev").assertIsEnabled().performClick()
-
-        scrollTo(dayTag(october))
-        composeRule.onNodeWithTag(dayTag(october)).assertIsEnabled()
-        // October holds the oldest row: no further back, and forward is open again.
-        composeRule.onNodeWithTag("history.calendar.prev").assertIsNotEnabled()
-        composeRule.onNodeWithTag("history.calendar.next").assertIsEnabled().performClick()
-        scrollTo(dayTag(today))
-    }
-
-    @Test
     fun `later days and days with no plays never select`() {
-        val played = today.minusDays(1)
+        val played = monday
         setContent(listOf(HistoryTestSupport.entry(played)))
         val later = today.plusDays(2)
-        val empty = today.minusDays(2)
+        val empty = today
         scrollTo(rowTag(played))
 
         scrollTo(dayTag(played))

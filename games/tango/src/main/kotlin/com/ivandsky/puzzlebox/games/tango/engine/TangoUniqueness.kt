@@ -22,7 +22,22 @@ object TangoUniqueness {
     }
 
     /** Counts solutions up to [limit] by backtracking over empty cells. */
-    fun countSolutions(puzzle: TangoPuzzle, limit: Int = 2): Int {
+    fun countSolutions(puzzle: TangoPuzzle, limit: Int = 2): Int = search(puzzle, limit) {}
+
+    /**
+     * [puzzle]'s one solution, row-major and fully filled (givens included), by the same
+     * search [countSolutions] runs; null when it has none or more than one (A15: an
+     * ambiguous puzzle is never guessed through) or an odd size.
+     */
+    fun solve(puzzle: TangoPuzzle): List<TangoCell>? {
+        if (puzzle.n % 2 != 0) return null
+        var first: List<TangoCell>? = null
+        val count = search(puzzle, limit = 2) { grid -> if (first == null) first = grid.map { it!! } }
+        return first.takeIf { count == 1 }
+    }
+
+    /** Backtracks over the empty cells, handing each full grid to [onSolution], up to [limit]; returns the count. */
+    private fun search(puzzle: TangoPuzzle, limit: Int, onSolution: (Array<TangoCell?>) -> Unit): Int {
         val grid = Array<TangoCell?>(puzzle.cellCount) { idx -> puzzle.givens[idx] }
         val empty = (0 until puzzle.cellCount).filter { idx -> grid[idx] == null }
         var count = 0
@@ -44,6 +59,7 @@ object TangoUniqueness {
             if (count >= limit) return
             if (i == empty.size) {
                 count++
+                onSolution(grid)
                 return
             }
             val idx = empty[i]

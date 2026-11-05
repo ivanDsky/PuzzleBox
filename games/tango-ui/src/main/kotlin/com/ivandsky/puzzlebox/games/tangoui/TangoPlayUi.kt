@@ -12,7 +12,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
+import com.ivandsky.puzzlebox.gameui.BoardPreview
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
@@ -41,6 +43,15 @@ class TangoPlayUi : GamePlayUi {
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
         TangoBoard(controller as TangoPlayController, modifier)
+    }
+
+    override fun previewModel(preview: BoardPreview): RendererModel? = TangoThumbnail.model(preview)
+
+    @Composable
+    override fun BoardThumbnail(model: RendererModel, modifier: Modifier) {
+        // No placement callback: the thumbnail is read-only (no taps, ghosts or hint marks).
+        val renderer = remember { TangoBoardRenderer(onPlacement = null) }
+        renderer.Content(model, modifier)
     }
 
     @Composable

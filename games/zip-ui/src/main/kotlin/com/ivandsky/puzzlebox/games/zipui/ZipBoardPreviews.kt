@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -75,6 +77,21 @@ internal fun ZipBoardDotsN8FreshPreview() {
         // n8 with all 16 waypoints, two-digit labels "10"–"16" included; the last four
         // dots sit on adjacent cells — the no-merge stress case.
         ZipBoard(zipPreviewModel(8, waypoints = (0 until 16).map { it * 4 }), Modifier.padding(24.dp))
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ZipBoardThumbnailsPreview() {
+    PuzzleBoxTheme {
+        // Hub thumbnails at 112dp: in progress, fresh, solved (n5 boustrophedon).
+        val waypoints = listOf(0, 12, 24)
+        val solved = listOf(0, 1, 2, 3, 4, 9, 8, 7, 6, 5, 10, 11, 12, 13, 14, 19, 18, 17, 16, 15, 20, 21, 22, 23, 24)
+        Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            listOf(solved.take(9), emptyList(), solved).forEach { path ->
+                ZipBoard(zipPreviewModel(5, waypoints, path), Modifier.size(112.dp))
+            }
+        }
     }
 }
 

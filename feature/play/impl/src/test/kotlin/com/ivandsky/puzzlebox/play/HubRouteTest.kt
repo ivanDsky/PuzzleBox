@@ -4,9 +4,11 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasParent
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -30,9 +32,9 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.gameui.todayStatusLine
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.di.playModule
@@ -58,12 +60,13 @@ import org.robolectric.annotation.Config
 
 /**
  * The Play tab's games hub over stand-in games: one card per playable game in registry
- * order under `route.hub`, opening it prefetches today's puzzles once (A12) and picking a card
- * reports that game without fetching again, and a game reads today's status
- * ([todayStatusLine]) and what a tap does: a save / Continue, a solve / Replay, a failed
- * fetch / Try again, otherwise Play (A13, A14, SC11). Only the next unsolved game's button
- * is filled, the header counts today's solves, a solved game shows its best time, and
- * "Older puzzles" reports through its callback.
+ * order under `route.hub`, opening it prefetches today's puzzles once (A12) and tapping a
+ * card (the card itself: there are no buttons) reports that game without fetching again.
+ * A game reads today's status ([hubStatusLine]) and shows today's board as its game draws
+ * it: a save's board, the cached puzzle fresh or solved, or its glyph when there is none
+ * (offline, uncached, unreadable) (A13, A14, SC11). Only the next unsolved game's card is
+ * marked up next, a solved card wears the check, the header counts today's solves, a
+ * solved game shows its best time, and "Older puzzles" reports through its callback.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -128,12 +131,22 @@ class HubRouteTest {
         )
     }
 
-    private fun awaitSolvedZip() {
-        val solved = todayStatusLine(TodayStatus.Solved(36_000L))
+    private fun awaitTag(tag: String) {
         composeRule.waitUntil(5_000) {
-            composeRule.onAllNodesWithText(solved, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
         }
     }
+
+    private fun awaitStatus(game: GameId, status: TodayStatus) {
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodes(hasTestTag("hub.status.${game.value}") and hasText(hubStatusLine(status)), useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    /** The fake thumbnail drawn inside [game]'s card thumbnail frame. */
+    private fun thumbOf(game: GameId) =
+        composeRule.onNode(hasTestTag("fake.thumb") and hasParent(hasTestTag("hub.thumb.${game.value}")), useUnmergedTree = true)
 
     private fun tagStartsWith(prefix: String) = SemanticsMatcher("test tag starts with $prefix") { node ->
         node.config.getOrNull(SemanticsProperties.TestTag)?.startsWith(prefix) == true
@@ -151,7 +164,7 @@ class HubRouteTest {
     }
 
     @Test
-    fun `opening the hub fetches each game once and picking zip reports zip without fetching again`() {
+    fun `opening the hub fetches each game once and tapping zip's card reports zip without fetching again`() {
         val picked = ArrayList<GameId>()
         setContent { picked.add(it) }
         composeRule.waitForIdle()
@@ -174,60 +187,77 @@ class HubRouteTest {
     }
 
     @Test
-    fun `a game whose puzzle cannot load reads offline with try again - A12`() {
+    fun `a game whose puzzle cannot load reads offline with its glyph, and a tap opens it to try again - A12`() {
         daily.setToday(alpha, DailyToday.Unavailable(FetchError.Unavailable()))
-        setContent {}
+        val picked = ArrayList<GameId>()
+        setContent { picked.add(it) }
 
-        val offline = todayStatusLine(TodayStatus.Offline)
-        composeRule.waitUntil(5_000) {
-            composeRule.onAllNodesWithText(offline, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNodeWithTag("hub.status.alpha", useUnmergedTree = true).assertTextEquals(offline)
-        composeRule.onNodeWithTag("hub.action.alpha", useUnmergedTree = true)
-            .assertTextEquals(actionLabel(TodayStatus.Offline))
+        awaitStatus(alpha, TodayStatus.Offline)
+        composeRule.onNodeWithTag("hub.thumb_placeholder.alpha", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag("hub.status.zip", useUnmergedTree = true)
-            .assertTextEquals(todayStatusLine(TodayStatus.NotStarted))
+            .assertTextEquals(hubStatusLine(TodayStatus.NotStarted))
+
+        composeRule.onNodeWithTag("hub.row.alpha").performClick()
+        composeRule.waitForIdle()
+        assertEquals(listOf(alpha), picked)
     }
 
     @Test
-    fun `a game saved today reads in progress with its clock and continue`() {
+    fun `a game saved today reads in progress with its clock and shows the saved board`() {
+        val session = FakeController.envelope(zip, moves = 3, day = today)
+        runBlocking { saved.save(PlaySlot(zip, today), SessionBlob.encode(zip, session.session), elapsedMs = 42_000L) }
+        setContent {}
+
+        awaitStatus(zip, TodayStatus.InProgress(42_000L))
+        awaitTag("hub.thumb.zip")
+        thumbOf(zip).assertTextEquals("moves 3")
+        composeRule.onNodeWithTag("hub.status.alpha", useUnmergedTree = true)
+            .assertTextEquals(hubStatusLine(TodayStatus.NotStarted))
+    }
+
+    @Test
+    fun `a save the game can't read shows the glyph instead of a board`() {
         runBlocking { saved.save(PlaySlot(zip, today), byteArrayOf(1), elapsedMs = 42_000L) }
         setContent {}
 
-        composeRule.waitUntil(5_000) {
-            composeRule.onAllNodesWithTag("hub.status.zip", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNodeWithTag("hub.status.zip", useUnmergedTree = true).assertTextEquals(todayStatusLine(TodayStatus.InProgress(42_000L)))
-        composeRule.onNodeWithTag("hub.action.zip", useUnmergedTree = true).assertTextEquals("Continue")
-        composeRule.onNodeWithTag("hub.status.alpha", useUnmergedTree = true)
-            .assertTextEquals(todayStatusLine(TodayStatus.NotStarted))
-        composeRule.onNodeWithTag("hub.action.alpha", useUnmergedTree = true).assertTextEquals("Play")
+        awaitStatus(zip, TodayStatus.InProgress(42_000L))
+        composeRule.onNodeWithTag("hub.thumb_placeholder.zip", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithTag("hub.thumb.zip", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
-    fun `a game solved today reads solved with its time, replay and its best time`() {
-        solveZipToday()
+    fun `a cached puzzle not started shows today's fresh board - an uncached one its glyph`() {
+        daily.setCached(alpha, today, TestGames.puzzle(alpha, tag = 5))
         setContent {}
 
-        awaitSolvedZip()
-        composeRule.onNodeWithTag("hub.status.zip", useUnmergedTree = true)
-            .assertTextEquals(todayStatusLine(TodayStatus.Solved(36_000L)))
-        composeRule.onNodeWithTag("hub.action.zip", useUnmergedTree = true).assertTextEquals("Replay")
-        composeRule.waitUntil(5_000) {
-            composeRule.onAllNodesWithTag("hub.best.zip", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitTag("hub.thumb.alpha")
+        thumbOf(alpha).assertTextEquals("fresh 5")
+        composeRule.onNodeWithTag("hub.thumb_placeholder.zip", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun `a game solved today reads solved with its time, its solved board, the check and its best time`() {
+        solveZipToday()
+        daily.setCached(zip, today, TestGames.puzzle(zip, tag = 2))
+        setContent {}
+
+        awaitStatus(zip, TodayStatus.Solved(36_000L))
+        composeRule.onNodeWithTag("hub.solved.zip", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithTag("hub.solved.alpha", useUnmergedTree = true).assertDoesNotExist()
+        awaitTag("hub.thumb.zip")
+        thumbOf(zip).assertTextEquals("solved 2")
+        awaitTag("hub.best.zip")
         composeRule.onNodeWithTag("hub.best.alpha", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
-    fun `exactly one button is filled - the next unsolved game's`() {
+    fun `exactly one card is up next - the next unsolved game's`() {
         solveZipToday()
         setContent {}
 
-        awaitSolvedZip()
-        assertEquals(1, composeRule.onAllNodes(tagStartsWith("hub.filled.")).fetchSemanticsNodes().size)
-        composeRule.onNodeWithTag("hub.filled.alpha").assertExists()
-        composeRule.onNodeWithTag("hub.tonal.zip").assertExists()
+        awaitStatus(zip, TodayStatus.Solved(36_000L))
+        assertEquals(1, composeRule.onAllNodes(tagStartsWith("hub.next."), useUnmergedTree = true).fetchSemanticsNodes().size)
+        composeRule.onNodeWithTag("hub.next.alpha", useUnmergedTree = true).assertExists()
     }
 
     @Test
@@ -235,7 +265,7 @@ class HubRouteTest {
         solveZipToday()
         setContent {}
 
-        awaitSolvedZip()
+        awaitStatus(zip, TodayStatus.Solved(36_000L))
         composeRule.onNodeWithTag("hub.summary").assertTextEquals(hubSummary(done = 1, total = 2))
     }
 

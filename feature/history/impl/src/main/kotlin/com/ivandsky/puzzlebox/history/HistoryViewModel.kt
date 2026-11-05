@@ -14,7 +14,6 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
-import java.time.YearMonth
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,8 +32,9 @@ import kotlinx.coroutines.flow.stateIn
  * [tabs], the tab's full [rows] (selection, best and day-filter lookups must see every
  * day, not just the loaded pages), and its [stats] (null until the first emission).
  *
- * The calendar shows [month] (null until the first emission), between [earliestMonth]
- * (the month of History's oldest row, any game — stable across tabs) and [today]'s.
+ * The calendar shows the week — or, [calendarExpanded], the month — holding
+ * [calendarDay] (null until the first emission), between [earliestDay] (History's
+ * oldest row, any game — stable across tabs) and [today].
  * [solvedByDay] holds each day's numbered solves as brands, [dotsPerDay] dots a day —
  * every game on All, one on a game's tab — and [daysWithRows] the days the tab has any
  * row (solved or not). [selectedDay] filters the list to one day and survives tab
@@ -44,8 +44,9 @@ data class HistoryUiState(
     val tabs: List<HistoryTab> = emptyList(),
     val rows: List<HistoryDayRow> = emptyList(),
     val stats: GameStats? = null,
-    val month: YearMonth? = null,
-    val earliestMonth: YearMonth? = null,
+    val calendarDay: LocalDate? = null,
+    val calendarExpanded: Boolean = false,
+    val earliestDay: LocalDate? = null,
     val selectedDay: LocalDate? = null,
     val solvedByDay: Map<LocalDate, List<GameBrand>> = emptyMap(),
     val daysWithRows: Set<LocalDate> = emptySet(),
@@ -66,8 +67,10 @@ data class HistoryUiState(
  * the tab, the same numbers Profile and Result show (practice never counts), and each
  * game's best row is its fastest numbered solve — the row those stats' best time reads.
  *
- * Calendar: [showMonth] picks the month (clamped in the state to the months with
- * history, never past the current one) and [selectDay] toggles a one-day filter.
+ * Calendar: [showCalendar] picks the shown week or month and the mode (clamped in the
+ * state to the days with history, never past today) and [selectDay] toggles a one-day
+ * filter. Both live here beside the tab, so a rotation keeps the calendar, the filter
+ * and the rows they are clamped to together.
  *
  * Replay is navigation only (ticket 11): the route reports the (game, day) and the play
  * store opens that day's slot — History never builds a session blob.
@@ -88,7 +91,7 @@ class HistoryViewModel(
     }
 
     private val tab = MutableStateFlow(key.gameId?.let(::GameId)?.takeIf { registry[it] != null })
-    private val month = MutableStateFlow(YearMonth.from(puzzleDay()))
+    private val calendar = MutableStateFlow(CalendarView(puzzleDay(), expanded = false))
     private val day = MutableStateFlow<LocalDate?>(null)
 
     /** The selected tab: null = All, otherwise one registered game. */
@@ -112,19 +115,19 @@ class HistoryViewModel(
     val uiState: StateFlow<HistoryUiState> = combine(
         tabRows,
         tab.flatMapLatest { observeGameStats(it) },
-        month,
+        calendar,
         day,
-    ) { (game, rows, earliestDay), stats, wanted, selected ->
+    ) { (game, rows, oldest), stats, (wanted, wide), selected ->
         val order = if (game == null) tabs.map { it.gameId } else listOf(game)
         val today = puzzleDay()
-        val current = YearMonth.from(today)
-        val earliest = earliestDay?.let(YearMonth::from)?.coerceAtMost(current) ?: current
+        val earliest = oldest?.coerceAtMost(today) ?: today
         HistoryUiState(
             tabs = tabs,
             rows = rows,
             stats = stats,
-            month = wanted.coerceIn(earliest, current),
-            earliestMonth = earliest,
+            calendarDay = wanted.coerceIn(earliest, today),
+            calendarExpanded = wide,
+            earliestDay = earliest,
             selectedDay = selected,
             solvedByDay = solvedByDay(rows, order),
             daysWithRows = rows.mapTo(HashSet()) { it.day },
@@ -142,9 +145,12 @@ class HistoryViewModel(
         if (game == null || registry[game] != null) tab.value = game
     }
 
-    /** Shows [month]'s calendar; the state clamps it between the oldest row's month and today's. */
-    fun showMonth(month: YearMonth) {
-        this.month.value = month
+    /**
+     * Shows the week holding [day] — the month holding it when [expanded]; the state
+     * clamps [day] between the oldest row's day and today.
+     */
+    fun showCalendar(day: LocalDate, expanded: Boolean) {
+        calendar.value = CalendarView(day, expanded)
     }
 
     /**
@@ -159,6 +165,9 @@ class HistoryViewModel(
         }
     }
 
-    /** One tab's rows, plus the oldest day across every game (the calendar's first month). */
+    /** One tab's rows, plus the oldest day across every game (the calendar's first page). */
     private data class TabRows(val tab: GameId?, val rows: List<HistoryDayRow>, val earliest: LocalDate?)
+
+    /** The calendar's wanted day (its week or month is shown) and mode, set together. */
+    private data class CalendarView(val day: LocalDate, val expanded: Boolean)
 }

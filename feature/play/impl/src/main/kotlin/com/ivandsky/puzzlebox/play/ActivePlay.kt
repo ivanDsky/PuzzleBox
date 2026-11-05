@@ -181,6 +181,9 @@ class ActivePlay internal constructor(
         scope.cancel()
     }
 
+    /** The slot's newest session change its writer still holds (not yet queued for disk). */
+    internal val unsavedSession: ByteArray? get() = writer.unsaved
+
     //region internals
 
     private fun newController(): GamePlayController {

@@ -64,6 +64,10 @@ object QueensBoardDefaults {
     // §6 lower bound reasoning: compact worst case (10x10 on 360dp) bottoms out here.
     val cellMinSize: Dp = 32.dp
 
+    // Hub thumbnail: the board sits this share of the square in from each edge, the
+    // margin Zip's and Tango's thumbnails leave inside the hub's card frame.
+    const val thumbnailInsetFraction: Float = 0.06f
+
     // §6 pane gutter per side; dense boards (n ≥ 10) tighten it so a 12×12 fits 360dp.
     val gutter: Dp = 16.dp
     val compactGutter: Dp = 8.dp
