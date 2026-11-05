@@ -32,13 +32,10 @@ import kotlinx.coroutines.launch
  * the A4 badge derived from the session-start baseline, and the slot's saves: every
  * in-progress session change is offered to [writer], a solve discards the row (A10).
  *
- * Every [load] and restore adopts into a NEW controller; callbacks and async results of
- * an older controller are dropped (the generation guard), so a superseded session can
- * never publish bytes or write a record. The one exception is a restore of the session
- * the live controller already holds (rotation): that controller is kept, transient
- * state and all. The record write is tracked apart from the controller (the record
- * token): only [load], [replay] and a restore of ANOTHER puzzle start a new record, so a
- * write in flight across a same-puzzle restore still delivers its badge or failure.
+ * Every [load] adopts into a NEW controller; callbacks and async results of an older
+ * controller are dropped (the generation guard), so a superseded session can never
+ * save bytes or write a record. The record write is tracked apart from the controller
+ * (the record token): only [load] and [replay] start a new record.
  */
 class ActivePlay internal constructor(
     /** The (game, day) this is the one live play of (N21). */
@@ -48,12 +45,11 @@ class ActivePlay internal constructor(
     val ui: GamePlayUi,
     /** Where each [load]'s board comes from; asked again on every load and retry. */
     private val opening: SlotOpening,
-    /** The slot's saves; null for a legacy play, which never touches disk (deleted in 14). */
-    private val writer: SlotWriter?,
+    /** The slot's saves. */
+    private val writer: SlotWriter,
     private val completions: CompletionRepository,
     private val scope: CoroutineScope,
     private val recordScope: CoroutineScope,
-    private val publish: (ActivePlay, ByteArray) -> Unit,
 ) {
     /** What the play screen draws: the live controller and the shared fetch state. */
     data class Board(val controller: GamePlayController, val status: PlayBoardStatus)
@@ -69,11 +65,8 @@ class ActivePlay internal constructor(
 
     private var generation = 0
 
-    /** The session bytes the live controller last published or was restored from. */
-    private var held: ByteArray? = null
-
-    /** The record write's identity: bumped by [resetRecord] only (load/replay, or a
-     *  restore of ANOTHER puzzle) — never by a controller swap. */
+    /** The record write's identity: bumped by [resetRecord] only (a load, its adopt or
+     *  resume, and replay) — never by a controller swap. */
     private var recordToken = 0
 
     private val _board = MutableStateFlow(Board(newController(), PlayBoardStatus.Loading))
@@ -83,10 +76,6 @@ class ActivePlay internal constructor(
     val record: StateFlow<Record> = _record.asStateFlow()
 
     val controller: GamePlayController get() = _board.value.controller
-
-    /** A fresh entry must fetch: nothing playable in hand, or the live session is finished. */
-    val needsLoad: Boolean
-        get() = _board.value.status !is PlayBoardStatus.Ready || controller.isComplete
 
     private var ref: PuzzleRef? = null
 
@@ -133,42 +122,15 @@ class ActivePlay internal constructor(
     }
 
     /** A saved play or a past day's replay build: the [SessionBlob] envelope the opening
-     *  checked. Bytes the controller still cannot read are unavailable, never a loop. */
+     *  checked. Bytes the controller still cannot read are unavailable, never a loop. A
+     *  restored COMPLETED session shows its win without re-emitting and reads no baseline. */
     private fun resume(controller: GamePlayController, envelope: ByteArray): PlayBoardStatus {
         if (controller !== this.controller) return PlayBoardStatus.Loading // superseded; never shown
-        val session = SessionBlob.decode(envelope)?.session
-        return if (session != null && adoptSession(controller, session)) {
-            PlayBoardStatus.Ready(banner = null)
-        } else {
-            PlayBoardStatus.Unavailable(UNREADABLE)
-        }
-    }
-
-    /**
-     * Rotation/process-death + history-replay restore: the game's codec carries the
-     * puzzle BY VALUE, so a corrupt blob falls back to a normal [load] (on the controller
-     * that failed to read it — it adopted nothing); a restored COMPLETED session shows
-     * its win without re-emitting (emission happens on the transition only) and reads
-     * no baseline. The session the live controller already holds (rotation: the store
-     * outlived the composition) keeps that controller — hint cooldown, visible hint,
-     * rejection and the record write untouched. A restore of the same puzzle keeps the
-     * record; another puzzle starts a new one.
-     */
-    internal fun adoptRestored(bytes: ByteArray) {
-        if (held?.contentEquals(bytes) == true) return
-        val controller = newController()
-        if (!adoptSession(controller, bytes)) return load(controller)
-        _board.value = Board(controller, PlayBoardStatus.Ready(banner = null))
-    }
-
-    /** Adopts the session [bytes] into [controller]; false when the game cannot read them. */
-    private fun adoptSession(controller: GamePlayController, bytes: ByteArray): Boolean {
-        val restored = controller.adoptRestored(bytes) ?: return false
-        held = bytes
-        val newPuzzle = restored.ref != ref
-        if (newPuzzle) resetRecord(restored.ref)
-        if (newPuzzle && !controller.isComplete) refreshBaseline(restored.ref)
-        return true
+        val restored = SessionBlob.decode(envelope)?.session?.let(controller::adoptRestored)
+            ?: return PlayBoardStatus.Unavailable(UNREADABLE)
+        resetRecord(restored.ref)
+        if (!controller.isComplete) refreshBaseline(restored.ref)
+        return PlayBoardStatus.Ready(banner = null)
     }
 
     /** Result's "Play again": a fresh session of the SAME puzzle (A9) — the badge resets
@@ -193,7 +155,7 @@ class ActivePlay internal constructor(
     /** App stop: folds the clock and waits until the slot's pending save is written. */
     internal suspend fun save() {
         fold()
-        writer?.flush()
+        writer.flush()
     }
 
     /** Release: the final save is written, then the play's own work stops. The record
@@ -207,17 +169,14 @@ class ActivePlay internal constructor(
 
     private fun newController(): GamePlayController {
         val gen = ++generation
-        held = null
         lateinit var created: GamePlayController
         created = ui.createController(
             PlayEnvironment(
                 scope = scope,
                 onSessionChanged = { bytes ->
                     if (gen == generation) {
-                        held = bytes
-                        publish(this, bytes)
                         // A finished session never saves: the solve deleted the row (A10).
-                        if (!created.isComplete) writer?.offer(SessionBlob.encode(slot.gameId, bytes))
+                        if (!created.isComplete) writer.offer(SessionBlob.encode(slot.gameId, bytes))
                     }
                 },
                 onWon = { record -> if (gen == generation) onWon(record) },
@@ -227,7 +186,7 @@ class ActivePlay internal constructor(
     }
 
     private fun onWon(record: CompletionRecord) {
-        writer?.discard()
+        writer.discard()
         lastWon = record
         emit(record)
     }

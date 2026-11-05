@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -68,6 +70,9 @@ fun ResultScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            // Short windows (landscape phone, split screen) scroll instead of squeezing the
+            // actions to nothing; fillMaxSize first keeps short content centred.
+            .verticalScroll(rememberScrollState())
             .testTag("result.screen")
             .padding(Spacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,

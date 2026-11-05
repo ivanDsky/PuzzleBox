@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.gameui
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -29,7 +31,9 @@ fun PlayBoardFallback(status: PlayBoardStatus, onRetry: () -> Unit, tagPrefix: S
         is PlayBoardStatus.Unavailable -> BoardError(
             message = status.message,
             onRetry = onRetry,
+            // A short board area (landscape phone, split screen) scrolls so Retry stays reachable.
             modifier = Modifier
+                .verticalScroll(rememberScrollState())
                 .fillMaxWidth()
                 .padding(Spacing.xl)
                 .testTag("$tagPrefix.error"),

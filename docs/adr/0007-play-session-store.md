@@ -23,15 +23,25 @@ ViewModel (F7).
    `*UiModule` as a `GamePlayUi` single qualified by the game id; `app` binds
    `GamePlayRegistry(getAll())` once.
 3. `feature/play` is game-agnostic (no `games:*` dependency, no `when` over game ids):
-   `PlaySessionStore` (Koin single) owns the one live `ActivePlay` — fetch the daily, resolve
+   `PlaySessionStore` (Koin single) owns the live `ActivePlay`s (one per slot since §4's amendment) — fetch the daily, resolve
    the record identity, write the record, derive the badge and result label — and creates a
-   new controller per load, dropping callbacks from released controllers. `PlayViewModel` and
-   `ResultViewModel` expose it to `PlayRoute`/`ResultRoute` via `collectAsStateWithLifecycle`.
-4. Persistence stays in the route's `rememberSaveable`: the store emits `SessionBlob`
-   envelopes naming the game, so after process death (when the store single is gone) the
-   envelope tells the fresh store which game to restart. Re-entry rebinds the sink and
-   backfills the live blob; switching games or `end()` drops the old play's sink and cancels
-   its scope.
+   new controller per load, dropping callbacks from released controllers. `HubViewModel`,
+   `GameViewModel` and `ResultViewModel` expose it to `HubRoute`/`GameRoute`/`ResultRoute` via
+   `collectAsStateWithLifecycle` (0.8: `PlayViewModel`/`PlayRoute`).
+4. *(Amended 2026-11-04, navigation-ux, ADR-0010.)* Sessions persist on disk and resume.
+   The store keeps one `ActivePlay` per `PlaySlot` (game, day), shared by every stack whose
+   `GameKey`/`ResultKey` names that slot; `open(key)`, `peek(slot)`, `retain(keys)` and
+   `flush()` are its only API. `SlotOpening` decides where a slot's board comes from: the
+   saved row (its `SessionBlob` envelope must name the slot's game and decode, else the row
+   is deleted), then today's fetch, then a past day's replay build. Each slot's `SlotWriter`
+   coalesces saves by trailing throttle (the first change opens a 300 ms window, its end
+   writes the latest) into `SavedPlayRepository` (Room `saved_plays`, newest 8 slots); a solve
+   discards the row. Saves, deletes and opening reads share one serial `WriteLane`. The shell
+   calls `retain(allKeys)` whenever the stacks change (a slot no key names folds its clock,
+   saves and is cancelled) and `flush()` at activity stop. After process death a key reopens
+   its slot from disk; nothing rides the route's saveable.
+   *Originally:* persistence stayed in the route's `rememberSaveable` via `SessionBlob`
+   envelopes, with one live play that `end()` dropped.
 5. The picker and Home's featured game follow the app-side product order (zip, tango,
    queens); an unlisted game sorts after them by id.
 
@@ -40,7 +50,10 @@ ViewModel (F7).
   `games/<id>-ui` module with one `GamePlayController` + one `GamePlayUi` bound under its id
   qualifier, both modules added to `PuzzleBoxApplication.appModules`, and its id in
   `GAME_ORDER`. `feature/play` and `core/game-ui` stay untouched.
-- ViewModels are activity-scoped (Navigation3 has no per-entry ViewModel store decorator
-  here), which is why the session survives in the saveable rather than in a `SavedStateHandle`.
+- *(Amended 2026-11-04, ADR-0010.)* ViewModels are per entry: the shell decorates every tab's
+  stack with Navigation3's per-entry `ViewModelStore`, so `HubViewModel`, `GameViewModel` and
+  `ResultViewModel` live and die with their entry, and own only UI state. The play outlives
+  them in the store; releasing it is `retain`'s job. *Originally:* ViewModels were
+  activity-scoped and the session survived in the saveable.
 - Tests of the play layer run against stand-in games; real-game route coverage lives in
   `app`, the only module that sees every game.

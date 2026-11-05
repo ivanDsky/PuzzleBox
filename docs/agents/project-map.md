@@ -1,6 +1,6 @@
 # PuzzleBox — project map
 
-pinned: 89c0672567c072a9a14551baa12254d9b62f6b83
+pinned: 7aa632ecb87a5a43293701c0a511d49b85ebb20e
 
 ## Purpose
 
@@ -14,9 +14,11 @@ future `PuzzleSource` adapter, ADR-0003 per-game editors only after that game sh
 records normalized in `core:data` with `CompletionRecord` emitted by games, ADR-0005 every
 persisted artifact self-describes its schema version and rule changes are data
 (`Puzzle.variant`), ADR-0006 command history and the shared core play chrome, ADR-0007 the
-play session store, ADR-0008 the module graph and its enforced forbidden edges, ADR-0009 the
+play session store (amended: slots persist on disk and resume; per-entry ViewModels),
+ADR-0008 the module graph and its enforced forbidden edges, ADR-0009 the
 in-module structure rules (`:konsist`, 12 Konsist-backed rules with shrink-only allowlists;
-each failure links to its section).
+each failure links to its section), ADR-0010 per-tab navigation (immutable
+`NavigationState` + verb rules, rejected designs, "Adding a tab", serial-name policy).
 
 ## Layout
 
@@ -44,47 +46,66 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 `:konsist` → any module, and any module → `:konsist` (test configurations too).
 
 - `app/` (`:app`) — `PuzzleBoxApplication` (starts Koin, then starts `LeaderboardSubmitWatcher`),
-  `MainActivity` (Compose host, theme resolution, edge-to-edge), `PuzzleBoxApp` (Navigation3
-  shell: Home/Play/Profile tabs over one `NavBackStack` driven through a `Navigator`, the
-  feature-contributed entries plus the app-owned Catalog page, `SceneCanvas` as a
-  `NavEntryDecorator`, fade-through transitions honoring system reduce-motion, special Result
-  enter transition), `nav/TopLevelDestination.kt` (tab table over the features' keys),
-  `nav/CatalogKey.kt`, `nav/PuzzleBoxNavKeys.kt` (`puzzleBoxNavKeys`: the back stack's
+  `MainActivity` (Compose host, theme resolution, edge-to-edge), `PuzzleBoxApp` (bar or rail
+  over the shell; highlight = `navigator.state.tab`; Play tab badge while
+  `ObservePlayProgress` reports any of today's games in progress), `nav/` the shell
+  (ADR-0010): `TopLevelDestination.kt` (`topLevelDestinations` tab registry: key, label, icon,
+  test tag), `PuzzleBoxNavigationState.kt` (fresh state, Home = start tab),
+  `RememberNavigator.kt` (`rememberNavigator`, saved under `NAVIGATION_STATE_KEY`
+  `"puzzlebox.navigation.v1"`, restored via `reconciledWith`; foreign/undecodable → fresh),
+  `TabEntries.kt` (`rememberTabEntries`, the only Navigation3 adapter: per-tab saveable +
+  per-entry `ViewModelStore` + `SceneCanvas` decorators, `OWNER_TAB`/`ENTRY_KEY` metadata),
+  `PuzzleBoxNavShell.kt` (`NavDisplay`, `onBack` = `Navigator.pop`, `PlaySessionStore.retain`
+  on stack change and `flush` at ON_STOP), `NavTransitions.kt` (`NavMotion` values and the
+  push/pop/tab-switch/Result/reduced-motion chooser), `TopLevelNavBar.kt` (bar + rail,
+  `badged` keys), `PuzzleBoxEntryProvider.kt` (route table from every feature's `*Entry`
+  builder plus `CatalogKey`), `CatalogKey.kt`, `PuzzleBoxNavKeys.kt` (`puzzleBoxNavKeys`:
   polymorphic `SavedStateConfiguration` over every feature's keys),
   `leaderboard/LeaderboardSubmitWatcher` (auto-submits records when signed in),
   `di/AppModule` (app scope; `GameRegistry` over `getAll<GamePlugin>()` sorted by the app-side
   `GAME_ORDER` zip → tango → queens; `GamePlayRegistry(getAll())` over every game's
   `GamePlayUi`), debug-only Showkase browser (`CatalogDebugBinding`, `ShowkaseBrowserScreen`,
-  `PreviewBackdrop`, `BrowserRadioControls`; goldens in `app/snapshots/`).
+  `PreviewBackdrop`, `BrowserRadioControls`; goldens in `app/snapshots/`). Tests:
+  `src/test/.../e2e/` the E2E robot (`shellRobot`/`ShellRobot`: gestures, back and
+  predictive back, background/restore/relaunch, spec-notation row assertions; `E2eKoinGraph`:
+  production `appModules` with core:testing fakes on the edges; `TabNavigationE2ETest`,
+  `HistoryE2ETest`, `ProcessDeathE2ETest`), `nav/PerTabShellTest`,
+  `nav/ShellSessionLifecycleTest`.
 - `konsist/` (`:konsist`, test-only `puzzlebox.jvm.library`, no project dependencies) — the
   in-module structure rule suite (ADR-0009): `core/` engine (`SourceTree`, `Allowlist`, `judge`,
   `RuleCheck`, `CensusTest`), `rules/` one `<ID><Name>.kt` + test per rule, resources
   `allowlists/<ID>.txt` and `fixtures/<ID>/` (incl. `add-a-game`).
-- `core/navigation/` (`:core:navigation`) — `Navigator` (`currentKey`, `navigate`,
-  `navigateOnce` double-tap guard, `navigateToTopLevel` tab reset, `goBack`) over the app's
-  single `NavBackStack<NavKey>`, and `navKeySavedStateConfiguration` (open `NavKey`
-  polymorphism for back-stack saved state).
+- `core/navigation/` (`:core:navigation`) — `NavigationState` (immutable `@Serializable` tab +
+  one stack per tab, invariants I1–I4, pure verbs `selectTab`/`push`/`pushOnce`/`pop`/
+  `replaceTop`, `reconciledWith`, spec-notation `toString`; `navigationState(vararg tabs)`),
+  `Navigator` (snapshot-state holder, one line per verb), and `navKeySavedStateConfiguration`
+  (open `NavKey` polymorphism for saved state).
 - `feature/{home,play,history,profile}/api/` (`:feature:*:api`, plugin
   `puzzlebox.android.feature.api`) — each feature's `@Serializable` NavKeys (`HomeKey`;
-  `PlayKey`, `ResultKey`, `ReplayKey`; `HistoryKey`; `ProfileKey`) and a `*NavKeys()`
-  polymorphic registration; `@SerialName`s stay pinned to the pre-split
-  `com.ivandsky.puzzlebox.app.nav.*` class names so older saved stacks restore.
+  `PlayKey` (hub), `GameKey(gameId, day?)`, `ResultKey(gameId, day, timeMs, hintsUsed)`;
+  `HistoryKey`; `ProfileKey`) and a `*NavKeys()` polymorphic registration; serial names keep
+  the `com.ivandsky.puzzlebox.app.nav.*` prefix by convention, compatibility is versioned by
+  `NAVIGATION_STATE_KEY` (ADR-0010).
 - `core/common/` (`:core:common`) — `DispatcherProvider` seam (+ `DefaultDispatcherProvider`),
   `AppResult`/`AppError` and `resultOf` convention (typed errors, never thrown surprises),
   Koin `commonModule`.
 - `core/data/` (`:core:data`) — game-agnostic repositories: `DailyRepository` →
   `OfflineFirstDailyRepository` (`today(game)`/`cached(game, day)`/`observeHistory(game)`,
   `DailyToday` Fresh/Cached/Unavailable, `DailyEntry`; decodes through `GameRegistry`, fetches
-  through every game's `DailySource`), `CompletionRepository` → `RoomCompletionRepository` +
+  through every game's `DailySource`), `SavedPlayRepository` → `RoomSavedPlayRepository`
+  (one session blob per `PlaySlot`; save prunes to the newest 8 slots in one transaction;
+  `observeInProgress`), `calendar/GameCalendar` → `CadenceGameCalendar` (each game's today in
+  its cadence zone; `observeToday` re-emits at that midnight), `CompletionRepository` → `RoomCompletionRepository` +
   `FirstWinPolicy`, `UserPreferencesRepository` → `OfflineUserPreferencesRepository`;
   `model/` entity mappings + `PuzzleRefKeys`; `identity/` `IdentityService` + `AuthResult`/
   `AuthError`; `leaderboard/` (`LeaderboardRef`, `LeaderboardEntry`, `LeaderboardRepository`,
   `SubmitResult` Ok/Deduped/Err, `LeaderboardEntries.fromRecord`); Koin `dataModule` (includes
   `databaseModule`, `networkModule`, `datastoreModule`).
-- `core/database/` (`:core:database`) — Room v5 `PuzzleBoxDatabase`: `PuzzleDailyDao`/
+- `core/database/` (`:core:database`) — Room v6 `PuzzleBoxDatabase`: `PuzzleDailyDao`/
   `PuzzleDailyEntity` (`puzzle_dailies`, keyed gameId+day), `CompletionDao`/`CompletionEntity`
-  (`completions`, keyed on the encoded puzzle-ref string); schemas 1–5 exported under
-  `core/database/schemas/`, `Migrations.ALL` = 1→2→3→4→5; Koin `databaseModule`.
+  (`completions`, keyed on the encoded puzzle-ref string), `SavedPlayDao`/`SavedPlayEntity`
+  (`saved_plays`, keyed gameId+day, `blob` + `updatedAt`, `saveAndPrune`); schemas 1–6
+  exported under `core/database/schemas/`, `Migrations.ALL` = 1→2→3→4→5→6; Koin `databaseModule`.
 - `core/network/` (`:core:network`, pure JVM) — the one LinkedIn client: internal
   `LinkedInGamesApi` (Retrofit), `LinkedInSessionCookieJar` + `LinkedInCsrfInterceptor`
   (anonymous session), `LinkedInFeedTransport` implementing `core:game`'s `FeedTransport`;
@@ -100,13 +121,14 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   (`ShowkaseBrowserModule` `@ShowkaseRoot` in `src/debug`; the browser screen lives in
   `app/src/debug`). Font license in `licenses/`.
 - `core/model/` (`:core:model`, pure JVM) — dependency-free shared types in package
-  `com.ivandsky.puzzlebox.model` (`GameId`, `ThemeMode`).
+  `com.ivandsky.puzzlebox.model` (`GameId`, `ThemeMode`, `PlaySlot(gameId, day)`).
 - `core/domain/` (`:core:domain`) — use cases (package `com.ivandsky.puzzlebox.domain`, Koin
   `domainModule`): `ObserveGameHistory` (records UNION every registered game's captured days →
   `GameHistoryDay`), `GetFeaturedGame` (registry's first game as `GameSummary`),
   `ComputeStreak`, `GetReplaySession` (cached puzzle → the game's replay blob as
   `ReplayOutcome`), `ObserveTodayLeaderboard` (identity-gated featured-game board:
-  `TodayLeaderboard`). Android library.
+  `TodayLeaderboard`), `ObservePlayProgress` (saved plays + records + each game's calendar
+  day → `PlayProgress(order, inProgress, solved)`, `anyInProgress`, `nextUnsolved`). Android library.
 - `core/game/` (`:core:game`, pure JVM) — the orthogonal game contracts (ADR-0001):
   `GameDefinition`, `GameRules<P>`, `GameSession` + `GameSessionCodec`, `ScoreModel<S>` →
   `CompletionRecord?`, `PuzzleSource` (`fetch(date)` → `FetchResult`; `FetchError`), composed
@@ -124,8 +146,9 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `CompletionRecordEmitter`.
 - `core/testing/` (`:core:testing`) — test doubles, test configurations only (package
   `com.ivandsky.puzzlebox.testing`): `repository/` (`FakeDailyRepository`,
-  `FakeCompletionRepository`, `FakeIdentityService`, `FakeLeaderboardRepository`), `game/`
-  (`TestGames` stand-in registry, `FakeDailySource`), `rule/MainDispatcherRule`.
+  `FakeCompletionRepository`, `FakeIdentityService`, `FakeLeaderboardRepository`,
+  `FakeSavedPlayRepository`, `FakeUserPreferencesRepository`), `calendar/FakeGameCalendar`,
+  `game/TestGames` (stand-in registry), `rule/MainDispatcherRule`.
 - `games/zip/` (`:games:zip`, pure JVM) — `zipPlugin` + Koin `zipModule` (binds
   `LinkedInZipDailySource` as `DailySource`); model `ZipPuzzle`/`ZipBoard` + `ZipPuzzleRef`;
   `engine/` `ZipRules` over an ordered `ZipRule` pipeline (`ZipRuleId`), `ZipVerifier`,
@@ -149,16 +172,21 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `ObserveGameHistory`; `di/HomeModule`), `HomeScreen` with `HomeListPane`/`HomeDetailPane`/
   `HomeCards`, `ThemeDialog`, `HomeLayout` + `homeLayoutFor` pure pane policy.
 - `feature/play/impl/` (`:feature:play:impl`) — the one game-agnostic play surface (ADR-0006,
-  ADR-0007; no `games:*` dependency): `PlaySessionStore` (Koin single: the live `ActivePlay`,
-  `start`/`restore`/`end`, emits `SessionBlob` envelopes), `ActivePlay`, `PlayViewModel` +
-  `ResultViewModel`, `PlayRoute`, `GamePicker`, `ResultRoute`, `di/PlayModule`;
-  `navigation/PlayEntries` and `navigation/PlayBackStack` (`solveToResult`,
-  `playAgainFromResult`, `leavePlay` as `Navigator` extensions).
+  ADR-0007; no `games:*` dependency): `PlaySessionStore` (Koin single: one `ActivePlay` per
+  `PlaySlot`, `open(GameKey)`/`peek(slot)`/`retain(keys)`/`flush()`, `playable` games, pins a
+  null-day key to today on first open), `ActivePlay` (controller, board/record flows, record
+  write, badge, slot saves), `SlotOpening` (saved row → today's fetch → past-day replay build
+  → Unavailable; undecodable row deleted), `SlotWriter` (per-slot 300 ms trailing-throttle
+  saves, `discard` on solve), `WriteLane` (one Mutex-ordered lane for every saved-play I/O),
+  `HubRoute` + `HubViewModel` (Play tab's games hub with in-progress marks), `GameRoute` +
+  `GameViewModel` (one `GameKey`'s board), `ResultRoute` + `ResultViewModel` (Play again,
+  Next unsolved), `GamePicker`, `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
+  `resultEntry`).
 - `feature/history/impl/` (`:feature:history:impl`) — `navigation/HistoryEntry`,
   `HistoryRoute`/`HistoryScreen` with `HistoryListPane`/`HistoryDetailPane` over
-  `HistoryViewModel` (`HistoryUiState`, one-shot `HistoryEvent` replay via `GetReplaySession`;
-  `di/HistoryModule`), `HistoryPaging` (`historyPager`, `HistoryPagingSource`),
-  `HistoryLayout` + `historyLayoutFor`; replay rides the same `PlayRoute` restored.
+  `HistoryViewModel` (`di/HistoryModule`), `HistoryPaging` (`historyPager`,
+  `HistoryPagingSource`), `HistoryLayout` + `historyLayoutFor`; a history row pushes that
+  day's `GameKey` on Home's stack, which resumes or replays the slot.
 - `feature/profile/impl/` (`:feature:profile:impl`) — packages kept from the app:
   `app/screens/` (`ProfileRoute`, `ProfileScreen`, `ProfileLeaderboard`, `ProfileViewModel`
   over `ObserveTodayLeaderboard`, `ProfileUiState`), `app/auth/GoogleIdTokenProvider`
@@ -170,7 +198,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `LeaderboardDocCodec`, `BackendModule` (`firebaseBackendModule`). Rules and indexes live
   alongside (`firebase.json`, `firestore.rules`, `firestore.indexes.json`).
 - `PROFILE.md` — product frame, ranked care-axes, deploy targets, testing style.
-- `docs/adr/` — ADR-0001…0008, summarized under Purpose.
+- `docs/adr/` — ADR-0001…0010, summarized under Purpose.
 
 ## Entry points
 
@@ -181,14 +209,16 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 - `MainActivity` — sole activity; holds composition until the persisted `ThemeMode` arrives
   (no light flash), resolves dark theme against the system setting, keeps system bar icons in
   step, then hosts `PuzzleBoxApp` with the width size class, `ThemeMode`, and the setter.
-- `PuzzleBoxApp` route table (Navigation3 `NavDisplay`, entries contributed by each feature
-  impl's `*Entry` builder): tabs HomeKey → `HomeRoute`, PlayKey → `PlayRoute`, ProfileKey →
-  `ProfileRoute`. Pushed: HistoryKey → `HistoryRoute`, ReplayKey(session bytes) → `PlayRoute`
-  restored, ResultKey → `ResultRoute` (distinct enter transition), CatalogKey → the debug-only
-  Showkase browser (`CatalogDebugBinding`, FLAG_DEBUGGABLE-gated; release gets a placeholder).
-  Tab selection resets to the tab root (`Navigator.navigateToTopLevel`);
-  `Navigator.navigateOnce` guards double-push. Bottom bar on compact widths, rail on
-  expanded-width landscape (`homeLayoutFor`/`playLayoutFor`/`historyLayoutFor`).
+- `PuzzleBoxApp` route table (`puzzleBoxEntryProvider`, entries contributed by each feature
+  impl's `*Entry` builder): tab roots HomeKey → `HomeRoute`, PlayKey → `HubRoute`,
+  ProfileKey → `ProfileRoute`. Pushed on the current tab's stack: HistoryKey →
+  `HistoryRoute`, GameKey(game, day?) → `GameRoute` (from the hub or a history row),
+  ResultKey → `ResultRoute` (replaces the game on solve; distinct enter transition),
+  CatalogKey → the debug-only Showkase browser (`CatalogDebugBinding`, FLAG_DEBUGGABLE-gated;
+  release gets a placeholder). Each tab keeps its own stack; reselecting a tab pops it to its
+  root; back at a Play/Profile root returns to Home; back at the Home root exits
+  (ADR-0010). Bottom bar on compact widths, rail on expanded-width landscape
+  (`homeLayoutFor`/`playLayoutFor`/`historyLayoutFor`).
 - No deep links, widgets, or services.
 
 ## Seams
@@ -196,7 +226,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 - **Koin DI graph** — `commonModule` + `dataModule` (repositories; includes `databaseModule`
   Room + DAOs, `networkModule` Json/cookie jar/`LinkedInGamesApi`/`FeedTransport`,
   `datastoreModule` DataStore + `PuzzleBoxPreferencesDataSource`) + `firebaseBackendModule` +
-  `domainModule` (the five use cases) + feature modules + per game `*Module` (plugin +
+  `domainModule` (the six use cases) + feature modules + per game `*Module` (plugin +
   `DailySource`) and `*UiModule` (`GamePlayUi`) + `appModule` (`CoroutineScope`,
   `LeaderboardSubmitWatcher`, `GameRegistry`, `GamePlayRegistry`). Completeness asserted by
   `DiGraphTest` (app) and `DataModuleGraphTest` (core:data) under Robolectric.
@@ -207,6 +237,16 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 - **`DailySource` / `FeedTransport`** — each game adapts the LinkedIn feed (`DailySource`),
   `core:network` supplies the one transport; `DailyRepository` consumes all sources by id.
   `FetchError` distinguishes Unavailable (degrade to cache) / Throttled / Untrusted.
+- **`NavigationState` / `Navigator`** (`core:navigation`, ADR-0010) — pure per-tab reducer
+  plus its snapshot holder; features get a `Navigator`, Navigation3 stays in `app/nav/TabEntries`.
+- **`PlaySessionStore` slots** (`feature:play:impl`, ADR-0007 §4) — `open`/`peek`/`retain`/
+  `flush` over `SlotOpening`, `SlotWriter` and one `WriteLane`; the shell drives `retain`/`flush`.
+- **`SavedPlayRepository`** (`core:data`) — Room (`saved_plays`) + `FakeSavedPlayRepository`,
+  one shared contract test (`SavedPlayRepositoryContract`).
+- **`GameCalendar`** (`core:data`) — `CadenceGameCalendar` + `FakeGameCalendar`; the one
+  "today for game X", used by dailies, the store and `ObservePlayProgress`.
+- **E2E robot** (`app` tests, `e2e/`) — `shellRobot { … }` over `E2eKoinGraph` drives the real
+  shell row by row in spec notation.
 - **`GamePlayRegistry`** (`core:game-ui`) — the game → UI seam; `:feature:play:impl` drives any
   game through `GamePlayController`, so adding a game never touches Play.
 - **Repository interfaces** (`core:data`) — `DailyRepository.today()` is network-first
@@ -220,11 +260,11 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 - **`DispatcherProvider`** — dispatcher injection keeps callers testable.
 - **Handwritten fakes** in `core:testing` (test-scope only): `FakeDailyRepository`,
   `FakeCompletionRepository`, `FakeIdentityService`, `FakeLeaderboardRepository`,
-  `TestGames`/`FakeDailySource`.
+  `FakeSavedPlayRepository`, `FakeUserPreferencesRepository`, `FakeGameCalendar`, `TestGames`.
 - **Pure layout policies** — `homeLayoutFor`, `playLayoutFor`, `historyLayoutFor`.
-- **`Migrations.ALL`** (`core:database`) — every schema change bumps the Room version (now 5),
+- **`Migrations.ALL`** (`core:database`) — every schema change bumps the Room version (now 6),
   commits the schema JSON, and registers a migration (1→2 puzzle_dailies, 2→3 completions,
-  3→4 daily_puzzles rebuild, 4→5 drops the legacy daily_puzzles); no destructive fallback.
+  3→4 daily_puzzles rebuild, 4→5 drops the legacy daily_puzzles, 5→6 adds saved_plays); no destructive fallback.
 - **Module graph guard** — `checkModuleGraph` (see Layout) fails the build on a forbidden edge.
 - **Roborazzi** — plugin `puzzlebox.android.roborazzi` (app, designsystem, zip-ui, tango-ui,
   queens-ui) unifies the switch: `-Proborazzi.verify=true` verifies, default records.
@@ -235,39 +275,39 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 
 ## Working test commands
 
-Counts are `@Test` annotation counts over each module's `src/test*/` trees at the pin (1018
-total) — not executions. Robolectric where device APIs are touched; `:app` needs `ANDROID_HOME`
+Counts are `@Test` annotation counts over each module's `src/test*/` trees in the working
+tree at the pin (1158 total) — not executions. Robolectric where device APIs are touched; `:app` needs `ANDROID_HOME`
 or `local.properties` (SDK at `~/Library/Android/sdk` here); Gradle toolchain pinned to JVM 25
 via `gradle/gradle-daemon-jvm.properties`. Android modules run `testDebugUnitTest`, pure-JVM
 modules run `test`. Full suite:
 
 `./gradlew assembleDebug testDebugUnitTest :core:game:test :games:zip:test :games:queens:test
 :games:tango:test :core:model:test :core:network:test -Proborazzi.verify=true --continue` —
-P9 full-suite run: 1036 tests, 0 failures.
+the 0.9.0 gate.
 
-Structure rules (ADR-0009): `./gradlew :konsist:test` — runs the 12 in-module rules, the
+Structure rules (ADR-0009): `./gradlew :konsist:test` — runs the 13 in-module rules, the
 census and the engine tests over the whole repo's sources (not in the count above; reruns
 when any source, build script or allowlist changes).
 
-- `:app:testDebugUnitTest` — 39 (DI graph, nav routes, saved-state restore, submit watcher,
-  browser screenshots)
+- `:app:testDebugUnitTest` — 112 (DI graph, nav routes, saved-state restore, per-tab shell,
+  E2E robot rows, submit watcher, browser screenshots)
 - `:backend:firebase:testDebugUnitTest` — 32
 - `:core:common:testDebugUnitTest` — 8
-- `:core:data:testDebugUnitTest` — 39
-- `:core:database:testDebugUnitTest` — 8 (DAOs + migrations)
+- `:core:data:testDebugUnitTest` — 49
+- `:core:database:testDebugUnitTest` — 15 (DAOs + migrations)
 - `:core:datastore:testDebugUnitTest` — 2
 - `:core:designsystem:testDebugUnitTest` — 34
-- `:core:domain:testDebugUnitTest` — 22
+- `:core:domain:testDebugUnitTest` — 29
 - `:core:game:test` — 16
-- `:core:game-ui:testDebugUnitTest` — 35
-- `:core:navigation:testDebugUnitTest` — 4
+- `:core:game-ui:testDebugUnitTest` — 38
+- `:core:navigation:testDebugUnitTest` — 29
 - `:core:network:test` — 10
 - `:core:model`, `:core:testing`, `:feature:*:api` — 0
-- `:feature:home:impl:testDebugUnitTest` — 21
-- `:feature:history:impl:testDebugUnitTest` — 28
-- `:feature:play:impl:testDebugUnitTest` — 57
+- `:feature:home:impl:testDebugUnitTest` — 28
+- `:feature:history:impl:testDebugUnitTest` — 25
+- `:feature:play:impl:testDebugUnitTest` — 67
 - `:feature:profile:impl:testDebugUnitTest` — 28
-- `:games:zip:test` — 155; `:games:zip-ui:testDebugUnitTest` — 69
+- `:games:zip:test` — 155; `:games:zip-ui:testDebugUnitTest` — 70
 - `:games:tango:test` — 114; `:games:tango-ui:testDebugUnitTest` — 53
 - `:games:queens:test` — 163; `:games:queens-ui:testDebugUnitTest` — 81
 - `./gradlew checkModuleGraph` — forbidden-edge guard (also run by `check`)
@@ -275,8 +315,9 @@ when any source, build script or allowlist changes).
 ## Diagram
 
 [docs/agents/project-map.html](project-map.html) — module-graph diagram regenerated from
-`.archify/project-map/architecture-candidate.json` at the pinned revision: the modules and
-edges listed under Layout, with the forbidden-edge rules of ADR-0008.
+`.archify/project-map/architecture-candidate.json` at `89c0672` (pre-0.9): the modules and
+edges listed under Layout, with the forbidden-edge rules of ADR-0008. It predates the
+per-tab navigation seams above; this file is authoritative where they differ.
 
 ## Drift rule
 
