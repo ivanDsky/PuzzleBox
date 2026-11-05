@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -35,7 +34,9 @@ private const val TWO_PANE_BOARD_WEIGHT = 0.62f
 /**
  * The play screen. SinglePane stacks the grid over the keypad in the board pane, with the
  * chrome below; TwoPane gives the board pane to the grid alone and moves the keypad into
- * the chrome's game controls. Clear sits in the game controls either way.
+ * the chrome's game controls. Clear sits in the game controls either way. The result
+ * hand-off waits for the solve sweep ([SudokuMotionHost]); one per board, so a replay's win
+ * hands off again.
  */
 @Composable
 internal fun SudokuPlayScreen(
@@ -48,56 +49,53 @@ internal fun SudokuPlayScreen(
     onHowToPlay: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    // One result hand-off per completion: keyed on completedAt, so a replay's win hands off again.
-    LaunchedEffect(controller.board?.session?.completedAt) {
-        val completed = controller.board?.session?.takeIf { it.isComplete } ?: return@LaunchedEffect
-        onSolved(completed.elapsedMs, completed.hintsUsed)
-    }
     val ready = status as? PlayBoardStatus.Ready
     val state = controller.board?.takeIf { ready != null }
-    when (layout) {
-        PlayLayout.SinglePane -> AdaptivePlayScaffold(
-            layout = layout,
-            modifier = modifier.fillMaxSize(),
-            board = {
-                SudokuBoardPane(status, onRetry) {
-                    if (state != null) SudokuStackedBoard(state)
-                }
-            },
-            side = {
-                SudokuChrome(controller, title, ready, onHowToPlay) {
-                    if (state != null) SudokuClearButton(state)
-                }
-            },
-        )
-        PlayLayout.TwoPane -> BoxWithConstraints(modifier.fillMaxSize()) {
-            val sizing = state?.let {
-                SudokuSizing.layout(
-                    maxWidth = (maxWidth - DividerDefaults.Thickness) * TWO_PANE_BOARD_WEIGHT - PaneGutter * 2,
-                    maxHeight = maxHeight - PaneGutter * 2,
-                    size = it.session.board.geometry.size,
-                    keypadBeside = true,
-                )
-            }
-            AdaptivePlayScaffold(
+    SudokuMotionHost(controller.board, onSolved = { onSolved(it.elapsedMs, it.hintsUsed) }) {
+        when (layout) {
+            PlayLayout.SinglePane -> AdaptivePlayScaffold(
                 layout = layout,
-                modifier = Modifier.fillMaxSize(),
+                modifier = modifier.fillMaxSize(),
                 board = {
                     SudokuBoardPane(status, onRetry) {
-                        if (state != null && sizing != null) {
-                            SudokuGrid(state.model, state::select, Modifier.size(sizing.board))
-                        }
+                        if (state != null) SudokuStackedBoard(state)
                     }
                 },
                 side = {
                     SudokuChrome(controller, title, ready, onHowToPlay) {
-                        if (state != null && sizing != null) {
-                            SudokuBoardKeypad(state, sizing.keyRows)
-                            SudokuClearButton(state)
-                        }
+                        if (state != null) SudokuClearButton(state)
                     }
                 },
             )
+            PlayLayout.TwoPane -> BoxWithConstraints(modifier.fillMaxSize()) {
+                val sizing = state?.let {
+                    SudokuSizing.layout(
+                        maxWidth = (maxWidth - DividerDefaults.Thickness) * TWO_PANE_BOARD_WEIGHT - PaneGutter * 2,
+                        maxHeight = maxHeight - PaneGutter * 2,
+                        size = it.session.board.geometry.size,
+                        keypadBeside = true,
+                    )
+                }
+                AdaptivePlayScaffold(
+                    layout = layout,
+                    modifier = Modifier.fillMaxSize(),
+                    board = {
+                        SudokuBoardPane(status, onRetry) {
+                            if (state != null && sizing != null) {
+                                SudokuGrid(state.model, state::select, Modifier.size(sizing.board))
+                            }
+                        }
+                    },
+                    side = {
+                        SudokuChrome(controller, title, ready, onHowToPlay) {
+                            if (state != null && sizing != null) {
+                                SudokuBoardKeypad(state, sizing.keyRows, sizing.key)
+                                SudokuClearButton(state)
+                            }
+                        }
+                    },
+                )
+            }
         }
     }
 }
@@ -116,7 +114,7 @@ internal fun SudokuStackedBoard(state: SudokuBoardState, modifier: Modifier = Mo
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             SudokuGrid(state.model, state::select, Modifier.size(layout.board))
-            SudokuBoardKeypad(state, layout.keyRows, Modifier.widthIn(max = PlayBoardMaxWidth))
+            SudokuBoardKeypad(state, layout.keyRows, layout.key, Modifier.widthIn(max = PlayBoardMaxWidth))
         }
     }
 }
@@ -136,7 +134,7 @@ private fun SudokuBoardPane(status: PlayBoardStatus, onRetry: () -> Unit, board:
 }
 
 @Composable
-private fun SudokuBoardKeypad(state: SudokuBoardState, rows: Int, modifier: Modifier = Modifier) {
+private fun SudokuBoardKeypad(state: SudokuBoardState, rows: Int, keyHeight: Dp, modifier: Modifier = Modifier) {
     val session = state.session
     SudokuKeypad(
         model = sudokuKeypadModel(session.board, session.notesMode),
@@ -145,6 +143,7 @@ private fun SudokuBoardKeypad(state: SudokuBoardState, rows: Int, modifier: Modi
         onToggleNotes = state::toggleNotesMode,
         modifier = modifier.testTag("sudoku.keypad"),
         rows = rows,
+        keyHeight = keyHeight,
     )
 }
 

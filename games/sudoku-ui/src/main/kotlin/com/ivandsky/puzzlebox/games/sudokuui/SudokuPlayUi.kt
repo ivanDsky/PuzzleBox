@@ -22,7 +22,7 @@ class SudokuPlayUi(private val definition: SudokuDefinition) : GamePlayUi {
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
         val state = (controller as SudokuPlayController).board ?: return
-        SudokuStackedBoard(state, modifier)
+        SudokuMotionHost(state) { SudokuStackedBoard(state, modifier) }
     }
 
     @Composable

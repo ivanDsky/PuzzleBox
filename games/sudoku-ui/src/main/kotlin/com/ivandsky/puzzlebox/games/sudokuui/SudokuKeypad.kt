@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.toggleable
@@ -21,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.rememberReducedMotion
@@ -29,6 +31,7 @@ import com.ivandsky.puzzlebox.gameui.rememberReducedMotion
  * The Sudoku keypad: Notes and Erase as tonal buttons above the digit keys 1..N in [rows]
  * rows (SudokuLayout.keyRows). Every digit key gets the same width, so a short last row
  * (9 keys in 2 rows: 5 + 4) sits centred under the full one. It fills the caller's width.
+ * Every row is [keyHeight] tall (SudokuLayout.key), never under the 48dp touch target.
  */
 @Composable
 fun SudokuKeypad(
@@ -38,7 +41,9 @@ fun SudokuKeypad(
     onToggleNotes: () -> Unit,
     modifier: Modifier = Modifier,
     rows: Int = 1,
+    keyHeight: Dp = 48.dp,
 ) {
+    val rowHeight = keyHeight.coerceAtLeast(48.dp)
     val reducedMotion = rememberReducedMotion()
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -51,13 +56,13 @@ fun SudokuKeypad(
             NotesToggle(
                 notesMode = model.notesMode,
                 onToggle = onToggleNotes,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).height(rowHeight),
             )
             FilledTonalButton(
                 onClick = onErase,
                 modifier = Modifier
                     .weight(1f)
-                    .sizeIn(minHeight = 48.dp),
+                    .height(rowHeight),
             ) {
                 Text("Erase")
             }
@@ -79,7 +84,7 @@ fun SudokuKeypad(
                                 notesMode = model.notesMode,
                                 reducedMotion = reducedMotion,
                                 onClick = { onDigit(digit) },
-                                modifier = Modifier.width(keyWidth),
+                                modifier = Modifier.width(keyWidth).height(rowHeight),
                             )
                         }
                     }

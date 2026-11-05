@@ -14,9 +14,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.collectionItemInfo
@@ -30,7 +32,8 @@ import androidx.compose.ui.text.font.FontWeight
 /**
  * One cell: its highlight tint, the digit or the notes mini-grid, and the conflict dot. The
  * whole cell is one TalkBack node; the drawn digits carry no semantics of their own so the
- * label is read once. Tints switch instantly (spec A11): no colour animation.
+ * label is read once. Highlights switch instantly (spec A11); the only motion is a player
+ * commit's one-shot effect from [LocalSudokuMotion], read while drawing.
  */
 @Composable
 internal fun SudokuCellView(
@@ -44,9 +47,11 @@ internal fun SudokuCellView(
     val colors = MaterialTheme.colorScheme
     val label = sudokuCellLabel(cell, model.size)
     val error = colors.error
+    val motion = LocalSudokuMotion.current
     Box(
         modifier
             .background(cellTint(cell, colors))
+            .waveTint(motion, cell.idx, colors.primary)
             // The selection tint is the tap feedback; a ripple would animate a highlight.
             .clickable(interactionSource = null, indication = null) { onSelect(cell.idx) }
             .clearAndSetSemantics {
@@ -79,11 +84,42 @@ internal fun SudokuCellView(
                     cell.given -> colors.onSurface
                     else -> colors.primary
                 },
+                modifier = Modifier.popScale(motion, cell.idx),
             )
             cell.notes != 0 -> NotesGrid(cell.notes, model, noteStyle, colors.onSurfaceVariant)
         }
+        val ghost = motion?.ghostDigitOf(cell.idx) ?: 0
+        if (cell.digit == 0 && ghost != 0) {
+            Text(
+                text = ghost.toString(),
+                style = digitStyle,
+                color = colors.primary,
+                modifier = Modifier.graphicsLayer { alpha = motion?.ghostAlpha() ?: 0f },
+            )
+        }
     }
 }
+
+private fun Modifier.waveTint(motion: SudokuMotionState?, idx: Int, color: Color): Modifier =
+    if (motion == null) {
+        this
+    } else {
+        drawBehind {
+            val intensity = motion.tintOf(idx)
+            if (intensity > 0f) drawRect(color, alpha = intensity * SudokuMotion.WAVE_ALPHA)
+        }
+    }
+
+private fun Modifier.popScale(motion: SudokuMotionState?, idx: Int): Modifier =
+    if (motion == null) {
+        this
+    } else {
+        graphicsLayer {
+            val scale = motion.scaleOf(idx)
+            scaleX = scale
+            scaleY = scale
+        }
+    }
 
 /** Digit `d` always sits in slot `d - 1` of a boxRows x boxCols grid, so notes never shift. */
 @Composable
