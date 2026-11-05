@@ -59,6 +59,12 @@ androidComponents {
     }
 }
 
+// The release host-test task exists for ReleaseGameModulesTest alone: the src/test suite needs
+// debug-only dependencies (ui-test-manifest) and runs under testDebugUnitTest.
+tasks.withType<Test>().matching { it.name == "testReleaseUnitTest" }.configureEach {
+    filter.includeTestsMatching("com.ivandsky.puzzlebox.app.ReleaseGameModulesTest")
+}
+
 dependencies {
     implementation(projects.backend.firebase)
     implementation(projects.core.common)
