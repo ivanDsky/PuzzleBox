@@ -205,18 +205,30 @@ class SudokuPlayUiTest {
 
     @Test
     @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
-    fun `two pane stacks the keypad under the grid in the board pane, away from the side slot`() {
+    fun `two pane puts the keypad, undo, redo and hint under the grid and leaves the side pane the chrome`() {
         val controller = adopted()
         setScreen(controller, PlayLayout.TwoPane)
 
-        composeRule.onNode(hasTestTag("sudoku.keypad") and hasAnyAncestor(hasTestTag("sudoku.board_area"))).assertExists()
-        composeRule.onNode(hasTestTag("sudoku.keypad") and hasAnyAncestor(hasTestTag("play.side_panel"))).assertDoesNotExist()
-        composeRule.onNode(hasTestTag("sudoku.grid") and hasAnyAncestor(hasTestTag("sudoku.board_area"))).assertExists()
-        composeRule.onNodeWithTag("play.undo").assertExists()
+        val inBoard = hasAnyAncestor(hasTestTag("sudoku.board_area"))
+        val inSide = hasAnyAncestor(hasTestTag("play.side_panel"))
+        composeRule.onNode(hasTestTag("sudoku.keypad") and inBoard).assertExists()
+        composeRule.onNode(hasTestTag("sudoku.keypad") and inSide).assertDoesNotExist()
+        composeRule.onNode(hasTestTag("sudoku.grid") and inBoard).assertExists()
+        composeRule.onNode(hasTestTag("play.undo") and inBoard).assertExists()
+        composeRule.onNode(hasTestTag("play.redo") and inBoard).assertExists()
+        composeRule.onNode(hasTestTag("play.undo") and inSide).assertDoesNotExist()
+        composeRule.onNode(hasClickAction() and hasText("Hint", substring = true) and inSide).assertDoesNotExist()
+        composeRule.onNode(hasText("Daily · #450") and inSide).assertExists()
+        composeRule.onNode(hasText("00:00") and inSide).assertExists()
 
         cell(0).performClick()
         key(4).performClick()
         assertEquals(SudokuCell.Entry(4), session(controller).board.cells[0])
+        composeRule.onNodeWithTag("play.undo").performClick()
+        assertEquals(SudokuCell.Empty, session(controller).board.cells[0])
+        hint().performClick()
+        assertEquals(1, session(controller).hintsUsed)
+        composeRule.onNode(hasText("Hint · 1") and inBoard).assertExists()
     }
 
     @Test

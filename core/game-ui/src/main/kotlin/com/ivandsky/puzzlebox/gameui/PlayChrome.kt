@@ -130,7 +130,8 @@ fun PlayClockEffects(clock: PlayClock) {
  * hint), the record-of-truth timer, and undo/redo (§5/§9: controls ≥ 48 dp — the M3
  * buttons carry their own floor). Seams are nullable so a game opts out of a control it
  * does not have; [onHowToPlay] (null = no button) reopens the game's tutorial (spec A11);
- * [gameControls] is the game-specific remainder.
+ * [actionsOnBoard] drops the Hint button and Undo/Redo for a game that draws them by its
+ * board (the caption still reads [hints]); [gameControls] is the game-specific remainder.
  */
 @Composable
 fun PlayChrome(
@@ -143,6 +144,7 @@ fun PlayChrome(
     modifier: Modifier = Modifier,
     feedback: PlayFeedback? = null,
     onHowToPlay: (() -> Unit)? = null,
+    actionsOnBoard: Boolean = false,
     gameControls: @Composable ColumnScope.() -> Unit = {},
 ) {
     if (clock != null) PlayClockEffects(clock)
@@ -180,7 +182,7 @@ fun PlayChrome(
                     )
                 }
             }
-            if (hints != null) {
+            if (hints != null && !actionsOnBoard) {
                 HintButton(
                     count = hints.hintsUsed,
                     onHint = hints::requestHint,
@@ -210,7 +212,7 @@ fun PlayChrome(
 
         if (clock != null) TimerBar(elapsedMs = clock.displayedElapsedMs())
 
-        if (undo != null) UndoRedoRow(undo)
+        if (undo != null && !actionsOnBoard) UndoRedoRow(undo)
 
         gameControls()
     }
