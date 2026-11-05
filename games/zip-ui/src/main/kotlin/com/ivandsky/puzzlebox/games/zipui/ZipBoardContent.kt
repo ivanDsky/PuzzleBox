@@ -78,9 +78,6 @@ internal object ZipBoardSpec {
     /** Start waypoint's hollow-variant ring thickness, as a fraction of the pitch. */
     const val startRingFraction = 0.05f
 
-    /** Ticket 28 r5: one-shot next-target flash — ring snaps to trace color, settles back. */
-    const val nextTargetFlashMs = 700 // user round 6c: 300ms felt instant; a proper color switch
-
     /** Round-5 arrow (user: → not >, black/subtracted, never wider than the pipe):
      *  shaft + head glyph drawn in boardSurface over the powder pipe — a knockout in the
      *  trace, same visual language as the dot holes. Anchors along the direction

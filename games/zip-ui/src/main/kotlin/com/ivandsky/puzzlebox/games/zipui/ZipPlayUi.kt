@@ -14,7 +14,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.DragTraceBoard
 import com.ivandsky.puzzlebox.gameui.GameBrand
@@ -28,14 +30,9 @@ import com.ivandsky.puzzlebox.gameui.PlayChrome
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.TutorialStep
-import com.ivandsky.puzzlebox.gameui.rememberReducedMotion
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.delay
-
-/** Ticket 28: the hint arrow's on-screen timing — hold ~2s, then a short fade. */
-private const val HINT_ARROW_HOLD_MS = 2000L
-private const val HINT_ARROW_FADE_MS = 300
 
 /** Zip's one play registration (ADR-0001): its controller, its board and its play screen. */
 class ZipPlayUi : GamePlayUi {
@@ -159,9 +156,9 @@ private fun ZipBoard(controller: ZipPlayController, modifier: Modifier) {
     val arrowAlpha = remember(arrow) { Animatable(1f) }
     LaunchedEffect(arrow) {
         if (arrow == null) return@LaunchedEffect
-        delay(HINT_ARROW_HOLD_MS)
+        delay(MotionTokens.HintHoldMillis)
         if (!reducedMotion) {
-            arrowAlpha.animateTo(0f, tween(HINT_ARROW_FADE_MS))
+            arrowAlpha.animateTo(0f, tween(MotionTokens.HintFadeDuration))
         }
         controller.clearHintArrow()
     }

@@ -1,6 +1,7 @@
 app/src/debug/kotlin/com/ivandsky/puzzlebox/app/debug/ShowkaseBrowserScreen.kt  # S4
 app/src/main/kotlin/com/ivandsky/puzzlebox/app/PuzzleBoxApp.kt  # S4
 core/designsystem/src/main/kotlin/com/ivandsky/puzzlebox/designsystem/Dialogs.kt  # S4
+core/designsystem/src/main/kotlin/com/ivandsky/puzzlebox/designsystem/ReducedMotion.kt  # S4
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/BoardGrid.kt  # S4
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/BoardStates.kt  # S4
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/DragTrace.kt  # S4
@@ -8,7 +9,6 @@ core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/HintButton.kt  # S4
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/PlayBoardStatus.kt  # S4
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/PlayChrome.kt  # S4
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/PlayScaffold.kt  # S4
-core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/ReducedMotion.kt  # S4
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/TimerBar.kt  # S4
 feature/history/impl/src/main/kotlin/com/ivandsky/puzzlebox/history/HistoryRoute.kt  # S4
 feature/history/impl/src/main/kotlin/com/ivandsky/puzzlebox/history/HistoryScreen.kt  # S4

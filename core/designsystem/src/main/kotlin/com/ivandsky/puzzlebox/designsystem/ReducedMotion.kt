@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.gameui
+package com.ivandsky.puzzlebox.designsystem
 
 import android.content.ContentResolver
 import android.database.ContentObserver
@@ -12,10 +12,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * The system's reduced-motion signal (design-direction §11: promoted from feature/play
- * so both games share it; the nav shell gates all navigation motion on it, A20): animator
- * scale 0 collapses pattern motion (Zip next-target breath / hint-arrow fade, Tango
- * violation pulse / caption fades) to instant state changes. Observed live, so flipping the
+ * The system's reduced-motion signal (design-direction §11, identity §2.6: every
+ * MotionTokens job names its fallback, and every surface reads this one signal; the nav
+ * shell gates all navigation motion on it, A20): animator scale 0 collapses pattern motion
+ * (Zip next-target flash / hint-arrow fade, Queens mark fades, caption fades, sweep and
+ * stamp) to instant state changes. Observed live, so flipping the
  * animator-scale setting while the app runs recomposes every reader. Guarded — preview /
  * layoutlib environments have no real settings table.
  */

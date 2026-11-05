@@ -61,11 +61,11 @@ internal fun QueensCell(
             }
             visual == shown -> presence.snapTo(1f)
             visual == QueensCellVisual.EMPTY -> {
-                // Exit: fade out, faster than enter (§3.3); AUTO mass-exit staggers
-                // 10ms/cell capped at 80ms so a wave reads as one orchestration.
+                // Exit: fade out, faster than enter (§3.3); AUTO mass-exit cascades
+                // per cell up to a cap so a wave reads as one orchestration.
                 val stagger = if (shown == QueensCellVisual.X_AUTO) {
-                    ((idx % 8) * QueensBoardDefaults.autoMarkStaggerStepMillis)
-                        .coerceAtMost(QueensBoardDefaults.autoMarkStaggerCapMillis)
+                    ((idx % 8) * MotionTokens.CascadeStepMillis)
+                        .coerceAtMost(MotionTokens.CascadeCapMillis)
                 } else {
                     0L
                 }
@@ -87,14 +87,14 @@ internal fun QueensCell(
         }
     }
 
-    // §5.5 hint pulse: two DurationExpressive cycles, then rests at the static overlay.
+    // §5.5 hint pulse: two HintPulse cycles, then rests at the static overlay.
     val pulse = remember(model.hintRegion) { Animatable(1f) }
     LaunchedEffect(model.hintRegion) {
         pulse.snapTo(1f)
         if (model.hintRegion != null && !reducedMotion) {
             repeat(QueensBoardDefaults.hintPulseCycles) {
-                pulse.animateTo(0.4f, tween(MotionTokens.DurationExpressive, easing = MotionTokens.EasingStandard))
-                pulse.animateTo(1f, tween(MotionTokens.DurationExpressive, easing = MotionTokens.EasingStandard))
+                pulse.animateTo(0.4f, tween(MotionTokens.HintPulseDuration, easing = MotionTokens.EasingStandard))
+                pulse.animateTo(1f, tween(MotionTokens.HintPulseDuration, easing = MotionTokens.EasingStandard))
             }
         }
     }

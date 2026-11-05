@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.games.queensui
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.assertCountEquals
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.queens.render.QueensRendererModel
@@ -43,7 +43,7 @@ class QueensBoardRendererTest {
     fun `renders placed queens without throwing`() {
         setContent(sampleModel())
         composeRule.waitForIdle()
-        composeRule.onAllNodesWithText(QueenGlyph, useUnmergedTree = true).assertCountEquals(2)
+        composeRule.onAllNodesWithTag(QUEEN_TAG, useUnmergedTree = true).assertCountEquals(2)
     }
 
     @Test

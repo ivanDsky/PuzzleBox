@@ -63,8 +63,8 @@ class GamePlayRegistryTest {
     fun `brandOf returns each registered brand and neutral for an unbranded or unknown id`() {
         val registry = GamePlayRegistry(
             listOf(
-                BrandedPlayUi(GameId("blue"), GameBrand(AccentSlot.Blue)),
-                BrandedPlayUi(GameId("violet"), GameBrand(AccentSlot.Violet)),
+                BrandedPlayUi(GameId("blue"), GameBrand.Neutral.copy(accent = AccentSlot.Blue)),
+                BrandedPlayUi(GameId("violet"), GameBrand.Neutral.copy(accent = AccentSlot.Violet)),
                 FakePlayUi(GameId("plain")),
             ),
         )

@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -12,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -52,7 +51,7 @@ internal fun GameRoute(
             navigationIcon = {
                 IconButton(onClick = onBack, modifier = Modifier.testTag("game.up")) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = PuzzleIcons.Back,
                         contentDescription = "Back",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
