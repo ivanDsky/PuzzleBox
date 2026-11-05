@@ -21,6 +21,21 @@ interface GamePlayUi {
     fun createController(env: PlayEnvironment): GamePlayController
 
     /**
+     * The game's lessons, in order (spec A11): each is one instruction line and a tiny
+     * puzzle. [TutorialHost] plays them through [Board] on a sandboxed controller.
+     */
+    val tutorial: List<TutorialStep>
+
+    /**
+     * The game's board alone: no chrome, no fallback. [controller] is one this UI
+     * created; nothing draws until it holds a session. [Screen] draws its daily board
+     * through this, and [TutorialHost] draws each lesson through it, so input and look
+     * are the same in both.
+     */
+    @Composable
+    fun Board(controller: GamePlayController, modifier: Modifier)
+
+    /**
      * The game's play screen. [controller] is one this UI created; [status] is the
      * shared fetch state (Loading / Unavailable / Ready + degrade banner). [onSolved]
      * carries the frozen result facts once per completion — including a restored

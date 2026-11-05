@@ -22,6 +22,11 @@ import org.robolectric.annotation.GraphicsMode
 private class FakePlayUi(override val gameId: GameId) : GamePlayUi {
     override fun createController(env: PlayEnvironment): GamePlayController = error("unused")
 
+    override val tutorial: List<TutorialStep> get() = emptyList()
+
+    @Composable
+    override fun Board(controller: GamePlayController, modifier: Modifier) = Unit
+
     @Composable
     override fun Screen(
         controller: GamePlayController,

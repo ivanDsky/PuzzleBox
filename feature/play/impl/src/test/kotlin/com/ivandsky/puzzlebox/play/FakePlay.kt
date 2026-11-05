@@ -24,6 +24,7 @@ import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.Restored
+import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import java.time.LocalDate
@@ -50,6 +51,13 @@ class FakePlayUi(override val gameId: GameId) : GamePlayUi {
     override fun createController(env: PlayEnvironment): GamePlayController =
         FakeController(gameId, env, this).also { controllers += it }
 
+    override val tutorial: List<TutorialStep> get() = emptyList()
+
+    @Composable
+    override fun Board(controller: GamePlayController, modifier: Modifier) {
+        Text("${gameId.value} board ${(controller as FakeController).moves}", modifier.testTag("fake.board"))
+    }
+
     @Composable
     override fun Screen(
         controller: GamePlayController,
@@ -61,7 +69,7 @@ class FakePlayUi(override val gameId: GameId) : GamePlayUi {
     ) {
         val fake = controller as FakeController
         if (status is PlayBoardStatus.Ready) {
-            Text("${gameId.value} board ${fake.moves}", modifier.testTag("fake.board"))
+            Board(fake, modifier)
             // Keyed like the real games' handoff: on the completion VALUE, so re-adopting
             // the same completed bytes (a fresh controller) never hands off twice.
             val completed = fake.isComplete

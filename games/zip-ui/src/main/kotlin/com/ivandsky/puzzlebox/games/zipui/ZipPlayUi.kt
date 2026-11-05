@@ -26,9 +26,9 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.rememberReducedMotion
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
-import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.delay
 
@@ -36,11 +36,19 @@ import kotlinx.coroutines.delay
 private const val HINT_ARROW_HOLD_MS = 2000L
 private const val HINT_ARROW_FADE_MS = 300
 
-/** Zip's one play registration (ADR-0001): its controller and its play screen. */
+/** Zip's one play registration (ADR-0001): its controller, its board and its play screen. */
 class ZipPlayUi : GamePlayUi {
     override val gameId: GameId get() = ZipDefinition.id
 
     override fun createController(env: PlayEnvironment): GamePlayController = ZipPlayController(env)
+
+    // Tickets 14–16 fill the lessons.
+    override val tutorial: List<TutorialStep> get() = emptyList()
+
+    @Composable
+    override fun Board(controller: GamePlayController, modifier: Modifier) {
+        ZipBoard(controller as ZipPlayController, modifier)
+    }
 
     @Composable
     override fun Screen(
@@ -74,10 +82,6 @@ fun ZipPlayScreen(
     modifier: Modifier = Modifier,
 ) {
     val ready = status as? PlayBoardStatus.Ready
-    val rejected = controller.feedback.rejectedMove
-    val model = remember(controller, status, controller.session, controller.hintCell, rejected) {
-        controller.rendererModel()
-    }
 
     // The win moment (ticket 23): a one-shot route handoff — the frozen facts go to the
     // result route while the record write keeps running in the store, never awaited here.
@@ -90,7 +94,7 @@ fun ZipPlayScreen(
         AdaptivePlayScaffold(
             layout = layout,
             modifier = Modifier.fillMaxSize(),
-            board = { BoardArea(controller, status, model, onRetry) },
+            board = { BoardArea(controller, status, onRetry) },
             side = {
                 PlayChrome(
                     title = "Zip",
@@ -106,11 +110,11 @@ fun ZipPlayScreen(
     }
 }
 
+/** The board pane: Zip's one board once a puzzle is ready, the shared fallback otherwise. */
 @Composable
 private fun BoxScope.BoardArea(
     controller: ZipPlayController,
     status: PlayBoardStatus,
-    model: ZipRendererModel?,
     onRetry: () -> Unit,
 ) {
     Box(
@@ -121,47 +125,62 @@ private fun BoxScope.BoardArea(
             .padding(horizontal = Spacing.lg),
         contentAlignment = Alignment.Center,
     ) {
-        val puzzle = controller.session?.puzzle
-        if (status is PlayBoardStatus.Ready && model != null && puzzle != null) {
-            val reducedMotion = rememberReducedMotion()
-            // Ticket 28: the hint arrow lives ~2s at the auto-placed head (or until
-            // the next input, which nulls it), fading out unless motion is reduced.
-            val arrow = controller.hintArrow
-            val arrowAlpha = remember(arrow) { Animatable(1f) }
-            LaunchedEffect(arrow) {
-                if (arrow == null) return@LaunchedEffect
-                delay(HINT_ARROW_HOLD_MS)
-                if (!reducedMotion) {
-                    arrowAlpha.animateTo(0f, tween(HINT_ARROW_FADE_MS))
-                }
-                controller.clearHintArrow()
-            }
-            Box {
-                DragTraceBoard(
-                    rows = model.n,
-                    cols = model.n,
-                    path = model.path.map { GridCell(it / model.n, it % model.n) },
-                    hooks = remember(puzzle) { ZipDragHooks(puzzle.board) },
-                    onEvent = controller::onDragEvent,
-                    edgeOverlays = zipWallOverlays(model),
-                    underlay = { ZipPipes(model) },
-                    cellContent = { row, col ->
-                        ZipCellDecor(model, row, col, animateFlash = !reducedMotion)
-                    },
-                    // A4: capped at PlayBoardMaxWidth and centered by the pane; BoardGrid's
-                    // aspectRatio keeps the grid exact under these loose constraints. The
-                    // outline rides the same modifier (U1 §4 — Zip's outline is gridline-weight).
-                    modifier = Modifier
-                        .widthIn(max = PlayBoardMaxWidth)
-                        .heightIn(max = PlayBoardMaxWidth)
-                        .zipBoardOutline(model.n)
-                        .testTag("play.board"),
-                )
-                arrow?.let { HintArrowHead(it, model, arrowAlpha.value, Modifier.matchParentSize()) }
-            }
+        if (status is PlayBoardStatus.Ready && controller.session != null) {
+            ZipBoard(controller, Modifier)
         } else {
             PlayBoardFallback(status, onRetry, tagPrefix = "play")
         }
+    }
+}
+
+/**
+ * Zip's one board, chrome-free ([GamePlayUi.Board]): the daily pane and the tutorial host
+ * both draw it, so a lesson's trace input is the daily one. Draws nothing until
+ * [controller] holds a session.
+ */
+@Composable
+private fun ZipBoard(controller: ZipPlayController, modifier: Modifier) {
+    val rejected = controller.feedback.rejectedMove
+    val model = remember(controller, controller.session, controller.hintCell, rejected) {
+        controller.rendererModel()
+    }
+    val puzzle = controller.session?.puzzle
+    if (model == null || puzzle == null) return
+    val reducedMotion = rememberReducedMotion()
+    // Ticket 28: the hint arrow lives ~2s at the auto-placed head (or until
+    // the next input, which nulls it), fading out unless motion is reduced.
+    val arrow = controller.hintArrow
+    val arrowAlpha = remember(arrow) { Animatable(1f) }
+    LaunchedEffect(arrow) {
+        if (arrow == null) return@LaunchedEffect
+        delay(HINT_ARROW_HOLD_MS)
+        if (!reducedMotion) {
+            arrowAlpha.animateTo(0f, tween(HINT_ARROW_FADE_MS))
+        }
+        controller.clearHintArrow()
+    }
+    Box(modifier) {
+        DragTraceBoard(
+            rows = model.n,
+            cols = model.n,
+            path = model.path.map { GridCell(it / model.n, it % model.n) },
+            hooks = remember(puzzle) { ZipDragHooks(puzzle.board) },
+            onEvent = controller::onDragEvent,
+            edgeOverlays = zipWallOverlays(model),
+            underlay = { ZipPipes(model) },
+            cellContent = { row, col ->
+                ZipCellDecor(model, row, col, animateFlash = !reducedMotion)
+            },
+            // A4: capped at PlayBoardMaxWidth and centered by the pane; BoardGrid's
+            // aspectRatio keeps the grid exact under these loose constraints. The
+            // outline rides the same modifier (U1 §4 — Zip's outline is gridline-weight).
+            modifier = Modifier
+                .widthIn(max = PlayBoardMaxWidth)
+                .heightIn(max = PlayBoardMaxWidth)
+                .zipBoardOutline(model.n)
+                .testTag("play.board"),
+        )
+        arrow?.let { HintArrowHead(it, model, arrowAlpha.value, Modifier.matchParentSize()) }
     }
 }
 

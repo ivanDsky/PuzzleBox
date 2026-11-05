@@ -21,14 +21,23 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.model.GameId
 
-/** Queens' one play registration (ADR-0001): its controller and its play screen. */
+/** Queens' one play registration (ADR-0001): its controller, its board and its play screen. */
 class QueensPlayUi : GamePlayUi {
     override val gameId: GameId get() = QueensDefinition.id
 
     override fun createController(env: PlayEnvironment): GamePlayController = QueensPlayController(env)
+
+    // Tickets 14–16 fill the lessons.
+    override val tutorial: List<TutorialStep> get() = emptyList()
+
+    @Composable
+    override fun Board(controller: GamePlayController, modifier: Modifier) {
+        QueensBoard(controller as QueensPlayController, modifier)
+    }
 
     @Composable
     override fun Screen(
@@ -75,36 +84,49 @@ fun QueensPlayScreen(
     }
 }
 
+/** The board pane: Queens' one board once a puzzle is ready, the shared fallback otherwise. */
 @Composable
 private fun BoxScope.BoardArea(controller: QueensPlayController, status: PlayBoardStatus, onRetry: () -> Unit) {
-    BoxWithConstraints(
+    Box(
         Modifier
             .fillMaxSize()
             .testTag("queens.board_area"),
         contentAlignment = Alignment.Center,
     ) {
-        val boardState = controller.board
-        if (status is PlayBoardStatus.Ready && boardState != null) {
-            // §6 sizing policy: the board side is computed — pane space after chrome,
-            // capped by cellMaxSize per cell, never above the pane. The gutter shrinks
-            // to 8dp at n ≥ 10 (queensPanePaddingFor); the side panel is already
-            // excluded by the scaffold's board-pane weight.
-            val side = queensBoardSideFor(
-                paneWidth = maxWidth,
-                paneHeight = maxHeight,
-                reservedTop = 0.dp,
-                reservedBottom = 0.dp,
-                cellsPerSide = boardState.session.puzzle.size,
-            )
-            QueensPlayBoard(
-                state = boardState,
-                modifier = Modifier
-                    .size(side) // side already reserves the pane padding via queensBoardSideFor
-                    .testTag("queens.board"),
-            )
+        if (status is PlayBoardStatus.Ready && controller.board != null) {
+            QueensBoard(controller, Modifier)
         } else {
             PlayBoardFallback(status, onRetry, tagPrefix = "queens")
         }
+    }
+}
+
+/**
+ * Queens' one board, chrome-free ([GamePlayUi.Board]): the daily pane and the tutorial
+ * host both draw it, so a lesson's tap cycle is the daily one. It sizes itself to the
+ * space it is given and draws nothing until [controller] holds a session.
+ */
+@Composable
+private fun QueensBoard(controller: QueensPlayController, modifier: Modifier) {
+    val boardState = controller.board ?: return
+    BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
+        // §6 sizing policy: the board side is computed — pane space after chrome,
+        // capped by cellMaxSize per cell, never above the pane. The gutter shrinks
+        // to 8dp at n ≥ 10 (queensPanePaddingFor); the side panel is already
+        // excluded by the scaffold's board-pane weight.
+        val side = queensBoardSideFor(
+            paneWidth = maxWidth,
+            paneHeight = maxHeight,
+            reservedTop = 0.dp,
+            reservedBottom = 0.dp,
+            cellsPerSide = boardState.session.puzzle.size,
+        )
+        QueensPlayBoard(
+            state = boardState,
+            modifier = Modifier
+                .size(side) // side already reserves the pane padding via queensBoardSideFor
+                .testTag("queens.board"),
+        )
     }
 }
 
