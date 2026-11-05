@@ -26,28 +26,110 @@ sealed interface SudokuCommand : Command<SudokuBoard> {
             require(digit >= 1) { "place needs a digit, got $digit" }
         }
 
+        override fun apply(state: SudokuBoard): SudokuBoard = placeDigit(state, idx, digit, before, clearedPeers)
+
+        override fun revert(state: SudokuBoard): SudokuBoard = unplaceDigit(state, idx, digit, before, clearedPeers)
+    }
+
+    /** Removes what [before] shows at [idx]: an entry falls back to its hidden notes, notes go away. */
+    data class Erase(val idx: Int, val before: SudokuCell) : SudokuCommand {
+
+        init {
+            require(before is SudokuCell.Entry || before is SudokuCell.Notes) { "nothing to erase in $before" }
+        }
+
+        override fun apply(state: SudokuBoard): SudokuBoard = state.with(idx, erased(before))
+
+        override fun revert(state: SudokuBoard): SudokuBoard = state.with(idx, before)
+    }
+
+    /** Flips the note for [digit] at an open cell; flipping twice is the identity, so it needs no snapshot. */
+    data class ToggleNote(val idx: Int, val digit: Int) : SudokuCommand {
+
+        init {
+            require(digit >= 1) { "a note needs a digit, got $digit" }
+        }
+
+        override fun apply(state: SudokuBoard): SudokuBoard = state.with(idx, state.cells[idx].toggledNote(noteBit(digit)))
+
+        override fun revert(state: SudokuBoard): SudokuBoard = apply(state)
+    }
+
+    /** Empties every cell in [before] at once, so one undo brings the whole board back. */
+    data class Clear(val before: Map<Int, SudokuCell>) : SudokuCommand {
+
+        init {
+            require(before.values.none { it is SudokuCell.Given || it == SudokuCell.Empty }) {
+                "clear only records cells it empties"
+            }
+        }
+
         override fun apply(state: SudokuBoard): SudokuBoard {
-            val bit = noteBit(digit)
             val cells = state.cells.toMutableList()
-            cells[idx] = SudokuCell.Entry(digit, before.notesMask)
-            for (peer in clearedPeers) cells[peer] = cells[peer].withoutNote(bit)
+            for (idx in before.keys) cells[idx] = SudokuCell.Empty
             return state.copy(cells = cells)
         }
 
         override fun revert(state: SudokuBoard): SudokuBoard {
-            val bit = noteBit(digit)
             val cells = state.cells.toMutableList()
-            cells[idx] = before
-            for (peer in clearedPeers) cells[peer] = cells[peer].withNote(bit)
+            for ((idx, cell) in before) cells[idx] = cell
             return state.copy(cells = cells)
         }
+    }
+
+    /**
+     * A hint's solution digit entered at [idx]; the board edit is exactly [Place]'s. It is a
+     * separate kind so the session can tell a revealed digit from a played one.
+     */
+    data class HintReveal(
+        val idx: Int,
+        val digit: Int,
+        val before: SudokuCell,
+        val clearedPeers: List<Int>,
+    ) : SudokuCommand {
+
+        init {
+            require(before !is SudokuCell.Given) { "a given never changes" }
+            require(digit >= 1) { "reveal needs a digit, got $digit" }
+        }
+
+        override fun apply(state: SudokuBoard): SudokuBoard = placeDigit(state, idx, digit, before, clearedPeers)
+
+        override fun revert(state: SudokuBoard): SudokuBoard = unplaceDigit(state, idx, digit, before, clearedPeers)
     }
 }
 
 private fun noteBit(digit: Int): Int = 1 shl (digit - 1)
 
+private fun placeDigit(state: SudokuBoard, idx: Int, digit: Int, before: SudokuCell, clearedPeers: List<Int>): SudokuBoard {
+    val bit = noteBit(digit)
+    val cells = state.cells.toMutableList()
+    cells[idx] = SudokuCell.Entry(digit, before.notesMask)
+    for (peer in clearedPeers) cells[peer] = cells[peer].withoutNote(bit)
+    return state.copy(cells = cells)
+}
+
+private fun unplaceDigit(state: SudokuBoard, idx: Int, digit: Int, before: SudokuCell, clearedPeers: List<Int>): SudokuBoard {
+    val bit = noteBit(digit)
+    val cells = state.cells.toMutableList()
+    cells[idx] = before
+    for (peer in clearedPeers) cells[peer] = cells[peer].withNote(bit)
+    return state.copy(cells = cells)
+}
+
+private fun erased(cell: SudokuCell): SudokuCell =
+    if (cell is SudokuCell.Entry && cell.notes != 0) SudokuCell.Notes(cell.notes) else SudokuCell.Empty
+
+private fun notesOrEmpty(mask: Int): SudokuCell = if (mask == 0) SudokuCell.Empty else SudokuCell.Notes(mask)
+
+private fun SudokuCell.toggledNote(bit: Int): SudokuCell = when (this) {
+    SudokuCell.Empty -> SudokuCell.Notes(bit)
+    is SudokuCell.Notes -> notesOrEmpty(mask xor bit)
+    is SudokuCell.Given, is SudokuCell.Entry -> error("notes toggle only on open cells, got $this")
+}
+
 private fun SudokuCell.withoutNote(bit: Int): SudokuCell = when (this) {
-    is SudokuCell.Notes -> (mask and bit.inv()).let { if (it == 0) SudokuCell.Empty else SudokuCell.Notes(it) }
+    is SudokuCell.Notes -> notesOrEmpty(mask and bit.inv())
     is SudokuCell.Entry -> copy(notes = notes and bit.inv())
     is SudokuCell.Given, SudokuCell.Empty -> this
 }
