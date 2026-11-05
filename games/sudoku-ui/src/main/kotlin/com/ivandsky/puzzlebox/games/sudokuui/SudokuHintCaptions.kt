@@ -39,12 +39,13 @@ internal object SudokuHintCaptions {
     private fun place(hint: SudokuHint.Place, geometry: SudokuGeometry): String {
         val at = cell(hint.cell, geometry)
         val d = hint.digit
+        val aD = "${article(d)} $d"
         val reason = when (hint.technique) {
             SudokuTechnique.HIDDEN_SINGLE_BOX ->
-                "this box still needs a $d, and $at is the only empty cell in it where a $d can go."
+                "this box still needs $aD, and $at is the only empty cell in it where $aD can go."
             SudokuTechnique.HIDDEN_SINGLE_LINE -> {
                 val line = hint.unit?.let(::unit) ?: "this line"
-                "$line still needs a $d, and every other empty cell in it already sees a $d, so it goes in $at."
+                "$line still needs $aD, and every other empty cell in it already sees $aD, so it goes in $at."
             }
             else -> "$at already sees every other number in its row, column and box, so the only number left for it is $d."
         }
@@ -53,6 +54,9 @@ internal object SudokuHintCaptions {
 
     private fun cell(idx: Int, geometry: SudokuGeometry): String =
         "row ${geometry.rowOf(idx) + 1}, column ${geometry.colOf(idx) + 1}"
+
+    /** "an 8", "an 11"; "a" for every other digit up to 16. */
+    private fun article(d: Int): String = if (d == 8 || d == 11) "an" else "a"
 
     private fun unit(unit: SudokuUnit): String {
         val kind = when (unit.kind) {

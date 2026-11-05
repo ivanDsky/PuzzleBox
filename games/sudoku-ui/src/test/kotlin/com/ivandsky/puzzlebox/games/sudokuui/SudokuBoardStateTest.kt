@@ -253,6 +253,11 @@ class SudokuBoardStateTest {
             "Column 3 still needs a 2, and every other empty cell in it already sees a 2, so it goes in row 3, column 3.",
             SudokuHintCaptions.hint(line, board),
         )
+        val eight = SudokuHint.Place(14, 8, SudokuTechnique.HIDDEN_SINGLE_BOX, SudokuUnit(UnitKind.BOX, 0), null, emptyList())
+        assertEquals(
+            "This box still needs an 8, and row 3, column 3 is the only empty cell in it where an 8 can go.",
+            SudokuHintCaptions.hint(eight, board),
+        )
         val viaNaked = SudokuHint.Place(14, 2, SudokuTechnique.NAKED_SINGLE, null, SudokuTechnique.POINTING, listOf(3))
         assertEquals(
             "After ruling out some numbers, row 3, column 3 already sees every other number in its row, column and box, " +
