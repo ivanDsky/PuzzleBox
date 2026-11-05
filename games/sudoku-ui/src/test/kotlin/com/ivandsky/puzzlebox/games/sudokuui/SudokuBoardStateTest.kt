@@ -206,14 +206,54 @@ class SudokuBoardStateTest {
     }
 
     @Test
+    fun `struck cells tint at stage 1 only`() {
+        // Norvig's grid2: singles stall on it, so playing hints out reaches a Place unlocked by eliminations.
+        val hard = SudokuPuzzle(
+            SudokuGames.CLASSIC.variant,
+            grid("4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......"),
+            grid("417369825632158947958724316825437169791586432346912758289643571573291684164875293"),
+        )
+        val s = state(SudokuSession(ref = null, puzzle = hard))
+        var place: SudokuHint.Place? = null
+        while (place == null && !s.session.isComplete) {
+            s.requestHint()
+            place = (s.hint as? SudokuHint.Place)?.takeIf { it.via != null }
+            if (place == null) s.requestHint()
+        }
+        assertTrue(place!!.struck.isNotEmpty())
+        assertEquals(place.struck.toSet(), s.hintStruck)
+        assertEquals(s.hintStruck, s.model.cells.filter { it.hintStruck }.map { it.idx }.toSet())
+
+        s.requestHint()
+
+        assertTrue(s.hintStruck.isEmpty())
+        assertTrue(s.model.cells.none { it.hintStruck })
+    }
+
+    @Test
+    fun `the solving move clears the selection and a solved board refuses one`() {
+        val s = state()
+        givens.indices.filter { givens[it] == 0 }.forEach { idx ->
+            s.select(idx)
+            s.input(solution[idx])
+        }
+        assertTrue(s.session.isComplete)
+        assertNull(s.selected)
+
+        s.select(0)
+
+        assertNull(s.selected)
+    }
+
+    @Test
     fun `captions name 1-based positions and preface eliminations`() {
         val board = SudokuSession(ref = null, puzzle = peanut450).board
-        val line = SudokuHint.Place(14, 2, SudokuTechnique.HIDDEN_SINGLE_LINE, SudokuUnit(UnitKind.COLUMN, 2), null)
+        val line = SudokuHint.Place(14, 2, SudokuTechnique.HIDDEN_SINGLE_LINE, SudokuUnit(UnitKind.COLUMN, 2), null, emptyList())
         assertEquals(
             "Column 3 still needs a 2, and every other empty cell in it already sees a 2, so it goes in row 3, column 3.",
             SudokuHintCaptions.hint(line, board),
         )
-        val viaNaked = SudokuHint.Place(14, 2, SudokuTechnique.NAKED_SINGLE, null, SudokuTechnique.POINTING)
+        val viaNaked = SudokuHint.Place(14, 2, SudokuTechnique.NAKED_SINGLE, null, SudokuTechnique.POINTING, listOf(3))
         assertEquals(
             "After ruling out some numbers, row 3, column 3 already sees every other number in its row, column and box, " +
                 "so the only number left for it is 2.",

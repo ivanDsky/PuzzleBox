@@ -26,17 +26,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
+import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 
 /**
  * The N x N board inside the square [modifier] gives it. The outer frame and box borders share
- * the thick stroke, cell borders the thin one; text scales with the cell so any size the caller
- * picks stays legible.
+ * the thick stroke, cell borders the thin one; all lines draw over the cell fills, and the thin
+ * ones take the board gridline role so they hold up on every highlight tint. Text scales with the
+ * cell so any size the caller picks stays legible; digits use tabular figures.
  */
 @Composable
 fun SudokuGrid(model: SudokuBoardModel, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
     val strokes = gridStrokes(model.size)
     val colors = MaterialTheme.colorScheme
-    val cellLine = colors.outlineVariant
+    val cellLine = LocalBoardColors.current.boardGridLine
     val boxLine = colors.onSurface
     BoxWithConstraints(
         modifier
@@ -52,12 +54,12 @@ fun SudokuGrid(model: SudokuBoardModel, onSelect: (Int) -> Unit, modifier: Modif
         val cell = min(maxWidth, maxHeight) / model.size
         val noteSlot = min(cell / model.boxRows, cell / model.boxCols)
         val density = LocalDensity.current
-        val base = MaterialTheme.typography.titleLarge
+        val base = MaterialTheme.typography.titleLarge.copy(fontFeatureSettings = TABULAR_FIGURES, textAlign = TextAlign.Center)
         val digitStyle = with(density) {
-            base.copy(fontSize = (cell * DIGIT_FRACTION).toSp(), lineHeight = (cell * DIGIT_FRACTION).toSp(), textAlign = TextAlign.Center)
+            base.copy(fontSize = (cell * DIGIT_FRACTION).toSp(), lineHeight = (cell * DIGIT_FRACTION).toSp())
         }
         val noteStyle = with(density) {
-            base.copy(fontSize = (noteSlot * NOTE_FRACTION).toSp(), lineHeight = (noteSlot * NOTE_FRACTION).toSp(), textAlign = TextAlign.Center)
+            base.copy(fontSize = (noteSlot * NOTE_FRACTION).toSp(), lineHeight = (noteSlot * NOTE_FRACTION).toSp())
         }
         Column(Modifier.fillMaxSize()) {
             for (row in 0 until model.size) {
@@ -102,6 +104,7 @@ private fun DrawScope.drawGridLines(model: SudokuBoardModel, strokes: GridStroke
 }
 
 private const val GRID_TAG = "sudoku.grid"
+private const val TABULAR_FIGURES = "tnum"
 private const val MINI_SIZE = 6
 private const val DIGIT_FRACTION = 0.6f
 private const val NOTE_FRACTION = 0.8f

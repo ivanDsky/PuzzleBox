@@ -164,7 +164,11 @@ class SudokuTutorialTest {
             val hint = SudokuHints().hint(puzzle, SudokuBoard.of(puzzle)) as SudokuHint.Place
             assertEquals(SudokuTechnique.HIDDEN_SINGLE_BOX, hint.technique)
             assertEquals(box, hint.unit)
-            assertTrue(step.instruction, step.instruction.contains("the $digit fits"))
+            // The step completes only once the whole box is filled, so the copy says so (E1).
+            assertEquals(
+                "Each box needs every number once, too. Find the one empty square in the box where the $digit fits, then fill the rest.",
+                step.instruction,
+            )
         }
     }
 

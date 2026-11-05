@@ -16,7 +16,8 @@ import java.time.Instant
 /**
  * Selection, input routing and the staged hint over one [SudokuSession]; the session decides
  * every rule. [selected], [hint] and [rejection] live in memory only, so a reopened board starts
- * with none of them while the session (notes mode included) comes back whole.
+ * with none of them while the session (notes mode included) comes back whole. A solved board
+ * holds no selection: the solving move clears it and [select] refuses one.
  *
  * Every player action clears the hint and the rejection. A hint target counts into
  * [SudokuSession.hintsUsed] the first time it is presented; a repeat request on a Place or
@@ -91,12 +92,16 @@ class SudokuBoardState(
             }
         }
 
-    val model: SudokuBoardModel get() = sudokuBoardModel(session, selected, hintTarget, hintCells)
+    /** The cells whose candidates the hint's eliminations cleared, stage 1 only (spec A8). */
+    val hintStruck: Set<Int>
+        get() = (hint as? SudokuHint.Place)?.takeUnless { hintRevealed }?.struck?.toSet().orEmpty()
+
+    val model: SudokuBoardModel get() = sudokuBoardModel(session, selected, hintTarget, hintCells, hintStruck)
 
     //region input
 
     fun select(idx: Int) {
-        if (idx !in 0 until session.board.geometry.cellCount) return
+        if (session.isComplete || idx !in 0 until session.board.geometry.cellCount) return
         clearFeedback()
         selected = idx
     }
@@ -212,9 +217,12 @@ class SudokuBoardState(
         val previous = session
         val settled = settle(next)
         store(settled)
-        if (!previous.isComplete && settled.isComplete && !winEmitted) {
-            winEmitted = true
-            score?.completion(settled)?.let(onWinRecord)
+        if (!previous.isComplete && settled.isComplete) {
+            selected = null
+            if (!winEmitted) {
+                winEmitted = true
+                score?.completion(settled)?.let(onWinRecord)
+            }
         }
     }
 

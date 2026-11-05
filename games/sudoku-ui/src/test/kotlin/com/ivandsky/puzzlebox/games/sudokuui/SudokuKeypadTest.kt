@@ -11,9 +11,11 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
@@ -60,7 +62,18 @@ class SudokuKeypadTest {
 
         val model = sudokuKeypadModel(board, notesMode = false)
 
-        assertEquals(SudokuKeypadModel(6, listOf(4, 6, 5, 6, 6, 5), notesMode = false), model)
+        assertEquals(SudokuKeypadModel(6, listOf(4, 6, 5, 6, 6, 5), notesMode = false, canClear = true, solved = false), model)
+    }
+
+    @Test
+    fun `clear is off while only givens are on the board and a solved board is solved`() {
+        val givensOnly = sudokuKeypadModel(boardOf(0 to SudokuCell.Given(1)), notesMode = false)
+        assertEquals(false, givensOnly.canClear)
+        assertEquals(false, givensOnly.solved)
+
+        val solution = listOf(1, 2, 3, 4, 5, 6, 4, 5, 6, 1, 2, 3, 2, 3, 1, 5, 6, 4, 5, 6, 4, 2, 3, 1, 3, 1, 2, 6, 4, 5, 6, 4, 5, 3, 1, 2)
+        val solved = SudokuBoard(mini, solution.map { SudokuCell.Entry(it) })
+        assertEquals(true, sudokuKeypadModel(solved, notesMode = false).solved)
     }
 
     @Test
@@ -84,7 +97,7 @@ class SudokuKeypadTest {
     @Test
     fun `digit keys announce digit and remaining count and report their digit`() {
         val digits = mutableListOf<Int>()
-        setKeypad(SudokuKeypadModel(6, listOf(4, 3, 5, 2, 4, 3), notesMode = false), onDigit = { digits += it })
+        setKeypad(SudokuKeypadModel(6, listOf(4, 3, 5, 2, 4, 3), notesMode = false, canClear = true, solved = false), onDigit = { digits += it })
 
         composeRule.onNodeWithContentDescription("4, 2 left").assert(hasRole(Role.Button)).performClick()
         composeRule.onNodeWithContentDescription("1, 4 left").performClick()
@@ -94,7 +107,7 @@ class SudokuKeypadTest {
 
     @Test
     fun `notes mode announces keys as notes`() {
-        setKeypad(SudokuKeypadModel(6, listOf(4, 3, 5, 2, 4, 3), notesMode = true))
+        setKeypad(SudokuKeypadModel(6, listOf(4, 3, 5, 2, 4, 3), notesMode = true, canClear = true, solved = false))
 
         composeRule.onNodeWithContentDescription("Note 4, 2 left").assertExists()
         composeRule.onNodeWithContentDescription("4, 2 left").assertDoesNotExist()
@@ -103,7 +116,7 @@ class SudokuKeypadTest {
     @Test
     fun `a key at zero remaining stays enabled and clickable`() {
         val digits = mutableListOf<Int>()
-        setKeypad(SudokuKeypadModel(6, listOf(4, 0, 5, 2, 4, 3), notesMode = false), onDigit = { digits += it })
+        setKeypad(SudokuKeypadModel(6, listOf(4, 0, 5, 2, 4, 3), notesMode = false, canClear = true, solved = false), onDigit = { digits += it })
 
         composeRule.onNodeWithContentDescription("2, 0 left").assertIsEnabled().performClick()
 
@@ -113,11 +126,41 @@ class SudokuKeypadTest {
     @Test
     fun `erase calls back`() {
         var erased = 0
-        setKeypad(SudokuKeypadModel(6, List(6) { 6 }, notesMode = false), onErase = { erased++ })
+        setKeypad(SudokuKeypadModel(6, List(6) { 6 }, notesMode = false, canClear = true, solved = false), onErase = { erased++ })
 
         composeRule.onNodeWithText("Erase").performClick()
 
         assertEquals(1, erased)
+    }
+
+    @Test
+    fun `notes, erase and clear share one row in three equal widths and clear calls back`() {
+        var cleared = 0
+        setKeypad(SudokuKeypadModel(6, List(6) { 6 }, notesMode = false, canClear = true, solved = false), onClear = { cleared++ })
+        val actions = listOf("Notes", "Erase", "Clear").map { composeRule.onNodeWithText(it).getUnclippedBoundsInRoot() }
+
+        assertEquals(1, actions.map { it.top }.distinct().size)
+        val widths = actions.map { it.width }
+        assertTrue("action widths $widths", widths.max() - widths.min() < 1.dp)
+        composeRule.onNodeWithTag("sudoku.clear").assertIsEnabled().performClick()
+        assertEquals(1, cleared)
+    }
+
+    @Test
+    fun `clear is disabled with nothing to clear`() {
+        setKeypad(SudokuKeypadModel(6, List(6) { 6 }, notesMode = false, canClear = false, solved = false))
+
+        composeRule.onNodeWithTag("sudoku.clear").assertIsNotEnabled()
+        composeRule.onNodeWithText("Erase").assertIsEnabled()
+    }
+
+    @Test
+    fun `a solved board turns notes, erase and clear off`() {
+        setKeypad(SudokuKeypadModel(6, List(6) { 0 }, notesMode = false, canClear = true, solved = true))
+
+        composeRule.onNodeWithText("Notes").assertIsNotEnabled()
+        composeRule.onNodeWithText("Erase").assertIsNotEnabled()
+        composeRule.onNodeWithTag("sudoku.clear").assertIsNotEnabled()
     }
 
     @Test
@@ -126,9 +169,10 @@ class SudokuKeypadTest {
         composeRule.setContent {
             PuzzleBoxTheme {
                 SudokuKeypad(
-                    model = SudokuKeypadModel(6, List(6) { 6 }, notesMode),
+                    model = SudokuKeypadModel(6, List(6) { 6 }, notesMode, canClear = true, solved = false),
                     onDigit = {},
                     onErase = {},
+                    onClear = {},
                     onToggleNotes = { notesMode = !notesMode },
                 )
             }
@@ -149,9 +193,10 @@ class SudokuKeypadTest {
         composeRule.setContent {
             PuzzleBoxTheme {
                 SudokuKeypad(
-                    model = SudokuKeypadModel(9, List(9) { 9 }, notesMode = false),
+                    model = SudokuKeypadModel(9, List(9) { 9 }, notesMode = false, canClear = true, solved = false),
                     onDigit = {},
                     onErase = {},
+                    onClear = {},
                     onToggleNotes = {},
                     modifier = Modifier.width(320.dp),
                     rows = 2,
@@ -172,10 +217,11 @@ class SudokuKeypadTest {
         model: SudokuKeypadModel,
         onDigit: (Int) -> Unit = {},
         onErase: () -> Unit = {},
+        onClear: () -> Unit = {},
     ) {
         composeRule.setContent {
             PuzzleBoxTheme {
-                SudokuKeypad(model = model, onDigit = onDigit, onErase = onErase, onToggleNotes = {})
+                SudokuKeypad(model = model, onDigit = onDigit, onErase = onErase, onClear = onClear, onToggleNotes = {})
             }
         }
     }

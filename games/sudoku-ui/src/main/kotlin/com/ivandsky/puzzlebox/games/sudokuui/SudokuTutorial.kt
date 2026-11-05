@@ -62,7 +62,7 @@ fun sudokuTutorial(definition: SudokuDefinition): List<TutorialStep> {
         ),
         lesson(
             definition,
-            "Each box needs every number once, too. Find the one empty square in the box where the $boxDigit fits.",
+            "Each box needs every number once, too. Find the one empty square in the box where the $boxDigit fits, then fill the rest.",
             solution,
             open = boards.boxSquares,
         ),

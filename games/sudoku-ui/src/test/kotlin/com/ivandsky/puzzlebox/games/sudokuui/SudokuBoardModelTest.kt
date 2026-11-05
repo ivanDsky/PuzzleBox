@@ -109,7 +109,7 @@ class SudokuBoardModelTest {
             .with(1, SudokuCell.Notes(0b10011))
         val model = sudokuBoardModel(mini.copy(board = board), selected = null)
 
-        assertEquals(SudokuCellModel(0, 4, 0, false, false, false, false, false, false, false), model.cells[0])
+        assertEquals(SudokuCellModel(0, 4, 0, false, false, false, false, false, false, false, false), model.cells[0])
         assertEquals(0b10011, model.cells[1].notes)
         assertEquals(0, model.cells[1].digit)
         assertTrue(model.cells[2].given)
@@ -118,9 +118,10 @@ class SudokuBoardModelTest {
 
     @Test
     fun `hint target and hint cells pass through`() {
-        val model = sudokuBoardModel(mini, selected = null, hintTarget = 4, hintCells = setOf(3, 4, 5))
+        val model = sudokuBoardModel(mini, selected = null, hintTarget = 4, hintCells = setOf(3, 4, 5), hintStruck = setOf(1, 7))
 
         assertEquals(setOf(4), model.where { it.hintTarget })
         assertEquals(setOf(3, 4, 5), model.where { it.hintUnit })
+        assertEquals(setOf(1, 7), model.where { it.hintStruck })
     }
 }

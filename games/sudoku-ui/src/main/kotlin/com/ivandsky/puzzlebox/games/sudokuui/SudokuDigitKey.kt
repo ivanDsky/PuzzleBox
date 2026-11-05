@@ -5,6 +5,7 @@ import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,9 +30,12 @@ private const val TABULAR_FIGURES = "tnum"
 // M3's disabled-content emphasis; the key keeps working, it only reads as done.
 private const val EXHAUSTED_CONTENT_ALPHA = 0.38f
 
+private val NOTES_BORDER = 1.dp
+
 /**
  * One digit key: the digit over its remaining count. A fully placed digit greys out
- * but stays clickable (A10), so a player can still overwrite a wrong cell with it.
+ * but stays clickable (A10), so a player can still overwrite a wrong cell with it. In notes
+ * mode the key turns outlined with a smaller pencil-mark digit, a look no board tint shares (V7).
  */
 @Composable
 internal fun SudokuDigitKey(
@@ -46,24 +50,30 @@ internal fun SudokuDigitKey(
     val exhausted = remaining == 0
     val targetContainer = when {
         exhausted -> scheme.surfaceContainerHighest
-        notesMode -> scheme.tertiaryContainer
+        notesMode -> scheme.surface
         else -> scheme.secondaryContainer
     }
     val targetContent = when {
         exhausted -> scheme.onSurface.copy(alpha = EXHAUSTED_CONTENT_ALPHA)
-        notesMode -> scheme.onTertiaryContainer
+        notesMode -> scheme.onSurfaceVariant
         else -> scheme.onSecondaryContainer
     }
+    // The border matches the fill outside notes mode, so only the notes key shows an outline.
+    val targetBorder = if (notesMode && !exhausted) scheme.outline else targetContainer
     val crossfade: AnimationSpec<Color> = if (reducedMotion) snap() else tween(MotionTokens.DurationShort)
     val container by animateColorAsState(targetContainer, crossfade, label = "digitKeyContainer")
     val content by animateColorAsState(targetContent, crossfade, label = "digitKeyContent")
+    val border by animateColorAsState(targetBorder, crossfade, label = "digitKeyBorder")
     val label = digitKeyLabel(digit, remaining, notesMode)
+    val shape = MaterialTheme.shapes.medium
+    val digitStyle = if (notesMode) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleLarge
 
     Box(
         modifier = modifier
             .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-            .clip(MaterialTheme.shapes.medium)
+            .clip(shape)
             .background(container)
+            .border(NOTES_BORDER, border, shape)
             .clickable(role = Role.Button, onClick = onClick)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
@@ -75,7 +85,7 @@ internal fun SudokuDigitKey(
         ) {
             Text(
                 text = digit.toString(),
-                style = MaterialTheme.typography.titleLarge.copy(fontFeatureSettings = TABULAR_FIGURES),
+                style = digitStyle.copy(fontFeatureSettings = TABULAR_FIGURES),
                 color = content,
             )
             Text(

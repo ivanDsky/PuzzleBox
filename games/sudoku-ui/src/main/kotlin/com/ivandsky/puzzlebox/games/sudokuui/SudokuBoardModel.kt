@@ -10,13 +10,15 @@ data class SudokuBoardModel(val size: Int, val boxRows: Int, val boxCols: Int, v
 
 /**
  * Flattens [session] into paint decisions. Peers and same-digit cells exclude the selection
- * itself, whose own tint wins. [hintTarget] and [hintCells] come pre-mapped from the hint.
+ * itself, whose own tint wins. [hintTarget], [hintCells] and [hintStruck] come pre-mapped
+ * from the hint.
  */
 fun sudokuBoardModel(
     session: SudokuSession,
     selected: Int?,
     hintTarget: Int? = null,
     hintCells: Set<Int> = emptySet(),
+    hintStruck: Set<Int> = emptySet(),
 ): SudokuBoardModel {
     val board = session.board
     val geometry = board.geometry
@@ -36,6 +38,7 @@ fun sudokuBoardModel(
             conflict = idx in conflicts,
             hintTarget = idx == hintTarget,
             hintUnit = idx in hintCells,
+            hintStruck = idx in hintStruck,
         )
     }
     return SudokuBoardModel(geometry.size, geometry.boxRows, geometry.boxCols, cells)

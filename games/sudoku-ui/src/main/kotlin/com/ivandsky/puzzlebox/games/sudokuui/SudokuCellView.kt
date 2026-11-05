@@ -17,7 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -28,12 +30,14 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
 
 /**
- * One cell: its highlight tint, the digit or the notes mini-grid, and the conflict dot. The
- * whole cell is one TalkBack node; the drawn digits carry no semantics of their own so the
- * label is read once. Highlights switch instantly (spec A11); the only motion is a player
- * commit's one-shot effect from [LocalSudokuMotion], read while drawing.
+ * One cell: its highlight tint, the digit or the notes mini-grid, the hint target's ring and the
+ * conflict dot. The whole cell is one TalkBack node; the drawn digits carry no semantics of their
+ * own so the label is read once. Highlights switch instantly (spec A11); the only motion is a
+ * player commit's one-shot effect from [LocalSudokuMotion], read while drawing.
  */
 @Composable
 internal fun SudokuCellView(
@@ -45,8 +49,10 @@ internal fun SudokuCellView(
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
+    val entryInk = LocalPrimaryText.current
     val label = sudokuCellLabel(cell, model.size)
     val error = colors.error
+    val ring = colors.onTertiaryContainer
     val motion = LocalSudokuMotion.current
     Box(
         modifier
@@ -66,6 +72,17 @@ internal fun SudokuCellView(
             }
             .drawWithContent {
                 drawContent()
+                // The ring, not the fill alone, picks the target out of its tinted unit (V9).
+                if (cell.hintTarget) {
+                    val width = HINT_RING_WIDTH.toPx()
+                    val inset = HINT_RING_INSET.toPx() + width / 2
+                    drawRect(
+                        color = ring,
+                        topLeft = Offset(inset, inset),
+                        size = Size(size.width - inset * 2, size.height - inset * 2),
+                        style = Stroke(width),
+                    )
+                }
                 // Colour is never the only conflict signal: the dot marks the cell for colour-blind play.
                 if (cell.conflict) {
                     val radius = size.minDimension * CONFLICT_DOT_FRACTION
@@ -82,7 +99,7 @@ internal fun SudokuCellView(
                 color = when {
                     cell.conflict -> colors.error
                     cell.given -> colors.onSurface
-                    else -> colors.primary
+                    else -> entryInk
                 },
                 modifier = Modifier.popScale(motion, cell.idx),
             )
@@ -93,7 +110,7 @@ internal fun SudokuCellView(
             Text(
                 text = ghost.toString(),
                 style = digitStyle,
-                color = colors.primary,
+                color = entryInk,
                 modifier = Modifier.graphicsLayer { alpha = motion?.ghostAlpha() ?: 0f },
             )
         }
@@ -138,11 +155,13 @@ private fun NotesGrid(mask: Int, model: SudokuBoardModel, style: TextStyle, colo
     }
 }
 
-/** Selection wins, then the hint target, same digit, hint unit and peers. */
+/** Selection wins, then the hint target, same digit, struck cells, hint unit and peers. */
 private fun cellTint(cell: SudokuCellModel, colors: ColorScheme): Color = when {
     cell.selected -> colors.primaryContainer
     cell.hintTarget -> colors.tertiaryContainer
-    cell.sameDigit -> colors.secondaryContainer
+    // The selection's family, lighter: never the keypad's secondaryContainer fill (V7).
+    cell.sameDigit -> colors.primaryContainer.copy(alpha = SAME_DIGIT_ALPHA)
+    cell.hintStruck -> colors.onSurfaceVariant.copy(alpha = HINT_STRUCK_ALPHA)
     cell.hintUnit -> colors.tertiaryContainer.copy(alpha = HINT_UNIT_ALPHA)
     cell.peer -> colors.surfaceVariant
     else -> colors.surface
@@ -163,3 +182,7 @@ internal fun sudokuCellLabel(cell: SudokuCellModel, size: Int): String = buildSt
 private const val SELECT_ACTION = "Select"
 private const val CONFLICT_DOT_FRACTION = 0.07f
 private const val HINT_UNIT_ALPHA = 0.5f
+private const val HINT_STRUCK_ALPHA = 0.22f
+private const val SAME_DIGIT_ALPHA = 0.5f
+private val HINT_RING_WIDTH = 2.dp
+private val HINT_RING_INSET = 1.dp

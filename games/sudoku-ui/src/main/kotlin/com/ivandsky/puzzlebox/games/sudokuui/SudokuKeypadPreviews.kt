@@ -17,9 +17,10 @@ private val NINE_REMAINING = listOf(6, 5, 7, 4, 6, 5, 3, 6, 5)
 internal fun SudokuKeypadSixPreview() {
     PuzzleBoxTheme {
         SudokuKeypad(
-            model = SudokuKeypadModel(size = 6, remaining = SIX_REMAINING, notesMode = false),
+            model = SudokuKeypadModel(size = 6, remaining = SIX_REMAINING, notesMode = false, canClear = true, solved = false),
             onDigit = {},
             onErase = {},
+            onClear = {},
             onToggleNotes = {},
             modifier = Modifier.padding(Spacing.lg),
         )
@@ -32,9 +33,10 @@ internal fun SudokuKeypadSixPreview() {
 internal fun SudokuKeypadSixNotesPreview() {
     PuzzleBoxTheme {
         SudokuKeypad(
-            model = SudokuKeypadModel(size = 6, remaining = SIX_REMAINING, notesMode = true),
+            model = SudokuKeypadModel(size = 6, remaining = SIX_REMAINING, notesMode = true, canClear = true, solved = false),
             onDigit = {},
             onErase = {},
+            onClear = {},
             onToggleNotes = {},
             modifier = Modifier.padding(Spacing.lg),
         )
@@ -47,9 +49,10 @@ internal fun SudokuKeypadSixNotesPreview() {
 internal fun SudokuKeypadNinePreview() {
     PuzzleBoxTheme {
         SudokuKeypad(
-            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = false),
+            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = false, canClear = true, solved = false),
             onDigit = {},
             onErase = {},
+            onClear = {},
             onToggleNotes = {},
             modifier = Modifier.padding(Spacing.lg),
         )
@@ -62,9 +65,10 @@ internal fun SudokuKeypadNinePreview() {
 internal fun SudokuKeypadNineTwoRowsPreview() {
     PuzzleBoxTheme {
         SudokuKeypad(
-            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = false),
+            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = false, canClear = true, solved = false),
             onDigit = {},
             onErase = {},
+            onClear = {},
             onToggleNotes = {},
             modifier = Modifier.padding(Spacing.lg),
             rows = 2,
@@ -78,9 +82,10 @@ internal fun SudokuKeypadNineTwoRowsPreview() {
 internal fun SudokuKeypadNineNotesPreview() {
     PuzzleBoxTheme {
         SudokuKeypad(
-            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = true),
+            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = true, canClear = true, solved = false),
             onDigit = {},
             onErase = {},
+            onClear = {},
             onToggleNotes = {},
             modifier = Modifier.padding(Spacing.lg),
         )
@@ -93,9 +98,26 @@ internal fun SudokuKeypadNineNotesPreview() {
 internal fun SudokuKeypadDigitDonePreview() {
     PuzzleBoxTheme {
         SudokuKeypad(
-            model = SudokuKeypadModel(size = 6, remaining = listOf(4, 0, 5, 2, 0, 3), notesMode = false),
+            model = SudokuKeypadModel(size = 6, remaining = listOf(4, 0, 5, 2, 0, 3), notesMode = false, canClear = true, solved = false),
             onDigit = {},
             onErase = {},
+            onClear = {},
+            onToggleNotes = {},
+            modifier = Modifier.padding(Spacing.lg),
+        )
+    }
+}
+
+@PuzzleBoxPreviews
+@Preview(name = "Compact width", widthDp = 360, showBackground = true)
+@Composable
+internal fun SudokuKeypadSolvedPreview() {
+    PuzzleBoxTheme {
+        SudokuKeypad(
+            model = SudokuKeypadModel(size = 6, remaining = List(6) { 0 }, notesMode = false, canClear = true, solved = true),
+            onDigit = {},
+            onErase = {},
+            onClear = {},
             onToggleNotes = {},
             modifier = Modifier.padding(Spacing.lg),
         )

@@ -11,17 +11,23 @@ import kotlin.math.floor
 // A15 sizing policy — computed, never eyeballed (QueensSizingTest precedent).
 class SudokuSizingTest {
 
-    // The chrome reserve QueensSizingTest uses: 56dp above the pane and 56dp below it.
-    private val chromeReserve = 56.dp + 56.dp
+    // What the SinglePane screen takes around the board pane, measured as screen minus the
+    // sudoku.board_area bounds in SudokuPlayUiTest: across, the gutters (24dp at 360x640,
+    // 24.7dp at 411x891); down, the ~207dp PlayChrome plus gutters (254dp and 256.3dp).
+    // The larger of each pair is kept.
+    private val widthReserve = 25.dp
+    private val heightReserve = 256.dp
 
     private fun portrait(width: Int, height: Int, size: Int): SudokuLayout =
-        SudokuSizing.layout(width.dp, height.dp - chromeReserve, size, keypadBeside = false)
+        SudokuSizing.layout(width.dp - widthReserve, height.dp - heightReserve, size, keypadBeside = false)
 
     private fun assertFitsStacked(layout: SudokuLayout, width: Int, height: Int, size: Int) {
+        val paneWidth = width.dp - widthReserve
+        val paneHeight = height.dp - heightReserve
         val used = layout.board + SudokuSizing.stackedKeypadHeight(layout)
-        assertTrue("grid + keypad $used overflows ${height.dp - chromeReserve}", used <= height.dp - chromeReserve)
-        assertTrue("board ${layout.board} wider than ${width.dp}", layout.board <= width.dp)
-        assertTrue("digit keys ${digitKeyWidth(layout, width.dp, size)} narrower than 48dp", digitKeyWidth(layout, width.dp, size) >= 48.dp)
+        assertTrue("grid + keypad $used overflows $paneHeight", used <= paneHeight)
+        assertTrue("board ${layout.board} wider than $paneWidth", layout.board <= paneWidth)
+        assertTrue("digit keys ${digitKeyWidth(layout, paneWidth, size)} narrower than 48dp", digitKeyWidth(layout, paneWidth, size) >= 48.dp)
     }
 
     private fun digitKeyWidth(layout: SudokuLayout, keypadWidth: Dp, size: Int): Dp {
@@ -30,24 +36,24 @@ class SudokuSizingTest {
     }
 
     @Test
-    fun `compact phone 360x640 wraps 9 digits into two rows and still fits with no scroll`() {
+    fun `compact phone 360x640 wraps 9 digits into two rows and gives the board every spare dp`() {
         val nine = portrait(360, 640, 9)
-        assertEquals(SudokuLayout(cell = 40.dp, board = 360.dp, key = 48.dp, keyGap = 8.dp, keyRows = 2), nine)
-        assertFitsStacked(nine, 360, 640, 9) // 360 board + 3 × (48 + 8) keypad = 528, exactly the pane
+        assertEquals(SudokuLayout(cell = 24.dp, board = 216.dp, key = 48.dp, keyGap = 8.dp, keyRows = 2), nine)
+        assertFitsStacked(nine, 360, 640, 9) // 384 pane − 3 × (48 + 8) keypad = 216, exactly the board
 
         val six = portrait(360, 640, 6)
-        assertEquals(SudokuLayout(cell = 60.dp, board = 360.dp, key = 53.dp, keyGap = 8.dp, keyRows = 1), six)
+        assertEquals(SudokuLayout(cell = 45.dp, board = 270.dp, key = 49.dp, keyGap = 8.dp, keyRows = 1), six)
         assertFitsStacked(six, 360, 640, 6)
     }
 
     @Test
     fun `tall phone 411x891 is width-bound`() {
         val nine = portrait(411, 891, 9)
-        assertEquals(SudokuLayout(cell = 45.dp, board = 405.dp, key = 64.dp, keyGap = 8.dp, keyRows = 2), nine)
+        assertEquals(SudokuLayout(cell = 42.dp, board = 378.dp, key = 64.dp, keyGap = 8.dp, keyRows = 2), nine)
         assertFitsStacked(nine, 411, 891, 9)
 
         val six = portrait(411, 891, 6)
-        assertEquals(SudokuLayout(cell = 68.dp, board = 408.dp, key = 61.dp, keyGap = 8.dp, keyRows = 1), six)
+        assertEquals(SudokuLayout(cell = 64.dp, board = 384.dp, key = 57.dp, keyGap = 8.dp, keyRows = 1), six)
         assertFitsStacked(six, 411, 891, 6)
     }
 

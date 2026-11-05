@@ -15,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
-import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
@@ -23,7 +22,6 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
 
 /** The §6 gutter between the board pane's edge and the grid. */
 private val PaneGutter: Dp = Spacing.md
@@ -34,9 +32,9 @@ private const val TWO_PANE_BOARD_WEIGHT = 0.62f
 /**
  * The play screen. SinglePane stacks the grid over the keypad in the board pane, with the
  * chrome below; TwoPane gives the board pane to the grid alone and moves the keypad into
- * the chrome's game controls. Clear sits in the game controls either way. The result
- * hand-off waits for the solve sweep ([SudokuMotionHost]); one per board, so a replay's win
- * hands off again.
+ * the chrome's game controls. Clear rides the keypad's action row either way, so the chrome
+ * takes no row of its own. The result hand-off waits for the solve sweep ([SudokuMotionHost]);
+ * one per board, so a replay's win hands off again.
  */
 @Composable
 internal fun SudokuPlayScreen(
@@ -61,11 +59,7 @@ internal fun SudokuPlayScreen(
                         if (state != null) SudokuStackedBoard(state)
                     }
                 },
-                side = {
-                    SudokuChrome(controller, title, ready, onHowToPlay) {
-                        if (state != null) SudokuClearButton(state)
-                    }
-                },
+                side = { SudokuChrome(controller, title, ready, onHowToPlay) {} },
             )
             PlayLayout.TwoPane -> BoxWithConstraints(modifier.fillMaxSize()) {
                 val sizing = state?.let {
@@ -88,10 +82,7 @@ internal fun SudokuPlayScreen(
                     },
                     side = {
                         SudokuChrome(controller, title, ready, onHowToPlay) {
-                            if (state != null && sizing != null) {
-                                SudokuBoardKeypad(state, sizing.keyRows, sizing.key)
-                                SudokuClearButton(state)
-                            }
+                            if (state != null && sizing != null) SudokuBoardKeypad(state, sizing.keyRows, sizing.key)
                         }
                     },
                 )
@@ -140,6 +131,7 @@ private fun SudokuBoardKeypad(state: SudokuBoardState, rows: Int, keyHeight: Dp,
         model = sudokuKeypadModel(session.board, session.notesMode),
         onDigit = state::input,
         onErase = state::erase,
+        onClear = state::clear,
         onToggleNotes = state::toggleNotesMode,
         modifier = modifier.testTag("sudoku.keypad"),
         rows = rows,
@@ -165,17 +157,5 @@ private fun SudokuChrome(
         feedback = controller,
         onHowToPlay = onHowToPlay,
         gameControls = gameControls,
-    )
-}
-
-/** One undoable command, so Clear needs no confirm; live while anything but the givens is on the board. */
-@Composable
-private fun SudokuClearButton(state: SudokuBoardState) {
-    val session = state.session
-    SecondaryButton(
-        text = "Clear",
-        onClick = state::clear,
-        enabled = !session.isComplete && session.board.cells.any { it !is SudokuCell.Given && it != SudokuCell.Empty },
-        modifier = Modifier.padding(vertical = Spacing.sm).testTag("sudoku.clear"),
     )
 }

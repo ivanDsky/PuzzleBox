@@ -6,6 +6,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
@@ -17,6 +18,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
@@ -28,6 +32,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.games.sudoku.digit
 import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -87,26 +92,48 @@ class SudokuPlayUiTest {
     @Test
     @Config(qualifiers = "w360dp-h640dp-mdpi")
     fun `the 6x6 fits a 360x640 phone with grid, keypad and chrome apart`() {
-        assertFitsSinglePane(ui, adopted())
+        assertFitsSinglePane(ui, adopted(), size = 6)
     }
 
     @Test
     @Config(qualifiers = "w360dp-h640dp-mdpi")
     fun `the 9x9 fits a 360x640 phone with grid, keypad and chrome apart`() {
         val classic = SudokuPlayUi(SudokuGames.CLASSIC)
-        assertFitsSinglePane(classic, adopted(classic, SudokuSamples.classic, SudokuPuzzleRef(SudokuGames.CLASSIC.id, ref.date, null)))
+        assertFitsSinglePane(classic, adopted(classic, SudokuSamples.classic, SudokuPuzzleRef(SudokuGames.CLASSIC.id, ref.date, null)), size = 9)
         composeRule.onNodeWithText("Daily").assertExists()
     }
 
-    private fun assertFitsSinglePane(game: SudokuPlayUi, controller: SudokuPlayController) {
+    @Test
+    fun `the 6x6 cell takes all the height the 411x891 chrome leaves`() {
+        assertFitsSinglePane(ui, adopted(), size = 6)
+    }
+
+    @Test
+    fun `the 9x9 cell takes all the height the 411x891 chrome leaves`() {
+        val classic = SudokuPlayUi(SudokuGames.CLASSIC)
+        assertFitsSinglePane(classic, adopted(classic, SudokuSamples.classic, SudokuPuzzleRef(SudokuGames.CLASSIC.id, ref.date, null)), size = 9)
+    }
+
+    /** Grid, keypad and chrome stack apart on screen, and one more dp of cell would not fit the board area (R1). */
+    private fun assertFitsSinglePane(game: SudokuPlayUi, controller: SudokuPlayController, size: Int) {
         setScreen(controller, PlayLayout.SinglePane, game)
         val grid = composeRule.onNodeWithTag("sudoku.grid").getUnclippedBoundsInRoot()
         val keypad = composeRule.onNodeWithTag("sudoku.keypad").getUnclippedBoundsInRoot()
+        val area = composeRule.onNodeWithTag("sudoku.board_area").getUnclippedBoundsInRoot()
         val chrome = composeRule.onNodeWithTag("play.side_panel").getUnclippedBoundsInRoot()
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
         assertTrue("keypad under grid ($grid, $keypad)", keypad.top >= grid.bottom)
         assertTrue("chrome under keypad ($keypad, $chrome)", chrome.top >= keypad.bottom)
         assertTrue("chrome on screen ($chrome, $root)", chrome.bottom <= root.bottom)
+
+        val cell = grid.width / size
+        val grownGrid = grid.width + size.dp
+        val stackedAtGrownGrid = grownGrid + SudokuSizing.keyGap + keypad.height
+        println("R1 ${size}x$size: cell=$cell grid=${grid.width} keypad=${keypad.height} area=${area.width}x${area.height} chrome=${chrome.height}")
+        assertTrue(
+            "a ${cell + 1.dp} cell would still fit $area under a ${keypad.height} keypad",
+            grownGrid > area.width || grownGrid > PlayBoardMaxWidth || stackedAtGrownGrid > area.height,
+        )
     }
 
     private fun session(controller: SudokuPlayController): SudokuSession = composeRule.runOnIdle { controller.board!!.session }
@@ -158,6 +185,11 @@ class SudokuPlayUiTest {
         assertEquals(solution, won.board.cells.map { it.digit })
         composeRule.runOnIdle { assertEquals(listOf(won.elapsedMs to won.hintsUsed), solved) }
         hint().assertIsNotEnabled()
+        composeRule.onNodeWithText("Notes").assertIsNotEnabled()
+        composeRule.onNodeWithText("Erase").assertIsNotEnabled()
+        composeRule.onNodeWithTag("sudoku.clear").assertIsNotEnabled()
+        composeRule.runOnIdle { assertEquals(null, controller.board!!.selected) }
+        cell(0).performClick().assertIsNotSelected()
     }
 
     @Test
@@ -166,7 +198,8 @@ class SudokuPlayUiTest {
 
         composeRule.onNode(hasTestTag("sudoku.keypad") and hasAnyAncestor(hasTestTag("sudoku.board_area"))).assertExists()
         composeRule.onNode(hasTestTag("sudoku.keypad") and hasAnyAncestor(hasTestTag("play.side_panel"))).assertDoesNotExist()
-        composeRule.onNode(hasTestTag("sudoku.clear") and hasAnyAncestor(hasTestTag("play.side_panel"))).assertExists()
+        composeRule.onNode(hasTestTag("sudoku.clear") and hasAnyAncestor(hasTestTag("sudoku.keypad"))).assertExists()
+        composeRule.onNode(hasTestTag("sudoku.clear") and hasAnyAncestor(hasTestTag("play.side_panel"))).assertDoesNotExist()
         composeRule.onNodeWithText("Daily · #450").assertExists()
     }
 
@@ -179,6 +212,7 @@ class SudokuPlayUiTest {
         composeRule.onNode(hasTestTag("sudoku.keypad") and hasAnyAncestor(hasTestTag("play.side_panel"))).assertExists()
         composeRule.onNode(hasTestTag("sudoku.keypad") and hasAnyAncestor(hasTestTag("sudoku.board_area"))).assertDoesNotExist()
         composeRule.onNode(hasTestTag("sudoku.grid") and hasAnyAncestor(hasTestTag("sudoku.board_area"))).assertExists()
+        composeRule.onNode(hasTestTag("sudoku.clear") and hasAnyAncestor(hasTestTag("sudoku.keypad"))).assertExists()
 
         cell(0).performClick()
         key(4).performClick()
