@@ -13,7 +13,9 @@ the build instead of a review.
 1. **`GameRegistry` (`core:game`) is the only `GameId` → `GamePlugin` lookup.** Every game
    module binds its `GamePlugin` under its id qualifier; `app/di/AppModule.kt` builds the one
    registry from `getAll<GamePlugin<*, *, *>>()`, sorted by the app-side `GAME_ORDER`
-   (`zip`, `tango`, `queens`; an unlisted game sorts after them by id). Consumers that must
+   (`zip`, `tango`, `queens`, `minisudoku`, `sudoku`; an unlisted game sorts after them by id).
+   *(Amended 2026-11-05, ADR-0012: one module pair per game family; `:games:sudoku` hosts
+   `minisudoku` and `sudoku`, the latter registered in debug builds only.)* Consumers that must
    not know game ids — `core:data` decoding, `core:domain` use cases, Home, History, the play
    shell — inject the registry; nobody else aggregates plugins or scans for an id.
 2. **Dailies flow `DailySource` → `DailyRepository`.** Each game module owns its feed adapter
