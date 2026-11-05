@@ -9,40 +9,39 @@ import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.domain.playTarget
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /**
  * Everything Home renders: today's set, the signed-in player, the history teaser, and
  * [puzzleDay] — the puzzle roll-over day (A9) the header shows, not the phone's date.
- * [playTarget] is the game "Play today" opens (A13, A15, SC11): the first game with an
- * unfinished save, else the first unsolved one, else the first game — and [resume] says
- * the first applies, so the action reads "Resume".
+ * [playTarget] is the game "Play today" opens (core:domain's `playTarget`: the first game
+ * with an unfinished save, else the first unsolved one, else the first game; before the
+ * set lands, the first game) — and [resume] says the first applies, so the action reads
+ * "Resume".
  */
 data class HomeUiState(
     val today: List<TodayRow>,
     val identity: Identity?,
     val history: List<HistoryDay>,
     val puzzleDay: LocalDate,
+    val playTarget: GameId?,
 ) {
     /** One game in the Today card (A15); [status] is null until today's set first emits. */
     data class TodayRow(val game: GameId, val displayName: String, val status: TodayStatus?)
-
-    val playTarget: GameId?
-        get() = (
-            today.firstOrNull { it.status is TodayStatus.InProgress }
-                ?: today.firstOrNull { it.status != null && it.status !is TodayStatus.Solved }
-                ?: today.firstOrNull()
-            )?.game
 
     val resume: Boolean
         get() = today.any { it.status is TodayStatus.InProgress }
@@ -58,7 +57,8 @@ data class HomeUiState(
  * (unregistered games last) with their solve time, or null when opened but not solved.
  * Per-game names resolve against :app's [GameRegistry], so a new game appears here purely
  * by registering its plugin. The header's day is [puzzleDay]'s result, re-read on every
- * emission.
+ * emission. [syncToday] prefetches today's uncached puzzles (A12; the route calls it on
+ * every resume), so a game that can't load reads Offline.
  */
 class HomeViewModel(
     observeGameHistory: ObserveGameHistory,
@@ -66,31 +66,38 @@ class HomeViewModel(
     identityService: IdentityService,
     private val registry: GameRegistry,
     private val puzzleDay: GetPuzzleDay,
+    private val syncTodayPuzzles: SyncTodayPuzzles,
 ) : ViewModel() {
 
     private val seed = registry.all.map {
         HomeUiState.TodayRow(it.definition.id, it.definition.displayName, status = null)
     }
 
-    // Seeded so the teaser never waits on today's set (it reads Room and DataStore).
-    private val today = todaySet()
-        .map { entries -> entries.map { HomeUiState.TodayRow(it.game, it.displayName, it.status) } }
-        .onStart { emit(seed) }
+    // Before the set lands every row is unknown and "Play today" opens the first game.
+    private val seedTarget = seed.firstOrNull()?.game
+
+    // Seeded (null) so the teaser never waits on today's set (it reads Room and DataStore).
+    private val today: Flow<List<TodayEntry>?> = todaySet().onStart<List<TodayEntry>?> { emit(null) }
 
     val uiState: StateFlow<HomeUiState> =
-        combine(today, observeGameHistory(), identityService.current) { rows, days, identity ->
+        combine(today, observeGameHistory(), identityService.current) { entries, days, identity ->
             val day = puzzleDay()
             HomeUiState(
-                today = rows,
+                today = entries?.map { HomeUiState.TodayRow(it.game, it.displayName, it.status) } ?: seed,
                 identity = identity,
                 history = recentDays(days, before = day),
                 puzzleDay = day,
+                playTarget = if (entries == null) seedTarget else entries.playTarget(),
             )
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = HomeUiState(seed, identityService.current.value, emptyList(), puzzleDay()),
+            initialValue = HomeUiState(seed, identityService.current.value, emptyList(), puzzleDay(), seedTarget),
         )
+
+    fun syncToday() {
+        viewModelScope.launch { syncTodayPuzzles() }
+    }
 
     private fun recentDays(days: List<GameHistoryDay>, before: LocalDate): List<HistoryDay> =
         days.asSequence()

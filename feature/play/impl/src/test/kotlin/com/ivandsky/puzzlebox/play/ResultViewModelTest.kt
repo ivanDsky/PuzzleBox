@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
@@ -64,7 +65,7 @@ class ResultViewModelTest {
     private val saved = FakeSavedPlayRepository()
     private val lane = WriteLane()
     private val store = store(fakes.games, fakes.registry)
-    private val todaySet = ObserveTodaySet(fakes.games, saved, completions, calendar)
+    private val todaySet = todaySet(fakes.games)
 
     /** Collectors standing in for the screen: [ResultViewModel.primary] only runs while observed. */
     private val screen = CoroutineScope(dispatcher + Job())
@@ -73,6 +74,9 @@ class ResultViewModelTest {
     fun leaveScreen() {
         screen.cancel()
     }
+
+    private fun todaySet(games: GameRegistry) =
+        ObserveTodaySet(games, saved, completions, calendar, daily, SyncTodayPuzzles(games, daily, calendar))
 
     private fun store(games: GameRegistry, ui: GamePlayRegistry) = PlaySessionStore(
         games = games,
@@ -195,7 +199,7 @@ class ResultViewModelTest {
         val vm = ResultViewModel(
             key,
             store(three.games, playable),
-            ObserveTodaySet(three.games, saved, completions, calendar),
+            todaySet(three.games),
             calendar,
         ).observed()
         assertEquals(ResultPrimaryAction.Next(gamma, three.games.displayName(gamma)), vm.primary.value)

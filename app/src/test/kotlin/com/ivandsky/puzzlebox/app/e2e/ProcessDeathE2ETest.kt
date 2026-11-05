@@ -123,7 +123,7 @@ class ProcessDeathE2ETest {
 
             tap(DONE)
 
-            assertState(stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey)))
+            assertState(stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey())))
             assertRoute(HISTORY)
         }
 
@@ -260,7 +260,7 @@ class ProcessDeathE2ETest {
     private val playHub = stacks(tab = PlayKey)
 
     /** A History replay of [PAST_DAY], open on Home's stack. */
-    private val pastGame = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey, GameKey(ZIP, "$PAST_DAY")))
+    private val pastGame = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey(), GameKey(ZIP, "$PAST_DAY")))
 
     private val todaySlot = PlaySlot(ZipDefinition.id, E2E_TODAY)
     private val pastSlot = PlaySlot(ZipDefinition.id, PAST_DAY)

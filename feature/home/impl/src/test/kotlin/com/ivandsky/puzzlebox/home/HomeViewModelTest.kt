@@ -2,12 +2,15 @@ package com.ivandsky.puzzlebox.home
 
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
@@ -65,13 +68,16 @@ class HomeViewModelTest {
         val daily = FakeDailyRepository()
         val completions = FakeCompletionRepository()
         val saved = FakeSavedPlayRepository()
+        val calendar = FakeGameCalendar(day)
+        val sync = SyncTodayPuzzles(registry, daily, calendar)
         val vm = HomeViewModel(
             observeGameHistory = ObserveGameHistory(registry, daily, completions),
-            todaySet = ObserveTodaySet(registry, saved, completions, FakeGameCalendar(day)),
+            todaySet = ObserveTodaySet(registry, saved, completions, calendar, daily, sync),
             identityService = identity,
             registry = registry,
             // The test games roll over at UTC midnight: midday UTC is [day].
             puzzleDay = GetPuzzleDay(registry, Clock.fixed(Instant.parse("2026-11-04T12:00:00Z"), ZoneOffset.UTC)),
+            syncTodayPuzzles = sync,
         )
         if (collect) backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return Deps(vm, daily, completions, saved, identity)
@@ -98,6 +104,7 @@ class HomeViewModelTest {
                 identity = ann,
                 history = emptyList(),
                 puzzleDay = day,
+                playTarget = zip,
             ),
             deps.vm.uiState.value,
         )
@@ -178,6 +185,24 @@ class HomeViewModelTest {
         val deps = viewModel(collect = false)
         assertEquals(zip, deps.vm.uiState.value.playTarget)
         assertNull(deps.vm.uiState.value.today.first().status)
+    }
+
+    @Test
+    fun `syncing today fetches every game and marks the one that cannot load offline - A12`() = runTest {
+        val deps = viewModel()
+        deps.daily.setToday(zip, DailyToday.Unavailable(FetchError.Unavailable()))
+        deps.daily.setToday(tango, DailyToday.Fresh(TestGames.puzzle(tango)))
+
+        deps.vm.syncToday()
+
+        assertEquals(1, deps.daily.todayCalls(zip))
+        assertEquals(1, deps.daily.todayCalls(tango))
+        assertEquals(
+            listOf(TodayStatus.Offline, TodayStatus.NotStarted),
+            deps.vm.uiState.value.today.map { it.status },
+        )
+        // An offline game is not solved, so "Play today" still opens it (its route retries).
+        assertEquals(zip, deps.vm.uiState.value.playTarget)
     }
 
     @Test

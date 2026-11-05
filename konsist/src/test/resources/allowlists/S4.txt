@@ -5,7 +5,6 @@ core/designsystem/src/main/kotlin/com/ivandsky/puzzlebox/designsystem/ReducedMot
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/BoardGrid.kt  # S4
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/BoardStates.kt  # S4
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/DragTrace.kt  # S4
-core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/HintButton.kt  # S4
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/PlayBoardStatus.kt  # S4
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/PlayChrome.kt  # S4
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/PlayScaffold.kt  # S4
@@ -16,7 +15,6 @@ feature/home/impl/src/main/kotlin/com/ivandsky/puzzlebox/home/HomeRoute.kt  # S4
 feature/home/impl/src/main/kotlin/com/ivandsky/puzzlebox/home/HomeScreen.kt  # S4
 feature/play/impl/src/main/kotlin/com/ivandsky/puzzlebox/play/ResultRoute.kt  # S4
 feature/profile/impl/src/main/kotlin/com/ivandsky/puzzlebox/app/screens/ProfileRoute.kt  # S4
-games/queens-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/queensui/QueensPlayControls.kt  # S4
 games/queens-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/queensui/QueensPlayUi.kt  # S4
 games/tango-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/tangoui/TangoPlayUi.kt  # S4
 games/zip-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/zipui/ZipBoardCells.kt  # S4

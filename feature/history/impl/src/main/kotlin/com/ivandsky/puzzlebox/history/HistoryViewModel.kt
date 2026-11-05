@@ -4,16 +4,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
-import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
@@ -40,30 +43,33 @@ data class HistoryUiState(
  *
  * Replay is navigation only (ticket 11): the route reports the (game, day) and the play
  * store opens that day's slot — History never builds a session blob. Records key by
- * game+day (ADR-0004: two games share the calendar).
+ * game+day (ADR-0004: two games share the calendar). The streak is every game's
+ * [ObserveGameStats] streak, the same number Profile and Result show (practice never
+ * counts). [game] is the tab [key] opens (null = every game).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class HistoryViewModel(
+    key: HistoryKey,
     observeGameHistory: ObserveGameHistory,
-    private val computeStreak: ComputeStreak,
+    observeGameStats: ObserveGameStats,
     private val registry: GameRegistry,
 ) : ViewModel() {
 
-    private val history: Flow<HistoryUiState> = observeGameHistory()
-        .map { merged ->
-            val rows = merged.map { it.toRow(registry.displayName(it.gameId)) }.sortedWith(HISTORY_ROW_ORDER)
-            HistoryUiState(
-                rows = rows,
-                recordsByKey = merged.mapNotNull { day -> day.record?.let { (day.gameId to day.day) to it } }.toMap(),
-                // Practice solves (no edition number) never count toward the streak.
-                streak = computeStreak(merged.filter { it.record != null && it.puzzleNumber != null }.map { it.day }),
-            )
-        }
-        .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+    internal val game: GameId? = key.gameId?.let(::GameId)
+
+    private val history: Flow<HistoryUiState> = combine(observeGameHistory(), observeGameStats()) { merged, stats ->
+        val rows = merged.map { it.toRow(registry.displayName(it.gameId)) }.sortedWith(HISTORY_ROW_ORDER)
+        HistoryUiState(
+            rows = rows,
+            recordsByKey = merged.mapNotNull { day -> day.record?.let { (day.gameId to day.day) to it } }.toMap(),
+            streak = stats.currentStreak,
+        )
+    }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
     val uiState: StateFlow<HistoryUiState> =
         history.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState())
 
-    val pagedDays: Flow<PagingData<HistoryDayRow>> =
-        history.flatMapLatest { historyPager(it.rows) }.cachedIn(viewModelScope)
+    // Rows only: a stats-only emission must not start a new paging generation.
+    val pagedDays: Flow<PagingData<HistoryDayRow>> = history.map { it.rows }.distinctUntilChanged()
+        .flatMapLatest { historyPager(it) }.cachedIn(viewModelScope)
 }

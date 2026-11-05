@@ -17,6 +17,7 @@ import androidx.compose.ui.test.assertTextEquals
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.gameui.todayStatusLine
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
 import java.time.LocalDate
@@ -86,9 +87,9 @@ class HomeScreenTest {
 
         composeRule.onNodeWithTag("home.today_summary").assertTextEquals("1 of 4 done")
         composeRule.onNodeWithTag("home.today_row_zip").assertExists()
-        composeRule.onNodeWithTag("home.today_status_zip").assertTextEquals("Solved · 0:36 ✓")
-        composeRule.onNodeWithTag("home.today_status_tango").assertTextEquals("In progress · 0:42")
-        composeRule.onNodeWithTag("home.today_status_queens").assertTextEquals("Not started")
+        composeRule.onNodeWithTag("home.today_status_zip").assertTextEquals(todayStatusLine(TodayStatus.Solved(36_000L)))
+        composeRule.onNodeWithTag("home.today_status_tango").assertTextEquals(todayStatusLine(TodayStatus.InProgress(42_000L)))
+        composeRule.onNodeWithTag("home.today_status_queens").assertTextEquals(todayStatusLine(TodayStatus.NotStarted))
         // Status not known yet: the row still lists the game, with no status line.
         composeRule.onNodeWithTag("home.today_row_pinpoint").assertExists()
         composeRule.onNodeWithTag("home.today_status_pinpoint").assertDoesNotExist()
@@ -106,7 +107,7 @@ class HomeScreenTest {
         }
 
         composeRule.onNodeWithTag("home.today_summary").assertTextEquals("2 of 4 done")
-        composeRule.onNodeWithTag("home.today_status_tango").assertTextEquals("Solved · 1:01 ✓")
+        composeRule.onNodeWithTag("home.today_status_tango").assertTextEquals(todayStatusLine(TodayStatus.Solved(61_000L)))
     }
 
     @Test
@@ -114,9 +115,9 @@ class HomeScreenTest {
         setContent(HomeLayout.TwoPane)
 
         composeRule.onNodeWithTag("home.detail_today_summary").assertTextEquals("1 of 4 done")
-        composeRule.onNodeWithTag("home.detail_today_status_zip").assertTextEquals("Solved · 0:36 ✓")
-        composeRule.onNodeWithTag("home.detail_today_status_tango").assertTextEquals("In progress · 0:42")
-        composeRule.onNodeWithTag("home.detail_today_status_queens").assertTextEquals("Not started")
+        composeRule.onNodeWithTag("home.detail_today_status_zip").assertTextEquals(todayStatusLine(TodayStatus.Solved(36_000L)))
+        composeRule.onNodeWithTag("home.detail_today_status_tango").assertTextEquals(todayStatusLine(TodayStatus.InProgress(42_000L)))
+        composeRule.onNodeWithTag("home.detail_today_status_queens").assertTextEquals(todayStatusLine(TodayStatus.NotStarted))
         composeRule.onNodeWithTag("home.detail_today_row_pinpoint").assertExists()
     }
 

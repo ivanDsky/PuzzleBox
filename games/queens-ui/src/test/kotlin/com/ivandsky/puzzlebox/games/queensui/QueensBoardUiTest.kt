@@ -69,10 +69,7 @@ class QueensBoardUiTest {
         )
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                androidx.compose.foundation.layout.Column {
-                    QueensPlayBoard(state, Modifier.fillMaxWidth().testTag(BoardTag))
-                    QueensPlayControls(state)
-                }
+                QueensPlayBoard(state, Modifier.fillMaxWidth().testTag(BoardTag))
                 // Fix round 6: no win overlay HERE — the solved state hands off to the
                 // result ROUTE at screen level (the app navigates; the board just rests).
             }
@@ -390,7 +387,7 @@ class QueensBoardUiTest {
         state.onTap(15) // MANUAL X
         tap(0, 0); tap(0, 0) // queen + AUTO fills
         assertTrue(state.session.marks.isNotEmpty())
-        composeRule.onNodeWithText("Clear").performClick()
+        state.clearBoard() // the action bar's Clear (QueensPlayUi.clearFor) calls this
         composeRule.waitForIdle()
         assertTrue(state.session.queens.isEmpty())
         assertTrue("MANUAL marks gone too (round-6 ruling)", state.session.marks.isEmpty())

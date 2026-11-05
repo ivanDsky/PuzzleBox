@@ -21,6 +21,8 @@ dependencies {
     implementation(projects.core.game)
     // TodayStatus (today's set) appears in HomeUiState, part of HomeScreen's public signature.
     api(projects.core.domain)
+    // todayStatusLine: the Today card's status copy, shared with the games hub.
+    implementation(projects.core.gameUi)
     // ThemeMode/GameId appear in Home's public composables.
     api(projects.core.model)
     testImplementation(projects.core.testing)

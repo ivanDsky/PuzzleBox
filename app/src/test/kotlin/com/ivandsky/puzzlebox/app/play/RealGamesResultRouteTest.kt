@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -75,7 +76,8 @@ class RealGamesResultRouteTest {
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<GameCalendar> { FakeGameCalendar(today) }
                     factory { GetReplaySession(get(), get()) }
-                    factory { ObserveTodaySet(get(), get(), get(), get()) }
+                    single { SyncTodayPuzzles(get(), get(), get()) }
+                    factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
                     // Tutorial seen: this path is about the result; the lessons have their own tests.
                     single<UserPreferencesRepository> {
                         FakeUserPreferencesRepository(seen = setOf(ZipDefinition.id))

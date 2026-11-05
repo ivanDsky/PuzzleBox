@@ -270,9 +270,11 @@ class ActivePlay internal constructor(
     private fun blankRecord(label: String) =
         Record(verdict = null, previousBestMs = null, writeFailed = false, label = label)
 
+    /** "Zip · #598" for a daily, "Tango · Practice" for a puzzle with no edition number. */
     private fun labelFor(ref: PuzzleRef?): String {
         val name = plugin.definition.displayName
-        return ref?.puzzleNumber?.let { "$name · #$it" } ?: name
+        if (ref == null) return name
+        return ref.puzzleNumber?.let { "$name · #$it" } ?: "$name · Practice"
     }
 
     private companion object {

@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
@@ -324,7 +325,8 @@ class ResultScreenTest {
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<GameCalendar> { FakeGameCalendar(day) }
                     factory { GetReplaySession(get(), get()) }
-                    factory { ObserveTodaySet(get(), get(), get(), get()) }
+                    single { SyncTodayPuzzles(get(), get(), get()) }
+                    factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
                 },
                 playModule,
             )

@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.history
 import androidx.paging.testing.asSnapshot
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
+import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -13,6 +14,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -171,6 +173,13 @@ class HistoryViewModelTest {
 
         assertTrue("the practice solve is still a solved row", (TANGO to yesterday) in state.recordsByKey)
         assertEquals(1, state.streak) // today only; yesterday's practice solve doesn't bridge
+    }
+
+    @Test
+    fun `the key picks the game tab, and no game means every game`() {
+        val daily = FakeDailyRepository()
+        assertEquals(ZIP, HistoryTestSupport.viewModel(daily, FakeCompletionRepository(), HistoryKey(ZIP.value)).game)
+        assertNull(HistoryTestSupport.viewModel(daily, FakeCompletionRepository()).game)
     }
 
     @Test

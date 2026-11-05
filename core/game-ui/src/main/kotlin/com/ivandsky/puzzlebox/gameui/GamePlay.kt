@@ -39,12 +39,24 @@ interface GamePlayUi {
     fun Board(controller: GamePlayController, modifier: Modifier)
 
     /**
-     * The game's play screen. [controller] is one this UI created; [status] is the
+     * The game's Clear over [controller] (A14): null when the game has none, which hides
+     * the action bar's Clear. [Screen] hands the same seam to [PlayChrome].
+     */
+    fun clearFor(controller: GamePlayController): PlayClear? = null
+
+    /**
+     * The game's settings for the play top bar's overflow menu (A14), read on each
+     * composition so a toggle shows its current state. Empty hides the menu.
+     */
+    fun overflowFor(controller: GamePlayController): List<PlayOverflowItem> = emptyList()
+
+    /**
+     * The game's play screen under the route's top bar: the board, its caption and the
+     * [PlayChrome] action bar, whose Clear is [clearFor]. [controller] is one this UI
+     * created; [status] is the
      * shared fetch state (Loading / Unavailable / Ready + degrade banner). [onSolved]
-     * carries the frozen result facts once per completion — including a restored
-     * completed session, which shows its win. [onHowToPlay] goes to the game's
-     * [PlayChrome] (null = no button): the play feature reopens the tutorial over this
-     * play and pauses its clock meanwhile.
+     * carries the frozen result facts once per completion, after the [PlaySolveFrame]
+     * moment, including a restored completed session, which hands off at once.
      */
     @Composable
     fun Screen(
@@ -53,7 +65,6 @@ interface GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
-        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     )
 }

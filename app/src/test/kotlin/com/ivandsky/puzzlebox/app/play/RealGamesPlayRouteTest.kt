@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.GetReplaySession
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -119,7 +120,8 @@ class RealGamesPlayRouteTest {
                     // Every real game shares the America/Los_Angeles cadence zone.
                     single<GameCalendar> { FakeGameCalendar(cadenceToday) }
                     factory { GetReplaySession(get(), get()) }
-                    factory { ObserveTodaySet(get(), get(), get(), get()) }
+                    single { SyncTodayPuzzles(get(), get(), get()) }
+                    factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
                     // Every tutorial seen: these paths are about the boards; the lessons have their own tests.
                     single<UserPreferencesRepository> {
                         FakeUserPreferencesRepository(
@@ -189,7 +191,7 @@ class RealGamesPlayRouteTest {
             assertEquals(TangoPuzzleRef(cadenceToday, 301), tango.session?.ref)
         }
         composeRule.onNodeWithTag("play.side_panel").assertExists()
-        composeRule.onNodeWithText("Daily · #301").assertExists()
+        composeRule.onNodeWithTag("play.action_bar").assertExists()
         composeRule.onNodeWithTag("route.hub").assertDoesNotExist()
     }
 

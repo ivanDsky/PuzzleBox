@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -21,10 +22,13 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.di.domainModule
+import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.gameui.todayStatusLine
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.home.di.homeModule
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
@@ -96,8 +100,9 @@ class HomeRouteTest {
         completions: CompletionRepository,
         saved: SavedPlayRepository = FakeSavedPlayRepository(),
         onPlayToday: (GameId) -> Unit = {},
+        zipToday: DailyToday = DailyToday.Fresh(TestGames.puzzle(GameId("zip"))),
     ) {
-        startGraph(daily, completions, saved)
+        startGraph(daily, completions, saved, zipToday)
         composeRule.setContent {
             PuzzleBoxTheme {
                 HomeRoute(
@@ -115,8 +120,11 @@ class HomeRouteTest {
         daily: FakeDailyRepository,
         completions: CompletionRepository,
         saved: SavedPlayRepository = FakeSavedPlayRepository(),
+        zipToday: DailyToday = DailyToday.Fresh(TestGames.puzzle(GameId("zip"))),
     ) {
         val fakeIdentity = FakeIdentityService()
+        // Home prefetches today's puzzles on resume (A12): by default a fresh fetch keeps Zip not started.
+        daily.setToday(GameId("zip"), zipToday)
         startKoin {
             modules(
                 module {
@@ -141,6 +149,18 @@ class HomeRouteTest {
         composeRule.onNodeWithText("Play today").performClick()
 
         composeRule.runOnIdle { assertEquals(listOf(GameId("zip")), played) }
+    }
+
+    @Test
+    fun `showing home prefetches today's puzzle and an unloadable one reads offline - A12`() {
+        val daily = FakeDailyRepository()
+        setContent(daily, FakeCompletionRepository(), zipToday = DailyToday.Unavailable(FetchError.Unavailable()))
+
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText(todayStatusLine(TodayStatus.Offline)).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.runOnIdle { assertEquals(1, daily.todayCalls(GameId("zip"))) }
+        composeRule.onNodeWithTag("home.today_status_zip").assertTextEquals(todayStatusLine(TodayStatus.Offline))
     }
 
     @Test
@@ -224,10 +244,10 @@ class HomeRouteTest {
         val completions = FakeCompletionRepository()
         setContent(FakeDailyRepository(), completions)
         composeRule.waitUntil(5_000) {
-            composeRule.onAllNodesWithText("Not started").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText(todayStatusLine(TodayStatus.NotStarted)).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag("home.today_summary").assertTextEquals("0 of 1 done")
-        composeRule.onNodeWithTag("home.today_status_zip").assertTextEquals("Not started")
+        composeRule.onNodeWithTag("home.today_status_zip").assertTextEquals(todayStatusLine(TodayStatus.NotStarted))
 
         // The graph's calendar pins Zip's today: this record is on it.
         completions.onCompleted(
@@ -242,6 +262,6 @@ class HomeRouteTest {
         composeRule.waitUntil(5_000) {
             composeRule.onAllNodesWithText("1 of 1 done").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithTag("home.today_status_zip").assertTextEquals("Solved · 0:36 ✓")
+        composeRule.onNodeWithTag("home.today_status_zip").assertTextEquals(todayStatusLine(TodayStatus.Solved(36_000L)))
     }
 }
