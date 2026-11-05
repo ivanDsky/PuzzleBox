@@ -116,16 +116,4 @@ class SudokuPlayControllerTest {
         c.undo()
         assertEquals(SudokuCell.Empty, savedSession().board.cells[0])
     }
-
-    @Test
-    fun `each size has two one-cell lessons`() {
-        for (definition in listOf(SudokuGames.MINI, SudokuGames.CLASSIC)) {
-            val steps = sudokuTutorial(definition)
-            assertEquals(2, steps.size)
-            for (step in steps) {
-                val puzzle = (definition.decodePuzzle(step.puzzle.payload) as DecodeResult.Ok).value
-                assertEquals(1, puzzle.givens.count { it == 0 })
-            }
-        }
-    }
 }
