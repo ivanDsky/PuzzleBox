@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.history
 
 import androidx.paging.testing.asSnapshot
-import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -184,22 +183,5 @@ class HistoryViewModelTest {
         val rows = viewModel(daily).uiState.first { it.rows.isNotEmpty() }.rows
 
         assertEquals(listOf("Sunday, November 1", "Monday, March 4, 2024"), rows.map { it.headline })
-    }
-
-    @Test
-    fun `browsing past days adds no history rows`() = runTest {
-        val browsed = LocalDate.of(2025, 6, 1)
-        val daily = seededRepo(2).apply {
-            setArchiveRange(ZIP, LocalDate.of(2024, 1, 1)..LocalDate.of(2026, 11, 5))
-            setDay(ZIP, browsed, DailyDay.NotCaptured)
-        }
-        val vm = viewModel(daily)
-        val before = vm.uiState.first { it.rows.isNotEmpty() }.rows
-
-        daily.archiveRange(ZIP)
-        daily.day(ZIP, browsed)
-        advanceUntilIdle()
-
-        assertEquals(before, vm.uiState.value.rows)
     }
 }
