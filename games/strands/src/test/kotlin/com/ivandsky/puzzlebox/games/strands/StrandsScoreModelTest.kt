@@ -32,4 +32,12 @@ class StrandsScoreModelTest {
         assertNull(StrandsScoreModel.completion(StrandsSession(ref.copy(puzzleNumber = null), complete)))
         assertNull(StrandsScoreModel.completion(StrandsSession(null, complete)))
     }
+
+    @Test
+    fun `rating follows hints used`() {
+        assertEquals(StrandsRating.Perfect, StrandsRating.of(0))
+        assertEquals(StrandsRating.Great, StrandsRating.of(1))
+        assertEquals(StrandsRating.WellDone, StrandsRating.of(2))
+        assertEquals(StrandsRating.WellDone, StrandsRating.of(7))
+    }
 }
