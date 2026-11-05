@@ -3,12 +3,13 @@ package com.ivandsky.puzzlebox.play
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.gameui.ResultScreen
 import org.koin.androidx.compose.koinViewModel
 
 /**
- * The result screen's DI-bound entry point (PlayRoute pattern). The frozen facts ride
+ * The result screen's DI-bound entry point (HomeRoute pattern). The frozen facts ride
  * the nav key (process-death stable); the record badge and the write-failure affordance
  * read the live play through [ResultViewModel] when one exists — the record write is
  * never awaited here, it completes async as today (F2 §7).
@@ -35,7 +36,7 @@ fun ResultRoute(
             viewModel.replay()
             onPlayAgain()
         },
-        modifier = modifier,
+        modifier = modifier.testTag("route.result"),
         isRecord = state.isRecord,
         writeFailed = state.writeFailed,
         onRetryWrite = viewModel::retryRecordWrite,

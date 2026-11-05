@@ -54,6 +54,7 @@ internal fun ListPane(
     selectedDay: String?,
     onDayClick: (String) -> Unit,
     selectable: Boolean,
+    resumeFeatured: Boolean,
     onPlayToday: () -> Unit,
     onOpenProfile: () -> Unit,
     paneColor: Color,
@@ -81,6 +82,7 @@ internal fun ListPane(
         StaggeredItem(0) {
             TodayCard(
                 game = game,
+                resume = resumeFeatured,
                 onPlayToday = onPlayToday,
                 cardColor = cardColor,
                 modifier = Modifier.padding(horizontal = Spacing.lg),

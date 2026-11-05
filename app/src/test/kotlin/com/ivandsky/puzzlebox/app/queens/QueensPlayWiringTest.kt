@@ -1,12 +1,14 @@
 package com.ivandsky.puzzlebox.app.queens
 
-import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.material3.Text
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.ui.NavDisplay
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
@@ -22,8 +24,13 @@ import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.queensVariantId
 import com.ivandsky.puzzlebox.games.queensui.QueensPlayController
-import com.ivandsky.puzzlebox.play.PlayRoute
+import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.navigation.NavigationState
+import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.PlaySessionStore
+import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -43,10 +50,10 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
- * queens-10 DoD wiring test: launching the Play path for gameId=queens renders the
- * queens board bound to a real session from the Koin graph, and completing the game
- * records a history entry through the app's real CompletionRepository (the same
- * emitter → repository path Zip's play uses).
+ * queens-10 DoD wiring test: picking Queens on the Play tab's hub renders the queens
+ * board bound to a real session from the Koin graph; completing the game replaces the
+ * board with its result and records a history entry through the app's real
+ * CompletionRepository (the same emitter → repository path Zip's play uses).
  *
  * The daily feed is the only overridden binding (Robolectric must not touch the
  * network); Room, the flow, and the registry lines are the real graph.
@@ -102,23 +109,28 @@ class QueensPlayWiringTest {
             allowOverride = true,
         )
         val store = koinApp.koin.get<PlaySessionStore>()
-        fun queens() = store.active.value?.controller as? QueensPlayController
+        val slot = PlaySlot(QueensDefinition.id, QueensDefinition.cadence.today())
+        fun queens() = store.peek(slot)?.controller as? QueensPlayController
 
-        val solved = ArrayList<Pair<Long, Int>>()
+        val navigator = Navigator(NavigationState(tab = PlayKey, stacks = listOf(listOf(PlayKey))))
         composeRule.setContent {
             PuzzleBoxTheme {
-                PlayRoute(
-                    layout = PlayLayout.SinglePane,
-                    onBack = {},
-                    onSolved = { timeMs, hintsUsed -> solved.add(timeMs to hintsUsed) },
+                NavDisplay(
+                    backStack = navigator.state.currentStack,
+                    onBack = { navigator.pop() },
+                    entryProvider = entryProvider {
+                        playEntry(navigator, PlayLayout.SinglePane)
+                        entry<ResultKey> { Text("result") }
+                    },
                 )
             }
         }
+        fun solved() = composeRule.runOnIdle { navigator.state.currentStack.filterIsInstance<ResultKey>() }
 
-        // The Play tab lands on the shared game picker, Queens among its games — never
+        // The Play tab lands on the shared games hub, Queens among its games — never
         // straight on a Queens board.
-        composeRule.onNodeWithTag("play.picker").assertExists()
-        composeRule.onNodeWithTag("play.picker_queens").performClick()
+        composeRule.onNodeWithTag("route.hub").assertExists()
+        composeRule.onNodeWithTag("hub.row.queens").performClick()
         // Opening reads the saved-play row off the real Room graph first: the board lands async.
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodesWithTag("queens.board").fetchSemanticsNodes().isNotEmpty()
@@ -138,19 +150,19 @@ class QueensPlayWiringTest {
         }
         composeRule.waitUntil(10_000) { queens()!!.board!!.session.isComplete }
 
-        // Fix round 6 (F-3/R-5): the win is a ROUTE handoff — the play screen invokes
-        // onSolved exactly once with the frozen facts; no win overlay exists anymore.
+        // Fix round 6 (F-3/R-5): the win is a ROUTE handoff — the board is replaced by
+        // exactly one result carrying the frozen facts; no win overlay exists anymore.
         composeRule.waitUntil(10_000) {
             // A bare waitUntil on a non-Compose condition doesn't drive a frame in the
             // Robolectric idling scheduler — pump one so the completedAt-keyed effect
             // can run (device recomposes via the choreographer; the test must poke it).
             composeRule.runOnIdle { }
-            solved.isNotEmpty()
+            solved().isNotEmpty()
         }
         composeRule.runOnIdle { }
-        assertEquals("one handoff on the win transition", 1, solved.size)
-        assertTrue("frozen elapsed time rides the handoff", solved.single().first >= 0L)
-        assertEquals("zero hints used", 0, solved.single().second)
+        assertEquals("one handoff on the win transition", 1, solved().size)
+        assertTrue("frozen elapsed time rides the handoff", solved().single().timeMs >= 0L)
+        assertEquals("zero hints used", 0, solved().single().hintsUsed)
         composeRule.onAllNodesWithTag("queens/win_overlay").assertCountEquals(0)
 
         // The record write landed through the app's real CompletionRepository. The

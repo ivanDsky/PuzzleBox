@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 
@@ -22,6 +23,6 @@ fun ProfileRoute(
         onSignIn = { viewModel.onSignIn(activityContext) },
         onSignOut = viewModel::onSignOut,
         onOpenCatalog = onOpenCatalog,
-        modifier = modifier,
+        modifier = modifier.testTag("route.profile"),
     )
 }

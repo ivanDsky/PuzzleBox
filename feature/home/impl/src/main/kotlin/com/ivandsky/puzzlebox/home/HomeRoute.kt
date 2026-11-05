@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.home
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
@@ -34,8 +35,9 @@ fun HomeRoute(
         onSetThemeMode = onSetThemeMode,
         onOpenHistory = onOpenHistory,
         history = uiState.history,
+        resumeFeatured = uiState.resumeFeatured,
         onPlayToday = { onPlayToday(uiState.featured.id) },
         onOpenProfile = onOpenProfile,
-        modifier = modifier,
+        modifier = modifier.testTag("route.home"),
     )
 }

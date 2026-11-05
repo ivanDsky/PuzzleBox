@@ -30,7 +30,8 @@ data class HistoryDay(
  * app shell (ticket 17): play today's Zip, open the full history, open the account
  * surface — no in-screen placeholder behavior. [game] is the featured game's
  * identity; game-title strings render from it and from [HistoryDay.gameName], never
- * from a hardcoded id.
+ * from a hardcoded id. [resumeFeatured] relabels today's action "Resume" (A13, SC11);
+ * [onPlayToday] opens the same game either way, and the play restores its save.
  */
 @Composable
 fun HomeScreen(
@@ -41,6 +42,7 @@ fun HomeScreen(
     onSetThemeMode: (ThemeMode) -> Unit,
     onOpenHistory: () -> Unit = {},
     history: List<HistoryDay>,
+    resumeFeatured: Boolean,
     onPlayToday: () -> Unit,
     onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
@@ -71,6 +73,7 @@ fun HomeScreen(
                     selectedDay = selectedDay,
                     onDayClick = { selectedDay = it },
                     selectable = true,
+                    resumeFeatured = resumeFeatured,
                     onPlayToday = onPlayToday,
                     onOpenProfile = onOpenProfile,
                     paneColor = paneColor,
@@ -82,6 +85,7 @@ fun HomeScreen(
                 DetailPane(
                     selected = selectedDay?.let { iso -> history.firstOrNull { it.isoDay == iso } },
                     game = game,
+                    resumeFeatured = resumeFeatured,
                     onPlayToday = onPlayToday,
                     modifier = Modifier
                         .weight(0.58f)
@@ -99,6 +103,7 @@ fun HomeScreen(
                 selectedDay = null,
                 onDayClick = {},
                 selectable = false,
+                resumeFeatured = resumeFeatured,
                 onPlayToday = onPlayToday,
                 onOpenProfile = onOpenProfile,
                 paneColor = paneColor,

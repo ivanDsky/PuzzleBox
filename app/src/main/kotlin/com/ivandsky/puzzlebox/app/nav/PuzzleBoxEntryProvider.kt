@@ -12,7 +12,6 @@ import com.ivandsky.puzzlebox.home.navigation.homeEntry
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.navigation.playEntry
-import com.ivandsky.puzzlebox.play.navigation.replayEntry
 import com.ivandsky.puzzlebox.play.navigation.resultEntry
 import com.ivandsky.puzzlebox.profile.navigation.profileEntry
 
@@ -23,7 +22,7 @@ import com.ivandsky.puzzlebox.profile.navigation.profileEntry
  * resolves each key against it and fails fast if a pushed key ever lacks a route.
  *
  * Loop wiring: Home's Today card selects the Play tab; its history teaser pushes History
- * on Home's stack; history rows push Replay with the day's session blob; the account card
+ * on Home's stack; history rows push the day's game key; the account card
  * selects the Profile tab, leaving Home's stack as it was; Profile's catalog link pushes
  * [CatalogKey] on Profile's stack. Back pops the current tab's stack ([Navigator.pop]),
  * including after process-death restore.
@@ -38,7 +37,6 @@ internal fun puzzleBoxEntryProvider(
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     homeEntry(navigator, homeLayout, themeMode, onSetThemeMode)
     historyEntry(navigator, historyLayout)
-    replayEntry(navigator, playLayout)
     playEntry(navigator, playLayout)
     resultEntry(navigator)
     profileEntry(onOpenCatalog = { navigator.push(CatalogKey) })

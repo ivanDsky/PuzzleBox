@@ -5,14 +5,18 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.entryProvider
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.domain.di.domainModule
@@ -23,6 +27,7 @@ import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.home.di.homeModule
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.navigation.navigationState
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -82,12 +87,15 @@ class HomeRouteTest {
         stopKoin()
     }
 
+    private val today = LocalDate.of(2026, 11, 4)
+
     private fun setContent(
         daily: FakeDailyRepository,
         completions: CompletionRepository,
+        saved: SavedPlayRepository = FakeSavedPlayRepository(),
         onPlayToday: (GameId) -> Unit = {},
     ) {
-        startGraph(daily, completions)
+        startGraph(daily, completions, saved)
         composeRule.setContent {
             PuzzleBoxTheme {
                 HomeRoute(
@@ -101,7 +109,11 @@ class HomeRouteTest {
         }
     }
 
-    private fun startGraph(daily: FakeDailyRepository, completions: CompletionRepository) {
+    private fun startGraph(
+        daily: FakeDailyRepository,
+        completions: CompletionRepository,
+        saved: SavedPlayRepository = FakeSavedPlayRepository(),
+    ) {
         val fakeIdentity = FakeIdentityService()
         startKoin {
             modules(
@@ -110,6 +122,8 @@ class HomeRouteTest {
                     single<GameRegistry> { TestGames.registry(listOf(GameId("zip"))) }
                     single<CompletionRepository> { completions }
                     single<IdentityService> { fakeIdentity }
+                    single<SavedPlayRepository> { saved }
+                    single<GameCalendar> { FakeGameCalendar(today) }
                 },
                 domainModule,
                 homeModule,
@@ -124,6 +138,23 @@ class HomeRouteTest {
 
         composeRule.onNodeWithText("Play today").performClick()
 
+        composeRule.runOnIdle { assertEquals(listOf(GameId("zip")), played) }
+    }
+
+    @Test
+    fun `a saved featured play reads resume and still reports the featured game - SC11`() = kotlinx.coroutines.test.runTest {
+        val saved = FakeSavedPlayRepository()
+        saved.save(PlaySlot(GameId("zip"), today), byteArrayOf(1))
+        val played = mutableListOf<GameId>()
+        setContent(FakeDailyRepository(), FakeCompletionRepository(), saved, onPlayToday = { played += it })
+
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText("Resume").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Play today").assertDoesNotExist()
+        composeRule.onNodeWithText("Resume").performClick()
+
+        // The same push as "Play today": the play reads its saved row and resumes the board.
         composeRule.runOnIdle { assertEquals(listOf(GameId("zip")), played) }
     }
 

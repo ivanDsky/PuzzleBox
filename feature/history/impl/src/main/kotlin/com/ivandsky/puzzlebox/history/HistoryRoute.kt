@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.history
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.ivandsky.puzzlebox.model.GameId
@@ -36,6 +37,6 @@ fun HistoryRoute(
         recordsByKey = uiState.recordsByKey,
         streak = uiState.streak,
         onReplay = onReplay,
-        modifier = modifier,
+        modifier = modifier.testTag("route.history"),
     )
 }
