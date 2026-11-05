@@ -1,13 +1,13 @@
 # PuzzleBox — project map
 
-pinned: 7aa632ecb87a5a43293701c0a511d49b85ebb20e
+pinned: d1acf404450135d21fd5acd5c548b3756f0e3267
 
 ## Purpose
 
 One Android app for daily logic puzzles — play official NYT/LinkedIn dailies, build and share
 custom games, compete via leaderboards and 1v1. Zip, Tango and Queens play their LinkedIn
-dailies through one compete loop (daily fetch → play → completion record → leaderboard
-submit). Product frame and versioning policy live in PROFILE.md (semver source of truth; alpha
+dailies and Strands its NYT daily (any past day by date) through one compete loop (daily
+fetch → play → completion record → leaderboard submit). Product frame and versioning policy live in PROFILE.md (semver source of truth; alpha
 0.x.y until all five games ship tested). Architecture decisions are ADR-recorded in
 `docs/adr/` — ADR-0001 game contracts as orthogonal `GamePlugin`, ADR-0002 the archive as a
 future `PuzzleSource` adapter, ADR-0003 per-game editors only after that game ships, ADR-0004
@@ -18,7 +18,14 @@ play session store (amended: slots persist on disk and resume; per-entry ViewMod
 ADR-0008 the module graph and its enforced forbidden edges, ADR-0009 the
 in-module structure rules (`:konsist`, 12 Konsist-backed rules with shrink-only allowlists;
 each failure links to its section), ADR-0011 per-tab navigation (immutable
-`NavigationState` + verb rules, rejected designs, "Adding a tab", serial-name policy).
+`NavigationState` + verb rules, rejected designs, "Adding a tab", serial-name policy),
+ADR-0012 archive-capable daily sources (amends 0002: optional `DailySource.archiveSince`,
+a by-date repository read that fetches a missed in-range day once, lazily; rows fetched after
+their day are "archived" — in History, skipped by the streak; schema stays v6), ADR-0013
+rank order is per game (`ScoreModel` declares `RankOrder`; Strands ranks hints then time;
+leaderboard stays time-first and Zip-only), ADR-0014 the NYT transport (`core:game`
+`NytTransport`, implemented in `core:network` with its own client, never a second
+`FeedTransport`; parsing and the trust gate stay in the game).
 
 ## Layout
 
@@ -32,7 +39,7 @@ through Koin. `:core:data` exposes `:core:common`/`:core:game`/`:core:model` and
 `:backend:firebase` implements seams declared in `:core:data`. Every module except app/backend
 tests via `testImplementation(projects.core.testing)`. Pure JVM modules
 (`puzzlebox.jvm.library`): `:core:model`, `:core:game`, `:core:network`, `:games:zip`,
-`:games:tango`, `:games:queens`, plus `:konsist` (test-only `jvm.library`, zero project
+`:games:tango`, `:games:queens`, `:games:strands`, plus `:konsist` (test-only `jvm.library`, zero project
 edges; reads the repo's sources as files).
 
 Forbidden edges (ADR-0008, [docs/adr/0008-module-graph.md](../adr/0008-module-graph.md)),
@@ -63,14 +70,14 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   polymorphic `SavedStateConfiguration` over every feature's keys),
   `leaderboard/LeaderboardSubmitWatcher` (auto-submits records when signed in),
   `di/AppModule` (app scope; `GameRegistry` over `getAll<GamePlugin>()` sorted by the app-side
-  `GAME_ORDER` zip → tango → queens; `GamePlayRegistry(getAll())` over every game's
+  `GAME_ORDER` zip → tango → queens → strands; `GamePlayRegistry(getAll())` over every game's
   `GamePlayUi`), debug-only Showkase browser (`CatalogDebugBinding`, `ShowkaseBrowserScreen`,
   `PreviewBackdrop`, `BrowserRadioControls`; goldens in `app/snapshots/`). Tests:
   `src/test/.../e2e/` the E2E robot (`shellRobot`/`ShellRobot`: gestures, back and
   predictive back, background/restore/relaunch, spec-notation row assertions; `E2eKoinGraph`:
   production `appModules` with core:testing fakes on the edges; `TabNavigationE2ETest`,
-  `HistoryE2ETest`, `ProcessDeathE2ETest`), `nav/PerTabShellTest`,
-  `nav/ShellSessionLifecycleTest`.
+  `HistoryE2ETest`, `ProcessDeathE2ETest`, `StrandsPlayE2ETest`, `StrandsArchiveE2ETest`),
+  `nav/PerTabShellTest`, `nav/ShellSessionLifecycleTest`.
 - `konsist/` (`:konsist`, test-only `puzzlebox.jvm.library`, no project dependencies) — the
   in-module structure rule suite (ADR-0009): `core/` engine (`SourceTree`, `Allowlist`, `judge`,
   `RuleCheck`, `CensusTest`), `rules/` one `<ID><Name>.kt` + test per rule, resources
@@ -91,12 +98,14 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   Koin `commonModule`.
 - `core/data/` (`:core:data`) — game-agnostic repositories: `DailyRepository` →
   `OfflineFirstDailyRepository` (`today(game)`/`cached(game, day)`/`observeHistory(game)`,
+  by-date `day(game, day)` → `DailyDay` (cache first; on a miss fetches and persists only for an
+  archive-capable source within its range), `archiveRange(game)` (ADR-0012),
   `DailyToday` Fresh/Cached/Unavailable, `DailyEntry`; decodes through `GameRegistry`, fetches
   through every game's `DailySource`), `SavedPlayRepository` → `RoomSavedPlayRepository`
   (one session blob per `PlaySlot`; save prunes to the newest 8 slots in one transaction;
   `observeInProgress`), `calendar/GameCalendar` → `CadenceGameCalendar` (each game's today in
   its cadence zone; `observeToday` re-emits at that midnight), `CompletionRepository` → `RoomCompletionRepository` +
-  `FirstWinPolicy`, `UserPreferencesRepository` → `OfflineUserPreferencesRepository`;
+  `FirstWinPolicy` (best read under the game's `RankOrder`), `UserPreferencesRepository` → `OfflineUserPreferencesRepository`;
   `model/` entity mappings + `PuzzleRefKeys`; `identity/` `IdentityService` + `AuthResult`/
   `AuthError`; `leaderboard/` (`LeaderboardRef`, `LeaderboardEntry`, `LeaderboardRepository`,
   `SubmitResult` Ok/Deduped/Err, `LeaderboardEntries.fromRecord`); Koin `dataModule` (includes
@@ -109,7 +118,8 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 - `core/network/` (`:core:network`, pure JVM) — the one LinkedIn client: internal
   `LinkedInGamesApi` (Retrofit), `LinkedInSessionCookieJar` + `LinkedInCsrfInterceptor`
   (anonymous session), `LinkedInFeedTransport` implementing `core:game`'s `FeedTransport`;
-  Koin `networkModule`.
+  the NYT client (ADR-0014): internal `NytApi` + `NytHttpTransport` implementing `core:game`'s
+  `NytTransport` (own sessionless client, call timeout); Koin `networkModule`.
 - `core/datastore/` (`:core:datastore`) — `PuzzleBoxPreferencesDataSource` over a Preferences
   DataStore (`PuzzleBoxPreferences`); Koin `datastoreModule`.
 - `core/designsystem/` (`:core:designsystem`) — `PuzzleBoxTheme` composition root, token
@@ -133,8 +143,9 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `GameDefinition`, `GameRules<P>`, `GameSession` + `GameSessionCodec`, `ScoreModel<S>` →
   `CompletionRecord?`, `PuzzleSource` (`fetch(date)` → `FetchResult`; `FetchError`), composed
   per game as `GamePlugin<P, S, M>`; `GameRegistry` (the sole GameId → `GamePlugin` lookup);
-  `DailySource : PuzzleSource` (per-game feed adapter, `fetchDaily` → `DailyFetch`) over
-  `FeedTransport`/`FeedRequest`; `Command`/`CommandHistory` (undo/redo); `SessionBlob`;
+  `DailySource : PuzzleSource` (per-game feed adapter, `fetchDaily` → `DailyFetch`, optional
+  `archiveSince`) over `FeedTransport`/`FeedRequest` (LinkedIn) or `NytTransport` (NYT);
+  `RankOrder` (TimeThenHints/HintsThenTime, on `ScoreModel`); `Command`/`CommandHistory` (undo/redo); `SessionBlob`;
   supporting `Puzzle`, `DecodeResult`/`DecodeError`, `VariantId`, `RecordStats`,
   `CompletionRecord`.
 - `core/game-ui/` (`:core:game-ui`) — the Compose mapping layer keyed by `GameId` (no Compose in
@@ -148,7 +159,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `com.ivandsky.puzzlebox.testing`): `repository/` (`FakeDailyRepository`,
   `FakeCompletionRepository`, `FakeIdentityService`, `FakeLeaderboardRepository`,
   `FakeSavedPlayRepository`, `FakeUserPreferencesRepository`), `calendar/FakeGameCalendar`,
-  `game/TestGames` (stand-in registry), `rule/MainDispatcherRule`.
+  `network/FakeNytTransport`, `game/TestGames` (stand-in registry), `rule/MainDispatcherRule`.
 - `games/zip/` (`:games:zip`, pure JVM) — `zipPlugin` + Koin `zipModule` (binds
   `LinkedInZipDailySource` as `DailySource`); model `ZipPuzzle`/`ZipBoard` + `ZipPuzzleRef`;
   `engine/` `ZipRules` over an ordered `ZipRule` pipeline (`ZipRuleId`), `ZipVerifier`,
@@ -164,9 +175,24 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `QueensVerifier`, `NoTouchAdjacencyRule`) and `solve/` (`QueensSolver`/`QueensSearch`);
   `codec/` `QueensCodec`, `QueensWireParser`, `QueensSessionCodec` v3; `feed/`
   `QueensGameExtractor` + `QueensUniquenessGate`; `QueensScoreModel`.
-- `games/zip-ui/`, `games/tango-ui/`, `games/queens-ui/` (`:games:<x>-ui`) — each game's play
+- `games/strands/` (`:games:strands`, pure JVM) — `strandsPlugin` + `strandsModule` (binds
+  `NytStrandsDailySource(NytTransport)` as `DailySource`, `archiveSince` = `StrandsNumber.EPOCH`);
+  model `StrandsPuzzle`/`StrandsWord`/`StrandsState`/`StrandsSession` + `StrandsPuzzleRef`;
+  `codec/` `StrandsCodec`, `StrandsSessionCodec`, `Varint`; `feed/` `StrandsWireParser` →
+  `StrandsTrustGate` (the trust gate: ordered `feed/gate/` `StrandsTrustCheck`s — fields,
+  print date, rectangular, letters, word paths, tiling, spangram edges; a rejected day is
+  `FetchError.Untrusted`); `engine/` `StrandsRules`, `StrandsAccept`, `StrandsHints`/`StrandsHint`,
+  `StrandsSpend`, `StrandsVerdict`; `StrandsScoreModel` (`HintsThenTime`); `render/`
+  `StrandsRendererModel` → `StrandsCell` with sealed `CellState` (Idle/FoundTheme/
+  FoundSpangram/HintOutlined/HintOrderRevealed) + `StrandsLink`/`LinkKind`.
+- `games/zip-ui/`, `games/tango-ui/`, `games/queens-ui/`, `games/strands-ui/` (`:games:<x>-ui`) — each game's play
   UI: one `*PlayController : GamePlayController`, one `*PlayUi : GamePlayUi`, the board
-  composables, and `*UiModule` (the game's `GamePlayUi`).
+  composables, and `*UiModule` (the game's `GamePlayUi`). Strands: `StrandsPlayController`,
+  `StrandsScreen`, `board/` (`StrandsCellDrawing` maps each `CellState` to its
+  `StrandsBoardSpec` — `IdleSpec`, `FoundThemeSpec`, `FoundSpangramSpec`, `HintOutlinedSpec`,
+  `HintOrderRevealedSpec` — plus `TraceOverlaySpec`, gesture/hit-test/sizing), `chrome/`
+  (`StrandsHintRow`, `StrandsHintControl`, `HintMeter`, `ThemeCard`, `WordSlotLine`,
+  `FoundCounter`, `HintModal`).
 - `feature/home/impl/` (`:feature:home:impl`) — `navigation/HomeEntry`, `HomeRoute` +
   `HomeViewModel` (today's set via `ObserveTodaySet`, identity, cache-only history teaser via
   `ObserveGameHistory`; `di/HomeModule`), `HomeScreen` with `HomeListPane`/`HomeDetailPane`/
@@ -200,14 +226,14 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `LeaderboardDocCodec`, `BackendModule` (`firebaseBackendModule`). Rules and indexes live
   alongside (`firebase.json`, `firestore.rules`, `firestore.indexes.json`).
 - `PROFILE.md` — product frame, ranked care-axes, deploy targets, testing style.
-- `docs/adr/` — ADR-0001…0010, summarized under Purpose.
+- `docs/adr/` — ADR-0001…0014, summarized under Purpose.
 
 ## Entry points
 
 - `PuzzleBoxApplication.onCreate` — `startKoin` with `appModules` = `commonModule` +
   `dataModule` + `firebaseBackendModule` + `domainModule` + `homeModule` + `historyModule` +
   `playModule` + `profileModule(R.string.default_web_client_id)` + each game's `*Module` and
-  `*UiModule` (zip, queens, tango) + `appModule`, then `LeaderboardSubmitWatcher.start()`.
+  `*UiModule` (zip, queens, tango, strands) + `appModule`, then `LeaderboardSubmitWatcher.start()`.
 - `MainActivity` — sole activity; holds composition until the persisted `ThemeMode` arrives
   (no light flash), resolves dark theme against the system setting, keeps system bar icons in
   step, then hosts `PuzzleBoxApp` with the width size class, `ThemeMode`, and the setter.
@@ -236,9 +262,17 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   pair + Koin registrations + a `GAME_ORDER` slot; nothing outside `app` references a concrete
   game. Evolution stays inside the game (ADR-0005: versioned codecs, `Puzzle.variant`,
   `RecordStats`).
-- **`DailySource` / `FeedTransport`** — each game adapts the LinkedIn feed (`DailySource`),
-  `core:network` supplies the one transport; `DailyRepository` consumes all sources by id.
+- **`DailySource` / `FeedTransport` / `NytTransport`** — each game adapts its feed
+  (`DailySource`); `core:network` supplies the transports: LinkedIn `FeedTransport` and the NYT
+  `NytTransport` (contract in `core:game`, `NytHttpTransport` internal to `core:network`,
+  `FakeNytTransport` in `core:testing`); `DailyRepository` consumes all sources by id.
   `FetchError` distinguishes Unavailable (degrade to cache) / Throttled / Untrusted.
+- **`DailySource.archiveSince` + `DailyRepository.day`** (ADR-0012) — a non-null start makes the
+  source archive-capable; the by-date read is the one path for past days (`archiveRange`
+  bounds it). **`LoadPastDay`** (`core:domain`) wraps it for `feature:play:impl`'s
+  `SlotOpening` past-day build and `feature:history:impl`'s `HistoryDetailPane`.
+- **`RankOrder`** (`core:game`, ADR-0013) — per-game `ScoreModel.rankOrder`; read by
+  `RoomCompletionRepository` best queries and the Result verdict.
 - **`NavigationState` / `Navigator`** (`core:navigation`, ADR-0011) — pure per-tab reducer
   plus its snapshot holder; features get a `Navigator`, Navigation3 stays in `app/nav/TabEntries`.
 - **`PlaySessionStore` slots** (`feature:play:impl`, ADR-0007 §4) — `open`/`peek`/`retain`/
@@ -269,10 +303,12 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   3→4 daily_puzzles rebuild, 4→5 drops the legacy daily_puzzles, 5→6 adds saved_plays); no destructive fallback.
 - **Module graph guard** — `checkModuleGraph` (see Layout) fails the build on a forbidden edge.
 - **Roborazzi** — plugin `puzzlebox.android.roborazzi` (app, designsystem, zip-ui, tango-ui,
-  queens-ui) unifies the switch: `-Proborazzi.verify=true` verifies, default records.
+  queens-ui, strands-ui) unifies the switch: `-Proborazzi.verify=true` verifies, default records.
   Committed goldens: `app/snapshots/` (14 pngs, `ShowkaseBrowserScreenshotTest`),
   `games/queens-ui/snapshots/` (36, `QueensGoldenScreenshots`),
-  `games/tango-ui/src/test/resources/goldens/` (3, `TangoBoardGoldenTest`); zip-ui's
+  `games/strands-ui/snapshots/` (24, `StrandsGoldenScreenshots`, the real 2026-11-06 NYT day
+  through the production source), `games/tango-ui/src/test/resources/goldens/` (3,
+  `TangoBoardGoldenTest`); zip-ui's
   `VariantMatrixScreenshotTest` writes review evidence to `.scratch`, not goldens.
 
 ## Working test commands
@@ -284,7 +320,7 @@ via `gradle/gradle-daemon-jvm.properties`. Android modules run `testDebugUnitTes
 modules run `test`. Full suite:
 
 `./gradlew assembleDebug testDebugUnitTest :core:game:test :games:zip:test :games:queens:test
-:games:tango:test :core:model:test :core:network:test -Proborazzi.verify=true --continue` —
+:games:tango:test :games:strands:test :core:model:test :core:network:test -Proborazzi.verify=true --continue` —
 the 0.9.0 gate.
 
 Structure rules (ADR-0009): `./gradlew :konsist:test` — runs the 13 in-module rules, the
@@ -292,7 +328,8 @@ census and the engine tests over the whole repo's sources (not in the count abov
 when any source, build script or allowlist changes).
 
 - `:app:testDebugUnitTest` — 112 (DI graph, nav routes, saved-state restore, per-tab shell,
-  E2E robot rows, submit watcher, browser screenshots)
+  E2E robot rows, submit watcher, browser screenshots; at the old pin) — plus the Strands
+  E2Es `e2e/StrandsPlayE2ETest` and `e2e/StrandsArchiveE2ETest`
 - `:backend:firebase:testDebugUnitTest` — 32
 - `:core:common:testDebugUnitTest` — 8
 - `:core:data:testDebugUnitTest` — 49
@@ -312,6 +349,8 @@ when any source, build script or allowlist changes).
 - `:games:zip:test` — 155; `:games:zip-ui:testDebugUnitTest` — 70
 - `:games:tango:test` — 114; `:games:tango-ui:testDebugUnitTest` — 53
 - `:games:queens:test` — 163; `:games:queens-ui:testDebugUnitTest` — 81
+- `:games:strands:test` — 82; `:games:strands-ui:testDebugUnitTest` — 125 (executed `tests`
+  totals from the last `build/test-results/` XML, not annotation counts)
 - `./gradlew checkModuleGraph` — forbidden-edge guard (also run by `check`)
 
 ## Diagram
@@ -319,7 +358,10 @@ when any source, build script or allowlist changes).
 [docs/agents/project-map.html](project-map.html) — module-graph diagram regenerated from
 `.archify/project-map/architecture-candidate.json` at `89c0672` (pre-0.9): the modules and
 edges listed under Layout, with the forbidden-edge rules of ADR-0008. It predates the
-per-tab navigation seams above; this file is authoritative where they differ.
+per-tab navigation seams and the Strands modules above; this file is authoritative where they
+differ. The Strands addition (app → features → `:games:strands-ui` → `:games:strands` →
+`:core:game`, `NytHttpTransport`, by-date `DailyRepository`, trust gate, `CellState` specs) has
+its own diagram at `.scratch/strands/review/archify/strands-architecture.html` (gitignored).
 
 ## Drift rule
 
