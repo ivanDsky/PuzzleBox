@@ -31,6 +31,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.queensPlugin
 import com.ivandsky.puzzlebox.games.queensui.QueensPlayUi
+import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
@@ -123,7 +124,7 @@ class RealGamesPlayRouteTest {
                     // Every tutorial seen: these paths are about the boards; the lessons have their own tests.
                     single<UserPreferencesRepository> {
                         FakeUserPreferencesRepository(
-                            seen = setOf(ZipDefinition.id, TangoDefinition.id, QueensDefinition.id),
+                            seen = setOf(ZipDefinition.id, TangoDefinition.id, QueensDefinition.id, SudokuGames.MINI.id),
                         )
                     }
                 },
