@@ -14,6 +14,14 @@ android {
         applicationId = "com.ivandsky.puzzlebox"
         versionCode = 9
         versionName = "0.9.0"
+        // Device tests run on a plain Application; each test starts its own E2eKoinGraph.
+        testInstrumentationRunner = "com.ivandsky.puzzlebox.app.device.PuzzleBoxTestRunner"
+    }
+
+    // The fakes graph and play fixtures serve both the JVM shell tests and the device tests.
+    sourceSets {
+        getByName("test").kotlin.srcDir("src/sharedTest/kotlin")
+        getByName("androidTest").kotlin.srcDir("src/sharedTest/kotlin")
     }
 
     buildTypes {
@@ -94,4 +102,12 @@ dependencies {
     testImplementation(projects.core.testing)
     testImplementation(libs.koin.test)
     testImplementation(libs.koin.test.junit4)
+
+    // Device tests (ticket 23): the real MainActivity over the shared fakes graph.
+    androidTestImplementation(projects.core.testing)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.espresso.core)
 }

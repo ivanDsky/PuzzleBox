@@ -50,9 +50,6 @@ import org.junit.runner.Description
 import org.junit.runners.model.Statement
 import org.robolectric.Shadows.shadowOf
 
-/** The fixed "today" of every E2E run unless a row pins its own. */
-val E2E_TODAY: LocalDate = LocalDate.of(2026, 11, 4)
-
 /**
  * Runs [block] against the real app shell — [PuzzleBoxApp], its Navigator, NavDisplay and
  * every feature entry — over [graph] (the production Koin modules with fakes on the

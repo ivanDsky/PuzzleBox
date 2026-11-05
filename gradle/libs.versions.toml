@@ -24,6 +24,12 @@ okhttp = "5.5.1"
 # 1.12.x carries Kotlin 2.4 metadata — unreadable by AGP 9.5's pinned Kotlin 2.2 compiler.
 kotlinxSerializationJson = "1.11.0"
 robolectric = "4.17"
+# Device tests (:app androidTest): AndroidJUnitRunner and ActivityScenario's JUnit4 rule.
+androidxTestRunner = "1.7.0"
+androidxTestExtJunit = "1.3.0"
+# Compose's ui-test pulls espresso-core 3.5, whose idling reflects on the InputManager API
+# that API 35+ removed; 3.7 is runner 1.7's pair.
+androidxTestEspresso = "3.7.0"
 turbine = "1.2.1"
 # Roborazzi runtime only: its Gradle plugin (through 1.44.0-alpha03) looks up AGP's
 # removed TestedExtension and cannot apply on AGP 9.x, so screenshots are recorded by
@@ -85,6 +91,9 @@ kotlinx-serialization-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
+androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExtJunit" }
+androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "androidxTestEspresso" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
