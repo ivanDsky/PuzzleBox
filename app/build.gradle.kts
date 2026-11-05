@@ -51,6 +51,14 @@ android {
     }
 }
 
+// AGP host-tests only the debug build type by default; ReleaseGameModulesTest needs the
+// release source set to prove debug-only games stay out of the release graph (ADR-0012).
+androidComponents {
+    beforeVariants(selector().withBuildType("release")) { variant ->
+        variant.hostTests[com.android.build.api.variant.HostTestBuilder.UNIT_TEST_TYPE]?.enable = true
+    }
+}
+
 dependencies {
     implementation(projects.backend.firebase)
     implementation(projects.core.common)

@@ -202,11 +202,12 @@ class PlayFlowE2ETest {
 
     private fun ZipPlayController.extend(cell: Cell) = onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
 
-    /** Tango and Queens are solved today, so a Zip solve leaves nothing next. */
+    /** Every other game is solved today, so a Zip solve leaves nothing next. */
     private fun solvedOthersGraph() = solvedGraph(
         tangoRecord(),
         record(QueensPuzzleRef(E2E_TODAY, 1)),
         record(SudokuPuzzleRef(SudokuGames.MINI.id, E2E_TODAY, 1)),
+        record(SudokuPuzzleRef(SudokuGames.CLASSIC.id, E2E_TODAY, null)),
     )
 
     private fun solvedGraph(vararg records: CompletionRecord) = E2eKoinGraph(E2E_TODAY).apply {

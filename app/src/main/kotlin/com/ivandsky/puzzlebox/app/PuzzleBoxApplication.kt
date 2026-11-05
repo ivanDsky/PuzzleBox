@@ -36,6 +36,6 @@ class PuzzleBoxApplication : Application() {
 
     companion object {
         val appModules =
-            listOf(commonModule, dataModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, profileModule(R.string.default_web_client_id), zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, miniSudokuModule, miniSudokuUiModule, appModule)
+            listOf(commonModule, dataModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, profileModule(R.string.default_web_client_id), zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, miniSudokuModule, miniSudokuUiModule, appModule) + buildTypeGameModules
     }
 }
