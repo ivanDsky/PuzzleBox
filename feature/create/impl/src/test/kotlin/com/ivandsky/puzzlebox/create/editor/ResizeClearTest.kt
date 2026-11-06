@@ -45,6 +45,7 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import java.time.Instant
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -59,6 +60,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowLooper
 
 /**
  * Resize and Clear from the Studio tool strip (spec A5, S3): the size popover offers exactly
@@ -139,7 +141,7 @@ class ResizeClearTest {
 
         composeRule.onAllNodesWithTag(POPOVER).assertCountEquals(0)
         assertEquals(Grid(9), board())
-        composeRule.waitUntil { drafts.rows.getValue(DRAFT_ID).variant == NINE }
+        awaitStored { drafts.rows.getValue(DRAFT_ID).variant == NINE }
         composeRule.onNodeWithTag(UNDO).assertIsEnabled()
 
         composeRule.onNodeWithTag(UNDO).performClick()
@@ -147,7 +149,7 @@ class ResizeClearTest {
         assertEquals(SEVEN, board())
         composeRule.onNodeWithTag(UNDO).assertIsNotEnabled()
         composeRule.onNodeWithTag(REDO).assertIsEnabled()
-        composeRule.waitUntil { drafts.rows.getValue(DRAFT_ID).variant == SEVEN_ID }
+        awaitStored { drafts.rows.getValue(DRAFT_ID).variant == SEVEN_ID }
         assertEquals(SEVEN, GridEditor.decodeDraft(drafts.rows.getValue(DRAFT_ID).blob).getOrNull()!!.draft)
     }
 
@@ -181,6 +183,14 @@ class ResizeClearTest {
     private fun board(): Grid {
         composeRule.waitForIdle()
         return controller().draft.value.state.draft as Grid
+    }
+
+    /** Waits for the autosave's 300 ms window to store the row, running the paused main looper's clock. */
+    private fun awaitStored(condition: () -> Boolean) {
+        composeRule.waitUntil {
+            ShadowLooper.idleMainLooper(FRAME_MS, TimeUnit.MILLISECONDS)
+            condition()
+        }
     }
 
     /** A stand-in board with real sizes: its side and the marked cells. */
@@ -220,6 +230,7 @@ class ResizeClearTest {
     private companion object {
         val NOW: Instant = Instant.parse("2026-11-06T10:00:00Z")
         const val DRAFT_ID = "draft-1"
+        const val FRAME_MS = 16L
         const val SIZE = "create.tool.size"
         const val CLEAR = "create.tool.clear"
         const val UNDO = "create.tool.undo"

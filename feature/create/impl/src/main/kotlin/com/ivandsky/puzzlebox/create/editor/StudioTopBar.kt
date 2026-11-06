@@ -46,10 +46,10 @@ private val TagHorizontalPadding = 6.dp
 
 /**
  * The Studio's compact bar (02 handoff "Top bar"): Back, the title block — a button that opens
- * Rename ([onRename]), the [title] on one line over a `STUDIO` tag and the [subtitle]
- * ("Queens 7×7") — then the [pill] slot and the overflow ⋮ with Rename, Duplicate as new
- * draft ([onDuplicate]) and Delete draft ([onDelete], in the error colour). "Publish & share"
- * joins the overflow in M3.
+ * Rename ([onRename]), the [title] on one line over a `STUDIO` tag, the [subtitle]
+ * ("Queens 7×7") and the autosave indicator ("Saving…" while [saving], then "✓ Saved") — then
+ * the [pill] slot and the overflow ⋮ with Rename, Duplicate as new draft ([onDuplicate]) and
+ * Delete draft ([onDelete], in the error colour). "Publish & share" joins the overflow in M3.
  *
  * Motion: the title block's press is **Press feedback** at MotionTokens.PressScale; the menu's
  * origin-aware **Scale in + Fade in** from the ⋮ is DropdownMenu's own.
@@ -58,6 +58,7 @@ private val TagHorizontalPadding = 6.dp
 fun StudioTopBar(
     title: String,
     subtitle: String,
+    saving: Boolean,
     onBack: () -> Unit,
     onRename: () -> Unit,
     onDuplicate: () -> Unit,
@@ -76,14 +77,14 @@ fun StudioTopBar(
         IconButton(onClick = onBack, modifier = Modifier.testTag("create.editor.back")) {
             Icon(PuzzleIcons.Back, contentDescription = "Back")
         }
-        TitleBlock(title = title, subtitle = subtitle, onClick = onRename, modifier = Modifier.weight(1f))
+        TitleBlock(title = title, subtitle = subtitle, saving = saving, onClick = onRename, modifier = Modifier.weight(1f))
         pill()
         OverflowMenu(onRename = onRename, onDuplicate = onDuplicate, onDelete = onDelete)
     }
 }
 
 @Composable
-private fun TitleBlock(title: String, subtitle: String, onClick: () -> Unit, modifier: Modifier) {
+private fun TitleBlock(title: String, subtitle: String, saving: Boolean, onClick: () -> Unit, modifier: Modifier) {
     val interactionSource = remember { MutableInteractionSource() }
     Column(
         modifier = modifier
@@ -110,9 +111,23 @@ private fun TitleBlock(title: String, subtitle: String, onClick: () -> Unit, mod
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
             )
+            SaveStatus(saving)
         }
     }
+}
+
+/** `· Saving…` while an edit waits to be stored, `· ✓ Saved` once it is (02 handoff "Autosave"). */
+@Composable
+private fun SaveStatus(saving: Boolean) {
+    Text(
+        text = if (saving) "· Saving…" else "· ✓ Saved",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        modifier = Modifier.testTag(if (saving) "create.studio.saving" else "create.studio.saved"),
+    )
 }
 
 /** The `STUDIO` tag on the editor's accent container (02 handoff tokens). */
@@ -164,6 +179,7 @@ private fun StudioTopBarPreview() {
         StudioTopBar(
             title = "Castle",
             subtitle = "Queens 7×7",
+            saving = false,
             onBack = {},
             onRename = {},
             onDuplicate = {},
@@ -180,6 +196,7 @@ private fun StudioTopBarLongTitlePreview() {
         StudioTopBar(
             title = "Grandma Ruth's 80th — the big family crown puzzle, part 2",
             subtitle = "Queens 12×12",
+            saving = true,
             onBack = {},
             onRename = {},
             onDuplicate = {},
