@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.app
 
 import android.app.Application
+import android.content.Context
+import android.content.pm.ApplicationInfo
 import com.ivandsky.puzzlebox.app.di.appModule
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.backend.firebase.firebaseBackendModule
@@ -24,16 +26,34 @@ import com.ivandsky.puzzlebox.profile.di.profileModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
+// Debug-only startup hook (spec A7): the same reflective binding PuzzleBoxApp.kt's Catalog
+// route loads. Release has no such class, and the FLAG_DEBUGGABLE gate keeps release off
+// the reflection path entirely.
+private const val DEBUG_CATALOG_BINDING = "com.ivandsky.puzzlebox.app.debug.CatalogDebugBinding"
+
 class PuzzleBoxApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        installDebugDesignVariants()
         // The submit hook (A5): record writes are the only leaderboard source; async,
         // eventual, and silent when signed out or offline (A7).
         startKoin {
             androidContext(this@PuzzleBoxApplication)
             modules(appModules)
         }.koin.get<LeaderboardSubmitWatcher>().start()
+    }
+
+    // Applies the saved developer design settings before the first frame.
+    private fun installDebugDesignVariants() {
+        if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) return
+        try {
+            Class.forName(DEBUG_CATALOG_BINDING)
+                .getMethod("install", Context::class.java)
+                .invoke(null, this)
+        } catch (_: Throwable) {
+            // No debug binding in this build: the shipped design variants stay.
+        }
     }
 
     companion object {

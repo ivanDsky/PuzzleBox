@@ -2,9 +2,7 @@ package com.ivandsky.puzzlebox.designsystem
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -32,7 +30,7 @@ class ComponentContrastFloorsTest {
     )
 
     @Test
-    fun `text and secondary button labels meet 4_5 to 1 on every button surface`() {
+    fun `text button labels meet 4_5 to 1 on every button surface`() {
         for (mode in modes) {
             for (surface in buttonSurfaces(mode.scheme)) {
                 val ratio = contrast(mode.primaryText, surface)
@@ -42,20 +40,10 @@ class ComponentContrastFloorsTest {
     }
 
     @Test
-    fun `secondary button border meets 3 to 1 on every button surface`() {
+    fun `tonal secondary button label meets 4_5 to 1 on its well fill`() {
         for (mode in modes) {
-            for (surface in buttonSurfaces(mode.scheme)) {
-                val ratio = contrast(mode.scheme.outline, surface)
-                assertTrue("${mode.name} border on $surface = $ratio", ratio >= 3f)
-            }
-        }
-    }
-
-    @Test
-    fun `disabled secondary border stays distinguishable from enabled`() {
-        for (mode in modes) {
-            val disabled = mode.scheme.onSurface.copy(alpha = 0.12f).compositeOver(mode.scheme.surface)
-            assertNotEquals(mode.name, mode.scheme.outline, disabled)
+            val ratio = contrast(mode.scheme.onSurface, mode.scheme.surfaceContainerHigh)
+            assertTrue("${mode.name} secondary label = $ratio", ratio >= 4.5f)
         }
     }
 

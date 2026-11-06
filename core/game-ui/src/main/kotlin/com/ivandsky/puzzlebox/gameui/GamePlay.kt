@@ -17,6 +17,9 @@ import kotlinx.coroutines.CoroutineScope
 interface GamePlayUi {
     val gameId: GameId
 
+    /** The game's brand on every surface (spec A2); a game that registers none reads neutral. */
+    val brand: GameBrand get() = GameBrand.Neutral
+
     /** A fresh controller for one adopted session; [env] is how it talks back. */
     fun createController(env: PlayEnvironment): GamePlayController
 
@@ -102,4 +105,7 @@ class GamePlayRegistry(games: List<GamePlayUi>) {
     }
 
     operator fun get(id: GameId): GamePlayUi? = byId[id]
+
+    /** The brand registered for [id]; an unknown id falls back to [GameBrand.Neutral]. */
+    fun brandOf(id: GameId): GameBrand = byId[id]?.brand ?: GameBrand.Neutral
 }

@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import kotlinx.coroutines.CoroutineScope
@@ -46,9 +47,6 @@ import kotlinx.coroutines.job
 /** A done or upcoming step dot; the current one is wider, so it never relies on colour alone. */
 private val DotSize = 8.dp
 private val CurrentDotWidth = 24.dp
-
-/** How long a solved lesson stays on screen before the next one: a pause, not an animation. */
-private const val SUCCESS_HOLD_MS = 900L
 
 /** The calm success line the caption slot shows during the beat. */
 private const val SUCCESS_LINE = "✓ Nice!"
@@ -109,7 +107,7 @@ private fun ColumnScope.LessonPane(
     // rotation restarts the hold; next() only moves a solved lesson, so none is skipped.
     LaunchedEffect(session, lesson.index, lesson.solved) {
         if (lesson.solved) {
-            delay(SUCCESS_HOLD_MS)
+            delay(MotionTokens.SolveHoldMillis)
             session.next()
         }
     }

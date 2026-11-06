@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.gameui.rememberReducedMotion
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
 /**
  * The Sudoku keypad: Notes, Erase and Clear as three equal tonal buttons above the digit keys

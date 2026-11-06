@@ -7,7 +7,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 
 /**
- * Text-role step of the primary hue (see ColorTokens.kt): SecondaryButton and any
+ * Text-role step of the primary hue (see ColorTokens.kt): AppTextButton and any
  * component that renders the primary color as text reads this instead of
  * `colorScheme.primary`, whose light value is a fill green that fails AA as text.
  * Provided by [PuzzleBoxTheme] so it always follows the RESOLVED theme, including a
@@ -31,19 +31,30 @@ val LocalTimerFill = staticCompositionLocalOf { LightTimerFill }
 val LocalBoardColors = staticCompositionLocalOf { LightBoardTokens }
 
 /**
+ * Game accent slots (AccentTokens.kt, spec A1): [AccentSlot.colors] resolves a slot
+ * through this. Provided by [PuzzleBoxTheme] like [LocalBoardColors], so accents follow
+ * the RESOLVED theme, including a forced appearance opposite the system.
+ */
+val LocalAccentPalette = staticCompositionLocalOf { LightAccentTokens }
+
+/**
  * Theme composition root (ticket 10): the promoted style IS the token set — Baloo 2
  * typography, C3 light scheme, C6 dark scheme. The [darkTheme] request picks the
- * scheme; no variant parameters remain.
+ * scheme. The debug design settings' [DesignVariantsStore] picks the accent set and is
+ * provided as [LocalDesignVariants]; release always reads [DesignVariants.Default].
  */
 @Composable
 fun PuzzleBoxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
+    val variants = DesignVariantsStore.current
     CompositionLocalProvider(
+        LocalDesignVariants provides variants,
         LocalPrimaryText provides if (darkTheme) DarkPrimaryText else LightPrimaryText,
         LocalTimerFill provides if (darkTheme) DarkTimerFill else LightTimerFill,
         LocalBoardColors provides if (darkTheme) DarkBoardTokens else LightBoardTokens,
+        LocalAccentPalette provides accentPalette(variants.accentSet, darkTheme),
     ) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,

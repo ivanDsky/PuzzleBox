@@ -86,7 +86,7 @@ internal fun BrowserRadioControlRow(
  * option is the tap target — no per-control 48dp minimums.
  */
 @Composable
-private fun RadioOption(
+internal fun RadioOption(
     label: String,
     selected: Boolean,
     onSelect: () -> Unit,

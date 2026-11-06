@@ -47,7 +47,7 @@ import com.ivandsky.puzzlebox.games.strandsui.board.StrandsMotionTrigger
 import com.ivandsky.puzzlebox.games.strandsui.board.TraceOverlaySpec
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 import com.ivandsky.puzzlebox.gameui.BoardGrid
-import com.ivandsky.puzzlebox.gameui.rememberReducedMotion
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
 /**
  * Strands' one board, chrome-free ([com.ivandsky.puzzlebox.gameui.GamePlayUi.Board]): the

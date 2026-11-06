@@ -3,17 +3,13 @@ package com.ivandsky.puzzlebox.designsystem
 import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -47,7 +43,10 @@ internal fun Modifier.pressScale(interactionSource: MutableInteractionSource): M
     }
 }
 
-/** The one filled action on a screen. */
+// Primary is the taller pill (identity §2.4): 52 dp with the bold 16/20 label.
+internal val PrimaryButtonMinHeight: Dp = 52.dp
+
+/** The one filled action on a screen: a 52 dp pill in the primary fill. */
 @Composable
 fun PrimaryButton(
     text: String,
@@ -58,16 +57,16 @@ fun PrimaryButton(
     val interactionSource = remember { MutableInteractionSource() }
     Button(
         onClick = onClick,
-        modifier = modifier.heightIn(min = ButtonMinHeight).pressScale(interactionSource),
+        modifier = modifier.heightIn(min = PrimaryButtonMinHeight).pressScale(interactionSource),
         enabled = enabled,
-        shape = MaterialTheme.shapes.medium,
+        shape = PillShape,
         interactionSource = interactionSource,
     ) {
-        Text(text)
+        Text(text, style = PrimaryButtonTextStyle)
     }
 }
 
-/** The quiet counterpart: outline border (>= 3:1 on every surface), primary text, no fill. */
+/** The quiet counterpart: a tonal pill — the well fill with ink text, no border. */
 @Composable
 fun SecondaryButton(
     text: String,
@@ -76,27 +75,15 @@ fun SecondaryButton(
     enabled: Boolean = true,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    OutlinedButton(
+    FilledTonalButton(
         onClick = onClick,
         modifier = modifier.heightIn(min = ButtonMinHeight).pressScale(interactionSource),
         enabled = enabled,
-        shape = MaterialTheme.shapes.medium,
+        shape = PillShape,
         interactionSource = interactionSource,
-        colors = ButtonDefaults.outlinedButtonColors(
-            // The primary hue's accessible TEXT role, not colorScheme.primary: the
-            // light primary is a fill green that fails AA as text (ColorTokens.kt).
-            contentColor = LocalPrimaryText.current,
-        ),
-        // Spec A8: the border is a non-text boundary, so it reads the >= 3:1 `outline`
-        // role (outlineVariant held only 1.4:1). Disabled keeps Material's faint stroke —
-        // exempt from the floor but still distinct from the enabled border.
-        border = BorderStroke(
-            1.dp,
-            if (enabled) {
-                MaterialTheme.colorScheme.outline
-            } else {
-                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-            },
+        colors = ButtonDefaults.filledTonalButtonColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ),
     ) {
         Text(text)

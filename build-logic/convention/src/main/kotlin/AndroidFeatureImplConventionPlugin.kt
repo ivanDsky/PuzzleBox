@@ -17,7 +17,6 @@ class AndroidFeatureImplConventionPlugin : Plugin<Project> {
             dependencies {
                 "implementation"(project(":core:designsystem"))
                 "implementation"(libs.library("koin-androidx-compose"))
-                "implementation"(libs.library("androidx-compose-material-icons-core"))
                 "implementation"(libs.library("androidx-compose-material3-windowsizeclass"))
             }
         }

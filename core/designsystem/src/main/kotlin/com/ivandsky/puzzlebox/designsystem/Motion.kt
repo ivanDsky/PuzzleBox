@@ -4,6 +4,8 @@ import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 // Canonical motion vocabulary (A12): the app animates with shared-axis screen
 // transitions, a container transform into a puzzle, and spring physics on
@@ -43,6 +45,77 @@ object MotionTokens {
     const val SpringDampingDefault = Spring.DampingRatioNoBouncy
     const val SpringDampingMomentum = 0.8f
     const val SpringStiffnessDefault = 380f
+
+    // Identity §2.6: one name per job. Each job's reduced-motion fallback sits beside it;
+    // "none" means the state change is instant (read rememberReducedMotion()).
+
+    // Press: scale 0.97 on the default spring. Reduced: none.
+    const val PressScale = 0.97f
+
+    // Select: icon crossfade + nav indicator 32→56dp on EasingStandard. Reduced: instant.
+    const val SelectDuration = 120
+
+    // Enter (list items): rise + fade on EasingEmphasizedDecelerate, staggered per item
+    // up to a cap. Reduced: a plain ReducedFadeDuration fade.
+    const val EnterDuration = 240
+    const val EnterStagger = 40
+    const val EnterStaggerCap = 5
+    val EnterRise: Dp = 8.dp
+
+    // The one fade every reduced-motion fallback uses instead of travel.
+    const val ReducedFadeDuration = 120
+
+    // Pulse: the "next up" glyph 1→1.12→1, once per visit. Reduced: none.
+    const val PulseDuration = 360
+    const val PulseScale = 1.12f
+
+    // CountUp: numbers roll on EasingEmphasizedDecelerate. Reduced: the final value.
+    const val CountUpDuration = 400
+
+    // SolveSweep: a diagonal accent band (a fraction of the board width, at a low alpha)
+    // crosses the board TL→BR on EasingStandard; the board outline turns accent at a
+    // thicker width. Reduced: the outline only, instantly.
+    const val SweepDuration = 480
+    const val SweepBandFraction = 0.4f
+    const val SweepAlpha = 0.24f
+    const val SweepOutlineDuration = 160
+    val SweepOutlineWidth: Dp = 3.dp
+
+    // Stamp: a glyph lands from 1.15× to 1 (spec A6 overrides identity's 0.6) on the app's
+    // only bouncy spring, kept for wins, while it fades in. Reduced: the static glyph.
+    const val StampFromScale = 1.15f
+    const val StampSpringDamping = 0.55f
+    const val StampSpringStiffness = 600f
+    const val StampFadeDuration = 120
+
+    // SolveHold: a solved lesson stays on screen this long before the next one. A pause,
+    // not an animation, so it holds under reduced motion too.
+    const val SolveHoldMillis = 900L
+
+    // Reject: a refused move jolts the cell on a medium-bouncy spring, and the rejection
+    // highlight clears after RejectHoldMillis. Reduced: the highlight without the jolt.
+    const val RejectSpringDamping = Spring.DampingRatioMediumBouncy
+    const val RejectSpringStiffness = Spring.StiffnessMediumLow
+    const val RejectHoldMillis = 600L
+
+    // Flash: a one-shot colour switch (Zip's next-target ring) that settles back; 300ms
+    // read as instant (user round 6c). Reduced: settles instantly.
+    const val FlashDuration = 700
+
+    // HintFade: a placed hint mark holds, then fades out. Reduced: removed without a fade.
+    const val HintHoldMillis = 2000L
+    const val HintFadeDuration = 300
+
+    // HintPulse: one half-cycle of a hint region's pulse (dim, or back). Reduced: none.
+    const val HintPulseDuration = 400
+
+    // Cascade: a mass exit (Queens auto-marks) staggers per cell up to a cap, so the wave
+    // reads as one orchestration. Reduced: instant.
+    const val CascadeStepMillis = 10L
+    const val CascadeCapMillis = 80L
+
+    // Settle: newly introduced rule violations wait this long before they show.
+    const val SettleMillis = 500L
 }
 
 // A named screen-level pattern. Exit is faster than enter: leaving feels snappy,
