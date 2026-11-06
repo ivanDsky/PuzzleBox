@@ -64,10 +64,14 @@ data class HintReason(val kind: Kind, val unit: Int, val rung: QueensRung = Sing
  * 4. No completion extends the placed crowns and no stored solution isolates the culprits:
  *    all placed cells are reported — at least one must move.
  *
- * The cell's [QueensHint.Region.reason] is the hint ladder's next deduction when that
- * deduction places this very cell (one queen per unit — every shipped variant); otherwise
- * the exhaustive fallback stands (reason = null, "needs guessing" for dailies). N≥2 boards
- * (Star Battle shape) keep the direct-elimination reason ([directEliminationReason]).
+ * On one-queen-per-unit boards (every shipped variant) the hint ladder picks the cell first:
+ * its exclusion steps are applied until its first placement, and that placement (always a
+ * forced cell — every rung is sound) is hinted with a [QueensHint.Region.reason] naming the
+ * placing step's unit, tagged with the hardest rung on the way (the exclusion that unlocked
+ * it, else the placing rung). When the ladder stalls, the lowest-region forced cell is hinted
+ * with the exhaustive fallback (reason = null, "needs guessing" for dailies). N≥2 boards
+ * (Star Battle shape) keep the lowest-region cell and the direct-elimination reason
+ * ([directEliminationReason]).
  *
  * Pure; deterministic (the solver search and the ladder are deterministic).
  */
@@ -120,20 +124,38 @@ class QueensHints(
             if (common.isNotEmpty()) common else remaining
         }
 
+        if (puzzle.queensPerUnit == 1) {
+            ladderPlacement(puzzle, placedIdx)
+                ?.takeIf { (cell, _) -> cell in forced }
+                ?.let { (cell, reason) -> return QueensHint.Region(puzzle.regionOf(cell), cell, reason) }
+        }
+
         // Lowest region id wins: the region highlighted first is stable across calls.
         val cell = forced.minBy { puzzle.regionOf(it) * puzzle.cellCount + it.idx }
-        val reason = if (puzzle.queensPerUnit == 1) {
-            ladderReason(puzzle, placedIdx, cell)
-        } else {
-            directEliminationReason(puzzle, placed.toSet(), cell)
-        }
+        val reason = if (puzzle.queensPerUnit == 1) null else directEliminationReason(puzzle, placed.toSet(), cell)
         return QueensHint.Region(puzzle.regionOf(cell), cell, reason)
     }
 
-    /** The ladder's next step, when it is the placement of [cell]; its rung rides the reason. */
-    private fun ladderReason(puzzle: QueensPuzzle, placed: Set<Int>, cell: Cell): HintReason? {
-        val step = ladder.next(puzzle, QueensCandidates.start(puzzle, placed)) as? QueensDeduction.Place
-        return step?.takeIf { it.cell == cell.idx }?.let { it.unit.copy(rung = it.rung) }
+    /**
+     * Applies the ladder's exclusions up to its first placement: that cell, and its placing
+     * unit tagged with the hardest rung the chain used; null when the ladder stalls first.
+     * Terminates: every step changes the candidate state.
+     */
+    private fun ladderPlacement(puzzle: QueensPuzzle, placed: Set<Int>): Pair<Cell, HintReason>? {
+        var candidates = QueensCandidates.start(puzzle, placed)
+        val used = mutableListOf<QueensRung>()
+        while (true) {
+            when (val step = ladder.next(puzzle, candidates) ?: return null) {
+                is QueensDeduction.Exclude -> {
+                    used += step.rung
+                    candidates = candidates.exclude(step.cells)
+                }
+                is QueensDeduction.Place -> {
+                    val hardest = (used + step.rung).maxBy { it.level }
+                    return Cell(step.cell) to step.unit.copy(rung = hardest)
+                }
+            }
+        }
     }
 
     /**

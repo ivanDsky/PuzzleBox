@@ -121,9 +121,10 @@ class LookAheadRungTest {
     }
 
     @Test
-    fun `the default ladder does not use look-ahead yet`() {
+    fun `the default ladder solves the look-ahead board without look-ahead`() {
+        // Line lock settles what singles alone needed a probe for.
         val run = QueensLadder.Default.run(needsLookAhead())
-        assertFalse(run.solved)
-        assertNull(run.hardest)
+        assertTrue(run.solved)
+        assertSame(LineLockRung, run.hardest)
     }
 }

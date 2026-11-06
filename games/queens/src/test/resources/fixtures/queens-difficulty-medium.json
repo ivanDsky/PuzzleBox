@@ -1,0 +1,12 @@
+{
+  "note": "5x5 contiguous unique board; the hardest rung QueensLadder.Default needs is line lock (Medium).",
+  "size": 5,
+  "regions": [
+    0, 0, 0, 1, 1,
+    2, 2, 3, 1, 4,
+    2, 2, 3, 4, 4,
+    2, 2, 3, 4, 4,
+    2, 2, 4, 4, 4
+  ],
+  "solution": [1, 8, 10, 17, 24]
+}

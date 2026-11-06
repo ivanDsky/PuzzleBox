@@ -124,7 +124,7 @@ class QueensLadderTest {
     }
 
     @Test
-    fun `the default ladder is the singles rung`() {
+    fun `the default ladder tries singles first`() {
         assertEquals(singlesOnly.run(QueensTestSupport.n4Puzzle()), QueensLadder.Default.run(QueensTestSupport.n4Puzzle()))
         assertEquals("singles", SinglesRung.id)
         assertEquals("queens.hint.rung.singles", SinglesRung.captionKey)
