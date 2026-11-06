@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.zip
 
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.game.VariantId
 import java.time.LocalDate
 
@@ -92,14 +93,12 @@ data class ZipPuzzle(
 }
 
 /**
- * Official daily identity (finding F2-3): the LinkedIn day plus the puzzle number
- * (#592-style), null for custom boards. Lives on the session — identity is fetch-time
- * metadata, not board data; the codec bytes stay identity-free and core/data owns
- * persistence of identity (ADR-0004).
+ * Puzzle identity (finding F2-3, ADR-0018): a daily's LinkedIn day plus puzzle number
+ * (#592-style), or a friend's puzzle by share code. Lives on the session — identity is
+ * fetch-time metadata, not board data; the codec bytes stay identity-free and core/data
+ * owns persistence of identity (ADR-0004).
  */
-data class ZipPuzzleRef(
-    override val date: LocalDate,
-    override val puzzleNumber: Int?,
-) : PuzzleRef {
+data class ZipPuzzleRef(override val key: PuzzleKey) : PuzzleRef {
     override val gameId: GameId get() = ZipDefinition.id
+    constructor(date: LocalDate, puzzleNumber: Int?) : this(PuzzleKey.Daily(date, puzzleNumber)) // deleted in P12
 }
