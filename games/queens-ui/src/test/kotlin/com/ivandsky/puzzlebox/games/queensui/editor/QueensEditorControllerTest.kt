@@ -278,6 +278,35 @@ class QueensEditorControllerTest {
         assertEquals(0, edits.size)
     }
 
+    @Test
+    fun `a stroke paints every crossed non-crown cell its start's region in one undo step`() {
+        val start = painted()
+        val crowned = EditorDraft(QueensEditor, start.state.copy(draft = start.state.draft.copy(crowns = setOf(CROWNED))))
+        val controller = QueensEditorController(crowned) { edits += it }
+
+        controller.stroke(0, listOf(0, 1, 2, CROWNED, 14))
+
+        assertEquals(1, edits.size)
+        val regions = regionsOf(edits.single())
+        listOf(0, 1, 2, 14).forEach { assertEquals(0, regions[it]) }
+        assertEquals(1, regions[CROWNED])
+        assertEquals(setOf(CROWNED), crownsOf(edits.single()))
+        assertEquals(edits.single(), controller.draft.value)
+        val undone = edits.single().undo()!!
+        assertEquals(regionsOf(painted()), regionsOf(undone))
+        assertTrue(undone.canUndo.not())
+    }
+
+    @Test
+    fun `a stroke from an unpainted cell changes nothing`() {
+        val controller = QueensEditorController(fresh()) { edits += it }
+
+        controller.stroke(0, listOf(0, 1, 2))
+
+        assertEquals(0, edits.size)
+        assertEquals(regionsOf(fresh()), regionsOf(controller.draft.value))
+    }
+
     private fun count(k: Int) = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "$k")
 
     private fun show(controller: QueensEditorController) {
@@ -288,6 +317,7 @@ class QueensEditorControllerTest {
 
     private companion object {
         const val SIZE = 6
+        const val CROWNED = 8 // row 1 (region 1), inside the stroke's path
         const val RING = "queens.editor.ring"
         const val UNPAINT = "queens.editor.ring.unpaint"
         const val COUNT = "queens.editor.context.count"

@@ -19,8 +19,9 @@ import kotlinx.coroutines.flow.asStateFlow
  * refused tap (a crossed cell) is announced on [rejected] instead. In [QueensEditorMode.Paint]
  * (spec S3, select then colour) a tap toggles a cell in the [selection] ([QueensSelection]);
  * [selectAllOf] and [selectArea] grow it; a ring [pick] paints every selected cell as one
- * undoable step and clears the selection. Every edit goes out through [onEdit]; the VM hands
- * replacement drafts back through [adopt].
+ * undoable step and clears the selection. In either mode a [stroke] (a drag out from a
+ * coloured cell) paints that cell's colour along the drag. Every edit goes out through
+ * [onEdit]; the VM hands replacement drafts back through [adopt].
  */
 class QueensEditorController(
     initial: EditorDraft<*>,
@@ -86,6 +87,22 @@ class QueensEditorController(
         val next = current.value.apply(board.paint(chosen, region))
         current.value = next
         cancel()
+        onEdit(next)
+    }
+
+    /**
+     * A drag out from [from] (either mode): paints [from]'s region over every cell of [cells]
+     * that holds no crown, as one `QueensDraftCommand.Paint` step. No edit when [from] is
+     * UNPAINTED or nothing would change. The selection is left as it is.
+     */
+    fun stroke(from: Int, cells: List<Int>) {
+        val board = current.value.state.draft
+        val region = board.regions[from]
+        if (region == QueensDraft.UNPAINTED) return
+        val target = cells.filterTo(LinkedHashSet()) { it !in board.crowns && board.regions[it] != region }
+        if (target.isEmpty()) return
+        val next = current.value.apply(board.paint(target, region))
+        current.value = next
         onEdit(next)
     }
 
