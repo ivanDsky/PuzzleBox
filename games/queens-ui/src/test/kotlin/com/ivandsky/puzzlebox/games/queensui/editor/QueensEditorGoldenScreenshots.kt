@@ -53,12 +53,12 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
-class QueensEditorGoldenPhoneTest : QueensEditorGoldenScreenshots("phone")
+class QueensEditorGoldenScreenshotsPhone : QueensEditorGoldenScreenshots("phone")
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w1280dp-h800dp-land-mdpi")
-class QueensEditorGoldenTabletTest : QueensEditorGoldenScreenshots("tablet")
+class QueensEditorGoldenScreenshotsTablet : QueensEditorGoldenScreenshots("tablet")
 
 abstract class QueensEditorGoldenScreenshots(private val device: String) {
 
