@@ -6,7 +6,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelected
@@ -20,6 +19,7 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.WeekDay
 import com.ivandsky.puzzlebox.model.GameId
@@ -34,8 +34,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Robolectric compose tests (A17): pane choice, the Today tiles and the one CTA (A10), the
- * Offline tile (A12), the streak card's week (A8) and the absent theme control (N4), no emulator. Copy
+ * Robolectric compose tests (A17): pane choice, the Today summary card's badges and the one CTA (A10), the
+ * Offline badge (A12), the streak card's week (A8) and the absent theme control (N4), no emulator. Copy
  * is never pinned: tags, enabled state and callbacks only (the CTA is checked to NAME its
  * game, not for its wording).
  */
@@ -78,19 +78,73 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `two pane renders the detail pane beside the list`() {
+    fun `two pane with no day selected shows streak and stats beside the list`() {
         setContent(HomeLayout.TwoPane)
 
         composeRule.onNodeWithTag("home.today").assertExists()
         composeRule.onNodeWithTag("home.detail_pane").assertExists()
-        composeRule.onNodeWithTag("home.detail_today").assertExists()
+        composeRule.onNodeWithTag("home.streak_pane").assertExists()
+        composeRule.onNodeWithTag("home.pane_week").assertExists()
+        listOf("solved", "hint_free", "average", "since").forEach {
+            composeRule.onNodeWithTag("home.stat_$it", useUnmergedTree = true).assertExists()
+        }
+        TODAY.forEach { composeRule.onNodeWithTag("home.best.${it.game.value}", useUnmergedTree = true).assertExists() }
+        composeRule.onNodeWithTag("home.day_detail").assertDoesNotExist()
     }
 
     @Test
-    fun `today lists one tile per game`() {
+    fun `two pane list drops the streak card and has one copy of today`() {
+        setContent(HomeLayout.TwoPane)
+
+        composeRule.onNodeWithTag("home.streak").assertDoesNotExist()
+        composeRule.onNodeWithTag("home.week").assertDoesNotExist()
+        composeRule.onNodeWithTag("home.badge.zip").assertExists()
+        composeRule.onNodeWithTag("home.detail_badge.zip").assertDoesNotExist()
+    }
+
+    @Test
+    fun `tapping a recent day swaps the pane to that day and away from the stats`() {
+        setContent(
+            HomeLayout.TwoPane,
+            history = listOf(HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))),
+        )
+
+        composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo().performClick()
+
+        composeRule.onNodeWithTag("home.day_detail").assertExists()
+        composeRule.onNodeWithTag("home.streak_pane").assertDoesNotExist()
+    }
+
+    @Test
+    fun `today lists one badge per game in the summary card`() {
         setContent(HomeLayout.SinglePane)
 
-        TODAY.forEach { composeRule.onNodeWithTag("home.today_tile_${it.game.value}").assertExists() }
+        composeRule.onNodeWithTag("home.today_summary").assertExists()
+        TODAY.forEach { composeRule.onNodeWithTag("home.badge.${it.game.value}").assertExists() }
+    }
+
+    @Test
+    fun `an all-new set offers to play the first game`() {
+        val fresh = TODAY.map { it.copy(status = TodayStatus.NotStarted) }
+        setContent(HomeLayout.SinglePane, today = mutableStateOf(fresh), playTarget = GameId("zip"))
+
+        composeRule.onNodeWithTag("home.today_summary").assertExists()
+        composeRule.onNodeWithTag("home.today_play").assert(hasText("Zip", substring = true))
+        composeRule.onNodeWithTag("home.today_countdown").assertDoesNotExist()
+    }
+
+    @Test
+    fun `while the set loads the card shows skeletons and keeps the CTA`() {
+        // Skeleton sheens loop forever: a free-running clock would never idle.
+        composeRule.mainClock.autoAdvance = false
+        val loading = TODAY.map { it.copy(status = null) }
+        setContent(HomeLayout.SinglePane, today = mutableStateOf(loading), playTarget = GameId("zip"))
+        composeRule.mainClock.advanceTimeBy(1_000L)
+
+        composeRule.onNodeWithTag("home.today_loading").assertExists()
+        composeRule.onNodeWithTag("home.today_summary").assertDoesNotExist()
+        TODAY.forEach { composeRule.onNodeWithTag("home.badge.${it.game.value}").assertExists() }
+        composeRule.onNodeWithTag("home.today_play").assertExists()
     }
 
     @Test
@@ -105,18 +159,6 @@ class HomeScreenTest {
 
         composeRule.runOnIdle { assertEquals(listOf(GameId("tango")), opened) }
         composeRule.onNodeWithTag("home.today_countdown").assertDoesNotExist()
-    }
-
-    @Test
-    fun `the two-pane detail CTA names the same target`() {
-        val opened = mutableListOf<GameId>()
-        setContent(HomeLayout.TwoPane, playTarget = GameId("queens"), onOpenGame = { opened += it })
-
-        composeRule.onNodeWithTag("home.detail_today_play")
-            .assert(hasText("Queens", substring = true))
-            .performClick()
-
-        composeRule.runOnIdle { assertEquals(listOf(GameId("queens")), opened) }
     }
 
     @Test
@@ -141,25 +183,36 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `a tile opens its game`() {
+    fun `a badge opens its game`() {
         val opened = mutableListOf<GameId>()
         setContent(HomeLayout.SinglePane, onOpenGame = { opened += it })
 
-        composeRule.onNodeWithTag("home.today_tile_queens").performClick()
+        composeRule.onNodeWithTag("home.badge.queens").performClick()
 
         composeRule.runOnIdle { assertEquals(listOf(GameId("queens")), opened) }
     }
 
     @Test
-    fun `an offline tile is disabled and does not navigate - A12`() {
+    fun `an in-progress next game keeps the CTA on it`() {
+        val opened = mutableListOf<GameId>()
+        setContent(HomeLayout.SinglePane, onOpenGame = { opened += it })
+
+        composeRule.onNodeWithTag("home.today_play").assert(hasText("Tango", substring = true)).performScrollTo().performClick()
+        composeRule.onNodeWithTag("home.badge.tango").performClick()
+
+        composeRule.runOnIdle { assertEquals(listOf(GameId("tango"), GameId("tango")), opened) }
+    }
+
+    @Test
+    fun `an offline badge stays enabled and its tap retries by opening the game - A9`() {
         val opened = mutableListOf<GameId>()
         val today = TODAY.map { if (it.game == GameId("zip")) it.copy(status = TodayStatus.Offline) else it }
         setContent(HomeLayout.SinglePane, today = mutableStateOf(today), onOpenGame = { opened += it })
 
-        composeRule.onNodeWithTag("home.today_tile_zip").assertIsNotEnabled().performClick()
-        composeRule.onNodeWithTag("home.today_tile_tango").assertIsEnabled()
+        TODAY.forEach { composeRule.onNodeWithTag("home.badge.${it.game.value}").assertIsEnabled() }
+        composeRule.onNodeWithTag("home.badge.zip").performClick()
 
-        composeRule.runOnIdle { assertEquals(emptyList<GameId>(), opened) }
+        composeRule.runOnIdle { assertEquals(listOf(GameId("zip")), opened) }
     }
 
     @Test
@@ -250,13 +303,16 @@ class HomeScreenTest {
     private companion object {
         val DAY: LocalDate = LocalDate.of(2026, 11, 4)
 
-        /** Registry order; Pinpoint's status is not known yet. */
+        /** Registry order. A loading badge shimmers forever: the loading test stops the clock. */
         val TODAY = listOf(
-            HomeUiState.TodayRow(GameId("zip"), "Zip", TodayStatus.Solved(36_000L), GameBrand.Neutral),
-            HomeUiState.TodayRow(GameId("tango"), "Tango", TodayStatus.InProgress(42_000L), GameBrand.Neutral),
-            HomeUiState.TodayRow(GameId("queens"), "Queens", TodayStatus.NotStarted, GameBrand.Neutral),
-            HomeUiState.TodayRow(GameId("pinpoint"), "Pinpoint", status = null, brand = GameBrand.Neutral),
+            row("zip", "Zip", TodayStatus.Solved(36_000L)),
+            row("tango", "Tango", TodayStatus.InProgress(42_000L)),
+            row("queens", "Queens", TodayStatus.NotStarted),
+            row("pinpoint", "Pinpoint", TodayStatus.NotStarted),
         )
+
+        fun row(id: String, name: String, status: TodayStatus?) =
+            HomeUiState.TodayRow(GameId(id), name, status, GameBrand.Neutral, RankOrder.TimeThenHints)
 
         fun state(
             today: List<HomeUiState.TodayRow>,
@@ -269,7 +325,7 @@ class HomeScreenTest {
             history = history,
             puzzleDay = DAY,
             playTarget = playTarget,
-            stats = GameStats(3, 5, 12, 36_000L, 4, 48_000L, DAY.minusDays(20)),
+            stats = GameStats(3, 5, 12, 4, 48_000L, DAY.minusDays(20), best = null, rankOrder = RankOrder.TimeThenHints),
             week = (6L downTo 0L).map { WeekDay(DAY.minusDays(it), emptyList(), isToday = it == 0L) },
             rolloverAt = Instant.now().plus(3, ChronoUnit.HOURS),
         )

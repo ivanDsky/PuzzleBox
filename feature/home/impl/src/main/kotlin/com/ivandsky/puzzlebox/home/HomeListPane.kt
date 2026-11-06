@@ -18,10 +18,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LargeTopBar
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
@@ -38,6 +38,7 @@ internal fun ListPane(
     selectedDay: String?,
     onDayClick: (String) -> Unit,
     selectable: Boolean,
+    showStreak: Boolean,
     onOpenGame: (GameId) -> Unit,
     onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
@@ -53,13 +54,16 @@ internal fun ListPane(
         )
         Column(
             modifier = Modifier.padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.xxl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
             StaggeredItem(0) {
                 HomeTodaySection(state = state, onOpenGame = onOpenGame, tagPrefix = "home.today")
             }
-            StaggeredItem(1) {
-                HomeStreakSection(stats = state.stats, week = state.week, total = state.today.size)
+            // Two-pane shows the streak in the detail pane instead.
+            if (showStreak) {
+                StaggeredItem(1) {
+                    HomeStreakSection(stats = state.stats, week = state.week, total = state.today.size)
+                }
             }
             StaggeredItem(2) {
                 HomeRecentSection(
@@ -77,28 +81,31 @@ internal fun ListPane(
     }
 }
 
-/** First-composition entrance: items rise 12dp and fade in, staggered 60ms apart. */
+/**
+ * First-composition entrance (handoff 05-b): a fade-only stagger, [MotionTokens.EnterStagger]
+ * apart up to the cap. Reduced motion: one plain fade, no stagger.
+ */
 @Composable
 private fun StaggeredItem(
     index: Int,
     content: @Composable () -> Unit,
 ) {
+    val reducedMotion = rememberReducedMotion()
     var appeared by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        delay(60L * index)
+        if (!reducedMotion) delay(MotionTokens.EnterStagger.toLong() * index.coerceAtMost(MotionTokens.EnterStaggerCap))
         appeared = true
     }
     val progress by animateFloatAsState(
         targetValue = if (appeared) 1f else 0f,
-        animationSpec = tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingEmphasizedDecelerate),
+        animationSpec = if (reducedMotion) {
+            tween(MotionTokens.ReducedFadeDuration)
+        } else {
+            tween(MotionTokens.EnterDuration, easing = MotionTokens.EasingEmphasizedDecelerate)
+        },
         label = "home-entrance-$index",
     )
-    Box(
-        Modifier.graphicsLayer {
-            alpha = progress
-            translationY = (1f - progress) * 12.dp.toPx()
-        },
-    ) { content() }
+    Box(Modifier.graphicsLayer { alpha = progress }) { content() }
 }
 
 private val HEADER_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d")

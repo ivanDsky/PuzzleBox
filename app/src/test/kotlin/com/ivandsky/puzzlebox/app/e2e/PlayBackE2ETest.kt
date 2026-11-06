@@ -78,9 +78,10 @@ class PlayBackE2ETest {
         rule.runOnIdle { MID_GAME.forEach { zip().extend(it) } }
     }
 
-    /** The left board is on "disk", and the hub's Zip row reads in progress. */
+    /** The left board is on "disk", and the library's Zip row reads in progress (back from the board lands on Zip's page; its back shows the list). */
     private fun ShellRobot.assertSavedAndInProgress() {
         rule.waitUntil(TIMEOUT_MS) { runBlocking { graph.saved.load(todaySlot) } != null }
+        tap("library.page.back")
         val inProgressRow = hasTestTag(ZIP_ROW) and (hasText(IN_PROGRESS, substring = true) or hasAnyDescendant(hasText(IN_PROGRESS, substring = true)))
         rule.waitUntil(TIMEOUT_MS) { rule.onAllNodes(inProgressRow).fetchSemanticsNodes().isNotEmpty() }
     }
@@ -104,11 +105,11 @@ class PlayBackE2ETest {
     private val todaySlot = PlaySlot(ZipDefinition.id, E2E_TODAY)
 
     private companion object {
-        const val HUB = "route.hub"
+        const val HUB = "route.library"
         const val GAME = "route.game"
         const val GAME_UP = "game.up"
         const val ZIP = "zip"
-        const val ZIP_ROW = "hub.row.zip"
+        const val ZIP_ROW = "library.row.zip"
         // The saved-play status line's words, without its clock.
         val IN_PROGRESS = todayStatusLine(TodayStatus.InProgress(0L)).substringBefore(" ·")
         const val TIMEOUT_MS = 5_000L

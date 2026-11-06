@@ -57,7 +57,10 @@ class ProfileViewModel(
 
     private val seedRows: List<ProfileUiState.GameRow> = registry.all.map { plugin ->
         val id = plugin.definition.id
-        ProfileUiState.GameRow(id, plugin.definition.displayName, brands.brandOf(id), solved = 0, bestTimeMs = null)
+        ProfileUiState.GameRow(
+            id, plugin.definition.displayName, brands.brandOf(id), solved = 0,
+            best = null, rankOrder = plugin.score.rankOrder,
+        )
     }
 
     private val account: Flow<ProfileUiState.Account> =
@@ -77,7 +80,7 @@ class ProfileViewModel(
             flowOf(emptyList())
         } else {
             val perGame = seedRows.map { row ->
-                observeGameStats(row.gameId).map { row.copy(solved = it.solved, bestTimeMs = it.bestTimeMs) }
+                observeGameStats(row.gameId).map { row.copy(solved = it.solved, best = it.best, rankOrder = it.rankOrder) }
             }
             combine(perGame) { it.toList() }
         }

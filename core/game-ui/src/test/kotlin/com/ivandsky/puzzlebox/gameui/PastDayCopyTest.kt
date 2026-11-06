@@ -4,14 +4,8 @@ import com.ivandsky.puzzlebox.domain.PastDayStatus
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** A20: the one past-day copy History's day header and the hub picker headline share. */
+/** A20: the one past-day copy the game page's day card reads. */
 class PastDayCopyTest {
-
-    @Test
-    fun `the headline is the game and its number, or just the game when unnumbered`() {
-        assertEquals("Zip #592", pastDayHeadline("Zip", 592))
-        assertEquals("Strands", pastDayHeadline("Strands", null))
-    }
 
     @Test
     fun `each status reads its own words`() {

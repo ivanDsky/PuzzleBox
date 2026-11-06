@@ -3,20 +3,19 @@ package com.ivandsky.puzzlebox.history
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
-import com.ivandsky.puzzlebox.domain.ObservePastDay
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
-import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -39,23 +38,43 @@ object HistoryTestSupport {
 
     val registry: GameRegistry = TestGames.registry(listOf(ZIP, TANGO, QUEENS))
 
+    /** [registry] with [hintsRanked] ranking fewest hints first (Strands' order). */
+    fun registry(hintsRanked: Set<GameId>): GameRegistry = GameRegistry(
+        listOf(ZIP, TANGO, QUEENS).map { if (it in hintsRanked) hintsFirst(TestGames.plugin(it)) else TestGames.plugin(it) },
+    )
+
+    private fun hintsFirst(base: GamePlugin<Unit, TestGames.Session, TestGames.Model>) = GamePlugin(
+        definition = base.definition,
+        rules = base.rules,
+        session = base.session,
+        score = object : ScoreModel<TestGames.Session> {
+            override fun completion(session: TestGames.Session): CompletionRecord? = null
+            override val rankOrder: RankOrder = RankOrder.HintsThenTime
+        },
+        stateOf = base.stateOf,
+        initialSession = base.initialSession,
+        refOf = base.refOf,
+        replaySession = base.replaySession,
+        rendererModel = base.rendererModel,
+    )
+
     /** Fixed clock: 12:00 UTC Nov 3 2026 is the morning of Nov 3 in LA, so the puzzle day is [TODAY]. */
     val TODAY: LocalDate = LocalDate.of(2026, 11, 3)
     private val clock: Clock = Clock.fixed(Instant.parse("2026-11-03T12:00:00Z"), ZoneOffset.UTC)
 
-    /** History's ViewModel for [key] over [daily]/[completions]/[saved] and the production use cases. */
+    /** History's ViewModel over [daily]/[completions] and the production use cases. */
     fun viewModel(
         daily: DailyRepository,
         completions: CompletionRepository,
-        key: HistoryKey = HistoryKey(),
-        saved: SavedPlayRepository = FakeSavedPlayRepository(),
+        hintsRanked: Set<GameId> = emptySet(),
     ): HistoryViewModel {
+        val registry = registry(hintsRanked)
         val observeGameHistory = ObserveGameHistory(registry, daily, completions)
         val puzzleDay = GetPuzzleDay(registry, clock)
         return HistoryViewModel(
-            key = key,
             observeGameHistory = observeGameHistory,
             observeGameStats = ObserveGameStats(
+                registry = registry,
                 observeGameHistory = observeGameHistory,
                 computeStreak = ComputeStreak(puzzleDay = puzzleDay),
             ),
@@ -63,8 +82,6 @@ object HistoryTestSupport {
             // No play UIs: every game reads GameBrand.Neutral.
             playRegistry = GamePlayRegistry(emptyList()),
             puzzleDay = puzzleDay,
-            observePastDay = ObservePastDay(daily, saved, completions),
-            daily = daily,
         )
     }
 

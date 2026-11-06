@@ -13,7 +13,7 @@ import com.ivandsky.puzzlebox.designsystem.DesignVariantsStore
  */
 object CatalogDebugBinding {
     init {
-        DebugCatalogContent.browser = { DesignCatalogHost() }
+        DebugCatalogContent.browser = { openGame -> DesignCatalogHost(openGame) }
     }
 
     /**

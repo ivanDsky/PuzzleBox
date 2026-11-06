@@ -5,7 +5,7 @@ import android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.GAME
 import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.HISTORY
-import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.HUB
+import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.LIBRARY
 import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.ZIP
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
@@ -49,7 +49,7 @@ class RotationDeviceTest {
         assertNoNavigation()
         assertEquals("the board survives the second rotation", left, zipPath())
         back()
-        assertRoute(HUB)
+        assertRoute(LIBRARY)
         assertSelectedTab(PlayKey)
         assertBottomBar()
         tapTab(HomeKey)

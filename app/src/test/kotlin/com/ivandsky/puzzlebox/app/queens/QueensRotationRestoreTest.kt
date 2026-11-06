@@ -3,9 +3,12 @@ package com.ivandsky.puzzlebox.app.queens
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
@@ -177,7 +180,10 @@ class QueensRotationRestoreTest {
         val prefetched = repo.todayCalls(QueensDefinition.id)
         // The Play tab opens the hub; Queens is one of its games (the fix under test
         // is that it no longer bypasses the hub with its own stack).
-        composeRule.onNodeWithTag("hub.row.queens").performClick()
+        composeRule.onNodeWithTag("library.row.queens").performClick()
+        composeRule.waitForIdle()
+        composeRule.waitUntil(10_000) { composeRule.onAllNodes(hasTestTag("library.play") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+        composeRule.onNodeWithTag("library.play").performScrollTo().performClick()
         idle()
         awaitBoard(flow)
 

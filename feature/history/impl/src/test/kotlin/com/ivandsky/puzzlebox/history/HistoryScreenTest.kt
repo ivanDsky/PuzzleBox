@@ -35,11 +35,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Robolectric compose coverage for the history browser (A17, A18): the empty state, the
- * game tabs (the key picks the first one, a tap filters), the stats and calendar cards, day
- * groups, the Best pill, and the detail's hand-off — "Play again" once solved, "Keep
- * going" while unfinished; both report the (game, day) to the shell and never build a
- * session blob (ticket 11), so cache state never blocks the tap.
+ * Robolectric compose coverage for the history browser (A17, A18, A28): the empty state,
+ * the All timeline whatever the key's game, the stats and calendar cards, day groups,
+ * the Best pill, and the detail's hand-off — "Play again" once solved, "Keep going"
+ * while unfinished; both report the (game, day) to the shell and never build a session
+ * blob (ticket 11), so cache state never blocks the tap.
  * Fix round 5, defect C: rows are per-game via the game-agnostic merged history — a
  * solved Queens day lists and details exactly like a captured day. tango-05: Zip and
  * Tango share the calendar without colliding, and a tango replay reports the tango game.
@@ -77,6 +77,7 @@ class HistoryScreenTest {
         records: List<CompletionRecord> = emptyList(),
         cached: Map<Pair<GameId, LocalDate>, Puzzle> = emptyMap(),
         key: HistoryKey = HistoryKey(),
+        hintsRanked: Set<GameId> = emptySet(),
     ) {
         handedToShell = null
         shellBacks = 0
@@ -85,7 +86,7 @@ class HistoryScreenTest {
             setHistory(TANGO, tangos)
             cached.forEach { (slot, puzzle) -> setCached(slot.first, slot.second, puzzle) }
         }
-        val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository(records), key)
+        val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository(records), hintsRanked)
         composeRule.setContent {
             // Stand-in for the shell's NavDisplay pop: registered first, so History's own
             // handler (registered later) wins while it is enabled.
@@ -304,39 +305,37 @@ class HistoryScreenTest {
     }
 
     @Test
-    fun `the key picks the starting tab`() {
+    fun `a hints-ranked game's Best pill marks its fewest-hints day`() {
+        val quicker = day
+        val fewestHints = day.minusDays(1)
+        setContent(
+            zips = listOf(HistoryTestSupport.entry(quicker), HistoryTestSupport.entry(fewestHints)),
+            records = listOf(
+                HistoryTestSupport.record(quicker, timeMs = 60_000, hints = 2),
+                HistoryTestSupport.record(fewestHints, timeMs = 90_000, hints = 0),
+            ),
+            hintsRanked = setOf(ZIP),
+        )
+
+        awaitRow(ZIP, fewestHints)
+        awaitTag("history.best.zip/$fewestHints")
+        awaitRow(ZIP, quicker)
+        assertNoTag("history.best.zip/$quicker")
+    }
+
+    @Test
+    fun `a game's key opens the All timeline with every game and no tabs`() {
         setContent(
             zips = listOf(HistoryTestSupport.entry(day)),
             tangos = listOf(HistoryTestSupport.tangoEntry(day)),
             key = HistoryKey(TANGO.value),
         )
 
-        awaitRow(TANGO)
-        assertNoTag(rowTag(ZIP, day))
-    }
-
-    @Test
-    fun `a game tab lists only that game, and All brings every game back`() {
-        setContent(
-            zips = listOf(HistoryTestSupport.entry(day)),
-            tangos = listOf(HistoryTestSupport.tangoEntry(day)),
-        )
         awaitRow(ZIP)
-
-        tapTab("history.tab.tango")
-        composeRule.waitUntil(5_000) {
-            composeRule.onAllNodesWithTag(rowTag(ZIP, day)).fetchSemanticsNodes().isEmpty()
-        }
         awaitRow(TANGO)
-
-        tapTab("history.tab.all")
-        awaitRow(ZIP)
-    }
-
-    /** Taps a tab; the list may have scrolled the tab row out of composition, so scroll back first. */
-    private fun tapTab(tag: String) {
-        composeRule.onNodeWithTag(LIST).performScrollToNode(hasTestTag(tag))
-        composeRule.onNodeWithTag(tag).performClick()
+        awaitTag("history.stats")
+        assertNoTag("history.tab.all")
+        assertNoTag("history.tab.${TANGO.value}")
     }
 
     @Test

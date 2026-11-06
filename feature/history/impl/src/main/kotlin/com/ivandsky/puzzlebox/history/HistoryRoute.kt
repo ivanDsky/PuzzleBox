@@ -10,13 +10,12 @@ import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
 
 /**
- * History's DI-bound entry point for [key]: renders [HistoryViewModel]'s state, tab and
- * paged rows; each key gets its own ViewModel, which opens on the key's game tab. The
- * pane layout is decided once at the app shell (ticket 07 policy) and passed in; UI
- * below this point stays repository-free.
+ * History's DI-bound entry point: renders [HistoryViewModel]'s state and paged rows;
+ * each [key] gets its own ViewModel. Every key opens the All timeline (A28) — its game
+ * id stays only because the key is api. The pane layout is decided once at the app
+ * shell (ticket 07 policy) and passed in; UI below this point stays repository-free.
  *
  * Replay (ticket 11): [onReplay] reports the replayed (game, day); the shell opens that
  * day's game slot, which the play store builds or resumes.
@@ -28,10 +27,9 @@ fun HistoryRoute(
     onBack: () -> Unit,
     onReplay: (GameId, LocalDate) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: HistoryViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) }),
+    viewModel: HistoryViewModel = koinViewModel(key = key.toString()),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
     val lazyDays = viewModel.pagedDays.collectAsLazyPagingItems()
 
     HistoryScreen(
@@ -39,8 +37,6 @@ fun HistoryRoute(
         onBack = onBack,
         days = lazyDays,
         state = uiState,
-        selectedTab = selectedTab,
-        onSelectTab = viewModel::select,
         onShowCalendar = viewModel::showCalendar,
         onSelectDay = viewModel::selectDay,
         onReplay = onReplay,

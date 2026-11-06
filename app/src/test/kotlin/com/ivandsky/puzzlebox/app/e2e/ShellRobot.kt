@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
@@ -168,9 +169,25 @@ class ShellRobot internal constructor(
         rule.waitForIdle()
     }
 
-    /** Picks [gameId] on the Play hub and waits for its game screen. */
+    /**
+     * Opens [gameId]'s page in the Play library (a phone first leaves another game's page,
+     * since back from a board returns to the page it started from) and plays today once
+     * today has loaded.
+     */
     fun openGame(gameId: String) {
-        tap("hub.row.$gameId")
+        val page = "library.page.$gameId"
+        if (rule.onAllNodesWithTag(page).fetchSemanticsNodes().isEmpty()) {
+            if (rule.onAllNodesWithTag("library.page.back").fetchSemanticsNodes().isNotEmpty()) tap("library.page.back")
+            tap("library.row.$gameId")
+        }
+        awaitTag(page)
+        // Playable once today has loaded: a loading card's action is disabled, an offline one retries.
+        val offlineCard = hasTestTag("card.status_mark.offline") and hasAnyAncestor(hasTestTag("library.day_card"))
+        rule.waitUntil(TIMEOUT_MS) {
+            rule.onAllNodes(hasTestTag("library.play") and isEnabled()).fetchSemanticsNodes().isNotEmpty() &&
+                rule.onAllNodes(offlineCard, useUnmergedTree = true).fetchSemanticsNodes().isEmpty()
+        }
+        tap("library.play")
         awaitTag(GAME_ROUTE)
     }
 

@@ -8,7 +8,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -28,11 +27,6 @@ private open class FakePlayUi(override val gameId: GameId) : GamePlayUi {
 
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) = Unit
-
-    override fun previewModel(preview: BoardPreview): RendererModel? = null
-
-    @Composable
-    override fun BoardThumbnail(model: RendererModel, modifier: Modifier) = Unit
 
     @Composable
     override fun Screen(

@@ -5,8 +5,8 @@ import java.time.ZoneId
 
 /** When a game serves a fresh puzzle. */
 sealed interface Cadence {
-    /** A new puzzle at midnight in [zone]. Zip: America/Los_Angeles (research 01); a
-     *  user-localized daily (Strands, Phase 3) passes the device zone at fetch time. */
+    /** A new puzzle at midnight in [zone]. Every game uses America/Los_Angeles (research 01, A11)
+     *  so all days roll over together regardless of the device zone. */
     data class Daily(val zone: ZoneId) : Cadence
 }
 

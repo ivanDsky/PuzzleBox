@@ -29,9 +29,9 @@ import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
 /**
- * The history browser (spec A18): tabs for All and each game, the tab's stats and a
- * week calendar that opens to the month, then its days newest first, paged lazily and
- * grouped by day. A calendar day ([onSelectDay]) narrows the list to that day;
+ * The history browser (spec A18, A28): the All timeline — the streak and stats, a week
+ * calendar that opens to the month, then every game's days newest first, paged lazily
+ * and grouped by day. A calendar day ([onSelectDay]) narrows the list to that day;
  * [onShowCalendar] pages the calendar and switches week/month. Every row carries its
  * GameId, glyph and display name (fix round 5, defect C).
  * Phones — and portrait of any width — are single-pane (list, or a day's detail with a
@@ -39,10 +39,8 @@ import java.time.LocalDate
  *
  * Replay (A4, ticket 11): tapping a day opens its detail; "Play again" / "Keep going"
  * reports the (game, day) through [onReplay] and the shell opens that day's game slot.
- * On a game's tab any archive day can be picked on the calendar; its day header's action
- * reports through [onReplay] too (ticket 09).
  * Every identity (selection, best lookup, replay) is (game, day), never day alone
- * (tango-05). A selection outside the [selectedTab] closes, back to the list.
+ * (tango-05).
  */
 @Composable
 fun HistoryScreen(
@@ -50,8 +48,6 @@ fun HistoryScreen(
     onBack: () -> Unit,
     days: LazyPagingItems<HistoryDayRow>,
     state: HistoryUiState,
-    selectedTab: GameId?,
-    onSelectTab: (GameId?) -> Unit,
     onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit,
     onSelectDay: (LocalDate?) -> Unit,
     onReplay: (GameId, LocalDate) -> Unit,
@@ -59,11 +55,6 @@ fun HistoryScreen(
 ) {
     var selectedKey by rememberSaveable { mutableStateOf<String?>(null) }
     val selectedRow = selectedKey?.let { key -> state.rows.firstOrNull { it.key == key } }
-    // The selected tab's rows own the selection: a pick outside the new tab closes.
-    val selectTab: (GameId?) -> Unit = { game ->
-        if (game != null && selectedRow?.gameId != game) selectedKey = null
-        onSelectTab(game)
-    }
 
     // Single-pane (A16, N17): back from a day's detail returns to the day list first;
     // only enabled while a day shows, so the next back leaves History. Predictive, so
@@ -91,13 +82,10 @@ fun HistoryScreen(
                 ListPane(
                     days = days,
                     state = state,
-                    selectedTab = selectedTab,
-                    onSelectTab = selectTab,
                     onShowCalendar = onShowCalendar,
                     onSelectDay = onSelectDay,
                     selectedKey = selectedRow?.key,
                     onDayClick = { selectedKey = it.key },
-                    onReplay = onReplay,
                     onBack = onBack,
                     cardColor = cardColor,
                     modifier = Modifier
@@ -140,13 +128,10 @@ fun HistoryScreen(
                     ListPane(
                         days = days,
                         state = state,
-                        selectedTab = selectedTab,
-                        onSelectTab = selectTab,
                         onShowCalendar = onShowCalendar,
                         onSelectDay = onSelectDay,
                         selectedKey = null,
                         onDayClick = { selectedKey = it.key },
-                        onReplay = onReplay,
                         onBack = onBack,
                         cardColor = cardColor,
                         modifier = Modifier.fillMaxSize(),
@@ -166,7 +151,7 @@ fun HistoryScreen(
     }
 }
 
-/** [row]'s game's best row in the tab, if it has a numbered solve. */
+/** [row]'s game's best row, if it has a numbered solve. */
 private fun HistoryUiState.bestOf(row: HistoryDayRow): HistoryDayRow? =
     rows.firstOrNull { it.gameId == row.gameId && it.isBest }
 

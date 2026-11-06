@@ -31,6 +31,11 @@ val DarkPrimaryText = Color(0xFF6BDF17)
 val LightTimerFill = Color(0xFF3A8200)
 val DarkTimerFill = Color(0xFF6BDF17)
 
+// Content (text, marks, motif) on a full accent fill. Dark mode does not reuse the dark
+// pastel `onAccent`: it is too light on the vivid fills, so dark takes the dark surface.
+val LightOnFill = Color(0xFFFFFFFF)
+val DarkOnFill = Color(0xFF101418)
+
 
 val LightColorScheme = lightColorScheme(
     primary = Color(0xFF58CC02),

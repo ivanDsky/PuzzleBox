@@ -24,7 +24,8 @@ internal data class HistoryDay(val isoDay: String, val headline: String, val gam
 
 /**
  * The real Home screen (A10–A12, A15): Today tiles and the one CTA, the streak card, the
- * recent days, the account card. Single-pane on compact widths; list-detail on expanded.
+ * recent days, the account card. Single-pane on compact widths; list-detail on expanded,
+ * where the streak moves out of the list into the streak & stats pane.
  * Destinations are hoisted to the app shell (ticket 17): [onOpenGame] opens a game (a
  * tile, or the CTA's [HomeUiState.playTarget]; the play restores its save), plus the full
  * history and the account surface. Game titles render from [state]'s rows, never from a
@@ -50,6 +51,7 @@ internal fun HomeScreen(
                     selectedDay = selectedDay,
                     onDayClick = { selectedDay = it },
                     selectable = true,
+                    showStreak = false,
                     onOpenGame = onOpenGame,
                     onOpenProfile = onOpenProfile,
                     modifier = Modifier
@@ -59,7 +61,6 @@ internal fun HomeScreen(
                 DetailPane(
                     selected = selectedDay?.let { iso -> state.history.firstOrNull { it.isoDay == iso } },
                     state = state,
-                    onOpenGame = onOpenGame,
                     modifier = Modifier
                         .weight(0.58f)
                         .fillMaxHeight(),
@@ -72,6 +73,7 @@ internal fun HomeScreen(
                 selectedDay = null,
                 onDayClick = {},
                 selectable = false,
+                showStreak = true,
                 onOpenGame = onOpenGame,
                 onOpenProfile = onOpenProfile,
                 modifier = Modifier.fillMaxSize(),

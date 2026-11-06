@@ -23,8 +23,13 @@ import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.GamePlugin
+import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
@@ -63,8 +68,8 @@ class ProfileViewModelTest {
     private val zip = GameId("zip")
     private val tango = GameId("tango")
 
-    // Today's board is the featured game's: the registry's first, "zip".
-    private val registry = TestGames.registry(listOf(zip, tango))
+    // Today's board is the featured game's: the registry's first, "zip". Tango ranks hints first.
+    private val registry = GameRegistry(listOf(TestGames.plugin(zip), hintsFirst(TestGames.plugin(tango))))
     private val featured = GetFeaturedGame(registry)
     private val clock = Clock.fixed(Instant.parse("2026-10-31T12:00:00Z"), ZoneOffset.UTC)
 
@@ -105,7 +110,7 @@ class ProfileViewModelTest {
                 featured = featured,
                 today = { day },
             ),
-            observeGameStats = ObserveGameStats(history, ComputeStreak(GetPuzzleDay(registry, clock))),
+            observeGameStats = ObserveGameStats(registry, history, ComputeStreak(GetPuzzleDay(registry, clock))),
             observeGameHistory = history,
             registry = registry,
             brands = GamePlayRegistry(emptyList()),
@@ -172,8 +177,44 @@ class ProfileViewModelTest {
         assertEquals(2, state.daysPlayed)
         assertEquals(listOf(zip, tango), state.games.map { it.gameId })
         assertEquals(listOf(2, 1), state.games.map { it.solved })
-        assertEquals(listOf<Long?>(80_000, 61_000), state.games.map { it.bestTimeMs })
+        assertEquals(listOf(BestScore(80_000, 0), BestScore(61_000, 0)), state.games.map { it.best })
     }
+
+    @Test
+    fun `a hints-ranked game's best is its fewest-hints solve - A10`() = runTest(dispatcher) {
+        val completions = FakeCompletionRepository(
+            listOf(
+                record(zip, day, timeMs = 30_000, hints = 2),
+                record(zip, day.minusDays(1), timeMs = 70_000, hints = 0),
+                record(tango, day, timeMs = 30_000, hints = 2),
+                record(tango, day.minusDays(1), timeMs = 70_000, hints = 0),
+            ),
+        )
+
+        val games = viewModel(completions = completions).vm.uiState.value.games.associateBy { it.gameId }
+
+        assertEquals(RankOrder.HintsThenTime, games.getValue(tango).rankOrder)
+        assertEquals(BestScore(70_000, 0), games.getValue(tango).best)
+        assertEquals(RankOrder.TimeThenHints, games.getValue(zip).rankOrder)
+        assertEquals(BestScore(30_000, 2), games.getValue(zip).best)
+    }
+
+    private fun <P> hintsFirst(
+        plugin: GamePlugin<P, TestGames.Session, TestGames.Model>,
+    ): GamePlugin<P, TestGames.Session, TestGames.Model> = GamePlugin(
+        definition = plugin.definition,
+        rules = plugin.rules,
+        session = plugin.session,
+        score = object : ScoreModel<TestGames.Session> {
+            override fun completion(session: TestGames.Session) = plugin.score.completion(session)
+            override val rankOrder = RankOrder.HintsThenTime
+        },
+        stateOf = plugin.stateOf,
+        initialSession = plugin.initialSession,
+        refOf = plugin.refOf,
+        replaySession = plugin.replaySession,
+        rendererModel = plugin.rendererModel,
+    )
 
     @Test
     fun `choosing dark persists the theme - N4`() = runTest(dispatcher) {

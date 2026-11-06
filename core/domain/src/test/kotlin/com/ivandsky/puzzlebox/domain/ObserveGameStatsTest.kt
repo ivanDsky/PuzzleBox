@@ -1,7 +1,12 @@
 package com.ivandsky.puzzlebox.domain
 
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.GamePlugin
+import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -28,11 +33,13 @@ class ObserveGameStatsTest {
 
     private val today = LocalDate.of(2026, 11, 10)
     private val clock = Clock.fixed(Instant.parse("2026-11-10T12:00:00Z"), ZoneOffset.UTC)
-    private val registry = TestGames.registry(listOf(alpha, beta))
+    // beta ranks hints first, as Strands does; alpha keeps the time-first default.
+    private val registry = GameRegistry(listOf(TestGames.plugin(alpha), hintsFirst(TestGames.plugin(beta))))
     private val completions = FakeCompletionRepository()
     private val daily = FakeDailyRepository()
 
     private fun stats(game: GameId? = null) = ObserveGameStats(
+        registry,
         ObserveGameHistory(registry, daily, completions),
         ComputeStreak(GetPuzzleDay(registry, clock)),
     )(game)
@@ -54,10 +61,11 @@ class ObserveGameStatsTest {
                 currentStreak = 0,
                 bestStreak = 0,
                 solved = 0,
-                bestTimeMs = null,
                 hintFree = 0,
                 averageTimeMs = null,
                 playingSince = null,
+                best = null,
+                rankOrder = RankOrder.TimeThenHints,
             ),
             stats().first(),
         )
@@ -81,10 +89,11 @@ class ObserveGameStatsTest {
                 currentStreak = 2,
                 bestStreak = 3,
                 solved = 5,
-                bestTimeMs = 20_000L,
                 hintFree = 3,
                 averageTimeMs = 50_000L,
                 playingSince = today.minusDays(5),
+                best = BestScore(timeMs = 20_000L, hints = 1),
+                rankOrder = RankOrder.TimeThenHints,
             ),
             stats().first(),
         )
@@ -105,7 +114,7 @@ class ObserveGameStatsTest {
         assertEquals(1, stats.currentStreak)
         assertEquals(1, stats.bestStreak)
         assertEquals(1, stats.solved)
-        assertEquals(40_000L, stats.bestTimeMs)
+        assertEquals(BestScore(timeMs = 40_000L, hints = 0), stats.best)
         assertEquals(40_000L, stats.averageTimeMs)
         assertEquals(today, stats.playingSince)
     }
@@ -134,6 +143,39 @@ class ObserveGameStatsTest {
     }
 
     @Test
+    fun `a hints-first game's best is the fewest-hints solve, time breaking ties`() = runTest {
+        completions.setRecords(
+            listOf(
+                solve(beta, daysAgo = 0, time = 10_000L, hints = 2),
+                solve(beta, daysAgo = 1, time = 90_000L, hints = 0),
+                solve(beta, daysAgo = 2, time = 60_000L, hints = 0),
+                // A hint-free practice play never counts.
+                solve(beta, daysAgo = 3, time = 1_000L, hints = 0, puzzleNumber = null),
+            ),
+        )
+
+        val stats = stats(beta).first()
+
+        assertEquals(RankOrder.HintsThenTime, stats.rankOrder)
+        assertEquals(BestScore(timeMs = 60_000L, hints = 0), stats.best)
+    }
+
+    @Test
+    fun `a time-first game's best is the fastest solve`() = runTest {
+        completions.setRecords(
+            listOf(
+                solve(alpha, daysAgo = 0, time = 10_000L, hints = 2),
+                solve(alpha, daysAgo = 1, time = 60_000L, hints = 0),
+            ),
+        )
+
+        val stats = stats(alpha).first()
+
+        assertEquals(RankOrder.TimeThenHints, stats.rankOrder)
+        assertEquals(BestScore(timeMs = 10_000L, hints = 2), stats.best)
+    }
+
+    @Test
     fun `an archived solve counts toward solves and times but never the streak`() = runTest {
         completions.setRecords(
             listOf(
@@ -158,12 +200,30 @@ class ObserveGameStatsTest {
                 currentStreak = 1,
                 bestStreak = 1,
                 solved = 2,
-                bestTimeMs = 20_000L,
                 hintFree = 1,
                 averageTimeMs = 30_000L,
                 playingSince = today.minusDays(1),
+                best = BestScore(timeMs = 20_000L, hints = 1),
+                rankOrder = RankOrder.TimeThenHints,
             ),
             stats().first(),
         )
     }
+
+    private fun <P> hintsFirst(
+        plugin: GamePlugin<P, TestGames.Session, TestGames.Model>,
+    ): GamePlugin<P, TestGames.Session, TestGames.Model> = GamePlugin(
+        definition = plugin.definition,
+        rules = plugin.rules,
+        session = plugin.session,
+        score = object : ScoreModel<TestGames.Session> {
+            override fun completion(session: TestGames.Session) = plugin.score.completion(session)
+            override val rankOrder = RankOrder.HintsThenTime
+        },
+        stateOf = plugin.stateOf,
+        initialSession = plugin.initialSession,
+        refOf = plugin.refOf,
+        replaySession = plugin.replaySession,
+        rendererModel = plugin.rendererModel,
+    )
 }

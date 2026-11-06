@@ -16,19 +16,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.GameStats
+import com.ivandsky.puzzlebox.gameui.bestScoreText
 
 /**
- * The tab's numbers (spec A18, history.md §2): days in a row with the best run beside it,
- * then Solved · Best · Hint-free — and Average on a game's tab, where one game's times
- * compare. Practice never counts ([GameStats] already leaves it out).
+ * The All timeline's numbers (spec A18, A28, history.md §2): days in a row with the
+ * best run beside it, then Solved · Best · Hint-free. Practice never counts ([GameStats]
+ * already leaves it out); per-game numbers live on Play's game page.
  */
 @Composable
 internal fun HistoryStatsHeader(
     stats: GameStats,
-    perGame: Boolean,
     cardColor: Color,
     modifier: Modifier = Modifier,
 ) {
@@ -68,11 +67,12 @@ internal fun HistoryStatsHeader(
             HorizontalDivider(color = scheme.outlineVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 StatTile("${stats.solved}", "Solved", Modifier.weight(1f))
-                StatTile(stats.bestTimeMs?.let(::formatDuration) ?: "–", "Best", Modifier.weight(1f))
+                StatTile(
+                    value = stats.best?.let { bestScoreText(it, stats.rankOrder) } ?: "–",
+                    label = "Best",
+                    modifier = Modifier.weight(1f).testTag("history.stats.best"),
+                )
                 StatTile("${stats.hintFree}", "No hints", Modifier.weight(1f))
-                if (perGame) {
-                    StatTile(stats.averageTimeMs?.let(::formatDuration) ?: "–", "Average", Modifier.weight(1f))
-                }
             }
         }
     }

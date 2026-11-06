@@ -181,7 +181,7 @@ class ResultScreenTest {
     @Test
     fun `a hints-first game leads its best line with the hints`() {
         setContent(verdict = RecordVerdict.NotBest, previousBestMs = 102_000, rankOrder = RankOrder.HintsThenTime)
-        composeRule.onNodeWithText("Your best is 0 hints · 1:42").assertExists()
+        composeRule.onNodeWithText("Your best is Perfect · 1:42").assertExists()
     }
 
     @Test
@@ -397,7 +397,7 @@ class ResultScreenTest {
                     factory { ObserveGameHistory(get(), get(), get()) }
                     factory { GetPuzzleDay(get()) }
                     factory { ComputeStreak(get()) }
-                    factory { ObserveGameStats(get(), get()) }
+                    factory { ObserveGameStats(get(), get(), get()) }
                     factory { GetNextRollover(get()) }
                 },
                 playModule,

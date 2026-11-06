@@ -112,8 +112,8 @@ internal fun CalendarMonth(month: YearMonth, state: HistoryUiState, onSelectDay:
 /**
  * One day: its [weekday] letter (week view only) over its [DayRing], with the number
  * inside — on an ink disc when selected, bold on a tinted disc today. Later days and the
- * neighbouring months' days are dimmed with no ring; a day taps when the tab can open it
- * ([HistoryUiState.canSelect]: a row on it, or on a game's tab any archive day).
+ * neighbouring months' days are dimmed with no ring; a day taps when it has a row
+ * ([HistoryUiState.canSelect]).
  */
 @Composable
 private fun CalendarDay(

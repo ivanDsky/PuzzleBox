@@ -294,7 +294,7 @@ class TabNavigationE2ETest {
     private companion object {
         const val HOME = "route.home"
         const val HISTORY = "route.history"
-        const val HUB = "route.hub"
+        const val HUB = "route.library"
         const val GAME = "route.game"
         const val RESULT = "route.result"
         const val PROFILE = "route.profile"
@@ -302,9 +302,9 @@ class TabNavigationE2ETest {
         const val ZIP = "zip"
         const val QUEENS = "queens"
         const val HISTORY_DAYS = 40
-        // Items 0–3 are the top bar, game tabs, stats and weeks, so rows start at item 4.
+        // Items 0–2 are the top bar, stats and weeks, so rows start at item 3.
         const val SCROLLED_INDEX = 15
-        const val SCROLLED_ROW = SCROLLED_INDEX - 4
+        const val SCROLLED_ROW = SCROLLED_INDEX - 3
         const val MAX_SAVED_BYTES = 100_000
         val RESULT_KEY = ResultKey(ZIP, "2026-03-09", timeMs = 1_000L, hintsUsed = 0)
         const val TIMEOUT_MS = 5_000L

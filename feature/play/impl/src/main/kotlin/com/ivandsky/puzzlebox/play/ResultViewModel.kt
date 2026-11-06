@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.domain.nextUnsolved
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
@@ -85,6 +86,7 @@ class ResultViewModel(
     stats: ObserveGameStats,
     rollover: GetNextRollover,
     ui: GamePlayRegistry,
+    games: GameRegistry,
 ) : ViewModel() {
 
     private val slot = PlaySlot(GameId(key.gameId), LocalDate.parse(key.day))
@@ -96,7 +98,7 @@ class ResultViewModel(
     val brand: GameBrand = ui.brandOf(slot.gameId)
 
     /** This solve's record facts, folded eagerly so a later replay never erases them. */
-    private val record: StateFlow<ResultUiState> = ResultUiState(game = names[slot.gameId] ?: key.gameId).let { blank ->
+    private val record: StateFlow<ResultUiState> = ResultUiState(game = games.displayName(slot.gameId)).let { blank ->
         if (live != null) {
             val first = resultOf(blank, live.record.value)
             live.record.runningFold(first, ::resultOf).stateIn(viewModelScope, SharingStarted.Eagerly, first)
