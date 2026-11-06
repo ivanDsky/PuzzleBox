@@ -301,4 +301,32 @@ class HomeRouteTest {
 
         composeRule.runOnIdle { assertEquals(listOf(url), opened) }
     }
+
+    @Test
+    fun `a tap with no app to open the link does nothing - A6`() {
+        val url = "https://github.com/ivanDsky/PuzzleBox/releases/tag/v1.3.0"
+        startGraph(
+            FakeDailyRepository(),
+            FakeCompletionRepository(),
+            releases = FakeAppReleaseRepository(AppRelease(tag = "v1.3.0", url = url)),
+        )
+        // What AndroidUriHandler throws when no activity can handle the link.
+        val uriHandler = object : UriHandler {
+            override fun openUri(uri: String) = throw IllegalArgumentException("Can't open $uri.")
+        }
+        composeRule.setContent {
+            CompositionLocalProvider(LocalUriHandler provides uriHandler) {
+                PuzzleBoxTheme {
+                    HomeRoute(layout = HomeLayout.SinglePane, onOpenGame = {}, onOpenProfile = {})
+                }
+            }
+        }
+
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithTag("home.update_pill").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("home.update_pill").performClick()
+
+        composeRule.onNodeWithTag("home.update_pill").assertExists()
+    }
 }

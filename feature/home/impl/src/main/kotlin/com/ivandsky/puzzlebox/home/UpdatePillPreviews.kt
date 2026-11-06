@@ -51,6 +51,7 @@ private val PillState = HomeUiState(
         WeekDay(date = PillDay.minusDays(back), solved = PillRows.take(((6 - back) % 3).toInt()).map { it.brand }, isToday = back == 0L)
     },
     rolloverAt = Instant.EPOCH,
+    updateUrl = PREVIEW_URL,
 )
 
 @Composable
@@ -61,7 +62,6 @@ private fun HomeWithUpdate(layout: HomeLayout) {
             state = PillState,
             onOpenGame = {},
             onOpenProfile = {},
-            updateUrl = PREVIEW_URL,
         )
     }
 }

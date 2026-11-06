@@ -1,12 +1,9 @@
 package com.ivandsky.puzzlebox.home
 
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,14 +20,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +36,7 @@ import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.formatDuration
+import com.ivandsky.puzzlebox.designsystem.pressScale
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.TodayStatus
@@ -71,16 +67,10 @@ internal fun TodayBadge(
 ) {
     val reducedMotion = rememberReducedMotion()
     val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed && !reducedMotion) MotionTokens.PressScale else 1f,
-        animationSpec = spring(MotionTokens.SpringDampingDefault, MotionTokens.SpringStiffnessDefault),
-        label = "today-badge-press",
-    )
     val status = row.status
     Column(
         modifier = modifier
-            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .pressScale(interaction, reducedMotion)
             .clip(MaterialTheme.shapes.medium)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .alpha(if (status == TodayStatus.Offline) OFFLINE_ALPHA else 1f)
