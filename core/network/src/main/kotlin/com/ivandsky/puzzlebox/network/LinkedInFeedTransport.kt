@@ -75,7 +75,14 @@ internal class LinkedInFeedTransport(
         }
         request.persistedQuery?.let { query ->
             rung(PERSISTED_QUERY, reasons) {
-                val response = api.persistedQuery(variables = query.variables, queryId = query.queryId)
+                var response = api.persistedQuery(variables = query.variables, queryId = query.queryId)
+                // WHY: the stream sets no JSESSIONID, so the csrf echo is missing (403 "CSRF check
+                // failed"); the plain page GET sets it — handshake once, then retry.
+                if (response.code() == HTTP_FORBIDDEN) {
+                    response.errorBody()?.close()
+                    api.page(request.path).close()
+                    response = api.persistedQuery(variables = query.variables, queryId = query.queryId)
+                }
                 scanSessionRung(PERSISTED_QUERY, response, request, reasons) { throttled = true }
                     ?.let { return FetchResult.Ok(it) }
             }
@@ -146,6 +153,7 @@ internal class LinkedInFeedTransport(
         val THROTTLE_COOLDOWN: Duration = Duration.ofSeconds(100)
         private const val PERSISTED_QUERY = "persisted-query"
         private const val GRAPHQL = "graphql"
+        private const val HTTP_FORBIDDEN = 403
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }
 }

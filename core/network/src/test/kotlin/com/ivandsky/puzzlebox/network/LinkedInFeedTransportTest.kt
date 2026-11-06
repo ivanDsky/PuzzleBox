@@ -281,8 +281,10 @@ class LinkedInFeedTransportTest {
         }
 
     @Test
-    fun `403 on the persisted-query GET is an Unavailable naming that rung`() = runBlocking {
+    fun `403 on the persisted-query GET survives one page handshake retry, then is an Unavailable naming that rung`() = runBlocking {
         server.enqueue(sessionSeedingStream())
+        server.enqueue(MockResponse().setResponseCode(403))
+        server.enqueue(MockResponse().setBody("<html></html>"))
         server.enqueue(MockResponse().setResponseCode(403))
 
         val result = transport.fetch(
@@ -291,6 +293,6 @@ class LinkedInFeedTransportTest {
 
         val error = (result as FetchResult.Err).error as FetchError.Unavailable
         assertTrue(error.detail!!.contains("persisted-query HTTP 403"))
-        assertEquals(2, server.requestCount)
+        assertEquals(4, server.requestCount)
     }
 }
