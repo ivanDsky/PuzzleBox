@@ -14,17 +14,23 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
 import androidx.paging.compose.LazyPagingItems
+import com.ivandsky.puzzlebox.designsystem.AppDialog
+import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.designsystem.SecondaryButton
+import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
@@ -159,12 +165,66 @@ fun HistoryScreen(
                 }
             }
         }
+        // Over the list only: a single-pane day detail owns the whole screen.
+        if (state.archiveGames.isNotEmpty() && (layout == HistoryLayout.TwoPane || selectedRow == null)) {
+            OlderPuzzles(
+                games = state.archiveGames,
+                onOpen = onReplay,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(Spacing.lg),
+            )
+        }
     }
 }
 
 /** [row]'s game's best row in the tab, if it has a numbered solve. */
 private fun HistoryUiState.bestOf(row: HistoryDayRow): HistoryDayRow? =
     rows.firstOrNull { it.gameId == row.gameId && it.isBest }
+
+/**
+ * The "Older puzzles" entry (A12): one archive game opens its date picker directly,
+ * several ask for the game first. The picked (game, day) goes out as a replay.
+ */
+@Composable
+private fun OlderPuzzles(
+    games: List<ArchiveGame>,
+    onOpen: (GameId, LocalDate) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var choosing by rememberSaveable { mutableStateOf(false) }
+    var pickingId by rememberSaveable { mutableStateOf<String?>(null) }
+    val picking = games.firstOrNull { it.gameId.value == pickingId }
+    SecondaryButton(
+        text = "Older puzzles",
+        onClick = { if (games.size == 1) pickingId = games.single().gameId.value else choosing = true },
+        modifier = modifier.testTag("history.older"),
+    )
+    if (choosing) {
+        AppDialog(title = "Older puzzles", onDismissRequest = { choosing = false }) {
+            games.forEach { game ->
+                AppTextButton(
+                    text = game.name,
+                    onClick = {
+                        choosing = false
+                        pickingId = game.gameId.value
+                    },
+                    modifier = Modifier.testTag("history.older.game.${game.gameId.value}"),
+                )
+            }
+        }
+    }
+    picking?.let { game ->
+        OlderPuzzlesPicker(
+            range = game.range,
+            onOpen = { day ->
+                pickingId = null
+                onOpen(game.gameId, day)
+            },
+            onDismiss = { pickingId = null },
+        )
+    }
+}
 
 /** Shared-axis pane swap (A12): arriving detail decelerates in, leaving accelerates out. */
 private fun AnimatedContentTransitionScope<HistoryDayRow?>.detailTransition(): ContentTransform =

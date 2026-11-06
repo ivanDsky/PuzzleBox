@@ -60,6 +60,7 @@ object HistoryTestSupport {
             // No play UIs: every game reads GameBrand.Neutral.
             playRegistry = GamePlayRegistry(emptyList()),
             puzzleDay = puzzleDay,
+            daily = daily,
         )
     }
 

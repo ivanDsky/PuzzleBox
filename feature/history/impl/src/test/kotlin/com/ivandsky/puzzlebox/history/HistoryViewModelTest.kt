@@ -197,6 +197,21 @@ class HistoryViewModelTest {
     }
 
     @Test
+    fun `archive games are the registered games with an archive range, in tab order`() = runTest {
+        val range = HistoryTestSupport.TODAY.minusDays(9)..HistoryTestSupport.TODAY
+        val daily = FakeDailyRepository().apply {
+            setHistory(ZIP, listOf(HistoryTestSupport.entry(HistoryTestSupport.TODAY)))
+            setArchiveRange(QUEENS, range)
+            setArchiveRange(TANGO, range)
+        }
+        val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository())
+
+        val state = viewModel.uiState.first { it.rows.isNotEmpty() }
+        assertEquals(listOf(TANGO, QUEENS), state.archiveGames.map { it.gameId })
+        assertEquals(listOf(range, range), state.archiveGames.map { it.range })
+    }
+
+    @Test
     fun `a game tab lists only that game, in the state and the pages`() = runTest {
         val today = HistoryTestSupport.TODAY
         val daily = FakeDailyRepository().apply {
