@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain.di
 
+import com.ivandsky.puzzlebox.domain.GetAppUpdate
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetNextRollover
@@ -31,6 +32,7 @@ val domainModule = module {
     factory { LoadPastDay(daily = get(), registry = get()) }
     factory { ObserveArchiveMonth(daily = get(), saved = get(), completions = get(), calendar = get()) }
     factory { ObserveArchiveProgress(daily = get(), calendar = get(), observeGameHistory = get()) }
+    factory { GetAppUpdate(releases = get(), build = get()) }
     single { SyncTodayPuzzles(registry = get(), daily = get(), calendar = get()) }
     factory {
         ObserveTodaySet(

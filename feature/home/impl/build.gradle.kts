@@ -1,5 +1,7 @@
 plugins {
     alias(libs.plugins.puzzlebox.android.feature.impl)
+    // Ticket 07: UpdatePillScreenshotTest records/verifies goldens in feature/home/impl/snapshots/.
+    alias(libs.plugins.puzzlebox.android.roborazzi)
 }
 
 android {

@@ -22,6 +22,51 @@
           }
         },
         {
+          "client_id": "790838365078-r0lcp0mc29qiu9kl06avvcgtjgjro3ao.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ivandsky.puzzlebox",
+            "certificate_hash": "2a2f23415e58d399b64ebdf18752f8076a66ecca"
+          }
+        },
+        {
+          "client_id": "790838365078-nm861vk1tp5dlppt786t6uq5v1b7njei.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAQEhxqicGviWgKeREe220P29zv-lFpFc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "790838365078-nm861vk1tp5dlppt786t6uq5v1b7njei.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:790838365078:android:c3479bd07709a64020abb7",
+        "android_client_info": {
+          "package_name": "com.ivandsky.puzzlebox.debug"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "790838365078-edvdhvbi7vcujt2htr2emq7p478gsibg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ivandsky.puzzlebox.debug",
+            "certificate_hash": "b935b10e821067d4e44c8705af329fa00922612a"
+          }
+        },
+        {
           "client_id": "790838365078-nm861vk1tp5dlppt786t6uq5v1b7njei.apps.googleusercontent.com",
           "client_type": 3
         }

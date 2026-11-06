@@ -12,7 +12,9 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
+import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.domain.GetAppUpdate
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.LoadPastDay
@@ -106,6 +108,10 @@ class DiGraphTest : KoinTest {
             assertSame(koin.get<SyncTodayPuzzles>(), koin.get<SyncTodayPuzzles>())
             assertNotNull(koin.get<LoadPastDay>())
             assertNotNull(koin.get<ObserveTodayLeaderboard>())
+            // Home's resume update check: the use case over the shell-bound installed build;
+            // this debug-variant graph never checks (spec A4).
+            assertNotNull(koin.get<GetAppUpdate>())
+            assertEquals(false, koin.get<AppBuild>().checksForUpdates)
             // Today's featured game (Profile's board, the leaderboard) is the registry's first.
             assertEquals(GameId("zip"), koin.get<GetFeaturedGame>()().id)
 

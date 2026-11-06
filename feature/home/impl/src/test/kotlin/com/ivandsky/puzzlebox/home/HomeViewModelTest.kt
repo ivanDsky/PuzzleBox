@@ -3,8 +3,12 @@ package com.ivandsky.puzzlebox.home
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.update.AppRelease
+import com.ivandsky.puzzlebox.data.update.AppReleaseRepository
+import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GameStats
+import com.ivandsky.puzzlebox.domain.GetAppUpdate
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
@@ -28,6 +32,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.repository.FakeAppReleaseRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -37,6 +42,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -81,6 +87,8 @@ class HomeViewModelTest {
         identity: FakeIdentityService = FakeIdentityService(initial = null),
         collect: Boolean = true,
         hintsRanked: Set<GameId> = emptySet(),
+        release: AppRelease? = null,
+        releases: AppReleaseRepository = FakeAppReleaseRepository(release),
     ): Deps {
         val registry = GameRegistry(
             listOf(zip, tango).map { if (it in hintsRanked) hintsFirst(TestGames.plugin(it)) else TestGames.plugin(it) },
@@ -102,6 +110,10 @@ class HomeViewModelTest {
             puzzleDay = puzzleDay,
             nextRollover = GetNextRollover(registry, clock),
             syncTodayPuzzles = sync,
+            getAppUpdate = GetAppUpdate(
+                releases,
+                AppBuild(versionName = "1.2.0", checksForUpdates = true),
+            ),
         )
         if (collect) backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return Deps(vm, daily, completions, saved, identity)
@@ -363,6 +375,64 @@ class HomeViewModelTest {
         deps.identity.currentIdentity = ann
 
         assertEquals(ann, deps.vm.uiState.value.identity)
+    }
+
+    @Test
+    fun `a newer release with checks on sets the update url - A4 A7`() = runTest {
+        val url = "https://github.com/ivanDsky/PuzzleBox/releases/tag/v1.3.0"
+        val deps = viewModel(release = AppRelease(tag = "v1.3.0", url = url))
+
+        deps.vm.checkForUpdate()
+
+        assertEquals(url, deps.vm.uiState.value.updateUrl)
+    }
+
+    @Test
+    fun `no release leaves the update url null`() = runTest {
+        val deps = viewModel(release = null)
+
+        deps.vm.checkForUpdate()
+
+        assertNull(deps.vm.uiState.value.updateUrl)
+    }
+
+    @Test
+    fun `a resume that finds no release clears a known update url - Ruling 05`() = runTest {
+        val url = "https://github.com/ivanDsky/PuzzleBox/releases/tag/v1.3.0"
+        val releases = FakeAppReleaseRepository(AppRelease(tag = "v1.3.0", url = url))
+        val deps = viewModel(releases = releases)
+
+        deps.vm.checkForUpdate()
+        assertEquals(url, deps.vm.uiState.value.updateUrl)
+
+        releases.release = null
+        deps.vm.checkForUpdate()
+        assertNull(deps.vm.uiState.value.updateUrl)
+    }
+
+    @Test
+    fun `a check that never completes keeps the url null and today and history flowing - A6 S5`() = runTest {
+        val deps = viewModel(collect = false, releases = NeverAnsweringAppReleaseRepository)
+        deps.vm.checkForUpdate()
+
+        // The first frame is the seed: every game listed, status unknown, no pill.
+        val first = deps.vm.uiState.value
+        assertEquals(listOf(zip, tango), first.today.map { it.game })
+        assertTrue(first.today.all { it.status == null })
+        assertNull(first.updateUrl)
+
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { deps.vm.uiState.collect {} }
+        deps.daily.addEntry(DailyEntry(zip, LocalDate.of(2026, 10, 31), 592, "zip/n5", 0L))
+
+        val state = deps.vm.uiState.value
+        assertEquals(listOf(TodayStatus.NotStarted, TodayStatus.NotStarted), state.today.map { it.status })
+        assertEquals(listOf("2026-10-31"), state.history.map { it.isoDay })
+        assertNull(state.updateUrl)
+    }
+
+    /** A release check stuck on the network: it never answers. */
+    private object NeverAnsweringAppReleaseRepository : AppReleaseRepository {
+        override suspend fun latest(): AppRelease? = awaitCancellation()
     }
 }
 
