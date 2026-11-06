@@ -4,10 +4,9 @@ import android.content.Context
 import android.content.res.Configuration
 import android.provider.Settings
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -70,9 +69,9 @@ abstract class CreateRootGoldenScreenshots(private val device: String) {
                     if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
             }
             CompositionLocalProvider(LocalConfiguration provides config) {
-                // The app's scene canvas: an opaque background behind every screen.
+                // The app's root Scaffold: the background colour, onBackground content colour.
                 PuzzleBoxTheme(darkTheme = dark) {
-                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         CreateScreen(
                             state = state,
                             onNew = { _, _ -> },
