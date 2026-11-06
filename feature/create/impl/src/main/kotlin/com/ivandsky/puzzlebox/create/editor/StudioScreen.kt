@@ -6,29 +6,25 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -36,7 +32,6 @@ import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.VariantId
@@ -44,15 +39,15 @@ import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 
-private val StudioTopBarHeight = 64.dp
 private const val CardEnterScale = 0.9f
 
 /**
- * The Studio: a compact bar (Back, the draft's [title] over [subtitle], the [verdict] pill)
- * over the game's [board], drawn as the largest square that fits, with the [toolStrip]
- * under it. In [PlayLayout.TwoPane] the square sits centred in the space; on a phone it
- * hangs from the bar. The pill opens [verdictCard]'s card as a popover anchored at the pill's
- * top-right.
+ * The Studio: the [StudioTopBar] (Back, the draft's [title] over its [subtitle], the [verdict]
+ * pill, the overflow) over the game's [board], drawn as the largest square that fits, with the
+ * [toolStrip] under it. In [PlayLayout.TwoPane] the square sits centred in the space; on a
+ * phone it hangs from the bar. The pill opens [verdictCard]'s card as a popover anchored at
+ * the pill's top-right; the title and the overflow's Rename open the [RenameSheet], whose Save
+ * reports through [onRename].
  */
 @Composable
 fun StudioScreen(
@@ -62,12 +57,24 @@ fun StudioScreen(
     verdictCard: VerdictCardState,
     layout: PlayLayout,
     onBack: () -> Unit,
+    onRename: (String) -> Unit,
+    onDuplicate: () -> Unit,
+    onDelete: () -> Unit,
     board: @Composable (Modifier) -> Unit,
     toolStrip: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var renaming by rememberSaveable { mutableStateOf(false) }
     Column(modifier.fillMaxSize()) {
-        StudioTopBar(title = title, subtitle = subtitle, verdict = verdict, verdictCard = verdictCard, onBack = onBack)
+        StudioTopBar(
+            title = title,
+            subtitle = subtitle,
+            onBack = onBack,
+            onRename = { renaming = true },
+            onDuplicate = onDuplicate,
+            onDelete = onDelete,
+            pill = { PillWithCard(verdict = verdict, verdictCard = verdictCard) },
+        )
         BoardSlot(
             alignment = if (layout == PlayLayout.TwoPane) Alignment.Center else Alignment.TopCenter,
             board = board,
@@ -75,46 +82,24 @@ fun StudioScreen(
         )
         toolStrip(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg))
     }
+    if (renaming) {
+        RenameSheet(
+            title = title,
+            onSave = { next ->
+                renaming = false
+                onRename(next)
+            },
+            onDismiss = { renaming = false },
+        )
+    }
 }
 
+/** The verdict pill with its card's popover anchored at the pill's top-right. */
 @Composable
-private fun StudioTopBar(
-    title: String,
-    subtitle: String,
-    verdict: Verdict,
-    verdictCard: VerdictCardState,
-    onBack: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(StudioTopBarHeight)
-            .padding(horizontal = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        IconButton(onClick = onBack, modifier = Modifier.testTag("create.editor.back")) {
-            Icon(PuzzleIcons.Back, contentDescription = "Back")
-        }
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
-        }
-        Box(Modifier.padding(end = Spacing.sm)) {
-            VerdictPill(verdict = verdict, onClick = verdictCard::show)
-            VerdictCardPopover(verdict = verdict, state = verdictCard)
-        }
+private fun PillWithCard(verdict: Verdict, verdictCard: VerdictCardState) {
+    Box {
+        VerdictPill(verdict = verdict, onClick = verdictCard::show)
+        VerdictCardPopover(verdict = verdict, state = verdictCard)
     }
 }
 
@@ -174,6 +159,9 @@ private fun StudioScreenPreview() {
             verdictCard = VerdictCardState(recheck = {}),
             layout = PlayLayout.SinglePane,
             onBack = {},
+            onRename = {},
+            onDuplicate = {},
+            onDelete = {},
             board = { boardModifier ->
                 Box(boardModifier.background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))
             },

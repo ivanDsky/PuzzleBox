@@ -5,14 +5,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.koin.androidx.compose.koinViewModel
 
-/** The Create root's DI-bound entry point; [onOpen] opens a draft's Studio, new ones included. */
+/**
+ * The Create root's entry point over the activity-scoped [viewModel] (CreateEntries); [onOpen]
+ * opens a draft's Studio, new ones included.
+ */
 @Composable
 internal fun CreateRoute(
+    viewModel: CreateViewModel,
     onOpen: (draftId: String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: CreateViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     CreateScreen(

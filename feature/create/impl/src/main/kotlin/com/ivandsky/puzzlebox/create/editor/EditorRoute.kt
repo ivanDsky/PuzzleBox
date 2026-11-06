@@ -17,18 +17,25 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-/** The Studio's DI-bound entry point: one [EditorViewModel] per [key]; the game's editor UI draws the board. */
+/**
+ * The Studio's DI-bound entry point: one [EditorViewModel] per [key]; the game's editor UI
+ * draws the board. Duplicate reports the copy's id to [onOpen]; Delete reports the draft's id
+ * to [onDelete], which leaves the Studio and deletes it with Undo.
+ */
 @Composable
 internal fun EditorRoute(
     key: EditorKey,
     layout: PlayLayout,
     onBack: () -> Unit,
+    onOpen: (draftId: String) -> Unit,
+    onDelete: (draftId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: EditorViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val state by viewModel.state.collectAsStateWithLifecycle()
     val canUndo by viewModel.canUndo.collectAsStateWithLifecycle()
     val canRedo by viewModel.canRedo.collectAsStateWithLifecycle()
+    val title by viewModel.meta.title.collectAsStateWithLifecycle()
     val routeModifier = modifier.testTag("route.editor")
     when (val ready = state) {
         EditorUiState.Loading -> Box(routeModifier.fillMaxSize())
@@ -40,12 +47,15 @@ internal fun EditorRoute(
             )
         }
         is EditorUiState.Ready -> StudioScreen(
-            title = ready.title,
+            title = title,
             subtitle = ready.subtitle,
             verdict = ready.verdict,
             verdictCard = viewModel.verdictCard,
             layout = layout,
             onBack = onBack,
+            onRename = viewModel.meta::rename,
+            onDuplicate = { viewModel.meta.duplicate(onOpen) },
+            onDelete = { viewModel.meta.delete(onDelete) },
             board = { boardModifier -> ready.editor.Board(ready.controller, ready.verdict, boardModifier) },
             toolStrip = { stripModifier ->
                 // The board's controller adopts every resize and undo, so its draft names the open size.

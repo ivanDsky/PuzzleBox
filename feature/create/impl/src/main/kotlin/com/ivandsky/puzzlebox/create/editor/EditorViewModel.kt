@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
+import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
@@ -29,6 +30,7 @@ class EditorViewModel(
     private val drafts: DraftRepository,
     private val games: GameRegistry,
     private val editors: GameEditorRegistry,
+    copyDraft: CreateDraftCopy,
     dispatchers: DispatcherProvider,
     private val clock: () -> Instant,
 ) : ViewModel() {
@@ -41,6 +43,9 @@ class EditorViewModel(
 
     /** The verdict card; Check again resubmits the board as it stands. */
     val verdictCard = VerdictCardState { (state.value as? EditorUiState.Ready)?.controller?.draft?.value?.let(verdicts::submit) }
+
+    /** The draft's title, rename, duplicate and delete. */
+    val meta = DraftMeta(key.draftId, copyDraft, viewModelScope) { title -> lastStored?.let { write(it.copy(title = title)) } }
 
     /** Undo and Redo are enabled only when the open draft has a step to move. */
     val canUndo: StateFlow<Boolean> = history.canUndo
@@ -70,11 +75,11 @@ class EditorViewModel(
         val ui = editors[stored.gameId] ?: return EditorUiState.Missing
         val draft = EditorDraft.open(editor, stored.blob).getOrNull() ?: return EditorUiState.Missing
         lastStored = stored
+        meta.open(stored.title)
         history.open(draft)
         // The verdict lands after the debounce; it is only published once this state is Ready.
         verdicts.submit(draft)
         return EditorUiState.Ready(
-            title = stored.title,
             subtitle = subtitleOf(draft, ui),
             verdict = verdicts.verdict.value,
             editor = ui,
@@ -123,8 +128,13 @@ class EditorViewModel(
         verdictCard.dismiss()
         verdicts.submit(draft)
         val base = lastStored ?: return
-        val next = base.copy(variant = draft.variant, blob = draft.encode(), updatedAt = clock())
-        lastStored = next
-        pending.value = next
+        write(base.copy(variant = draft.variant, blob = draft.encode()))
+    }
+
+    /** Stamps [next] and queues it for the one writer. */
+    private fun write(next: Draft) {
+        val stamped = next.copy(updatedAt = clock())
+        lastStored = stamped
+        pending.value = stamped
     }
 }
