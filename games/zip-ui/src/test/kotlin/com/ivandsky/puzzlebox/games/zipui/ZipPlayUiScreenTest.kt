@@ -121,7 +121,7 @@ class ZipPlayUiScreenTest {
         composeRule.onNodeWithText("Zip").assertExists()
         composeRule.onNodeWithText("Daily · #592").assertExists()
         composeRule.onNodeWithText("Hint").assertExists()
-        composeRule.onNodeWithText("00:00").assertExists()
+        composeRule.onNodeWithText("0:00").assertExists()
         // Ticket 22: the start waypoint is a dot with its bold label INSIDE it — bare
         // corner numbers are gone.
         composeRule.onNodeWithTag("play.waypoint_dot_0").assertExists()
@@ -192,7 +192,7 @@ class ZipPlayUiScreenTest {
         check(solvedFacts != null) { "first solve did not hand off" }
         composeRule.runOnIdle { controller.replay() }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("00:00").assertExists()
+        composeRule.onNodeWithText("0:00").assertExists()
         composeRule.runOnIdle { check(controller.session?.path?.isEmpty() == true) }
 
         solve(controller)

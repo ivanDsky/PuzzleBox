@@ -34,10 +34,10 @@ import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
-import java.util.Locale
 
 /**
  * The games hub's list (tag `route.hub`, spec A14): one card per playable game
@@ -192,8 +192,8 @@ private fun StatusLine(status: TodayStatus, tag: String) {
 /** A row's status copy: the clock reads m:ss (0:42, 12:05). */
 internal fun statusLine(status: TodayStatus): String = when (status) {
     TodayStatus.NotStarted -> "Not started"
-    is TodayStatus.InProgress -> "In progress · ${minutesSeconds(status.elapsedMs)}"
-    is TodayStatus.Solved -> "Solved · ${minutesSeconds(status.timeMs)} ✓"
+    is TodayStatus.InProgress -> "In progress · ${formatDuration(status.elapsedMs)}"
+    is TodayStatus.Solved -> "Solved · ${formatDuration(status.timeMs)} ✓"
 }
 
 /** What tapping a row does: a saved play continues, a solved day replays. */
@@ -201,11 +201,6 @@ internal fun actionLabel(status: TodayStatus): String = when (status) {
     TodayStatus.NotStarted -> "Play"
     is TodayStatus.InProgress -> "Continue"
     is TodayStatus.Solved -> "Replay"
-}
-
-private fun minutesSeconds(ms: Long): String {
-    val totalSeconds = ms.coerceAtLeast(0L) / 1000
-    return String.format(Locale.ROOT, "%d:%02d", totalSeconds / 60, totalSeconds % 60)
 }
 
 @PuzzleBoxPreviews

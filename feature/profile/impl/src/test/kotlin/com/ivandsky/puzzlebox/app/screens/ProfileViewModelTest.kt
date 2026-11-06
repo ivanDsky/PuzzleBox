@@ -45,6 +45,9 @@ class ProfileViewModelTest {
     private val boardRef = LeaderboardRef("zip", day)
     private val dispatcher = StandardTestDispatcher()
 
+    // Today's board is the featured game's: the registry's first, "zip".
+    private val featured = GetFeaturedGame(TestGames.registry(listOf(GameId("zip"))))
+
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule(dispatcher)
 
@@ -75,10 +78,10 @@ class ProfileViewModelTest {
             observeTodayLeaderboard = ObserveTodayLeaderboard(
                 identity = identity,
                 leaderboard = leaderboard,
-                // Today's board is the featured game's: the registry's first, "zip".
-                featured = GetFeaturedGame(TestGames.registry(listOf(GameId("zip")))),
+                featured = featured,
                 today = { day },
             ),
+            featuredGame = featured,
         )
         // The state is observed only while subscribed (the route's lifecycle collector).
         backgroundScope.launch { vm.uiState.collect {} }
@@ -118,6 +121,13 @@ class ProfileViewModelTest {
         )
         assertEquals(listOf(boardRef), deps.leaderboard.observedBoards)
         assertEquals(deps.identity.currentIdentity, deps.signedIn.identity)
+    }
+
+    @Test
+    fun `signed-in state carries the featured game's name for the board`() = runTest(dispatcher) {
+        val deps = viewModel(identity = FakeIdentityService(initial = Identity("u1", "Ann", null)))
+
+        assertEquals(featured().displayName, deps.signedIn.gameName)
     }
 
     // ---- Ticket 24: sign-in copy per failure class -------------------------------

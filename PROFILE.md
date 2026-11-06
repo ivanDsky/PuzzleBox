@@ -1,4 +1,5 @@
 # PROFILE.md — written by init-profile, read by /start
+
 # 1.0.0 = public release of ALL games (Zip, Queens, Tango, MiniSudoku, Strands) in a
 # good tested state. Until then the app is ALPHA: 0.x.y forever; minor = phase/feature
 # milestone, patch = fix rounds.
@@ -6,7 +7,7 @@
 ## Version
 - app-id: com.ivandsky.puzzlebox
 - app-name: PuzzleBox
-- version: 0.13.0  # semver source of truth; bumped ONLY on a user-requested release (on main, with the Gradle versionName fallback in one commit). Installs use deliver build_identity.py: <semver>-<slug>.<n>. History: 0.13.0 = Mini Sudoku (LinkedIn daily) + debug 9x9 Sudoku on one engine; 0.12.0 = NYT Strands (fifth game: drag board, hints, rating) + past puzzles by date for archive games, per-game rank order, per-game saved-play cap; 0.11.0 = per-tab back stacks, games hub, saved plays per (game, day) that resume after process death (replaces 0.9.0's kept sessions); 0.10.1 = Queens lesson 2 taps, dashed ghost crowns, Tango lesson 4 copy; 0.10.0 = first-play tutorials + How to play, Home Today card, plain copy; 0.9.0 = kept sessions + Continue, feedback caption slot, contrast floors, honest best; 0.8.0 = Play tab opens the game picker; core|game chrome split; command-based undo/redo; 0.7.0 = merge of Queens and Tango runs
+- version: 0.11.1  # semver source of truth; bumped ONLY on a user-requested release (on main, with the Gradle versionName fallback in one commit); every bugfix bumps the patch, however small. Installs use deliver build_identity.py: <semver>-<slug>.<n>. History: 0.11.1 = solved-day streak, Home recent grouped by day, puzzle-day clock, m:ss everywhere, Tango Practice, plain copy; main: 0.13.0 = Mini Sudoku (LinkedIn daily) + debug 9x9 Sudoku on one engine; main: 0.12.0 = NYT Strands (fifth game: drag board, hints, rating) + past puzzles by date for archive games, per-game rank order, per-game saved-play cap; 0.11.0 = per-tab back stacks, games hub, saved plays per (game, day) that resume after process death (replaces 0.9.0's kept sessions); 0.10.1 = Queens lesson 2 taps, dashed ghost crowns, Tango lesson 4 copy; 0.10.0 = first-play tutorials + How to play, Home Today card, plain copy; 0.9.0 = kept sessions + Continue, feedback caption slot, contrast floors, honest best; 0.8.0 = Play tab opens the game picker; core|game chrome split; command-based undo/redo; 0.7.0 = merge of Queens and Tango runs
 
 ## Product (frame)
 # purpose: one app for daily logic puzzles — play official NYT/LinkedIn dailies, build and share custom games, compete via leaderboards and 1v1; Zip ships first
@@ -19,6 +20,7 @@
 1. UI/UX (premium)          # tied #1 with architecture; detailed design direction set at spec/design stage
 1. architecture/SOLID       # tied #1 with UI/UX; equal review priority
 2. reactivity
+# non-goal: accessibility (TalkBack semantics, CVD cues, spoken labels) — user ruling 2026-11-04; not audited, ticketed or fixed unless asked
 
 ## Effort
 - level: thorough            # restored 2026-11-01 after brief downgrade: run default only; PER-TASK EFFORT IS THE RULE (effort-mapping.md): fast = contained fixes, standard = ordinary feature tickets, thorough = architecture/module/cross-cutting only; agent flags each ticket's level in the run plan
@@ -33,6 +35,7 @@
 - local: ./gradlew :app:assembleDebug
 - tailscale: ivandsky.github
   - device: ivans-tab-s9-ultra @ 100.93.158.113  # verified 2026-11-01 (only Android node on tailnet)
+  - logs: wireless adb over tailscale, already paired: `adb connect 100.93.158.113:<port from Wireless debugging>`  # verified 2026-11-05
 # - firebase: <project id>  # activate once the Firebase project is created; deliver moves off tailscale then
 
 ## Review site publish

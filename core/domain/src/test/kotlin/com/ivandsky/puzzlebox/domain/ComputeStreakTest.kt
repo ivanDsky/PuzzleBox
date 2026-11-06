@@ -1,61 +1,54 @@
 package com.ivandsky.puzzlebox.domain
 
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.testing.game.TestGames
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** Cached-data-only streak teaser (A8): consecutive days ending at the newest capture. */
+/** Solved-day streak (A8): consecutive solved puzzle days anchored at today or yesterday. */
 class ComputeStreakTest {
 
-    private val d = { day: Int -> LocalDate.of(2026, 11, day) }
+    // 12:00 UTC on Nov 10 is 04:00 Nov 10 in Los Angeles: the puzzle day is Nov 10.
+    private val clock = Clock.fixed(Instant.parse("2026-11-10T12:00:00Z"), ZoneOffset.UTC)
+    private val registry = TestGames.registry(listOf(GameId("zip")))
+    private val streak = ComputeStreak(GetPuzzleDay(registry, clock))
 
-    private val compute = ComputeStreak()
-
-    private fun streakEndingAtNewest(days: List<LocalDate>) = compute(days.map(::captured))
-
-    private fun captured(day: LocalDate, archived: Boolean = false) =
-        GameHistoryDay(GameId("zip"), day, puzzleNumber = null, record = null, archived = archived)
+    private val today = LocalDate.of(2026, 11, 10)
+    private val yesterday = today.minusDays(1)
 
     @Test
-    fun `no captures is no streak`() {
-        assertEquals(0, streakEndingAtNewest(emptyList()))
+    fun `no solves is no streak`() {
+        assertEquals(0, streak(emptyList()))
     }
 
     @Test
-    fun `one capture is a one-day streak`() {
-        assertEquals(1, streakEndingAtNewest(listOf(d(3))))
+    fun `solved today and yesterday is two`() {
+        assertEquals(2, streak(listOf(today, yesterday)))
     }
 
     @Test
-    fun `consecutive run ending at newest counts fully`() {
-        assertEquals(5, streakEndingAtNewest(listOf(d(1), d(2), d(3), d(4), d(5))))
+    fun `solved yesterday only is one`() {
+        assertEquals(1, streak(listOf(yesterday)))
     }
 
     @Test
-    fun `a gap breaks the run at the gap`() {
-        assertEquals(3, streakEndingAtNewest(listOf(d(1), d(2), d(3), d(5), d(6), d(7))))
+    fun `last solve two days ago is no streak`() {
+        assertEquals(0, streak(listOf(today.minusDays(2), today.minusDays(3))))
     }
 
     @Test
-    fun `older run does not survive past the break`() {
-        assertEquals(1, streakEndingAtNewest(listOf(d(1), d(2), d(8))))
+    fun `opened but unsolved days are ignored`() {
+        // The caller passes only solved days; an opened-unsolved yesterday leaves a gap.
+        val solved = listOf(today, today.minusDays(2))
+        assertEquals(1, streak(solved))
     }
 
     @Test
-    fun `input order does not matter`() {
-        assertEquals(3, streakEndingAtNewest(listOf(d(3), d(1), d(2))))
-    }
-
-    @Test
-    fun `duplicates count once`() {
-        assertEquals(2, streakEndingAtNewest(listOf(d(3), d(3), d(4), d(4))))
-    }
-
-    @Test
-    fun `an archived day neither extends nor bridges the run`() {
-        val days = listOf(captured(d(4)), captured(d(5)), captured(d(6), archived = true), captured(d(3), archived = true))
-        assertEquals(2, compute(days))
-        assertEquals(1, compute(listOf(captured(d(2)), captured(d(3), archived = true), captured(d(4)))))
+    fun `duplicate days collapse`() {
+        assertEquals(2, streak(listOf(today, today, yesterday, yesterday)))
     }
 }

@@ -187,5 +187,6 @@ private fun ZipBoard(controller: ZipPlayController, modifier: Modifier) {
     }
 }
 
+/** An adopted puzzle with no edition number is practice; before adoption the header says "Daily". */
 private fun subtitle(controller: ZipPlayController): String =
-    controller.session?.ref?.puzzleNumber?.let { number -> "Daily · #$number" } ?: "Daily"
+    controller.session?.ref?.let { ref -> ref.puzzleNumber?.let { number -> "Daily · #$number" } ?: "Practice" } ?: "Daily"

@@ -32,6 +32,7 @@ fun HomeRoute(
         layout = layout,
         today = uiState.today,
         identity = uiState.identity,
+        puzzleDay = uiState.puzzleDay,
         themeMode = themeMode,
         onSetThemeMode = onSetThemeMode,
         onOpenHistory = onOpenHistory,

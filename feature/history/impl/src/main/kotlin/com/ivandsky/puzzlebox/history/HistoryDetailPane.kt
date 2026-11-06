@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.game.CompletionRecord
 
 /** Expanded-width detail placeholder until a day is selected (home's DetailPane voice). */
@@ -108,13 +109,6 @@ internal fun DayDetailPane(
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            if (row.fetchedAtMs > 0L) {
-                Text(
-                    text = "Captured ${formatCapturedAt(row.fetchedAtMs)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
             RecordCard(
                 record = record,
                 cardColor = cardColor,
@@ -170,7 +164,7 @@ private fun RecordCard(
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "${formatScore(record.time)} · ${record.hints} ${if (record.hints == 1) "hint" else "hints"}",
+                        text = "${formatDuration(record.time)} · ${record.hints} ${if (record.hints == 1) "hint" else "hints"}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

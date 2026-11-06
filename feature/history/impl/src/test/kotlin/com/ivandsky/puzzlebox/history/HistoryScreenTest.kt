@@ -117,10 +117,8 @@ class HistoryScreenTest {
         composeRule.onNodeWithText("Tuesday, November 3").assertExists()
         // Every row carries the identity line; all three seeded rows are in the page.
         composeRule.onAllNodesWithText("Daily Zip · Puzzle #${HistoryTestSupport.PUZZLE_NUMBER}").assertCountEquals(3)
-        // Streak teaser: 3 consecutive captured days; the count voice matches plurality.
+        // Streak card shows whenever there are captured days (none solved here: streak 0).
         composeRule.onNodeWithTag("history.streak").assertExists()
-        composeRule.onNodeWithText("Day streak").assertExists()
-        composeRule.onNodeWithText("3 days saved on this device").assertExists()
     }
 
     @Test
@@ -249,9 +247,6 @@ class HistoryScreenTest {
         composeRule.onNodeWithText("Daily Queens · Puzzle #916").assertExists()
         composeRule.onNodeWithText("Your record").assertExists()
         composeRule.onNodeWithText("0:41 · 1 hint").assertExists()
-        // No captured entry for the day: no "Captured" line — the record is visible
-        // without pretending the day was ever fetched.
-        composeRule.onNodeWithText("Captured", substring = true).assertDoesNotExist()
         assertFalse(handedToShell != null)
     }
 
@@ -268,7 +263,6 @@ class HistoryScreenTest {
         composeRule.onAllNodesWithTag("history.row.zip/$day").assertCountEquals(1)
         composeRule.onNodeWithTag("history.row.zip/$day").performClick()
         composeRule.onNodeWithText("Your record").assertExists()
-        composeRule.onNodeWithText("Captured", substring = true).assertExists()
     }
 
     @Test

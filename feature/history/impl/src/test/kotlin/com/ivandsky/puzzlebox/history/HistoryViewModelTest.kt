@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.history
 import androidx.paging.testing.asSnapshot
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
+import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
@@ -11,6 +12,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -134,32 +137,68 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `merged rows keep both games on the same day and the streak sees the union`() = runTest {
+    fun `merged rows keep both games on the same day and the streak sees solved days only`() = runTest {
+        val today = HistoryTestSupport.TODAY
         val daily = FakeDailyRepository().apply {
-            setHistory(ZIP, listOf(HistoryTestSupport.entry(firstDay.plusDays(1))))
-            setHistory(TANGO, listOf(HistoryTestSupport.tangoEntry(firstDay)))
+            setHistory(ZIP, listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(today.minusDays(2))))
+            setHistory(TANGO, listOf(HistoryTestSupport.tangoEntry(today.minusDays(1))))
+        }
+        val completions = FakeCompletionRepository().apply {
+            // Today (zip) and yesterday (tango) solved; two days ago only opened.
+            setRecords(listOf(HistoryTestSupport.record(today), HistoryTestSupport.tangoRecord(today.minusDays(1))))
         }
 
-        val state = viewModel(daily).uiState.first { it.rows.isNotEmpty() }
+        val state = HistoryTestSupport.viewModel(daily, completions).uiState.first { it.rows.isNotEmpty() }
 
-        assertEquals(2, state.rows.size) // two games, two distinct days, no rows lost
-        assertEquals(2, state.streak) // consecutive captured days
+        assertEquals(3, state.rows.size) // two games, three distinct days, no rows lost
+        assertEquals(2, state.streak) // solved today + yesterday; the opened day never counts
+    }
+
+    @Test
+    fun `a practice solve (no edition number) lists but never counts toward the streak`() = runTest {
+        val today = HistoryTestSupport.TODAY
+        val yesterday = today.minusDays(1)
+        val daily = FakeDailyRepository().apply {
+            setHistory(ZIP, listOf(HistoryTestSupport.entry(today)))
+            setHistory(TANGO, listOf(HistoryTestSupport.tangoEntry(yesterday, puzzleNumber = null)))
+        }
+        val completions = FakeCompletionRepository().apply {
+            val practice = HistoryTestSupport.tangoRecord(yesterday).copy(puzzleRef = TestGames.Ref(TANGO, yesterday, null))
+            setRecords(listOf(HistoryTestSupport.record(today), practice))
+        }
+
+        val state = HistoryTestSupport.viewModel(daily, completions).uiState.first { it.rows.isNotEmpty() }
+
+        assertTrue("the practice solve is still a solved row", (TANGO to yesterday) in state.recordsByKey)
+        assertEquals(1, state.streak) // today only; yesterday's practice solve doesn't bridge
+    }
+
+    @Test
+    fun `the history label switches on the edition number`() {
+        val day = HistoryTestSupport.TODAY
+        fun row(puzzleNumber: Int?) = HistoryDayRow(day = day, puzzleNumber = puzzleNumber, gameId = TANGO, gameName = "Tango")
+        assertNotEquals(row(puzzleNumber = 5).label, row(puzzleNumber = null).label)
+        assertTrue("a practice label never claims an edition", "#" !in row(puzzleNumber = null).label)
     }
 
     @Test
     fun `an archived solved day is listed but leaves the streak unchanged`() = runTest {
-        val archivedDay = LocalDate.of(2026, 10, 31)
+        val today = HistoryTestSupport.TODAY
+        val archivedDay = today.minusDays(2)
         val daily = FakeDailyRepository().apply {
             setHistory(
                 ZIP,
                 listOf(
-                    HistoryTestSupport.entry(LocalDate.of(2026, 11, 2)),
-                    HistoryTestSupport.entry(LocalDate.of(2026, 11, 1)),
+                    HistoryTestSupport.entry(today),
+                    HistoryTestSupport.entry(today.minusDays(1)),
                     HistoryTestSupport.entry(archivedDay).copy(archived = true),
                 ),
             )
         }
-        val completions = FakeCompletionRepository(listOf(HistoryTestSupport.record(archivedDay)))
+        // All three solved; the archived day would extend the run to 3 if it counted.
+        val completions = FakeCompletionRepository(
+            listOf(today, today.minusDays(1), archivedDay).map(HistoryTestSupport::record),
+        )
 
         val state = HistoryTestSupport.viewModel(daily, completions).uiState.first { it.rows.isNotEmpty() }
 

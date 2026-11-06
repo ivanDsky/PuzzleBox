@@ -37,6 +37,7 @@ class ProfileScreenTest {
     val composeRule = createComposeRule()
 
     private val boardRef = LeaderboardRef("zip", LocalDate.of(2026, 10, 31))
+    private val gameName = "Queens"
     private val me = Identity(uid = "u1", displayName = "Ann", photoUrl = null)
     private val entries = listOf(
         LeaderboardEntry("u2", "Bo", "zip/2026-10-31/592", 80_000, 0, 1_700_000_000_000),
@@ -103,6 +104,7 @@ class ProfileScreenTest {
             ProfileUiState.SignedIn(
                 identity = me,
                 board = TodayLeaderboard.Board.Loaded(LeaderboardSnapshot(boardRef, entries)),
+                gameName = gameName,
             ),
         )
 
@@ -122,6 +124,7 @@ class ProfileScreenTest {
             ProfileUiState.SignedIn(
                 identity = me,
                 board = TodayLeaderboard.Board.Loaded(LeaderboardSnapshot(boardRef, entries)),
+                gameName = gameName,
             ),
         )
 
@@ -138,11 +141,12 @@ class ProfileScreenTest {
             ProfileUiState.SignedIn(
                 identity = me,
                 board = TodayLeaderboard.Board.Loaded(LeaderboardSnapshot(boardRef, emptyList())),
+                gameName = gameName,
             ),
         )
 
-        composeRule.onNodeWithText("No entries yet today — finish today's Zip to be first.")
-            .assertExists()
+        // The empty-board line names the board's game — whatever the state carries.
+        composeRule.onNodeWithText(gameName, substring = true).assertExists()
         composeRule.onNodeWithTag("leaderboard-row-self").assertDoesNotExist()
     }
 
@@ -152,6 +156,7 @@ class ProfileScreenTest {
             ProfileUiState.SignedIn(
                 identity = me,
                 board = TodayLeaderboard.Board.Unavailable,
+                gameName = gameName,
             ),
         )
 

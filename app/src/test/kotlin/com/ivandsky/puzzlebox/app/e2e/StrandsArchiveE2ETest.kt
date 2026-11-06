@@ -85,12 +85,12 @@ class StrandsArchiveE2ETest {
     fun `SC6 SC7 a past day costs one request, reopens offline from the cache, and leaves the streak alone`() =
         shellRobot(playHub, today = TODAY, graph = dataGraph()) {
             serve(TODAY, PAST)
-            // Today's board captures today, so the streak has a day to protect.
+            // Today's board captures today; opened-not-solved, so the solved-day streak is 0.
             openGame(STRANDS)
             awaitStrands(TODAY)
             back()
             val before = history()
-            assertEquals("today alone makes the streak", "1", before.streak)
+            assertEquals("an opened, unsolved today makes no streak", "0", before.streak)
             assertEquals("today's row only", setOf(rowTag(TODAY)), before.rows)
 
             // Browsing the picker and backing out fetches and captures nothing.
