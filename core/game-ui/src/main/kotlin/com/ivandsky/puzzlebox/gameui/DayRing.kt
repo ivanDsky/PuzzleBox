@@ -18,6 +18,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -28,8 +29,8 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 
 // 40dp outer fits a 43dp calendar column and leaves a 32dp day circle clear inside
 // (the stroke's inner edge sits at 17dp radius).
-private val RingSize = 40.dp
-private val RingStroke = 3.dp
+internal val RingSize = 40.dp
+internal val RingStroke = 3.dp
 
 // Arc-end to arc-end, along the ring. Round caps eat one stroke of it, so 8 segments
 // still show a 2.5dp gap between neighbours.
@@ -42,28 +43,31 @@ private const val TWELVE_O_CLOCK = -90f
  * clockwise from 12 o'clock, [solved] first in each brand's accent, then empty
  * segments up to [total]. A ring instead of a row of dots, so any number of games fits
  * a calendar column. Solved segments never drop, so [total] below `solved.size` still
- * shows every solve; no segments draw no ring.
+ * shows every solve; no segments draw no ring. [size] and [stroke] scale it up for
+ * roomier surfaces (the tablet streak pane runs 64/5).
  */
 @Composable
 fun DayRing(
     solved: List<GameBrand>,
     total: Int,
     modifier: Modifier = Modifier,
+    size: Dp = RingSize,
+    stroke: Dp = RingStroke,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val empty = MaterialTheme.colorScheme.outlineVariant
     val segments = dayRingFills(solved, total).map { brand -> brand?.accent?.colors()?.accent ?: empty }
     Box(
         modifier = modifier
-            .size(RingSize)
+            .size(size)
             .drawBehind {
                 if (segments.isEmpty()) return@drawBehind
-                val stroke = RingStroke.toPx()
-                val inset = stroke / 2
-                val arcSize = Size(size.width - stroke, size.height - stroke)
-                val style = Stroke(width = stroke, cap = StrokeCap.Round)
+                val strokePx = stroke.toPx()
+                val inset = strokePx / 2
+                val arcSize = Size(this.size.width - strokePx, this.size.height - strokePx)
+                val style = Stroke(width = strokePx, cap = StrokeCap.Round)
                 if (segments.size == 1) {
-                    drawCircle(segments.single(), radius = arcSize.width / 2, style = Stroke(stroke))
+                    drawCircle(segments.single(), radius = arcSize.width / 2, style = Stroke(strokePx))
                     return@drawBehind
                 }
                 val gap = Math.toDegrees(SegmentGap.toPx() / (arcSize.width / 2).toDouble()).toFloat()

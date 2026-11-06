@@ -38,6 +38,7 @@ internal fun ListPane(
     selectedDay: String?,
     onDayClick: (String) -> Unit,
     selectable: Boolean,
+    showStreak: Boolean,
     onOpenGame: (GameId) -> Unit,
     onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
@@ -58,8 +59,11 @@ internal fun ListPane(
             StaggeredItem(0) {
                 HomeTodaySection(state = state, onOpenGame = onOpenGame, tagPrefix = "home.today")
             }
-            StaggeredItem(1) {
-                HomeStreakSection(stats = state.stats, week = state.week, total = state.today.size)
+            // Two-pane shows the streak in the detail pane instead.
+            if (showStreak) {
+                StaggeredItem(1) {
+                    HomeStreakSection(stats = state.stats, week = state.week, total = state.today.size)
+                }
             }
             StaggeredItem(2) {
                 HomeRecentSection(
