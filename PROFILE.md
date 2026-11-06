@@ -36,7 +36,7 @@
 # - firebase: <project id>  # activate once the Firebase project is created; deliver moves off tailscale then
 
 ## Review site publish
-always  # user ruling 2026-10-31: every review gate publishes a localhost HTML review page (REVIEW.md contract + archify diagrams); served on LAN :8777
+off  # user ruling 2026-11-05 (replaces 2026-10-31 `always`): publish the review site ONLY when the user explicitly asks. Explicit user no — also overrides the thorough-effort default. REVIEW.md is still written every review; deliver gives its file path only.
 
 ## Testing style
 - runner: ./gradlew :app:testDebugUnitTest   # JVM unit tests against fakes
