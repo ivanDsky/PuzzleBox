@@ -4,9 +4,13 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -32,12 +36,14 @@ import androidx.compose.ui.unit.IntSize
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.queens.QueensVariants
+import com.ivandsky.puzzlebox.games.queens.editor.QueensAnswerFit
 import com.ivandsky.puzzlebox.games.queens.editor.QueensCrowns
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
@@ -65,12 +71,14 @@ internal const val UNPAINTED_DESCRIPTION = "unpainted"
  * bar below counts the selection; its Area and All of colour chips grow it and re-open the
  * ring at the new centroid. Each cell says its region's hue in its state description, so
  * tests read the painting without pixels. Over the fills, [QueensCellDiagnostics] shows what
- * the [verdict] found and which region pieces stray.
+ * the [verdict] found and which region pieces stray. Under the grid, [QueensCoachLine] and
+ * [QueensProbeStrip] each reserve one line; Crown mode keeps the context bar's height empty.
  */
 @Composable
 internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verdict, modifier: Modifier = Modifier) {
     val draft by controller.draft.collectAsState()
     val selection by controller.selection.collectAsState()
+    val mode by controller.mode.collectAsState()
     val board = draft.state.draft as QueensDraft
     val touch = remember { QueensBoardTouch() }
     val shown = touch.preview(board)
@@ -134,7 +142,14 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
                     onPick = controller::pick,
                 )
             }
-            QueensSelectionChips(controller, onGrown = { touch.lift = centroid(it, n, frame.size) })
+            QueensCoachLine(QueensCoachState.of(board, verdict, mode), reducedMotion, Modifier.padding(top = Spacing.xs))
+            QueensProbeStrip(remember(board, verdict) { QueensAnswerFit.of(board, verdict) }, board.crowns.size)
+            if (mode == QueensEditorMode.Paint) {
+                QueensSelectionChips(controller, onGrown = { touch.lift = centroid(it, n, frame.size) })
+            } else {
+                // Crown mode never selects: no Paint hint, but the context bar's height stays so the board never jumps.
+                Spacer(Modifier.height(LocalMinimumInteractiveComponentSize.current))
+            }
         }
     }
 }
