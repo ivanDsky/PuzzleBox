@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.model.GameId
  * only while [searchVisible] (more than 8 stored drafts); [draftCount] counts every stored
  * draft. [games] are the games with an editor in this build, in editor registration order:
  * the New puzzle sheet's rows and, with no drafts at all ([isEmpty]), the empty state's.
+ * [deleted] is the draft just deleted while its Undo is offered.
  */
 data class CreateUiState(
     val loading: Boolean = true,
@@ -20,6 +21,7 @@ data class CreateUiState(
     val query: String = "",
     val filters: List<GameFilter> = emptyList(),
     val filter: GameId? = null,
+    val deleted: Deleted? = null,
 ) {
 
     /** Nothing stored yet: the first-time empty state instead of the list (spec A3). */
@@ -58,4 +60,7 @@ data class CreateUiState(
 
     /** A game filter chip: a game with [count] stored drafts. */
     data class GameFilter(val id: GameId, val name: String, val brand: GameBrand, val count: Int)
+
+    /** A just-deleted draft: its [id] and the [title] the Undo snackbar names. */
+    data class Deleted(val id: String, val title: String)
 }

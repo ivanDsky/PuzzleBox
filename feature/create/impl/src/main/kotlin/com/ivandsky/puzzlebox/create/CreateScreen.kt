@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.create
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -18,15 +20,23 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.LargeTopBar
@@ -46,6 +56,10 @@ import com.ivandsky.puzzlebox.model.GameId
 /** FAB height plus its bottom gap: the last row scrolls clear of the button. */
 private val ListBottomInset = 56.dp + Spacing.lg * 2
 
+/** The New puzzle button rises this far over a snackbar (01 handoff); Undo names ≤ 28 title chars. */
+private val SnackbarLift = 64.dp
+private const val DELETED_TITLE_MAX = 28
+
 /**
  * The Create root: the author's drafts, newest edit first, under the large "Create" title,
  * and the New puzzle button over the list's end corner. Past 8 drafts a search field
@@ -54,9 +68,14 @@ private val ListBottomInset = 56.dp + Spacing.lg * 2
  * opens the [NewPuzzleSheet] over [CreateUiState.games]; [onNew] starts a draft of the picked
  * game and size, [onOpen] opens one by id.
  *
+ * A row's ⋮ or long press opens its [DraftActionsSheet]: Continue ([onOpen]), [onDuplicate]
+ * and [onDelete]. While [CreateUiState.deleted] is set, a snackbar "Deleted “{title}”" offers
+ * Undo ([onUndoDelete]); it leaves when the state clears it (the 5 s window is the ViewModel's).
+ *
  * Motion: rows **Fade in** / **Fade out** and slide to new places with a **Layout animation**
- * (MotionTokens medium, EasingStandard) as edits reorder them and the query narrows them;
- * none of it under reduced motion.
+ * (MotionTokens medium, EasingStandard) as edits reorder them and the query narrows them; the
+ * New puzzle button **Slides** up over the snackbar (DurationMedium, EasingStandard). None of
+ * it under reduced motion.
  */
 @Composable
 fun CreateScreen(
@@ -65,26 +84,42 @@ fun CreateScreen(
     onOpen: (draftId: String) -> Unit,
     onQuery: (String) -> Unit,
     onFilter: (GameId?) -> Unit,
+    onDuplicate: (draftId: String) -> Unit,
+    onDelete: (draftId: String) -> Unit,
+    onUndoDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var sheetOpen by rememberSaveable { mutableStateOf(false) }
+    var actionsId by rememberSaveable { mutableStateOf<String?>(null) }
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(state.deleted) {
+        val deleted = state.deleted ?: return@LaunchedEffect
+        val title = deleted.title.let { if (it.length > DELETED_TITLE_MAX) it.take(DELETED_TITLE_MAX) + "…" else it }
+        val result = snackbar.showSnackbar("Deleted “$title”", actionLabel = "Undo", duration = SnackbarDuration.Indefinite)
+        if (result == SnackbarResult.ActionPerformed) onUndoDelete()
+    }
+    val reducedMotion = rememberReducedMotion()
+    val lift by animateDpAsState(
+        targetValue = if (snackbar.currentSnackbarData != null) SnackbarLift else 0.dp,
+        animationSpec = tween(if (reducedMotion) 0 else MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard),
+        label = "newPuzzleLift",
+    )
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             LargeTopBar(title = "Create")
             when {
                 state.loading -> Unit
                 state.isEmpty -> CreateEmptyState(games = state.games, onStart = onNew)
-                else -> DraftList(state, onOpen, onQuery, onFilter)
+                else -> DraftList(state, onOpen, onActions = { actionsId = it }, onQuery, onFilter)
             }
         }
         if (!state.loading && !state.isEmpty) {
             NewPuzzleButton(
                 onClick = { sheetOpen = true },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(Spacing.lg),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.lg).offset(y = -lift),
             )
         }
+        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).testTag("create.snackbar"))
     }
     if (sheetOpen) {
         NewPuzzleSheet(
@@ -96,12 +131,22 @@ fun CreateScreen(
             onDismiss = { sheetOpen = false },
         )
     }
+    state.drafts.firstOrNull { it.id == actionsId }?.let { row ->
+        DraftActionsSheet(
+            row = row,
+            onContinue = { actionsId = null; onOpen(row.id) },
+            onDuplicate = { actionsId = null; onDuplicate(row.id) },
+            onDelete = { actionsId = null; onDelete(row.id) },
+            onDismiss = { actionsId = null },
+        )
+    }
 }
 
 @Composable
 private fun DraftList(
     state: CreateUiState,
     onOpen: (draftId: String) -> Unit,
+    onActions: (draftId: String) -> Unit,
     onQuery: (String) -> Unit,
     onFilter: (GameId?) -> Unit,
 ) {
@@ -115,6 +160,7 @@ private fun DraftList(
             DraftRow(
                 row = row,
                 onOpen = { onOpen(row.id) },
+                onActions = { onActions(row.id) },
                 modifier = Modifier.animateItem(
                     fadeInSpec = if (reducedMotion) null else tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard),
                     placementSpec = if (reducedMotion) null else tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard),
@@ -225,38 +271,28 @@ private val PreviewMany: CreateUiState = previewRows(12).let { rows ->
     )
 }
 
-@PuzzleBoxPreviews
-@Composable
-private fun CreateScreenPreview() {
-    PuzzleBoxTheme {
-        CreateScreen(
-            state = CreateUiState(loading = false, drafts = previewRows(3), draftCount = 3, games = PreviewGames),
-            onNew = { _, _ -> },
-            onOpen = {},
-            onQuery = {},
-            onFilter = {},
-        )
-    }
+/** A few drafts, past 8 drafts (search and filters), and the empty state. */
+private class CreateUiStatePreviewParameterProvider : PreviewParameterProvider<CreateUiState> {
+    override val values: Sequence<CreateUiState> = listOf(
+        CreateUiState(loading = false, drafts = previewRows(3), draftCount = 3, games = PreviewGames),
+        PreviewMany,
+        CreateUiState(loading = false, games = PreviewGames),
+    ).asSequence()
 }
 
 @PuzzleBoxPreviews
 @Composable
-private fun CreateScreenManyPreview() {
-    PuzzleBoxTheme {
-        CreateScreen(state = PreviewMany, onNew = { _, _ -> }, onOpen = {}, onQuery = {}, onFilter = {})
-    }
-}
-
-@PuzzleBoxPreviews
-@Composable
-private fun CreateScreenEmptyPreview() {
+private fun CreateScreenPreview(@PreviewParameter(CreateUiStatePreviewParameterProvider::class) state: CreateUiState) {
     PuzzleBoxTheme {
         CreateScreen(
-            state = CreateUiState(loading = false, games = PreviewGames),
+            state = state,
             onNew = { _, _ -> },
             onOpen = {},
             onQuery = {},
             onFilter = {},
+            onDuplicate = {},
+            onDelete = {},
+            onUndoDelete = {},
         )
     }
 }

@@ -2,7 +2,9 @@ package com.ivandsky.puzzlebox.create
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.model.Draft
+import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.domain.CreateDraft
+import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.VariantId
@@ -20,9 +22,13 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -30,7 +36,8 @@ import org.junit.Test
 /**
  * The Create root (spec A3, A7): drafts newest edit first, the search and game filter only past
  * 8 drafts, each row's verdict chip analysed once per (id, updatedAt), and with no drafts the
- * empty state offering exactly the games with an editor UI, each at its default size.
+ * empty state offering exactly the games with an editor UI, each at its default size. A row's
+ * Duplicate stores an untested copy; Delete is undoable for 5 s and Undo restores it unchanged.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CreateViewModelTest {
@@ -59,7 +66,8 @@ class CreateViewModelTest {
 
     private fun TestScope.viewModel(): CreateViewModel {
         val createDraft = CreateDraft(games, drafts, newId = { "new" }, clock = { NOW })
-        val vm = CreateViewModel(games, editors, GamePlayRegistry(emptyList()), drafts, createDraft, lanes, clock = { NOW })
+        val copyDraft = CreateDraftCopy(drafts, newId = { "copy" }, clock = { NOW })
+        val vm = CreateViewModel(games, editors, GamePlayRegistry(emptyList()), drafts, createDraft, copyDraft, lanes, clock = { NOW })
         backgroundScope.launch(mainRule.testDispatcher) { vm.uiState.collect {} }
         return vm
     }
@@ -145,12 +153,65 @@ class CreateViewModelTest {
         assertEquals(fake.variants.single(), byId.getValue(fake.gameId).defaultSize.variant)
     }
 
+    @Test
+    fun `duplicate stores the board under the next title without the test solve or code`() = runTest(mainRule.testDispatcher) {
+        store("a", minutesAgo = 5, marks = 2, title = "Castle", tested = true)
+        val source = drafts.rows.getValue("a")
+        val vm = viewModel()
+
+        vm.duplicate("a")
+
+        val copy = drafts.rows.getValue("copy")
+        assertEquals("Castle 2", copy.title)
+        assertArrayEquals(source.blob, copy.blob)
+        assertEquals(source.variant, copy.variant)
+        assertNull(copy.testSolve)
+        assertNull(copy.reservedCode)
+        assertEquals(source, drafts.rows.getValue("a"))
+        assertEquals(listOf("copy", "a"), vm.uiState.value.drafts.map { it.id })
+    }
+
+    @Test
+    fun `delete removes the row at once and Undo within 5 s restores an equal draft`() = runTest(mainRule.testDispatcher) {
+        store("a", minutesAgo = 5, title = "Castle", tested = true)
+        store("b", minutesAgo = 1)
+        val before = drafts.rows.getValue("a")
+        val vm = viewModel()
+
+        vm.delete("a")
+        assertNull(drafts.rows["a"])
+        assertEquals(listOf("b"), vm.uiState.value.drafts.map { it.id })
+        assertEquals(CreateUiState.Deleted("a", "Castle"), vm.uiState.value.deleted)
+
+        advanceTimeBy(UNDO_WINDOW_MS - 1)
+        vm.undoDelete()
+
+        assertEquals(before, drafts.rows["a"])
+        assertEquals(listOf("b", "a"), vm.uiState.value.drafts.map { it.id })
+        assertNull(vm.uiState.value.deleted)
+    }
+
+    @Test
+    fun `after 5 s the delete is final`() = runTest(mainRule.testDispatcher) {
+        store("a", minutesAgo = 5)
+        val vm = viewModel()
+
+        vm.delete("a")
+        advanceTimeBy(UNDO_WINDOW_MS)
+        runCurrent()
+        assertNull(vm.uiState.value.deleted)
+
+        vm.undoDelete()
+        assertNull(drafts.rows["a"])
+    }
+
     private suspend fun store(
         id: String,
         minutesAgo: Long,
         marks: Int = 1,
         game: GameId = fake.gameId,
         title: String = "Draft $id",
+        tested: Boolean = false,
     ) {
         drafts.upsert(
             Draft(
@@ -161,8 +222,8 @@ class CreateViewModelTest {
                 blob = byteArrayOf(1, marks.toByte()),
                 title = title,
                 updatedAt = NOW - Duration.ofMinutes(minutesAgo),
-                testSolve = null,
-                reservedCode = null,
+                testSolve = if (tested) TestSolve(layoutKey = "k", timeMs = 61_000, hints = 0) else null,
+                reservedCode = if (tested) "K7Q2MX" else null,
                 imported = false,
                 authorName = "",
                 note = "",
@@ -172,6 +233,7 @@ class CreateViewModelTest {
 
     private companion object {
         val NOW: Instant = Instant.parse("2026-11-06T10:00:00Z")
+        const val UNDO_WINDOW_MS = 5_000L
 
         fun withEditor(game: GameId, editor: GameEditor<*>): GamePlugin<*, *, *> {
             val base = TestGames.plugin(game)

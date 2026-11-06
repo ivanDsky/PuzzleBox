@@ -21,6 +21,9 @@ internal fun CreateRoute(
         onOpen = onOpen,
         onQuery = viewModel::onQuery,
         onFilter = viewModel::onFilter,
+        onDuplicate = viewModel::duplicate,
+        onDelete = viewModel::delete,
+        onUndoDelete = viewModel::undoDelete,
         modifier = modifier.testTag("route.create"),
     )
 }

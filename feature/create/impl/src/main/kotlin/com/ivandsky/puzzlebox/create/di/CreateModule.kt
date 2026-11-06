@@ -15,6 +15,6 @@ import org.koin.dsl.module
  * [com.ivandsky.puzzlebox.gameui.GamePlayRegistry] from the app's aggregation (ADR-0001).
  */
 val createModule: Module = module {
-    viewModel { CreateViewModel(get(), get(), get(), get(), get(), get(), clock = { Instant.now() }) }
+    viewModel { CreateViewModel(get(), get(), get(), get(), get(), get(), get(), clock = { Instant.now() }) }
     viewModel { (key: EditorKey) -> EditorViewModel(key, get(), get(), get(), get(), clock = { Instant.now() }) }
 }

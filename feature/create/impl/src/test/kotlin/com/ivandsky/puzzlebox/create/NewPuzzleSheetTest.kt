@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.CreateDraft
+import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -103,6 +104,7 @@ class NewPuzzleSheetTest {
                             GamePlayRegistry(emptyList()),
                             drafts,
                             createDraft,
+                            CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW }),
                             DefaultDispatcherProvider(),
                             clock = { NOW },
                         )
