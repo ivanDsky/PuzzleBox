@@ -18,6 +18,9 @@ internal const val LINKEDIN_BASE_URL = "https://www.linkedin.com/"
 /** NYT's public game JSON host (ADR-0014); paths are relative to it. */
 internal const val NYT_BASE_URL = "https://www.nytimes.com/"
 
+/** GitHub's REST host; the latest-release check (A2) runs unauthenticated against it. */
+const val GITHUB_API_BASE_URL = "https://api.github.com/"
+
 internal fun retrofit(baseUrl: String, client: OkHttpClient, json: Json): Retrofit =
     Retrofit.Builder()
         .baseUrl(baseUrl)
@@ -65,6 +68,23 @@ internal fun linkedInClient(jar: LinkedInSessionCookieJar): OkHttpClient =
  * timeout so a stalled fetch surfaces as Unavailable instead of hanging the daily load.
  */
 internal fun nytClient(): OkHttpClient =
+    OkHttpClient.Builder()
+        .callTimeout(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
+        .build()
+
+/**
+ * The production latest-release transport (A2): a sessionless [nytClient]-shaped client over
+ * [baseUrl]. `networkModule` binds exactly this, so a test that builds it runs the app's wire.
+ */
+fun gitHubReleaseTransport(baseUrl: String, json: Json): GitHubReleaseTransport {
+    val api = retrofit(baseUrl = baseUrl, client = gitHubClient(), json = json)
+        .create(GitHubReleasesApi::class.java)
+    return GitHubHttpReleaseTransport(api, json)
+}
+
+/** Client for GitHub's anonymous REST API: no cookies, whole-call timeout so a stall reads as null. */
+internal fun gitHubClient(): OkHttpClient =
     OkHttpClient.Builder()
         .callTimeout(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
