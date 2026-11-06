@@ -317,20 +317,19 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `a queens completion surfaces in the teaser - fix round 5 defect C`() = runTest {
+    fun `a non-featured game's completion surfaces in the teaser - fix round 5 defect C`() = runTest {
         val deps = viewModel()
 
-        // A solved Queens game writes its record (no Zip capture anywhere) — the teaser
-        // must surface it; the row names the game by its id (Queens is not registered,
-        // so the registry fallback applies).
-        deps.completions.onCompleted(record(GameId("queens"), LocalDate.of(2026, 11, 1), 41_000L))
+        // A solved Tango game writes its record (no Zip capture anywhere) — the teaser
+        // must surface it under the registry's display name.
+        deps.completions.onCompleted(record(tango, LocalDate.of(2026, 11, 1), 41_000L))
 
         assertEquals(
             listOf(
                 HistoryDay(
                     "2026-11-01",
                     "November 1",
-                    listOf(HistoryDay.GameResult("queens", neutral, formatDuration(41_000L))),
+                    listOf(HistoryDay.GameResult("Tango", neutral, formatDuration(41_000L))),
                 ),
             ),
             deps.vm.uiState.value.history,
