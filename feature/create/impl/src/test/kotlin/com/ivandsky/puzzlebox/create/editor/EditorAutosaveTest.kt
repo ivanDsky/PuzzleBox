@@ -72,7 +72,7 @@ class EditorAutosaveTest {
 
     private suspend fun TestScope.open(): EditorViewModel {
         drafts.upsert(storedRow(editor.draft(marks = 1).encode()))
-        val vm = EditorViewModel(EditorKey(DRAFT_ID), store, games, editors, copyDraft, lanes, clock = { NOW })
+        val vm = EditorViewModel(EditorKey(DRAFT_ID), store, games, editors, GamePlayRegistry(emptyList()), copyDraft, lanes, clock = { NOW })
         runCurrent()
         return vm
     }

@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.LadderRung
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.navigation.NavigationState
@@ -157,7 +158,7 @@ class VerdictCardTest {
                 module {
                     viewModel { (key: EditorKey) ->
                         val copyDraft = CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW })
-                        EditorViewModel(key, drafts, games, editors, copyDraft, DefaultDispatcherProvider(), clock = { NOW })
+                        EditorViewModel(key, drafts, games, editors, GamePlayRegistry(emptyList()), copyDraft, DefaultDispatcherProvider(), clock = { NOW })
                     }
                 },
             )
