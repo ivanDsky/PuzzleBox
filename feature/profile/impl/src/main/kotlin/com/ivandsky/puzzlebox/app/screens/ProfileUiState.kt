@@ -37,7 +37,7 @@ data class ProfileUiState(
         ) : Account
     }
 
-    /** One game's lifetime line, its [best] ranked by [rankOrder]; a tap opens that game's History tab (N3). */
+    /** One game's lifetime line, its [best] ranked by [rankOrder]; a tap opens History's timeline (N3). */
     data class GameRow(
         val gameId: GameId,
         val name: String,

@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.sudokuui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.ivandsky.puzzlebox.gameui.BoardPreview
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
@@ -31,12 +30,6 @@ class SudokuPlayUi(
     override fun Board(controller: GamePlayController, modifier: Modifier) {
         val state = (controller as SudokuPlayController).board ?: return
         SudokuMotionHost(state) { SudokuStackedBoard(state, modifier) }
-    }
-
-    /** The variant's size label ("6×6"): constant per game, so no board decode. */
-    override fun hubLine(today: BoardPreview): String {
-        val size = definition.variant.geometry.size
-        return "$size×$size"
     }
 
     @Composable

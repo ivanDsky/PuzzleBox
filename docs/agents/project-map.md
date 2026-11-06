@@ -219,7 +219,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `HomeViewModel` (today's set via `ObserveTodaySet`, stats via `ObserveGameStats`, the 7-day
   week, `GetNextRollover`, identity, cache-only history teaser via `ObserveGameHistory`;
   `di/HomeModule`), `HomeScreen` with `HomeListPane`/`HomeDetailPane` stacking
-  `HomeTodaySection` (`TodayTile` grid + one CTA / rollover countdown)/`HomeStreakSection`/
+  `HomeTodaySection` (`HomeTodaySummary` card with `TodayBadge`s + one CTA / rollover countdown)/`HomeStreakSection`/
   `HomeRecentSection`/`HomeCards`, `HomeLayout` + `homeLayoutFor` pure pane policy.
 - `feature/play/impl/` (`:feature:play:impl`) — the one game-agnostic play surface (ADR-0006,
   ADR-0007; no `games:*` dependency): `PlaySessionStore` (Koin single: one `ActivePlay` per

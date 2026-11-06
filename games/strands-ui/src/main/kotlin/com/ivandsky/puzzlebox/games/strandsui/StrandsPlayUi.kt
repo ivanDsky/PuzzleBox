@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.strandsui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.ivandsky.puzzlebox.gameui.BoardPreview
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
@@ -27,8 +26,6 @@ class StrandsPlayUi : GamePlayUi {
     override fun Board(controller: GamePlayController, modifier: Modifier) {
         StrandsBoard(controller as StrandsPlayController, modifier)
     }
-
-    override fun hubLine(today: BoardPreview): String? = StrandsHubLine.of(today)
 
     @Composable
     override fun Screen(
