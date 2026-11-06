@@ -40,7 +40,13 @@ object QueensEditorUi : GameEditorUi {
 
     /** The fix list (unpainted cells, region count, split regions, needs guessing, crown rows) in the verdict card. */
     @Composable
-    override fun Issues(controller: GameEditorController, verdict: Verdict, blocks: List<PublishBlock>, modifier: Modifier) {
-        QueensFixList(controller as QueensEditorController, verdict, blocks, modifier)
+    override fun Issues(
+        controller: GameEditorController,
+        verdict: Verdict,
+        blocks: List<PublishBlock>,
+        onSelect: () -> Unit,
+        modifier: Modifier,
+    ) {
+        QueensFixList(controller as QueensEditorController, verdict, blocks, onSelect, modifier)
     }
 }

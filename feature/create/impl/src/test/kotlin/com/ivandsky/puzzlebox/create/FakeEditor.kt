@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.create
 
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -12,6 +13,7 @@ import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
+import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
@@ -83,6 +85,24 @@ class FakeGameEditorUi(override val gameId: GameId = GameId("fake")) : GameEdito
     override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) {
         Text("${controller.draft.value.encode().last()}", modifier.testTag("fake.editor.board"))
     }
+
+    /** One fix row whose Select selects [FakeEditorController.FIX_CELLS], then calls [onSelect]. */
+    @Composable
+    override fun Issues(
+        controller: GameEditorController,
+        verdict: Verdict,
+        blocks: List<PublishBlock>,
+        onSelect: () -> Unit,
+        modifier: Modifier,
+    ) {
+        Text(
+            text = "Select",
+            modifier = modifier.testTag("fake.editor.fix.select").clickable {
+                (controller as FakeEditorController).selected = FakeEditorController.FIX_CELLS
+                onSelect()
+            },
+        )
+    }
 }
 
 /** Holds the draft; [edit] is the author's gesture, [adopted] the VM's replacements. */
@@ -96,6 +116,9 @@ class FakeEditorController(
 
     val adopted = mutableListOf<EditorDraft<*>>()
 
+    /** What the fake fix row's Select picked. */
+    var selected: Set<Int> = emptySet()
+
     override fun adopt(draft: EditorDraft<*>) {
         adopted += draft
         current.value = draft
@@ -104,5 +127,9 @@ class FakeEditorController(
     fun edit(next: EditorDraft<*>) {
         current.value = next
         onEdit(next)
+    }
+
+    companion object {
+        val FIX_CELLS: Set<Int> = setOf(0, 2)
     }
 }

@@ -72,6 +72,18 @@ class QueensFixListTest {
     }
 
     @Test
+    fun `Select reports onSelect once, after the cells are selected`() {
+        val draft = QueensDraft(SIZE, WHOLE, crowns = setOf(0, 1, 7))
+        val seen = mutableListOf<Set<Int>>()
+        lateinit var controller: QueensEditorController
+        controller = show(draft, Verdict.Checking, emptyList(), onSelect = { seen += controller.selection.value })
+
+        rule.onNodeWithTag(selectTag(QueensCrownIssue.DOUBLE)).performClick()
+
+        assertEquals(listOf(setOf(0, 1)), seen)
+    }
+
+    @Test
     fun `a painted region without a crown shows the missing row`() {
         // Region 0 holds two crowns, region 1 one; regions 2 and 3 hold none.
         show(QueensDraft(SIZE, WHOLE, crowns = setOf(0, 1, 7)), Verdict.Checking, emptyList())
@@ -94,10 +106,15 @@ class QueensFixListTest {
         rule.onNodeWithTag(fixTag(PublishBlock.NOT_TESTED)).assertDoesNotExist()
     }
 
-    private fun show(draft: QueensDraft, verdict: Verdict, blocks: List<PublishBlock>): QueensEditorController {
+    private fun show(
+        draft: QueensDraft,
+        verdict: Verdict,
+        blocks: List<PublishBlock>,
+        onSelect: () -> Unit = {},
+    ): QueensEditorController {
         val controller = QueensEditorController(EditorDraft(QueensEditor, DraftState(draft))) {}
         rule.setContent {
-            PuzzleBoxTheme { QueensEditorUi.Issues(controller, verdict, blocks, Modifier) }
+            PuzzleBoxTheme { QueensEditorUi.Issues(controller, verdict, blocks, onSelect, Modifier) }
         }
         return controller
     }
