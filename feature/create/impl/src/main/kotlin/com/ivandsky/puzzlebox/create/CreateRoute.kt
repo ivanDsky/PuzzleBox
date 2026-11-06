@@ -17,7 +17,7 @@ internal fun CreateRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     CreateScreen(
         state = state,
-        onNew = { viewModel.newPuzzle(onCreated = onOpen) },
+        onNew = { gameId, variant -> viewModel.newPuzzle(gameId, variant, onCreated = onOpen) },
         onOpen = onOpen,
         modifier = modifier.testTag("route.create"),
     )

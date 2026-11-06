@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
+import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -13,8 +15,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * The Create root: lists the stored drafts and starts new ones. [newPuzzle] opens the first
- * registered game that has both an editor and an editor UI, at its first variant.
+ * The Create root: lists the stored drafts and starts new ones. The New puzzle sheet offers
+ * every game with an editor UI ([GameEditorRegistry.ids], registration order) whose plugin
+ * carries the editor, each at exactly its editor's variants (spec A1, A5).
  */
 class CreateViewModel(
     private val games: GameRegistry,
@@ -23,10 +26,20 @@ class CreateViewModel(
     private val createDraft: CreateDraft,
 ) : ViewModel() {
 
+    private val newGames: List<CreateUiState.NewGame> = editors.ids.mapNotNull { id ->
+        val editor = games[id]?.editor ?: return@mapNotNull null
+        val ui = editors[id] ?: return@mapNotNull null
+        CreateUiState.NewGame(
+            id = id,
+            name = games.displayName(id),
+            sizes = editor.variants.map { CreateUiState.Size(it, ui.sizeLabel(it)) },
+        )
+    }
+
     val uiState: StateFlow<CreateUiState> = drafts.observeAll()
         .map { stored ->
             CreateUiState(
-                stored.map { draft ->
+                drafts = stored.map { draft ->
                     val size = editors[draft.gameId]?.sizeLabel(draft.variant) ?: draft.variant.value
                     CreateUiState.DraftRow(
                         id = draft.id,
@@ -34,17 +47,15 @@ class CreateViewModel(
                         meta = "${games.displayName(draft.gameId)} · $size",
                     )
                 },
+                games = newGames,
             )
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CreateUiState())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CreateUiState(games = newGames))
 
-    /** Stores a blank draft and reports its id; a no-op while no game has an editor. */
-    fun newPuzzle(onCreated: (draftId: String) -> Unit) {
-        val plugin = games.all.firstOrNull { it.editor != null && it.definition.id in editors.ids } ?: return
-        val editor = checkNotNull(plugin.editor)
+    /** Stores a blank [variant] draft of [gameId] (a choice the sheet offered) and reports its id. */
+    fun newPuzzle(gameId: GameId, variant: VariantId, onCreated: (draftId: String) -> Unit) {
         viewModelScope.launch {
-            val draft = createDraft(plugin.definition.id, editor.variants.first())
-            onCreated(draft.id)
+            onCreated(createDraft(gameId, variant).id)
         }
     }
 
