@@ -35,6 +35,11 @@ class EditorViewModel(
     val state: StateFlow<EditorUiState> = mutableState.asStateFlow()
 
     private val verdicts = VerdictPipeline(viewModelScope, dispatchers)
+    private val history = EditHistory()
+
+    /** Undo and Redo are enabled only when the open draft has a step to move. */
+    val canUndo: StateFlow<Boolean> = history.canUndo
+    val canRedo: StateFlow<Boolean> = history.canRedo
 
     /** The stored row as last written; null until the draft has loaded. */
     private var lastStored: Draft? = null
@@ -60,6 +65,7 @@ class EditorViewModel(
         val ui = editors[stored.gameId] ?: return EditorUiState.Missing
         val draft = EditorDraft.open(editor, stored.blob).getOrNull() ?: return EditorUiState.Missing
         lastStored = stored
+        history.open(draft)
         // The verdict lands after the debounce; it is only published once this state is Ready.
         verdicts.submit(draft)
         return EditorUiState.Ready(
@@ -71,7 +77,27 @@ class EditorViewModel(
         )
     }
 
+    /** One step back: the board adopts it, then it is checked and stored like any edit. */
+    fun undo() {
+        history.undo()?.let(::adopt)
+    }
+
+    /** The undone step again, handled like [undo]. */
+    fun redo() {
+        history.redo()?.let(::adopt)
+    }
+
+    private fun adopt(draft: EditorDraft<*>) {
+        (mutableState.value as? EditorUiState.Ready)?.controller?.adopt(draft)
+        changed(draft)
+    }
+
     private fun onEdit(draft: EditorDraft<*>) {
+        history.record(draft)
+        changed(draft)
+    }
+
+    private fun changed(draft: EditorDraft<*>) {
         verdicts.submit(draft)
         val base = lastStored ?: return
         val next = base.copy(blob = draft.encode(), updatedAt = clock())

@@ -24,4 +24,7 @@ interface GameEditorUi {
 
     @Composable
     fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier)
+
+    /** Context line beside the tool strip; the default draws nothing. */
+    @Composable fun ToolHint(controller: GameEditorController, modifier: Modifier) {}
 }

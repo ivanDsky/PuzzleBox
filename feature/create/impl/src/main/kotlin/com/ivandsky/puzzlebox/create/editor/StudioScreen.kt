@@ -34,8 +34,9 @@ private val StudioTopBarHeight = 64.dp
 
 /**
  * The Studio: a compact bar (Back, the draft's [title] over [subtitle], the [verdict] pill)
- * over the game's [board], drawn as the largest square that fits. In [PlayLayout.TwoPane]
- * the square sits centred in the space; on a phone it hangs from the bar.
+ * over the game's [board], drawn as the largest square that fits, with the [toolStrip]
+ * under it. In [PlayLayout.TwoPane] the square sits centred in the space; on a phone it
+ * hangs from the bar.
  */
 @Composable
 fun StudioScreen(
@@ -45,6 +46,7 @@ fun StudioScreen(
     layout: PlayLayout,
     onBack: () -> Unit,
     board: @Composable (Modifier) -> Unit,
+    toolStrip: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize()) {
@@ -54,6 +56,7 @@ fun StudioScreen(
             board = board,
             modifier = Modifier.weight(1f).fillMaxWidth().padding(Spacing.lg),
         )
+        toolStrip(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg))
     }
 }
 
@@ -116,6 +119,16 @@ private fun StudioScreenPreview() {
             onBack = {},
             board = { boardModifier ->
                 Box(boardModifier.background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))
+            },
+            toolStrip = { stripModifier ->
+                ToolStrip(
+                    canUndo = true,
+                    canRedo = false,
+                    onUndo = {},
+                    onRedo = {},
+                    hint = { Text("Tap a cell to cycle its region colour", it, style = MaterialTheme.typography.bodySmall) },
+                    modifier = stripModifier,
+                )
             },
         )
     }
