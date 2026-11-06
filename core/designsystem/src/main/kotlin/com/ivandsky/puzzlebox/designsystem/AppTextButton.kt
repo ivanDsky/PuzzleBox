@@ -21,7 +21,7 @@ fun AppTextButton(
     val interactionSource = remember { MutableInteractionSource() }
     TextButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = ButtonMinHeight).pressScale(interactionSource),
+        modifier = modifier.heightIn(min = ButtonMinHeight).pressScale(interactionSource, reduced = false),
         enabled = enabled,
         shape = PillShape,
         interactionSource = interactionSource,
