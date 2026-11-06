@@ -7,6 +7,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -24,6 +25,7 @@ import org.koin.core.parameter.parametersOf
  * draws the board. Edits autosave, and the app's stop (ON_STOP) stores the pending one at once
  * (A5). Duplicate stores the pending edit, then reports the copy's id to [onOpen]; Delete stores
  * it too, then reports the draft's id to [onDelete], which leaves the Studio and deletes it with Undo.
+ * The verdict card hosts the game's fix list over the draft's board blocks (`publishBlocks`).
  */
 @Composable
 internal fun EditorRoute(
@@ -81,6 +83,11 @@ internal fun EditorRoute(
                 )
             },
             modifier = routeModifier,
+            issues = { issuesModifier ->
+                val draft by ready.controller.draft.collectAsStateWithLifecycle()
+                val blocks = remember(draft, ready.verdict) { draft.publishBlocks(ready.verdict) }
+                ready.editor.Issues(ready.controller, ready.verdict, blocks, issuesModifier)
+            },
         )
     }
 }

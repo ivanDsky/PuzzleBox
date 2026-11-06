@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.model.GameId
 
@@ -27,4 +28,12 @@ interface GameEditorUi {
 
     /** Context line beside the tool strip; the default draws nothing. */
     @Composable fun ToolHint(controller: GameEditorController, modifier: Modifier) {}
+
+    /** Fix list inside the verdict card; the default draws nothing. */
+    @Composable fun Issues(
+        controller: GameEditorController,
+        verdict: Verdict,
+        blocks: List<PublishBlock>,
+        modifier: Modifier,
+    ) {}
 }

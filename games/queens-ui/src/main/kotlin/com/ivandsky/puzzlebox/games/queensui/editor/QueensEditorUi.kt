@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.QueensVariants
@@ -35,5 +36,11 @@ object QueensEditorUi : GameEditorUi {
     @Composable
     override fun ToolHint(controller: GameEditorController, modifier: Modifier) {
         QueensModeToggle(controller as QueensEditorController, modifier)
+    }
+
+    /** The fix list (unpainted cells, region count, split regions, needs guessing, crown rows) in the verdict card. */
+    @Composable
+    override fun Issues(controller: GameEditorController, verdict: Verdict, blocks: List<PublishBlock>, modifier: Modifier) {
+        QueensFixList(controller as QueensEditorController, verdict, blocks, modifier)
     }
 }
