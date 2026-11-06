@@ -41,8 +41,13 @@ fun HomeRoute(
         onOpenGame = onOpenGame,
         onOpenProfile = onOpenProfile,
         onOpenHistory = onOpenHistory,
-        updateUrl = uiState.updateUrl,
-        onOpenUpdate = uriHandler::openUri,
+        onOpenUpdate = { url ->
+            // AndroidUriHandler throws this when no app can open the link; the tap then does nothing (A6).
+            try {
+                uriHandler.openUri(url)
+            } catch (_: IllegalArgumentException) {
+            }
+        },
         modifier = modifier.testTag("route.home"),
     )
 }

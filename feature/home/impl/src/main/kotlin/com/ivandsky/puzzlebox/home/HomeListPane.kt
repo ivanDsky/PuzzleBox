@@ -30,7 +30,7 @@ import kotlinx.coroutines.delay
  * The left pane and the whole single-pane screen share one stacked column on the app
  * background (identity §2.8): the header, then Today, the streak
  * card, the recent days and the account card, each entering in turn. A non-null
- * [updateUrl] puts the [UpdatePill] in the header's actions; a tap hands it to [onOpenUpdate].
+ * [HomeUiState.updateUrl] puts the [UpdatePill] in the header's actions; a tap hands it to [onOpenUpdate].
  */
 @Composable
 internal fun ListPane(
@@ -43,7 +43,6 @@ internal fun ListPane(
     onOpenGame: (GameId) -> Unit,
     onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
-    updateUrl: String? = null,
     onOpenUpdate: (String) -> Unit = {},
 ) {
     Column(
@@ -55,7 +54,7 @@ internal fun ListPane(
             title = "PuzzleBox",
             subtitle = state.puzzleDay.format(HEADER_DATE),
             actions = {
-                if (updateUrl != null) UpdatePill(onClick = { onOpenUpdate(updateUrl) })
+                state.updateUrl?.let { url -> UpdatePill(onClick = { onOpenUpdate(url) }) }
             },
         )
         Column(

@@ -37,6 +37,7 @@ import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.pressScale
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.ArchiveDay

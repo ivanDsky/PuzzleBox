@@ -30,8 +30,8 @@ internal data class HistoryDay(val isoDay: String, val headline: String, val gam
  * tile, or the CTA's [HomeUiState.playTarget]; the play restores its save), plus the full
  * history and the account surface. Game titles render from [state]'s rows, never from a
  * hardcoded id; the header's date is the puzzle roll-over day (A9), never the phone's.
- * A non-null [updateUrl] shows the Update available pill in the header (spec A7); its tap
- * calls [onOpenUpdate] with that URL.
+ * A non-null [HomeUiState.updateUrl] shows the Update available pill in the header (spec A7);
+ * its tap calls [onOpenUpdate] with that URL.
  */
 @Composable
 internal fun HomeScreen(
@@ -41,7 +41,6 @@ internal fun HomeScreen(
     onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenHistory: () -> Unit = {},
-    updateUrl: String? = null,
     onOpenUpdate: (String) -> Unit = {},
 ) {
     var selectedDay by rememberSaveable { mutableStateOf<String?>(null) }
@@ -61,7 +60,6 @@ internal fun HomeScreen(
                     modifier = Modifier
                         .weight(0.42f)
                         .fillMaxHeight(),
-                    updateUrl = updateUrl,
                     onOpenUpdate = onOpenUpdate,
                 )
                 DetailPane(
@@ -83,7 +81,6 @@ internal fun HomeScreen(
                 onOpenGame = onOpenGame,
                 onOpenProfile = onOpenProfile,
                 modifier = Modifier.fillMaxSize(),
-                updateUrl = updateUrl,
                 onOpenUpdate = onOpenUpdate,
             )
         }
