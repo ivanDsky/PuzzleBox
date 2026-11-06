@@ -6,7 +6,10 @@ import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
  * The Queens hint ladder (spec A9). [rungs] run easiest first; their list order is the
  * difficulty order, so the hardest rung a run needs is the last-indexed one it used.
  */
-class QueensLadder(private val rungs: List<QueensRung>) {
+class QueensLadder(rungs: List<QueensRung>) {
+
+    /** The rungs, easiest first; a defensive copy, so the ladder cannot change after construction. */
+    val rungs: List<QueensRung> = rungs.toList()
 
     /** Lowest rung first; restart from the first rung after every deduction. */
     fun run(puzzle: QueensPuzzle, placed: Set<Int> = emptySet()): QueensLadderRun {

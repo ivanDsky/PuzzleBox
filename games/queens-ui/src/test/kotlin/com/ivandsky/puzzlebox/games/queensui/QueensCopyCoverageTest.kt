@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.games.queensui
 
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensLadder
-import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensRung
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -15,7 +14,7 @@ class QueensCopyCoverageTest {
 
     @Test
     fun `every rung of the default ladder has a caption`() {
-        val rungs = defaultRungs()
+        val rungs = QueensLadder.Default.rungs
         assertTrue("the default ladder lists its rungs", rungs.isNotEmpty())
 
         val missing = rungs.filter { QueensRungCopy.caption(it.captionKey) == null }.map { it.id }
@@ -27,11 +26,4 @@ class QueensCopyCoverageTest {
     fun `an unknown caption key has no caption`() {
         assertEquals(null, QueensRungCopy.caption("queens.hint.rung.unknown"))
     }
-
-    /** [QueensLadder] keeps its list private (00-interfaces §4.3); the test reads it as-is. */
-    private fun defaultRungs(): List<QueensRung> =
-        QueensLadder::class.java.getDeclaredField("rungs")
-            .apply { isAccessible = true }
-            .get(QueensLadder.Default)
-            .let { list -> (list as List<*>).map { it as QueensRung } }
 }
