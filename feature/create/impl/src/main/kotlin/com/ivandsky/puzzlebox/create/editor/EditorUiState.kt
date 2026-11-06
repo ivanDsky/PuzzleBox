@@ -13,11 +13,10 @@ sealed interface EditorUiState {
     data object Missing : EditorUiState
 
     /**
-     * The open draft: [title] over [subtitle] ("Queens 4×4"), the live [verdict], and the
-     * game's [editor] UI drawing the board over [controller].
+     * The open draft: its [subtitle] ("Queens 4×4"), the live [verdict], and the game's
+     * [editor] UI drawing the board over [controller]. The title lives in [DraftMeta].
      */
     data class Ready(
-        val title: String,
         val subtitle: String,
         val verdict: Verdict,
         val editor: GameEditorUi,

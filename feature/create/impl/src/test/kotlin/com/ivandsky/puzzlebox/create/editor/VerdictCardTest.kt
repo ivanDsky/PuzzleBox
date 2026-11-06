@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.editor.Difficulty
@@ -141,7 +142,8 @@ class VerdictCardTest {
             modules(
                 module {
                     viewModel { (key: EditorKey) ->
-                        EditorViewModel(key, drafts, games, editors, DefaultDispatcherProvider(), clock = { NOW })
+                        val copyDraft = CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW })
+                        EditorViewModel(key, drafts, games, editors, copyDraft, DefaultDispatcherProvider(), clock = { NOW })
                     }
                 },
             )
