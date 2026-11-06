@@ -2,10 +2,8 @@ package com.ivandsky.puzzlebox.history
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -14,11 +12,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
-import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.bestScoreText
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
@@ -40,11 +35,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Robolectric compose coverage for the history browser (A17, A18): the empty state, the
- * game tabs (the key picks the first one, a tap filters), the stats and calendar cards, day
- * groups, the Best pill, and the detail's hand-off — "Play again" once solved, "Keep
- * going" while unfinished; both report the (game, day) to the shell and never build a
- * session blob (ticket 11), so cache state never blocks the tap.
+ * Robolectric compose coverage for the history browser (A17, A18, A28): the empty state,
+ * the All timeline whatever the key's game, the stats and calendar cards, day groups,
+ * the Best pill, and the detail's hand-off — "Play again" once solved, "Keep going"
+ * while unfinished; both report the (game, day) to the shell and never build a session
+ * blob (ticket 11), so cache state never blocks the tap.
  * Fix round 5, defect C: rows are per-game via the game-agnostic merged history — a
  * solved Queens day lists and details exactly like a captured day. tango-05: Zip and
  * Tango share the calendar without colliding, and a tango replay reports the tango game.
@@ -82,7 +77,6 @@ class HistoryScreenTest {
         records: List<CompletionRecord> = emptyList(),
         cached: Map<Pair<GameId, LocalDate>, Puzzle> = emptyMap(),
         key: HistoryKey = HistoryKey(),
-        archives: Map<GameId, ClosedRange<LocalDate>> = emptyMap(),
         hintsRanked: Set<GameId> = emptySet(),
     ) {
         handedToShell = null
@@ -91,9 +85,8 @@ class HistoryScreenTest {
             setHistory(ZIP, zips)
             setHistory(TANGO, tangos)
             cached.forEach { (slot, puzzle) -> setCached(slot.first, slot.second, puzzle) }
-            archives.forEach { (game, range) -> setArchiveRange(game, range) }
         }
-        val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository(records), key, hintsRanked)
+        val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository(records), hintsRanked)
         composeRule.setContent {
             // Stand-in for the shell's NavDisplay pop: registered first, so History's own
             // handler (registered later) wins while it is enabled.
@@ -312,7 +305,7 @@ class HistoryScreenTest {
     }
 
     @Test
-    fun `a hints-ranked game's stats Best and Best pill mark its fewest-hints day`() {
+    fun `a hints-ranked game's Best pill marks its fewest-hints day`() {
         val quicker = day
         val fewestHints = day.minusDays(1)
         setContent(
@@ -321,15 +314,9 @@ class HistoryScreenTest {
                 HistoryTestSupport.record(quicker, timeMs = 60_000, hints = 2),
                 HistoryTestSupport.record(fewestHints, timeMs = 90_000, hints = 0),
             ),
-            key = HistoryKey(gameId = ZIP.value),
             hintsRanked = setOf(ZIP),
         )
 
-        val expected = bestScoreText(BestScore(timeMs = 90_000, hints = 0), RankOrder.HintsThenTime)
-        composeRule.waitUntil(5_000) {
-            composeRule.onAllNodes(hasText(expected) and hasAnyAncestor(hasTestTag("history.stats.best")), useUnmergedTree = true)
-                .fetchSemanticsNodes().isNotEmpty()
-        }
         awaitRow(ZIP, fewestHints)
         awaitTag("history.best.zip/$fewestHints")
         awaitRow(ZIP, quicker)
@@ -337,39 +324,18 @@ class HistoryScreenTest {
     }
 
     @Test
-    fun `the key picks the starting tab`() {
+    fun `a game's key opens the All timeline with every game and no tabs`() {
         setContent(
             zips = listOf(HistoryTestSupport.entry(day)),
             tangos = listOf(HistoryTestSupport.tangoEntry(day)),
             key = HistoryKey(TANGO.value),
         )
 
-        awaitRow(TANGO)
-        assertNoTag(rowTag(ZIP, day))
-    }
-
-    @Test
-    fun `a game tab lists only that game, and All brings every game back`() {
-        setContent(
-            zips = listOf(HistoryTestSupport.entry(day)),
-            tangos = listOf(HistoryTestSupport.tangoEntry(day)),
-        )
         awaitRow(ZIP)
-
-        tapTab("history.tab.tango")
-        composeRule.waitUntil(5_000) {
-            composeRule.onAllNodesWithTag(rowTag(ZIP, day)).fetchSemanticsNodes().isEmpty()
-        }
         awaitRow(TANGO)
-
-        tapTab("history.tab.all")
-        awaitRow(ZIP)
-    }
-
-    /** Taps a tab; the list may have scrolled the tab row out of composition, so scroll back first. */
-    private fun tapTab(tag: String) {
-        composeRule.onNodeWithTag(LIST).performScrollToNode(hasTestTag(tag))
-        composeRule.onNodeWithTag(tag).performClick()
+        awaitTag("history.stats")
+        assertNoTag("history.tab.all")
+        assertNoTag("history.tab.${TANGO.value}")
     }
 
     @Test
@@ -379,44 +345,6 @@ class HistoryScreenTest {
 
         awaitTag("history.detail_hint")
         openRow(ZIP)
-    }
-
-    @Test
-    fun `older puzzles opens one archive game's picker on yesterday and replays the picked day`() {
-        val range = day.minusDays(30)..day
-        setContent(listOf(HistoryTestSupport.entry(day)), archives = mapOf(TANGO to range))
-
-        awaitTag(OLDER)
-        composeRule.onNodeWithTag(OLDER).performClick()
-        awaitTag("history.older.picker")
-        composeRule.onNodeWithTag("history.older.open").performClick()
-
-        composeRule.waitUntil(5_000) { handedToShell != null }
-        assertEquals(TANGO to day.minusDays(1), handedToShell)
-    }
-
-    @Test
-    fun `older puzzles asks for the game first when several have an archive`() {
-        val range = day.minusDays(30)..day
-        setContent(archives = mapOf(ZIP to range, TANGO to range))
-
-        awaitTag(OLDER)
-        composeRule.onNodeWithTag(OLDER).performClick()
-        awaitTag("history.older.game.${TANGO.value}")
-        composeRule.onNodeWithTag("history.older.game.${TANGO.value}").performClick()
-        awaitTag("history.older.picker")
-        composeRule.onNodeWithTag("history.older.open").performClick()
-
-        composeRule.waitUntil(5_000) { handedToShell != null }
-        assertEquals(TANGO to day.minusDays(1), handedToShell)
-    }
-
-    @Test
-    fun `no older puzzles entry when no game has an archive`() {
-        setContent(listOf(HistoryTestSupport.entry(day)))
-
-        awaitRow(ZIP)
-        assertNoTag(OLDER)
     }
 
     @Test
@@ -451,6 +379,5 @@ class HistoryScreenTest {
 
     private companion object {
         const val LIST = "history.list"
-        const val OLDER = "history.older"
     }
 }

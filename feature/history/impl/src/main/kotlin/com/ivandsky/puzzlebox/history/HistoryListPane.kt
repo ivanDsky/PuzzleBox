@@ -26,32 +26,25 @@ import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
-
-import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 private val DAY_GROUP_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, MMM d")
 
 /**
- * History's list column (spec A18): the tabs, the tab's stats and week/month calendar, then
- * its paged rows grouped under a day label. A day picked on the calendar swaps the pages
- * for that day's rows from the state, under a pill that clears it; on a game's tab the
- * day's header ([HistoryDayHeader]) sits above them and its action reports the (game, day)
- * through [onReplay]. A tab with nothing in it shows only the empty state — except a game
- * tab with an archive, which keeps its calendar so any archive day can be picked (ticket 09).
+ * History's list column (spec A18, A28): the All stats and week/month calendar, then
+ * every game's paged rows grouped under a day label. A day picked on the calendar swaps
+ * the pages for that day's rows from the state, under a pill that clears it. Nothing
+ * played yet shows only the empty state.
  */
 @Composable
 internal fun ListPane(
     days: LazyPagingItems<HistoryDayRow>,
     state: HistoryUiState,
-    selectedTab: GameId?,
-    onSelectTab: (GameId?) -> Unit,
     onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit,
     onSelectDay: (LocalDate?) -> Unit,
     selectedKey: String?,
     onDayClick: (HistoryDayRow) -> Unit,
-    onReplay: (GameId, LocalDate) -> Unit,
     onBack: () -> Unit,
     cardColor: Color,
     modifier: Modifier = Modifier,
@@ -78,19 +71,15 @@ internal fun ListPane(
                 },
             )
         }
-        item(key = "tabs") {
-            HistoryTabs(tabs = state.tabs, selected = selectedTab, onSelect = onSelectTab)
-        }
-        if (empty && state.archiveRange == null) {
+        if (empty) {
             emptyItem(cardColor)
             return@LazyColumn
         }
-        // Stats and the calendar are always items 2 and 3 (rows start at 4), filled once they load.
+        // Stats and the calendar are always items 1 and 2 (rows start at 3), filled once they load.
         item(key = "stats") {
             state.stats?.let { stats ->
                 HistoryStatsHeader(
                     stats = stats,
-                    perGame = selectedTab != null,
                     cardColor = cardColor,
                     modifier = Modifier.padding(horizontal = Spacing.lg),
                 )
@@ -115,19 +104,7 @@ internal fun ListPane(
                 )
             }
             val dayRows = state.rows.filter { it.day == day }
-            val past = state.pastDay
-            val pastTab = past?.let { state.tabs.firstOrNull { tab -> tab.gameId == it.game } }
-            if (past != null && pastTab != null) {
-                item(key = "day_header") {
-                    HistoryDayHeader(
-                        pastDay = past,
-                        tab = pastTab,
-                        onPlay = { onReplay(past.game, past.day) },
-                        cardColor = cardColor,
-                        modifier = Modifier.padding(horizontal = Spacing.lg),
-                    )
-                }
-            } else if (dayRows.isEmpty()) {
+            if (dayRows.isEmpty()) {
                 item(key = "day_empty") {
                     Text(
                         text = "Nothing played on this day.",
@@ -150,7 +127,6 @@ internal fun ListPane(
             }
             return@LazyColumn
         }
-        if (empty) emptyItem(cardColor)
         items(
             count = days.itemCount,
             // Game-keyed identity: two games can share a day — the key never
