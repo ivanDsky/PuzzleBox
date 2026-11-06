@@ -8,7 +8,7 @@ import org.koin.dsl.module
 
 /** Mini Sudoku's play UI, qualified by its game id like the plugin binding. */
 val miniSudokuUiModule: Module = module {
-    single<GamePlayUi>(qualifier = qualifier(SudokuGames.MINI.id.value)) { SudokuPlayUi(SudokuGames.MINI) }
+    single<GamePlayUi>(qualifier = qualifier(SudokuGames.MINI.id.value)) { SudokuPlayUi(SudokuGames.MINI, MiniSudokuBrand) }
 }
 
 /** Classic Sudoku's play UI; installed once its daily source ships (ticket 08). */
