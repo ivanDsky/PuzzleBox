@@ -226,10 +226,11 @@ class HomeViewModel(
             currentStreak = 0,
             bestStreak = 0,
             solved = 0,
-            bestTimeMs = null,
             hintFree = 0,
             averageTimeMs = null,
             playingSince = null,
+            best = null,
+            rankOrder = RankOrder.TimeThenHints,
         )
     }
 }

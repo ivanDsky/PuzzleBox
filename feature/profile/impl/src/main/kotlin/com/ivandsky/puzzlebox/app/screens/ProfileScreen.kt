@@ -25,6 +25,8 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
+import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
@@ -151,8 +153,18 @@ internal fun ProfileContentPreview() {
                 ),
                 daysPlayed = 21,
                 games = listOf(
-                    ProfileUiState.GameRow(GameId("zip"), "Zip", GameBrand.Neutral, solved = 20, bestTimeMs = 41_000),
-                    ProfileUiState.GameRow(GameId("tango"), "Tango", GameBrand.Neutral, solved = 22, bestTimeMs = null),
+                    ProfileUiState.GameRow(
+                        GameId("zip"), "Zip", GameBrand.Neutral, solved = 20,
+                        best = BestScore(41_000, hints = 0), rankOrder = RankOrder.TimeThenHints,
+                    ),
+                    ProfileUiState.GameRow(
+                        GameId("strands"), "Strands", GameBrand.Neutral, solved = 22,
+                        best = BestScore(185_000, hints = 1), rankOrder = RankOrder.HintsThenTime,
+                    ),
+                    ProfileUiState.GameRow(
+                        GameId("tango"), "Tango", GameBrand.Neutral, solved = 0,
+                        best = null, rankOrder = RankOrder.TimeThenHints,
+                    ),
                 ),
                 themeMode = ThemeMode.DARK,
             ),

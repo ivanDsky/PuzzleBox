@@ -3,6 +3,8 @@ package com.ivandsky.puzzlebox.app.screens
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
+import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
@@ -35,13 +37,14 @@ data class ProfileUiState(
         ) : Account
     }
 
-    /** One game's lifetime line; a tap opens that game's History tab (N3). */
+    /** One game's lifetime line, its [best] ranked by [rankOrder]; a tap opens that game's History tab (N3). */
     data class GameRow(
         val gameId: GameId,
         val name: String,
         val brand: GameBrand,
         val solved: Int,
-        val bestTimeMs: Long?,
+        val best: BestScore?,
+        val rankOrder: RankOrder,
     )
 
     companion object {
@@ -49,10 +52,11 @@ data class ProfileUiState(
             currentStreak = 0,
             bestStreak = 0,
             solved = 0,
-            bestTimeMs = null,
             hintFree = 0,
             averageTimeMs = null,
             playingSince = null,
+            best = null,
+            rankOrder = RankOrder.TimeThenHints,
         )
     }
 }

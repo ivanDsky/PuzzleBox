@@ -59,10 +59,11 @@ class ObserveGameStatsTest {
                 currentStreak = 0,
                 bestStreak = 0,
                 solved = 0,
-                bestTimeMs = null,
                 hintFree = 0,
                 averageTimeMs = null,
                 playingSince = null,
+                best = null,
+                rankOrder = RankOrder.TimeThenHints,
             ),
             stats().first(),
         )
@@ -86,7 +87,6 @@ class ObserveGameStatsTest {
                 currentStreak = 2,
                 bestStreak = 3,
                 solved = 5,
-                bestTimeMs = 20_000L,
                 hintFree = 3,
                 averageTimeMs = 50_000L,
                 playingSince = today.minusDays(5),
@@ -112,7 +112,7 @@ class ObserveGameStatsTest {
         assertEquals(1, stats.currentStreak)
         assertEquals(1, stats.bestStreak)
         assertEquals(1, stats.solved)
-        assertEquals(40_000L, stats.bestTimeMs)
+        assertEquals(BestScore(timeMs = 40_000L, hints = 0), stats.best)
         assertEquals(40_000L, stats.averageTimeMs)
         assertEquals(today, stats.playingSince)
     }
