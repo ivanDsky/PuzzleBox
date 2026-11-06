@@ -46,8 +46,11 @@ class EditorViewModel(
     private val verdicts = VerdictPipeline(viewModelScope, dispatchers)
     private val history = EditHistory()
 
-    /** The verdict card; Check again resubmits the board as it stands. */
-    val verdictCard = VerdictCardState { (state.value as? EditorUiState.Ready)?.controller?.draft?.value?.let(verdicts::recheck) }
+    /** The verdict card; Check again resubmits the board as it stands; its witness choice goes to the board's controller. */
+    val verdictCard = VerdictCardState(
+        recheck = { (state.value as? EditorUiState.Ready)?.controller?.draft?.value?.let(verdicts::recheck) },
+        controller = { (state.value as? EditorUiState.Ready)?.controller },
+    )
 
     /** The draft's title, rename, duplicate and delete. */
     val meta = DraftMeta(key.draftId, copyDraft, viewModelScope) { title -> lastStored?.let { write(it.copy(title = title)) } }
@@ -70,11 +73,15 @@ class EditorViewModel(
     val saving: StateFlow<Boolean> = autosave.saving
 
     init {
-        viewModelScope.launch { mutableState.value = load() }
+        viewModelScope.launch {
+            mutableState.value = load()
+            (mutableState.value as? EditorUiState.Ready)?.let { verdictCard.read(it.verdict) }
+        }
         viewModelScope.launch {
             verdicts.verdict.collect { verdict ->
                 val ready = mutableState.value as? EditorUiState.Ready ?: return@collect
                 mutableState.value = ready.copy(verdict = verdict)
+                verdictCard.read(verdict)
             }
         }
     }

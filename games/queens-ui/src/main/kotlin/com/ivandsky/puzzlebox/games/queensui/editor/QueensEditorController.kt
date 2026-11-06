@@ -1,10 +1,13 @@
 package com.ivandsky.puzzlebox.games.queensui.editor
 
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.games.queens.editor.QueensAnswerFit
 import com.ivandsky.puzzlebox.games.queens.editor.QueensCrowns
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.games.queens.editor.paint
+import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +24,8 @@ import kotlinx.coroutines.flow.asStateFlow
  * [selectAllOf] and [selectArea] grow it; a ring [pick] paints every selected cell as one
  * undoable step and clears the selection. In either mode a [stroke] (a drag out from a
  * coloured cell) paints that cell's colour along the drag. Every edit goes out through
- * [onEdit]; the VM hands replacement drafts back through [adopt].
+ * [onEdit]; the VM hands replacement drafts back through [adopt]. The verdict card's witness
+ * choice arrives through [adoptOverlay] and the board draws it from [overlay].
  */
 class QueensEditorController(
     initial: EditorDraft<*>,
@@ -32,6 +36,7 @@ class QueensEditorController(
     private val selected = MutableStateFlow<Set<Int>>(emptySet())
     private val currentMode = MutableStateFlow(openingMode(current.value.state.draft))
     private val refused = MutableSharedFlow<Int>(extraBufferCapacity = 1)
+    private val shownOverlay = MutableStateFlow(EditorOverlay())
 
     override val draft: StateFlow<EditorDraft<*>> = current.asStateFlow()
 
@@ -44,11 +49,29 @@ class QueensEditorController(
     /** The cell of each refused crown tap; the board plays the Reject jolt on it. */
     val rejected: SharedFlow<Int> = refused.asSharedFlow()
 
+    /** The verdict card's witness choice (31); not persisted. */
+    val overlay: StateFlow<EditorOverlay> = shownOverlay.asStateFlow()
+
     override fun adopt(draft: EditorDraft<*>) {
         val next = typed(draft)
         // A resize renumbers every cell, so the old selection no longer means anything.
         if (next.state.draft.size != current.value.state.draft.size) cancel()
         current.value = next
+    }
+
+    override fun adoptOverlay(overlay: EditorOverlay) {
+        shownOverlay.value = overlay
+    }
+
+    /**
+     * With answer crowns on a 2+ solutions [verdict] (flow C), the witness the crowns do not
+     * follow, drawn on the board as the ghost crowns; otherwise the default, so the diff ring alone shows.
+     */
+    override fun openingOverlay(verdict: Verdict): EditorOverlay {
+        val multiple = verdict as? Verdict.Multiple ?: return EditorOverlay()
+        val fit = QueensAnswerFit.of(current.value.state.draft, multiple) as? QueensAnswerFit.Ambiguous ?: return EditorOverlay()
+        val other = if (fit.authorIsA) EditorOverlay.Witness.B else EditorOverlay.Witness.A
+        return EditorOverlay(other, showOnBoard = true)
     }
 
     /** Switches what a [tap] does and clears the selection. Not an edit. */

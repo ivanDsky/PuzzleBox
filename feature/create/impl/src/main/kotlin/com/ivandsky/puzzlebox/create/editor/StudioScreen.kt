@@ -115,6 +115,7 @@ private fun PillWithCard(verdict: Verdict, verdictCard: VerdictCardState, issues
 @Composable
 private fun VerdictCardPopover(verdict: Verdict, state: VerdictCardState, issues: @Composable (Modifier) -> Unit) {
     val open by state.open.collectAsStateWithLifecycle()
+    val overlay by state.overlay.collectAsStateWithLifecycle()
     if (!open) return
     val reducedMotion = rememberReducedMotion()
     val shown = remember { MutableTransitionState(false).apply { targetState = true } }
@@ -132,7 +133,7 @@ private fun VerdictCardPopover(verdict: Verdict, state: VerdictCardState, issues
                 scaleIn(spec, CardEnterScale, TransformOrigin(1f, 0f)) + fadeIn(spec)
             },
         ) {
-            VerdictCard(verdict = verdict, onCheckAgain = state::checkAgain, issues = issues)
+            VerdictCard(verdict = verdict, onCheckAgain = state::checkAgain, overlay = overlay, onOverlay = state::choose, issues = issues)
         }
     }
 }

@@ -40,6 +40,7 @@ import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.LadderRung
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 
 private val CardMaxWidth = 320.dp
 private val GradeIconSize = 16.dp
@@ -48,7 +49,8 @@ private val GradeIconSize = 16.dp
  * The verdict in full (02 handoff, "Pill popover"): title, subtitle, the grade of a Unique
  * (its difficulty, or the Needs guessing flag, under `create.verdict.grade` with the grade's
  * machine name as state), a line on what the verdict means and, after Undetermined,
- * Check again ([onCheckAgain]), then the game's fix list ([issues], `GameEditorUi.Issues`).
+ * Check again ([onCheckAgain]), after 2+ solutions the witness A/B toggle and Show on board
+ * ([VerdictWitness] over [overlay], changes to [onOverlay]), then the game's fix list ([issues], `GameEditorUi.Issues`).
  * Motion: a new verdict **Crossfade**s in on MotionTokens medium, emphasized decelerate;
  * under reduced motion a plain 120 ms fade.
  */
@@ -57,6 +59,8 @@ fun VerdictCard(
     verdict: Verdict,
     onCheckAgain: () -> Unit,
     modifier: Modifier = Modifier,
+    overlay: EditorOverlay = EditorOverlay(),
+    onOverlay: (EditorOverlay) -> Unit = {},
     issues: @Composable (Modifier) -> Unit = {},
 ) {
     val reducedMotion = rememberReducedMotion()
@@ -79,12 +83,18 @@ fun VerdictCard(
             },
             label = "create-verdict-card",
             contentKey = ::faceKey,
-        ) { shown -> CardFace(shown, onCheckAgain, issues) }
+        ) { shown -> CardFace(shown, onCheckAgain, overlay, onOverlay, issues) }
     }
 }
 
 @Composable
-private fun CardFace(verdict: Verdict, onCheckAgain: () -> Unit, issues: @Composable (Modifier) -> Unit) {
+private fun CardFace(
+    verdict: Verdict,
+    onCheckAgain: () -> Unit,
+    overlay: EditorOverlay,
+    onOverlay: (EditorOverlay) -> Unit,
+    issues: @Composable (Modifier) -> Unit,
+) {
     Column(
         modifier = Modifier.padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -111,6 +121,7 @@ private fun CardFace(verdict: Verdict, onCheckAgain: () -> Unit, issues: @Compos
                 modifier = Modifier.fillMaxWidth().testTag("create.verdict.checkAgain"),
             )
         }
+        if (verdict is Verdict.Multiple) VerdictWitness(overlay, onOverlay)
         issues(Modifier.fillMaxWidth())
     }
 }
@@ -207,6 +218,15 @@ private fun VerdictCardUniquePreview() {
 @Composable
 private fun VerdictCardNeedsGuessingPreview() {
     CardPreview(Verdict.Unique(Solution(listOf(1, 7, 8, 14)), needsGuessing = true))
+}
+
+@PuzzleBoxPreviews
+@Composable
+private fun VerdictCardMultiplePreview() {
+    val multiple = Verdict.Multiple(Solution(listOf(1, 7, 8, 14)), Solution(listOf(2, 4, 11, 13)), setOf(1, 2, 4, 7, 8, 11, 13, 14))
+    PuzzleBoxTheme {
+        Surface { VerdictCard(multiple, onCheckAgain = {}, Modifier.padding(Spacing.lg), overlay = EditorOverlay(EditorOverlay.Witness.B, showOnBoard = true)) }
+    }
 }
 
 @PuzzleBoxPreviews
