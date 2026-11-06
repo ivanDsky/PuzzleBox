@@ -9,7 +9,8 @@ import kotlinx.coroutines.flow.map
  * The stats every surface shows (History, Profile, Result), read from the merged history
  * ([ObserveGameHistory]) so they never disagree: [game]'s solved dailies, or every game's
  * when null. Each day's record row counts (A4: the first completion). Practice solves
- * (no edition number) never count, so they move no streak, time or count.
+ * (no edition number) never count, so they move no streak, time or count. Archived days
+ * (A23) count as solves but never move a streak.
  */
 class ObserveGameStats(
     private val observeGameHistory: ObserveGameHistory,
@@ -23,9 +24,10 @@ class ObserveGameStats(
             }
             val records = solved.mapNotNull { it.record }
             val solvedDays = solved.map { it.day }
+            val streakDays = solved.filterNot { it.archived }.map { it.day }
             GameStats(
-                currentStreak = computeStreak(solvedDays),
-                bestStreak = computeStreak.best(solvedDays),
+                currentStreak = computeStreak(streakDays),
+                bestStreak = computeStreak.best(streakDays),
                 solved = records.size,
                 bestTimeMs = records.minOfOrNull { it.time },
                 hintFree = records.count { it.hints == 0 },

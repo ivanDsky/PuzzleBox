@@ -98,7 +98,9 @@ class HistoryViewModel(
     val selectedTab: StateFlow<GameId?> = tab.asStateFlow()
 
     private val allRows: Flow<List<HistoryDayRow>> = observeGameHistory().map { merged ->
-        merged.map { it.toRow(registry.displayName(it.gameId), playRegistry.brandOf(it.gameId)) }
+        // An archive day from another year spells its year out (A23).
+        val currentYear = puzzleDay().year
+        merged.map { it.toRow(registry.displayName(it.gameId), playRegistry.brandOf(it.gameId), currentYear) }
             .sortedWith(HISTORY_ROW_ORDER)
             .markBest()
     }

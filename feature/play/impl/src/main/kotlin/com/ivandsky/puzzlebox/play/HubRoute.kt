@@ -8,6 +8,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
+import java.time.LocalDate
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 
@@ -17,14 +18,15 @@ import org.koin.compose.koinInject
  * the game's own [GamePlayRegistry] entry), today's progress and best time
  * ([HubViewModel], SC11), stacked or, in [PlayLayout.TwoPane], in a grid. Tapping a card
  * is [onPick]; the entry pushes that game's key, so back from the board returns here (N3)
- * and an in-progress game resumes its save. "Older puzzles" is [onOpenHistory] (N3). The
- * hub never opens a play; each start prefetches today's uncached puzzles
- * ([HubViewModel.syncToday], A12).
+ * and an in-progress game resumes its save. A game with an archive also opens a past day
+ * by date, [onPickDay] (A22). "Older puzzles" is [onOpenHistory] (N3). The hub never
+ * opens a play; each start prefetches today's uncached puzzles ([HubViewModel.syncToday], A12).
  */
 @Composable
 internal fun HubRoute(
     layout: PlayLayout,
     onPick: (GameId) -> Unit,
+    onPickDay: (GameId, LocalDate) -> Unit,
     onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
     games: GamePlayRegistry = koinInject(),
@@ -40,6 +42,7 @@ internal fun HubRoute(
         games = games,
         layout = layout,
         onPick = onPick,
+        onPickDay = onPickDay,
         onOpenHistory = onOpenHistory,
         modifier = modifier,
     )

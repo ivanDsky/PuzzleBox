@@ -6,7 +6,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
-import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.model.GameId
@@ -93,7 +94,7 @@ class ResultViewModelTest {
     private fun store(games: GameRegistry, ui: GamePlayRegistry) = PlaySessionStore(
         games = games,
         ui = ui,
-        opening = SlotOpening(daily, GetReplaySession(daily, games), saved, calendar, games, lane),
+        opening = SlotOpening(daily, LoadPastDay(daily, games), saved, calendar, games, lane),
         writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
         completions = completions,
         calendar = calendar,
@@ -146,7 +147,7 @@ class ResultViewModelTest {
         solveLive()
         val state = vm().observed().state.value
         assertEquals(RecordVerdict.FirstSolve, state.verdict)
-        assertNull(state.previousBestMs)
+        assertNull(state.previousBest)
         assertFalse(state.writeFailed)
         assertEquals(fakes.games.displayName(alpha), state.game)
     }
@@ -158,7 +159,7 @@ class ResultViewModelTest {
         solveLive()
         val state = vm().observed().state.value
         assertEquals(RecordVerdict.NewBest, state.verdict)
-        assertEquals(slower, state.previousBestMs)
+        assertEquals(BestScore(slower, hints = 0), state.previousBest)
     }
 
     @Test
@@ -180,7 +181,7 @@ class ResultViewModelTest {
         solveLive()
         val state = vm(key.copy(timeMs = FakeController.TIME_MS + 1)).observed().state.value
         assertNull(state.verdict)
-        assertNull(state.previousBestMs)
+        assertNull(state.previousBest)
         assertFalse(state.writeFailed)
     }
 
@@ -203,7 +204,7 @@ class ResultViewModelTest {
         completions.setRecords(listOf(record(FakeController.TIME_MS, 0)))
         val state = vm().observed().state.value
         assertNull(state.verdict)
-        assertNull(state.previousBestMs)
+        assertNull(state.previousBest)
     }
 
     @Test

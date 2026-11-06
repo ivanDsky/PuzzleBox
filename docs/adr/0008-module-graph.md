@@ -13,20 +13,23 @@ the build instead of a review.
 1. **`GameRegistry` (`core:game`) is the only `GameId` → `GamePlugin` lookup.** Every game
    module binds its `GamePlugin` under its id qualifier; `app/di/AppModule.kt` builds the one
    registry from `getAll<GamePlugin<*, *, *>>()`, sorted by the app-side `GAME_ORDER`
-   (`zip`, `tango`, `queens`; an unlisted game sorts after them by id). Consumers that must
+   (`zip`, `tango`, `queens`, `minisudoku`, `sudoku`; an unlisted game sorts after them by id).
+   *(Amended 2026-11-05, ADR-0015: one module pair per game family; `:games:sudoku` hosts
+   `minisudoku` and `sudoku`, the latter registered in debug builds only.)* Consumers that must
    not know game ids — `core:data` decoding, `core:domain` use cases, Home, History, the play
    shell — inject the registry; nobody else aggregates plugins or scans for an id.
 2. **Dailies flow `DailySource` → `DailyRepository`.** Each game module owns its feed adapter
    (wire extraction, parsing, trust gate) as a `DailySource` (`core:game`) bound
    `bind DailySource::class`; `core:data`'s `OfflineFirstDailyRepository` collects every
    source by `gameId` and is the `DailyRepository` (fetch-today with cache degrade,
-   cache-only `cached`/`observeHistory`).
+   cache-only `observeHistory`, and a by-date `day` read that fetches a missed
+   past day only for a source declaring `archiveSince`, ADR-0012).
 3. **`GamePlayRegistry` (`core:game-ui`) has a single owner.** Each `games:<id>-ui` module
    binds exactly one `GamePlayUi` under its id qualifier; `app` builds
    `GamePlayRegistry(getAll())` once (a duplicate id throws). `feature:play:impl` drives any
    game through `GamePlayController` (ADR-0007).
 4. **Cross-feature business logic lives in `core:domain`** as use cases (`domainModule`):
-   `ComputeStreak`, `GetFeaturedGame`, `GetReplaySession`, `ObserveGameHistory`,
+   `ComputeStreak`, `GetFeaturedGame`, `LoadPastDay`, `ObserveGameHistory`,
    `ObserveTodayLeaderboard`, `ObserveTodaySet`. Features call use cases or `core:data` repositories, never
    each other's ViewModels.
 5. **Navigation is api/impl.** `feature:<name>:api` holds only the feature's `@Serializable`

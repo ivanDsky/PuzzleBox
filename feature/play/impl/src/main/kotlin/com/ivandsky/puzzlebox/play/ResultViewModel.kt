@@ -12,6 +12,8 @@ import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.nextUnsolved
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.model.GameId
@@ -30,9 +32,9 @@ import kotlinx.coroutines.flow.stateIn
 
 /**
  * The result route's live facts. [verdict] is the A10 verdict for THIS play — null while
- * the write is in flight/unknown, or when no live play holds this solve; [previousBestMs]
- * is the game's best before this play; [writeFailed] (the retry affordance) is only ever
- * true for a live play holding this solve.
+ * the write is in flight/unknown, or when no live play holds this solve; [previousBest]
+ * is the game's best before this play, ranked by [rankOrder]; [writeFailed] (the retry
+ * affordance) is only ever true for a live play holding this solve.
  *
  * [game] names the game; [puzzleNumber] is the slot's edition number, and [practice] is
  * true once the history shows the slot has none (A22: it never ranks or counts). [streak]
@@ -42,7 +44,8 @@ import kotlinx.coroutines.flow.stateIn
  */
 data class ResultUiState(
     val verdict: RecordVerdict? = null,
-    val previousBestMs: Long? = null,
+    val previousBest: BestScore? = null,
+    val rankOrder: RankOrder = RankOrder.TimeThenHints,
     val writeFailed: Boolean = false,
     val game: String = "",
     val puzzleNumber: Int? = null,
@@ -143,7 +146,8 @@ class ResultViewModel(
         if (record.solve == solve) {
             last.copy(
                 verdict = record.verdict,
-                previousBestMs = record.previousBestMs,
+                previousBest = record.previousBest,
+                rankOrder = record.rankOrder,
                 writeFailed = record.writeFailed,
             )
         } else {

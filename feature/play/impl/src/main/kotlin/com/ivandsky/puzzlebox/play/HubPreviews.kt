@@ -166,6 +166,7 @@ private fun GamePickerPreview() {
             games = previewGames,
             layout = PlayLayout.SinglePane,
             onPick = {},
+            onPickDay = { _, _ -> },
             onOpenHistory = {},
         )
     }
@@ -180,6 +181,7 @@ private fun GamePickerGridPreview() {
             games = previewGames,
             layout = PlayLayout.TwoPane,
             onPick = {},
+            onPickDay = { _, _ -> },
             onOpenHistory = {},
         )
     }
@@ -194,6 +196,7 @@ private fun GamePickerTilesPreview() {
             games = manyGames,
             layout = PlayLayout.SinglePane,
             onPick = {},
+            onPickDay = { _, _ -> },
             onOpenHistory = {},
         )
     }

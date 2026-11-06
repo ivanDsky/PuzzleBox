@@ -23,9 +23,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
@@ -66,6 +69,8 @@ internal enum class HubCardShape {
  * then today's puzzle number and the [best] daily time (`hub.best.<gameId>`). The [isNext]
  * card wears a 2dp accent border (`hub.next.<gameId>`); a solved day gets an accent check
  * on the thumbnail's corner (`hub.solved.<gameId>`). Both shapes share every piece and tag.
+ * A game with an archive ([onPast] non-null) adds a plain "Past puzzles" text action under
+ * the content (`hub.past.<gameId>`, A22), its own click target inside the card's.
  */
 @Composable
 internal fun HubCard(
@@ -77,6 +82,7 @@ internal fun HubCard(
     modifier: Modifier = Modifier,
     thumbSize: Dp = HubThumbSize,
     shape: HubCardShape = HubCardShape.Row,
+    onPast: (() -> Unit)? = null,
 ) {
     val id = entry.game.value
     val accent = entry.brand.accent.colors()
@@ -112,6 +118,16 @@ internal fun HubCard(
                 Thumbnail(entry.brand, solved, thumbnail, id, Modifier.fillMaxWidth().aspectRatio(1f))
                 TextBlock(entry, best, tile = true, Modifier.fillMaxWidth())
             }
+        }
+        onPast?.let { onClick ->
+            AppTextButton(
+                text = "Past puzzles",
+                onClick = onClick,
+                modifier = Modifier
+                    .padding(start = Spacing.xs, bottom = Spacing.xs)
+                    .testTag("hub.past.$id")
+                    .semantics { contentDescription = "Past ${entry.name} puzzles" },
+            )
         }
     }
 }

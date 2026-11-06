@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.domain
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.repository.cachedPuzzle
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,7 +32,7 @@ class SyncTodayPuzzles(
         for (plugin in registry.all) {
             val game = plugin.definition.id
             val day = calendar.today(game) ?: continue
-            val ready = daily.cached(game, day) != null || daily.today(game) !is DailyToday.Unavailable
+            val ready = daily.cachedPuzzle(game, day) != null || daily.today(game) !is DailyToday.Unavailable
             failures.update { if (ready) it - game else it + game }
         }
     }

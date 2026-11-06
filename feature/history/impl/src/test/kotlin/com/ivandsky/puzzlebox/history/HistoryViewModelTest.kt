@@ -359,4 +359,48 @@ class HistoryViewModelTest {
         assertNotEquals(row(puzzleNumber = 5).edition, row(puzzleNumber = null).edition)
         assertTrue("a practice day never claims an edition", "#" !in row(puzzleNumber = null).title)
     }
+
+    @Test
+    fun `an archived solved day is listed but leaves the streak unchanged`() = runTest {
+        val today = HistoryTestSupport.TODAY
+        val archivedDay = today.minusDays(2)
+        val daily = FakeDailyRepository().apply {
+            setHistory(
+                ZIP,
+                listOf(
+                    HistoryTestSupport.entry(today),
+                    HistoryTestSupport.entry(today.minusDays(1)),
+                    HistoryTestSupport.entry(archivedDay).copy(archived = true),
+                ),
+            )
+        }
+        // All three solved; the archived day would extend the run to 3 if it counted.
+        val completions = FakeCompletionRepository(
+            listOf(today, today.minusDays(1), archivedDay).map(HistoryTestSupport::record),
+        )
+
+        val state = HistoryTestSupport.viewModel(daily, completions).uiState
+            .first { it.rows.isNotEmpty() && it.stats != null }
+
+        assertEquals(3, state.rows.size)
+        assertEquals(HistoryTestSupport.record(archivedDay), state.rows.single { it.day == archivedDay }.record)
+        assertEquals(2, state.stats?.currentStreak)
+    }
+
+    @Test
+    fun `a day from another year shows its year, a current-year day does not`() = runTest {
+        val daily = FakeDailyRepository().apply {
+            setHistory(
+                ZIP,
+                listOf(
+                    HistoryTestSupport.entry(LocalDate.of(2026, 11, 1)),
+                    HistoryTestSupport.entry(LocalDate.of(2024, 3, 4)).copy(archived = true),
+                ),
+            )
+        }
+
+        val rows = viewModel(daily).uiState.first { it.rows.isNotEmpty() }.rows
+
+        assertEquals(listOf("Sunday, November 1", "Monday, March 4, 2024"), rows.map { it.headline })
+    }
 }
