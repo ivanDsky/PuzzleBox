@@ -128,7 +128,8 @@ class ActivePlay internal constructor(
     /** Record identity = game id + day/puzzleNumber (ADR-0004): the slot's day and the
      *  number the opening read from the cache's history rows. */
     private fun adopt(controller: GamePlayController, fetched: SlotOpening.Origin.Fetched): PlayBoardStatus {
-        val resolved = plugin.refOf(slot.day, fetched.puzzleNumber)
+        val day = checkNotNull((slot as? PlaySlot.Daily)?.day) { "only a daily slot is fetched" }
+        val resolved = plugin.refOf(day, fetched.puzzleNumber)
         if (controller !== this.controller) return PlayBoardStatus.Loading // superseded; never shown
         return when (val adopted = controller.adoptToday(fetched.puzzle, resolved)) {
             is Adopt.Rejected -> PlayBoardStatus.Unavailable(adopted.message)
