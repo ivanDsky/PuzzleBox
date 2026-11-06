@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -40,7 +41,14 @@ class ObservePastDayTest {
             isRecord = true,
         )
 
-    private fun store(on: LocalDate = day, number: Int? = null, game: GameId = alpha) =
+    /** Captures a real puzzle for [on]: a history row whose cached puzzle reads back. */
+    private fun store(on: LocalDate = day, number: Int? = null, game: GameId = alpha) {
+        daily.setCached(game, on, TestGames.puzzle(game))
+        storePlaceholder(on, number, game)
+    }
+
+    /** A history row whose cached puzzle reads null, as a past day's seed placeholder does (A10). */
+    private fun storePlaceholder(on: LocalDate = day, number: Int? = null, game: GameId = alpha) =
         daily.addEntry(DailyEntry(game, on, number, variant = "v", fetchedAtMs = 0L))
 
     @After
@@ -64,6 +72,23 @@ class ObservePastDayTest {
         store()
 
         assertEquals(PastDayStatus.Stored, pastDay().first().status)
+    }
+
+    @Test
+    fun `a past day whose only row is a placeholder reads NeedsConnection`() = runTest {
+        storePlaceholder(number = 584)
+
+        assertEquals(PastDayStatus.NeedsConnection, pastDay().first().status)
+    }
+
+    @Test
+    fun `a placeholder day turns Stored once the real puzzle lands`() = runTest {
+        storePlaceholder()
+        pastDay().test {
+            assertEquals(PastDayStatus.NeedsConnection, awaitItem().status)
+            store()
+            assertEquals(PastDayStatus.Stored, awaitItem().status)
+        }
     }
 
     @Test

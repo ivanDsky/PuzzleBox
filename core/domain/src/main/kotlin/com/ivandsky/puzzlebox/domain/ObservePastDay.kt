@@ -13,8 +13,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 /**
  * One past day's number and status (spec A20), from local data only, shaped like
  * [ObserveTodaySet]. Solved = the completion record for (game, day); InProgress = a saved
- * play in that slot; Stored = a captured entry in [DailyRepository.observeHistory];
- * NeedsConnection otherwise. Never uses `day`/`cachedPuzzle`: both may fetch (archive range).
+ * play in that slot; Stored = a captured puzzle [DailyRepository.cachedPuzzle] reads back
+ * (Room only, so a past day's placeholder row is not Stored, A10); NeedsConnection otherwise.
+ * Never uses `day`, which may fetch (archive range). [DailyRepository.observeHistory] drives
+ * re-evaluation, so the status updates when the real puzzle replaces a placeholder.
  * The number is [DailyRepository.puzzleNumber], falling back to the stored entry's number
  * for sources without their own numbering.
  */
@@ -35,7 +37,7 @@ class ObservePastDay(
         val status = when {
             solved != null -> PastDayStatus.Solved(solved.time)
             elapsed != null -> PastDayStatus.InProgress(elapsed)
-            entry != null -> PastDayStatus.Stored
+            entry != null && daily.cachedPuzzle(game, day) != null -> PastDayStatus.Stored
             else -> PastDayStatus.NeedsConnection
         }
         PastDay(game, day, daily.puzzleNumber(game, day) ?: entry?.puzzleNumber, status)

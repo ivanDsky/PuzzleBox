@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
@@ -66,6 +67,8 @@ class HistoryDayHeaderTest {
         val daily = FakeDailyRepository().apply {
             setHistory(ZIP, zips)
             setHistory(TANGO, tangos)
+            // Rows here are real captures; ObservePastDay reads Stored only off cachedPuzzle (A10).
+            (zips + tangos).forEach { setCached(it.gameId, it.day, TestGames.puzzle(it.gameId)) }
             setArchiveRange(ZIP, archiveStart..today)
             setPuzzleNumbers(ZIP, ::puzzleNumber)
         }
