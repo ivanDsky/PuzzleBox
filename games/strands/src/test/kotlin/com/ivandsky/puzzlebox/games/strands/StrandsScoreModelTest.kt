@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.strands
 
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -23,8 +24,16 @@ class StrandsScoreModelTest {
     @Test
     fun `incomplete or unnumbered play emits nothing`() {
         assertNull(StrandsScoreModel.completion(StrandsSession(ref, complete.copy(found = listOf("CAT")))))
-        assertNull(StrandsScoreModel.completion(StrandsSession(ref.copy(puzzleNumber = null), complete)))
+        assertNull(StrandsScoreModel.completion(StrandsSession(StrandsPuzzleRef(ref.date, null), complete)))
         assertNull(StrandsScoreModel.completion(StrandsSession(null, complete)))
+    }
+
+    @Test
+    fun `a complete custom puzzle emits a record without a number`() {
+        val custom = StrandsPuzzleRef(PuzzleKey.Custom("ABC234"))
+        val record = StrandsScoreModel.completion(StrandsSession(custom, complete, elapsedMs = 61_000L))!!
+        assertEquals(custom, record.puzzleRef)
+        assertEquals(2, record.hints)
     }
 
     @Test

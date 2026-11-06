@@ -12,6 +12,7 @@ class StrandsRealFixturesTest {
 
     private val days: List<LocalDate> =
         File(checkNotNull(javaClass.getResource("/fixtures")).toURI()).listFiles()!!
+            .filter { it.extension == "json" } // session-codec .bin fixtures share the directory
             .map { LocalDate.parse(it.nameWithoutExtension) }
             .sorted()
 
