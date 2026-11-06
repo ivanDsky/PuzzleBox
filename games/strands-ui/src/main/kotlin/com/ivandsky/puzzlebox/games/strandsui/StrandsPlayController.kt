@@ -29,6 +29,7 @@ import com.ivandsky.puzzlebox.games.strands.engine.accept
 import com.ivandsky.puzzlebox.games.strands.engine.spend
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 import com.ivandsky.puzzlebox.games.strands.strandsPlugin
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Duration
 import java.time.Instant
 
@@ -76,7 +77,8 @@ class StrandsPlayController(
 
     val header: StrandsHeader?
         get() = session?.let {
-            StrandsHeader(it.state.puzzle.clue, it.ref?.puzzleNumber, StrandsCopy.credit(it.state.puzzle.constructors))
+            val number = (it.ref?.key as? PuzzleKey.Daily)?.puzzleNumber // a custom puzzle has none
+            StrandsHeader(it.state.puzzle.clue, number, StrandsCopy.credit(it.state.puzzle.constructors))
         }
 
     val hint: HintUi
