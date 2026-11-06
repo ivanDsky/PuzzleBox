@@ -21,6 +21,11 @@ was asked — only `entityUrn` component 3 names the edition returned.
    today's puzzle (A5). Today keeps its live path unchanged. The queryId and the guest
    member id `ACoAAAAAAAABWzs7tPEzjbzdTu0bZDhDZpin_Ds` are constants (the hash is data,
    ADR-0016 §3); the urn is percent-encoded because a raw urn answers 400.
+
+   > **Amended (F1, d7fcb31):** the stream GET sets no cookie, so it seeds nothing. The
+   > past-day request skips the stream (`FeedRequest.stream = false`); the transport's page
+   > handshake (ADR-0016 §2 as amended) opens the session. A fresh session's past day is
+   > page + games-by-id; an open session's is games-by-id alone.
 2. **Number from date.** Puzzle number = (day − day1) + 1 on the game's PT day. day1:
    Queens 2024-05-01, Tango 2024-10-08, Zip 2025-03-18, Mini Sudoku 2025-08-12. The rule
    matches today's live numbers and every community sweep (research 07), but LinkedIn

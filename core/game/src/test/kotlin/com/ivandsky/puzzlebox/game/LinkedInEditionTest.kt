@@ -33,7 +33,7 @@ class LinkedInEditionTest {
     }
 
     @Test
-    fun `request seeds the cookie on the game path and asks games-by-id for the percent-encoded urn`() {
+    fun `request names the game path and asks games-by-id for the percent-encoded urn`() {
         val request = zip.request(592)
 
         assertEquals("games/zip/", request.path)
@@ -45,6 +45,11 @@ class LinkedInEditionTest {
         )
         assertNull(request.graphqlBody)
         assertFalse(request.scanPageShell)
+    }
+
+    @Test
+    fun `a by-id request skips the stream, which only ever carries today's puzzle`() {
+        assertFalse(zip.request(592).stream)
     }
 
     @Test

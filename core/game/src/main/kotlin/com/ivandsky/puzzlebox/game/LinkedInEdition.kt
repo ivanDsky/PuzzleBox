@@ -14,7 +14,7 @@ import java.time.temporal.ChronoUnit
  *
  * @param gameTypeId LinkedIn's game type: Queens 3, Tango 5, Zip 6, Mini Sudoku 7
  * @param day1 the game's PT day of puzzle #1 (A3)
- * @param path the game's route, e.g. `games/zip/`; its stream GET only seeds the session cookie (A5)
+ * @param path the game's route, e.g. `games/zip/`; its plain page GET is the session handshake (F1)
  * @param objectName the payload object the game extracts (diagnostics only, as in [FeedRequest])
  */
 class LinkedInEdition(
@@ -34,15 +34,17 @@ class LinkedInEdition(
 
     /**
      * The games-by-id request for edition [number] on the ADR-0016 persisted-query rung. It
-     * accepts any games-by-id body of this game, whatever its number, so a wrong edition
-     * reaches [check] as terminal Untrusted instead of falling through the ladder; it never
-     * accepts a stream body, which is always today's puzzle (A5).
+     * skips the stream rung, whose body is always today's puzzle and sets no cookie (A5, F1),
+     * so the transport's page handshake alone opens the session. It accepts any games-by-id
+     * body of this game, whatever its number, so a wrong edition reaches [check] as terminal
+     * Untrusted instead of falling through the ladder.
      */
     fun request(number: Int): FeedRequest = FeedRequest(
         path = path,
         objectName = objectName,
         accepts = { body -> BY_ID_ROOT.containsMatchIn(body) && editionUrn.containsMatchIn(body) },
         persistedQuery = PersistedQuery(queryId = QUERY_ID, variables = "(gameUrn:${encodedUrn(number)})"),
+        stream = false,
     )
 
     /**

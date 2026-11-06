@@ -127,14 +127,15 @@ class LinkedInArchiveE2ETest {
     }
 
     @Test
-    fun `SC2 on the wire a fresh session's past day walks the F1 handshake once, then reads the cache`() = forEachGame { game ->
-        val wire = Wire(game)
-        val graph = graph(wire.transport)
-        graph.assertPlays(game, graph.open(game, game.day(1)))
-        assertEquals(FRESH_SESSION_WALK, wire.rungs)
-        graph.assertPlays(game, graph.open(game, game.day(1)))
-        assertEquals("the reopen reads the cache", FRESH_SESSION_WALK, wire.rungs)
-    }
+    fun `SC2 on the wire a fresh session's past day sends one page GET and one games-by-id GET, then reads the cache`() =
+        forEachGame { game ->
+            val wire = Wire(game)
+            val graph = graph(wire.transport)
+            graph.assertPlays(game, graph.open(game, game.day(1)))
+            assertEquals(FRESH_SESSION_WALK, wire.rungs)
+            graph.assertPlays(game, graph.open(game, game.day(1)))
+            assertEquals("the reopen reads the cache", FRESH_SESSION_WALK, wire.rungs)
+        }
 
     @Test
     fun `SC8 Retry during the throttle cooldown sends no request`() = forEachGame { game ->
@@ -259,10 +260,10 @@ class LinkedInArchiveE2ETest {
         )
 
         /**
-         * A fresh session's past-day walk on today's wire (F1): the stream, a by-id GET refused
-         * for csrf (403), the page GET that hands out the session, the signed by-id GET.
+         * A fresh session's past-day walk (SC2, F1): the page GET that hands out the session,
+         * then the signed by-id GET. The stream is skipped; no by-id GET is ever re-sent.
          */
-        val FRESH_SESSION_WALK = listOf(STREAM, BY_ID, PAGE, BY_ID)
+        val FRESH_SESSION_WALK = listOf(PAGE, BY_ID)
         const val SESSION = "ajax:2026"
         const val STREAM = "stream"
         const val PAGE = "page"

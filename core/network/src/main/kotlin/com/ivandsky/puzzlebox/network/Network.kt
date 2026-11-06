@@ -5,6 +5,7 @@ import java.time.Clock
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 import kotlinx.serialization.json.Json
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -33,9 +34,10 @@ val LINKEDIN_THROTTLE_COOLDOWN: Duration = Duration.ofSeconds(100)
  * binds exactly this, so a test that builds it runs the wire the app runs.
  */
 fun linkedInFeedTransport(baseUrl: String, json: Json, clock: Clock = Clock.systemUTC()): FeedTransport {
-    val api = retrofit(baseUrl = baseUrl, client = linkedInClient(LinkedInSessionCookieJar()), json = json)
+    val jar = LinkedInSessionCookieJar()
+    val api = retrofit(baseUrl = baseUrl, client = linkedInClient(jar), json = json)
         .create(LinkedInGamesApi::class.java)
-    return LinkedInFeedTransport(api, clock)
+    return LinkedInFeedTransport(api, jar, baseUrl.toHttpUrl(), clock)
 }
 
 /**

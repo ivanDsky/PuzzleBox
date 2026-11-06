@@ -11,6 +11,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlinx.coroutines.runBlocking
+import okhttp3.Cookie
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
@@ -26,9 +27,10 @@ import org.junit.Test
 
 /**
  * The one LinkedIn ladder every game's DailySource rides (research R-19-1, ADR-0016), against
- * MockWebServer: stream GET → persisted-query GET (when named) → graphql POST (when the
- * request carries a body) → page-shell GET (when asked). The request's `accepts` — the
- * game's extractor — decides which body wins.
+ * MockWebServer: stream GET (unless skipped) → page handshake (before the first session rung,
+ * only without a session) → persisted-query GET (when named) → graphql POST (when the request
+ * carries a body) → page-shell GET (when asked). The request's `accepts` — the game's
+ * extractor — decides which body wins.
  */
 class LinkedInFeedTransportTest {
 
@@ -52,7 +54,7 @@ class LinkedInFeedTransportTest {
             client = OkHttpClient.Builder().cookieJar(jar).addInterceptor(LinkedInCsrfInterceptor(jar)).build(),
             json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
-        transport = LinkedInFeedTransport(retrofit.create(LinkedInGamesApi::class.java), clock)
+        transport = LinkedInFeedTransport(retrofit.create(LinkedInGamesApi::class.java), jar, server.url("/"), clock)
     }
 
     @After
@@ -124,8 +126,10 @@ class LinkedInFeedTransportTest {
 
     private val miniSudokuQuery = PersistedQuery(queryId = "voyagerIdentityDashGames.x", variables = "(gameTypeId:7)")
 
-    /** A data-less launch page that, like LinkedIn's, hands out the anonymous session cookie. */
-    private fun sessionSeedingStream() = ok(dataLessStream).addHeader("Set-Cookie", "JSESSIONID=ajax:4242; Path=/")
+    /** Puts an already-open anonymous session in the jar, as an earlier fetch's handshake would. */
+    private fun holdSession(id: String = "ajax:1") {
+        jar.saveFromResponse(server.url("/"), listOf(Cookie.parse(server.url("/"), "JSESSIONID=$id; Path=/")!!))
+    }
 
     @Test
     fun `flight GET is the primary request and carries the route-context headers`() = runBlocking {
@@ -230,6 +234,7 @@ class LinkedInFeedTransportTest {
 
     @Test
     fun `graphql rung runs after a data-less stream and before the page shell`() = runBlocking {
+        holdSession()
         server.enqueue(ok(dataLessStream))
         server.enqueue(ok(dataBearing("queensGamePuzzle")))
 
@@ -248,6 +253,7 @@ class LinkedInFeedTransportTest {
 
     @Test
     fun `without a page-shell rung the ladder ends after graphql`() = runBlocking {
+        holdSession()
         server.enqueue(ok(dataLessStream))
         server.enqueue(MockResponse().setResponseCode(500))
 
@@ -261,23 +267,18 @@ class LinkedInFeedTransportTest {
     }
 
     @Test
-    fun `persisted-query GET runs after the stream, signed with the stream's cookie, and its body wins`() =
+    fun `persisted-query GET runs after the stream and the page handshake, signed with its cookie, and its body wins`() =
         runBlocking {
-            server.enqueue(sessionSeedingStream())
-            server.enqueue(ok(dataBearing("sudokuGamePuzzle")))
+            server.dispatcher = LinkedInLikeWire(sessionId = "ajax:4242")
 
-            val result = transport.fetch(
-                request(
-                    path = "games/mini-sudoku/",
-                    objectName = "sudokuGamePuzzle",
-                    graphqlBody = "{}",
-                    persistedQuery = miniSudokuQuery,
-                ),
-            )
+            val result = transport.fetch(request(graphqlBody = "{}", persistedQuery = miniSudokuQuery))
 
-            assertEquals(dataBearing("sudokuGamePuzzle"), (result as FetchResult.Ok).value)
-            assertEquals(2, server.requestCount) // POST and page rungs never ran
-            assertEquals("/games/mini-sudoku/?skipStartScreen=true", server.takeRequest().path)
+            assertTrue((result as FetchResult.Ok).value.contains("identityDashGamesById"))
+            assertEquals(3, server.requestCount) // POST and page-shell rungs never ran
+            assertEquals("/games/zip/?skipStartScreen=true", server.takeRequest().path)
+            val handshake = server.takeRequest()
+            assertEquals("/games/zip/", handshake.path)
+            assertNull(handshake.getHeader("x-li-rsc-stream"))
             val persisted = server.takeRequest()
             assertEquals("GET", persisted.method)
             assertEquals("/voyager/api/graphql?variables=(gameTypeId:7)&queryId=voyagerIdentityDashGames.x", persisted.path)
@@ -285,11 +286,8 @@ class LinkedInFeedTransportTest {
         }
 
     @Test
-    fun `403 on the persisted-query GET survives one page handshake retry, then is an Unavailable naming that rung`() = runBlocking {
-        server.enqueue(sessionSeedingStream())
-        server.enqueue(MockResponse().setResponseCode(403))
-        server.enqueue(MockResponse().setBody("<html></html>"))
-        server.enqueue(MockResponse().setResponseCode(403))
+    fun `403 on the persisted-query GET is never retried - one by-id, an Unavailable naming that rung`() = runBlocking {
+        server.dispatcher = LinkedInLikeWire(sessionId = "ajax:4242", pageSessionId = "ajax:stale")
 
         val result = transport.fetch(
             request(objectName = "sudokuGamePuzzle", persistedQuery = miniSudokuQuery, scanPageShell = false),
@@ -297,7 +295,83 @@ class LinkedInFeedTransportTest {
 
         val error = (result as FetchResult.Err).error as FetchError.Unavailable
         assertTrue(error.detail!!.contains("persisted-query HTTP 403"))
-        assertEquals(4, server.requestCount)
+        assertEquals(3, server.requestCount) // stream, handshake, one by-id
+    }
+
+    @Test
+    fun `a fresh session's past day sends the page handshake then games-by-id, nothing else`() = runBlocking {
+        server.dispatcher = LinkedInLikeWire(sessionId = "ajax:5490")
+
+        val result = transport.fetch(zipEdition.request(549))
+
+        assertTrue("expected Ok, got $result", result is FetchResult.Ok)
+        assertEquals(2, server.requestCount)
+        val handshake = server.takeRequest()
+        assertEquals("/games/zip/", handshake.path)
+        assertNull(handshake.getHeader("x-li-rsc-stream"))
+        assertEquals("ajax:5490", server.takeRequest().getHeader("csrf-token"))
+    }
+
+    @Test
+    fun `with the session already held a past day sends games-by-id only`() = runBlocking {
+        server.dispatcher = LinkedInLikeWire(sessionId = "ajax:5490")
+        transport.fetch(zipEdition.request(549))
+
+        val result = transport.fetch(zipEdition.request(549))
+
+        assertTrue("expected Ok, got $result", result is FetchResult.Ok)
+        assertEquals(3, server.requestCount)
+        repeat(2) { server.takeRequest() }
+        assertTrue(server.takeRequest().path!!.startsWith("/voyager/api/graphql?"))
+    }
+
+    @Test
+    fun `a throttled handshake is Throttled and sends no games-by-id`() = runBlocking {
+        server.enqueue(throttled())
+
+        val result = transport.fetch(zipEdition.request(549))
+
+        val error = (result as FetchResult.Err).error as FetchError.Throttled
+        assertTrue(error.detail!!.contains("session handshake throttle"))
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test
+    fun `a failed handshake is a reason and the session rung still runs`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(503))
+        server.enqueue(MockResponse().setResponseCode(403).setBody("CSRF check failed."))
+
+        val result = transport.fetch(zipEdition.request(549))
+
+        val error = (result as FetchResult.Err).error as FetchError.Unavailable
+        assertTrue(error.detail!!.contains("session handshake HTTP 503"))
+        assertTrue(error.detail!!.contains("persisted-query HTTP 403"))
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test
+    fun `a stream that answers sends no handshake`() = runBlocking {
+        server.dispatcher = LinkedInLikeWire(sessionId = "ajax:4242", streamBody = "1:" + dataBearing())
+
+        val result = transport.fetch(request(graphqlBody = "{}", persistedQuery = miniSudokuQuery))
+
+        assertTrue(result is FetchResult.Ok)
+        assertEquals(1, server.requestCount)
+        assertNull(jar.sessionId(server.url("/")))
+    }
+
+    @Test
+    fun `a graphql-only request on a fresh session is signed`() = runBlocking {
+        server.dispatcher = LinkedInLikeWire(sessionId = "ajax:4242")
+
+        val result = transport.fetch(request(graphqlBody = "{}", scanPageShell = false))
+
+        assertTrue("expected Ok, got $result", result is FetchResult.Ok)
+        assertEquals(3, server.requestCount) // stream, handshake, POST
+        repeat(2) { server.takeRequest() }
+        val post = server.takeRequest()
+        assertEquals("POST", post.method)
+        assertEquals("ajax:4242", post.getHeader("csrf-token"))
     }
 
     @Test
@@ -320,11 +394,15 @@ class LinkedInFeedTransportTest {
 
     /**
      * The wire as LinkedIn serves an anonymous session (F1, research 01 §2): the stream is
-     * data-less and sets no `JSESSIONID`; only the plain page GET does; games-by-id refuses
-     * any request whose `csrf-token` is not that session, and answers a games-by-id body
-     * otherwise.
+     * data-less (unless [streamBody] says otherwise) and sets no `JSESSIONID`; only the plain
+     * page GET does, handing out [pageSessionId]; games-by-id refuses any request whose
+     * `csrf-token` is not [sessionId], and answers a games-by-id body otherwise.
      */
-    private class LinkedInLikeWire(private val sessionId: String) : Dispatcher() {
+    private class LinkedInLikeWire(
+        private val sessionId: String,
+        private val pageSessionId: String = sessionId,
+        private val streamBody: String = "2:\"\$Sreact.fragment\"\n5:I[0]",
+    ) : Dispatcher() {
 
         @Volatile
         var acceptedCsrfToken: String? = null
@@ -334,8 +412,8 @@ class LinkedInFeedTransportTest {
             val path = request.path.orEmpty()
             return when {
                 path.startsWith("/voyager/api/graphql") -> byId(request)
-                request.getHeader("x-li-rsc-stream") != null -> MockResponse().setBody("2:\"\$Sreact.fragment\"\n5:I[0]")
-                else -> MockResponse().setBody("<html></html>").addHeader("Set-Cookie", "JSESSIONID=$sessionId; Path=/")
+                request.getHeader("x-li-rsc-stream") != null -> MockResponse().setBody(streamBody)
+                else -> MockResponse().setBody("<html></html>").addHeader("Set-Cookie", "JSESSIONID=$pageSessionId; Path=/")
             }
         }
 
