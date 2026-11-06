@@ -33,6 +33,9 @@ class EditorDraft<D : Any>(val editor: GameEditor<D>, val state: DraftState<D>) 
 
     fun analyze(budget: Budget): Verdict = editor.analyze(state.draft, budget)
 
+    /** The game's board gates for this board under [verdict]; empty for a game without any. */
+    fun publishBlocks(verdict: Verdict): List<PublishBlock> = editor.publishBlocks(state.draft, verdict)
+
     companion object {
         /** A blank [variant] board with an empty history. */
         fun <D : Any> fresh(editor: GameEditor<D>, variant: VariantId): EditorDraft<D> =
