@@ -155,7 +155,7 @@ class StudioTopBarTest {
             modules(
                 module {
                     viewModel { (key: EditorKey) ->
-                        EditorViewModel(key, drafts, games, editors, copyDraft, DefaultDispatcherProvider(), clock = { NOW })
+                        EditorViewModel(key, drafts, games, editors, GamePlayRegistry(emptyList()), copyDraft, DefaultDispatcherProvider(), clock = { NOW })
                     }
                     viewModel {
                         CreateViewModel(

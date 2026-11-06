@@ -14,8 +14,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,17 +43,21 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.emptyFlow
 
 private const val CardEnterScale = 0.9f
 
 /**
  * The Studio: the [StudioTopBar] (Back, the draft's [title] over its [subtitle] and the
  * autosave's [saving] state, the [verdict] pill, the overflow) over the game's [board], drawn as
- * the largest square that fits, with the [toolStrip] under it. In [PlayLayout.TwoPane] the square
- * sits centred in the space; on a phone it hangs from the bar. The pill opens [verdictCard]'s
- * card as a popover anchored at
- * the pill's top-right, the game's fix list ([issues]) inside it; the title and the overflow's
- * Rename open the [RenameSheet], whose Save reports through [onRename].
+ * the largest square that fits, with the [toolStrip] and the [actionArea] (test status, Test solve)
+ * under it. In [PlayLayout.TwoPane] the square sits centred in the space; on a phone it hangs from
+ * the bar. The pill opens [verdictCard]'s card as a popover anchored at the pill's top-right, the
+ * game's fix list ([issues]) inside it; the title and the overflow's Rename open the
+ * [RenameSheet], whose Save reports through [onRename]. Each [testCleared] event (a board edit
+ * invalidated the passed test) shows a toast whose Undo reports through [onUndo].
  */
 @Composable
 fun StudioScreen(
@@ -66,25 +75,32 @@ fun StudioScreen(
     toolStrip: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier,
     issues: @Composable (Modifier) -> Unit = {},
+    actionArea: @Composable (Modifier) -> Unit = {},
+    testCleared: Flow<Unit> = emptyFlow(),
+    onUndo: () -> Unit = {},
 ) {
     var renaming by rememberSaveable { mutableStateOf(false) }
-    Column(modifier.fillMaxSize()) {
-        StudioTopBar(
-            title = title,
-            subtitle = subtitle,
-            saving = saving,
-            onBack = onBack,
-            onRename = { renaming = true },
-            onDuplicate = onDuplicate,
-            onDelete = onDelete,
-            pill = { PillWithCard(verdict = verdict, verdictCard = verdictCard, issues = issues) },
-        )
-        BoardSlot(
-            alignment = if (layout == PlayLayout.TwoPane) Alignment.Center else Alignment.TopCenter,
-            board = board,
-            modifier = Modifier.weight(1f).fillMaxWidth().padding(Spacing.lg),
-        )
-        toolStrip(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg))
+    Box(modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
+            StudioTopBar(
+                title = title,
+                subtitle = subtitle,
+                saving = saving,
+                onBack = onBack,
+                onRename = { renaming = true },
+                onDuplicate = onDuplicate,
+                onDelete = onDelete,
+                pill = { PillWithCard(verdict = verdict, verdictCard = verdictCard, issues = issues) },
+            )
+            BoardSlot(
+                alignment = if (layout == PlayLayout.TwoPane) Alignment.Center else Alignment.TopCenter,
+                board = board,
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(Spacing.lg),
+            )
+            toolStrip(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md))
+            actionArea(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg))
+        }
+        TestClearedToast(cleared = testCleared, onUndo = onUndo, modifier = Modifier.align(Alignment.BottomCenter))
     }
     if (renaming) {
         RenameSheet(
@@ -95,6 +111,24 @@ fun StudioScreen(
             },
             onDismiss = { renaming = false },
         )
+    }
+}
+
+/**
+ * The silent clear's toast: "Board changed — test solve cleared." with Undo, which reverts the
+ * edit and so makes the test valid again. A newer clear replaces a showing toast.
+ */
+@Composable
+private fun TestClearedToast(cleared: Flow<Unit>, onUndo: () -> Unit, modifier: Modifier) {
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(cleared) {
+        cleared.collectLatest {
+            val result = snackbar.showSnackbar("Board changed — test solve cleared.", actionLabel = "Undo")
+            if (result == SnackbarResult.ActionPerformed) onUndo()
+        }
+    }
+    SnackbarHost(snackbar, modifier) { data ->
+        Snackbar(data, Modifier.padding(Spacing.md).testTag("create.toast.testCleared"))
     }
 }
 
@@ -185,6 +219,9 @@ private fun StudioScreenPreview() {
                     hint = { Text("Tap a cell to cycle its region colour", it, style = MaterialTheme.typography.bodySmall) },
                     modifier = stripModifier,
                 )
+            },
+            actionArea = { areaModifier ->
+                ActionArea(passed = null, canTestSolve = false, onTestSolve = {}, modifier = areaModifier)
             },
         )
     }

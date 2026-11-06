@@ -16,6 +16,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -26,7 +27,9 @@ import org.koin.core.parameter.parametersOf
  * (A5). Duplicate stores the pending edit, then reports the copy's id to [onOpen]; Delete stores
  * it too, then reports the draft's id to [onDelete], which leaves the Studio and deletes it with Undo.
  * The verdict card hosts the game's fix list over the draft's board blocks (`publishBlocks`);
- * a fix's Select closes the card so the selection shows.
+ * a fix's Select closes the card so the selection shows. Test solve (Unique boards of games that
+ * export puzzles) replaces the Studio with the [TestSolveScreen] sandbox on the game's real play
+ * board until its Back; a board edit that invalidates the test shows the toast whose Undo reverts it.
  */
 @Composable
 internal fun EditorRoute(
@@ -43,6 +46,8 @@ internal fun EditorRoute(
     val canRedo by viewModel.canRedo.collectAsStateWithLifecycle()
     val title by viewModel.meta.title.collectAsStateWithLifecycle()
     val saving by viewModel.saving.collectAsStateWithLifecycle()
+    val sandbox by viewModel.testSolve.sandbox.collectAsStateWithLifecycle()
+    val passed by viewModel.testSolve.passed.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flush() }
     val routeModifier = modifier.testTag("route.editor")
     when (val ready = state) {
@@ -54,7 +59,16 @@ internal fun EditorRoute(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        is EditorUiState.Ready -> StudioScreen(
+        is EditorUiState.Ready -> sandbox?.let { open ->
+            // Its own node under the route's, so both the route's and the screen's tags survive.
+            Box(routeModifier.fillMaxSize()) {
+                TestSolveScreen(
+                    result = open.result,
+                    onBack = viewModel.testSolve::close,
+                    board = { boardModifier -> open.ui.Board(open.controller, boardModifier) },
+                )
+            }
+        } ?: StudioScreen(
             title = title,
             subtitle = ready.subtitle,
             saving = saving,
@@ -89,6 +103,17 @@ internal fun EditorRoute(
                 val blocks = remember(draft, ready.verdict) { draft.publishBlocks(ready.verdict) }
                 ready.editor.Issues(ready.controller, ready.verdict, blocks, viewModel.verdictCard::dismiss, issuesModifier)
             },
+            actionArea = { areaModifier ->
+                val draft by ready.controller.draft.collectAsStateWithLifecycle()
+                ActionArea(
+                    passed = passed,
+                    canTestSolve = draft.canTestSolve && ready.verdict is Verdict.Unique,
+                    onTestSolve = { viewModel.testSolve.start(draft, ready.verdict) },
+                    modifier = areaModifier,
+                )
+            },
+            testCleared = viewModel.testSolve.cleared,
+            onUndo = viewModel::undo,
         )
     }
 }

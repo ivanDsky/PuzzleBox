@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import java.time.Instant
@@ -35,6 +36,7 @@ class EditorViewModel(
     private val drafts: DraftRepository,
     private val games: GameRegistry,
     private val editors: GameEditorRegistry,
+    plays: GamePlayRegistry,
     copyDraft: CreateDraftCopy,
     dispatchers: DispatcherProvider,
     private val clock: () -> Instant,
@@ -54,6 +56,9 @@ class EditorViewModel(
 
     /** The draft's title, rename, duplicate and delete. */
     val meta = DraftMeta(key.draftId, copyDraft, viewModelScope) { title -> lastStored?.let { write(it.copy(title = title)) } }
+
+    /** The required test solve: its sandbox, the test valid for the board, and the clear toast. */
+    val testSolve = TestSolveSession(key.draftId, plays, games, viewModelScope) { test -> lastStored?.let { write(it.copy(testSolve = test)) } }
 
     /** Undo and Redo are enabled only when the open draft has a step to move. */
     val canUndo: StateFlow<Boolean> = history.canUndo
@@ -94,6 +99,7 @@ class EditorViewModel(
         lastStored = stored
         meta.open(stored.title)
         history.open(draft)
+        testSolve.open(stored.testSolve, draft)
         // The verdict lands after the debounce; it is only published once this state is Ready.
         verdicts.submit(draft)
         return EditorUiState.Ready(
@@ -173,6 +179,7 @@ class EditorViewModel(
     private fun changed(draft: EditorDraft<*>) {
         verdictCard.dismiss()
         verdicts.submit(draft)
+        testSolve.follow(draft)
         val base = lastStored ?: return
         write(base.copy(variant = draft.variant, blob = draft.encode()))
     }
