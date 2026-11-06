@@ -10,51 +10,42 @@ import com.ivandsky.puzzlebox.games.queens.QueensCommand
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.queens.QueensSession
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.io.ByteArrayOutputStream
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 
 /**
- * Queens session codec (zip ZipSessionCodec shape, A19; pre-release): the puzzle rides
- * BY VALUE so an in-progress day survives offline replay. v3 (command-pattern undo,
- * 2026-11-03) persists the undo/redo COMMAND history and the banked clock instead of
- * v2's whole-board snapshots + wall-clock startedAt; AUTO marks are no longer stored at
- * all — they are derived from queens + manual marks + the Auto-cross setting on decode.
- * v2 blobs still read (snapshots dropped → empty history, elapsed derived from
- * startedAt→completedAt when the win was stamped, else 0); v1 and unknown versions are
- * rejected as UnsupportedVersion and degrade to a fresh fetch. Layout (i64
- * little-endian, u16 big-endian):
+ * Queens session codec (zip ZipSessionCodec shape, A19): the puzzle rides BY VALUE so an
+ * in-progress day survives offline replay. v4 (ADR-0018, spec A11) tags the ref with its
+ * [PuzzleKey] kind; v3 refs are untagged dailies. v3+ persists the undo/redo COMMAND history
+ * and the banked clock; AUTO marks are derived on decode, never stored. v2 blobs still read
+ * (snapshots dropped → empty history, elapsed from startedAt→completedAt when won, else 0);
+ * v1 and unknown versions → UnsupportedVersion. Layout (i64 little-endian, u16 big-endian):
  *
  * ```
- * 0   u8    formatVersion = 3
+ * 0   u8    formatVersion = 4
  *     u16   puzzleLen; puzzleLen x u8   (QueensCodec bytes)
- *     u8    flags                       (bit0 = completedAt present, bit1 = ref present,
- *                                       bit2 = unused, bit3 = autoCross OFF)
- *     [bit1] i64 epochDay, u8 numberPresent, i64 puzzleNumber
- *     u8    queensLen; queensLen x u8 cellIdx          (placement order)
- *     u16   manualLen; manualLen x u8 cellIdx          (MANUAL marks, ascending)
- *     u16   doneLen;   doneLen   x command             (oldest first)
- *     u16   undoneLen; undoneLen x command             (redo stack, bottom first)
- *     [bit0] i64 completedAt epochMilli
- *     i64   elapsedMs                                  (banked play time)
- *     u8    hintsUsed
+ *     u8    flags   (bit0 completedAt, bit1 ref, bit2 unused, bit3 autoCross OFF)
+ *     [bit1] u8 keyTag (absent in v2/v3: read as 0), then
+ *            0 Daily  i64 epochDay, u8 numberPresent, [i64 puzzleNumber]
+ *            1 Custom u8 idLen (1..255); idLen x u8 puzzleId (UTF-8)
+ *     u8 queensLen; x u8 cellIdx (placement order) · u16 manualLen; x u8 cellIdx (MANUAL, asc)
+ *     u16 doneLen; x command (oldest first) · u16 undoneLen; x command (redo, bottom first)
+ *     [bit0] i64 completedAt epochMilli · i64 elapsedMs (banked play time) · u8 hintsUsed
  *
- * command = u8 tag, then
- *   0 PlaceQueen   u8 cell
- *   1 RemoveQueen  u8 cell, u8 index, u8 hadMark(0/1)
- *   2 ToggleCross  u8 cell, u8 wasMarked(0/1)
- *   3 Clear        u8 queensLen; queensLen x u8 cell, u16 manualLen; manualLen x u8 cell
+ * command = u8 tag, then 0 PlaceQueen u8 cell · 1 RemoveQueen u8 cell, u8 index, u8 hadMark
+ *   · 2 ToggleCross u8 cell, u8 wasMarked · 3 Clear u8 n; n x u8 cell, u16 m; m x u8 cell
  * ```
  *
- * v2 (read-only now) was `... queens, marks{idx, kind, [source]}, undo snapshots, [bit0]
- * completedAt, [bit2] startedAt, hintsUsed` with flag bit2 = startedAt present.
- *
- * Decode validates cell ranges and bounds each history list by [MAX_HISTORY].
+ * v2 (read-only) was `... queens, marks{idx, kind, [source]}, undo snapshots, [bit0]
+ * completedAt, [bit2] startedAt, hintsUsed`. Decode validates cell ranges and bounds each
+ * history list by [MAX_HISTORY].
  */
 object QueensSessionCodec : GameSessionCodec<QueensSession> {
 
-    const val VERSION: Int = 3
+    const val VERSION: Int = 4
 
     /** The oldest format still readable (v2: snapshot undo, wall-clock startedAt). */
     private const val V2: Int = 2
@@ -75,6 +66,9 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
     private const val CMD_TOGGLE = 2
     private const val CMD_CLEAR = 3
 
+    private const val KEY_DAILY = 0
+    private const val KEY_CUSTOM = 1
+
     override fun serialize(session: QueensSession): ByteArray {
         val puzzleBytes = QueensCodec.encode(session.puzzle) // canonical, self-describing (A19 nesting)
         require(puzzleBytes.size <= 0xFFFF) { "puzzle blob exceeds u16 length" }
@@ -92,16 +86,7 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
         if (!session.autoCross) flags = flags or FLAG_AUTO_CROSS_OFF
         out.write(flags)
 
-        session.ref?.let { ref ->
-            writeI64(out, ref.date.toEpochDay())
-            val number = ref.puzzleNumber
-            if (number == null) {
-                out.write(0)
-            } else {
-                out.write(1)
-                writeI64(out, number.toLong())
-            }
-        }
+        session.ref?.let { writeKey(out, it.key) }
 
         out.write(session.queens.size)
         session.queens.forEach { out.write(it.idx) }
@@ -117,9 +102,9 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
     }
 
     override fun deserialize(bytes: ByteArray): DecodeResult<QueensSession> {
-        val cursor = Cursor(bytes)
+        val cursor = SessionCursor(bytes)
         val version = cursor.u8() ?: return malformed("empty session blob")
-        if (version != VERSION && version != V2) {
+        if (version !in V2..VERSION) {
             return DecodeResult.Err(DecodeError.UnsupportedVersion(found = version, maxKnown = VERSION))
         }
 
@@ -132,16 +117,13 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
         val cellRange = 0 until puzzle.cellCount
 
         val flags = cursor.u8() ?: return malformed("truncated session flags")
-        var ref: QueensPuzzleRef? = null
-        if (flags and FLAG_REF != 0) {
-            val epochDay = cursor.i64() ?: return malformed("truncated ref date")
-            val hasNumber = cursor.u8() ?: return malformed("truncated ref number flag")
-            val number = if (hasNumber == 1) {
-                cursor.i64() ?: return malformed("truncated ref number")
-            } else {
-                null
+        val ref = if (flags and FLAG_REF == 0) {
+            null
+        } else {
+            when (val key = readKey(cursor, version)) {
+                is DecodeResult.Ok -> QueensPuzzleRef(key.value)
+                is DecodeResult.Err -> return key
             }
-            ref = QueensPuzzleRef(LocalDate.ofEpochDay(epochDay), number?.toInt())
         }
 
         val queensLen = cursor.u8() ?: return malformed("truncated queen count")
@@ -160,7 +142,7 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
     }
 
     private fun readV3Tail(
-        cursor: Cursor,
+        cursor: SessionCursor,
         flags: Int,
         cellRange: IntRange,
         ref: QueensPuzzleRef?,
@@ -200,7 +182,7 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
      * structural validation — then dropped; a v2 save resumes with an empty history.
      */
     private fun readV2Tail(
-        cursor: Cursor,
+        cursor: SessionCursor,
         flags: Int,
         cellRange: IntRange,
         ref: QueensPuzzleRef?,
@@ -259,6 +241,50 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
         )
     }
 
+    private fun writeKey(out: ByteArrayOutputStream, key: PuzzleKey) {
+        when (key) {
+            is PuzzleKey.Daily -> {
+                out.write(KEY_DAILY)
+                writeI64(out, key.date.toEpochDay())
+                val number = key.puzzleNumber
+                out.write(if (number == null) 0 else 1)
+                number?.let { writeI64(out, it.toLong()) }
+            }
+
+            is PuzzleKey.Custom -> {
+                val id = key.puzzleId.toByteArray(Charsets.UTF_8)
+                require(id.size in 1..0xFF) { "puzzleId must be 1..255 UTF-8 bytes" }
+                out.write(KEY_CUSTOM)
+                out.write(id.size)
+                out.write(id)
+            }
+        }
+    }
+
+    /** v2/v3 refs carry no tag and are always dailies. */
+    private fun readKey(cursor: SessionCursor, version: Int): DecodeResult<PuzzleKey> {
+        val tag = if (version < VERSION) KEY_DAILY else cursor.u8() ?: return malformed("truncated key tag")
+        return when (tag) {
+            KEY_DAILY -> {
+                val epochDay = cursor.i64() ?: return malformed("truncated ref date")
+                val number = when (cursor.u8()) {
+                    0 -> null
+                    1 -> cursor.i64() ?: return malformed("truncated ref number")
+                    else -> return malformed("malformed ref number flag")
+                }
+                DecodeResult.Ok(PuzzleKey.Daily(LocalDate.ofEpochDay(epochDay), number?.toInt()))
+            }
+
+            KEY_CUSTOM -> {
+                val len = cursor.u8()?.takeIf { it > 0 } ?: return malformed("missing puzzleId length")
+                val id = cursor.bytes(len) ?: return malformed("truncated puzzleId")
+                DecodeResult.Ok(PuzzleKey.Custom(String(id, Charsets.UTF_8)))
+            }
+
+            else -> malformed("unknown key tag $tag")
+        }
+    }
+
     /** Ascending cell order for determinism. */
     private fun writeCells(out: ByteArrayOutputStream, cells: Collection<Cell>) {
         require(cells.size <= 0xFFFF) { "v3 layout carries u16 cell counts" }
@@ -266,7 +292,7 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
         cells.map { it.idx }.sorted().forEach { out.write(it) }
     }
 
-    private fun readCells(cursor: Cursor, cellRange: IntRange): Set<Cell>? {
+    private fun readCells(cursor: SessionCursor, cellRange: IntRange): Set<Cell>? {
         val count = cursor.u16() ?: return null
         if (count > cellRange.last + 1) return null // before allocating anything proportional to it
         val cells = LinkedHashSet<Cell>(count)
@@ -312,7 +338,7 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
     }
 
     /** Null = malformed (truncated, out-of-range, unknown tag, or past [MAX_HISTORY]). */
-    private fun readCommands(cursor: Cursor, cellRange: IntRange): List<QueensCommand>? {
+    private fun readCommands(cursor: SessionCursor, cellRange: IntRange): List<QueensCommand>? {
         val count = cursor.u16() ?: return null
         if (count > MAX_HISTORY) return null // before allocating anything proportional to it
         val commands = ArrayList<QueensCommand>(count)
@@ -347,10 +373,10 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
         return commands
     }
 
-    private fun cell(cursor: Cursor, cellRange: IntRange): Cell? =
+    private fun cell(cursor: SessionCursor, cellRange: IntRange): Cell? =
         cursor.u8()?.takeIf { it in cellRange }?.let(::Cell)
 
-    private fun flag(cursor: Cursor): Boolean? = when (cursor.u8()) {
+    private fun flag(cursor: SessionCursor): Boolean? = when (cursor.u8()) {
         0 -> false
         1 -> true
         else -> null
@@ -361,7 +387,7 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
      * A10) and discarded: v3 derives them.
      */
     private fun readV2Marks(
-        cursor: Cursor,
+        cursor: SessionCursor,
         cellRange: IntRange,
         sourceQueens: List<Cell>,
     ): DecodeResult<Map<Cell, Int>> {
@@ -398,30 +424,4 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
 
     private fun malformed(detail: String): DecodeResult.Err =
         DecodeResult.Err(DecodeError.Malformed(detail))
-
-    private class Cursor(private val bytes: ByteArray) {
-        var pos = 0
-
-        fun u8(): Int? = bytes.getOrNull(pos++)?.toInt()?.and(0xFF)
-
-        fun u16(): Int? {
-            val hi = u8() ?: return null
-            val lo = u8() ?: return null
-            return (hi shl 8) + lo
-        }
-
-        fun i64(): Long? {
-            var value = 0L
-            repeat(8) { shift ->
-                val byte = u8() ?: return null
-                value = value or (byte.toLong() shl (shift * 8))
-            }
-            return value
-        }
-
-        fun bytes(len: Int): ByteArray? {
-            if (pos + len > bytes.size) return null
-            return bytes.copyOfRange(pos, pos + len).also { pos += len }
-        }
-    }
 }
