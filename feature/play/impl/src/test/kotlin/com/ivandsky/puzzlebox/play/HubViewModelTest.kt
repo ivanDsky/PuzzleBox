@@ -40,11 +40,11 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * The hub's per-game state: each row's best under its own ranking and its Up-next line,
- * and the board thumbnails ([HubUiState.previews]): each game's own preview model of
- * today — an unfinished play's newest session (a live play's change still waiting to be
- * saved beats the older row on disk), the cached daily fresh when not started or solved
- * when solved, none when offline or unreadable — rebuilt when a new save lands.
+ * The hub's per-game state: each row's best under its own ranking and its Up-next line
+ * ([HubRow.line]), its game's own reading of today's board — an unfinished play's newest
+ * session (a live play's change still waiting to be saved beats the older row on disk), or
+ * the cached daily when not started; none when solved, offline or unreadable — rebuilt
+ * when a new save lands.
  */
 class HubViewModelTest {
 
@@ -107,7 +107,7 @@ class HubViewModelTest {
         }
     }
 
-    private val HubViewModel.previews get() = uiState.value.previews
+    private fun HubViewModel.lineOf(game: GameId) = uiState.value.rows.first { it.game == game }.line
 
     private fun save(game: GameId, moves: Int, elapsedMs: Long) = runBlocking {
         val session = FakeController.envelope(game, moves = moves, day = day).session
@@ -149,7 +149,7 @@ class HubViewModelTest {
     }
 
     @Test
-    fun `an unfinished play previews its newest moves, even before they reach disk`() {
+    fun `an unfinished play's line reads its newest moves, even before they reach disk`() {
         save(alpha, moves = 1, elapsedMs = 1_000L)
         store.open(GameKey(alpha.value))!!
         dispatcher.scheduler.runCurrent()
@@ -158,44 +158,33 @@ class HubViewModelTest {
         val vm = observedVm()
 
         assertEquals(TodayStatus.InProgress(1_000L), vm.uiState.value.rows.first { it.game == alpha }.status)
-        assertEquals(FakePreview("moves 3"), vm.previews[alpha])
+        assertEquals("line moves 3", vm.lineOf(alpha))
     }
 
     @Test
-    fun `an unfinished play's preview is rebuilt when a new save lands`() {
+    fun `an unfinished play's line is rebuilt when a new save lands`() {
         save(alpha, moves = 1, elapsedMs = 1_000L)
         val vm = observedVm()
-        assertEquals(FakePreview("moves 1"), vm.previews[alpha])
+        assertEquals("line moves 1", vm.lineOf(alpha))
 
         save(alpha, moves = 4, elapsedMs = 2_000L)
         dispatcher.scheduler.runCurrent()
 
-        assertEquals(FakePreview("moves 4"), vm.previews[alpha])
+        assertEquals("line moves 4", vm.lineOf(alpha))
     }
 
     @Test
-    fun `a game not started previews today's cached puzzle fresh, and nothing when uncached`() {
+    fun `a game not started reads today's cached puzzle fresh, and has no line when uncached`() {
         daily.setCached(alpha, day, TestGames.puzzle(alpha, tag = 4))
 
         val vm = observedVm()
 
-        assertEquals(FakePreview("fresh 4"), vm.previews[alpha])
-        assertNull(vm.previews[beta])
+        assertEquals("line fresh 4", vm.lineOf(alpha))
+        assertNull(vm.lineOf(beta))
     }
 
     @Test
-    fun `a game solved today previews today's cached puzzle solved`() {
-        daily.setCached(alpha, day, TestGames.puzzle(alpha, tag = 6))
-        runBlocking { completions.onCompleted(CompletionRecord(TestGames.Ref(alpha, day, 7), 30_000L, 0, RecordStats(1, "{}"))) }
-
-        val vm = observedVm()
-
-        assertEquals(TodayStatus.Solved(30_000L), vm.uiState.value.rows.first { it.game == alpha }.status)
-        assertEquals(FakePreview("solved 6"), vm.previews[alpha])
-    }
-
-    @Test
-    fun `an offline game has no preview`() {
+    fun `an offline game has no line`() {
         daily.setToday(beta, DailyToday.Unavailable(FetchError.Unavailable()))
         val vm = observedVm()
 
@@ -203,16 +192,16 @@ class HubViewModelTest {
         dispatcher.scheduler.runCurrent()
 
         assertEquals(TodayStatus.Offline, vm.uiState.value.rows.first { it.game == beta }.status)
-        assertNull(vm.previews[beta])
+        assertNull(vm.lineOf(beta))
     }
 
     @Test
-    fun `a save the game can't read has no preview`() {
+    fun `a save the game can't read has no line`() {
         runBlocking { saved.save(PlaySlot(alpha, day), SessionBlob.encode(beta, "fake|2|false|$day|7|0".encodeToByteArray()), 1_000L) }
 
         val vm = observedVm()
 
         assertEquals(TodayStatus.InProgress(1_000L), vm.uiState.value.rows.first { it.game == alpha }.status)
-        assertNull(vm.previews[alpha])
+        assertNull(vm.lineOf(alpha))
     }
 }

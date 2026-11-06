@@ -1,204 +1,160 @@
 package com.ivandsky.puzzlebox.play
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.game.RendererModel
-import com.ivandsky.puzzlebox.gameui.BoardPreview
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.GamePlayController
-import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.GamePlayUi
-import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
-import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.model.GameId
 
-// Previews of the hub's cards and picker over stand-in games whose thumbnail is a plain
-// grid with a few cells filled in the game's accent.
+// Previews of the hub in the hub-card handoff's states (§States) over five stand-in games
+// that carry only a hue; the glyph is the neutral square.
 
-private const val PREVIEW_SIDE = 5
 private val Time = RankOrder.TimeThenHints
+private val Hints = RankOrder.HintsThenTime
 
-/** A stand-in board: the [filled] cell indices of a [PREVIEW_SIDE] square grid. */
-private data class PreviewBoard(val filled: Set<Int>) : RendererModel
+/** The two-pane preview's width: a 900dp tablet, as the handoff measures it. */
+private val TabletWidth = 900.dp
 
-private class PreviewGame(override val gameId: GameId, override val brand: GameBrand) : GamePlayUi {
-    override val tutorial: List<TutorialStep> = emptyList()
+private val zip = GameId("zip")
+private val queens = GameId("queens")
+private val tango = GameId("tango")
+private val sudoku = GameId("sudoku")
+private val strands = GameId("strands")
 
-    override fun createController(env: PlayEnvironment): GamePlayController = error("previews never play")
+private fun brand(accent: AccentSlot) = GameBrand.Neutral.copy(accent = accent)
 
-    override fun previewModel(preview: BoardPreview): RendererModel? = null
-
-    @Composable
-    override fun BoardThumbnail(model: RendererModel, modifier: Modifier) {
-        val filled = (model as PreviewBoard).filled
-        val accent = brand.accent.colors()
-        Column(modifier.aspectRatio(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            repeat(PREVIEW_SIDE) { row ->
-                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    repeat(PREVIEW_SIDE) { column ->
-                        val on = row * PREVIEW_SIDE + column in filled
-                        Box(
-                            Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .background(if (on) accent.accent else accent.container, RoundedCornerShape(2.dp)),
-                        )
-                    }
-                }
-            }
-        }
+private fun row(game: GameId, status: TodayStatus?, number: Int? = null, best: BestScore? = null, line: String? = null) =
+    when (game) {
+        zip -> HubRow(zip, "Zip", Time, brand(AccentSlot.Blue), number, status, best, line)
+        queens -> HubRow(queens, "Queens", Time, brand(AccentSlot.Violet), number, status, best, line)
+        tango -> HubRow(tango, "Tango", Time, brand(AccentSlot.Orange), number, status, best, line)
+        sudoku -> HubRow(sudoku, "Mini Sudoku", Time, brand(AccentSlot.Teal), number, status, best, line)
+        else -> HubRow(game, "Strands", Hints, brand(AccentSlot.Pink), number, status, best, line)
     }
 
-    @Composable
-    override fun Board(controller: GamePlayController, modifier: Modifier) = Unit
-
-    @Composable
-    override fun Screen(
-        controller: GamePlayController,
-        status: PlayBoardStatus,
-        layout: PlayLayout,
-        onRetry: () -> Unit,
-        onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
-        modifier: Modifier,
-    ) = Unit
-}
-
-private val zip = PreviewGame(GameId("zip"), GameBrand.Neutral.copy(accent = AccentSlot.Blue))
-private val tango = PreviewGame(GameId("tango"), GameBrand.Neutral.copy(accent = AccentSlot.Orange))
-private val queens = PreviewGame(GameId("queens"), GameBrand.Neutral.copy(accent = AccentSlot.Violet))
-private val previewGames = GamePlayRegistry(listOf(zip, tango, queens))
-
-private val previewState = HubUiState(
+/** Zip solved, Queens in progress and up next, Tango new, Mini Sudoku offline, Strands loading. */
+private val mixedState = HubUiState(
     rows = listOf(
-        HubRow(zip.gameId, "Zip", Time, zip.brand, 592, TodayStatus.Solved(36_000L), best = BestScore(31_000L, 0)),
-        HubRow(tango.gameId, "Tango", Time, tango.brand, 431, TodayStatus.InProgress(42_000L)),
-        HubRow(queens.gameId, "Queens", Time, queens.brand, 918, TodayStatus.NotStarted),
-        HubRow(GameId("pinpoint"), "Pinpoint", Time, status = TodayStatus.Offline),
+        row(zip, TodayStatus.Solved(42_000L), 592, BestScore(31_000L, 0)),
+        row(queens, TodayStatus.InProgress(192_000L), 411, BestScore(95_000L, 0), line = "8×8 · 5 of 8 queens"),
+        row(tango, TodayStatus.NotStarted, 431),
+        row(sudoku, TodayStatus.Offline, best = BestScore(64_000L, 0)),
+        row(strands, null),
     ),
     doneCount = 1,
-    next = tango.gameId,
-    previews = mapOf(
-        zip.gameId to PreviewBoard((0 until PREVIEW_SIDE * PREVIEW_SIDE).toSet()),
-        tango.gameId to PreviewBoard(setOf(0, 1, 2, 7, 12, 13)),
-        queens.gameId to PreviewBoard(emptySet()),
-    ),
+    next = queens,
 )
 
-private val pinpoint = PreviewGame(GameId("pinpoint"), GameBrand.Neutral.copy(accent = AccentSlot.Teal))
-private val crossclimb = PreviewGame(GameId("crossclimb"), GameBrand.Neutral.copy(accent = AccentSlot.Pink))
-private val wordle = PreviewGame(GameId("wordle"), GameBrand.Neutral.copy(accent = AccentSlot.Violet))
-private val sudoku = PreviewGame(GameId("sudoku"), GameBrand.Neutral.copy(accent = AccentSlot.Blue))
-private val nonogram = PreviewGame(GameId("nonogram"), GameBrand.Neutral.copy(accent = AccentSlot.Orange))
-private val manyGames = GamePlayRegistry(listOf(zip, tango, queens, pinpoint, crossclimb, wordle, sudoku, nonogram))
-
-/** Eight games, enough for the phone grid of tiles: three solved, one in progress and next, one offline. */
-private val manyState = HubUiState(
+private val allSolvedState = HubUiState(
     rows = listOf(
-        HubRow(zip.gameId, "Zip", Time, zip.brand, 592, TodayStatus.Solved(36_000L), best = BestScore(31_000L, 0)),
-        HubRow(tango.gameId, "Tango", Time, tango.brand, 431, TodayStatus.Solved(58_000L), best = BestScore(50_000L, 0)),
-        HubRow(queens.gameId, "Queens", Time, queens.brand, 918, TodayStatus.InProgress(42_000L)),
-        HubRow(pinpoint.gameId, "Pinpoint", Time, pinpoint.brand, status = TodayStatus.Offline),
-        HubRow(crossclimb.gameId, "Crossclimb", Time, crossclimb.brand, 377, TodayStatus.Solved(95_000L), best = BestScore(80_000L, 0)),
-        HubRow(wordle.gameId, "Wordle", Time, wordle.brand, 1_604, TodayStatus.NotStarted),
-        HubRow(sudoku.gameId, "Sudoku", Time, sudoku.brand, 88, TodayStatus.NotStarted),
-        HubRow(nonogram.gameId, "Nonogram", Time, nonogram.brand, 12, TodayStatus.NotStarted),
+        row(zip, TodayStatus.Solved(42_000L), 592, BestScore(31_000L, 0)),
+        row(queens, TodayStatus.Solved(95_000L), 411, BestScore(95_000L, 0)),
+        row(tango, TodayStatus.Solved(58_000L), 431, BestScore(50_000L, 0)),
+        row(sudoku, TodayStatus.Solved(64_000L), 77, BestScore(64_000L, 0)),
+        row(strands, TodayStatus.Solved(310_000L), 210, BestScore(300_000L, 0)),
     ),
-    doneCount = 3,
-    next = queens.gameId,
-    previews = mapOf(
-        zip.gameId to PreviewBoard((0 until PREVIEW_SIDE * PREVIEW_SIDE).toSet()),
-        tango.gameId to PreviewBoard((0 until PREVIEW_SIDE * PREVIEW_SIDE).toSet()),
-        queens.gameId to PreviewBoard(setOf(0, 1, 2, 7, 12, 13)),
-        crossclimb.gameId to PreviewBoard((0 until PREVIEW_SIDE * PREVIEW_SIDE).toSet()),
-        wordle.gameId to PreviewBoard(emptySet()),
-        sudoku.gameId to PreviewBoard(emptySet()),
+    doneCount = 5,
+)
+
+private val loadingState = HubUiState(rows = listOf(zip, queens, tango, sudoku, strands).map { row(it, null) })
+
+/** Zip solved; every other game can't load, so nothing is up next. */
+private val restOfflineState = HubUiState(
+    rows = listOf(
+        row(zip, TodayStatus.Solved(42_000L), 592, BestScore(31_000L, 0)),
+        row(queens, TodayStatus.Offline, best = BestScore(95_000L, 0)),
+        row(tango, TodayStatus.Offline),
+        row(sudoku, TodayStatus.Offline),
+        row(strands, TodayStatus.Offline),
     ),
+    doneCount = 1,
+)
+
+/** Four-digit numbers, hour-long times, two offline tiles and the longest name. */
+private val longestState = HubUiState(
+    rows = listOf(
+        row(zip, TodayStatus.InProgress(3_723_000L), 1234, BestScore(3_599_000L, 0), line = "9×9 · 1 of 81 cells"),
+        row(queens, TodayStatus.Solved(754_000L), 1234, BestScore(700_000L, 0)),
+        row(tango, TodayStatus.Offline, best = BestScore(3_599_000L, 0)),
+        row(sudoku, TodayStatus.Offline, best = BestScore(64_000L, 0)),
+        row(strands, TodayStatus.InProgress(3_599_000L), 1234, BestScore(3_000_000L, 2), line = "6 of 8 words"),
+    ),
+    doneCount = 1,
+    next = zip,
 )
 
 @PuzzleBoxPreviews
 @Composable
-private fun HubCardPreview() {
+private fun HubPhonePreview() {
     PuzzleBoxTheme {
-        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            HubCard(
-                entry = previewState.rows[1],
-                best = 42_000L,
-                isNext = true,
-                thumbnail = { tango.BoardThumbnail(PreviewBoard(setOf(0, 1, 2, 7, 12, 13)), it) },
-                onPlay = {},
-            )
-            HubCard(
-                entry = previewState.rows[3],
-                best = null,
-                isNext = false,
-                thumbnail = null,
-                onPlay = {},
-            )
-        }
+        GamePicker(state = mixedState, layout = PlayLayout.SinglePane, onPick = {}, onOpenHistory = {})
     }
 }
 
 @PuzzleBoxPreviews
 @Composable
-private fun GamePickerPreview() {
+private fun HubPhoneAllSolvedPreview() {
     PuzzleBoxTheme {
-        GamePicker(
-            state = previewState,
-            games = previewGames,
-            layout = PlayLayout.SinglePane,
-            onPick = {},
-            onPickDay = { _, _ -> },
-            onOpenHistory = {},
-        )
+        GamePicker(state = allSolvedState, layout = PlayLayout.SinglePane, onPick = {}, onOpenHistory = {})
     }
 }
 
 @PuzzleBoxPreviews
 @Composable
-private fun GamePickerGridPreview() {
+private fun HubPhoneLoadingPreview() {
+    PuzzleBoxTheme {
+        GamePicker(state = loadingState, layout = PlayLayout.SinglePane, onPick = {}, onOpenHistory = {})
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+private fun HubPhoneRestOfflinePreview() {
+    PuzzleBoxTheme {
+        GamePicker(state = restOfflineState, layout = PlayLayout.SinglePane, onPick = {}, onOpenHistory = {})
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+private fun HubPhoneLongestPreview() {
+    PuzzleBoxTheme {
+        GamePicker(state = longestState, layout = PlayLayout.SinglePane, onPick = {}, onOpenHistory = {})
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+private fun HubTabletPreview() {
     PuzzleBoxTheme {
         GamePicker(
-            state = previewState,
-            games = previewGames,
+            state = mixedState,
             layout = PlayLayout.TwoPane,
             onPick = {},
-            onPickDay = { _, _ -> },
             onOpenHistory = {},
+            modifier = Modifier.width(TabletWidth),
         )
     }
 }
 
 @PuzzleBoxPreviews
 @Composable
-private fun GamePickerTilesPreview() {
+private fun HubTabletAllSolvedPreview() {
     PuzzleBoxTheme {
         GamePicker(
-            state = manyState,
-            games = manyGames,
-            layout = PlayLayout.SinglePane,
+            state = allSolvedState,
+            layout = PlayLayout.TwoPane,
             onPick = {},
-            onPickDay = { _, _ -> },
             onOpenHistory = {},
+            modifier = Modifier.width(TabletWidth),
         )
     }
 }

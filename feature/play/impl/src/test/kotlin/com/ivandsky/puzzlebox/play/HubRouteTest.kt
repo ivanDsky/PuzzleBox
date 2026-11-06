@@ -1,29 +1,18 @@
 package com.ivandsky.puzzlebox.play
 
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasParent
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performSemanticsAction
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -42,12 +31,11 @@ import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
-import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -71,16 +59,15 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The Play tab's games hub over stand-in games: one card per playable game in registry
- * order under `route.hub`, opening it prefetches today's puzzles once (A12) and tapping a
- * card (the card itself) reports that game without fetching again.
- * A game reads today's status ([hubStatusLine]) and shows today's board as its game draws
- * it: a save's board, the cached puzzle fresh or solved, or its glyph when there is none
- * (offline, uncached, unreadable) (A13, A14, SC11). Only the next unsolved game's card is
- * marked up next, a solved card wears the check, the header counts today's solves, a
- * solved game shows its best time, and "Older puzzles" reports through its callback. A
- * game with an archive offers "Past puzzles": a date picker bounded to its range whose
- * Open reports the picked day, with no daily read on the way (A22).
+ * The Play tab's games hub over stand-in games, in today's sections (A13, A14): the next
+ * unsolved game is the one Up-next card, the other unsolved games are tiles under Also
+ * today, and solved games are Done-today chips; with no next game the panel takes the
+ * hero's place and the side reads Still to play — all solved, the rest offline, or still
+ * loading. Opening the hub prefetches today's puzzles once (A12); tapping any card reports
+ * that game without fetching again, an offline tile included (its retry). The header counts
+ * today's solves and "Older puzzles" reports through its callback. Two-pane puts the hero
+ * and the tiles side by side. No state shows a "Past puzzles" button or the old
+ * "More ways to play" footer.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -91,11 +78,14 @@ class HubRouteTest {
 
     private val zip = GameId("zip")
     private val alpha = TestGames.alpha
-    private var fakes = FakeGames(listOf(zip, alpha))
+    private val fakes = FakeGames(listOf(zip, alpha))
     private val daily = FakeDailyRepository()
     private val today = LocalDate.parse("2026-11-04")
     private val saved = FakeSavedPlayRepository()
     private val completions = FakeCompletionRepository()
+
+    /** Every game a test's hub reported picking, in order. */
+    private val picked = ArrayList<GameId>()
 
     private var koin: KoinApplication? = null
 
@@ -132,29 +122,25 @@ class HubRouteTest {
     }
 
     private fun setContent(
+        layout: PlayLayout = PlayLayout.SinglePane,
         onOpenHistory: () -> Unit = {},
-        onPickDay: (GameId, LocalDate) -> Unit = { _, _ -> },
         onPick: (GameId) -> Unit,
     ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                HubRoute(
-                    layout = PlayLayout.SinglePane,
-                    onPick = onPick,
-                    onPickDay = onPickDay,
-                    onOpenHistory = onOpenHistory,
-                )
+                HubRoute(layout = layout, onPick = onPick, onOpenHistory = onOpenHistory)
             }
         }
     }
 
-    /** Plays [ids] instead of zip and alpha, each fetching fresh; call before [setContent]. */
-    private fun useGames(ids: List<GameId>) {
-        fakes = FakeGames(ids)
-        ids.forEach { daily.setToday(it, DailyToday.Fresh(TestGames.puzzle(it))) }
+    /** The hub drawn straight from [state], for the states the real sources pass through too fast to catch. */
+    private fun setPicker(state: HubUiState, onPick: (GameId) -> Unit = {}) {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                GamePicker(state = state, layout = PlayLayout.SinglePane, onPick = onPick, onOpenHistory = {})
+            }
+        }
     }
-
-    private fun boundsOf(game: GameId) = composeRule.onNodeWithTag("hub.row.${game.value}").getUnclippedBoundsInRoot()
 
     private fun solveZipToday() = runBlocking {
         completions.onCompleted(
@@ -168,49 +154,154 @@ class HubRouteTest {
         }
     }
 
-    private fun awaitStatus(game: GameId, status: TodayStatus) {
+    /** Waits for [game]'s card in [card] (`next`, `tile` or `chip`) to show [mark] (a status mark kind). */
+    private fun awaitMark(card: String, game: GameId, mark: String) {
         composeRule.waitUntil(5_000) {
-            composeRule.onAllNodes(hasTestTag("hub.status.${game.value}") and hasText(hubStatusLine(status)), useUnmergedTree = true)
-                .fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(
+                hasTestTag("card.status_mark.$mark") and hasAnyAncestor(hasTestTag("card.$card.${game.value}")),
+                useUnmergedTree = true,
+            ).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
-    /** The fake thumbnail drawn inside [game]'s card thumbnail frame. */
-    private fun thumbOf(game: GameId) =
-        composeRule.onNode(hasTestTag("fake.thumb") and hasParent(hasTestTag("hub.thumb.${game.value}")), useUnmergedTree = true)
+    private fun exists(tag: String) = composeRule.onNodeWithTag(tag, useUnmergedTree = true).assertExists()
+
+    private fun absent(tag: String) = composeRule.onNodeWithTag(tag, useUnmergedTree = true).assertDoesNotExist()
+
+    private fun count(prefix: String) = composeRule.onAllNodes(tagStartsWith(prefix), useUnmergedTree = true)
 
     private fun tagStartsWith(prefix: String) = SemanticsMatcher("test tag starts with $prefix") { node ->
         node.config.getOrNull(SemanticsProperties.TestTag)?.startsWith(prefix) == true
     }
-    /** A picker day cell: its merged text is the full date ("Monday, November 2, 2026"). */
-    private fun day(date: String) = composeRule.onNode(
-        hasText(date, substring = true) and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button),
-    )
+
+    /** The per-card "Past puzzles" button and the "more ways to play" footer are gone in every state. */
+    private fun assertNoRemovedParts() {
+        count("hub.past.").assertCountEquals(0)
+        absent("hub.more_coming")
+    }
+
+    private fun bounds(tag: String) = composeRule.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
 
     @Test
-    fun `the hub lists every playable game`() {
+    fun `with nothing solved the first game is up next and the rest are tiles under also today`() {
         setContent {}
 
-        composeRule.onNodeWithTag("route.hub").assertExists()
-        composeRule.onNodeWithTag("hub.row.zip").assertExists()
-        composeRule.onNodeWithTag("hub.row.alpha").assertExists()
-        composeRule.onNodeWithText("Zip").assertExists()
-        composeRule.onNodeWithText("Alpha").assertExists()
+        awaitMark("next", zip, "not_started")
+        exists("route.hub")
+        exists("card.tile.alpha")
+        count("card.next.").assertCountEquals(1)
+        count("card.chip.").assertCountEquals(0)
+        absent("card.panel")
+        exists("hub.label.also_today")
+        absent("hub.label.still_to_play")
+        exists("hub.empty.done_today")
+        assertNoRemovedParts()
+    }
+
+    @Test
+    fun `a game solved today is a done chip, the next unsolved game is up next and the header counts it`() {
+        solveZipToday()
+        setContent {}
+
+        awaitTag("card.chip.zip")
+        awaitMark("next", alpha, "not_started")
+        absent("card.next.zip")
+        absent("card.tile.zip")
+        exists("hub.empty.also_today")
+        absent("hub.empty.done_today")
+        composeRule.onNodeWithTag("hub.summary").assertTextEquals(hubSummary(done = 1, total = 2))
+        assertNoRemovedParts()
+    }
+
+    @Test
+    fun `with every game solved the panel stands in for up next and every game is a chip`() {
+        solveZipToday()
+        runBlocking {
+            completions.onCompleted(
+                CompletionRecord(TestGames.Ref(alpha, today, 3), time = 50_000L, hints = 0, stats = RecordStats(1, "{}")),
+            )
+        }
+        setContent {}
+
+        awaitTag("card.chip.alpha")
+        exists("card.chip.zip")
+        exists("card.panel")
+        count("card.next.").assertCountEquals(0)
+        count("card.tile.").assertCountEquals(0)
+        exists("hub.label.still_to_play")
+        exists("hub.empty.also_today")
+        composeRule.onNodeWithTag("hub.summary").assertTextEquals(hubSummary(done = 2, total = 2))
+        assertNoRemovedParts()
+    }
+
+    @Test
+    fun `when the rest can't load the panel shows, and tapping the offline tile reports it to try again - A12`() {
+        solveZipToday()
+        daily.setToday(alpha, DailyToday.Unavailable(FetchError.Unavailable()))
+        setContent { picked.add(it) }
+
+        awaitMark("tile", alpha, "offline")
+        exists("card.panel")
+        exists("card.chip.zip")
+        exists("hub.label.still_to_play")
+        assertNoRemovedParts()
+
+        composeRule.onNodeWithTag("card.tile.alpha").performClick()
+        composeRule.waitForIdle()
+        assertEquals(listOf(alpha), picked)
+    }
+
+    @Test
+    fun `while statuses are unknown the panel shows loading and every game is a tile under still to play`() {
+        // The skeletons' sheen never settles: drive the clock by hand.
+        composeRule.mainClock.autoAdvance = false
+        val rows = listOf(zip, alpha).map { HubRow(it, it.value, RankOrder.TimeThenHints) }
+        setPicker(HubUiState(rows))
+        composeRule.mainClock.advanceTimeBy(1_000L)
+
+        exists("card.panel")
+        exists("card.tile.zip")
+        exists("card.tile.alpha")
+        count("card.status_mark.loading").assertCountEquals(2)
+        count("card.next.").assertCountEquals(0)
+        exists("hub.label.still_to_play")
+        exists("hub.empty.done_today")
+        assertNoRemovedParts()
     }
 
     @Test
     fun `opening the hub fetches each game once and tapping zip's card reports zip without fetching again`() {
-        val picked = ArrayList<GameId>()
         setContent { picked.add(it) }
-        composeRule.waitForIdle()
+        awaitTag("card.next.zip")
         assertEquals(1, daily.todayCalls(zip))
         assertEquals(1, daily.todayCalls(alpha))
 
-        composeRule.onNodeWithTag("hub.row.zip").performClick()
+        composeRule.onNodeWithTag("card.next.zip").performClick()
         composeRule.waitForIdle()
 
-        assertEquals(listOf(GameId("zip")), picked)
+        assertEquals(listOf(zip), picked)
         assertEquals(1, daily.todayCalls(zip))
+    }
+
+    @Test
+    fun `tapping a tile or a chip reports its game`() {
+        setPicker(
+            HubUiState(
+                rows = listOf(
+                    HubRow(zip, "Zip", RankOrder.TimeThenHints, status = TodayStatus.Solved(36_000L)),
+                    HubRow(alpha, "Alpha", RankOrder.TimeThenHints, status = TodayStatus.NotStarted),
+                    HubRow(TestGames.beta, "Beta", RankOrder.TimeThenHints, status = TodayStatus.NotStarted),
+                ),
+                doneCount = 1,
+                next = alpha,
+            ),
+        ) { picked.add(it) }
+
+        composeRule.onNodeWithTag("card.tile.beta").performScrollTo().performClick()
+        composeRule.onNodeWithTag("card.chip.zip").performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(listOf(TestGames.beta, zip), picked)
     }
 
     @Test
@@ -222,177 +313,35 @@ class HubRouteTest {
     }
 
     @Test
-    fun `a game whose puzzle cannot load reads offline with its glyph, and a tap opens it to try again - A12`() {
-        daily.setToday(alpha, DailyToday.Unavailable(FetchError.Unavailable()))
-        val picked = ArrayList<GameId>()
-        setContent { picked.add(it) }
-
-        awaitStatus(alpha, TodayStatus.Offline)
-        composeRule.onNodeWithTag("hub.thumb_placeholder.alpha", useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag("hub.status.zip", useUnmergedTree = true)
-            .assertTextEquals(hubStatusLine(TodayStatus.NotStarted))
-
-        composeRule.onNodeWithTag("hub.row.alpha").performClick()
-        composeRule.waitForIdle()
-        assertEquals(listOf(alpha), picked)
-    }
-
-    @Test
-    fun `a game saved today reads in progress with its clock and shows the saved board`() {
-        val session = FakeController.envelope(zip, moves = 3, day = today)
-        runBlocking { saved.save(PlaySlot(zip, today), SessionBlob.encode(zip, session.session), elapsedMs = 42_000L) }
-        setContent {}
-
-        awaitStatus(zip, TodayStatus.InProgress(42_000L))
-        awaitTag("hub.thumb.zip")
-        thumbOf(zip).assertTextEquals("moves 3")
-        composeRule.onNodeWithTag("hub.status.alpha", useUnmergedTree = true)
-            .assertTextEquals(hubStatusLine(TodayStatus.NotStarted))
-    }
-
-    @Test
-    fun `a save the game can't read shows the glyph instead of a board`() {
-        runBlocking { saved.save(PlaySlot(zip, today), byteArrayOf(1), elapsedMs = 42_000L) }
-        setContent {}
-
-        awaitStatus(zip, TodayStatus.InProgress(42_000L))
-        composeRule.onNodeWithTag("hub.thumb_placeholder.zip", useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag("hub.thumb.zip", useUnmergedTree = true).assertDoesNotExist()
-    }
-
-    @Test
-    fun `a cached puzzle not started shows today's fresh board - an uncached one its glyph`() {
-        daily.setCached(alpha, today, TestGames.puzzle(alpha, tag = 5))
-        setContent {}
-
-        awaitTag("hub.thumb.alpha")
-        thumbOf(alpha).assertTextEquals("fresh 5")
-        composeRule.onNodeWithTag("hub.thumb_placeholder.zip", useUnmergedTree = true).assertExists()
-    }
-
-    @Test
-    fun `a game solved today reads solved with its time, its solved board, the check and its best time`() {
-        solveZipToday()
-        daily.setCached(zip, today, TestGames.puzzle(zip, tag = 2))
-        setContent {}
-
-        awaitStatus(zip, TodayStatus.Solved(36_000L))
-        composeRule.onNodeWithTag("hub.solved.zip", useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag("hub.solved.alpha", useUnmergedTree = true).assertDoesNotExist()
-        awaitTag("hub.thumb.zip")
-        thumbOf(zip).assertTextEquals("solved 2")
-        awaitTag("hub.best.zip")
-        composeRule.onNodeWithTag("hub.best.alpha", useUnmergedTree = true).assertDoesNotExist()
-    }
-
-    @Test
-    fun `exactly one card is up next - the next unsolved game's`() {
-        solveZipToday()
-        setContent {}
-
-        awaitStatus(zip, TodayStatus.Solved(36_000L))
-        assertEquals(1, composeRule.onAllNodes(tagStartsWith("hub.next."), useUnmergedTree = true).fetchSemanticsNodes().size)
-        composeRule.onNodeWithTag("hub.next.alpha", useUnmergedTree = true).assertExists()
-    }
-
-    @Test
-    fun `the header counts today's solved games`() {
-        solveZipToday()
-        setContent {}
-
-        awaitStatus(zip, TodayStatus.Solved(36_000L))
-        composeRule.onNodeWithTag("hub.summary").assertTextEquals(hubSummary(done = 1, total = 2))
-    }
-
-    @Test
     fun `older puzzles calls back without picking a game`() {
         var opened = 0
-        val picked = ArrayList<GameId>()
         setContent(onOpenHistory = { opened++ }) { picked.add(it) }
+        awaitTag("card.next.zip")
 
         composeRule.onNodeWithTag("hub.older").performScrollTo().performClick()
         composeRule.waitForIdle()
 
         assertEquals(1, opened)
         assertEquals(emptyList<GameId>(), picked)
-        composeRule.onNodeWithTag("hub.more_coming").assertExists()
     }
 
     @Test
-    fun `from five games a phone hub puts the first two cards side by side`() {
-        useGames(listOf(zip, alpha, TestGames.beta, GameId("gamma"), GameId("delta")))
+    fun `a phone stacks up next above the tiles`() {
         setContent {}
-        composeRule.waitForIdle()
+        awaitTag("card.next.zip")
 
-        val first = boundsOf(zip)
-        val second = boundsOf(alpha)
-        assertEquals(first.top, second.top)
-        assertTrue(second.left > first.left)
+        assertTrue(bounds("card.tile.alpha").top >= bounds("card.next.zip").bottom)
     }
 
     @Test
-    fun `below five games a phone hub stacks its cards`() {
-        useGames(listOf(zip, alpha, TestGames.beta))
-        setContent {}
-        composeRule.waitForIdle()
+    fun `two-pane puts up next and the tiles side by side, with done today below both`() {
+        setContent(layout = PlayLayout.TwoPane) {}
+        awaitTag("card.next.zip")
 
-        assertTrue(boundsOf(alpha).top >= boundsOf(zip).bottom)
-    }
-
-    @Test
-    fun `past puzzles shows only on a game with an archive`() {
-        daily.setArchiveRange(alpha, LocalDate.parse("2026-10-01")..today)
-        setContent {}
-
-        composeRule.onNodeWithTag("hub.past.alpha").assertExists()
-        composeRule.onNodeWithTag("hub.past.alpha").assert(hasContentDescription("Past Alpha puzzles"))
-        composeRule.onNodeWithTag("hub.past.zip").assertDoesNotExist()
-        composeRule.onAllNodesWithText("Past puzzles").assertCountEquals(1)
-    }
-
-    @Test
-    fun `the picker allows only the archive range, opens the picked day and fetches nothing`() {
-        daily.setArchiveRange(alpha, LocalDate.parse("2026-11-01")..today)
-        val picked = ArrayList<Pair<GameId, LocalDate>>()
-        val rowTaps = ArrayList<GameId>()
-        setContent(onPickDay = { game, day -> picked.add(game to day) }) { rowTaps.add(it) }
-        composeRule.waitForIdle()
-        // The hub's own start-up sync asks today once; the picker adds nothing to it.
-        val synced = daily.todayCalls(alpha)
-
-        composeRule.onNodeWithTag("hub.past.alpha").performClick()
-        composeRule.waitForIdle()
-
-        day("November 4, 2026").assertIsEnabled().assertIsSelected()
-        day("November 1, 2026").assertIsEnabled()
-        day("November 5, 2026").assertIsNotEnabled()
-        day("November 30, 2026").assertIsNotEnabled()
-        assertEquals(synced, daily.todayCalls(alpha))
-        assertEquals(0, daily.dayCalls(alpha, LocalDate.parse("2026-11-02")))
-
-        // A semantic tap (TalkBack's): under Robolectric an injected touch does not select a day cell.
-        day("November 2, 2026").performSemanticsAction(SemanticsActions.OnClick)
-        day("November 2, 2026").assertIsSelected()
-        composeRule.onNodeWithText("Open").performClick()
-        composeRule.waitForIdle()
-
-        assertEquals(listOf(alpha to LocalDate.parse("2026-11-02")), picked)
-        assertEquals(emptyList<GameId>(), rowTaps)
-        assertEquals(0, daily.dayCalls(alpha, LocalDate.parse("2026-11-02")))
-        composeRule.onNodeWithText("Open").assertDoesNotExist()
-    }
-
-    @Test
-    fun `cancel closes the picker without opening a day`() {
-        daily.setArchiveRange(alpha, LocalDate.parse("2026-11-01")..today)
-        val picked = ArrayList<Pair<GameId, LocalDate>>()
-        setContent(onPickDay = { game, day -> picked.add(game to day) }) {}
-
-        composeRule.onNodeWithTag("hub.past.alpha").performClick()
-        composeRule.onNodeWithText("Cancel").performClick()
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Open").assertDoesNotExist()
-        assertEquals(emptyList<Pair<GameId, LocalDate>>(), picked)
+        val hero = bounds("card.next.zip")
+        val tile = bounds("card.tile.alpha")
+        assertTrue(tile.left >= hero.right)
+        assertTrue(tile.top > hero.top && tile.top < hero.bottom)
+        assertTrue(bounds("hub.empty.done_today").top >= hero.bottom)
     }
 }
