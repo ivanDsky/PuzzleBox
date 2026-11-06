@@ -72,8 +72,9 @@ internal const val UNPAINTED_DESCRIPTION = "unpainted"
  * bar below counts the selection; its Area and All of colour chips grow it and re-open the
  * ring at the new centroid. Each cell says its region's hue in its state description, so
  * tests read the painting without pixels. Over the fills, [QueensCellDiagnostics] shows what
- * the [verdict] found and which region pieces stray. Under the grid, [QueensCoachLine] and
- * [QueensProbeStrip] each reserve one line; Crown mode keeps the context bar's height empty.
+ * the [verdict] found, which region pieces stray and, with crowns on a 2-answer board, the
+ * other answer's ghost crowns. Under the grid, [QueensCoachLine] and [QueensProbeStrip] each
+ * reserve one line; Crown mode keeps the context bar's height empty.
  */
 @Composable
 internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verdict, modifier: Modifier = Modifier) {
@@ -87,13 +88,16 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
     val model = remember(shown) { modelOf(shown) }
     val n = model.n
     val reducedMotion = rememberReducedMotion()
-    val diagnostics = rememberQueensDiagnostics(verdict, board)
+    // The last non-Checking verdict, so the coach line, probe strip and ghost crowns hold their content while a new analysis runs.
+    val settled = remember { mutableStateOf<Verdict?>(null) }
+    SideEffect { if (verdict != Verdict.Checking) settled.value = verdict }
+    val held = if (verdict == Verdict.Checking) settled.value else null
+    val probed = held ?: verdict
+    val fit = remember(board, probed) { QueensAnswerFit.of(board, probed) }
+    val diagnostics = rememberQueensDiagnostics(verdict, board, fit)
     val autoX = remember(board) { QueensCrowns.crossed(board) }
     val rejection = rememberQueensRejection(controller)
     var frame by remember { mutableStateOf(BoardFrame.Zero) }
-    // The last non-Checking verdict, so the coach line and probe strip hold their content while a new analysis runs.
-    val settled = remember { mutableStateOf<Verdict?>(null) }
-    SideEffect { if (verdict != Verdict.Checking) settled.value = verdict }
     CompositionLocalProvider(LocalQueensReducedMotion provides reducedMotion) {
         Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
@@ -146,10 +150,8 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
                     onPick = controller::pick,
                 )
             }
-            val held = if (verdict == Verdict.Checking) settled.value else null
             QueensCoachLine(QueensCoachState.shown(board, verdict, held, mode), reducedMotion, Modifier.padding(top = Spacing.xs))
-            val probed = held ?: verdict
-            QueensProbeStrip(remember(board, probed) { QueensAnswerFit.of(board, probed) }, board.crowns.size)
+            QueensProbeStrip(fit, board.crowns.size)
             if (mode == QueensEditorMode.Paint) {
                 QueensSelectionChips(controller, onGrown = { touch.lift = centroid(it, n, frame.size) })
             } else {
@@ -225,6 +227,15 @@ private fun QueensEditorBoardSelectedPreview() {
 private fun QueensEditorBoardMultiplePreview() {
     val verdict = Verdict.Multiple(Solution(listOf(1, 7, 8, 14)), Solution(listOf(2, 4, 11, 13)), setOf(1, 2, 4, 7, 8, 11, 13, 14))
     PuzzleBoxTheme { QueensEditorBoard(previewController(), verdict, Modifier.fillMaxWidth()) }
+}
+
+@PuzzleBoxPreviews
+@Preview(name = "2+ solutions, ghost crowns", widthDp = 360, heightDp = 420, showBackground = true)
+@Composable
+private fun QueensEditorBoardGhostPreview() {
+    val verdict = Verdict.Multiple(Solution(listOf(1, 7, 8, 14)), Solution(listOf(2, 4, 11, 13)), setOf(1, 2, 4, 7, 8, 11, 13, 14))
+    val controller = previewController(List(16) { it / 4 }).apply { setMode(QueensEditorMode.Crown); tap(1); tap(7) }
+    PuzzleBoxTheme { QueensEditorBoard(controller, verdict, Modifier.fillMaxWidth()) }
 }
 
 @PuzzleBoxPreviews

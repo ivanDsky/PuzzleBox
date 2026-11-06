@@ -1,9 +1,14 @@
 package com.ivandsky.puzzlebox.games.queensui.editor
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.DraftState
@@ -19,7 +24,10 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** 23: the board flags what the verdict found — diff ring, clash fill — and split stripes after the settle pause. */
+/**
+ * 23: the board flags what the verdict found — diff ring, clash fill — and split stripes after the settle pause.
+ * 40: with answer crowns, a Multiple verdict ghosts the other answer and rings only the movable cells.
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class QueensEditorDiagnosticsTest {
@@ -85,8 +93,61 @@ class QueensEditorDiagnosticsTest {
         assertEquals(emptySet<Int>(), tagged("split"))
     }
 
-    private fun show(regions: List<Int>, verdict: Verdict) {
-        val controller = controllerOf(QueensDraft(SIZE, regions))
+    @Test
+    fun `with crowns a Multiple verdict ghosts the other answer and rings only the movable cells`() {
+        show(WHOLE, MULTIPLE, crowns = CROWNS)
+
+        assertEquals(GHOSTS, tagged("ghost"))
+        assertEquals(MOVABLE, tagged("diff"))
+    }
+
+    @Test
+    fun `without crowns the same verdict ghosts nothing and rings every differing cell`() {
+        show(WHOLE, MULTIPLE)
+
+        assertEquals(emptySet<Int>(), tagged("ghost"))
+        assertEquals(MULTIPLE.differingCells, tagged("diff"))
+    }
+
+    @Test
+    fun `a first Checking shows no ghost and no ring`() {
+        show(WHOLE, Verdict.Checking, crowns = CROWNS)
+
+        assertEquals(emptySet<Int>(), tagged("ghost"))
+        assertEquals(emptySet<Int>(), tagged("diff"))
+    }
+
+    @Test
+    fun `Checking after Multiple keeps the ghosts and movable ring until a settled verdict clears them`() {
+        var verdict: Verdict by mutableStateOf(MULTIPLE)
+        val controller = controllerOf(QueensDraft(SIZE, WHOLE, CROWNS))
+        rule.setContent { PuzzleBoxTheme { QueensEditorBoard(controller, verdict, Modifier.fillMaxWidth()) } }
+
+        verdict = Verdict.Checking
+        rule.waitForIdle()
+        assertEquals(GHOSTS, tagged("ghost"))
+        assertEquals(MOVABLE, tagged("diff"))
+
+        verdict = Verdict.Unique(MULTIPLE.solutionA)
+        rule.waitForIdle()
+        assertEquals(emptySet<Int>(), tagged("ghost"))
+        assertEquals(emptySet<Int>(), tagged("diff"))
+    }
+
+    @Test
+    fun `a tap on a ghost cell in Crown mode crowns it, and a crossed ghost refuses as without the ghost`() {
+        val controller = controllerOf(QueensDraft(SIZE, WHOLE, CROWNS)).apply { setMode(QueensEditorMode.Crown) }
+        rule.setContent { PuzzleBoxTheme { QueensEditorBoard(controller, MULTIPLE, Modifier.fillMaxWidth()) } }
+
+        rule.onNodeWithTag("queens.editor.cell.$CROSSED_GHOST", useUnmergedTree = true).performClick()
+        assertEquals(CROWNS, crownsOf(controller))
+
+        rule.onNodeWithTag("queens.editor.cell.$OPEN_GHOST", useUnmergedTree = true).performClick()
+        assertEquals(CROWNS + OPEN_GHOST, crownsOf(controller))
+    }
+
+    private fun show(regions: List<Int>, verdict: Verdict, crowns: Set<Int> = emptySet()) {
+        val controller = controllerOf(QueensDraft(SIZE, regions, crowns))
         rule.setContent {
             PuzzleBoxTheme { QueensEditorBoard(controller, verdict, Modifier.fillMaxWidth()) }
         }
@@ -94,6 +155,9 @@ class QueensEditorDiagnosticsTest {
 
     private fun controllerOf(draft: QueensDraft) =
         QueensEditorController(EditorDraft(QueensEditor, DraftState(draft))) {}
+
+    private fun crownsOf(controller: QueensEditorController): Set<Int> =
+        (controller.draft.value.state.draft as QueensDraft).crowns
 
     /** Every cell carrying `queens.editor.cell.<idx>.<mark>`. */
     private fun tagged(mark: String): Set<Int> =
@@ -121,5 +185,21 @@ class QueensEditorDiagnosticsTest {
             2, 2, 3, 3,
             0, 2, 3, 3,
         )
+
+        /** The author's crowns sit on witness A; B shares 15 with A. */
+        val CROWNS = setOf(0, 5)
+        val MULTIPLE = Verdict.Multiple(
+            Solution(listOf(0, 5, 10, 15)),
+            Solution(listOf(1, 4, 11, 15)),
+            setOf(0, 1, 4, 5, 10, 11),
+        )
+
+        /** B's queens minus the crowns; 15 sits inside region 3, so it is the one ghost that is not movable. */
+        val GHOSTS = setOf(1, 4, 11, 15)
+        val MOVABLE = setOf(1, 4, 11)
+
+        /** Crown 0 crosses 1 (same row and region); nothing crosses 11. */
+        const val CROSSED_GHOST = 1
+        const val OPEN_GHOST = 11
     }
 }
