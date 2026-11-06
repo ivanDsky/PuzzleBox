@@ -1,0 +1,115 @@
+# Every push to main builds the release APK, signed with the release key, and publishes it as
+# GitHub release v<versionName>. A versionName that already has a tag publishes nothing.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# One queue for push and dispatch runs, so releases publish in order; a running publish is never
+# cancelled halfway. GitHub keeps one pending run per group: a third quick merge replaces the
+# second's pending run, and the next run releases HEAD.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # A dispatch from another branch would publish unmerged code as the latest release.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Check signing secrets
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          RELEASE_CERT_SHA256: ${{ vars.RELEASE_CERT_SHA256 }}
+        run: |
+          missing=0
+          for name in RELEASE_KEYSTORE_BASE64 RELEASE_STORE_PASSWORD RELEASE_KEY_ALIAS RELEASE_KEY_PASSWORD RELEASE_CERT_SHA256; do
+            if [ -z "${!name}" ]; then echo "::error::$name is not set"; missing=1; fi
+          done
+          exit "$missing"
+
+      - name: Decode keystore
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+
+      - name: Build release APK
+        env:
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          ./gradlew :app:assembleRelease \
+            -PagentVersionCode=$((1000 + GITHUB_RUN_NUMBER)) \
+            -Ppuzzlebox.signing.storeFile="$RUNNER_TEMP/release.jks" \
+            -Ppuzzlebox.signing.storePassword="$RELEASE_STORE_PASSWORD" \
+            -Ppuzzlebox.signing.keyAlias="$RELEASE_KEY_ALIAS" \
+            -Ppuzzlebox.signing.keyPassword="$RELEASE_KEY_PASSWORD"
+
+      - name: Verify signer
+        env:
+          RELEASE_CERT_SHA256: ${{ vars.RELEASE_CERT_SHA256 }}
+        run: |
+          apksigner="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)/apksigner"
+          actual=$("$apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk \
+            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d ':' | tr '[:upper:]' '[:lower:]')
+          expected=$(echo "$RELEASE_CERT_SHA256" | tr -d ': ' | tr '[:upper:]' '[:lower:]')
+          if [ -z "$actual" ] || [ "$actual" != "$expected" ]; then
+            echo "::error::APK signer SHA-256 '$actual' is not the release key's '$expected'"
+            exit 1
+          fi
+
+      - name: Read version
+        id: version
+        run: |
+          version=$(jq -r '.elements[0].versionName // empty' app/build/outputs/apk/release/output-metadata.json)
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::versionName '$version' is not MAJOR.MINOR.PATCH"
+            exit 1
+          fi
+          echo "name=$version" >> "$GITHUB_OUTPUT"
+          if [ -n "$(git ls-remote --tags origin "refs/tags/v$version")" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "v$version already released — bump versionName to publish." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish release
+        if: steps.version.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.name }}
+        run: |
+          apk="PuzzleBox-$VERSION.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$apk"
+          notes="Download $apk under Assets and open it; allow installs from your browser if Android asks."
+          # Only the first release replaces debug-key builds, which cannot update in place.
+          if [ "$(gh release list --limit 1 --json tagName --jq length)" = 0 ]; then
+            notes="$notes Uninstall any earlier PuzzleBox build first."
+          fi
+          gh release create "v$VERSION" "$apk" \
+            --target "$GITHUB_SHA" \
+            --title "PuzzleBox $VERSION" \
+            --latest \
+            --generate-notes \
+            --notes "$notes"
+          echo "Published [v$VERSION]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/v$VERSION)." >> "$GITHUB_STEP_SUMMARY"

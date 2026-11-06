@@ -3,21 +3,16 @@ package com.ivandsky.puzzlebox.play
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -74,22 +69,4 @@ internal fun AnimatedContentTransitionScope<Boolean>.libraryPush(reduced: Boolea
     val exit = fadeOut(tween(exitDuration)) +
         slideOutHorizontally(tween(travel)) { -sign * it / PUSH_TRAVEL_DIVISOR }
     return enter togetherWith exit
-}
-
-/**
- * Press feedback for the calendar's discs and chips (06-a §Motion): the same 0.97 spring
- * as [com.ivandsky.puzzlebox.gameui.GameCardSurface]; [reduced] motion never scales.
- */
-@Composable
-internal fun Modifier.pressScale(interactionSource: MutableInteractionSource, reduced: Boolean): Modifier {
-    val pressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed && !reduced) MotionTokens.PressScale else 1f,
-        animationSpec = spring(MotionTokens.SpringDampingDefault, MotionTokens.SpringStiffnessDefault),
-        label = "press-scale",
-    )
-    return graphicsLayer {
-        scaleX = scale
-        scaleY = scale
-    }
 }

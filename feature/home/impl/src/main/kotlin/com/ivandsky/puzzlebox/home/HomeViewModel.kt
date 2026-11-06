@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.domain.GameStats
+import com.ivandsky.puzzlebox.domain.GetAppUpdate
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
@@ -27,6 +28,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -43,7 +45,8 @@ import kotlinx.coroutines.launch
  * with an unfinished save, else the first unsolved one, else the first game; before the
  * set lands, the first game). [stats] and [week] feed the streak card (A8): the solved-day
  * numbers and the last 7 puzzle days, oldest first, ending on [puzzleDay]. [rolloverAt] is
- * when the next puzzles land, the CTA's countdown once every game is solved.
+ * when the next puzzles land, the CTA's countdown once every game is solved. [updateUrl] is
+ * a newer release's page (spec A7), null while none is known.
  */
 internal data class HomeUiState(
     val today: List<TodayRow>,
@@ -54,6 +57,7 @@ internal data class HomeUiState(
     val stats: GameStats,
     val week: List<WeekDay>,
     val rolloverAt: Instant,
+    val updateUrl: String? = null,
 ) {
     /**
      * One game's Today row (A9, A10): [status] is null until today's set first emits,
@@ -90,7 +94,8 @@ internal data class HomeUiState(
  * names resolve against :app's [GameRegistry], so a new game appears here purely by
  * registering its plugin. The header's day and [GetNextRollover]'s instant are re-read on
  * every emission. [syncToday] prefetches today's uncached puzzles (A12; the route calls it
- * on every resume), so a game that can't load reads Offline.
+ * on every resume), so a game that can't load reads Offline. [checkForUpdate] (also on every
+ * resume) asks [GetAppUpdate] for a newer release; its URL lands in [HomeUiState.updateUrl].
  */
 class HomeViewModel(
     observeGameHistory: ObserveGameHistory,
@@ -102,7 +107,10 @@ class HomeViewModel(
     private val puzzleDay: GetPuzzleDay,
     private val nextRollover: GetNextRollover,
     private val syncTodayPuzzles: SyncTodayPuzzles,
+    private val getAppUpdate: GetAppUpdate,
 ) : ViewModel() {
+
+    private val updateUrl = MutableStateFlow<String?>(null)
 
     // Declared before uiState: its initial value already builds the week.
     private val registryOrder: Comparator<GameHistoryDay> =
@@ -150,7 +158,7 @@ class HomeViewModel(
                 week = week(days, endingOn = day),
                 rolloverAt = nextRollover(),
             )
-        }.stateIn(
+        }.combine(updateUrl) { state, url -> state.copy(updateUrl = url) }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = puzzleDay().let { day ->
@@ -169,6 +177,11 @@ class HomeViewModel(
 
     fun syncToday() {
         viewModelScope.launch { syncTodayPuzzles() }
+    }
+
+    /** Off the first frame: the pill appears only once a newer release is known (A4). */
+    fun checkForUpdate() {
+        viewModelScope.launch { updateUrl.value = getAppUpdate()?.url }
     }
 
     private fun recentDays(days: List<GameHistoryDay>, before: LocalDate): List<HistoryDay> =

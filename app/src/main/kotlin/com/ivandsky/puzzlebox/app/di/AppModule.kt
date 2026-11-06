@@ -1,8 +1,10 @@
 package com.ivandsky.puzzlebox.app.di
 
+import com.ivandsky.puzzlebox.app.buildTypeChecksForUpdates
 import com.ivandsky.puzzlebox.app.buildTypeUnlistedGames
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -12,6 +14,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 /** App-process wiring: the application scope and the platform seams. */
@@ -44,6 +47,13 @@ val appModule = module {
 
     // Every game module's play registration; a duplicate game id throws (ADR-0007).
     single { GamePlayRegistry(getAll<GamePlayUi>()) }
+
+    // The installed build GetAppUpdate compares against; debug never checks (spec A4).
+    single {
+        val context = androidContext()
+        val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+        AppBuild(versionName = packageInfo.versionName.orEmpty(), checksForUpdates = buildTypeChecksForUpdates)
+    }
 }
 
 /** ADR-0008 "Adding a game": a plugin bound without its GamePlayUi is a wiring bug —
