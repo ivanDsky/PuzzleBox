@@ -263,4 +263,83 @@ class PuzzleBoxDatabaseMigrationTest {
         }
         db.close()
     }
+
+    @Test
+    fun `migrate 6 to 7 keeps every daily record and saved play and opens four empty tables`() {
+        val dbName = "puzzlebox-migration-6-7-test.db"
+        val v6 = helper.createDatabase(dbName, 6)
+        v6.execSQL(
+            "INSERT INTO puzzle_dailies (gameId, day, puzzleNumber, variant, formatVersion, payload, fetchedAtMs) " +
+                "VALUES ('zip', '2026-10-31', 592, 'zip/n6', 1, x'00ff', 5000)",
+        )
+        v6.execSQL(
+            "INSERT INTO completions (puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord) " +
+                "VALUES ('zip/2026-10-31/592', 95000, 2, 1, '{\"v\":1}', 7000, 7000, 1)",
+        )
+        v6.execSQL(
+            "INSERT INTO saved_plays (gameId, day, blob, elapsedMs, updatedAt) " +
+                "VALUES ('queens', '2026-11-01', x'0102', 4200, 9000)",
+        )
+        v6.close()
+
+        // Validates against the committed 7.json (S17).
+        val db = helper.runMigrationsAndValidate(dbName, 7, true, Migrations.MIGRATION_6_7)
+
+        db.query(
+            "SELECT gameId, day, puzzleNumber, variant, formatVersion, LENGTH(payload), fetchedAtMs FROM puzzle_dailies",
+        ).use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals("zip", cursor.getString(0))
+            assertEquals("2026-10-31", cursor.getString(1))
+            assertEquals(592, cursor.getInt(2))
+            assertEquals("zip/n6", cursor.getString(3))
+            assertEquals(1, cursor.getInt(4))
+            assertEquals(2, cursor.getInt(5))
+            assertEquals(5000L, cursor.getLong(6))
+        }
+        db.query(
+            "SELECT puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord FROM completions",
+        ).use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals("zip/2026-10-31/592", cursor.getString(0))
+            assertEquals(95000L, cursor.getLong(1))
+            assertEquals(2, cursor.getInt(2))
+            assertEquals(1, cursor.getInt(3))
+            assertEquals("{\"v\":1}", cursor.getString(4))
+            assertEquals(7000L, cursor.getLong(5))
+            assertEquals(7000L, cursor.getLong(6))
+            assertEquals(1, cursor.getInt(7))
+        }
+        db.query("SELECT gameId, day, blob, elapsedMs, updatedAt FROM saved_plays").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals("queens", cursor.getString(0))
+            assertEquals("2026-11-01", cursor.getString(1))
+            assertTrue(byteArrayOf(1, 2).contentEquals(cursor.getBlob(2)))
+            assertEquals(4200L, cursor.getLong(3))
+            assertEquals(9000L, cursor.getLong(4))
+        }
+        for (table in listOf("drafts", "published_puzzles", "received_puzzles", "custom_saved_plays")) {
+            db.query("SELECT COUNT(*) FROM `$table`").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(0, cursor.getInt(0))
+            }
+        }
+        db.close()
+    }
+
+    @Test
+    fun `fresh v7 database is created by the normal builder path`() {
+        val dbName = "puzzlebox-fresh-v7.db"
+        val db = helper.createDatabase(dbName, 7)
+        for (table in listOf("drafts", "published_puzzles", "received_puzzles", "custom_saved_plays")) {
+            db.query("SELECT COUNT(*) FROM `$table`").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(0, cursor.getInt(0))
+            }
+        }
+        db.close()
+    }
 }
