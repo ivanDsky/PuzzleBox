@@ -57,8 +57,9 @@ internal class SlotOpening(
     suspend fun open(slot: PlaySlot): Origin {
         val plugin = games[slot.gameId] ?: return Origin.Unavailable(UNREGISTERED)
         restore(slot, plugin)?.let { return Origin.Restored(it) }
+        val daily = slot as? PlaySlot.Daily ?: return Origin.Unavailable(UNREGISTERED)
         val today = calendar.today(slot.gameId) ?: return Origin.Unavailable(UNREGISTERED)
-        return if (slot.day == today) fetch(slot) else build(slot)
+        return if (daily.day == today) fetch(daily) else build(daily)
     }
 
     /** The slot's saved row as stored, read through the [lane] after every save queued before it; never deletes. */
@@ -82,13 +83,13 @@ internal class SlotOpening(
         return envelope.game == slot.gameId && plugin.session.deserialize(envelope.session) is DecodeResult.Ok
     }
 
-    private suspend fun fetch(slot: PlaySlot): Origin = when (val fetched = daily.today(slot.gameId)) {
+    private suspend fun fetch(slot: PlaySlot.Daily): Origin = when (val fetched = daily.today(slot.gameId)) {
         is DailyToday.Fresh -> Origin.Fetched(fetched.puzzle, banner = null, puzzleNumberOf(slot))
         is DailyToday.Cached -> Origin.Fetched(fetched.puzzle, degradeBannerMessage(fetched.error), puzzleNumberOf(slot))
         is DailyToday.Unavailable -> Origin.Unavailable(unavailableMessage(fetched.error))
     }
 
-    private suspend fun build(slot: PlaySlot): Origin =
+    private suspend fun build(slot: PlaySlot.Daily): Origin =
         when (val opened = pastDays(slot.gameId, slot.day, puzzleNumberOf(slot))) {
             is PastDayOutcome.Ready -> Origin.Restored(opened.session)
             PastDayOutcome.Missing -> Origin.Unavailable(DAY_MISSING)
@@ -101,7 +102,7 @@ internal class SlotOpening(
         }
 
     /** The day's puzzleNumber from the cache's history rows (null when the day has none). */
-    private suspend fun puzzleNumberOf(slot: PlaySlot): Int? =
+    private suspend fun puzzleNumberOf(slot: PlaySlot.Daily): Int? =
         daily.observeHistory(slot.gameId).first().firstOrNull { it.day == slot.day }?.puzzleNumber
 
     private companion object {

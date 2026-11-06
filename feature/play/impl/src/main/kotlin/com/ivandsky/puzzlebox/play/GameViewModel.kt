@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.gameui.TutorialSession
+import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.GameKey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -43,7 +44,7 @@ class GameViewModel(
      * was kept across its cadence-zone midnight, so the bar labels it as yesterday's. A
      * key with an explicit day is a replay and never is.
      */
-    val pastDay: StateFlow<Boolean> = play?.takeIf { key.day == null }?.slot?.let { slot ->
+    val pastDay: StateFlow<Boolean> = (play?.takeIf { key.day == null }?.slot as? PlaySlot.Daily)?.let { slot ->
         calendar.observeToday(slot.gameId)
             .map { today -> today != slot.day }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)

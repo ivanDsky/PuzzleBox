@@ -205,11 +205,11 @@ class ProcessDeathE2ETest {
     private val ShellRobot.saves: SavedPlayRepository get() = graph.koin.get()
 
     /** The live play of [slot] (read off the main thread only while the activity is stopped). */
-    private fun ShellRobot.zip(slot: PlaySlot = todaySlot): ZipPlayController =
+    private fun ShellRobot.zip(slot: PlaySlot.Daily = todaySlot): ZipPlayController =
         checkNotNull(store.peek(slot)) { "no live zip play for ${slot.day}" }.controller as ZipPlayController
 
     /** Waits until [slot]'s live Zip has its session, and returns it. */
-    private fun ShellRobot.awaitZip(slot: PlaySlot = todaySlot): ZipSession {
+    private fun ShellRobot.awaitZip(slot: PlaySlot.Daily = todaySlot): ZipSession {
         rule.waitUntil(TIMEOUT_MS) { rule.runOnIdle { store.peek(slot) }?.let { (it.controller as ZipPlayController).session } != null }
         return checkNotNull(rule.runOnIdle { zip(slot).session })
     }
@@ -219,7 +219,7 @@ class ProcessDeathE2ETest {
      * ViewModel and the Koin graph go (the fakes are the disk), and the navigator's saved
      * bundle comes back to a fresh shell. The restored Result has no live play behind it.
      */
-    private fun ShellRobot.solveThenDie(slot: PlaySlot) {
+    private fun ShellRobot.solveThenDie(slot: PlaySlot.Daily) {
         if (slot == todaySlot) openGame(ZIP)
         awaitZip(slot)
         rule.runOnIdle { ZipPlayFixture.solution.forEach { zip(slot).extend(it) } }

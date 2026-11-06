@@ -42,7 +42,7 @@ val dataModule = module {
     single<CompletionRepository> { RoomCompletionRepository(get(), get(), get()) }
     single<UserPreferencesRepository> { OfflineUserPreferencesRepository(get()) }
     // Saved in-progress plays (A10); the slot cap is private to the Room adapter.
-    single<SavedPlayRepository> { RoomSavedPlayRepository(get()) }
+    single<SavedPlayRepository> { RoomSavedPlayRepository(get(), get()) }
     // Process-wide so the 15-minute update-check throttle survives screen changes.
     single<AppReleaseRepository> { NetworkAppReleaseRepository(get()) }
 }
