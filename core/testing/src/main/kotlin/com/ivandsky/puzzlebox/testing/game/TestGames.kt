@@ -110,13 +110,19 @@ object TestGames {
 /**
  * Scriptable [DailySource] for one game: queue the next outcome, record the requested
  * dates. Default fails Unavailable so tests assert the degrade path explicitly.
+ * [requestedDates] logs every fetch; [requestedPastDates] only those that came through
+ * [fetchPast]. [placeholder] is the stored puzzle this source calls a stand-in, and
+ * [puzzleNumbers] its numbering (none by default).
  */
 class FakeDailySource(override val gameId: GameId) : DailySource {
 
     val requestedDates = mutableListOf<LocalDate>()
+    val requestedPastDates = mutableListOf<LocalDate>()
     var nextPuzzle: Puzzle? = null
     var nextPuzzleNumber: Int? = null
     var nextError: FetchError = FetchError.Unavailable("FakeDailySource: nothing queued")
+    var placeholder: Puzzle? = null
+    var puzzleNumbers: (LocalDate) -> Int? = { null }
 
     override suspend fun fetchDaily(date: LocalDate): FetchResult<DailyFetch> {
         requestedDates += date
@@ -124,4 +130,13 @@ class FakeDailySource(override val gameId: GameId) : DailySource {
         // Mirror the real adapters: the ref is always built from the requested day.
         return FetchResult.Ok(DailyFetch(puzzle, TestGames.Ref(gameId, date, nextPuzzleNumber)))
     }
+
+    override suspend fun fetchPast(date: LocalDate): FetchResult<DailyFetch> {
+        requestedPastDates += date
+        return fetchDaily(date)
+    }
+
+    override fun puzzleNumber(day: LocalDate): Int? = puzzleNumbers(day)
+
+    override fun isPlaceholder(puzzle: Puzzle): Boolean = puzzle == placeholder
 }

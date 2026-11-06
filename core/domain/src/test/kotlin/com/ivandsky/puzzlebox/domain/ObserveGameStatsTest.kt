@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain
 
+import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
@@ -29,9 +30,10 @@ class ObserveGameStatsTest {
     private val clock = Clock.fixed(Instant.parse("2026-11-10T12:00:00Z"), ZoneOffset.UTC)
     private val registry = TestGames.registry(listOf(alpha, beta))
     private val completions = FakeCompletionRepository()
+    private val daily = FakeDailyRepository()
 
     private fun stats(game: GameId? = null) = ObserveGameStats(
-        ObserveGameHistory(registry, FakeDailyRepository(), completions),
+        ObserveGameHistory(registry, daily, completions),
         ComputeStreak(GetPuzzleDay(registry, clock)),
     )(game)
 
@@ -129,5 +131,39 @@ class ObserveGameStatsTest {
         assertEquals(20_000L, all.averageTimeMs)
         assertEquals(1, all.hintFree)
         assertEquals(today.minusDays(1), all.playingSince)
+    }
+
+    @Test
+    fun `an archived solve counts toward solves and times but never the streak`() = runTest {
+        completions.setRecords(
+            listOf(
+                solve(alpha, daysAgo = 0, time = 40_000L),
+                solve(alpha, daysAgo = 1, time = 20_000L, hints = 1),
+            ),
+        )
+        // Yesterday was opened from the archive today (A13/A23): fetched after its own day.
+        daily.addEntry(
+            DailyEntry(
+                gameId = alpha,
+                day = today.minusDays(1),
+                puzzleNumber = 99,
+                variant = "v",
+                fetchedAtMs = clock.millis(),
+                archived = true,
+            ),
+        )
+
+        assertEquals(
+            GameStats(
+                currentStreak = 1,
+                bestStreak = 1,
+                solved = 2,
+                bestTimeMs = 20_000L,
+                hintFree = 1,
+                averageTimeMs = 30_000L,
+                playingSince = today.minusDays(1),
+            ),
+            stats().first(),
+        )
     }
 }

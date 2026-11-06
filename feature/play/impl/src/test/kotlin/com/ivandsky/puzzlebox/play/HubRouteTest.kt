@@ -34,6 +34,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.domain.ObservePastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -116,6 +117,7 @@ class HubRouteTest {
                     single<SavedPlayRepository> { saved }
                     single<GameCalendar> { FakeGameCalendar(today) }
                     factory { LoadPastDay(get(), get()) }
+                    factory { ObservePastDay(get(), get(), get()) }
                     single { SyncTodayPuzzles(get(), get(), get()) }
                     factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
                     factory { ObserveGameHistory(get(), get(), get()) }
@@ -363,7 +365,9 @@ class HubRouteTest {
         composeRule.onNodeWithTag("hub.past.alpha").performClick()
         composeRule.waitForIdle()
 
-        day("November 4, 2026").assertIsEnabled().assertIsSelected()
+        // It opens on yesterday, today still selectable.
+        day("November 3, 2026").assertIsEnabled().assertIsSelected()
+        day("November 4, 2026").assertIsEnabled()
         day("November 1, 2026").assertIsEnabled()
         day("November 5, 2026").assertIsNotEnabled()
         day("November 30, 2026").assertIsNotEnabled()
@@ -394,5 +398,47 @@ class HubRouteTest {
 
         composeRule.onNodeWithText("Open").assertDoesNotExist()
         assertEquals(emptyList<Pair<GameId, LocalDate>>(), picked)
+    }
+
+    @Test
+    fun `the picker opens on the range's start when yesterday is before it`() {
+        daily.setArchiveRange(alpha, today..today)
+        setContent {}
+
+        composeRule.onNodeWithTag("hub.past.alpha").performClick()
+        composeRule.waitForIdle()
+
+        day("November 4, 2026").assertIsSelected()
+    }
+
+    @Test
+    fun `the headline reads the selected day's number and solved status`() {
+        val yesterday = today.minusDays(1)
+        daily.setArchiveRange(alpha, LocalDate.parse("2026-11-01")..today)
+        daily.setPuzzleNumbers(alpha) { 590 + it.dayOfMonth }
+        runBlocking {
+            completions.onCompleted(
+                CompletionRecord(TestGames.Ref(alpha, yesterday, 593), time = 95_000L, hints = 0, stats = RecordStats(1, "{}")),
+            )
+        }
+        setContent {}
+
+        composeRule.onNodeWithTag("hub.past.alpha").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("hub.past.headline").assertTextEquals("Alpha #593 · Solved 1:35")
+    }
+
+    @Test
+    fun `the headline follows the picked day - a day never stored needs a connection`() {
+        daily.setArchiveRange(alpha, LocalDate.parse("2026-11-01")..today)
+        daily.setPuzzleNumbers(alpha) { 590 + it.dayOfMonth }
+        setContent {}
+
+        composeRule.onNodeWithTag("hub.past.alpha").performClick()
+        day("November 2, 2026").performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("hub.past.headline").assertTextEquals("Alpha #592 · Needs a connection the first time")
     }
 }

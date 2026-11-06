@@ -3,10 +3,12 @@ package com.ivandsky.puzzlebox.history
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ObservePastDay
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
@@ -14,6 +16,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -40,11 +43,12 @@ object HistoryTestSupport {
     val TODAY: LocalDate = LocalDate.of(2026, 11, 3)
     private val clock: Clock = Clock.fixed(Instant.parse("2026-11-03T12:00:00Z"), ZoneOffset.UTC)
 
-    /** History's ViewModel for [key] over [daily]/[completions] and the production use cases. */
+    /** History's ViewModel for [key] over [daily]/[completions]/[saved] and the production use cases. */
     fun viewModel(
         daily: DailyRepository,
         completions: CompletionRepository,
         key: HistoryKey = HistoryKey(),
+        saved: SavedPlayRepository = FakeSavedPlayRepository(),
     ): HistoryViewModel {
         val observeGameHistory = ObserveGameHistory(registry, daily, completions)
         val puzzleDay = GetPuzzleDay(registry, clock)
@@ -59,6 +63,8 @@ object HistoryTestSupport {
             // No play UIs: every game reads GameBrand.Neutral.
             playRegistry = GamePlayRegistry(emptyList()),
             puzzleDay = puzzleDay,
+            observePastDay = ObservePastDay(daily, saved, completions),
+            daily = daily,
         )
     }
 
