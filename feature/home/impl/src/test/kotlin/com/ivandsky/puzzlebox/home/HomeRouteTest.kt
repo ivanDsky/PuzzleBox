@@ -139,7 +139,7 @@ class HomeRouteTest {
     }
 
     @Test
-    fun `showing home prefetches today's puzzle and an unloadable one's tile stays a retry - A9 A12`() {
+    fun `showing home prefetches today's puzzle and an unloadable one's badge stays a retry - A9 A12`() {
         val daily = FakeDailyRepository()
         val played = mutableListOf<GameId>()
         setContent(
@@ -150,7 +150,7 @@ class HomeRouteTest {
         )
 
         composeRule.waitUntil(5_000) { daily.todayCalls(GameId("zip")) == 1 }
-        composeRule.onNodeWithTag("card.tile.zip").assertIsEnabled().performClick()
+        composeRule.onNodeWithTag("home.badge.zip").assertIsEnabled().performClick()
 
         composeRule.runOnIdle { assertEquals(listOf(GameId("zip")), played) }
     }
