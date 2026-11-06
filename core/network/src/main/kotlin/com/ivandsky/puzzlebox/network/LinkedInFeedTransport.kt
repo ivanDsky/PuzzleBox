@@ -149,8 +149,8 @@ internal class LinkedInFeedTransport(
     }
 
     internal companion object {
-        /** LinkedIn's observed per-IP throttle window (research R-19-1: ~100 s). */
-        val THROTTLE_COOLDOWN: Duration = Duration.ofSeconds(100)
+        /** The one cooldown, [LINKEDIN_THROTTLE_COOLDOWN]; declared there so the E2E reads the same value. */
+        val THROTTLE_COOLDOWN: Duration = LINKEDIN_THROTTLE_COOLDOWN
         private const val PERSISTED_QUERY = "persisted-query"
         private const val GRAPHQL = "graphql"
         private const val HTTP_FORBIDDEN = 403

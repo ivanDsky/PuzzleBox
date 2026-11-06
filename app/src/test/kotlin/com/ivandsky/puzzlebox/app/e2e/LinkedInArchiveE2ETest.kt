@@ -26,14 +26,16 @@ import com.ivandsky.puzzlebox.games.tango.tangoModule
 import com.ivandsky.puzzlebox.games.zip.feed.LinkedInZipDailySource
 import com.ivandsky.puzzlebox.games.zip.zipModule
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.network.LINKEDIN_THROTTLE_COOLDOWN
+import com.ivandsky.puzzlebox.network.linkedInFeedTransport
 import com.ivandsky.puzzlebox.testing.network.FakeFeedTransport
 import java.time.Clock
-import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -50,14 +52,13 @@ import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
-import retrofit2.Retrofit
 
 /**
  * The past-day contract of the four LinkedIn games over the REAL data path: production
  * `DailyRepository` and `LoadPastDay` over in-memory Room, each game's real source and trust
  * gate reading its committed games-by-id fixtures (shared from the game module's test
  * resources), through [FakeFeedTransport] — or, where the wire itself is the subject (the
- * cookie-seeding GET, the A17 cooldown), the real LinkedIn transport over a [MockWebServer].
+ * session handshake, the A17 cooldown), the production LinkedIn transport over a [MockWebServer].
  *
  * Every day here is an edition before today's whatever the date the suite runs on (#1 and #2),
  * since the sources bound today by the wall clock (A4).
@@ -126,13 +127,13 @@ class LinkedInArchiveE2ETest {
     }
 
     @Test
-    fun `SC2 on the wire a past day is the cookie-seeding stream GET plus one games-by-id GET`() = forEachGame { game ->
+    fun `SC2 on the wire a fresh session's past day walks the F1 handshake once, then reads the cache`() = forEachGame { game ->
         val wire = Wire(game)
         val graph = graph(wire.transport)
         graph.assertPlays(game, graph.open(game, game.day(1)))
-        assertEquals(listOf(STREAM, BY_ID), wire.rungs)
+        assertEquals(FRESH_SESSION_WALK, wire.rungs)
         graph.assertPlays(game, graph.open(game, game.day(1)))
-        assertEquals("the reopen reads the cache", 2, wire.rungs.size)
+        assertEquals("the reopen reads the cache", FRESH_SESSION_WALK, wire.rungs)
     }
 
     @Test
@@ -148,9 +149,9 @@ class LinkedInArchiveE2ETest {
         assertFailed<FetchError.Throttled>(graph.open(game, game.day(1)))
         assertEquals("Retry inside the cooldown is answered locally", sent, wire.rungs.size)
 
-        wire.now = wire.now.plus(COOLDOWN)
+        wire.now = wire.now.plus(LINKEDIN_THROTTLE_COOLDOWN)
         graph.assertPlays(game, graph.open(game, game.day(1)))
-        assertEquals("after the cooldown the day is fetched", sent + 2, wire.rungs.size)
+        assertEquals("after the cooldown the day is fetched", FRESH_SESSION_WALK, wire.rungs.drop(sent))
     }
 
     /** One LinkedIn game: its id, its by-number edition, and its committed by-id fixture names. */
@@ -191,26 +192,33 @@ class LinkedInArchiveE2ETest {
 
     /**
      * The production LinkedIn transport with its clock at [now], over a local server that
-     * answers the stream rung with a body carrying no puzzle (it only seeds the session, A5),
-     * the games-by-id rung with the game's #1 fixture, and every rung with LinkedIn's
-     * throttle signature while [throttled].
+     * answers as LinkedIn does an anonymous session (F1): the stream is data-less and sets no
+     * cookie; the plain page GET sets `JSESSIONID`; games-by-id refuses with 403 `CSRF check
+     * failed.` unless `csrf-token` is that session, and otherwise answers the game's #1
+     * fixture; while [throttled], every request gets LinkedIn's throttle signature.
      */
     private inner class Wire(game: LinkedInGame) {
         @Volatile var throttled = false
         @Volatile var now: Instant = Instant.parse("2026-01-01T12:00:00Z")
-        private val paths = java.util.concurrent.CopyOnWriteArrayList<String>()
+        private val sent = java.util.concurrent.CopyOnWriteArrayList<String>()
 
-        /** Each request's rung, oldest first: [STREAM] or [BY_ID]. */
-        val rungs: List<String> get() = paths.map { if (it.startsWith("/voyager/api/graphql?")) BY_ID else STREAM }
+        /** Each request's rung, oldest first: [STREAM], [PAGE] or [BY_ID]. */
+        val rungs: List<String> get() = sent.toList()
 
         private val server = MockWebServer().apply {
             dispatcher = object : Dispatcher() {
                 override fun dispatch(request: RecordedRequest): MockResponse {
-                    val path = checkNotNull(request.path).also(paths::add)
+                    val rung = when {
+                        checkNotNull(request.path).startsWith("/voyager/api/graphql?") -> BY_ID
+                        request.getHeader("x-li-rsc-stream") != null -> STREAM
+                        else -> PAGE
+                    }.also(sent::add)
                     return when {
                         throttled -> MockResponse().addHeader("location", "https://www.linkedin.com/games/")
-                        path.startsWith("/voyager/api/graphql?") -> MockResponse().setBody(game.fixture(1))
-                        else -> MockResponse().setBody("<html>today's stream</html>")
+                        rung == STREAM -> MockResponse().setBody("2:\"\$Sreact.fragment\"\n5:I[0]")
+                        rung == PAGE -> MockResponse().setBody("<html></html>").addHeader("Set-Cookie", "JSESSIONID=$SESSION; Path=/")
+                        request.getHeader("csrf-token") != SESSION -> MockResponse().setResponseCode(403).setBody("CSRF check failed.")
+                        else -> MockResponse().setBody(game.fixture(1))
                     }
                 }
             }
@@ -223,20 +231,7 @@ class LinkedInArchiveE2ETest {
             override fun withZone(zone: ZoneId): Clock = this
         }
 
-        /**
-         * WHY reflection: core:network keeps the transport and its Retrofit API internal (one
-         * transport, bound only by its module), and this ticket adds no test seam there. The
-         * production class is built by name, so a rename fails here loudly.
-         */
-        val transport: FeedTransport = run {
-            @Suppress("UNCHECKED_CAST")
-            val api = Class.forName("$NETWORK.LinkedInGamesApi") as Class<Any>
-            val service = Retrofit.Builder().baseUrl(server.url("/")).build().create(api)
-            Class.forName("$NETWORK.LinkedInFeedTransport")
-                .getDeclaredConstructor(api, Clock::class.java)
-                .apply { isAccessible = true }
-                .newInstance(service, clock) as FeedTransport
-        }
+        val transport: FeedTransport = linkedInFeedTransport(server.url("/").toString(), Json { ignoreUnknownKeys = true }, clock)
     }
 
     private fun forEachGame(block: suspend (LinkedInGame) -> Unit) = runBlocking { GAMES.forEach { block(it) } }
@@ -263,10 +258,14 @@ class LinkedInArchiveE2ETest {
             LinkedInGame(GameId("minisudoku"), LinkedInMiniSudokuDailySource.EDITION, "02-byid-gt7-"),
         )
 
-        /** LinkedIn's observed per-IP throttle window, as the transport holds it (A17). */
-        val COOLDOWN: Duration = Duration.ofSeconds(100)
-        const val NETWORK = "com.ivandsky.puzzlebox.network"
+        /**
+         * A fresh session's past-day walk on today's wire (F1): the stream, a by-id GET refused
+         * for csrf (403), the page GET that hands out the session, the signed by-id GET.
+         */
+        val FRESH_SESSION_WALK = listOf(STREAM, BY_ID, PAGE, BY_ID)
+        const val SESSION = "ajax:2026"
         const val STREAM = "stream"
+        const val PAGE = "page"
         const val BY_ID = "games-by-id"
     }
 }

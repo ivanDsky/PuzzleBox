@@ -125,9 +125,12 @@ dependencies {
     testImplementation(projects.core.testing)
     testImplementation(libs.koin.test)
     testImplementation(libs.koin.test.junit4)
-    // LinkedInArchiveE2ETest: the real LinkedIn transport over a local HTTP server (A17 cooldown).
+    // LinkedInArchiveE2ETest: the production LinkedIn transport (linkedInFeedTransport, which
+    // takes the app's Json) over a local HTTP server that answers as LinkedIn does (F1
+    // handshake, A17 cooldown).
+    testImplementation(projects.core.network)
+    testImplementation(libs.kotlinx.serialization.json)
     testImplementation(libs.okhttp.mockwebserver)
-    testImplementation(libs.retrofit)
 
     // Device tests (ticket 23): the real MainActivity over the shared fakes graph.
     androidTestImplementation(projects.core.testing)
