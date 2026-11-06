@@ -1,12 +1,15 @@
 package com.ivandsky.puzzlebox.create
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,6 +23,7 @@ import com.ivandsky.puzzlebox.create.ui.VerdictChip
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -32,18 +36,20 @@ private val DraftRowMinHeight = 72.dp
 
 /**
  * One draft on the Create root (01 handoff, "Draft row"): the game's glyph tile, the title,
- * "{Game} · {size}[ · imported]", "edited 2 h ago", and the background verdict chip once the
- * row has one. Tapping it opens the draft's Studio through [onOpen].
+ * "{Game} · {size}[ · imported]", "edited 2 h ago", the background verdict chip once the
+ * row has one, and the ⋮ button. Tapping the row opens the draft's Studio through [onOpen];
+ * ⋮ or a long press asks for its actions sheet through [onActions].
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun DraftRow(row: CreateUiState.DraftRow, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+fun DraftRow(row: CreateUiState.DraftRow, onOpen: () -> Unit, onActions: () -> Unit, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = DraftRowMinHeight)
-            .clickable(onClick = onOpen)
+            .combinedClickable(onClick = onOpen, onLongClick = onActions, onLongClickLabel = "Draft actions")
             .testTag("create.draft.row")
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            .padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.md, bottom = Spacing.md),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -70,6 +76,9 @@ fun DraftRow(row: CreateUiState.DraftRow, onOpen: () -> Unit, modifier: Modifier
             )
         }
         row.verdict?.let { VerdictChip(it) }
+        IconButton(onClick = onActions, modifier = Modifier.testTag("create.draft.more")) {
+            Icon(PuzzleIcons.More, contentDescription = "Draft actions")
+        }
     }
 }
 
@@ -90,6 +99,7 @@ private fun DraftRowPreview() {
                         verdict = Verdict.Unique(Solution(emptyList())),
                     ),
                     onOpen = {},
+                    onActions = {},
                 )
                 DraftRow(
                     row = CreateUiState.DraftRow(
@@ -102,6 +112,7 @@ private fun DraftRowPreview() {
                         verdict = Verdict.Checking,
                     ),
                     onOpen = {},
+                    onActions = {},
                 )
             }
         }

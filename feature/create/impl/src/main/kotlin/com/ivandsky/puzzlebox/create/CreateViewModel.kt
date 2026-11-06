@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.domain.CreateDraft
+import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
@@ -16,6 +17,8 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Duration
 import java.time.Instant
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -36,13 +39,18 @@ import kotlinx.coroutines.withContext
  * Each row's verdict chip (spec A7 on the root) is `analyze(draft, Budget.within(1_500…))` on
  * [DispatcherProvider.default], cached by (id, updatedAt): a draft is analysed again only after
  * an edit. The search and game filter apply only past [SEARCH_THRESHOLD] drafts.
+ *
+ * A row's actions (01 handoff "Draft actions sheet"): [duplicate] stores a copy without the
+ * test solve; [delete] removes the draft at once and offers [undoDelete] for [UNDO_WINDOW_MS],
+ * which stores the very same draft again, so it returns to its place in the list.
  */
 class CreateViewModel(
     private val games: GameRegistry,
     private val editors: GameEditorRegistry,
     private val plays: GamePlayRegistry,
-    drafts: DraftRepository,
+    private val drafts: DraftRepository,
     private val createDraft: CreateDraft,
+    private val copyDraft: CreateDraftCopy,
     private val dispatchers: DispatcherProvider,
     private val clock: () -> Instant,
     private val nanoTime: () -> Long = System::nanoTime,
@@ -69,11 +77,15 @@ class CreateViewModel(
     /** Settled chips by (id, updatedAt); a null verdict is a draft this build cannot open. */
     private val verdicts = MutableStateFlow<Map<DraftStamp, Verdict?>>(emptyMap())
 
+    /** The last deleted draft while its Undo is offered. */
+    private val deleted = MutableStateFlow<Draft?>(null)
+    private var undoWindow: Job? = null
+
     /** Stamps already analysed or in flight; touched on the main thread only. */
     private val requested = mutableSetOf<DraftStamp>()
 
     val uiState: StateFlow<CreateUiState> =
-        combine(drafts.observeAll().onEach(::analyzeNew), verdicts, query, filter, ::stateOf)
+        combine(drafts.observeAll().onEach(::analyzeNew), verdicts, query, filter, deleted, ::stateOf)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CreateUiState(games = newGames))
 
     fun onQuery(text: String) {
@@ -90,6 +102,31 @@ class CreateViewModel(
         viewModelScope.launch {
             onCreated(createDraft(gameId, variant).id)
         }
+    }
+
+    /** Stores a copy of [draftId]'s board titled "{title} 2" (the next free number). */
+    fun duplicate(draftId: String) {
+        viewModelScope.launch { copyDraft(draftId) }
+    }
+
+    /** Removes [draftId] now; [undoDelete] puts it back until [UNDO_WINDOW_MS] pass. */
+    fun delete(draftId: String) {
+        undoWindow?.cancel()
+        undoWindow = viewModelScope.launch {
+            val draft = drafts.get(draftId) ?: return@launch
+            drafts.delete(draftId)
+            deleted.value = draft
+            delay(UNDO_WINDOW_MS)
+            deleted.value = null
+        }
+    }
+
+    /** Restores the last deleted draft, byte for byte, while its Undo is still offered. */
+    fun undoDelete() {
+        val draft = deleted.value ?: return
+        undoWindow?.cancel()
+        deleted.value = null
+        viewModelScope.launch { drafts.upsert(draft) }
     }
 
     private fun analyzeNew(stored: List<Draft>) {
@@ -122,6 +159,7 @@ class CreateViewModel(
         settled: Map<DraftStamp, Verdict?>,
         text: String,
         game: GameId?,
+        removed: Draft?,
     ): CreateUiState {
         val searchVisible = stored.size > SEARCH_THRESHOLD
         val needle = text.trim()
@@ -144,6 +182,7 @@ class CreateViewModel(
             query = text,
             filters = if (searchVisible) filtersOf(stored) else emptyList(),
             filter = shownGame,
+            deleted = removed?.let { CreateUiState.Deleted(it.id, it.title) },
         )
     }
 
@@ -173,6 +212,7 @@ class CreateViewModel(
         const val STOP_TIMEOUT_MS = 5_000L
         const val SEARCH_THRESHOLD = 8
         const val BUDGET_MS = 1_500L
+        const val UNDO_WINDOW_MS = 5_000L
     }
 }
 
