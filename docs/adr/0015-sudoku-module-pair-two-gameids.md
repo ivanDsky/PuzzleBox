@@ -45,3 +45,13 @@ LinkedIn has no 9x9. It is wanted only so the engine can be exercised at 9x9.
   module registration is gated by build type.
 - The "one pair per game" wording in ADR-0008 now reads "one pair per game family". Tests that
   list game ids (DI graph, E2E seen-sets) list the ids per build type.
+
+## Amendment (0.14.0): listed vs unlisted
+The debug 9x9 is registered but **unlisted**: `GameRegistry(plugins, unlisted)` keeps it out
+of `all`, which feeds every surface (hub, Home tiles and recent, the day ring, done count,
+next target, History, all-games stats, Profile, `SyncTodayPuzzles`). `get(id)` and
+`displayName(id)` resolve listed and unlisted games alike, so the play shell opens it by id
+and its Result names it. `ObserveGameHistory` drops records of games not in `all`. The only
+way in is Catalog → Design settings → "Play 9x9 Sudoku" (`debug.play.sudoku`). The unlisted
+set is per build type (`buildTypeUnlistedGames`: debug `{sudoku}`, release empty);
+`requireEveryGamePlayable` checks listed and unlisted games.

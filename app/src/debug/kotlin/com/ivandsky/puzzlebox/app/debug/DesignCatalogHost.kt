@@ -24,7 +24,7 @@ private val CatalogTabs = listOf("Components", "Design settings")
  * keeps its saveable state (the browser's query, open component) while the other shows.
  */
 @Composable
-internal fun DesignCatalogHost() {
+internal fun DesignCatalogHost(openGame: (String) -> Unit) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     val tabStates = rememberSaveableStateHolder()
     Column(Modifier.fillMaxSize()) {
@@ -39,7 +39,7 @@ internal fun DesignCatalogHost() {
         }
         Box(Modifier.weight(1f)) {
             tabStates.SaveableStateProvider(selectedTab) {
-                if (selectedTab == 0) ShowkaseBrowserScreen() else DesignSettingsPanel()
+                if (selectedTab == 0) ShowkaseBrowserScreen() else DesignSettingsPanel(openGame)
             }
         }
     }

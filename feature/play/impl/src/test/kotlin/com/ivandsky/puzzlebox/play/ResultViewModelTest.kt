@@ -121,6 +121,7 @@ class ResultViewModelTest {
             stats = ObserveGameStats(games, history, ComputeStreak(GetPuzzleDay(games, clock))),
             rollover = GetNextRollover(games, clock),
             ui = ui,
+            games = games,
         )
     }
 

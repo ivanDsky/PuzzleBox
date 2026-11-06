@@ -109,7 +109,8 @@ class DiGraphTest : KoinTest {
             // Game aggregation (ADR-0001): every game module's plugin lands in the
             // registry in picker order, and every game's play UI is registered — a
             // missing entry is a wiring bug, loudly here.
-            val games = koin.get<GameRegistry>().all.map { it.definition.id.value }
+            val registry = koin.get<GameRegistry>()
+            val games = (registry.all + registry.unlisted).map { it.definition.id.value }
             assertEquals(listOf("zip", "tango", "queens", "strands", "minisudoku", "sudoku"), games)
             val playUis = koin.get<GamePlayRegistry>()
             for (id in games) assertNotNull("no play UI registered for $id", playUis[GameId(id)])
