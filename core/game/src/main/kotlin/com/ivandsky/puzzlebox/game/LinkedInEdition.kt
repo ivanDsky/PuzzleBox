@@ -90,8 +90,9 @@ class LinkedInEdition(
     }
 
     // LinkedIn answers a raw urn with 400, so the whole urn is percent-encoded (research 02).
+    // The String-charset overload: encode(String, Charset) is Android API 33+ and minSdk is 26.
     private fun encodedUrn(number: Int): String =
-        URLEncoder.encode("urn:li:fsd_game:($GUEST_MEMBER,$gameTypeId,$number)", Charsets.UTF_8)
+        URLEncoder.encode("urn:li:fsd_game:($GUEST_MEMBER,$gameTypeId,$number)", Charsets.UTF_8.name())
 
     private companion object {
         /** LinkedIn's `games-by-id` persisted query (research 02); the hash is data (ADR-0016 §3). */
