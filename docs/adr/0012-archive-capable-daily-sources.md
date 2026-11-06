@@ -4,9 +4,10 @@ Date: 2026-11-05 · Status: accepted · Source: Strands spec A9, A20, A23, A24; 
 
 ## Context
 ADR-0002 left the archive as a future `PuzzleSource` adapter. Strands (NYT) is the first
-source that serves any past day by date; the LinkedIn sources ignore the date and serve
-only today. Past days are cache-only end to end (the repository fetches only the
-calendar's today), so a past Strands day never opened before is unplayable. History and
+source that serves any past day by date; the LinkedIn sources' live feed ignores the date
+and serves only today (their past days are fetched by date per ADR-0017). Past days are
+cache-only end to end (the repository fetches only the calendar's today), so a past
+Strands day never opened before is unplayable. History and
 the streak treat every cached row as a "captured" day, and history reads load every
 payload blob.
 

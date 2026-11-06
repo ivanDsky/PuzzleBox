@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObservePastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
@@ -93,6 +94,7 @@ class HubViewModelTest {
             calendar = calendar,
             registry = fakes.registry,
             daily = daily,
+            observePastDay = ObservePastDay(daily, saved, completions),
             previewDispatcher = dispatcher,
         ).also { vm ->
             screen.launch { vm.uiState.collect {} }

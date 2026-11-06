@@ -4,9 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
-import com.ivandsky.puzzlebox.data.repository.cachedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ObservePastDay
+import com.ivandsky.puzzlebox.domain.PastDay
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayEntry
@@ -84,6 +85,9 @@ internal data class HubUiState(
  * shows again. Each time the hub starts, [syncToday] prefetches today's uncached puzzles
  * ([SyncTodayPuzzles], A12), so a game that can't load reads Offline. Building the
  * ViewModel fetches nothing. It never names a game.
+ *
+ * The Past puzzles picker's headline reads its selected day through [pastDay]
+ * ([ObservePastDay]: local data only, so moving the selection fetches nothing).
  */
 class HubViewModel(
     private val store: PlaySessionStore,
@@ -94,6 +98,7 @@ class HubViewModel(
     private val calendar: GameCalendar,
     private val registry: GamePlayRegistry,
     private val daily: DailyRepository,
+    private val observePastDay: ObservePastDay,
     private val previewDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
@@ -152,6 +157,9 @@ class HubViewModel(
     internal fun syncToday() {
         viewModelScope.launch { syncTodayPuzzles() }
     }
+
+    /** [game]'s [day] number and status, for the Past puzzles picker's headline (A20, A22). */
+    internal fun pastDay(game: GameId, day: LocalDate): Flow<PastDay> = observePastDay(game, day)
 
     private fun nextOf(entries: List<TodayEntry>): GameId? {
         val loadable = entries.filter { it.status != TodayStatus.Offline }

@@ -4,7 +4,9 @@ import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 /**
@@ -24,6 +26,8 @@ data class HistoryDayRow(
     val brand: GameBrand = GameBrand.Neutral,
     val record: CompletionRecord? = null,
     val isBest: Boolean = false,
+    /** Opened after its own day (ADR-0012): tagged "From the archive", off the streak. */
+    val archived: Boolean = false,
     /** The year "today" falls in; days from any other year spell theirs out (A23). */
     val currentYear: Int = LocalDate.now().year,
 ) {
@@ -43,12 +47,25 @@ data class HistoryDayRow(
     val counts: Boolean
         get() = record != null && puzzleNumber != null
 
+    /** "Opened Nov 5 · doesn't count toward your streak" for an archived day (A21); the
+     *  open date is the capture's, on the device's calendar. Null for a day played live. */
+    val archiveNote: String?
+        get() = if (!archived) {
+            null
+        } else {
+            val opened = Instant.ofEpochMilli(fetchedAtMs).atZone(ZoneId.systemDefault()).toLocalDate()
+            val date = opened.format(if (opened.year == currentYear) OPENED_FORMAT else OPENED_YEAR_FORMAT)
+            "Opened $date · doesn't count toward your streak"
+        }
+
     /** List/detail identity: `zip/2026-10-31` — stable across recomposition and pages. */
     val key: String get() = "${gameId.value}/$day"
 
     private companion object {
         val DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d")
         val DAY_YEAR_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy")
+        val OPENED_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d")
+        val OPENED_YEAR_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
     }
 }
 
@@ -61,6 +78,7 @@ internal fun GameHistoryDay.toRow(gameName: String, brand: GameBrand, currentYea
     fetchedAtMs = fetchedAtMs,
     brand = brand,
     record = record,
+    archived = archived,
     currentYear = currentYear,
 )
 

@@ -29,6 +29,7 @@ import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.model.GameId
+import kotlinx.coroutines.flow.emptyFlow
 
 // Previews of the hub's cards and picker over stand-in games whose thumbnail is a plain
 // grid with a few cells filled in the game's accent.
@@ -167,6 +168,7 @@ private fun GamePickerPreview() {
             layout = PlayLayout.SinglePane,
             onPick = {},
             onPickDay = { _, _ -> },
+            pastDay = { _, _ -> emptyFlow() },
             onOpenHistory = {},
         )
     }
@@ -182,6 +184,7 @@ private fun GamePickerGridPreview() {
             layout = PlayLayout.TwoPane,
             onPick = {},
             onPickDay = { _, _ -> },
+            pastDay = { _, _ -> emptyFlow() },
             onOpenHistory = {},
         )
     }
@@ -197,6 +200,7 @@ private fun GamePickerTilesPreview() {
             layout = PlayLayout.SinglePane,
             onPick = {},
             onPickDay = { _, _ -> },
+            pastDay = { _, _ -> emptyFlow() },
             onOpenHistory = {},
         )
     }

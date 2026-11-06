@@ -23,6 +23,11 @@ android {
     sourceSets {
         getByName("test").kotlin.srcDir("src/sharedTest/kotlin")
         getByName("androidTest").kotlin.srcDir("src/sharedTest/kotlin")
+        // LinkedInArchiveE2ETest reads each LinkedIn game's committed by-id fixtures in place:
+        // the game module stays their one home, so the E2E and the unit tests never drift.
+        listOf("zip", "queens", "tango", "sudoku").forEach { game ->
+            getByName("test").resources.srcDir("../games/$game/src/test/resources")
+        }
     }
 
     buildTypes {
@@ -120,6 +125,12 @@ dependencies {
     testImplementation(projects.core.testing)
     testImplementation(libs.koin.test)
     testImplementation(libs.koin.test.junit4)
+    // LinkedInArchiveE2ETest: the production LinkedIn transport (linkedInFeedTransport, which
+    // takes the app's Json) over a local HTTP server that answers as LinkedIn does (F1
+    // handshake, A17 cooldown).
+    testImplementation(projects.core.network)
+    testImplementation(libs.kotlinx.serialization.json)
+    testImplementation(libs.okhttp.mockwebserver)
 
     // Device tests (ticket 23): the real MainActivity over the shared fakes graph.
     androidTestImplementation(projects.core.testing)

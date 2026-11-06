@@ -31,6 +31,8 @@ class NytStrandsDailySource(private val transport: NytTransport) : DailySource {
 
     override val archiveSince: LocalDate = StrandsNumber.EPOCH
 
+    override fun puzzleNumber(day: LocalDate): Int? = if (day.isBefore(archiveSince)) null else StrandsNumber.of(day)
+
     override suspend fun fetchDaily(date: LocalDate): FetchResult<DailyFetch> {
         val body = when (val fetched = transport.get("svc/strands/v2/$date.json")) {
             is FetchResult.Ok -> fetched.value

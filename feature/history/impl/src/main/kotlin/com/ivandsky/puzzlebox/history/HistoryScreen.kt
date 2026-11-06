@@ -39,6 +39,8 @@ import java.time.LocalDate
  *
  * Replay (A4, ticket 11): tapping a day opens its detail; "Play again" / "Keep going"
  * reports the (game, day) through [onReplay] and the shell opens that day's game slot.
+ * On a game's tab any archive day can be picked on the calendar; its day header's action
+ * reports through [onReplay] too (ticket 09).
  * Every identity (selection, best lookup, replay) is (game, day), never day alone
  * (tango-05). A selection outside the [selectedTab] closes, back to the list.
  */
@@ -95,6 +97,7 @@ fun HistoryScreen(
                     onSelectDay = onSelectDay,
                     selectedKey = selectedRow?.key,
                     onDayClick = { selectedKey = it.key },
+                    onReplay = onReplay,
                     onBack = onBack,
                     cardColor = cardColor,
                     modifier = Modifier
@@ -143,6 +146,7 @@ fun HistoryScreen(
                         onSelectDay = onSelectDay,
                         selectedKey = null,
                         onDayClick = { selectedKey = it.key },
+                        onReplay = onReplay,
                         onBack = onBack,
                         cardColor = cardColor,
                         modifier = Modifier.fillMaxSize(),

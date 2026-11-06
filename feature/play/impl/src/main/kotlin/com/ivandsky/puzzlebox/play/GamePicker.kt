@@ -23,10 +23,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.domain.PastDay
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
 
 /** The hub's grid width in cards, in two-pane and in the phone grid. */
 private const val GRID_COLUMNS = 2
@@ -46,7 +48,8 @@ private val GridThumbSize = 128.dp
  * Below them, "Older puzzles" (`hub.older`, [onOpenHistory]) and the line that more games
  * are on the way (`hub.more_coming`). Picking a card is [onPick]. A card with an archive
  * also offers "Past puzzles" (`hub.past.<gameId>`, A22), which opens [PastPuzzlesPicker]
- * over its range; opening a day there is [onPickDay]. Which game's picker is open is the
+ * over its range, its headline the selected day as [pastDay] reads it; opening a day
+ * there is [onPickDay]. Which game's picker is open is the
  * only state held here.
  */
 @Composable
@@ -56,6 +59,7 @@ internal fun GamePicker(
     layout: PlayLayout,
     onPick: (GameId) -> Unit,
     onPickDay: (GameId, LocalDate) -> Unit,
+    pastDay: (GameId, LocalDate) -> Flow<PastDay>,
     onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -128,6 +132,8 @@ internal fun GamePicker(
     past?.archive?.let { range ->
         PastPuzzlesPicker(
             range = range,
+            gameName = past.name,
+            pastDay = { day -> pastDay(past.game, day) },
             onOpen = { day ->
                 pastFor = null
                 onPickDay(past.game, day)
