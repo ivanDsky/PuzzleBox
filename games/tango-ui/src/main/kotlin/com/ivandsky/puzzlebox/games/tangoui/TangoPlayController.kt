@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.games.tangoui
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
@@ -163,11 +164,10 @@ class TangoPlayController(
         commit(next)
     }
 
-    /** (Re)starts the 0.5 s window after which newly introduced violations show. */
     private fun armSettle() {
         settleJob?.cancel()
         settleJob = env.scope.launch {
-            delay(500)
+            delay(MotionTokens.SettleMillis) // (re)started window after which new violations show
             suppressedSets = emptySet()
         }
     }

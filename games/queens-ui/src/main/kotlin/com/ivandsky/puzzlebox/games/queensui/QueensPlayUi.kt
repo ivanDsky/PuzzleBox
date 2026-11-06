@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
+import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
@@ -28,6 +29,8 @@ import com.ivandsky.puzzlebox.model.GameId
 /** Queens' one play registration (ADR-0001): its controller, its board and its play screen. */
 class QueensPlayUi : GamePlayUi {
     override val gameId: GameId get() = QueensDefinition.id
+
+    override val brand: GameBrand get() = QueensBrand
 
     override fun createController(env: PlayEnvironment): GamePlayController = QueensPlayController(env)
 

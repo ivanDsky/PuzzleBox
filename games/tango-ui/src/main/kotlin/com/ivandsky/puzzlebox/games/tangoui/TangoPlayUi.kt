@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
+import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
@@ -29,6 +30,8 @@ import com.ivandsky.puzzlebox.model.GameId
 /** Tango's one play registration (ADR-0001): its controller, its board and its play screen. */
 class TangoPlayUi : GamePlayUi {
     override val gameId: GameId get() = TangoDefinition.id
+
+    override val brand: GameBrand get() = TangoBrand
 
     override fun createController(env: PlayEnvironment): GamePlayController = TangoPlayController(env)
 

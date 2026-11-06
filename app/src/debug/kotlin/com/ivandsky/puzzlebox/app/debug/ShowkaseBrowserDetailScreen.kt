@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.airbnb.android.showkase.models.ShowkaseBrowserComponent
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /**
@@ -136,7 +135,7 @@ private fun DetailHeader(component: ShowkaseBrowserComponent, onBack: () -> Unit
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to browser")
+            Icon(PuzzleIcons.Back, contentDescription = "Back to browser")
         }
         Column(Modifier.padding(start = Spacing.xs)) {
             Text(
@@ -381,7 +380,7 @@ private fun previewDetailComponent() = ShowkaseBrowserComponent(
     componentKDoc = "",
     component = {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+            Icon(PuzzleIcons.Back, contentDescription = null)
             Text("Confirm", style = MaterialTheme.typography.bodyLarge)
         }
     },

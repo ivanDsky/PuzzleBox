@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.games.zipui
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -32,6 +31,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import kotlin.math.atan2
@@ -69,8 +69,8 @@ fun ZipCellDecor(
     val pulse by animateFloatAsState(
         targetValue = if (isRejected) 0.86f else 1f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow,
+            dampingRatio = MotionTokens.RejectSpringDamping,
+            stiffness = MotionTokens.RejectSpringStiffness,
         ),
         label = "zipRejectionPulse",
     )
@@ -94,14 +94,14 @@ fun ZipCellDecor(
         // surface hole (green 9.70:1 / powder 9.89:1 on boardSurface, both ≥4.5); filled
         // disks are gone. The next-target ring HOLDS the trace-role color while it is the
         // target (persistent step-point cue, user round 6) and plays ONE flash from the
-        // state color on transition (~300ms, single event, never a loop); reduced motion
+        // state color on transition (MotionTokens.FlashDuration, single event, never a loop); reduced motion
         // settles instantly. Previews render the static state.
         val ringColor = if (inPath) board.waypointDotOnPath else board.waypointDot
         val flash = remember { Animatable(1f) }
         LaunchedEffect(animateFlash, cell.isNextTarget) {
             if (animateFlash && cell.isNextTarget) {
                 flash.snapTo(0f)
-                flash.animateTo(1f, tween(ZipBoardSpec.nextTargetFlashMs))
+                flash.animateTo(1f, tween(MotionTokens.FlashDuration))
             } else {
                 flash.snapTo(1f)
             }

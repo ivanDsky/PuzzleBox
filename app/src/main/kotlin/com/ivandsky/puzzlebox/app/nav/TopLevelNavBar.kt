@@ -39,7 +39,7 @@ internal fun TopLevelNavBar(
             NavigationBarItem(
                 selected = selected == destination.key,
                 onClick = { onSelect(destination.key) },
-                icon = { TabIcon(destination, badged = showsBadge(destination, selected, badged)) },
+                icon = { TabIcon(destination, selected == destination.key, showsBadge(destination, selected, badged)) },
                 label = { Text(destination.label) },
                 modifier = Modifier.testTag(destination.tag),
             )
@@ -60,7 +60,7 @@ internal fun TopLevelNavRail(
             NavigationRailItem(
                 selected = selected == destination.key,
                 onClick = { onSelect(destination.key) },
-                icon = { TabIcon(destination, badged = showsBadge(destination, selected, badged)) },
+                icon = { TabIcon(destination, selected == destination.key, showsBadge(destination, selected, badged)) },
                 label = { Text(destination.label) },
                 modifier = Modifier.testTag(destination.tag),
             )
@@ -78,8 +78,10 @@ internal fun badgeTag(destination: TopLevelDestination): String = "${destination
 private fun showsBadge(destination: TopLevelDestination, selected: NavKey, badged: Set<NavKey>): Boolean =
     destination.key in badged && destination.key != selected
 
+/** The tab's icon: filled while [selected], outlined otherwise (N5). */
 @Composable
-private fun TabIcon(destination: TopLevelDestination, badged: Boolean) {
+private fun TabIcon(destination: TopLevelDestination, selected: Boolean, badged: Boolean) {
+    val icon = if (selected) destination.selectedIcon else destination.icon
     if (badged) {
         BadgedBox(
             badge = {
@@ -91,10 +93,10 @@ private fun TabIcon(destination: TopLevelDestination, badged: Boolean) {
                 )
             },
         ) {
-            Icon(destination.icon, contentDescription = null)
+            Icon(icon, contentDescription = null)
         }
     } else {
-        Icon(destination.icon, contentDescription = null)
+        Icon(icon, contentDescription = null)
     }
 }
 

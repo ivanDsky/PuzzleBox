@@ -4,12 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.games.queens.render.QueensRendererModel
@@ -58,14 +59,17 @@ private fun Cell(model: QueensRendererModel, row: Int, col: Int) {
         contentAlignment = Alignment.Center,
     ) {
         if (idx in model.queens) {
-            Text(
-                text = QueenGlyph,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+            Icon(
+                imageVector = QueensCrown,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize(QueensBoardDefaults.queenHeightFraction)
+                    .testTag(QUEEN_TAG),
+                tint = MaterialTheme.colorScheme.onSurface,
             )
         }
     }
 }
 
-/** The queen mark painted on placed cells (official-app visual, research 03). */
-const val QueenGlyph: String = "♛"
+/** Test tag of the queen mark painted on placed cells. */
+internal const val QUEEN_TAG = "queens.renderer.queen"

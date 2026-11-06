@@ -85,37 +85,28 @@ internal val ShowkaseSurfaceContainerHigh: Color = DarkColorScheme.surfaceContai
 @ShowkaseColor(name = "surfaceContainerHighest", group = "Colors")
 internal val ShowkaseSurfaceContainerHighest: Color = DarkColorScheme.surfaceContainerHighest
 
-// The app's type styles (AppTypography, Type.kt — Baloo 2 throughout).
-@ShowkaseTypography(name = "displayLarge", group = "Typography")
-internal val ShowkaseTypographyDisplayLarge: TextStyle = AppTypography.displayLarge
-@ShowkaseTypography(name = "displayMedium", group = "Typography")
-internal val ShowkaseTypographyDisplayMedium: TextStyle = AppTypography.displayMedium
-@ShowkaseTypography(name = "displaySmall", group = "Typography")
-internal val ShowkaseTypographyDisplaySmall: TextStyle = AppTypography.displaySmall
-@ShowkaseTypography(name = "headlineLarge", group = "Typography")
-internal val ShowkaseTypographyHeadlineLarge: TextStyle = AppTypography.headlineLarge
-@ShowkaseTypography(name = "headlineMedium", group = "Typography")
-internal val ShowkaseTypographyHeadlineMedium: TextStyle = AppTypography.headlineMedium
-@ShowkaseTypography(name = "headlineSmall", group = "Typography")
-internal val ShowkaseTypographyHeadlineSmall: TextStyle = AppTypography.headlineSmall
-@ShowkaseTypography(name = "titleLarge", group = "Typography")
-internal val ShowkaseTypographyTitleLarge: TextStyle = AppTypography.titleLarge
-@ShowkaseTypography(name = "titleMedium", group = "Typography")
-internal val ShowkaseTypographyTitleMedium: TextStyle = AppTypography.titleMedium
-@ShowkaseTypography(name = "titleSmall", group = "Typography")
-internal val ShowkaseTypographyTitleSmall: TextStyle = AppTypography.titleSmall
-@ShowkaseTypography(name = "bodyLarge", group = "Typography")
-internal val ShowkaseTypographyBodyLarge: TextStyle = AppTypography.bodyLarge
-@ShowkaseTypography(name = "bodyMedium", group = "Typography")
-internal val ShowkaseTypographyBodyMedium: TextStyle = AppTypography.bodyMedium
-@ShowkaseTypography(name = "bodySmall", group = "Typography")
-internal val ShowkaseTypographyBodySmall: TextStyle = AppTypography.bodySmall
-@ShowkaseTypography(name = "labelLarge", group = "Typography")
-internal val ShowkaseTypographyLabelLarge: TextStyle = AppTypography.labelLarge
-@ShowkaseTypography(name = "labelMedium", group = "Typography")
-internal val ShowkaseTypographyLabelMedium: TextStyle = AppTypography.labelMedium
-@ShowkaseTypography(name = "labelSmall", group = "Typography")
-internal val ShowkaseTypographyLabelSmall: TextStyle = AppTypography.labelSmall
+// The nine type roles (Type.kt, spec A4 — Baloo 2 throughout), by role name; the other
+// M3 slots alias these. The tabular entry is how every formatDuration time renders.
+@ShowkaseTypography(name = "Wordmark", group = "Typography")
+internal val ShowkaseTypeWordmark: TextStyle = WordmarkTextStyle
+@ShowkaseTypography(name = "Display", group = "Typography")
+internal val ShowkaseTypeDisplay: TextStyle = AppTypography.displaySmall
+@ShowkaseTypography(name = "Headline", group = "Typography")
+internal val ShowkaseTypeHeadline: TextStyle = AppTypography.headlineMedium
+@ShowkaseTypography(name = "Title", group = "Typography")
+internal val ShowkaseTypeTitle: TextStyle = AppTypography.titleLarge
+@ShowkaseTypography(name = "TitleSmall", group = "Typography")
+internal val ShowkaseTypeTitleSmall: TextStyle = AppTypography.titleMedium
+@ShowkaseTypography(name = "Body", group = "Typography")
+internal val ShowkaseTypeBody: TextStyle = AppTypography.bodyLarge
+@ShowkaseTypography(name = "BodySmall", group = "Typography")
+internal val ShowkaseTypeBodySmall: TextStyle = AppTypography.bodyMedium
+@ShowkaseTypography(name = "Label", group = "Typography")
+internal val ShowkaseTypeLabel: TextStyle = AppTypography.labelLarge
+@ShowkaseTypography(name = "Eyebrow", group = "Typography")
+internal val ShowkaseTypeEyebrow: TextStyle = AppTypography.labelSmall
+@ShowkaseTypography(name = "DisplayTabular", group = "Typography")
+internal val ShowkaseTypeDisplayTabular: TextStyle = AppTypography.displaySmall.tabular()
 
 // Board roles (ticket 20, values = research U2's primary table), dark values —
 // the app-default look, same aliasing rule as the Material ramp above. Group
@@ -140,3 +131,54 @@ internal val ShowkasePathTrace: Color = DarkBoardTokens.pathTrace
 internal val ShowkaseBoardSelection: Color = DarkBoardTokens.boardSelection
 @ShowkaseColor(name = "boardRegion", group = "Board")
 internal val ShowkaseBoardRegion: Color = DarkBoardTokens.boardRegion
+
+// Game accent slots (AccentTokens.kt, spec A1), dark values — the app-default look;
+// the AccentSlots preview shows both modes.
+@ShowkaseColor(name = "blueAccent", group = "Accents")
+internal val ShowkaseAccentBlueAccent: Color = DarkAccentTokens.getValue(AccentSlot.Blue).accent
+@ShowkaseColor(name = "blueOnAccent", group = "Accents")
+internal val ShowkaseAccentBlueOnAccent: Color = DarkAccentTokens.getValue(AccentSlot.Blue).onAccent
+@ShowkaseColor(name = "blueContainer", group = "Accents")
+internal val ShowkaseAccentBlueContainer: Color = DarkAccentTokens.getValue(AccentSlot.Blue).container
+@ShowkaseColor(name = "blueOnContainer", group = "Accents")
+internal val ShowkaseAccentBlueOnContainer: Color = DarkAccentTokens.getValue(AccentSlot.Blue).onContainer
+@ShowkaseColor(name = "orangeAccent", group = "Accents")
+internal val ShowkaseAccentOrangeAccent: Color = DarkAccentTokens.getValue(AccentSlot.Orange).accent
+@ShowkaseColor(name = "orangeOnAccent", group = "Accents")
+internal val ShowkaseAccentOrangeOnAccent: Color = DarkAccentTokens.getValue(AccentSlot.Orange).onAccent
+@ShowkaseColor(name = "orangeContainer", group = "Accents")
+internal val ShowkaseAccentOrangeContainer: Color = DarkAccentTokens.getValue(AccentSlot.Orange).container
+@ShowkaseColor(name = "orangeOnContainer", group = "Accents")
+internal val ShowkaseAccentOrangeOnContainer: Color = DarkAccentTokens.getValue(AccentSlot.Orange).onContainer
+@ShowkaseColor(name = "violetAccent", group = "Accents")
+internal val ShowkaseAccentVioletAccent: Color = DarkAccentTokens.getValue(AccentSlot.Violet).accent
+@ShowkaseColor(name = "violetOnAccent", group = "Accents")
+internal val ShowkaseAccentVioletOnAccent: Color = DarkAccentTokens.getValue(AccentSlot.Violet).onAccent
+@ShowkaseColor(name = "violetContainer", group = "Accents")
+internal val ShowkaseAccentVioletContainer: Color = DarkAccentTokens.getValue(AccentSlot.Violet).container
+@ShowkaseColor(name = "violetOnContainer", group = "Accents")
+internal val ShowkaseAccentVioletOnContainer: Color = DarkAccentTokens.getValue(AccentSlot.Violet).onContainer
+@ShowkaseColor(name = "tealAccent", group = "Accents")
+internal val ShowkaseAccentTealAccent: Color = DarkAccentTokens.getValue(AccentSlot.Teal).accent
+@ShowkaseColor(name = "tealOnAccent", group = "Accents")
+internal val ShowkaseAccentTealOnAccent: Color = DarkAccentTokens.getValue(AccentSlot.Teal).onAccent
+@ShowkaseColor(name = "tealContainer", group = "Accents")
+internal val ShowkaseAccentTealContainer: Color = DarkAccentTokens.getValue(AccentSlot.Teal).container
+@ShowkaseColor(name = "tealOnContainer", group = "Accents")
+internal val ShowkaseAccentTealOnContainer: Color = DarkAccentTokens.getValue(AccentSlot.Teal).onContainer
+@ShowkaseColor(name = "pinkAccent", group = "Accents")
+internal val ShowkaseAccentPinkAccent: Color = DarkAccentTokens.getValue(AccentSlot.Pink).accent
+@ShowkaseColor(name = "pinkOnAccent", group = "Accents")
+internal val ShowkaseAccentPinkOnAccent: Color = DarkAccentTokens.getValue(AccentSlot.Pink).onAccent
+@ShowkaseColor(name = "pinkContainer", group = "Accents")
+internal val ShowkaseAccentPinkContainer: Color = DarkAccentTokens.getValue(AccentSlot.Pink).container
+@ShowkaseColor(name = "pinkOnContainer", group = "Accents")
+internal val ShowkaseAccentPinkOnContainer: Color = DarkAccentTokens.getValue(AccentSlot.Pink).onContainer
+@ShowkaseColor(name = "neutralAccent", group = "Accents")
+internal val ShowkaseAccentNeutralAccent: Color = DarkAccentTokens.getValue(AccentSlot.Neutral).accent
+@ShowkaseColor(name = "neutralOnAccent", group = "Accents")
+internal val ShowkaseAccentNeutralOnAccent: Color = DarkAccentTokens.getValue(AccentSlot.Neutral).onAccent
+@ShowkaseColor(name = "neutralContainer", group = "Accents")
+internal val ShowkaseAccentNeutralContainer: Color = DarkAccentTokens.getValue(AccentSlot.Neutral).container
+@ShowkaseColor(name = "neutralOnContainer", group = "Accents")
+internal val ShowkaseAccentNeutralOnContainer: Color = DarkAccentTokens.getValue(AccentSlot.Neutral).onContainer

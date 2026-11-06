@@ -7,11 +7,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -203,7 +202,7 @@ internal fun HowToPlayButton(onClick: () -> Unit) {
         modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag("play.how_to_play"),
     ) {
         Icon(
-            imageVector = Icons.Outlined.Info,
+            imageVector = PuzzleIcons.HowTo,
             contentDescription = "How to play",
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )

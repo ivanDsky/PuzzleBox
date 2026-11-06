@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.games.queensui
 
-import android.provider.Settings
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -22,26 +21,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalInspectionMode
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.GridGeometry
 
 /** True when system animations are off — every board entrance/exit collapses to an
- *  instant state change (direction doc §5 reduced-motion rule). Read once at board
- *  level and provided down. */
+ *  instant state change (direction doc §5 reduced-motion rule). Read at board level
+ *  from the shared [rememberReducedMotion] and provided down. */
 val LocalQueensReducedMotion = staticCompositionLocalOf { false }
-
-@Composable
-internal fun rememberReducedMotion(): Boolean {
-    if (LocalInspectionMode.current) return false
-    val resolver = LocalContext.current.contentResolver
-    return remember {
-        Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
-    }
-}
 
 /**
  * The full Queens board UI (queens-08): provenance-distinct X marks (§3.2/§3.3),

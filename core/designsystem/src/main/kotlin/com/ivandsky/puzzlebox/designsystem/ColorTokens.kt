@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.toArgb
 // character; only the neutral ramp changed.
 
 // The primary hue's TEXT role. #58CC02 is a fill/background green — as text on white it
-// holds only 2.09:1 — so text-bearing components (SecondaryButton, AppTextButton) render this darker
+// holds only 2.09:1 — so text-bearing components (AppTextButton) render this darker
 // same-family step: 6.03:1 on white, 5.15:1 on the dialog surface. Dark mode's primary
 // already clears AA as text (10.3:1), so it doubles as the dark text role.
 val LightPrimaryText = Color(0xFF377000)
@@ -58,7 +58,7 @@ val LightColorScheme = lightColorScheme(
     onSurface = Color(0xFF33363D),
     surfaceVariant = Color(0xFFE2E7EE),
     onSurfaceVariant = Color(0xFF454A54),
-    // Spec A8: `outline` is the >= 3:1 boundary role (SecondaryButton's border); this
+    // Spec A8: `outline` is the >= 3:1 boundary role; this
     // step holds >= 3.2:1 on every light surface up to surfaceContainerHighest.
     outline = Color(0xFF7A808C),
     outlineVariant = Color(0xFFD9DCE0),

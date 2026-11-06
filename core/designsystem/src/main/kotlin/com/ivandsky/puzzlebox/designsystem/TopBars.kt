@@ -8,9 +8,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -107,7 +104,7 @@ internal fun LargeTopBarPreview() {
             actions = {
                 IconButton(onClick = {}) {
                     Icon(
-                        imageVector = Icons.Filled.Settings,
+                        imageVector = PuzzleIcons.Appearance,
                         contentDescription = "Settings",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -127,7 +124,7 @@ internal fun CompactTopBarPreview() {
             navigationIcon = {
                 IconButton(onClick = {}) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = PuzzleIcons.Back,
                         contentDescription = "Back",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

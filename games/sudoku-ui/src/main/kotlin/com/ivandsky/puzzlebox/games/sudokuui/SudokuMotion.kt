@@ -25,7 +25,7 @@ import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGeometry
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.SudokuUnit
-import com.ivandsky.puzzlebox.gameui.rememberReducedMotion
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.abs
