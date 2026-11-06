@@ -33,10 +33,9 @@ private const val TICK_MS = 1_000L
 private val CtaHeight = 52.dp
 
 /**
- * Today's set (A9, A10) as the [HomeTodaySummary] card. [tagPrefix] keeps the list and
- * detail copies apart in tests: `<prefix>_summary`, `<prefix>_play`, `<prefix>_countdown`;
- * badges read `home.badge.<id>` for the `home.today` copy (`home.detail_badge.<id>` for the
- * detail pane's), so the two copies never share a tag.
+ * Today's set (A9, A10) as the [HomeTodaySummary] card, tagged for tests from [tagPrefix]:
+ * `<prefix>_summary`, `<prefix>_play`, `<prefix>_countdown`; badges read `home.badge.<id>`
+ * for the `home.today` copy.
  */
 @Composable
 internal fun HomeTodaySection(

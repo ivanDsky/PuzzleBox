@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
@@ -26,28 +27,43 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 
-// Inside DayRing's 17dp inner edge, so a 2dp sliver separates today's disc from the ring.
+// Inside the default ring's 17dp inner edge, so a 2dp sliver separates today's disc
+// from the ring; larger rings keep 4dp of clearance.
 private val TodayDisc = 30.dp
+private val LargeDiscClearance = 4.dp
+
+// Rings at least this big read their day number in TitleSmall instead of Label.
+private val LargeRing = 56.dp
 
 /**
  * A week of [days] as seven columns, oldest to newest (spec A18): the weekday initial over
  * that day's [DayRing] out of [total] games, with the day number inside. Today's number
  * is bold on a filled inner disc (an ink ring would clash with the game ring), and any
  * day with a solve shows its number in the success text colour.
- * Callers build the [WeekDay]s; the strip only draws them.
+ * Callers build the [WeekDay]s; the strip only draws them. [ringSize] and [ringStroke]
+ * enlarge every ring (the tablet streak pane runs 64/5).
  */
 @Composable
-fun WeekStrip(days: List<WeekDay>, total: Int, modifier: Modifier = Modifier) {
+fun WeekStrip(
+    days: List<WeekDay>,
+    total: Int,
+    modifier: Modifier = Modifier,
+    ringSize: Dp = RingSize,
+    ringStroke: Dp = RingStroke,
+) {
     Row(modifier = modifier.fillMaxWidth()) {
         days.forEach { day ->
-            WeekStripDay(day, total, Modifier.weight(1f))
+            WeekStripDay(day, total, ringSize, ringStroke, Modifier.weight(1f))
         }
     }
 }
 
 @Composable
-private fun WeekStripDay(day: WeekDay, total: Int, modifier: Modifier) {
+private fun WeekStripDay(day: WeekDay, total: Int, ringSize: Dp, ringStroke: Dp, modifier: Modifier) {
     val colors = MaterialTheme.colorScheme
+    val large = ringSize >= LargeRing
+    val disc = if (large) ringSize - ringStroke * 2 - LargeDiscClearance * 2 else TodayDisc
+    val numberStyle = if (large) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelLarge
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -58,13 +74,13 @@ private fun WeekStripDay(day: WeekDay, total: Int, modifier: Modifier) {
             style = MaterialTheme.typography.labelSmall,
             color = colors.onSurfaceVariant,
         )
-        DayRing(solved = day.solved, total = total) {
+        DayRing(solved = day.solved, total = total, size = ringSize, stroke = ringStroke) {
             if (day.isToday) {
-                Box(Modifier.size(TodayDisc).background(colors.surfaceContainerHighest, CircleShape))
+                Box(Modifier.size(disc).background(colors.surfaceContainerHighest, CircleShape))
             }
             Text(
                 text = day.date.dayOfMonth.toString(),
-                style = MaterialTheme.typography.labelLarge.tabular(),
+                style = numberStyle.tabular(),
                 fontWeight = if (day.isToday) FontWeight.Bold else null,
                 color = if (day.solved.isEmpty()) colors.onSurface else LocalPrimaryText.current,
             )

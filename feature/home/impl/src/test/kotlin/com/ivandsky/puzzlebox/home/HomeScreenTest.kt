@@ -78,12 +78,41 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `two pane renders the detail pane beside the list`() {
+    fun `two pane with no day selected shows streak and stats beside the list`() {
         setContent(HomeLayout.TwoPane)
 
         composeRule.onNodeWithTag("home.today").assertExists()
         composeRule.onNodeWithTag("home.detail_pane").assertExists()
-        composeRule.onNodeWithTag("home.detail_today").assertExists()
+        composeRule.onNodeWithTag("home.streak_pane").assertExists()
+        composeRule.onNodeWithTag("home.pane_week").assertExists()
+        listOf("solved", "hint_free", "average", "since").forEach {
+            composeRule.onNodeWithTag("home.stat_$it", useUnmergedTree = true).assertExists()
+        }
+        TODAY.forEach { composeRule.onNodeWithTag("home.best.${it.game.value}", useUnmergedTree = true).assertExists() }
+        composeRule.onNodeWithTag("home.day_detail").assertDoesNotExist()
+    }
+
+    @Test
+    fun `two pane list drops the streak card and has one copy of today`() {
+        setContent(HomeLayout.TwoPane)
+
+        composeRule.onNodeWithTag("home.streak").assertDoesNotExist()
+        composeRule.onNodeWithTag("home.week").assertDoesNotExist()
+        composeRule.onNodeWithTag("home.badge.zip").assertExists()
+        composeRule.onNodeWithTag("home.detail_badge.zip").assertDoesNotExist()
+    }
+
+    @Test
+    fun `tapping a recent day swaps the pane to that day and away from the stats`() {
+        setContent(
+            HomeLayout.TwoPane,
+            history = listOf(HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))),
+        )
+
+        composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo().performClick()
+
+        composeRule.onNodeWithTag("home.day_detail").assertExists()
+        composeRule.onNodeWithTag("home.streak_pane").assertDoesNotExist()
     }
 
     @Test
@@ -119,14 +148,6 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `two pane list and detail badges never share a tag`() {
-        setContent(HomeLayout.TwoPane)
-
-        composeRule.onNodeWithTag("home.badge.zip").assertExists()
-        composeRule.onNodeWithTag("home.detail_badge.zip").assertExists()
-    }
-
-    @Test
     fun `the CTA names the play target and opens it - A10`() {
         val opened = mutableListOf<GameId>()
         setContent(HomeLayout.SinglePane, onOpenGame = { opened += it })
@@ -138,19 +159,6 @@ class HomeScreenTest {
 
         composeRule.runOnIdle { assertEquals(listOf(GameId("tango")), opened) }
         composeRule.onNodeWithTag("home.today_countdown").assertDoesNotExist()
-    }
-
-    @Test
-    fun `the two-pane detail CTA names the same target`() {
-        val opened = mutableListOf<GameId>()
-        setContent(HomeLayout.TwoPane, playTarget = GameId("queens"), onOpenGame = { opened += it })
-
-        composeRule.onNodeWithTag("home.detail_today_play")
-            .assert(hasText("Queens", substring = true))
-            .performScrollTo()
-            .performClick()
-
-        composeRule.runOnIdle { assertEquals(listOf(GameId("queens")), opened) }
     }
 
     @Test
