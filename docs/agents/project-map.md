@@ -239,8 +239,9 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 - `feature/history/impl/` (`:feature:history:impl`) — `navigation/HistoryEntry`,
   `HistoryRoute`/`HistoryScreen` with `HistoryListPane`/`HistoryDetailPane` over
   `HistoryViewModel` (`di/HistoryModule`), `HistoryPaging` (`historyPager`,
-  `HistoryPagingSource`), `HistoryLayout` + `historyLayoutFor`; a history row pushes that
-  day's `GameKey` on Home's stack, which resumes or replays the slot.
+  `HistoryPagingSource`), `HistoryLayout` + `historyLayoutFor`; the All timeline only (A28:
+  streak and stats, week/month calendar, every game's rows; any `HistoryKey` opens it); a
+  history row pushes that day's `GameKey` on Home's stack, which resumes or replays the slot.
 - `feature/profile/impl/` (`:feature:profile:impl`) — packages kept from the app:
   `app/screens/` (`ProfileRoute`, `ProfileScreen`, `ProfileLeaderboard`, `ProfileViewModel`
   over `ObserveTodayLeaderboard` + `ObserveGameStats`/`ObserveGameHistory` (the record) +

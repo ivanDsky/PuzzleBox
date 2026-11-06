@@ -6,7 +6,6 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
-import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -184,36 +183,11 @@ class HistoryViewModelTest {
     }
 
     // ------------------------------------------------------------------
-    // S06: tabs, best, weeks.
+    // S06: the All timeline, best, weeks.
     // ------------------------------------------------------------------
 
     @Test
-    fun `the key picks the starting tab, and no game or an unknown game means All`() {
-        val daily = FakeDailyRepository()
-        fun tabOf(key: HistoryKey) = HistoryTestSupport.viewModel(daily, FakeCompletionRepository(), key).selectedTab.value
-
-        assertEquals(QUEENS, tabOf(HistoryKey(QUEENS.value)))
-        assertNull(tabOf(HistoryKey()))
-        assertNull(tabOf(HistoryKey("nope")))
-    }
-
-    @Test
-    fun `archive games are the registered games with an archive range, in tab order`() = runTest {
-        val range = HistoryTestSupport.TODAY.minusDays(9)..HistoryTestSupport.TODAY
-        val daily = FakeDailyRepository().apply {
-            setHistory(ZIP, listOf(HistoryTestSupport.entry(HistoryTestSupport.TODAY)))
-            setArchiveRange(QUEENS, range)
-            setArchiveRange(TANGO, range)
-        }
-        val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository())
-
-        val state = viewModel.uiState.first { it.rows.isNotEmpty() }
-        assertEquals(listOf(TANGO, QUEENS), state.archiveGames.map { it.gameId })
-        assertEquals(listOf(range, range), state.archiveGames.map { it.range })
-    }
-
-    @Test
-    fun `a game tab lists only that game, in the state and the pages`() = runTest {
+    fun `the state and the pages hold every game's rows, one ring segment per game`() = runTest {
         val today = HistoryTestSupport.TODAY
         val daily = FakeDailyRepository().apply {
             setHistory(ZIP, listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(today.minusDays(1))))
@@ -221,17 +195,9 @@ class HistoryViewModelTest {
         }
         val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository())
 
-        viewModel.select(TANGO)
-
-        assertEquals(TANGO, viewModel.selectedTab.value)
         val state = viewModel.uiState.first { it.rows.isNotEmpty() }
-        assertEquals(listOf(TANGO), state.rows.map { it.gameId })
-        assertEquals(1, state.gamesPerDay)
-        assertEquals(listOf(TANGO), viewModel.pagedDays.asSnapshot().map { it.gameId })
-
-        viewModel.select(null)
-        advanceUntilIdle()
-
+        assertEquals(setOf(ZIP, TANGO), state.rows.map { it.gameId }.toSet())
+        assertEquals(listOf(ZIP, TANGO, QUEENS).size, state.gamesPerDay)
         assertEquals(3, viewModel.pagedDays.asSnapshot().size)
     }
 
@@ -285,7 +251,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `calendar rings leave out practice and unfinished days, in tab order`() {
+    fun `calendar rings leave out practice and unfinished days, in registry order`() {
         val today = HistoryTestSupport.TODAY
         val zip = GameBrand.Neutral.copy(accent = AccentSlot.Blue)
         val tango = GameBrand.Neutral.copy(accent = AccentSlot.Orange)
@@ -368,7 +334,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `a picked day toggles, ignores later days, and survives a tab switch`() = runTest {
+    fun `a picked day toggles and ignores later days`() = runTest {
         val today = HistoryTestSupport.TODAY
         val daily = FakeDailyRepository().apply {
             setHistory(ZIP, listOf(HistoryTestSupport.entry(today.minusDays(1))))
@@ -383,11 +349,10 @@ class HistoryViewModelTest {
         viewModel.selectDay(today.minusDays(1))
         assertEquals(today.minusDays(1), viewModel.uiState.first { it.selectedDay != null }.selectedDay)
 
-        viewModel.select(TANGO)
-        val tango = viewModel.uiState.first { it.rows.isEmpty() && it.gamesPerDay == 1 }
-        assertEquals("the pick stays across tabs", today.minusDays(1), tango.selectedDay)
+        viewModel.selectDay(today.minusDays(2))
+        assertEquals("another day replaces the pick", today.minusDays(2), viewModel.uiState.first { it.selectedDay != today.minusDays(1) }.selectedDay)
 
-        viewModel.selectDay(today.minusDays(1))
+        viewModel.selectDay(today.minusDays(2))
         assertNull("the same day again clears it", viewModel.uiState.first { it.selectedDay == null }.selectedDay)
     }
 
