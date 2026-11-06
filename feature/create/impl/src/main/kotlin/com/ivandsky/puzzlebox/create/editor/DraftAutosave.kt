@@ -17,7 +17,8 @@ import kotlinx.coroutines.sync.withLock
  * The open draft's saves (spec A5): a trailing throttle like `SlotWriter`'s, not a debounce.
  * The first [offer] opens a [window] and its end stores the newest row, so a run of edits
  * cannot starve the save. [flush] stores the pending row now (app stop, Duplicate, leaving
- * the Studio); [discard] drops it (Delete), so a late save never brings a deleted draft back.
+ * the Studio); [finish] stores it and then takes no more (Delete), so the deleted row is the
+ * board the author last saw and no late save brings it back.
  * One write at a time, each taking the newest row when it starts: saves are conflated,
  * never reordered. [saving] is true from an offer until the newest row is stored.
  *
@@ -34,6 +35,9 @@ internal class DraftAutosave(
     /** The newest row not yet handed to [store]; null when nothing waits. */
     private var pending: Draft? = null
 
+    /** True once [finish] has run: later offers are dropped. */
+    private var finished = false
+
     /** The open throttle window; null when none is open. */
     private var timer: Job? = null
 
@@ -44,6 +48,7 @@ internal class DraftAutosave(
 
     /** Keeps [draft] as the newest row; the first offer of a window opens it, its end stores the newest. */
     fun offer(draft: Draft) {
+        if (finished) return
         pending = draft
         unsaved.value = true
         if (timer != null) return
@@ -60,12 +65,10 @@ internal class DraftAutosave(
         write()
     }
 
-    /** Drops the pending row unstored and returns once any write already running has finished. */
-    suspend fun discard() {
-        closeWindow()
-        pending = null
-        unsaved.value = false
-        writing.withLock { }
+    /** Takes no more offers, then [flush]es: returns once the last offered row is stored. */
+    suspend fun finish() {
+        finished = true
+        flush()
     }
 
     private fun closeWindow() {
