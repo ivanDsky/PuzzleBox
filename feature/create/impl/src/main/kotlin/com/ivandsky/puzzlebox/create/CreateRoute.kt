@@ -19,6 +19,8 @@ internal fun CreateRoute(
         state = state,
         onNew = { gameId, variant -> viewModel.newPuzzle(gameId, variant, onCreated = onOpen) },
         onOpen = onOpen,
+        onQuery = viewModel::onQuery,
+        onFilter = viewModel::onFilter,
         modifier = modifier.testTag("route.create"),
     )
 }
