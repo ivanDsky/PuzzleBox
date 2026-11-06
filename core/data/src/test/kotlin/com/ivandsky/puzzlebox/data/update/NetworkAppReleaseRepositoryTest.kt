@@ -58,6 +58,15 @@ class NetworkAppReleaseRepositoryTest {
     }
 
     @Test
+    fun `failed check after the window returns null, not the stale remembered value - Ruling 05`() = runTest {
+        repo.latest()
+        time += 15.minutes
+        transport.result = null
+        assertNull(repo.latest())
+        assertEquals(2, transport.calls)
+    }
+
+    @Test
     fun `concurrent calls share one in-flight transport call - R7`() = runTest {
         val gate = CompletableDeferred<Unit>()
         val slow = object : GitHubReleaseTransport {
