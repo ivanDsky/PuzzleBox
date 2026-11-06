@@ -6,7 +6,9 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.codec.ZipSessionCodec
 import com.ivandsky.puzzlebox.games.zip.engine.ZipMove
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
+import java.time.LocalDate
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -16,10 +18,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Session codec v2: the §4 reader rules mirrored for the play state — exact round trip
- * (C1) including the undo/redo history, pinned layout (C2), determinism (C3), unknown-tail
- * preservation (A19/D-3), version guard (C5), v1 saves still readable, and corrupt history
- * rejected.
+ * Session codec v3: the §4 reader rules mirrored for the play state — exact round trip
+ * (C1) including the undo/redo history and both key kinds, pinned layout (C2), determinism
+ * (C3), unknown-tail preservation (A19/D-3), version guard (C5), frozen v2 bytes and v1
+ * saves still readable as dailies, and corrupt history rejected.
  */
 class ZipSessionCodecTest {
 
@@ -39,7 +41,27 @@ class ZipSessionCodecTest {
         completedAt = completedAt,
     )
 
-    private fun ref() = ZipPuzzleRef(java.time.LocalDate.of(2026, 10, 30), 592)
+    private fun ref() = ZipPuzzleRef(LocalDate.of(2026, 10, 30), 592)
+
+    private fun customRef() = ZipPuzzleRef(PuzzleKey.Custom("7K3M9Q"))
+
+    private fun fixture(name: String): ByteArray =
+        requireNotNull(javaClass.classLoader).getResourceAsStream("fixtures/$name")!!.readBytes()
+
+    /** Offset of the v3 key tag: version(1) + u16 puzzle length + puzzle bytes + flags(1). */
+    private fun keyTagOffset(blob: ByteArray): Int =
+        3 + (((blob[1].toInt() and 0xFF) shl 8) or (blob[2].toInt() and 0xFF)) + 1
+
+    /** A pre-v3 blob of a daily-ref session: the current bytes minus the key tag. */
+    private fun legacyBlob(version: Int, s: ZipSession): ByteArray {
+        val v3 = ZipSessionCodec.serialize(s)
+        val tag = keyTagOffset(v3)
+        val v2 = v3.copyOfRange(0, tag) + v3.copyOfRange(tag + 1, v3.size)
+        v2[0] = 2
+        if (version == 2) return v2
+        require(s.history.done.isEmpty() && s.history.undone.isEmpty())
+        return v2.copyOf(v2.size - 4).also { it[0] = version.toByte() } // drop the two u16 history lengths
+    }
 
     /** C1: deserialize∘serialize == identity for the persisted shape. */
     @Test
@@ -67,12 +89,13 @@ class ZipSessionCodecTest {
             session().copy(path = ZipTestSupport.path(0, 1), timerStarted = false),
         )
         val expected = buildList {
-            add(2) // version
+            add(3) // version
             add((puzzleBytes.size shr 8) and 0xFF); add(puzzleBytes.size and 0xFF)
             addAll(puzzleBytes.map(Byte::toInt))
             add(2) // flags: bit1 ref present, timerStarted false
-            // ref: epochDay, numberPresent, number
-            addAll(java.time.LocalDate.of(2026, 10, 30).toEpochDay().let { v ->
+            add(0) // key tag: Daily
+            // daily key: epochDay, numberPresent, number
+            addAll(LocalDate.of(2026, 10, 30).toEpochDay().let { v ->
                 (0 until 8).map { ((v shr (it * 8)) and 0xFF).toInt() }
             })
             add(1) // number present
@@ -86,6 +109,88 @@ class ZipSessionCodecTest {
             add(0); add(0) // undoneLen
         }.map(Int::toByte).toByteArray()
         assertArrayEquals(expected, blob)
+    }
+
+    /** C2: a Custom key is tag 1, a u8 byte length, then the UTF-8 puzzleId. */
+    @Test
+    fun `C2 - custom key layout is tag, length, utf8 id`() {
+        val blob = ZipSessionCodec.serialize(session(ref = customRef()))
+        val tag = keyTagOffset(blob)
+        assertEquals(6, blob[tag - 1].toInt()) // flags: bit1 ref present, bit2 timerStarted
+        assertEquals(1, blob[tag].toInt())
+        assertEquals(6, blob[tag + 1].toInt())
+        assertArrayEquals("7K3M9Q".encodeToByteArray(), blob.copyOfRange(tag + 2, tag + 8))
+        assertEquals(3, blob[tag + 8].toInt()) // pathLen follows the key
+    }
+
+    @Test
+    fun `C1 - custom key round trips`() {
+        val s = session(ref = customRef()).copy(runningSince = null)
+        val restored = (ZipSessionCodec.deserialize(ZipSessionCodec.serialize(s)) as DecodeResult.Ok).value
+        assertEquals(s, restored)
+        assertEquals(PuzzleKey.Custom("7K3M9Q"), restored.ref!!.key)
+    }
+
+    @Test
+    fun `C1 - daily key without a number round trips`() {
+        val s = session(ref = ZipPuzzleRef(LocalDate.of(2026, 10, 30), null)).copy(runningSince = null)
+        val restored = (ZipSessionCodec.deserialize(ZipSessionCodec.serialize(s)) as DecodeResult.Ok).value
+        assertEquals(PuzzleKey.Daily(LocalDate.of(2026, 10, 30), null), restored.ref!!.key)
+    }
+
+    /** S13: bytes written by the v2 codec, frozen before the bump, still restore as a daily. */
+    @Test
+    fun `frozen v2 fixture decodes as a Daily key`() {
+        val bytes = fixture("zip-session-v2.bin")
+        assertEquals(2, bytes[0].toInt())
+        val restored = (ZipSessionCodec.deserialize(bytes) as DecodeResult.Ok).value
+        assertEquals(PuzzleKey.Daily(LocalDate.of(2026, 10, 30), 592), restored.ref!!.key)
+        assertEquals(ZipTestSupport.path(0, 1, 2), restored.path)
+        assertEquals(3, restored.history.done.size)
+        assertEquals(listOf(ZipCommand.Extend(Cell(3))), restored.history.undone)
+        assertEquals(1, restored.hintsUsed)
+        assertEquals(42_000, restored.elapsedMs)
+        assertEquals(0, restored.unknownTail.size)
+        // re-saving upgrades to v3 and loses nothing
+        val upgraded = ZipSessionCodec.serialize(restored)
+        assertEquals(ZipSessionCodec.VERSION, upgraded[0].toInt())
+        assertEquals(restored, (ZipSessionCodec.deserialize(upgraded) as DecodeResult.Ok).value)
+    }
+
+    /** S13: frozen v3 bytes of a friend's puzzle restore with their Custom key. */
+    @Test
+    fun `frozen v3 custom fixture decodes as a Custom key`() {
+        val bytes = fixture("zip-session-v3-custom.bin")
+        assertEquals(3, bytes[0].toInt())
+        val restored = (ZipSessionCodec.deserialize(bytes) as DecodeResult.Ok).value
+        assertEquals(PuzzleKey.Custom("7K3M9Q"), restored.ref!!.key)
+        assertEquals(ZipTestSupport.path(0, 1, 2), restored.path)
+        assertEquals(3, restored.history.done.size)
+        assertEquals(listOf(ZipCommand.Extend(Cell(3))), restored.history.undone)
+        assertEquals(1, restored.hintsUsed)
+        assertEquals(42_000, restored.elapsedMs)
+    }
+
+    @Test
+    fun `v2 blobs decode with a Daily key`() {
+        val s = session().copy(runningSince = null)
+        val restored = (ZipSessionCodec.deserialize(legacyBlob(2, s)) as DecodeResult.Ok).value
+        assertEquals(s, restored)
+    }
+
+    @Test
+    fun `unknown key tag and empty custom id are Malformed`() {
+        val blob = ZipSessionCodec.serialize(session(ref = customRef()))
+        val tag = keyTagOffset(blob)
+        val unknownTag = blob.clone().also { it[tag] = 2 }
+        val unknownResult = ZipSessionCodec.deserialize(unknownTag)
+        assertTrue(unknownResult is DecodeResult.Err && unknownResult.error is DecodeError.Malformed)
+        val emptyId = blob.copyOfRange(0, tag + 1) + byteArrayOf(0) + blob.copyOfRange(tag + 8, blob.size)
+        val emptyResult = ZipSessionCodec.deserialize(emptyId)
+        assertTrue(emptyResult is DecodeResult.Err && emptyResult.error is DecodeError.Malformed)
+        val badUtf8 = blob.clone().also { it[tag + 2] = 0xFF.toByte() }
+        val badResult = ZipSessionCodec.deserialize(badUtf8)
+        assertTrue(badResult is DecodeResult.Err && badResult.error is DecodeError.Malformed)
     }
 
     /** C3: canonical serialization — same session, same bytes. */
@@ -124,6 +229,14 @@ class ZipSessionCodecTest {
         assertEquals(7, (error as DecodeError.UnsupportedVersion).found)
     }
 
+    /** C5: the first version above v3 is not guessed at. */
+    @Test
+    fun `C5 - version 4 is UnsupportedVersion`() {
+        val blob = ZipSessionCodec.serialize(session()).clone().also { it[0] = 4 }
+        val error = (ZipSessionCodec.deserialize(blob) as DecodeResult.Err).error
+        assertEquals(DecodeError.UnsupportedVersion(found = 4, maxKnown = 3), error)
+    }
+
     /** v1 counters are u8 fields: serialize is fail-fast, never silent truncation. */
     @Test
     fun `counters beyond u8 are rejected on serialize`() {
@@ -156,6 +269,11 @@ class ZipSessionCodecTest {
         val extended = ZipSessionCodec.deserialize(trailing)
         assertTrue(extended is DecodeResult.Ok)
         assertArrayEquals(byteArrayOf(1), (extended as DecodeResult.Ok).value.unknownTail)
+        val custom = ZipSessionCodec.serialize(session(ref = customRef()))
+        for (cut in 0 until custom.size) {
+            val result = ZipSessionCodec.deserialize(custom.copyOf(cut))
+            assertTrue("custom cut=$cut", result is DecodeResult.Err && result.error is DecodeError.Malformed)
+        }
         assertTrue(ZipSessionCodec.deserialize(ByteArray(0)) is DecodeResult.Err)
     }
 
@@ -216,13 +334,12 @@ class ZipSessionCodecTest {
     @Test
     fun `v1 blobs decode with an empty history and keep their tail`() {
         val s = session().copy(runningSince = null)
-        val v2 = ZipSessionCodec.serialize(s)
-        val v1 = v2.copyOf(v2.size - 4).also { it[0] = 1 } // drop the two u16 history lengths
+        val v1 = legacyBlob(1, s)
         assertEquals(s, (ZipSessionCodec.deserialize(v1) as DecodeResult.Ok).value)
 
         val withTail = (ZipSessionCodec.deserialize(v1 + byteArrayOf(9, 8)) as DecodeResult.Ok).value
         assertArrayEquals(byteArrayOf(9, 8), withTail.unknownTail)
-        // re-saving upgrades to v2 and keeps the tail after the history sections
+        // re-saving upgrades to v3 and keeps the tail after the history sections
         val upgraded = ZipSessionCodec.deserialize(ZipSessionCodec.serialize(withTail)) as DecodeResult.Ok
         assertArrayEquals(byteArrayOf(9, 8), upgraded.value.unknownTail)
     }
