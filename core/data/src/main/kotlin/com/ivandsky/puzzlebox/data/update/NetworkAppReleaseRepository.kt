@@ -1,30 +1,31 @@
 package com.ivandsky.puzzlebox.data.update
 
 import com.ivandsky.puzzlebox.network.GitHubReleaseTransport
-import java.time.Clock
-import java.time.Duration
-import java.time.Instant
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
  * [AppReleaseRepository] over the GitHub transport, calling the network at most once per
- * [THROTTLE] per process. Only successes are remembered, so a failed check retries next call.
+ * [THROTTLE] per process, measured on [timeSource] so wall-clock changes cannot skip or
+ * extend the window. Only successes are remembered, so a failed check retries next call.
  */
 class NetworkAppReleaseRepository(
     private val transport: GitHubReleaseTransport,
-    private val clock: Clock = Clock.systemUTC(),
+    private val timeSource: TimeSource = TimeSource.Monotonic,
 ) : AppReleaseRepository {
 
     // One lock so concurrent callers share a single in-flight check.
     private val mutex = Mutex()
     private var remembered: AppRelease? = null
-    private var checkedAt: Instant? = null
+    private var checkedAt: TimeMark? = null
 
     override suspend fun latest(): AppRelease? = mutex.withLock {
-        val now = clock.instant()
         val last = checkedAt
-        if (last != null && Duration.between(last, now) < THROTTLE) return@withLock remembered
+        if (last != null && last.elapsedNow() < THROTTLE) return@withLock remembered
+        val now = timeSource.markNow()
         val fetched = transport.latest()?.let { AppRelease(it.tagName, it.htmlUrl) }
         if (fetched != null) {
             remembered = fetched
@@ -34,6 +35,6 @@ class NetworkAppReleaseRepository(
     }
 
     private companion object {
-        val THROTTLE: Duration = Duration.ofMinutes(15)
+        val THROTTLE = 15.minutes
     }
 }

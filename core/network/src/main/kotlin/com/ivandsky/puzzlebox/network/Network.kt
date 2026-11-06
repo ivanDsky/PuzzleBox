@@ -19,7 +19,7 @@ internal const val LINKEDIN_BASE_URL = "https://www.linkedin.com/"
 internal const val NYT_BASE_URL = "https://www.nytimes.com/"
 
 /** GitHub's REST host; the latest-release check (A2) runs unauthenticated against it. */
-const val GITHUB_API_BASE_URL = "https://api.github.com/"
+internal const val GITHUB_API_BASE_URL = "https://api.github.com/"
 
 internal fun retrofit(baseUrl: String, client: OkHttpClient, json: Json): Retrofit =
     Retrofit.Builder()
@@ -64,31 +64,24 @@ internal fun linkedInClient(jar: LinkedInSessionCookieJar): OkHttpClient =
         .build()
 
 /**
- * Client for NYT's anonymous JSON endpoints: no session, no cookies, and a whole-call
- * timeout so a stalled fetch surfaces as Unavailable instead of hanging the daily load.
+ * Client for the anonymous NYT and GitHub endpoints: no session, no cookies, and a whole-call
+ * timeout so a stall surfaces as a failure instead of hanging. Each call builds a new instance.
  */
-internal fun nytClient(): OkHttpClient =
+internal fun sessionlessClient(): OkHttpClient =
     OkHttpClient.Builder()
         .callTimeout(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
         .build()
 
 /**
- * The production latest-release transport (A2): a sessionless [nytClient]-shaped client over
+ * The production latest-release transport (A2): a [sessionlessClient] over
  * [baseUrl]. `networkModule` binds exactly this, so a test that builds it runs the app's wire.
  */
 fun gitHubReleaseTransport(baseUrl: String, json: Json): GitHubReleaseTransport {
-    val api = retrofit(baseUrl = baseUrl, client = gitHubClient(), json = json)
+    val api = retrofit(baseUrl = baseUrl, client = sessionlessClient(), json = json)
         .create(GitHubReleasesApi::class.java)
     return GitHubHttpReleaseTransport(api, json)
 }
 
-/** Client for GitHub's anonymous REST API: no cookies, whole-call timeout so a stall reads as null. */
-internal fun gitHubClient(): OkHttpClient =
-    OkHttpClient.Builder()
-        .callTimeout(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
-        .build()
-
-/** Whole-call budget shared by both clients (A18): a stalled fetch degrades to cache, never hangs. */
+/** Whole-call budget shared by every client (A18): a stalled fetch degrades to cache, never hangs. */
 private const val CALL_TIMEOUT_SECONDS = 10L
