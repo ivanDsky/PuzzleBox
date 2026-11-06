@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.update.AppRelease
+import com.ivandsky.puzzlebox.data.update.AppReleaseRepository
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GameStats
@@ -41,6 +42,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -86,6 +88,7 @@ class HomeViewModelTest {
         collect: Boolean = true,
         hintsRanked: Set<GameId> = emptySet(),
         release: AppRelease? = null,
+        releases: AppReleaseRepository = FakeAppReleaseRepository(release),
     ): Deps {
         val registry = GameRegistry(
             listOf(zip, tango).map { if (it in hintsRanked) hintsFirst(TestGames.plugin(it)) else TestGames.plugin(it) },
@@ -108,7 +111,7 @@ class HomeViewModelTest {
             nextRollover = GetNextRollover(registry, clock),
             syncTodayPuzzles = sync,
             getAppUpdate = GetAppUpdate(
-                FakeAppReleaseRepository(release),
+                releases,
                 AppBuild(versionName = "1.2.0", checksForUpdates = true),
             ),
         )
@@ -391,6 +394,45 @@ class HomeViewModelTest {
         deps.vm.checkForUpdate()
 
         assertNull(deps.vm.uiState.value.updateUrl)
+    }
+
+    @Test
+    fun `a resume that finds no release clears a known update url - Ruling 05`() = runTest {
+        val url = "https://github.com/ivanDsky/PuzzleBox/releases/tag/v1.3.0"
+        val releases = FakeAppReleaseRepository(AppRelease(tag = "v1.3.0", url = url))
+        val deps = viewModel(releases = releases)
+
+        deps.vm.checkForUpdate()
+        assertEquals(url, deps.vm.uiState.value.updateUrl)
+
+        releases.release = null
+        deps.vm.checkForUpdate()
+        assertNull(deps.vm.uiState.value.updateUrl)
+    }
+
+    @Test
+    fun `a check that never completes keeps the url null and today and history flowing - A6 S5`() = runTest {
+        val deps = viewModel(collect = false, releases = NeverAnsweringAppReleaseRepository)
+        deps.vm.checkForUpdate()
+
+        // The first frame is the seed: every game listed, status unknown, no pill.
+        val first = deps.vm.uiState.value
+        assertEquals(listOf(zip, tango), first.today.map { it.game })
+        assertTrue(first.today.all { it.status == null })
+        assertNull(first.updateUrl)
+
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { deps.vm.uiState.collect {} }
+        deps.daily.addEntry(DailyEntry(zip, LocalDate.of(2026, 10, 31), 592, "zip/n5", 0L))
+
+        val state = deps.vm.uiState.value
+        assertEquals(listOf(TodayStatus.NotStarted, TodayStatus.NotStarted), state.today.map { it.status })
+        assertEquals(listOf("2026-10-31"), state.history.map { it.isoDay })
+        assertNull(state.updateUrl)
+    }
+
+    /** A release check stuck on the network: it never answers. */
+    private object NeverAnsweringAppReleaseRepository : AppReleaseRepository {
+        override suspend fun latest(): AppRelease? = awaitCancellation()
     }
 }
 
