@@ -107,6 +107,26 @@ class QueensBoardGesturesTest {
         assertEquals(0, edits.size)
     }
 
+    @Test
+    fun `a stroke takes the colour of the cell under the pointer-down, not where the slop is crossed`() {
+        val blank = EditorDraft.fresh(QueensEditor, QueensVariants.variant(SIZE).id)
+        val rows = EditorDraft(QueensEditor, blank.state.copy(draft = blank.state.draft.copy(regions = List(SIZE * SIZE) { it / SIZE })))
+        val controller = QueensEditorController(rows) { edits += it }
+        show(controller)
+
+        rule.onNodeWithTag(BOARD).performTouchInput {
+            val down = Offset(centre(0).x, height / SIZE - 2f) // cell 0 (region 0), just above row 1
+            down(down)
+            moveTo(centre(SIZE)) // one move straight across the slop into cell 6 (region 1)
+            moveTo(centre(2 * SIZE))
+            up()
+        }
+
+        assertEquals(1, edits.size)
+        val regions = regionsOf(controller.draft.value)
+        listOf(0, SIZE, 2 * SIZE).forEach { assertEquals(0, regions[it]) }
+    }
+
     private companion object {
         const val SIZE = 6
         const val CROWN = 12 // row 2, column 0: three empty cells to its right

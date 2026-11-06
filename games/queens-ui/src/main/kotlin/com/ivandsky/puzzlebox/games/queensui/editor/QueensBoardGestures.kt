@@ -63,10 +63,11 @@ internal class QueensBoardTouch {
 
 /**
  * The editor board's touch handling over an [n]×[n] board. A tap hits the cell under it
- * (edge-clamped, as in play) and goes to [QueensEditorController.tap]. A drag that starts on a
- * coloured cell, in either mode, is a colour stroke: [touch] previews it live and the lift
- * commits it as one [QueensEditorController.stroke]. A drag from an unpainted cell adds every
- * cell it crosses to the selection in Paint mode and does nothing in Crown mode.
+ * (edge-clamped, as in play) and goes to [QueensEditorController.tap]. A drag belongs to the
+ * cell under its pointer-down (not where it crossed the touch slop). From a coloured cell, in
+ * either mode, it is a colour stroke: [touch] previews it live and the lift commits it as one
+ * [QueensEditorController.stroke]. From an unpainted cell it adds every cell it crosses to the
+ * selection in Paint mode and does nothing in Crown mode.
  */
 internal fun Modifier.queensBoardGestures(controller: QueensEditorController, n: Int, touch: QueensBoardTouch): Modifier = this
     .pointerInput(controller, n) {
@@ -79,14 +80,16 @@ internal fun Modifier.queensBoardGestures(controller: QueensEditorController, n:
         var last = Offset.Zero
         var selecting = false
         detectDragGestures(
-            onDragStart = { start ->
-                last = start
-                val cell = cellAt(start, size.toSize(), n)
+            orientationLock = null,
+            onDragStart = { down, slopCrossed, _ ->
+                val cell = cellAt(down.position, size.toSize(), n)
                 val board = controller.draft.value.state.draft as QueensDraft
                 val stroke = board.regions[cell] != QueensDraft.UNPAINTED
                 selecting = !stroke && controller.mode.value == QueensEditorMode.Paint
                 touch.start(cell, stroke)
-                if (selecting) controller.add(listOf(cell))
+                val slop = crossed(down.position, slopCrossed.position, size.toSize(), n)
+                if (stroke) touch.extend(slop) else if (selecting) controller.add(slop)
+                last = slopCrossed.position
             },
             onDragEnd = {
                 val from = touch.strokeFrom
