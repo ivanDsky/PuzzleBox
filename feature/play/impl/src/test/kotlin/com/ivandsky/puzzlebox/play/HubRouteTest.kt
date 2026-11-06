@@ -1,19 +1,31 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -46,7 +58,9 @@ import org.robolectric.annotation.Config
  * The Play tab's games hub over stand-in games: one row per playable game in registry
  * order under `route.hub`, picking a row reports that game without fetching, and a game
  * reads today's status and what a tap does: a save "In progress · m:ss" / Continue, a solve
- * "Solved · m:ss ✓" / Replay, otherwise "Not started" / Play (A13, A14, SC11).
+ * "Solved · m:ss ✓" / Replay, otherwise "Not started" / Play (A13, A14, SC11). A game with
+ * an archive offers "Past puzzles": a date picker bounded to its range whose Open reports
+ * the picked day, with no daily read on the way (A22).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -78,7 +92,7 @@ class HubRouteTest {
                     single<GamePlayRegistry> { fakes.registry }
                     single<SavedPlayRepository> { saved }
                     single<GameCalendar> { FakeGameCalendar(today) }
-                    factory { GetReplaySession(get(), get()) }
+                    factory { LoadPastDay(get(), get()) }
                     factory { ObserveTodaySet(get(), get(), get(), get()) }
                 },
                 playModule,
@@ -91,13 +105,21 @@ class HubRouteTest {
         koin?.close()
     }
 
-    private fun setContent(onPick: (GameId) -> Unit) {
+    private fun setContent(
+        onPickDay: (GameId, LocalDate) -> Unit = { _, _ -> },
+        onPick: (GameId) -> Unit,
+    ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                HubRoute(onPick = onPick)
+                HubRoute(onPick = onPick, onPickDay = onPickDay)
             }
         }
     }
+
+    /** A picker day cell: its merged text is the full date ("Monday, November 2, 2026"). */
+    private fun day(date: String) = composeRule.onNode(
+        hasText(date, substring = true) and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button),
+    )
 
     @Test
     fun `the hub lists every playable game`() {
@@ -150,5 +172,59 @@ class HubRouteTest {
         }
         composeRule.onNodeWithTag("hub.status.zip", useUnmergedTree = true).assertTextEquals("Solved · 0:36 ✓")
         composeRule.onNodeWithTag("hub.action.zip", useUnmergedTree = true).assertTextEquals("Replay")
+    }
+
+    @Test
+    fun `past puzzles shows only on a game with an archive`() {
+        daily.setArchiveRange(alpha, LocalDate.parse("2026-10-01")..today)
+        setContent {}
+
+        composeRule.onNodeWithTag("hub.past.alpha").assertExists()
+        composeRule.onNodeWithTag("hub.past.alpha").assert(hasContentDescription("Past Alpha puzzles"))
+        composeRule.onNodeWithTag("hub.past.zip").assertDoesNotExist()
+        composeRule.onAllNodesWithText("Past puzzles").assertCountEquals(1)
+    }
+
+    @Test
+    fun `the picker allows only the archive range, opens the picked day and fetches nothing`() {
+        daily.setArchiveRange(alpha, LocalDate.parse("2026-11-01")..today)
+        val picked = ArrayList<Pair<GameId, LocalDate>>()
+        val rowTaps = ArrayList<GameId>()
+        setContent(onPickDay = { game, day -> picked.add(game to day) }) { rowTaps.add(it) }
+
+        composeRule.onNodeWithTag("hub.past.alpha").performClick()
+        composeRule.waitForIdle()
+
+        day("November 4, 2026").assertIsEnabled().assertIsSelected()
+        day("November 1, 2026").assertIsEnabled()
+        day("November 5, 2026").assertIsNotEnabled()
+        day("November 30, 2026").assertIsNotEnabled()
+        assertEquals(0, daily.todayCalls(alpha))
+        assertEquals(0, daily.dayCalls(alpha, LocalDate.parse("2026-11-02")))
+
+        // A semantic tap (TalkBack's): under Robolectric an injected touch does not select a day cell.
+        day("November 2, 2026").performSemanticsAction(SemanticsActions.OnClick)
+        day("November 2, 2026").assertIsSelected()
+        composeRule.onNodeWithText("Open").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(listOf(alpha to LocalDate.parse("2026-11-02")), picked)
+        assertEquals(emptyList<GameId>(), rowTaps)
+        assertEquals(0, daily.dayCalls(alpha, LocalDate.parse("2026-11-02")))
+        composeRule.onNodeWithText("Open").assertDoesNotExist()
+    }
+
+    @Test
+    fun `cancel closes the picker without opening a day`() {
+        daily.setArchiveRange(alpha, LocalDate.parse("2026-11-01")..today)
+        val picked = ArrayList<Pair<GameId, LocalDate>>()
+        setContent(onPickDay = { game, day -> picked.add(game to day) }) {}
+
+        composeRule.onNodeWithTag("hub.past.alpha").performClick()
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Open").assertDoesNotExist()
+        assertEquals(emptyList<Pair<GameId, LocalDate>>(), picked)
     }
 }

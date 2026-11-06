@@ -1,0 +1,31 @@
+{
+  "data":{"data":{"identityDashGamesByTodaysGame":{"$type":"com.linkedin.restli.common.CollectionResponse","*elements":["urn:li:fsd_game:(ACoAAAAAAAABWzs7tPEzjbzdTu0bZDhDZpin_Ds,7,450)"]}}},
+  "included":[{
+    "$type":"com.linkedin.voyager.dash.identity.game.Game",
+    "entityUrn":"urn:li:fsd_game:(ACoAAAAAAAABWzs7tPEzjbzdTu0bZDhDZpin_Ds,7,450)",
+    "gameTypeId":7,
+    "puzzleId":450,
+    "hasTimer":true,
+    "gamePuzzle":{
+      "$type":"com.linkedin.voyager.dash.identity.game.GamePuzzle",
+      "blueprintGamePuzzle":null,"crossClimbGamePuzzle":null,"trailGamePuzzle":null,
+      "queensGamePuzzle":null,"lotkaGamePuzzle":null,
+      "miniSudokuGamePuzzle":{
+        "$type":"com.linkedin.voyager.dash.identity.game.MiniSudokuGamePuzzle",
+        "name":"Peanut",
+        "gridRowSize":6,
+        "gridColSize":6,
+        "regions":[
+          {"$type":"com.linkedin.voyager.dash.identity.game.MiniSudokuRegion","cellIdxes":[0,1,2,6,7,8]},
+          {"$type":"com.linkedin.voyager.dash.identity.game.MiniSudokuRegion","cellIdxes":[3,4,5,9,10,11]},
+          {"$type":"com.linkedin.voyager.dash.identity.game.MiniSudokuRegion","cellIdxes":[12,13,14,18,19,20]},
+          {"$type":"com.linkedin.voyager.dash.identity.game.MiniSudokuRegion","cellIdxes":[15,16,17,21,22,23]},
+          {"$type":"com.linkedin.voyager.dash.identity.game.MiniSudokuRegion","cellIdxes":[24,25,26,30,31,32]},
+          {"$type":"com.linkedin.voyager.dash.identity.game.MiniSudokuRegion","cellIdxes":[27,28,29,33,34,35]}],
+        "presetCellIdxes":[2,4,7,9,11,12,23,24,26,28,31,33],
+        "solution":[4,6,3,2,5,1,5,2,1,4,3,6,1,4,2,5,6,3,3,5,6,1,4,2,2,3,4,6,1,5,6,1,5,3,2,4],
+        "columnRestrictions":[]
+      }
+    }
+  }]
+}

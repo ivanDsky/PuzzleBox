@@ -48,11 +48,12 @@ fun EmptyState(
     }
 }
 
+/** An error with its cause; [onRetry] null when retrying can't help, so no button is offered. */
 @Composable
 fun ErrorState(
     title: String,
     message: String,
-    onRetry: () -> Unit,
+    onRetry: (() -> Unit)?,
     modifier: Modifier = Modifier,
     retryLabel: String = "Try again",
 ) {
@@ -78,7 +79,7 @@ fun ErrorState(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        PrimaryButton(text = retryLabel, onClick = onRetry)
+        if (onRetry != null) PrimaryButton(text = retryLabel, onClick = onRetry)
     }
 }
 

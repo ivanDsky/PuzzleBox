@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.play
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
-import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.SessionBlob
@@ -72,7 +72,7 @@ class PlaySessionStoreSlotsTest {
         return PlaySessionStore(
             games = fakes.games,
             ui = ui,
-            opening = SlotOpening(daily, GetReplaySession(daily, fakes.games), saved, calendar, fakes.games, lane),
+            opening = SlotOpening(daily, LoadPastDay(daily, fakes.games), saved, calendar, fakes.games, lane),
             writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
             completions = FakeCompletionRepository(),
             calendar = calendar,

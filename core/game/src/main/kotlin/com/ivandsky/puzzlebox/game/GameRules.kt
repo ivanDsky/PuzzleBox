@@ -14,7 +14,9 @@ interface MoveVerdict
  * rejection [MoveVerdict]. Never throw, never an unchecked `as` cast: validation is
  * total over every [Move], and callers branch on verdicts, not exceptions.
  *
- * Hints are counted by the caller (A3) — rules never track hint usage themselves.
+ * Hints are counted by the caller (A3) — rules never track hint usage themselves. The
+ * exception: a game whose hint economy depends on usage (Strands: earned − spent) may hold
+ * and spend that count in its own state [P].
  * A new rule, special case, or mechanic post-release lands as a new variant in the
  * game's own module (A18): these three signatures never grow.
  */

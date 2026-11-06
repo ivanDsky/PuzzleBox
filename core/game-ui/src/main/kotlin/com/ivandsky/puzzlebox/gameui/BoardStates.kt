@@ -57,7 +57,7 @@ fun BoardEmpty(
 @Composable
 fun BoardError(
     message: String,
-    onRetry: () -> Unit,
+    onRetry: (() -> Unit)?,
     modifier: Modifier = Modifier,
     title: String = "Couldn't load the puzzle",
     retryLabel: String = "Try again",

@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.map
 
 /**
  * Room adapter of [SavedPlayRepository]: each save is stamped with [clock] (epoch ms) and
- * prunes to the newest [CAP] slots in the same transaction (SC8), so the save just made
+ * prunes that game to its newest [CAP] slots in the same transaction (SC8, SC16), so the save just made
  * always survives. [PlaySlot.day] is stored as its ISO-8601 string.
  */
 internal class RoomSavedPlayRepository(
