@@ -88,7 +88,7 @@ internal fun GamePicker(
                     val ui = games[row.game]
                     HubCard(
                         entry = row,
-                        best = state.bestByGame[row.game],
+                        best = row.best?.timeMs,
                         isNext = row.game == state.next,
                         thumbnail = if (model != null && ui != null) {
                             { thumb -> ui.BoardThumbnail(model, thumb) }

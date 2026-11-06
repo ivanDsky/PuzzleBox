@@ -10,10 +10,13 @@ import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.FetchError
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.SessionBlob
+import com.ivandsky.puzzlebox.gameui.BoardPreview
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -31,12 +34,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 
 /**
- * The hub's board thumbnails ([HubUiState.previews]): each game's own preview model of
+ * The hub's per-game state: each row's best under its own ranking and its Up-next line,
+ * and the board thumbnails ([HubUiState.previews]): each game's own preview model of
  * today — an unfinished play's newest session (a live play's change still waiting to be
  * saved beats the older row on disk), the cached daily fresh when not started or solved
  * when solved, none when offline or unreadable — rebuilt when a new save lands.
@@ -49,7 +54,8 @@ class HubViewModelTest {
     private val alpha = TestGames.alpha
     private val beta = TestGames.beta
     private val day = LocalDate.parse("2026-11-04")
-    private val fakes = FakeGames(listOf(alpha, beta))
+    // beta ranks its bests hints first, as Strands does; alpha keeps the time-first default.
+    private val fakes = FakeGames(listOf(alpha, beta), hintsRanked = setOf(beta))
     private val daily = FakeDailyRepository().apply {
         setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
         setToday(beta, DailyToday.Fresh(TestGames.puzzle(beta)))
@@ -91,6 +97,7 @@ class HubViewModelTest {
             stats = ObserveGameStats(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games))),
             history = history,
             calendar = calendar,
+            games = fakes.games,
             registry = fakes.registry,
             daily = daily,
             previewDispatcher = dispatcher,
@@ -105,6 +112,40 @@ class HubViewModelTest {
     private fun save(game: GameId, moves: Int, elapsedMs: Long) = runBlocking {
         val session = FakeController.envelope(game, moves = moves, day = day).session
         saved.save(PlaySlot(game, day), SessionBlob.encode(game, session), elapsedMs)
+    }
+
+    @Test
+    fun `a hints-ranked game's row carries its fewest-hints best, and the next row its Up-next line`() {
+        daily.setCached(alpha, day, TestGames.puzzle(alpha, tag = 4))
+        completions.setRecords(
+            listOf(
+                CompletionRecord(TestGames.Ref(beta, day.minusDays(1), 6), 10_000L, 2, RecordStats(1, "{}"), isRecord = true),
+                CompletionRecord(TestGames.Ref(beta, day.minusDays(2), 5), 90_000L, 0, RecordStats(1, "{}"), isRecord = true),
+            ),
+        )
+
+        val state = observedVm().uiState.value
+        val rows = state.rows.associateBy { it.game }
+
+        assertEquals(RankOrder.HintsThenTime, rows.getValue(beta).rankOrder)
+        assertEquals(BestScore(timeMs = 90_000L, hints = 0), rows.getValue(beta).best)
+        assertEquals(RankOrder.TimeThenHints, rows.getValue(alpha).rankOrder)
+        assertEquals(alpha, state.next)
+        val line = fakes[alpha].hubLine(BoardPreview.Fresh(TestGames.puzzle(alpha, tag = 4)))
+        assertNotNull(line)
+        assertEquals(line, rows.getValue(alpha).line)
+        assertEquals(HubHero.Next(alpha), state.plan.hero)
+    }
+
+    @Test
+    fun `a game solved today has no Up-next line`() {
+        daily.setCached(alpha, day, TestGames.puzzle(alpha, tag = 6))
+        runBlocking { completions.onCompleted(CompletionRecord(TestGames.Ref(alpha, day, 7), 30_000L, 0, RecordStats(1, "{}"))) }
+
+        val rows = observedVm().uiState.value.rows.associateBy { it.game }
+
+        assertEquals(TodayStatus.Solved(30_000L), rows.getValue(alpha).status)
+        assertNull(rows.getValue(alpha).line)
     }
 
     @Test

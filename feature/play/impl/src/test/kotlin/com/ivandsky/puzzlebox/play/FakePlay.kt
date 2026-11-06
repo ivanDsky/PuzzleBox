@@ -11,10 +11,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.GamePlugin
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.RendererModel
+import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.BoardPreview
@@ -85,6 +89,9 @@ class FakePlayUi(override val gameId: GameId) : GamePlayUi {
         is BoardPreview.Fresh -> preview.puzzle.takeIf { it.gameId == gameId }?.let { FakePreview("fresh ${it.payload.last()}") }
         is BoardPreview.Solved -> preview.puzzle.takeIf { it.gameId == gameId }?.let { FakePreview("solved ${it.payload.last()}") }
     }
+
+    /** The board's preview label as a line, so a test can tell which board it was read from. */
+    override fun hubLine(today: BoardPreview): String? = (previewModel(today) as FakePreview?)?.let { "line ${it.label}" }
 
     @Composable
     override fun BoardThumbnail(model: RendererModel, modifier: Modifier) {
@@ -245,11 +252,31 @@ class FakeController(
     }
 }
 
-/** The fake games' play UIs plus the registries over them (registry order = [ids]). */
-class FakeGames(ids: List<GameId>) {
+/**
+ * The fake games' play UIs plus the registries over them (registry order = [ids]); the
+ * [hintsRanked] ones rank their bests hints first, as Strands does.
+ */
+class FakeGames(ids: List<GameId>, hintsRanked: Set<GameId> = emptySet()) {
     val uis: Map<GameId, FakePlayUi> = ids.associateWith(::FakePlayUi)
     val registry = GamePlayRegistry(uis.values.toList())
-    val games = TestGames.registry(ids)
+    val games = GameRegistry(ids.map { if (it in hintsRanked) hintsFirst(TestGames.plugin(it)) else TestGames.plugin(it) })
 
     operator fun get(id: GameId): FakePlayUi = uis.getValue(id)
+
+    private fun <P> hintsFirst(
+        plugin: GamePlugin<P, TestGames.Session, TestGames.Model>,
+    ): GamePlugin<P, TestGames.Session, TestGames.Model> = GamePlugin(
+        definition = plugin.definition,
+        rules = plugin.rules,
+        session = plugin.session,
+        score = object : ScoreModel<TestGames.Session> {
+            override fun completion(session: TestGames.Session) = plugin.score.completion(session)
+            override val rankOrder = RankOrder.HintsThenTime
+        },
+        stateOf = plugin.stateOf,
+        initialSession = plugin.initialSession,
+        refOf = plugin.refOf,
+        replaySession = plugin.replaySession,
+        rendererModel = plugin.rendererModel,
+    )
 }

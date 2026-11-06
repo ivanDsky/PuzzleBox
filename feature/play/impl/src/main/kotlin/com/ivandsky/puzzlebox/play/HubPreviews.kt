@@ -18,6 +18,8 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.gameui.BoardPreview
 import com.ivandsky.puzzlebox.gameui.GameBrand
@@ -34,6 +36,7 @@ import com.ivandsky.puzzlebox.model.GameId
 // grid with a few cells filled in the game's accent.
 
 private const val PREVIEW_SIDE = 5
+private val Time = RankOrder.TimeThenHints
 
 /** A stand-in board: the [filled] cell indices of a [PREVIEW_SIDE] square grid. */
 private data class PreviewBoard(val filled: Set<Int>) : RendererModel
@@ -87,12 +90,11 @@ private val previewGames = GamePlayRegistry(listOf(zip, tango, queens))
 
 private val previewState = HubUiState(
     rows = listOf(
-        HubRow(zip.gameId, "Zip", zip.brand, 592, TodayStatus.Solved(36_000L)),
-        HubRow(tango.gameId, "Tango", tango.brand, 431, TodayStatus.InProgress(42_000L)),
-        HubRow(queens.gameId, "Queens", queens.brand, 918, TodayStatus.NotStarted),
-        HubRow(GameId("pinpoint"), "Pinpoint", status = TodayStatus.Offline),
+        HubRow(zip.gameId, "Zip", Time, zip.brand, 592, TodayStatus.Solved(36_000L), best = BestScore(31_000L, 0)),
+        HubRow(tango.gameId, "Tango", Time, tango.brand, 431, TodayStatus.InProgress(42_000L)),
+        HubRow(queens.gameId, "Queens", Time, queens.brand, 918, TodayStatus.NotStarted),
+        HubRow(GameId("pinpoint"), "Pinpoint", Time, status = TodayStatus.Offline),
     ),
-    bestByGame = mapOf(zip.gameId to 31_000L),
     doneCount = 1,
     next = tango.gameId,
     previews = mapOf(
@@ -112,16 +114,15 @@ private val manyGames = GamePlayRegistry(listOf(zip, tango, queens, pinpoint, cr
 /** Eight games, enough for the phone grid of tiles: three solved, one in progress and next, one offline. */
 private val manyState = HubUiState(
     rows = listOf(
-        HubRow(zip.gameId, "Zip", zip.brand, 592, TodayStatus.Solved(36_000L)),
-        HubRow(tango.gameId, "Tango", tango.brand, 431, TodayStatus.Solved(58_000L)),
-        HubRow(queens.gameId, "Queens", queens.brand, 918, TodayStatus.InProgress(42_000L)),
-        HubRow(pinpoint.gameId, "Pinpoint", pinpoint.brand, status = TodayStatus.Offline),
-        HubRow(crossclimb.gameId, "Crossclimb", crossclimb.brand, 377, TodayStatus.Solved(95_000L)),
-        HubRow(wordle.gameId, "Wordle", wordle.brand, 1_604, TodayStatus.NotStarted),
-        HubRow(sudoku.gameId, "Sudoku", sudoku.brand, 88, TodayStatus.NotStarted),
-        HubRow(nonogram.gameId, "Nonogram", nonogram.brand, 12, TodayStatus.NotStarted),
+        HubRow(zip.gameId, "Zip", Time, zip.brand, 592, TodayStatus.Solved(36_000L), best = BestScore(31_000L, 0)),
+        HubRow(tango.gameId, "Tango", Time, tango.brand, 431, TodayStatus.Solved(58_000L), best = BestScore(50_000L, 0)),
+        HubRow(queens.gameId, "Queens", Time, queens.brand, 918, TodayStatus.InProgress(42_000L)),
+        HubRow(pinpoint.gameId, "Pinpoint", Time, pinpoint.brand, status = TodayStatus.Offline),
+        HubRow(crossclimb.gameId, "Crossclimb", Time, crossclimb.brand, 377, TodayStatus.Solved(95_000L), best = BestScore(80_000L, 0)),
+        HubRow(wordle.gameId, "Wordle", Time, wordle.brand, 1_604, TodayStatus.NotStarted),
+        HubRow(sudoku.gameId, "Sudoku", Time, sudoku.brand, 88, TodayStatus.NotStarted),
+        HubRow(nonogram.gameId, "Nonogram", Time, nonogram.brand, 12, TodayStatus.NotStarted),
     ),
-    bestByGame = mapOf(zip.gameId to 31_000L, tango.gameId to 50_000L, crossclimb.gameId to 80_000L),
     doneCount = 3,
     next = queens.gameId,
     previews = mapOf(
