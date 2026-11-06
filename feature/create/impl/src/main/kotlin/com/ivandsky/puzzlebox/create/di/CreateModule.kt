@@ -15,5 +15,5 @@ import org.koin.dsl.module
  */
 val createModule: Module = module {
     viewModel { CreateViewModel(get(), get(), get(), get()) }
-    viewModel { (key: EditorKey) -> EditorViewModel(key, get(), get(), get(), clock = { Instant.now() }) }
+    viewModel { (key: EditorKey) -> EditorViewModel(key, get(), get(), get(), get(), clock = { Instant.now() }) }
 }
