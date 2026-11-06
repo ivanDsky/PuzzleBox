@@ -109,6 +109,9 @@ object MotionTokens {
     // HintPulse: one half-cycle of a hint region's pulse (dim, or back). Reduced: none.
     const val HintPulseDuration = 400
 
+    // Shimmer: a skeleton sheen sweeps start→end in a Linear loop. Reduced: static skeleton.
+    const val ShimmerDuration = 1100
+
     // Cascade: a mass exit (Queens auto-marks) staggers per cell up to a cap, so the wave
     // reads as one orchestration. Reduced: instant.
     const val CascadeStepMillis = 10L
