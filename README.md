@@ -4,6 +4,10 @@ One Android app for daily logic puzzles — play official NYT/LinkedIn dailies, 
 
 > **Status: alpha (0.x)** — Zip, Queens, Tango and Mini Sudoku are playable; Strands and social features are on the roadmap.
 
+## Install
+
+Download `PuzzleBox-<version>.apk` from the [latest release](https://github.com/ivanDsky/PuzzleBox/releases/latest) on your Android phone and open it; allow installs from your browser if Android asks. Release builds show an **Update available** pill on Home when a newer release is out.
+
 ## Games
 
 - **Zip** — LinkedIn daily: draw one path through every cell, visiting the numbers in order
