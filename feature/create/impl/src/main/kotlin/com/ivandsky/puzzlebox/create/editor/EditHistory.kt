@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.create.editor
 
+import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -7,8 +8,9 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * The open draft's undo and redo (spec S3): it holds the current [EditorDraft] and walks the
- * draft's own command history one step at a time, so no screen keeps a second stack.
- * [canUndo] and [canRedo] follow the current draft; both are false until [open].
+ * draft's own command history one step at a time, so no screen keeps a second stack. Resize
+ * and clear (A5) are steps on that same history. [canUndo] and [canRedo] follow the current
+ * draft; both are false until [open].
  */
 internal class EditHistory {
 
@@ -31,6 +33,13 @@ internal class EditHistory {
 
     /** The undone step again; null when there is nothing to redo. */
     fun redo(): EditorDraft<*>? = current?.redo()?.also(::moveTo)
+
+    /** A blank [variant] board as one step; null before [open] or when the draft already has that size. */
+    fun resize(variant: VariantId): EditorDraft<*>? =
+        current?.takeIf { it.variant != variant }?.resize(variant)?.also(::moveTo)
+
+    /** A blank board of the same size as one step; null before [open]. */
+    fun clear(): EditorDraft<*>? = current?.clear()?.also(::moveTo)
 
     private fun moveTo(draft: EditorDraft<*>) {
         current = draft

@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
-import com.ivandsky.puzzlebox.games.queens.queensVariantId
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -17,10 +16,20 @@ import org.junit.Test
 class QueensDraftAnalyzerTest {
 
     @Test
-    fun `a new draft is one region, so it reads Incomplete on the region count`() {
-        val draft = QueensEditor.newDraft(queensVariantId(4))
+    fun `a new draft is all unpainted, so it reads Incomplete on N squared unpainted cells`() {
+        for (variant in QueensEditor.variants) {
+            val draft = QueensEditor.newDraft(variant)
 
-        val verdict = QueensDraftAnalyzer.analyze(draft, Budget.Unlimited)
+            val verdict = QueensDraftAnalyzer.analyze(draft, Budget.Unlimited)
+
+            assertEquals(List(draft.size * draft.size) { QueensDraft.UNPAINTED }, draft.regions)
+            assertEquals(Verdict.Incomplete(IncompleteReason(QueensDraftAnalyzer.UNPAINTED, draft.size * draft.size)), verdict)
+        }
+    }
+
+    @Test
+    fun `a fully painted board of one region reads Incomplete on the region count`() {
+        val verdict = QueensDraftAnalyzer.analyze(QueensDraft(4, List(16) { 0 }), Budget.Unlimited)
 
         assertEquals(Verdict.Incomplete(IncompleteReason(QueensDraftAnalyzer.REGIONS, 1)), verdict)
     }

@@ -49,6 +49,7 @@ class CreateSkeletonE2ETest {
                     .fetchSemanticsNodes().isNotEmpty()
             }
             val blank = regionOf(CELL_0)
+            assertEquals("a new draft starts unpainted", "unpainted", blank)
 
             tap(CELL_0)
             tap(RING_NEXT)

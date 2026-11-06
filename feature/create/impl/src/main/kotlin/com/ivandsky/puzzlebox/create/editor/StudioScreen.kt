@@ -26,6 +26,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -126,6 +127,11 @@ private fun StudioScreenPreview() {
                     canRedo = false,
                     onUndo = {},
                     onRedo = {},
+                    sizes = listOf(VariantId("queens/4")),
+                    size = VariantId("queens/4"),
+                    sizeLabel = { "4×4" },
+                    onResize = {},
+                    onClear = {},
                     hint = { Text("Tap a cell to cycle its region colour", it, style = MaterialTheme.typography.bodySmall) },
                     modifier = stripModifier,
                 )
