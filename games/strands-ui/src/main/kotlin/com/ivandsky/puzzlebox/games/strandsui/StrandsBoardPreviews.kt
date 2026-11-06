@@ -35,17 +35,15 @@ private val previewPuzzle: StrandsPuzzle by lazy {
     )
 }
 
-private fun model(state: StrandsState = StrandsState(previewPuzzle), trace: List<Coord> = emptyList()) =
-    StrandsRendererModel.of(state, trace)
-
+/** [trace] reaches the board as its live trace, as the play screen's does, not through the model. */
 @Composable
-private fun BoardPane(model: StrandsRendererModel) {
+private fun BoardPane(state: StrandsState = StrandsState(previewPuzzle), trace: List<Coord> = emptyList()) {
     PuzzleBoxTheme {
         StrandsBoardContent(
-            model = model,
+            model = StrandsRendererModel.of(state),
             found = null,
             reduceMotion = true,
-            trace = { Trace() },
+            trace = { Trace(trace) },
             onTrace = {},
             modifier = Modifier.fillMaxWidth(),
         )
@@ -55,41 +53,41 @@ private fun BoardPane(model: StrandsRendererModel) {
 @PuzzleBoxPreviews
 @Preview(name = "Compact width", widthDp = 360, heightDp = 400, showBackground = true)
 @Composable
-internal fun StrandsBoardIdlePreview() = BoardPane(model())
+internal fun StrandsBoardIdlePreview() = BoardPane()
 
 @PuzzleBoxPreviews
 @Preview(name = "Compact width", widthDp = 360, heightDp = 400, showBackground = true)
 @Composable
 internal fun StrandsBoardTracingPreview() =
-    BoardPane(model(trace = listOf(Coord(2, 0), Coord(2, 1), Coord(3, 2))))
+    BoardPane(trace = listOf(Coord(2, 0), Coord(2, 1), Coord(3, 2)))
 
 @PuzzleBoxPreviews
 @Preview(name = "Compact width", widthDp = 360, heightDp = 400, showBackground = true)
 @Composable
 internal fun StrandsBoardFoundPreview() =
-    BoardPane(model(StrandsState(previewPuzzle, found = listOf("PIES", "BAKE"))))
+    BoardPane(StrandsState(previewPuzzle, found = listOf("PIES", "BAKE")))
 
 @PuzzleBoxPreviews
 @Preview(name = "Compact width", widthDp = 360, heightDp = 400, showBackground = true)
 @Composable
 internal fun StrandsBoardHintOutlinedPreview() =
-    BoardPane(model(StrandsState(previewPuzzle, hintsUsed = 1, activeHint = ActiveHint("TART", HintStage.Outlined))))
+    BoardPane(StrandsState(previewPuzzle, hintsUsed = 1, activeHint = ActiveHint("TART", HintStage.Outlined)))
 
 @PuzzleBoxPreviews
 @Preview(name = "Compact width", widthDp = 360, heightDp = 400, showBackground = true)
 @Composable
 internal fun StrandsBoardHintOrderPreview() =
-    BoardPane(model(StrandsState(previewPuzzle, hintsUsed = 2, activeHint = ActiveHint("TART", HintStage.OrderRevealed))))
+    BoardPane(StrandsState(previewPuzzle, hintsUsed = 2, activeHint = ActiveHint("TART", HintStage.OrderRevealed)))
 
 @PuzzleBoxPreviews
 @Preview(name = "Compact width", widthDp = 360, heightDp = 400, showBackground = true)
 @Composable
 internal fun StrandsBoardSolvedPreview() =
-    BoardPane(model(StrandsState(previewPuzzle, found = listOf("PIES", "BAKE", "TART", "CAKE"))))
+    BoardPane(StrandsState(previewPuzzle, found = listOf("PIES", "BAKE", "TART", "CAKE")))
 
 /** A tablet in landscape gives the board a short, wide pane: the cell binds on height (A37). */
 @PuzzleBoxPreviews
 @Preview(name = "Expanded landscape", widthDp = 640, heightDp = 220, showBackground = true)
 @Composable
 internal fun StrandsBoardShortPanePreview() =
-    BoardPane(model(StrandsState(previewPuzzle, found = listOf("BAKE")), trace = listOf(Coord(0, 0), Coord(0, 1))))
+    BoardPane(StrandsState(previewPuzzle, found = listOf("BAKE")), trace = listOf(Coord(0, 0), Coord(0, 1)))

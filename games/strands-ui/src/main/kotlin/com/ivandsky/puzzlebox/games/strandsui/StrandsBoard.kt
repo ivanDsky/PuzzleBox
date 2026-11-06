@@ -10,13 +10,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.IntState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +36,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import com.ivandsky.puzzlebox.designsystem.BoardColors
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
+import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSemantics.letterButton
@@ -58,7 +63,7 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
  */
 @Composable
 internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier = Modifier) {
-    val model = controller.model
+    val model = controller.baseModel
     if (model.rows == 0) return
     val haptics = LocalHapticFeedback.current
     var playing by remember { mutableStateOf<FoundEvent?>(null) }
@@ -84,10 +89,11 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
 }
 
 /**
- * The stateless board: [model] as round letter tokens over their connectors, sized to the
- * space it is given ([strandsCellSizeFor]) and centred in it, the whole width being its
- * touch area. [found] is the word just found, whose letters settle or sweep; [trace] is read
- * at each input, so a gesture always builds on the live trace.
+ * The stateless board: [model] (the board at rest) as round letter tokens over their
+ * connectors, sized to the space it is given ([strandsCellSizeFor]) and centred in it, the
+ * whole width being its touch area. [found] is the word just found, whose letters settle or
+ * sweep. [trace] is never read here: each letter derives its own place in it and the trace
+ * connector reads it while drawing, so a trace step recomposes only the letters it changes.
  */
 @Composable
 internal fun StrandsBoardContent(
@@ -100,7 +106,8 @@ internal fun StrandsBoardContent(
 ) {
     val colors = LocalBoardColors.current
     // Bumped by every touch-down: a running settle, sweep or hint pulse rests at once (A12).
-    var touchSeq by remember { mutableIntStateOf(0) }
+    // Read only by the motion effects, so a touch-down recomposes nothing.
+    val touchSeq = remember { mutableIntStateOf(0) }
     BoxWithConstraints(modifier.fillMaxWidth()) {
         val cell = strandsCellSizeFor(maxWidth, maxHeight, model.rows, model.cols)
         val boardSize = DpSize(cell * model.cols, cell * model.rows)
@@ -111,17 +118,17 @@ internal fun StrandsBoardContent(
                 modifier = Modifier.requiredSize(boardSize).testTag("strands.board"),
                 // Strands has no grid: the letters float on the bare board.
                 colors = colors.copy(boardGridLine = Color.Transparent),
-                underlay = { StrandsConnectors(model.rows, model.cols, model.links, colors) },
+                underlay = { StrandsConnectors(model.rows, model.cols, model.links, trace, colors) },
                 cellContent = { row, col ->
-                    val letter = model.cells[row * model.cols + col]
                     LetterToken(
-                        cell = letter,
+                        cell = model.cells[row * model.cols + col],
                         pitch = cell,
                         found = found,
                         reduceMotion = reduceMotion,
                         touchSeq = touchSeq,
                         colors = colors,
-                        onTap = { onTrace(TraceInput.tap(trace(), letter.coord)) },
+                        trace = trace,
+                        onTrace = onTrace,
                     )
                 },
             )
@@ -131,11 +138,14 @@ internal fun StrandsBoardContent(
                 boardSize = boardSize,
                 trace = trace,
                 onTrace = onTrace,
-                onTouch = { touchSeq++ },
+                onTouch = { touchSeq.intValue++ },
             )
         }
     }
 }
+
+/** Called with a letter's cell each time its token composes; a no-op outside tests, which count recompositions with it. */
+internal val LocalTokenComposed = staticCompositionLocalOf<(Coord) -> Unit> { {} }
 
 @Composable
 private fun LetterToken(
@@ -143,12 +153,18 @@ private fun LetterToken(
     pitch: Dp,
     found: FoundEvent?,
     reduceMotion: Boolean,
-    touchSeq: Int,
+    touchSeq: IntState,
     colors: BoardColors,
-    onTap: () -> Unit,
+    trace: () -> Trace,
+    onTrace: (TraceStep) -> Unit,
 ) {
+    LocalTokenComposed.current(cell.coord)
+    val traceIndex by remember(cell.coord, trace) {
+        derivedStateOf { trace().path.indexOf(cell.coord).takeIf { it >= 0 } }
+    }
+    val traced = traceIndex != null
+    val onTap = remember(cell.coord, trace, onTrace) { { onTrace(TraceInput.tap(trace(), cell.coord)) } }
     val spec = StrandsCellDrawing.specOf(cell.state)
-    val traced = cell.traceIndex != null
     val base = rememberCellFrame(spec, spec.trigger(cell, found), reduceMotion, touchSeq)
     val press = rememberCellFrame(TraceOverlaySpec, PressTrigger.takeIf { traced }, reduceMotion, touchSeq)
     val tokenSize = pitch * StrandsBoardSpec.TokenFraction
@@ -158,7 +174,7 @@ private fun LetterToken(
         Modifier
             .fillMaxSize()
             .testTag("strands.cell.${cell.coord.row}.${cell.coord.col}")
-            .letterButton(cell, onTap),
+            .letterButton(cell.copy(traceIndex = traceIndex), onTap),
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -208,15 +224,15 @@ private fun rememberCellFrame(
     spec: StrandsCellSpec,
     trigger: StrandsMotionTrigger?,
     reduceMotion: Boolean,
-    touchSeq: Int,
+    touchSeq: IntState,
 ): State<StrandsCellFrame> {
     val frame = remember(spec, trigger) {
         mutableStateOf(if (trigger == null) StrandsCellFrame.Rest else spec.frame(0, trigger.cue, reduceMotion))
     }
-    val bornTouch = remember(spec, trigger) { touchSeq }
-    val retired = touchSeq != bornTouch
-    LaunchedEffect(spec, trigger, reduceMotion, retired) {
-        if (trigger == null || reduceMotion || retired) {
+    // Unobserved: a touch-down must not recompose the token, only stop its motion below.
+    val bornTouch = remember(spec, trigger) { Snapshot.withoutReadObservation { touchSeq.intValue } }
+    LaunchedEffect(spec, trigger, reduceMotion) {
+        if (trigger == null || reduceMotion || touchSeq.intValue != bornTouch) {
             frame.value = StrandsCellFrame.Rest
             return@LaunchedEffect
         }
@@ -225,6 +241,7 @@ private fun rememberCellFrame(
         var elapsed = 0L
         while (elapsed < total) {
             elapsed = withFrameMillis { it } - start
+            if (touchSeq.intValue != bornTouch) break
             frame.value = spec.frame(elapsed.toInt(), trigger.cue, reduceMotion = false)
         }
         frame.value = StrandsCellFrame.Rest
