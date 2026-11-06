@@ -33,6 +33,7 @@
 ## Deploy targets (in order; empty list = build-only)
 - local: ./gradlew :app:assembleDebug
 - release: .github/workflows/release.yml  # push to main → signed release APK on GitHub releases; local release builds sign with the release key via ~/.gradle/gradle.properties
+# releases run in one queue; a 3rd quick merge replaces the 2nd's pending run (that version is skipped; next run releases HEAD — re-dispatch from main to publish now)
 # debug installs are com.ivandsky.puzzlebox.debug ("PuzzleBox Dev") beside the release app com.ivandsky.puzzlebox
 - tailscale: ivandsky.github
   - device: ivans-tab-s9-ultra @ 100.93.158.113  # verified 2026-11-01 (only Android node on tailnet)
