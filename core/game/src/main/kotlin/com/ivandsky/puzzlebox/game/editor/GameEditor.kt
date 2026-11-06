@@ -27,4 +27,7 @@ interface GameEditor<D : Any> {
 
     /** Pure and blocking. Polls [budget] in the search loop; exhausted ⇒ Verdict.Undetermined. */
     fun analyze(draft: D, budget: Budget): Verdict
+
+    /** Board gates outside the solver (contiguity in 09, needs-guessing in 11). */
+    fun publishBlocks(draft: D, verdict: Verdict): List<PublishBlock> = emptyList()
 }

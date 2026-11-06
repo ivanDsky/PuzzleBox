@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.GameEditor
+import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.QueensVariants
@@ -34,4 +35,7 @@ object QueensEditor : GameEditor<QueensDraft> {
     override fun decodeDraft(bytes: ByteArray): DecodeResult<DraftState<QueensDraft>> = QueensDraftCodec.decode(bytes)
 
     override fun analyze(draft: QueensDraft, budget: Budget): Verdict = QueensDraftAnalyzer.analyze(draft, budget)
+
+    override fun publishBlocks(draft: QueensDraft, verdict: Verdict): List<PublishBlock> =
+        QueensPublishGates.blocks(draft, verdict)
 }
