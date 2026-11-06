@@ -3,6 +3,9 @@ package com.ivandsky.puzzlebox.app.device
 import android.content.pm.ActivityInfo
 import androidx.activity.BackEventCompat
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -66,9 +69,25 @@ class DeviceShell : TestRule {
         rule.waitForIdle()
     }
 
-    /** Picks [gameId] on the Play hub and waits for its board. */
+    /**
+     * Opens [gameId]'s page in the Play library (a phone first leaves another game's page,
+     * since back from a board returns to the page it started from) and plays today once
+     * today has loaded.
+     */
     fun openGame(gameId: String) {
-        tap("hub.row.$gameId")
+        val page = "library.page.$gameId"
+        if (rule.onAllNodesWithTag(page).fetchSemanticsNodes().isEmpty()) {
+            if (rule.onAllNodesWithTag("library.page.back").fetchSemanticsNodes().isNotEmpty()) tap("library.page.back")
+            tap("library.row.$gameId")
+        }
+        awaitTag(page)
+        // Playable once today has loaded: a loading card's action is disabled, an offline one retries.
+        val offlineCard = hasTestTag("card.status_mark.offline") and hasAnyAncestor(hasTestTag("library.day_card"))
+        rule.waitUntil(TIMEOUT_MS) {
+            rule.onAllNodes(hasTestTag("library.play") and isEnabled()).fetchSemanticsNodes().isNotEmpty() &&
+                rule.onAllNodes(offlineCard, useUnmergedTree = true).fetchSemanticsNodes().isEmpty()
+        }
+        tap("library.play")
         awaitTag(GAME)
         rule.waitUntil(TIMEOUT_MS) { rule.runOnIdle { liveZip()?.session } != null }
     }
@@ -170,7 +189,7 @@ class DeviceShell : TestRule {
     companion object {
         const val HOME = "route.home"
         const val HISTORY = "route.history"
-        const val HUB = "route.hub"
+        const val LIBRARY = "route.library"
         const val GAME = "route.game"
         const val ZIP = "zip"
         private const val ZIP_SIZE = 5

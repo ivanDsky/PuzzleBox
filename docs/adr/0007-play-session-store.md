@@ -36,8 +36,8 @@ ViewModel (F7).
 3. `feature/play` is game-agnostic (no `games:*` dependency, no `when` over game ids):
    `PlaySessionStore` (Koin single) owns the live `ActivePlay`s (one per slot since §4's amendment) — fetch the daily, resolve
    the record identity, write the record, derive the A10 verdict and result label — and creates a
-   new controller per load, dropping callbacks from released controllers. `HubViewModel`,
-   `GameViewModel` and `ResultViewModel` expose it to `HubRoute`/`GameRoute`/`ResultRoute` via
+   new controller per load, dropping callbacks from released controllers. `LibraryViewModel`,
+   `GameViewModel` and `ResultViewModel` expose it to `LibraryRoute`/`GameRoute`/`ResultRoute` via
    `collectAsStateWithLifecycle` (0.8: `PlayViewModel`/`PlayRoute`).
 4. *(Amended 2026-11-04, navigation-ux, ADR-0011.)* Sessions persist on disk and resume.
    The store keeps one `ActivePlay` per `PlaySlot` (game, day), shared by every stack whose
@@ -65,7 +65,7 @@ ViewModel (F7).
   qualifier, both modules added to `PuzzleBoxApplication.appModules`, and its id in
   `GAME_ORDER`. `feature/play` and `core/game-ui` stay untouched.
 - *(Amended 2026-11-04, ADR-0011.)* ViewModels are per entry: the shell decorates every tab's
-  stack with Navigation3's per-entry `ViewModelStore`, so `HubViewModel`, `GameViewModel` and
+  stack with Navigation3's per-entry `ViewModelStore`, so `LibraryViewModel`, `GameViewModel` and
   `ResultViewModel` live and die with their entry, and own only UI state. The play outlives
   them in the store; releasing it is `retain`'s job. *Originally:* ViewModels were
   activity-scoped and the session survived in the saveable.

@@ -4,182 +4,176 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.domain.ArchiveProgress
+import com.ivandsky.puzzlebox.domain.GameStats
+import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
-import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
-import com.ivandsky.puzzlebox.domain.playTarget
-import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.BoardPreview
-import com.ivandsky.puzzlebox.gameui.GameBrand
+import com.ivandsky.puzzlebox.gameui.GameCardModel
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.TutorialSession
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.model.PlaySlot
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
- * One hub card: a playable game, its display name, how its bests rank ([rankOrder]), its
- * [brand], today's puzzle number (null when the day has none or isn't cached yet), today's
- * status (null = not yet known), its [best] daily (null when never solved) and its Up-next
- * [line] (null when solved, unknown or the game has none).
+ * The library's screen state (A25): every playable game as a [rows] entry in registry
+ * order, the [selected] one (the tablet's open page; the first game until a tap), and
+ * whether any game reads Offline ([offline]), which shows the offline pill.
  */
-internal data class HubRow(
-    val game: GameId,
-    val name: String,
-    val rankOrder: RankOrder,
-    val brand: GameBrand = GameBrand.Neutral,
-    val puzzleNumber: Int? = null,
-    val status: TodayStatus? = null,
-    val best: BestScore? = null,
-    val line: String? = null,
+internal data class LibraryUiState(
+    val rows: List<LibraryRowModel>,
+    val selected: GameId,
+    val offline: Boolean,
 )
 
 /**
- * The hub's screen state (A13): the [rows] in registry order, how many of today's puzzles
- * are solved ([doneCount]), the [next] game — the one card drawn as up next (null when
- * every game is solved or no status is known yet) — and the sections they make ([plan]).
+ * One game in the library: its [card] (status null = still loading; puzzle number =
+ * [today]), today's puzzle number, its archive [progress] (null for a game without an
+ * archive, or before it loads), its [stats] and its three how-to-play [rules].
  */
-internal data class HubUiState(
-    val rows: List<HubRow>,
-    val doneCount: Int = 0,
-    val next: GameId? = null,
-    val plan: HubPlan = planHub(rows, next),
+internal data class LibraryRowModel(
+    val card: GameCardModel,
+    val today: Int?,
+    val progress: ArchiveProgress?,
+    val stats: GameStats,
+    val rules: List<String>,
 )
 
+/** An open lesson: [game]'s tutorial running in [session]. */
+internal data class OpenLesson(val game: GameId, val session: TutorialSession)
+
 /**
- * The games hub's state holder: the [PlaySessionStore]'s playable games in registry order,
- * each with its [ObserveTodaySet] status, today's puzzle number (from [ObserveGameHistory]
- * on the game's [GameCalendar] day) and its best daily under its own [RankOrder]
- * ([ObserveGameStats], dailies only; the order is the game's [GameRegistry] score model)
- * (A10, A13, A14, SC11). The next game is the play target ([playTarget]) among the games
- * that can load, unless it is already solved; [planHub] derives the sections from both.
- * Before the first emission no row has a status.
+ * The games library's state holder (A25–A29): the [PlaySessionStore]'s playable games,
+ * each with its [ObserveTodaySet] status, today's puzzle number, its [ObserveArchiveProgress]
+ * and its [ObserveGameStats]. Today's number is the captured history's, else the source's
+ * ([DailyRepository.puzzleNumber]), else the archive's count, which ends on today.
  *
- * Each unsolved card's [HubRow.line] is its game's own
- * [com.ivandsky.puzzlebox.gameui.GamePlayUi.hubLine] of today's board: an unfinished
- * play's newest session ([PlaySessionStore.latestSave], so it reads the last move even
- * while that save is still on its way to disk), or the cached daily when not started
- * ([DailyRepository.cached], never the network); none when solved or offline. Lines are
- * built on [previewDispatcher], again on every status change; a card keeps its last line
- * until the new one is ready.
- *
- * The sources are collected only while the hub is observed (plus a 5 s grace), so a hub
- * left in a back stack across a deep sleep re-reads the day's cues and boards when it
- * shows again. Each time the hub starts, [syncToday] prefetches today's uncached puzzles
- * ([SyncTodayPuzzles], A12), so a game that can't load reads Offline. Building the
- * ViewModel fetches nothing. It never names a game.
+ * The sources are collected only while the library is observed (plus a 5 s grace), so a
+ * library left in a back stack across a deep sleep re-reads the day when it shows again.
+ * Each start prefetches today's uncached puzzles ([syncToday], A12), so a game that can't
+ * load reads Offline. The lesson lives here, so a rotation keeps its step.
  */
-class HubViewModel(
-    private val store: PlaySessionStore,
+class LibraryViewModel(
+    store: PlaySessionStore,
     todaySet: ObserveTodaySet,
     private val syncTodayPuzzles: SyncTodayPuzzles,
     stats: ObserveGameStats,
     history: ObserveGameHistory,
+    progress: ObserveArchiveProgress,
     private val calendar: GameCalendar,
     games: GameRegistry,
     private val registry: GamePlayRegistry,
     private val daily: DailyRepository,
-    private val previewDispatcher: CoroutineDispatcher,
+    private val prefs: UserPreferencesRepository,
 ) : ViewModel() {
 
-    private val seed = store.playable.map { (game, name) ->
-        HubRow(
-            game = game,
-            name = name,
-            rankOrder = games[game]?.score?.rankOrder ?: RankOrder.TimeThenHints,
-            brand = registry.brandOf(game),
+    private val seed: List<LibraryRowModel> = store.playable.map { (game, name) ->
+        val order = games[game]?.score?.rankOrder ?: RankOrder.TimeThenHints
+        LibraryRowModel(
+            card = GameCardModel(game = game, name = name, brand = registry.brandOf(game), status = null, rankOrder = order),
+            today = null,
+            progress = null,
+            stats = GameStats(0, 0, 0, 0, null, null, null, order),
+            rules = gameRules(game),
         )
     }
 
-    private val bests: Flow<Map<GameId, BestScore?>> =
-        if (seed.isEmpty()) {
-            flowOf(emptyMap())
-        } else {
-            combine(seed.map { row -> stats(row.game).map { row.game to it.best } }) { it.toMap() }
-        }
+    private val selected = MutableStateFlow(seed.firstOrNull()?.card?.game ?: GameId(""))
 
-    // Seeded empty, like the bests, so the cards never wait on history to show today's set.
+    private val _lesson = MutableStateFlow<OpenLesson?>(null)
+    internal val lesson: StateFlow<OpenLesson?> = _lesson.asStateFlow()
+
+    private val allStats: Flow<Map<GameId, GameStats>> = perGame { stats(it) }
+
+    private val allProgress: Flow<Map<GameId, ArchiveProgress?>> = perGame { progress(it) }
+
+    // Seeded empty, like stats and progress, so rows never wait on history to show today.
     private val numbers: Flow<Map<GameId, Int>> = history()
         .map { days ->
             seed.mapNotNull { row ->
-                val today = calendar.today(row.game)
-                days.firstOrNull { it.gameId == row.game && it.day == today }?.puzzleNumber?.let { row.game to it }
+                val game = row.card.game
+                val today = calendar.today(game)
+                days.firstOrNull { it.gameId == game && it.day == today }?.puzzleNumber?.let { game to it }
             }.toMap()
         }
         .onStart { emit(emptyMap()) }
 
-    /** The last lines read; read and written on the collector's (main) thread only. */
-    private var shownLines: Map<GameId, String?> = emptyMap()
-
-    /** Each status set at once with the lines already shown, then with its own once read. */
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val today: Flow<Pair<List<TodayEntry>, Map<GameId, String?>>> =
-        todaySet().transformLatest { entries ->
-            emit(entries to shownLines)
-            shownLines = linesOf(entries)
-            emit(entries to shownLines)
-        }
-
-    internal val uiState: StateFlow<HubUiState> =
-        combine(today, numbers, bests.onStart { emit(emptyMap()) }) { (entries, lines), number, best ->
+    internal val uiState: StateFlow<LibraryUiState> =
+        combine(
+            todaySet(),
+            numbers,
+            allStats.onStart { emit(emptyMap()) },
+            allProgress.onStart { emit(emptyMap()) },
+            selected,
+        ) { entries, number, stat, prog, pick ->
             val status = entries.associate { it.game to it.status }
-            HubUiState(
-                rows = seed.map {
-                    it.copy(
-                        puzzleNumber = number[it.game],
-                        status = status[it.game],
-                        best = best[it.game],
-                        line = lines[it.game],
-                    )
-                },
-                doneCount = seed.count { status[it.game] is TodayStatus.Solved },
-                next = nextOf(entries.filter { entry -> seed.any { it.game == entry.game } }),
-            )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HubUiState(seed))
+            val rows = seed.map { row ->
+                val game = row.card.game
+                val archive = prog[game]
+                val today = number[game] ?: todayNumber(game, archive)
+                row.copy(
+                    card = row.card.copy(status = status[game], puzzleNumber = today, best = stat[game]?.best),
+                    today = today,
+                    progress = archive,
+                    stats = stat[game] ?: row.stats,
+                )
+            }
+            LibraryUiState(rows, pick, offline = rows.any { it.card.status == TodayStatus.Offline })
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
+            LibraryUiState(seed, selected.value, offline = false),
+        )
 
-    /** Fetches today's uncached puzzles; a failure shows as that game's Offline card. */
+    /** Fetches today's uncached puzzles; a failure shows as that game's Offline row. */
     internal fun syncToday() {
         viewModelScope.launch { syncTodayPuzzles() }
     }
 
-    private fun nextOf(entries: List<TodayEntry>): GameId? {
-        val loadable = entries.filter { it.status != TodayStatus.Offline }
-        val target = loadable.playTarget() ?: return null
-        return target.takeIf { game -> loadable.first { it.game == game }.status !is TodayStatus.Solved }
+    /** [game]'s page opens (the tablet's right pane; the phone pushes it). */
+    internal fun select(game: GameId) {
+        selected.value = game
     }
 
-    private suspend fun linesOf(entries: List<TodayEntry>): Map<GameId, String?> {
-        val status = entries.associate { it.game to it.status }
-        return seed.associate { row -> row.game to lineOf(row.game, status[row.game]) }
+    /** [game]'s lesson opens over the library; a no-op without lessons or while one is open. */
+    internal fun openLesson(game: GameId) {
+        val steps = registry[game]?.tutorial.orEmpty()
+        if (steps.isEmpty() || _lesson.value != null) return
+        _lesson.value = OpenLesson(game, TutorialSession(steps))
     }
 
-    /** [game]'s Up-next line for today's [status]: only an unsolved board with a known status has one. */
-    private suspend fun lineOf(game: GameId, status: TodayStatus?): String? {
-        val day = calendar.today(game) ?: return null
-        val board = when (status) {
-            is TodayStatus.InProgress -> store.latestSave(PlaySlot(game, day))?.let(BoardPreview::InProgress)
-            TodayStatus.NotStarted -> daily.cachedPuzzle(game, day)?.let(BoardPreview::Fresh)
-            is TodayStatus.Solved, TodayStatus.Offline, null -> null
-        } ?: return null
-        val ui = registry[game] ?: return null
-        return withContext(previewDispatcher) { ui.hubLine(board) }
+    /** The lesson ended (finished, skipped or backed out): its game is marked seen. */
+    internal fun closeLesson() {
+        val open = _lesson.value ?: return
+        _lesson.value = null
+        viewModelScope.launch { prefs.markTutorialSeen(open.game) }
     }
+
+    private fun todayNumber(game: GameId, archive: ArchiveProgress?): Int? =
+        calendar.today(game)?.let { daily.puzzleNumber(game, it) } ?: archive?.total
+
+    private fun <T> perGame(source: (GameId) -> Flow<T>): Flow<Map<GameId, T>> =
+        if (seed.isEmpty()) {
+            flowOf(emptyMap())
+        } else {
+            combine(seed.map { row -> source(row.card.game).map { row.card.game to it } }) { it.toMap() }
+        }
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L

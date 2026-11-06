@@ -3,6 +3,8 @@ package com.ivandsky.puzzlebox.app.play
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -157,7 +159,10 @@ class RealGamesPlayRouteTest {
         koin!!.koin.get<PlaySessionStore>().peek(PlaySlot(game, cadenceToday))
 
     private fun pick(game: GameId) {
-        composeRule.onNodeWithTag("hub.row.${game.value}").performScrollTo().performClick()
+        composeRule.onNodeWithTag("library.row.${game.value}").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.waitUntil(10_000) { composeRule.onAllNodes(hasTestTag("library.play") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+        composeRule.onNodeWithTag("library.play").performScrollTo().performClick()
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodesWithTag("route.game").fetchSemanticsNodes().isNotEmpty()
         }
@@ -169,11 +174,11 @@ class RealGamesPlayRouteTest {
         startGraph()
         composeRule.setContent { PlayStack() }
 
-        composeRule.onNodeWithTag("route.hub").assertExists()
-        composeRule.onNodeWithTag("hub.row.zip").assertExists()
-        composeRule.onNodeWithTag("hub.row.tango").assertExists()
-        composeRule.onNodeWithTag("hub.row.queens").assertExists()
-        composeRule.onNodeWithTag("hub.row.strands").assertExists()
+        composeRule.onNodeWithTag("route.library").assertExists()
+        composeRule.onNodeWithTag("library.row.zip").assertExists()
+        composeRule.onNodeWithTag("library.row.tango").assertExists()
+        composeRule.onNodeWithTag("library.row.queens").assertExists()
+        composeRule.onNodeWithTag("library.row.strands").assertExists()
         composeRule.onNodeWithText("Zip").assertExists()
         composeRule.onNodeWithText("Tango").assertExists()
         composeRule.onNodeWithText("Queens").assertExists()
@@ -198,7 +203,7 @@ class RealGamesPlayRouteTest {
         }
         composeRule.onNodeWithTag("play.side_panel").assertExists()
         composeRule.onNodeWithTag("play.action_bar").assertExists()
-        composeRule.onNodeWithTag("route.hub").assertDoesNotExist()
+        composeRule.onNodeWithTag("route.library").assertDoesNotExist()
     }
 
     @Test
@@ -214,7 +219,7 @@ class RealGamesPlayRouteTest {
             assertEquals(StrandsPlayFixture.puzzle, strands.session?.state?.puzzle)
         }
         composeRule.onNodeWithTag("strands.board").assertExists()
-        composeRule.onNodeWithTag("route.hub").assertDoesNotExist()
+        composeRule.onNodeWithTag("route.library").assertDoesNotExist()
     }
 
     @Test
@@ -252,6 +257,6 @@ class RealGamesPlayRouteTest {
         composeRule.waitForIdle()
 
         assertEquals(listOf<NavKey>(PlayKey), composeRule.runOnIdle { navigator.state.currentStack })
-        composeRule.onNodeWithTag("route.hub").assertExists()
+        composeRule.onNodeWithTag("route.library").assertExists()
     }
 }

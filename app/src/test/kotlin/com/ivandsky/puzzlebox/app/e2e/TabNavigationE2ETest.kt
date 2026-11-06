@@ -294,7 +294,7 @@ class TabNavigationE2ETest {
     private companion object {
         const val HOME = "route.home"
         const val HISTORY = "route.history"
-        const val HUB = "route.hub"
+        const val HUB = "route.library"
         const val GAME = "route.game"
         const val RESULT = "route.result"
         const val PROFILE = "route.profile"

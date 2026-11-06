@@ -29,7 +29,7 @@ import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.HomeViewModel
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.GameViewModel
-import com.ivandsky.puzzlebox.play.HubViewModel
+import com.ivandsky.puzzlebox.play.LibraryViewModel
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.ResultViewModel
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -125,7 +125,7 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<SavedPlayRepository>())
             assertNotNull(koin.get<GameCalendar>())
             assertNotNull(koin.get<ObserveTodaySet>())
-            assertNotNull(koin.get<HubViewModel>())
+            assertNotNull(koin.get<LibraryViewModel>())
             // A past, uncached day: the slot opens as a cache miss, never today's network fetch.
             assertNotNull(koin.get<GameViewModel> { parametersOf(GameKey("zip", "2000-01-01")) }.play)
             assertNotNull(koin.get<ResultViewModel> { parametersOf(ResultKey("zip", "2026-11-04", 12_340L, 0)) })

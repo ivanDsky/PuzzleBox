@@ -88,6 +88,12 @@ object PuzzleIcons {
 
     /** Hub status: offline, tap to retry. */
     val Retry: ImageVector = RetryMark
+
+    /** Past day status: the puzzle is saved on this device, a phone outline. */
+    val SavedOnDevice: ImageVector = SavedOnDeviceMark
+
+    /** Past day status, and the offline pill: the puzzle needs a connection, a cloud. */
+    val NeedsConnection: ImageVector = NeedsConnectionMark
 }
 
 private const val PREVIEW_COLUMNS = 4
@@ -124,6 +130,8 @@ internal fun PuzzleIconsPreview() {
             "StatusRing" to PuzzleIcons.StatusRing,
             "StatusHalf" to PuzzleIcons.StatusHalf,
             "Retry" to PuzzleIcons.Retry,
+            "SavedOnDevice" to PuzzleIcons.SavedOnDevice,
+            "NeedsConnection" to PuzzleIcons.NeedsConnection,
         )
         Column(
             modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.md),

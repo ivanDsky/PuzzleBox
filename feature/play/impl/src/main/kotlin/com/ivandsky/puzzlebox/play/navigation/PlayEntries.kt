@@ -5,17 +5,18 @@ import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.GameRoute
-import com.ivandsky.puzzlebox.play.HubRoute
+import com.ivandsky.puzzlebox.play.LibraryRoute
 import com.ivandsky.puzzlebox.play.ResultRoute
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 
 /**
- * The play feature's routes. [PlayKey] is the Play tab's games hub: picking a game pushes
- * its [GameKey] (guarded against a double tap), so back returns to the hub (N2, N3);
- * "Older puzzles" is [onOpenHistory] (the app opens History on the current stack, where a
- * past day opens by date, A22). A [GameKey] on any stack draws its slot's live play: Up is
+ * The play feature's routes. [PlayKey] is the Play tab's games library: a day card's
+ * action pushes that game's [GameKey] (guarded against a double tap), so back returns to
+ * the library (N2, N3). [onOpenHistory] is unused since the library replaced the hub's
+ * "Older puzzles" footer; it stays because the app's entry provider (outside this ticket)
+ * still passes it. A [GameKey] on any stack draws its slot's live play: Up is
  * the navigator's back, and solving replaces the board with its slot's result, so back
  * from there lands on the game's origin (SC4).
  */
@@ -25,10 +26,9 @@ fun EntryProviderScope<NavKey>.playEntry(
     onOpenHistory: () -> Unit,
 ) {
     entry<PlayKey> {
-        HubRoute(
+        LibraryRoute(
             layout = layout,
-            onPick = { game -> navigator.pushOnce(GameKey(game.value)) },
-            onOpenHistory = onOpenHistory,
+            onPlay = { game -> navigator.pushOnce(GameKey(game.value)) },
         )
     }
     entry<GameKey> { key ->
