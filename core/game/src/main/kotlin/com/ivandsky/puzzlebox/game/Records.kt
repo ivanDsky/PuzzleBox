@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.game
 
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
 import java.time.LocalDate
 
@@ -14,16 +15,23 @@ import java.time.LocalDate
  * [GameId] without ever casting to a concrete game's ref type — the fix-round-5
  * defect-C class (Home/History dropped every non-Zip ref). The ref stays opaque about
  * PAYLOAD: nothing here parses board data.
+ *
+ * Transitional (ADR-0018 expand, P01 → P12): [key] and the legacy [date]/[puzzleNumber]
+ * pair default to each other, so an implementer overrides EITHER the pair OR [key] — never
+ * neither (the defaults would recurse). P12 deletes the pair and both defaults.
  */
 interface PuzzleRef {
     /** Which game authored this ref — identity part 1. */
     val gameId: GameId
 
-    /** The daily identity's calendar day — identity part 2. */
-    val date: LocalDate
+    /** Which puzzle of the game: a day's daily or a shared custom puzzle — identity part 2. */
+    val key: PuzzleKey get() = PuzzleKey.Daily(date, puzzleNumber)
 
-    /** The edition number within the day when the game publishes one; null otherwise. */
-    val puzzleNumber: Int?
+    /** The daily identity's calendar day; throws for a [PuzzleKey.Custom] ref. Deleted in P12. */
+    val date: LocalDate get() = (key as PuzzleKey.Daily).date
+
+    /** The daily's edition number when the game publishes one; null otherwise. Deleted in P12. */
+    val puzzleNumber: Int? get() = (key as PuzzleKey.Daily).puzzleNumber
 }
 
 /**
