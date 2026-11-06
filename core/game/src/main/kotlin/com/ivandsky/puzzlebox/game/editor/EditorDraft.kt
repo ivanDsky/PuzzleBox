@@ -29,6 +29,12 @@ class EditorDraft<D : Any>(val editor: GameEditor<D>, val state: DraftState<D>) 
     fun redo(): EditorDraft<D>? =
         state.history.redo(state.draft)?.let { EditorDraft(editor, DraftState(it.state, it.history)) }
 
+    /** One undoable step: apply(ReplaceDraft(state.draft, editor.newDraft(variant))). */
+    fun resize(variant: VariantId): EditorDraft<D> = apply(ReplaceDraft(state.draft, editor.newDraft(variant)))
+
+    /** One undoable step: resize(variant). */
+    fun clear(): EditorDraft<D> = resize(variant)
+
     fun encode(): ByteArray = editor.encodeDraft(state)
 
     fun analyze(budget: Budget): Verdict = editor.analyze(state.draft, budget)

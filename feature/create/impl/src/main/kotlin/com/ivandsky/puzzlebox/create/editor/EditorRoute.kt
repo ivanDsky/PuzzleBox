@@ -47,11 +47,18 @@ internal fun EditorRoute(
             onBack = onBack,
             board = { boardModifier -> ready.editor.Board(ready.controller, ready.verdict, boardModifier) },
             toolStrip = { stripModifier ->
+                // The board's controller adopts every resize and undo, so its draft names the open size.
+                val draft by ready.controller.draft.collectAsStateWithLifecycle()
                 ToolStrip(
                     canUndo = canUndo,
                     canRedo = canRedo,
                     onUndo = viewModel::undo,
                     onRedo = viewModel::redo,
+                    sizes = draft.editor.variants,
+                    size = draft.variant,
+                    sizeLabel = ready.editor::sizeLabel,
+                    onResize = viewModel::resize,
+                    onClear = viewModel::clear,
                     hint = { hintModifier -> ready.editor.ToolHint(ready.controller, hintModifier) },
                     modifier = stripModifier,
                 )

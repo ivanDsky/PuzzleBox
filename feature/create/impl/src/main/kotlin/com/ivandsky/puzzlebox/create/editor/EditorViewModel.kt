@@ -7,7 +7,9 @@ import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import java.time.Instant
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,7 +72,7 @@ class EditorViewModel(
         verdicts.submit(draft)
         return EditorUiState.Ready(
             title = stored.title,
-            subtitle = "${games.displayName(stored.gameId)} ${ui.sizeLabel(stored.variant)}",
+            subtitle = subtitleOf(draft, ui),
             verdict = verdicts.verdict.value,
             editor = ui,
             controller = ui.createController(draft, ::onEdit),
@@ -87,10 +89,27 @@ class EditorViewModel(
         history.redo()?.let(::adopt)
     }
 
+    /** A blank [variant] board as one undoable step (A5); picking the open size is not a step. */
+    fun resize(variant: VariantId) {
+        history.resize(variant)?.let(::adopt)
+    }
+
+    /** A blank board of the open size as one undoable step (A5). */
+    fun clear() {
+        history.clear()?.let(::adopt)
+    }
+
+    /** Undo, redo, resize and clear replace the board; only these can change its size, so the subtitle follows here. */
     private fun adopt(draft: EditorDraft<*>) {
-        (mutableState.value as? EditorUiState.Ready)?.controller?.adopt(draft)
+        (mutableState.value as? EditorUiState.Ready)?.let { ready ->
+            ready.controller.adopt(draft)
+            mutableState.value = ready.copy(subtitle = subtitleOf(draft, ready.editor))
+        }
         changed(draft)
     }
+
+    private fun subtitleOf(draft: EditorDraft<*>, ui: GameEditorUi): String =
+        "${games.displayName(draft.gameId)} ${ui.sizeLabel(draft.variant)}"
 
     private fun onEdit(draft: EditorDraft<*>) {
         history.record(draft)
@@ -100,7 +119,7 @@ class EditorViewModel(
     private fun changed(draft: EditorDraft<*>) {
         verdicts.submit(draft)
         val base = lastStored ?: return
-        val next = base.copy(blob = draft.encode(), updatedAt = clock())
+        val next = base.copy(variant = draft.variant, blob = draft.encode(), updatedAt = clock())
         lastStored = next
         pending.value = next
     }

@@ -77,12 +77,12 @@ class QueensDraftCommandTest {
     }
 
     @Test
-    fun `replace draft clears a painted board of the same size`() {
+    fun `replace draft clears a painted board of the same size to all unpainted`() {
         val variant = queensVariantId(4)
         val painted = QueensDraft(4, PARTIAL)
         val clear = ReplaceDraft(painted, QueensEditor.newDraft(variant))
 
-        assertEquals(QueensEditor.newDraft(variant), clear.apply(painted))
+        assertEquals(QueensDraft(4, List(16) { QueensDraft.UNPAINTED }), clear.apply(painted))
         assertEquals(painted, clear.revert(clear.apply(painted)))
     }
 

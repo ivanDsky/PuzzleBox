@@ -13,8 +13,9 @@ import com.ivandsky.puzzlebox.games.queens.queensVariantId
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
- * Queens' pure editor (ADR-0019): a new board is one region, every cell 0 (A2), so it
- * starts Incomplete; the variant table is the shipped sizes 4..12 (A5).
+ * Queens' pure editor (ADR-0019): a new board, also what resize and clear reset to (A5), has
+ * every cell [QueensDraft.UNPAINTED] (ledger ruling: blank = empty), so it starts Incomplete
+ * on the unpainted count; the variant table is the shipped sizes 4..12 (A5).
  */
 object QueensEditor : GameEditor<QueensDraft> {
     override val gameId: GameId get() = QueensDefinition.id
@@ -25,7 +26,7 @@ object QueensEditor : GameEditor<QueensDraft> {
 
     override fun newDraft(variant: VariantId): QueensDraft {
         val size = requireNotNull(QueensVariants.byId(variant)) { "unknown Queens variant $variant" }.size
-        return QueensDraft(size, List(size * size) { 0 })
+        return QueensDraft(size, List(size * size) { QueensDraft.UNPAINTED })
     }
 
     override fun variantOf(draft: QueensDraft): VariantId = queensVariantId(draft.size)
