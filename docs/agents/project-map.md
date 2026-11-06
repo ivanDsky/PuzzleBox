@@ -147,6 +147,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   per game as `GamePlugin<P, S, M>`; `GameRegistry` (the sole GameId → `GamePlugin` lookup);
   `DailySource : PuzzleSource` (per-game feed adapter, `fetchDaily` → `DailyFetch`, optional
   `archiveSince`) over `FeedTransport`/`FeedRequest` (LinkedIn) or `NytTransport` (NYT);
+  `LinkedInEdition` (ADR-0017: one LinkedIn game's day→number rule, games-by-id `FeedRequest`, `entityUrn` identity check);
   `RankOrder` (TimeThenHints/HintsThenTime, on `ScoreModel`); `Command`/`CommandHistory` (undo/redo); `SessionBlob`;
   supporting `Puzzle`, `DecodeResult`/`DecodeError`, `VariantId`, `RecordStats`,
   `CompletionRecord`.
