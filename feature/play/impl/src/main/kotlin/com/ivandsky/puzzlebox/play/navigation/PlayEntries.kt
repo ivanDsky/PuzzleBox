@@ -14,11 +14,10 @@ import com.ivandsky.puzzlebox.play.api.ResultKey
 /**
  * The play feature's routes. [PlayKey] is the Play tab's games hub: picking a game pushes
  * its [GameKey] (guarded against a double tap), so back returns to the hub (N2, N3);
- * "Older puzzles" is [onOpenHistory] (the app opens History on the current stack), and a
- * day picked from a game's past puzzles pushes that day's [GameKey], whose slot is the
- * dated day rather than the game's today (A22). A [GameKey] on any stack draws its slot's
- * live play: Up is the navigator's back, and solving replaces the board with its slot's
- * result, so back from there lands on the game's origin (SC4).
+ * "Older puzzles" is [onOpenHistory] (the app opens History on the current stack, where a
+ * past day opens by date, A22). A [GameKey] on any stack draws its slot's live play: Up is
+ * the navigator's back, and solving replaces the board with its slot's result, so back
+ * from there lands on the game's origin (SC4).
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
@@ -29,7 +28,6 @@ fun EntryProviderScope<NavKey>.playEntry(
         HubRoute(
             layout = layout,
             onPick = { game -> navigator.pushOnce(GameKey(game.value)) },
-            onPickDay = { game, day -> navigator.pushOnce(GameKey(game.value, day.toString())) },
             onOpenHistory = onOpenHistory,
         )
     }

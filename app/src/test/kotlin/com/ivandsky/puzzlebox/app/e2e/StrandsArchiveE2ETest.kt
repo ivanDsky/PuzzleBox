@@ -61,10 +61,10 @@ import org.robolectric.annotation.Config
 /**
  * The Strands archive over the REAL data path: production `DailyRepository` and
  * `SavedPlayRepository` over in-memory Room, with the real NYT source and trust gate reading
- * committed fixtures through [FakeNytTransport]. A past day opened from "Past puzzles" costs
- * one request, reopens from the cache with the network gone and leaves the streak alone
- * (SC6, SC7); nine archive days later the Zip save is still there, because the prune caps
- * each game on its own (SC16).
+ * committed fixtures through [FakeNytTransport]. A past day opened from History's "Older
+ * puzzles" (reached from the hub's footer) costs one request, reopens from the cache with
+ * the network gone and leaves the streak alone (SC6, SC7); nine archive days later the Zip
+ * save is still there, because the prune caps each game on its own (SC16).
  */
 @RunWith(RobolectricTestRunner::class)
 // A phone-sized window, so the picker dialog and the 8-row board both fit.
@@ -94,18 +94,19 @@ class StrandsArchiveE2ETest {
             assertEquals("today's row only", setOf(rowTag(TODAY)), before.rows)
 
             // Browsing the picker and backing out fetches and captures nothing.
-            tap(PAST_BUTTON)
+            openOlderPicker()
             pickDay(BROWSED)
             rule.onNodeWithText("Cancel").performClick()
             rule.waitForIdle()
+            back()
             assertEquals("a browsed day is never fetched", 0, requestsFor(BROWSED))
             assertEquals("browsing adds no History rows", before, history())
 
             openPast(PAST)
             awaitStrands(PAST)
             assertEquals("the past day is fetched once", 1, requestsFor(PAST))
-            // Immersive play hides the bar (N2): back to the hub before hopping to History.
-            back()
+            // Immersive play hides the bar (N2): back through History to the hub before hopping tabs.
+            leavePast()
             val opened = history()
             assertEquals("…and adjacent to today, still outside the streak", before.streak, opened.streak)
             assertEquals("the opened day is captured", before.rows + rowTag(PAST), opened.rows)
@@ -115,7 +116,7 @@ class StrandsArchiveE2ETest {
             openPast(PAST)
             awaitStrands(PAST)
             assertEquals("the reopen reads the cache, not the network", 1, requestsFor(PAST))
-            back()
+            leavePast()
             assertEquals("the streak and rows are unchanged after the reopen", opened, history())
         }
 
@@ -131,7 +132,7 @@ class StrandsArchiveE2ETest {
                 awaitStrands(day)
                 // An untouched board is never written (only a committed change saves): find one word.
                 tapWord(firstThemeWord(day))
-                back()
+                leavePast()
                 // Saves are ordered by their wall-clock stamp; keep each one strictly newer.
                 Thread.sleep(SAVE_GAP_MS)
             }
@@ -174,12 +175,24 @@ class StrandsArchiveE2ETest {
         return (0 until cells.length()).map { i -> cells.getJSONArray(i).let { it.getInt(0) to it.getInt(1) } }
     }
 
-    /** "Past puzzles" on the hub, then the day in the picker and Open. */
+    /** The hub's "Older puzzles", then History's "Older puzzles": Strands is the one game with an archive, so its picker opens. */
+    private fun ShellRobot.openOlderPicker() {
+        tap(HUB_OLDER)
+        tap(HISTORY_OLDER)
+        awaitTag(PICKER)
+    }
+
+    /** The day in History's older-puzzles picker, then Open. */
     private fun ShellRobot.openPast(day: LocalDate) {
-        tap(PAST_BUTTON)
+        openOlderPicker()
         pickDay(day)
-        rule.onNodeWithText("Open").performClick()
-        rule.waitForIdle()
+        tap(OPEN)
+    }
+
+    /** From a past day's board back through History to the hub, where [openPast] starts. */
+    private fun ShellRobot.leavePast() {
+        back()
+        back()
     }
 
     /** Selects [day] in the open picker without confirming it. */
@@ -289,7 +302,10 @@ class StrandsArchiveE2ETest {
         const val STRANDS = "strands"
         const val TIMEOUT_MS = 5_000L
         const val BOARD = "strands.board"
-        const val PAST_BUTTON = "hub.past.$STRANDS"
+        const val HUB_OLDER = "hub.older"
+        const val HISTORY_OLDER = "history.older"
+        const val PICKER = "history.older.picker"
+        const val OPEN = "history.older.open"
         const val STREAK = "history.stats.streak"
         const val ROW_PREFIX = "history.row."
         const val SAVE_GAP_MS = 5L

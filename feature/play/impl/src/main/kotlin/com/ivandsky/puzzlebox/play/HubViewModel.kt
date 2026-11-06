@@ -15,13 +15,11 @@ import com.ivandsky.puzzlebox.domain.playTarget
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.gameui.BoardPreview
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
-import java.time.LocalDate
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -39,9 +37,8 @@ import kotlinx.coroutines.withContext
 /**
  * One hub card: a playable game, its display name, how its bests rank ([rankOrder]), its
  * [brand], today's puzzle number (null when the day has none or isn't cached yet), today's
- * status (null = not yet known), its [best] daily (null when never solved), its Up-next
- * [line] (null when solved, unknown or the game has none) and the days it can open by date
- * ([archive], null = no archive, so no "Past puzzles").
+ * status (null = not yet known), its [best] daily (null when never solved) and its Up-next
+ * [line] (null when solved, unknown or the game has none).
  */
 internal data class HubRow(
     val game: GameId,
@@ -52,43 +49,36 @@ internal data class HubRow(
     val status: TodayStatus? = null,
     val best: BestScore? = null,
     val line: String? = null,
-    val archive: ClosedRange<LocalDate>? = null,
 )
 
 /**
  * The hub's screen state (A13): the [rows] in registry order, how many of today's puzzles
  * are solved ([doneCount]), the [next] game — the one card drawn as up next (null when
- * every game is solved or no status is known yet) — the sections they make ([plan]) and
- * each game's board thumbnail model ([previews], null or absent while loading, offline or
- * unreadable: the card shows the game's glyph instead).
+ * every game is solved or no status is known yet) — and the sections they make ([plan]).
  */
 internal data class HubUiState(
     val rows: List<HubRow>,
     val doneCount: Int = 0,
     val next: GameId? = null,
     val plan: HubPlan = planHub(rows, next),
-    val previews: Map<GameId, RendererModel?> = emptyMap(),
 )
 
 /**
  * The games hub's state holder: the [PlaySessionStore]'s playable games in registry order,
  * each with its [ObserveTodaySet] status, today's puzzle number (from [ObserveGameHistory]
- * on the game's [GameCalendar] day), its best daily under its own [RankOrder]
+ * on the game's [GameCalendar] day) and its best daily under its own [RankOrder]
  * ([ObserveGameStats], dailies only; the order is the game's [GameRegistry] score model)
- * (A10, A13, A14, SC11), plus the days it can open by date ([DailyRepository.archiveRange],
- * A22: the source's arithmetic, re-read on every status change so the range's end moves
- * with the day). The next game is the play target ([playTarget]) among the games that
- * can load, unless it is already solved; [planHub] derives the sections from both. Before
- * the first emission no row has a status.
+ * (A10, A13, A14, SC11). The next game is the play target ([playTarget]) among the games
+ * that can load, unless it is already solved; [planHub] derives the sections from both.
+ * Before the first emission no row has a status.
  *
  * Each unsolved card's [HubRow.line] is its game's own
- * [com.ivandsky.puzzlebox.gameui.GamePlayUi.hubLine] of today's board, and each card's
- * thumbnail its [com.ivandsky.puzzlebox.gameui.GamePlayUi.previewModel]: an unfinished
- * play's newest session ([PlaySessionStore.latestSave], so it shows the last move even
- * while that save is still on its way to disk), the cached daily fresh when not started or
- * drawn solved when solved ([DailyRepository.cached], never the network); none when
- * offline. Both are built on [previewDispatcher], again on every status change; a card
- * keeps its last line and thumbnail until the new ones are ready.
+ * [com.ivandsky.puzzlebox.gameui.GamePlayUi.hubLine] of today's board: an unfinished
+ * play's newest session ([PlaySessionStore.latestSave], so it reads the last move even
+ * while that save is still on its way to disk), or the cached daily when not started
+ * ([DailyRepository.cached], never the network); none when solved or offline. Lines are
+ * built on [previewDispatcher], again on every status change; a card keeps its last line
+ * until the new one is ready.
  *
  * The sources are collected only while the hub is observed (plus a 5 s grace), so a hub
  * left in a back stack across a deep sleep re-reads the day's cues and boards when it
@@ -115,7 +105,6 @@ class HubViewModel(
             name = name,
             rankOrder = games[game]?.score?.rankOrder ?: RankOrder.TimeThenHints,
             brand = registry.brandOf(game),
-            archive = daily.archiveRange(game),
         )
     }
 
@@ -136,23 +125,20 @@ class HubViewModel(
         }
         .onStart { emit(emptyMap()) }
 
-    /** One card's reads of today's board: its thumbnail model and its Up-next line. */
-    private data class Board(val preview: RendererModel?, val line: String?)
+    /** The last lines read; read and written on the collector's (main) thread only. */
+    private var shownLines: Map<GameId, String?> = emptyMap()
 
-    /** The last boards read; read and written on the collector's (main) thread only. */
-    private var shownBoards: Map<GameId, Board> = emptyMap()
-
-    /** Each status set at once with the boards already shown, then with its own once read. */
+    /** Each status set at once with the lines already shown, then with its own once read. */
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val today: Flow<Pair<List<TodayEntry>, Map<GameId, Board>>> =
+    private val today: Flow<Pair<List<TodayEntry>, Map<GameId, String?>>> =
         todaySet().transformLatest { entries ->
-            emit(entries to shownBoards)
-            shownBoards = boardsOf(entries)
-            emit(entries to shownBoards)
+            emit(entries to shownLines)
+            shownLines = linesOf(entries)
+            emit(entries to shownLines)
         }
 
     internal val uiState: StateFlow<HubUiState> =
-        combine(today, numbers, bests.onStart { emit(emptyMap()) }) { (entries, boards), number, best ->
+        combine(today, numbers, bests.onStart { emit(emptyMap()) }) { (entries, lines), number, best ->
             val status = entries.associate { it.game to it.status }
             HubUiState(
                 rows = seed.map {
@@ -160,13 +146,11 @@ class HubViewModel(
                         puzzleNumber = number[it.game],
                         status = status[it.game],
                         best = best[it.game],
-                        line = boards[it.game]?.line,
-                        archive = daily.archiveRange(it.game),
+                        line = lines[it.game],
                     )
                 },
                 doneCount = seed.count { status[it.game] is TodayStatus.Solved },
                 next = nextOf(entries.filter { entry -> seed.any { it.game == entry.game } }),
-                previews = boards.mapValues { it.value.preview },
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HubUiState(seed))
 
@@ -181,25 +165,21 @@ class HubViewModel(
         return target.takeIf { game -> loadable.first { it.game == game }.status !is TodayStatus.Solved }
     }
 
-    private suspend fun boardsOf(entries: List<TodayEntry>): Map<GameId, Board> {
+    private suspend fun linesOf(entries: List<TodayEntry>): Map<GameId, String?> {
         val status = entries.associate { it.game to it.status }
-        return seed.associate { row -> row.game to boardOf(row.game, status[row.game]) }
+        return seed.associate { row -> row.game to lineOf(row.game, status[row.game]) }
     }
 
-    /** [game]'s reads of today's [status]: nothing to read offline or unknown, no line once solved. */
-    private suspend fun boardOf(game: GameId, status: TodayStatus?): Board {
-        val none = Board(preview = null, line = null)
-        val day = calendar.today(game) ?: return none
+    /** [game]'s Up-next line for today's [status]: only an unsolved board with a known status has one. */
+    private suspend fun lineOf(game: GameId, status: TodayStatus?): String? {
+        val day = calendar.today(game) ?: return null
         val board = when (status) {
             is TodayStatus.InProgress -> store.latestSave(PlaySlot(game, day))?.let(BoardPreview::InProgress)
             TodayStatus.NotStarted -> daily.cachedPuzzle(game, day)?.let(BoardPreview::Fresh)
-            is TodayStatus.Solved -> daily.cachedPuzzle(game, day)?.let(BoardPreview::Solved)
-            TodayStatus.Offline, null -> null
-        } ?: return none
-        val ui = registry[game] ?: return none
-        return withContext(previewDispatcher) {
-            Board(preview = ui.previewModel(board), line = if (status is TodayStatus.Solved) null else ui.hubLine(board))
-        }
+            is TodayStatus.Solved, TodayStatus.Offline, null -> null
+        } ?: return null
+        val ui = registry[game] ?: return null
+        return withContext(previewDispatcher) { ui.hubLine(board) }
     }
 
     private companion object {
