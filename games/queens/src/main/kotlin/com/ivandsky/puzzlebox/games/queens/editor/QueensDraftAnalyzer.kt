@@ -6,12 +6,13 @@ import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSearch
+import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSearchOutcome
 
 /**
  * A Queens draft → its [Verdict] (spec A7). The board must first be fully painted with
  * exactly `size` regions; then the exhaustive solver counts up to two solutions, so
- * Unique, Multiple and None are exact. The budget is checked before the search; polling
- * inside the search loop lands with the solver budget (ticket 04).
+ * Unique, Multiple and None are exact. The search polls [budget] inside its loop
+ * (ticket 04); a spent or cancelled budget reads as [Verdict.Undetermined].
  */
 object QueensDraftAnalyzer {
     const val UNPAINTED: String = "queens.unpainted"   // IncompleteReason.count = unpainted cells
@@ -25,9 +26,9 @@ object QueensDraftAnalyzer {
         if (unpainted > 0) return Verdict.Incomplete(IncompleteReason(UNPAINTED, unpainted))
         val regionCount = draft.regions.distinct().size
         if (regionCount != draft.size) return Verdict.Incomplete(IncompleteReason(REGIONS, regionCount))
-        if (budget.exhausted()) return Verdict.Undetermined
-        val found = QueensSearch.solutions(QueensPuzzle(draft.size, draft.regions), limit = 2)
-            .map { solution -> solution.map { it.idx }.sorted() }
+        val outcome = QueensSearch.bounded(QueensPuzzle(draft.size, draft.regions), limit = 2, budget = budget)
+        if (outcome !is QueensSearchOutcome.Done) return Verdict.Undetermined
+        val found = outcome.solutions.map { solution -> solution.map { it.idx }.sorted() }
         return when (found.size) {
             0 -> Verdict.None(emptySet())
             1 -> Verdict.Unique(Solution(found[0]))
