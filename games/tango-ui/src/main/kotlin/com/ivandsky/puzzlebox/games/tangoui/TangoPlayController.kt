@@ -7,7 +7,6 @@ import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
-import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.BROKEN_PUZZLE_MESSAGE
 import com.ivandsky.puzzlebox.gameui.GamePlayController
@@ -19,7 +18,6 @@ import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.games.tango.TangoCell
-import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.TangoSession
@@ -35,8 +33,6 @@ import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -64,7 +60,6 @@ import kotlinx.coroutines.launch
 class TangoPlayController(
     private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
-    private val today: () -> LocalDate = { TangoDefinition.cadence.today() },
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
     var session by mutableStateOf<TangoSession?>(null)
@@ -279,20 +274,6 @@ class TangoPlayController(
 
     //endregion
 
-    //region side panel copy (§4: "Daily · #NNN" / "Replay · MMM d")
-
-    /** An archived-date session (ref date ≠ today in Tango's cadence zone) is a replay. */
-    val subtitle: String
-        get() {
-            val ref = session?.ref ?: return "Daily"
-            return when {
-                ref.date != today() -> "Replay · ${ref.date.format(REPLAY_DATE)}"
-                else -> ref.puzzleNumber?.let { "Daily · #$it" } ?: "Practice"
-            }
-        }
-
-    //endregion
-
     /** Whether this session has been played — an emptied board with history still counts. */
     private fun hasPlayed(s: TangoSession): Boolean =
         s.placements.isNotEmpty() || s.history.canUndo || s.history.canRedo
@@ -366,8 +347,4 @@ class TangoPlayController(
     }
 
     //endregion
-
-    private companion object {
-        val REPLAY_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d")
-    }
 }

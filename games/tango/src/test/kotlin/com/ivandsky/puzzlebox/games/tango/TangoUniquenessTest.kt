@@ -16,8 +16,12 @@ import org.junit.Test
 /** A15: every accepted puzzle has exactly one solution — brute-force solver as the oracle. */
 class TangoUniquenessTest {
 
-    /** Counts solutions of [puzzle] by exhaustive search over the empty cells. */
-    private fun countSolutions(puzzle: TangoPuzzle, limit: Int = 2): Int {
+    /** Counts solutions of [puzzle] by exhaustive search over the empty cells; each found grid goes to [found]. */
+    private fun countSolutions(
+        puzzle: TangoPuzzle,
+        limit: Int = 2,
+        found: (List<TangoCell?>) -> Unit = {},
+    ): Int {
         val rules = com.ivandsky.puzzlebox.games.tango.engine.TangoRules
         var count = 0
         val empty = (0 until puzzle.cellCount).filter { it !in puzzle.givens }
@@ -33,7 +37,10 @@ class TangoUniquenessTest {
         fun rec(i: Int) {
             if (count >= limit) return
             if (i == empty.size) {
-                if (rules.isComplete(com.ivandsky.puzzlebox.games.tango.engine.TangoState(puzzle, grid.toList()))) count++
+                if (rules.isComplete(com.ivandsky.puzzlebox.games.tango.engine.TangoState(puzzle, grid.toList()))) {
+                    count++
+                    found(grid.toList())
+                }
                 return
             }
             val idx = empty[i]
@@ -81,5 +88,22 @@ class TangoUniquenessTest {
         // A 4x4 with a single given has multiple solutions — countSolutions finds 2 quickly.
         val ambiguous = TangoPuzzle(TangoTestSupport.variant, n = 4, givens = mapOf(0 to TangoCell.SUN), markers = emptyList())
         assertFalse(com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness.isUniquelySolvable(ambiguous))
+    }
+
+    @Test
+    fun `solve returns the brute-force unique solution`() {
+        val puzzle = TangoTestSupport.sample
+        val oracle = mutableListOf<List<TangoCell?>>()
+        assertEquals(1, countSolutions(puzzle, found = { oracle += it }))
+        assertEquals(oracle.single(), com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness.solve(puzzle))
+        assertEquals(TangoTestSupport.solution, com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness.solve(puzzle))
+    }
+
+    @Test
+    fun `solve refuses an ambiguous or odd puzzle`() {
+        val ambiguous = TangoPuzzle(TangoTestSupport.variant, n = 4, givens = mapOf(0 to TangoCell.SUN), markers = emptyList())
+        val odd = TangoPuzzle(TangoTestSupport.variant, n = 3, givens = emptyMap(), markers = emptyList())
+        assertNull(com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness.solve(ambiguous))
+        assertNull(com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness.solve(odd))
     }
 }

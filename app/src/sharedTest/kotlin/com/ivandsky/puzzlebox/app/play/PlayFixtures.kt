@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.games.strands.StrandsWord
 import com.ivandsky.puzzlebox.games.strands.codec.StrandsCodec
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
+import com.ivandsky.puzzlebox.games.sudoku.SudokuSamples
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
@@ -209,4 +210,10 @@ fun freshDailyForAllGames(): FakeDailyRepository = FakeDailyRepository()
     .script(TangoDefinition.id, DailyToday.Fresh(TangoPlayFixture.envelope()))
     .script(QueensDefinition.id, DailyToday.Fresh(QueensPlayFixture.envelope()))
     .script(SudokuGames.MINI.id, DailyToday.Fresh(MiniSudokuPlayFixture.envelope()))
+    // The debug-only 9x9 (ADR-0015): the hub's sync asks every registered game for today.
+    .script(SudokuGames.CLASSIC.id, DailyToday.Fresh(classicSudokuEnvelope()))
     .script(StrandsDefinition.id, DailyToday.Fresh(StrandsPlayFixture.envelope()))
+
+/** The bundled 9x9 board as DailyRepository hands it to the UI. */
+private fun classicSudokuEnvelope(): Puzzle =
+    Puzzle(SudokuGames.CLASSIC.id, SudokuSamples.classic.variant.id, SudokuCodec.VERSION, SudokuCodec.encode(SudokuSamples.classic))

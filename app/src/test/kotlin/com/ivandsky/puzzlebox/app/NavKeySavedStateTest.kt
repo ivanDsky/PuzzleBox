@@ -39,7 +39,8 @@ class NavKeySavedStateTest {
     private val everyKey = NavigationState(
         tab = PlayKey,
         stacks = listOf(
-            listOf(HomeKey, HistoryKey, GameKey("zip", "2026-03-09")),
+            // History's all-games key and a per-game tab key (A8).
+            listOf(HomeKey, HistoryKey(), HistoryKey("zip"), GameKey("zip", "2026-03-09")),
             listOf(PlayKey, ResultKey("zip", "2026-03-09", 61_200, 2)),
             listOf(ProfileKey, CatalogKey),
         ),

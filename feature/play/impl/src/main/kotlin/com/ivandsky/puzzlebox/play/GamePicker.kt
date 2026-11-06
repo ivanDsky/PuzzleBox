@@ -2,16 +2,15 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,65 +19,121 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
-import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.formatDuration
-import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.domain.PastDay
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
+
+/** The hub's grid width in cards, in two-pane and in the phone grid. */
+private const val GRID_COLUMNS = 2
+
+/** From this many games a phone hub turns into a grid of tiles, so 7–8 games stay scannable. */
+private const val PHONE_GRID_MIN_GAMES = 5
+
+/** The board thumbnail's side in the two-pane grid, where each card has more room. */
+private val GridThumbSize = 128.dp
 
 /**
- * The games hub's list (tag `route.hub`, spec A14): one card per playable game
- * (`hub.row.<gameId>`), in the order given, with today's status — "Not started",
- * "In progress · m:ss" (a saved play, as a tonal tag: the A13 cue) or "Solved · m:ss ✓" —
- * and what a tap does (Play, Continue, Replay) in the primary-text colour before the
- * chevron. No status line until the status is known. Picking a card is [onPick]. A card
- * with an archive also offers "Past puzzles" (`hub.past.<gameId>`, A22), which opens
- * [PastPuzzlesPicker] over its range; opening a day there is [onPickDay]. Which game's
- * picker is open is the only state held here.
+ * The games hub (tag `route.hub`, spec A13/A14): the "N of M done" header (`hub.summary`),
+ * then one [HubCard] per playable game in the order given — stacked on phones, a
+ * two-column grid in [PlayLayout.TwoPane], and on phones from [PHONE_GRID_MIN_GAMES] games
+ * a two-column grid of [HubCardShape.Tile]s — each showing today's board as its game in
+ * [games] draws [HubUiState.previews], with the [HubUiState.next] game's card up next.
+ * Below them, "Older puzzles" (`hub.older`, [onOpenHistory]) and the line that more games
+ * are on the way (`hub.more_coming`). Picking a card is [onPick]. A card with an archive
+ * also offers "Past puzzles" (`hub.past.<gameId>`, A22), which opens [PastPuzzlesPicker]
+ * over its range, its headline the selected day as [pastDay] reads it; opening a day
+ * there is [onPickDay]. Which game's picker is open is the
+ * only state held here.
  */
 @Composable
 internal fun GamePicker(
-    rows: List<HubRow>,
+    state: HubUiState,
+    games: GamePlayRegistry,
+    layout: PlayLayout,
     onPick: (GameId) -> Unit,
     onPickDay: (GameId, LocalDate) -> Unit,
+    pastDay: (GameId, LocalDate) -> Flow<PastDay>,
+    onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Home's card pairing (HomeScreen): cards float ABOVE the shell's ground in both
-    // themes — white on cool paper in light, a lighter slate on near-black in dark.
-    val scheme = MaterialTheme.colorScheme
-    val cardsFloatLighter = scheme.surface.luminance() > scheme.surfaceContainerHighest.luminance()
-    val cardColor = if (cardsFloatLighter) scheme.surface else scheme.surfaceContainerLow
     var pastFor by rememberSaveable { mutableStateOf<String?>(null) }
     Column(
         modifier
             .fillMaxWidth()
             .testTag("route.hub")
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = Spacing.lg, vertical = Spacing.xl),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Text(
-            text = "Pick a game",
-            style = MaterialTheme.typography.titleLarge,
+            text = hubSummary(state.doneCount, state.rows.size),
+            style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.testTag("hub.summary"),
         )
-        rows.forEach { row -> HubCard(row, cardColor, onPick, onPast = { pastFor = row.game.value }) }
+        val twoPane = layout == PlayLayout.TwoPane
+        val tiles = !twoPane && state.rows.size >= PHONE_GRID_MIN_GAMES
+        val columns = if (twoPane || tiles) GRID_COLUMNS else 1
+        state.rows.chunked(columns).forEach { line ->
+            // IntrinsicSize.Min + the cards' fillMaxHeight: a row's cards share its tallest's height.
+            Row(
+                modifier = Modifier.height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                line.forEach { row ->
+                    val model = state.previews[row.game]
+                    val ui = games[row.game]
+                    HubCard(
+                        entry = row,
+                        best = state.bestByGame[row.game],
+                        isNext = row.game == state.next,
+                        thumbnail = if (model != null && ui != null) {
+                            { thumb -> ui.BoardThumbnail(model, thumb) }
+                        } else {
+                            null
+                        },
+                        onPlay = { onPick(row.game) },
+                        modifier = Modifier.weight(1f),
+                        thumbSize = if (twoPane) GridThumbSize else HubThumbSize,
+                        shape = if (tiles) HubCardShape.Tile else HubCardShape.Row,
+                        onPast = row.archive?.let { { pastFor = row.game.value } },
+                    )
+                }
+                // A short last line keeps its cards at grid width.
+                repeat(columns - line.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            AppTextButton(
+                text = "Older puzzles",
+                onClick = onOpenHistory,
+                modifier = Modifier.testTag("hub.older"),
+            )
+            Text(
+                text = "More ways to play are coming",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("hub.more_coming"),
+            )
+        }
     }
-    val past = rows.firstOrNull { it.game.value == pastFor }
+    val past = state.rows.firstOrNull { it.game.value == pastFor }
     past?.archive?.let { range ->
         PastPuzzlesPicker(
             range = range,
+            gameName = past.name,
+            pastDay = { day -> pastDay(past.game, day) },
             onOpen = { day ->
                 pastFor = null
                 onPickDay(past.game, day)
@@ -88,139 +143,5 @@ internal fun GamePicker(
     }
 }
 
-@Composable
-private fun HubCard(
-    row: HubRow,
-    color: androidx.compose.ui.graphics.Color,
-    onPick: (GameId) -> Unit,
-    onPast: () -> Unit,
-) {
-    val action = row.status?.let(::actionLabel)
-    Surface(
-        // Surface's own onClick clips the ripple to the card's rounded shape.
-        onClick = { onPick(row.game) },
-        shape = MaterialTheme.shapes.large,
-        color = color,
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag("hub.row.${row.game.value}")
-            // TalkBack names what the tap does ("Continue"), not just "double-tap to activate".
-            .semantics { if (action != null) onClick(label = action) { onPick(row.game); true } }
-            // §9 touch floors: hub rows clear 48 dp with the padded content.
-            .heightIn(min = 56.dp),
-    ) {
-        Row(
-            // The chevron's 24 dp box carries its own optical inset: a tighter end pad.
-            Modifier.padding(start = Spacing.lg, end = Spacing.md, top = Spacing.md, bottom = Spacing.md),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-            ) {
-                Text(
-                    text = row.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                row.status?.let { status -> StatusLine(status, tag = "hub.status.${row.game.value}") }
-                if (row.archive != null) PastPuzzlesAction(row, onPast)
-            }
-            action?.let { label ->
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = LocalPrimaryText.current,
-                    modifier = Modifier.testTag("hub.action.${row.game.value}"),
-                )
-            }
-            // Decorative: the whole card is the click target and reads its name.
-            Icon(
-                imageVector = PuzzleIcons.Chevron,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-/**
- * The card's secondary action. Its own click target inside the card's, so a tap opens the
- * picker rather than today's play; TalkBack names the game it browses.
- */
-@Composable
-private fun PastPuzzlesAction(row: HubRow, onClick: () -> Unit) {
-    // Pulled back by the button's inner start padding so its label lines up with the name.
-    val inset = ButtonDefaults.TextButtonContentPadding.calculateStartPadding(LocalLayoutDirection.current)
-    AppTextButton(
-        text = "Past puzzles",
-        onClick = onClick,
-        modifier = Modifier
-            .offset(x = -inset)
-            .testTag("hub.past.${row.game.value}")
-            .semantics { contentDescription = "Past ${row.name} puzzles" },
-    )
-}
-
-/** The status line; in progress is the A13 cue — a small tonal tag on the secondary pair. */
-@Composable
-private fun StatusLine(status: TodayStatus, tag: String) {
-    if (status is TodayStatus.InProgress) {
-        Surface(
-            shape = MaterialTheme.shapes.small,
-            color = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        ) {
-            Text(
-                text = statusLine(status),
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.testTag(tag).padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-            )
-        }
-    } else {
-        Text(
-            text = statusLine(status),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.testTag(tag),
-        )
-    }
-}
-
-/** A row's status copy: the clock reads m:ss (0:42, 12:05). */
-internal fun statusLine(status: TodayStatus): String = when (status) {
-    TodayStatus.NotStarted -> "Not started"
-    is TodayStatus.InProgress -> "In progress · ${formatDuration(status.elapsedMs)}"
-    is TodayStatus.Solved -> "Solved · ${formatDuration(status.timeMs)} ✓"
-}
-
-/** What tapping a row does: a saved play continues, a solved day replays. */
-internal fun actionLabel(status: TodayStatus): String = when (status) {
-    TodayStatus.NotStarted -> "Play"
-    is TodayStatus.InProgress -> "Continue"
-    is TodayStatus.Solved -> "Replay"
-}
-
-@PuzzleBoxPreviews
-@Composable
-private fun GamePickerPreview() {
-    PuzzleBoxTheme {
-        GamePicker(
-            rows = listOf(
-                HubRow(GameId("zip"), "Zip", TodayStatus.Solved(36_000L)),
-                HubRow(GameId("tango"), "Tango", TodayStatus.InProgress(42_000L)),
-                HubRow(GameId("queens"), "Queens", TodayStatus.NotStarted),
-                HubRow(
-                    GameId("strands"),
-                    "Strands",
-                    TodayStatus.NotStarted,
-                    archive = LocalDate.of(2024, 3, 4)..LocalDate.of(2026, 11, 4),
-                ),
-                HubRow(GameId("pinpoint"), "Pinpoint", status = null),
-            ),
-            onPick = {},
-            onPickDay = { _, _ -> },
-        )
-    }
-}
+/** The hub's header: how many of today's puzzles are solved, out of every game. */
+internal fun hubSummary(done: Int, total: Int): String = "$done of $total done"

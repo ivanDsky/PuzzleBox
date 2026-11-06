@@ -1,15 +1,22 @@
 package com.ivandsky.puzzlebox.app.screens
 
+import android.content.pm.ApplicationInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.model.GameId
 import org.koin.androidx.compose.koinViewModel
 
+/**
+ * Profile's DI-bound entry point. [onOpenHistory] opens a game's History tab (N3);
+ * [onOpenCatalog] is offered only in debuggable builds (the catalog is a debug tool).
+ */
 @Composable
 fun ProfileRoute(
+    onOpenHistory: (GameId) -> Unit,
     onOpenCatalog: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -18,11 +25,14 @@ fun ProfileRoute(
     // The credential sheet launches from the current Activity's context (I2) —
     // read in composition (LocalContext is composable-scoped), handed per call.
     val activityContext = LocalContext.current
+    val debuggable = activityContext.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
     ProfileContent(
         state = state,
         onSignIn = { viewModel.onSignIn(activityContext) },
         onSignOut = viewModel::onSignOut,
-        onOpenCatalog = onOpenCatalog,
+        onSetThemeMode = viewModel::onSetThemeMode,
+        onOpenHistory = onOpenHistory,
+        onOpenCatalog = onOpenCatalog.takeIf { debuggable },
         modifier = modifier.testTag("route.profile"),
     )
 }

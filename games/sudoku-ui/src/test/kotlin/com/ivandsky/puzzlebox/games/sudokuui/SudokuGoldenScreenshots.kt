@@ -183,7 +183,6 @@ abstract class SudokuGoldenScenes(private val widthLabel: String) {
                             layout = layout,
                             onRetry = {},
                             onSolved = { _, _ -> },
-                            onHowToPlay = {},
                             modifier = Modifier,
                         )
                     }

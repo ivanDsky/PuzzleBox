@@ -13,8 +13,9 @@ fun EntryProviderScope<NavKey>.historyEntry(
     navigator: Navigator,
     layout: HistoryLayout,
 ) {
-    entry<HistoryKey> {
+    entry<HistoryKey> { key ->
         HistoryRoute(
+            key = key,
             layout = layout,
             onBack = { navigator.pop() },
             onReplay = { game, day ->

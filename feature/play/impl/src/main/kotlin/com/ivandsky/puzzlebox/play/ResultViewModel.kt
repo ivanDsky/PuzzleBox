@@ -3,8 +3,15 @@ package com.ivandsky.puzzlebox.play
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.domain.GetNextRollover
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.TodayEntry
+import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.nextUnsolved
+import com.ivandsky.puzzlebox.gameui.GameBrand
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
@@ -12,10 +19,13 @@ import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import java.time.Instant
 import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.stateIn
@@ -23,31 +33,47 @@ import kotlinx.coroutines.flow.stateIn
 /**
  * The result route's live facts. [verdict] is the A10 verdict for THIS play — null while
  * the write is in flight/unknown, or when no live play holds this solve; [previousBest]
- * is the game's best before this play, ranked by [rankOrder]; [label] is null without a
- * live play; [writeFailed] (the retry affordance) is only ever true for a live play
- * holding this solve.
+ * is the game's best before this play, ranked by [rankOrder]; [writeFailed] (the retry
+ * affordance) is only ever true for a live play holding this solve.
+ *
+ * [game] names the game; [puzzleNumber] is the slot's edition number, and [practice] is
+ * true once the history shows the slot has none (A22: it never ranks or counts). [streak]
+ * is the days-in-a-row streak, null until known and always null for practice;
+ * [doneToday] of [total] is today's playable set solved, this game counted the moment it
+ * is solved; [rolloverAt] is when the next puzzles land.
  */
 data class ResultUiState(
     val verdict: RecordVerdict? = null,
     val previousBest: BestScore? = null,
     val rankOrder: RankOrder = RankOrder.TimeThenHints,
     val writeFailed: Boolean = false,
-    val label: String? = null,
+    val game: String = "",
+    val puzzleNumber: Int? = null,
+    val practice: Boolean = false,
+    val streak: Int? = null,
+    val doneToday: Int? = null,
+    val total: Int? = null,
+    val rolloverAt: Instant? = null,
 )
 
 /**
  * The result route's state holder for [key]'s slot. The slot's live play
  * ([PlaySessionStore.peek]) speaks for this result only while it holds THIS solve — won,
- * with the key's time and hints: then the verdict, previous best, label and record-write
- * retry come from it. Once another stack replays or re-solves the slot, this entry keeps
- * the verdict it already saw and hides retry (A9, F2). Without a live play holding the
- * solve at entry (process death) the verdict is unknown (A15, N20): the session-start
- * baseline the verdict needs died with the play. A live play still names the label.
+ * with the key's time and hints: then the verdict, previous best and record-write retry
+ * come from it. Once another stack replays or re-solves the slot, this entry keeps the
+ * verdict it already saw and hides retry (A9, F2). Without a live play holding the solve
+ * at entry (process death) the verdict is unknown (A15, N20): the session-start baseline
+ * the verdict needs died with the play.
+ *
+ * Everything else is read, so it holds after process death too: the edition number from
+ * [history] (the same cached row the play's identity uses), the streak from [stats], the
+ * day's progress from [todaySet] and the next rollover from [rollover]. [brand] is the
+ * game's registered brand.
  *
  * [primary] (A7, SC10): on today's slot it is Next — [todaySet]'s next unsolved game after
  * this one that the [store] can play — or AllDone when none is left, and null until the set
  * first lands, so the screen never shows a Done that turns into Next. Any other day's
- * result (a replay) offers Done from the first frame. The set is collected only while the
+ * result (a replay) offers Done from the first frame. The read flows run only while the
  * screen is observed (plus a 5 s grace), so a day change is re-read.
  */
 class ResultViewModel(
@@ -55,25 +81,53 @@ class ResultViewModel(
     store: PlaySessionStore,
     todaySet: ObserveTodaySet,
     calendar: GameCalendar,
+    history: ObserveGameHistory,
+    stats: ObserveGameStats,
+    rollover: GetNextRollover,
+    ui: GamePlayRegistry,
 ) : ViewModel() {
 
     private val slot = PlaySlot(GameId(key.gameId), LocalDate.parse(key.day))
     private val solve = ActivePlay.Solve(key.timeMs, key.hintsUsed)
     private val live: ActivePlay? = store.peek(slot)
-    private val playable: Set<GameId> = store.playable.mapTo(HashSet()) { (game, _) -> game }
+    private val names: Map<GameId, String> = store.playable.toMap()
+    private val today: Boolean = calendar.today(slot.gameId) == slot.day
 
-    val state: StateFlow<ResultUiState> = if (live != null) {
-        val first = resultOf(ResultUiState(), live.record.value)
-        live.record.runningFold(first, ::resultOf)
-            .stateIn(viewModelScope, SharingStarted.Eagerly, first)
-    } else {
-        MutableStateFlow(ResultUiState())
+    val brand: GameBrand = ui.brandOf(slot.gameId)
+
+    /** This solve's record facts, folded eagerly so a later replay never erases them. */
+    private val record: StateFlow<ResultUiState> = ResultUiState(game = names[slot.gameId] ?: key.gameId).let { blank ->
+        if (live != null) {
+            val first = resultOf(blank, live.record.value)
+            live.record.runningFold(first, ::resultOf).stateIn(viewModelScope, SharingStarted.Eagerly, first)
+        } else {
+            MutableStateFlow(blank)
+        }
     }
 
+    private val playableToday: Flow<List<TodayEntry>> =
+        todaySet().map { entries -> entries.filter { it.game in names } }
+
+    val state: StateFlow<ResultUiState> = combine(
+        record,
+        history().map { days -> days.firstOrNull { it.gameId == slot.gameId && it.day == slot.day } },
+        stats().map { it.currentStreak },
+        playableToday,
+    ) { facts, day, streak, set ->
+        val practice = day != null && day.puzzleNumber == null
+        facts.copy(
+            puzzleNumber = day?.puzzleNumber,
+            practice = practice,
+            streak = streak.takeUnless { practice },
+            doneToday = set.count { it.status is TodayStatus.Solved || (today && it.game == slot.gameId) },
+            total = set.size,
+            rolloverAt = rollover(),
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), record.value)
+
     val primary: StateFlow<ResultPrimaryAction?> =
-        if (calendar.today(slot.gameId) == slot.day) {
-            todaySet().map { entries ->
-                val set = entries.filter { it.game in playable }
+        if (today) {
+            playableToday.map { set ->
                 set.nextUnsolved(after = slot.gameId)
                     ?.let { next -> ResultPrimaryAction.Next(next, set.first { it.game == next }.displayName) }
                     ?: ResultPrimaryAction.AllDone
@@ -90,15 +144,14 @@ class ResultViewModel(
      *  verdict this entry already saw stays (it was this solve's), and retry hides. */
     private fun resultOf(last: ResultUiState, record: ActivePlay.Record) =
         if (record.solve == solve) {
-            ResultUiState(
+            last.copy(
                 verdict = record.verdict,
                 previousBest = record.previousBest,
                 rankOrder = record.rankOrder,
                 writeFailed = record.writeFailed,
-                label = record.label,
             )
         } else {
-            last.copy(writeFailed = false, label = record.label)
+            last.copy(writeFailed = false)
         }
 
     private companion object {

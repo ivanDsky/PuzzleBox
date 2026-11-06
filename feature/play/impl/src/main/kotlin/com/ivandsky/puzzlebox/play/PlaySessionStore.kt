@@ -92,6 +92,14 @@ class PlaySessionStore internal constructor(
     fun peek(slot: PlaySlot): ActivePlay? = slots[slot]
 
     /**
+     * [slot]'s newest unfinished session as a SessionBlob envelope, for the hub's
+     * thumbnail: a live play's change still waiting in its writer's window, else the saved
+     * row, read after every save already queued (a just-released play's final save
+     * included). Null when the slot has neither. Never opens a play.
+     */
+    internal suspend fun latestSave(slot: PlaySlot): ByteArray? = slots[slot]?.unsavedSession ?: opening.savedRow(slot)
+
+    /**
      * Releases every live slot that no key in [keys] names: a [GameKey] with a day names
      * that day, a null-day one the slot it pinned, and a [ResultKey] its play's slot (the
      * result's badge and retry read it). A released play folds its clock and queues its

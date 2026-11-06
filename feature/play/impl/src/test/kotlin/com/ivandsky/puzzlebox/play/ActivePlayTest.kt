@@ -249,7 +249,8 @@ class ActivePlayTest {
 
         daily.setHistory(game, emptyList())
         play.load()
-        assertEquals("Alpha", play.record.value.label)
+        val practice = play.record.value.label
+        assertTrue(practice, practice.startsWith("Alpha") && "#" !in practice)
     }
 
     @Test

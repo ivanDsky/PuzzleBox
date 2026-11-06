@@ -2,13 +2,23 @@ package com.ivandsky.puzzlebox.home
 
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.domain.GameStats
+import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.gameui.GameBrand
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.WeekDay
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -34,11 +44,12 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Home's state. The Today card (A15) is today's set over every registered game — Zip
- * and Tango here, in registry order. The teaser observes the GAME-AGNOSTIC merged
- * history (fix round 5, defect C); Queens is not registered, so its rows exercise the
- * registry-name fallback. "Play today" targets the saved game, else the next unsolved one
- * (A13, SC11), over the core:testing fakes.
+ * Home's state. The Today tiles (A10) are today's set over every registered game — Zip
+ * and Tango here, in registry order, every brand neutral (no game UI registered). The
+ * teaser observes the GAME-AGNOSTIC merged history (fix round 5, defect C); Queens is not
+ * registered, so its rows exercise the registry-name fallback. The CTA targets the saved
+ * game, else the next unsolved one (A13, SC11); the streak card's week is the last 7
+ * puzzle days ending today (A8), over the core:testing fakes.
  */
 class HomeViewModelTest {
 
@@ -48,6 +59,9 @@ class HomeViewModelTest {
     private val zip = GameId("zip")
     private val tango = GameId("tango")
     private val day = LocalDate.of(2026, 11, 4)
+    // The test games roll over at UTC midnight: midday UTC is [day].
+    private val clock = Clock.fixed(Instant.parse("2026-11-04T12:00:00Z"), ZoneOffset.UTC)
+    private val neutral = GameBrand.Neutral
 
     private data class Deps(
         val vm: HomeViewModel,
@@ -65,13 +79,20 @@ class HomeViewModelTest {
         val daily = FakeDailyRepository()
         val completions = FakeCompletionRepository()
         val saved = FakeSavedPlayRepository()
+        val calendar = FakeGameCalendar(day)
+        val sync = SyncTodayPuzzles(registry, daily, calendar)
+        val history = ObserveGameHistory(registry, daily, completions)
+        val puzzleDay = GetPuzzleDay(registry, clock)
         val vm = HomeViewModel(
-            observeGameHistory = ObserveGameHistory(registry, daily, completions),
-            todaySet = ObserveTodaySet(registry, saved, completions, FakeGameCalendar(day)),
+            observeGameHistory = history,
+            observeGameStats = ObserveGameStats(history, ComputeStreak(puzzleDay)),
+            todaySet = ObserveTodaySet(registry, saved, completions, calendar, daily, sync),
             identityService = identity,
             registry = registry,
-            // The test games roll over at UTC midnight: midday UTC is [day].
-            puzzleDay = GetPuzzleDay(registry, Clock.fixed(Instant.parse("2026-11-04T12:00:00Z"), ZoneOffset.UTC)),
+            brands = GamePlayRegistry(emptyList()),
+            puzzleDay = puzzleDay,
+            nextRollover = GetNextRollover(registry, clock),
+            syncTodayPuzzles = sync,
         )
         if (collect) backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return Deps(vm, daily, completions, saved, identity)
@@ -92,15 +113,48 @@ class HomeViewModelTest {
         assertEquals(
             HomeUiState(
                 today = listOf(
-                    HomeUiState.TodayRow(zip, "Zip", status = null),
-                    HomeUiState.TodayRow(tango, "Tango", status = null),
+                    HomeUiState.TodayRow(zip, "Zip", status = null, brand = neutral),
+                    HomeUiState.TodayRow(tango, "Tango", status = null, brand = neutral),
                 ),
                 identity = ann,
                 history = emptyList(),
                 puzzleDay = day,
+                playTarget = zip,
+                stats = GameStats(0, 0, 0, null, 0, null, null),
+                week = (6L downTo 0L).map { WeekDay(day.minusDays(it), emptyList(), isToday = it == 0L) },
+                rolloverAt = Instant.parse("2026-11-05T00:00:00Z"),
             ),
             deps.vm.uiState.value,
         )
+    }
+
+    @Test
+    fun `the week is the last 7 puzzle days ending today, each with its solved games - A8`() = runTest {
+        val deps = viewModel()
+        deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
+        deps.completions.onCompleted(record(tango, day.minusDays(2), timeMs = 50_000L))
+        deps.completions.onCompleted(record(zip, day.minusDays(2), timeMs = 40_000L))
+        // Outside the window: 7 days back is not in the week.
+        deps.completions.onCompleted(record(zip, day.minusDays(7), timeMs = 40_000L))
+        // Opened but not solved: no dot.
+        deps.daily.addEntry(DailyEntry(tango, day.minusDays(1), 592, "tango/n5", 0L))
+
+        val week = deps.vm.uiState.value.week
+        assertEquals((6L downTo 0L).map { day.minusDays(it) }, week.map { it.date })
+        assertEquals(listOf(false, false, false, false, false, false, true), week.map { it.isToday })
+        assertEquals(listOf(0, 0, 0, 0, 2, 0, 1), week.map { it.solved.size })
+    }
+
+    @Test
+    fun `stats follow the solved days`() = runTest {
+        val deps = viewModel()
+        deps.completions.onCompleted(record(zip, day.minusDays(1), timeMs = 40_000L))
+        deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
+
+        val stats = deps.vm.uiState.value.stats
+        assertEquals(2, stats.currentStreak)
+        assertEquals(2, stats.bestStreak)
+        assertEquals(2, stats.solved)
     }
 
     @Test
@@ -110,74 +164,93 @@ class HomeViewModelTest {
 
         assertEquals(
             listOf(
-                HomeUiState.TodayRow(zip, "Zip", TodayStatus.NotStarted),
-                HomeUiState.TodayRow(tango, "Tango", TodayStatus.InProgress(42_000L)),
+                HomeUiState.TodayRow(zip, "Zip", TodayStatus.NotStarted, neutral),
+                HomeUiState.TodayRow(tango, "Tango", TodayStatus.InProgress(42_000L), neutral),
             ),
             deps.vm.uiState.value.today,
         )
-        assertEquals("0 of 2 done", doneSummary(deps.vm.uiState.value.today))
     }
 
     @Test
-    fun `a solve today flips the game to solved and the done count up`() = runTest {
+    fun `a solve today flips the game to solved`() = runTest {
         val deps = viewModel()
-        assertEquals("0 of 2 done", doneSummary(deps.vm.uiState.value.today))
 
         deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
 
         assertEquals(TodayStatus.Solved(36_000L), deps.vm.uiState.value.today.first { it.game == zip }.status)
-        assertEquals("1 of 2 done", doneSummary(deps.vm.uiState.value.today))
+        assertFalse(deps.vm.uiState.value.allSolved)
     }
 
     @Test
-    fun `play today targets the saved game and reads resume - A13 SC11`() = runTest {
+    fun `the CTA targets the saved game and continues it - A13 SC11`() = runTest {
         val deps = viewModel()
         assertEquals(zip, deps.vm.uiState.value.playTarget)
-        assertFalse(deps.vm.uiState.value.resume)
+        assertFalse(deps.vm.uiState.value.continues)
 
-        // Leaving Tango mid-game writes today's slot: the card offers to resume it.
+        // Leaving Tango mid-game writes today's slot: the CTA offers to continue it.
         deps.saved.save(PlaySlot(tango, day), byteArrayOf(1), elapsedMs = 5_000L)
         assertEquals(tango, deps.vm.uiState.value.playTarget)
-        assertTrue(deps.vm.uiState.value.resume)
+        assertTrue(deps.vm.uiState.value.continues)
 
-        // The save goes away (finished or abandoned): back to "Play today" on the first game.
+        // The save goes away (finished or abandoned): back to playing the first game.
         deps.saved.delete(PlaySlot(tango, day))
         assertEquals(zip, deps.vm.uiState.value.playTarget)
-        assertFalse(deps.vm.uiState.value.resume)
+        assertFalse(deps.vm.uiState.value.continues)
     }
 
     @Test
-    fun `yesterday's save or a solved today does not read resume`() = runTest {
+    fun `yesterday's save or a solved today does not continue`() = runTest {
         val deps = viewModel()
 
         // Yesterday's unsolved save resumes through History, not Home (A9).
         deps.saved.save(PlaySlot(zip, day.minusDays(1)), byteArrayOf(1), elapsedMs = 0L)
-        assertFalse(deps.vm.uiState.value.resume)
+        assertFalse(deps.vm.uiState.value.continues)
 
         // A completion for today wins over a lingering save (A13: solved wins).
         deps.saved.save(PlaySlot(zip, day), byteArrayOf(1), elapsedMs = 0L)
-        assertTrue(deps.vm.uiState.value.resume)
+        assertTrue(deps.vm.uiState.value.continues)
         deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
-        assertFalse(deps.vm.uiState.value.resume)
+        assertFalse(deps.vm.uiState.value.continues)
     }
 
     @Test
-    fun `play today skips solved games and falls back to the first when all are done`() = runTest {
+    fun `the CTA skips solved games and turns into the countdown when all are done`() = runTest {
         val deps = viewModel()
 
         deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
         assertEquals(tango, deps.vm.uiState.value.playTarget)
+        assertFalse(deps.vm.uiState.value.allSolved)
 
         deps.completions.onCompleted(record(tango, day, timeMs = 50_000L))
         assertEquals(zip, deps.vm.uiState.value.playTarget)
-        assertFalse(deps.vm.uiState.value.resume)
+        assertTrue(deps.vm.uiState.value.allSolved)
+        // The countdown runs to the next roll-over: the test games' UTC midnight.
+        assertEquals(Instant.parse("2026-11-05T00:00:00Z"), deps.vm.uiState.value.rolloverAt)
     }
 
     @Test
-    fun `before the set lands play today targets the first game`() = runTest {
+    fun `before the set lands the CTA targets the first game`() = runTest {
         val deps = viewModel(collect = false)
         assertEquals(zip, deps.vm.uiState.value.playTarget)
         assertNull(deps.vm.uiState.value.today.first().status)
+    }
+
+    @Test
+    fun `syncing today fetches every game and marks the one that cannot load offline - A12`() = runTest {
+        val deps = viewModel()
+        deps.daily.setToday(zip, DailyToday.Unavailable(FetchError.Unavailable()))
+        deps.daily.setToday(tango, DailyToday.Fresh(TestGames.puzzle(tango)))
+
+        deps.vm.syncToday()
+
+        assertEquals(1, deps.daily.todayCalls(zip))
+        assertEquals(1, deps.daily.todayCalls(tango))
+        assertEquals(
+            listOf(TodayStatus.Offline, TodayStatus.NotStarted),
+            deps.vm.uiState.value.today.map { it.status },
+        )
+        // An offline game is not solved, so the CTA still opens it (its route retries).
+        assertEquals(zip, deps.vm.uiState.value.playTarget)
     }
 
     @Test
@@ -191,7 +264,7 @@ class HomeViewModelTest {
         deps.daily.addEntry(DailyEntry(zip, LocalDate.of(2026, 10, 31), 592, "zip/n5", 0L))
 
         assertEquals(
-            listOf(HistoryDay("2026-10-31", "October 31", listOf(HistoryDay.GameResult("Zip", time = null)))),
+            listOf(HistoryDay("2026-10-31", "October 31", listOf(HistoryDay.GameResult("Zip", neutral, time = null)))),
             deps.vm.uiState.value.history,
         )
     }
@@ -210,7 +283,7 @@ class HomeViewModelTest {
                 HistoryDay(
                     "2026-11-01",
                     "November 1",
-                    listOf(HistoryDay.GameResult("queens", formatDuration(41_000L))),
+                    listOf(HistoryDay.GameResult("queens", neutral, formatDuration(41_000L))),
                 ),
             ),
             deps.vm.uiState.value.history,
@@ -225,14 +298,14 @@ class HomeViewModelTest {
         }
         // The newest past day has two games; tango lands first but lists after zip.
         deps.completions.onCompleted(record(tango, day.minusDays(1), timeMs = 61_000L))
-        // Today lives in the Today card, never in the teaser.
+        // Today lives in the Today tiles, never in the teaser.
         deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
 
         val history = deps.vm.uiState.value.history
         assertEquals(listOf("2026-11-03", "2026-11-02", "2026-11-01"), history.map { it.isoDay })
         assertEquals(history.size, history.map { it.isoDay }.toSet().size)
         assertEquals(
-            listOf(HistoryDay.GameResult("Zip", null), HistoryDay.GameResult("Tango", formatDuration(61_000L))),
+            listOf(HistoryDay.GameResult("Zip", neutral, null), HistoryDay.GameResult("Tango", neutral, formatDuration(61_000L))),
             history.first().games,
         )
     }
@@ -247,3 +320,7 @@ class HomeViewModelTest {
         assertEquals(ann, deps.vm.uiState.value.identity)
     }
 }
+
+/** The CTA continues a saved play: its target is in progress. */
+private val HomeUiState.continues: Boolean
+    get() = target?.status is TodayStatus.InProgress

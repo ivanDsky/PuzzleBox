@@ -28,28 +28,27 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 private val PaneGutter: Dp = Spacing.md
 
 /**
- * The play screen. Both layouts stack the grid over the keypad, so the digits stay one
- * short reach from the cells. SinglePane docks the shared chrome below. TwoPane (tablet
- * landscape) splits in two columns: the grid over one row of digit keys ending in the notes
- * toggle, and beside it the shared chrome with Erase and Clear as its game controls, so the
- * board gets the height of the two button rows it no longer carries.
+ * The play screen under the route's top bar (title, clock, How to play). Both layouts
+ * stack the grid over the keypad, so the digits stay one short reach from the cells.
+ * SinglePane docks the shared chrome below. TwoPane (tablet landscape) splits in two
+ * columns: the grid over one row of digit keys ending in the notes toggle, and beside it
+ * the shared chrome with Erase and Clear under it, so the board gets the height of the two
+ * button rows it no longer carries. The action bar's Clear is hidden: the keypad (or the
+ * TwoPane row) has Sudoku's own.
  * The result hand-off waits for the solve sweep ([SudokuMotionHost]); one per board, so a
  * replay's win hands off again.
  */
 @Composable
 internal fun SudokuPlayScreen(
     controller: SudokuPlayController,
-    title: String,
     status: PlayBoardStatus,
     layout: PlayLayout,
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
-    onHowToPlay: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val ready = status as? PlayBoardStatus.Ready
     val state = controller.board?.takeIf { ready != null }
-    val subtitle = ready?.let { controller.board?.session?.ref?.puzzleNumber }?.let { "Daily · #$it" } ?: "Daily"
     val twoPane = layout == PlayLayout.TwoPane
     SudokuMotionHost(controller.board, onSolved = { onSolved(it.elapsedMs, it.hintsUsed) }) {
         AdaptivePlayScaffold(
@@ -61,17 +60,19 @@ internal fun SudokuPlayScreen(
                 }
             },
             side = {
-                PlayChrome(
-                    title = title,
-                    subtitle = subtitle,
-                    clock = controller,
-                    hints = controller,
-                    undo = controller,
-                    banner = ready?.banner,
-                    feedback = controller,
-                    onHowToPlay = onHowToPlay,
-                    gameControls = { if (twoPane) SudokuEditControls(state) },
-                )
+                Column(Modifier.testTag("sudoku.side")) {
+                    PlayChrome(
+                        clock = controller,
+                        hints = controller,
+                        undo = controller,
+                        clear = null,
+                        banner = ready?.banner,
+                        feedback = controller,
+                    )
+                    if (twoPane) {
+                        Box(Modifier.padding(horizontal = Spacing.lg)) { SudokuEditControls(state) }
+                    }
+                }
             },
         )
     }

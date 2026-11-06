@@ -76,7 +76,7 @@ internal fun SudokuStackedBoardClassicPreview() {
 internal fun SudokuPlayScreenSinglePanePreview() {
     val controller = rememberPreviewController(SudokuGames.MINI, PREVIEW_PUZZLE, edition = 450)
     PuzzleBoxTheme {
-        SudokuPlayScreen(controller, "Mini Sudoku", PlayBoardStatus.Ready(banner = null), PlayLayout.SinglePane, {}, { _, _ -> }, {})
+        SudokuPlayScreen(controller, PlayBoardStatus.Ready(banner = null), PlayLayout.SinglePane, {}, { _, _ -> })
     }
 }
 
@@ -85,6 +85,6 @@ internal fun SudokuPlayScreenSinglePanePreview() {
 internal fun SudokuPlayScreenTwoPanePreview() {
     val controller = rememberPreviewController(SudokuGames.CLASSIC, SudokuSamples.classic, edition = null)
     PuzzleBoxTheme {
-        SudokuPlayScreen(controller, "Sudoku", PlayBoardStatus.Ready(banner = null), PlayLayout.TwoPane, {}, { _, _ -> }, {})
+        SudokuPlayScreen(controller, PlayBoardStatus.Ready(banner = null), PlayLayout.TwoPane, {}, { _, _ -> })
     }
 }

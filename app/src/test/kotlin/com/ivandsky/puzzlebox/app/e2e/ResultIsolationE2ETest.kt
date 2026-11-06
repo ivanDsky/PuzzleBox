@@ -37,27 +37,27 @@ class ResultIsolationE2ETest {
 
     @Test
     fun `a Result on Home keeps its badge while Play replays and re-solves the same slot`() = shellRobot(graph = numberedGraph()) {
-        tapText(PLAY_TODAY)
+        tap(HOME_PLAY)
         solveZip()
         val first = state.currentStack.last()
         assertTrue("Home's top is the first solve's Result: $state", first is ResultKey)
         awaitBadge()
 
-        tapTab(PlayKey)
+        switchTab(PlayKey)
         openGame(ZIP)
         assertRoute(GAME)
-        tapTab(HomeKey)
+        switchTab(HomeKey)
         assertState(stacks(tab = HomeKey, home = listOf(HomeKey, first), play = listOf(PlayKey, GameKey(ZIP))))
         assertRoute(RESULT)
         awaitBadge()
 
-        tapTab(PlayKey)
+        switchTab(PlayKey)
         solveZip(takingMs = SLOWER_MS) // slower than the first, so a distinct solve and no record
         val second = state.currentStack.last()
         assertTrue("Play's top is the second solve's Result: $state", second is ResultKey)
         assertNotEquals("two distinct solves", (first as ResultKey).timeMs, (second as ResultKey).timeMs)
 
-        tapTab(HomeKey)
+        switchTab(HomeKey)
         assertEquals(listOf(HomeKey, first), state.stacks.first())
         assertRoute(RESULT)
         awaitBadge()
@@ -107,7 +107,7 @@ class ResultIsolationE2ETest {
         const val GAME = "route.game"
         const val RESULT = "route.result"
         const val BADGE = "result.record_badge"
-        const val PLAY_TODAY = "Play today"
+        const val HOME_PLAY = "home.today_play"
         const val ZIP = "zip"
         const val SLOWER_MS = 100L
         const val TIMEOUT_MS = 5_000L

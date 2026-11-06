@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.CoroutineScope
 
@@ -39,12 +40,39 @@ interface GamePlayUi {
     fun Board(controller: GamePlayController, modifier: Modifier)
 
     /**
-     * The game's play screen. [controller] is one this UI created; [status] is the
+     * [preview] as this game's own drawable model, for the hub card's thumbnail; null
+     * when it can't be read (a foreign or corrupt save, a puzzle of another game), and
+     * the hub then shows the glyph instead. Pure, no I/O: the hub calls it off the main thread.
+     */
+    fun previewModel(preview: BoardPreview): RendererModel?
+
+    /**
+     * [model] (one [previewModel] returned) drawn read-only at thumbnail size (~96–128dp):
+     * the same look as [Board], with no input, no animation and no caption. It fills
+     * [modifier]'s square.
+     */
+    @Composable
+    fun BoardThumbnail(model: RendererModel, modifier: Modifier)
+
+    /**
+     * The game's Clear over [controller] (A14): null when the game has none, which hides
+     * the action bar's Clear. [Screen] hands the same seam to [PlayChrome].
+     */
+    fun clearFor(controller: GamePlayController): PlayClear? = null
+
+    /**
+     * The game's settings for the play top bar's overflow menu (A14), read on each
+     * composition so a toggle shows its current state. Empty hides the menu.
+     */
+    fun overflowFor(controller: GamePlayController): List<PlayOverflowItem> = emptyList()
+
+    /**
+     * The game's play screen under the route's top bar: the board, its caption and the
+     * [PlayChrome] action bar, whose Clear is [clearFor]. [controller] is one this UI
+     * created; [status] is the
      * shared fetch state (Loading / Unavailable / Ready + degrade banner). [onSolved]
-     * carries the frozen result facts once per completion — including a restored
-     * completed session, which shows its win. [onHowToPlay] goes to the game's
-     * [PlayChrome] (null = no button): the play feature reopens the tutorial over this
-     * play and pauses its clock meanwhile.
+     * carries the frozen result facts once per completion, after the [PlaySolveFrame]
+     * moment, including a restored completed session, which hands off at once.
      */
     @Composable
     fun Screen(
@@ -53,7 +81,6 @@ interface GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
-        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     )
 }

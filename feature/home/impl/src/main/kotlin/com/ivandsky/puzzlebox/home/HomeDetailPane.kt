@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -24,16 +23,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.model.GameId
 
 /** Expanded-width detail pane: today's set until a history day is selected. */
 @Composable
 internal fun DetailPane(
     selected: HistoryDay?,
-    today: List<HomeUiState.TodayRow>,
-    resume: Boolean,
-    onPlayToday: () -> Unit,
+    state: HomeUiState,
+    onOpenGame: (GameId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AnimatedContent(
@@ -53,19 +51,18 @@ internal fun DetailPane(
         contentKey = { it?.isoDay },
     ) { day ->
         if (day == null) {
-            TodayDetail(today = today, resume = resume, onPlayToday = onPlayToday, modifier = Modifier.fillMaxSize())
+            TodayDetail(state = state, onOpenGame = onOpenGame, modifier = Modifier.fillMaxSize())
         } else {
             DayDetail(day = day, modifier = Modifier.fillMaxSize())
         }
     }
 }
 
-/** Today's set again, roomier: the two-pane hero (A15), with the same Play today action. */
+/** Today's set again, roomier: the two-pane hero (A15), with the same tiles and CTA. */
 @Composable
 private fun TodayDetail(
-    today: List<HomeUiState.TodayRow>,
-    resume: Boolean,
-    onPlayToday: () -> Unit,
+    state: HomeUiState,
+    onOpenGame: (GameId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -76,19 +73,17 @@ private fun TodayDetail(
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
         Spacer(Modifier.weight(1f))
-        Column(
-            modifier = Modifier
-                .widthIn(max = 360.dp)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Text(
-                text = "Today",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            TodaySet(today = today, tagPrefix = "home.detail_today")
-        }
+        Text(
+            text = "Today",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        HomeTodaySection(
+            state = state,
+            onOpenGame = onOpenGame,
+            tagPrefix = "home.detail_today",
+            modifier = Modifier.widthIn(max = 480.dp),
+        )
         Text(
             text = "Every game has a new puzzle each day.",
             style = MaterialTheme.typography.bodyMedium,
@@ -96,7 +91,6 @@ private fun TodayDetail(
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = Spacing.xl),
         )
-        PrimaryButton(text = playTodayLabel(resume), onClick = onPlayToday)
         Spacer(Modifier.weight(1f))
     }
 }

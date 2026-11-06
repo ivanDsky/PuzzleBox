@@ -12,7 +12,6 @@ import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.api.HomeKey
-import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
@@ -47,14 +46,12 @@ class NavRoutesTest {
             homeLayout = HomeLayout.SinglePane,
             playLayout = PlayLayout.SinglePane,
             historyLayout = HistoryLayout.SinglePane,
-            themeMode = ThemeMode.SYSTEM,
-            onSetThemeMode = {},
         )
 
     @Test
     fun `every primary-flow key resolves to a registered entry`() {
         val keys = listOf<NavKey>(
-            HomeKey, PlayKey, HistoryKey, GameKey("zip", "2026-03-09"), ResultKey("zip", "2026-03-09", 95_000, 1), ProfileKey, CatalogKey,
+            HomeKey, PlayKey, HistoryKey(), GameKey("zip", "2026-03-09"), ResultKey("zip", "2026-03-09", 95_000, 1), ProfileKey, CatalogKey,
         )
 
         keys.forEach { key ->

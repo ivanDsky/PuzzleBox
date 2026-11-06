@@ -23,6 +23,9 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -40,9 +43,10 @@ import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.ResultKey
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -84,7 +88,8 @@ fun shellRobot(
 /**
  * The E2E vocabulary: user gestures (tabs, taps, system and predictive back), lifecycle
  * (background, saved-state restore, relaunch) and the row assertions. Every assertion of
- * a state also checks SC2 (exactly one tab selected, the state's tab); every route
+ * a state also checks SC2 (exactly one tab selected, the state's tab; no tab at all in
+ * immersive play, N2); every route
  * assertion checks that the tag is the only `route.*` on screen (SC1). Failures print
  * states in spec notation (`**Home**[Home] Play[Play] Profile[Profile]`).
  */
@@ -126,8 +131,6 @@ class ShellRobot internal constructor(
             PuzzleBoxTheme(darkTheme = false) {
                 PuzzleBoxApp(
                     windowWidthSizeClass = calculateWindowSizeClass(rule.activity).widthSizeClass,
-                    themeMode = ThemeMode.SYSTEM,
-                    onSetThemeMode = {},
                     navigator = rememberNavigator(initial).also { navigator = it },
                 )
             }
@@ -138,9 +141,23 @@ class ShellRobot internal constructor(
         tap(topLevelDestinations.single { it.key == key }.tag)
     }
 
+    /**
+     * A tab switch from a board or a result, where immersive play (N2) hides the bar: the
+     * same [Navigator.selectTab] the bar's tap makes, for rows that hop away from live play.
+     */
+    fun switchTab(key: NavKey) {
+        check(state.immersive) { "the bar shows on $state: tapTab($key)" }
+        rule.runOnIdle { navigator.selectTab(key) }
+        rule.waitForIdle()
+    }
+
+    /** Taps the node tagged [tag], scrolling it into view first when it sits in a scrolling screen. */
     fun tap(tag: String) {
         awaitTag(tag)
-        rule.onNodeWithTag(tag).performClick()
+        val node = rule.onNodeWithTag(tag)
+        val scrolls = rule.onAllNodes(hasTestTag(tag) and hasAnyAncestor(hasScrollAction())).fetchSemanticsNodes().isNotEmpty()
+        if (scrolls) node.performScrollTo()
+        node.performClick()
         rule.waitForIdle()
     }
 
@@ -244,14 +261,29 @@ class ShellRobot internal constructor(
         assertSelectedTab(expected.tab)
     }
 
-    /** SC2: every tab shows once, and exactly [tab] is selected. */
+    /**
+     * SC2: every tab shows once, and exactly [tab] is selected — or, while the live state is
+     * immersive (N2: a board or a result on top), no tab shows at all.
+     */
     fun assertSelectedTab(tab: NavKey) {
+        if (state.immersive) {
+            assertNoNavigation()
+            return
+        }
         val selected = topLevelDestinations.filter { destination ->
             val nodes = rule.onAllNodesWithTag(destination.tag).fetchSemanticsNodes()
             assertEquals("tab ${destination.label} shown once (state $state)", 1, nodes.size)
             nodes.single().config.getOrNull(SemanticsProperties.Selected) == true
         }
         assertEquals("selected tabs (state $state)", listOf(tab), selected.map { it.key })
+    }
+
+    /** N2: neither bar nor rail shows a tab. */
+    fun assertNoNavigation() {
+        topLevelDestinations.forEach { destination ->
+            val nodes = rule.onAllNodesWithTag(destination.tag).fetchSemanticsNodes()
+            assertEquals("tab ${destination.label} hidden (state $state)", 0, nodes.size)
+        }
     }
 
     /** SC1: [tag] is displayed and is the only `route.*` tag on screen. */
@@ -313,6 +345,10 @@ class ShellRobot internal constructor(
             }
         }
     }
+
+    /** Immersive play (N2): the selected tab's top is a board or a result. */
+    private val NavigationState.immersive: Boolean
+        get() = currentStack.last().let { it is GameKey || it is ResultKey }
 
     private companion object {
         const val TIMEOUT_MS = 5_000L

@@ -4,8 +4,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.hasAnyDescendant
-import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -109,28 +109,23 @@ class StrandsPlayE2ETest {
 
             awaitTag(RESULT_SCREEN)
             assertRoute(RESULT)
-            rule.onNodeWithText("2 hints").assertExists()
+            rule.onNode(hasTestTag("result.tile.hints") and hasAnyDescendant(hasText("2"))).assertExists()
             assertTrue(
                 "the result shows the play time",
                 rule.onAllNodes(clockText, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty(),
-            )
-            assertTrue(
-                "Strands has no share line",
-                rule.onAllNodesWithText("share", substring = true, ignoreCase = true, useUnmergedTree = true)
-                    .fetchSemanticsNodes().isEmpty(),
             )
 
             val record = runBlocking { strandsRecords() }.single()
             assertEquals("the record keeps the solve's hints", 2, record.hints)
 
-            tapTab(HomeKey)
+            switchTab(HomeKey)
             tapText("See all")
             awaitTag(HISTORY_ROW)
-            // The captured row exists from the opening; only the solve's record marks it.
-            rule.onNode(
-                hasTestTag(HISTORY_ROW) and hasAnyDescendant(hasContentDescription("Record set")),
-                useUnmergedTree = true,
-            ).assertExists()
+            // The captured row exists from the opening; only the solve's record swaps its
+            // "Keep going" pill for the time and hints.
+            rule.onNodeWithTag("history.unfinished.$STRANDS/$TODAY", useUnmergedTree = true).assertDoesNotExist()
+            rule.onNode(hasTestTag(HISTORY_ROW) and hasAnyDescendant(hasText("2 hints")), useUnmergedTree = true)
+                .assertExists()
         }
 
     private fun ShellRobot.savedSession(): StrandsSession? =

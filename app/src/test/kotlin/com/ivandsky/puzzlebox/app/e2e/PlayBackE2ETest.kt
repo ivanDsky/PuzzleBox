@@ -5,8 +5,10 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
+import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
+import com.ivandsky.puzzlebox.gameui.todayStatusLine
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
@@ -25,7 +27,7 @@ import org.robolectric.annotation.Config
 
 /**
  * N3 over the real shell: every way back from a game mid-play (system back, Up, predictive
- * back) returns to the hub, the left board's save lands, and the hub marks Zip "In progress"
+ * back) returns to the hub, the left board's save lands, and the hub marks Zip in progress
  * (A10, A13). Every row asserts the navigation state (with SC2's selected tab) and the
  * visible `route.*` tag.
  */
@@ -76,7 +78,7 @@ class PlayBackE2ETest {
         rule.runOnIdle { MID_GAME.forEach { zip().extend(it) } }
     }
 
-    /** The left board is on "disk", and the hub's Zip row reads "In progress". */
+    /** The left board is on "disk", and the hub's Zip row reads in progress. */
     private fun ShellRobot.assertSavedAndInProgress() {
         rule.waitUntil(TIMEOUT_MS) { runBlocking { graph.saved.load(todaySlot) } != null }
         val inProgressRow = hasTestTag(ZIP_ROW) and (hasText(IN_PROGRESS, substring = true) or hasAnyDescendant(hasText(IN_PROGRESS, substring = true)))
@@ -107,7 +109,8 @@ class PlayBackE2ETest {
         const val GAME_UP = "game.up"
         const val ZIP = "zip"
         const val ZIP_ROW = "hub.row.zip"
-        const val IN_PROGRESS = "In progress"
+        // The saved-play status line's words, without its clock.
+        val IN_PROGRESS = todayStatusLine(TodayStatus.InProgress(0L)).substringBefore(" ·")
         const val TIMEOUT_MS = 5_000L
         val MID_GAME: List<Cell> = ZipPlayFixture.solution.take(3)
     }

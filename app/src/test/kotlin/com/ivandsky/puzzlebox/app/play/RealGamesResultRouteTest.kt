@@ -2,15 +2,20 @@ package com.ivandsky.puzzlebox.app.play
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.domain.GetNextRollover
+import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -75,7 +80,13 @@ class RealGamesResultRouteTest {
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<GameCalendar> { FakeGameCalendar(today) }
                     factory { LoadPastDay(get(), get()) }
-                    factory { ObserveTodaySet(get(), get(), get(), get()) }
+                    single { SyncTodayPuzzles(get(), get(), get()) }
+                    factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
+                    factory { ObserveGameHistory(get(), get(), get()) }
+                    factory { GetPuzzleDay(get()) }
+                    factory { ComputeStreak(get()) }
+                    factory { ObserveGameStats(get(), get()) }
+                    factory { GetNextRollover(get()) }
                     // Tutorial seen: this path is about the result; the lessons have their own tests.
                     single<UserPreferencesRepository> {
                         FakeUserPreferencesRepository(seen = setOf(ZipDefinition.id))
@@ -110,11 +121,11 @@ class RealGamesResultRouteTest {
                     )
                 }
             }
-            // The verdict is in memory: the badge renders; the key's facts show.
-            composeRule.onNodeWithText("Solved!").assertExists()
+            // The verdict is in memory: the game's first solve (no prior records) stamps
+            // the pill; the key's facts show.
+            composeRule.onNodeWithTag("result.screen").assertExists()
+            composeRule.onNodeWithTag("result.time").assertExists()
             composeRule.onNodeWithTag("result.record_badge").assertExists()
-            // The game's first solve (no prior records) reads as such.
-            composeRule.onNodeWithText("First solve").assertExists()
 
             // "Play again": navigation is handed back; the game's reopen is a fresh session.
             composeRule.onNodeWithTag("result.playAgain").performClick()

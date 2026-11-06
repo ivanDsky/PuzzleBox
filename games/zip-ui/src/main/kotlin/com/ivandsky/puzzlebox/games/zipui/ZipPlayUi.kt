@@ -8,12 +8,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.toRect
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -28,9 +32,15 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import com.ivandsky.puzzlebox.gameui.PlayClear
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.PlaySolveFrame
+import com.ivandsky.puzzlebox.gameui.playBoardPane
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
+import com.ivandsky.puzzlebox.game.RendererModel
+import com.ivandsky.puzzlebox.gameui.BoardPreview
+import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.delay
 
@@ -49,6 +59,17 @@ class ZipPlayUi : GamePlayUi {
         ZipBoard(controller as ZipPlayController, modifier)
     }
 
+    override fun previewModel(preview: BoardPreview): RendererModel? = ZipPreviewModels.of(preview)
+
+    /** The hub thumbnail: the read-only board, no input or motion. */
+    @Composable
+    override fun BoardThumbnail(model: RendererModel, modifier: Modifier) {
+        ZipBoard(model as? ZipRendererModel ?: return, modifier)
+    }
+
+    /** Clear empties the trace to the start state, one undo unit (R1). */
+    override fun clearFor(controller: GamePlayController): PlayClear = (controller as ZipPlayController).edits
+
     @Composable
     override fun Screen(
         controller: GamePlayController,
@@ -56,22 +77,21 @@ class ZipPlayUi : GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
-        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     ) {
-        ZipPlayScreen(controller as ZipPlayController, status, layout, onRetry, onSolved, modifier, onHowToPlay)
+        ZipPlayScreen(controller as ZipPlayController, status, layout, onRetry, onSolved, modifier)
     }
 }
 
 /**
- * The Zip play screen (ticket 13): board + trace gesture + timer + hints, arranged by
- * the 07 adaptive policy (two-pane needs Expanded width AND landscape). State flows one
- * way: [controller] owns the session; the screen draws and forwards events.
+ * The Zip play screen (ticket 13, A14): the board under the route's top bar, then the
+ * shared caption and action bar (Clear empties the trace), arranged by the 07 adaptive
+ * policy (two-pane needs Expanded width AND landscape). State flows one way:
+ * [controller] owns the session; the screen draws and forwards events.
  *
- * Ticket 23: the win moment is a ROUTE handoff, not an overlay — when the session
- * completes, [onSolved] carries the frozen A3 facts to the result route; this screen
- * never renders win content itself. [onHowToPlay] (null = no button) reopens the
- * tutorial from the chrome.
+ * Ticket 23: the win moment is a ROUTE handoff, not an overlay. When the session
+ * completes, the board plays its [PlaySolveFrame] moment, then [onSolved] carries the
+ * frozen A3 facts to the result route; this screen never renders win content itself.
  */
 @Composable
 fun ZipPlayScreen(
@@ -81,32 +101,21 @@ fun ZipPlayScreen(
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
-    onHowToPlay: (() -> Unit)? = null,
 ) {
     val ready = status as? PlayBoardStatus.Ready
-
-    // The win moment (ticket 23): a one-shot route handoff — the frozen facts go to the
-    // result route while the record write keeps running in the store, never awaited here.
-    val completed = controller.session?.takeIf { it.isComplete }
-    LaunchedEffect(completed) {
-        if (completed != null) onSolved(completed.elapsedMs, completed.hintsUsed)
-    }
-
     Box(modifier.fillMaxSize()) {
         AdaptivePlayScaffold(
             layout = layout,
             modifier = Modifier.fillMaxSize(),
-            board = { BoardArea(controller, status, onRetry) },
+            board = { BoardArea(controller, status, onRetry, onSolved) },
             side = {
                 PlayChrome(
-                    title = "Zip",
-                    subtitle = if (ready == null) "Daily" else subtitle(controller),
                     clock = controller,
                     hints = controller,
                     undo = controller,
+                    clear = controller.edits,
                     banner = ready?.banner,
                     feedback = controller,
-                    onHowToPlay = onHowToPlay,
                 )
             },
         )
@@ -119,17 +128,38 @@ private fun BoxScope.BoardArea(
     controller: ZipPlayController,
     status: PlayBoardStatus,
     onRetry: () -> Unit,
+    onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
 ) {
     Box(
         Modifier
-            .fillMaxSize()
+            .playBoardPane()
             .testTag("play.board_area")
             // A4: standard pane margins; the cap below is a max, not a fixed width.
             .padding(horizontal = Spacing.lg),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.TopCenter,
     ) {
-        if (status is PlayBoardStatus.Ready && controller.session != null) {
-            ZipBoard(controller, Modifier)
+        val session = controller.session
+        if (status is PlayBoardStatus.Ready && session != null) {
+            val n = session.puzzle.board.n
+            // The sweep follows Zip's rounded outline (U1 §4).
+            val shape = remember(n) {
+                GenericShape { size, _ ->
+                    val radius = size.minDimension / n * ZipBoardSpec.boardOutlineRadiusFraction
+                    addRoundRect(RoundRect(size.toRect(), CornerRadius(radius)))
+                }
+            }
+            // The win moment (ticket 23): a one-shot route handoff after the solve frame;
+            // the record write keeps running in the store, never awaited here.
+            PlaySolveFrame(
+                brand = ZipBrand,
+                solved = session.completedAt,
+                onHandOff = {
+                    controller.session?.takeIf { it.isComplete }?.let { onSolved(it.elapsedMs, it.hintsUsed) }
+                },
+                shape = shape,
+            ) {
+                ZipBoard(controller, Modifier)
+            }
         } else {
             PlayBoardFallback(status, onRetry, tagPrefix = "play")
         }
@@ -186,7 +216,3 @@ private fun ZipBoard(controller: ZipPlayController, modifier: Modifier) {
         arrow?.let { HintArrowHead(it, model, arrowAlpha.value, Modifier.matchParentSize()) }
     }
 }
-
-/** An adopted puzzle with no edition number is practice; before adoption the header says "Daily". */
-private fun subtitle(controller: ZipPlayController): String =
-    controller.session?.ref?.let { ref -> ref.puzzleNumber?.let { number -> "Daily · #$number" } ?: "Practice" } ?: "Daily"

@@ -18,15 +18,17 @@ class GetPuzzleDay(
     private val clock: Clock = Clock.systemUTC(),
 ) {
 
-    operator fun invoke(): LocalDate = LocalDate.now(clock.withZone(zone()))
-
-    private fun zone(): ZoneId =
-        when (val cadence = registry.all.firstOrNull()?.definition?.cadence) {
-            is Cadence.Daily -> cadence.zone
-            null -> FALLBACK_ZONE
-        }
-
-    private companion object {
-        val FALLBACK_ZONE: ZoneId = ZoneId.of("America/Los_Angeles")
-    }
+    operator fun invoke(): LocalDate = LocalDate.now(clock.withZone(registry.puzzleZone()))
 }
+
+/**
+ * The zone every app-level puzzle day reads ([GetPuzzleDay], [GetNextRollover]): the first
+ * registered game's [Cadence.Daily] zone, else America/Los_Angeles.
+ */
+internal fun GameRegistry.puzzleZone(): ZoneId =
+    when (val cadence = all.firstOrNull()?.definition?.cadence) {
+        is Cadence.Daily -> cadence.zone
+        null -> FALLBACK_ZONE
+    }
+
+private val FALLBACK_ZONE: ZoneId = ZoneId.of("America/Los_Angeles")

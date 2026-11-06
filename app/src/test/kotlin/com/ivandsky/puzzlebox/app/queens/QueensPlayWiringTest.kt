@@ -10,11 +10,11 @@ import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
+import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
-import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.today
@@ -97,7 +97,8 @@ class QueensPlayWiringTest {
             listOf(
                 module {
                     single<DailyRepository> {
-                        FakeDailyRepository().apply {
+                        // The hub prefetches every game's today on start; Queens gets this test's board.
+                        freshDailyForAllGames().apply {
                             setToday(QueensDefinition.id, DailyToday.Fresh(envelope()))
                             setHistory(
                                 QueensDefinition.id,
@@ -130,7 +131,7 @@ class QueensPlayWiringTest {
                     backStack = navigator.state.currentStack,
                     onBack = { navigator.pop() },
                     entryProvider = entryProvider {
-                        playEntry(navigator, PlayLayout.SinglePane)
+                        playEntry(navigator, PlayLayout.SinglePane, onOpenHistory = {})
                         entry<ResultKey> { Text("result") }
                     },
                 )

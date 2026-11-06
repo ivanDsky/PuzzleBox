@@ -7,13 +7,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
+import com.ivandsky.puzzlebox.gameui.BoardPreview
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
@@ -23,7 +24,9 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.PlaySolveFrame
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.gameui.playBoardPane
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.model.GameId
 
@@ -42,6 +45,15 @@ class TangoPlayUi : GamePlayUi {
         TangoBoard(controller as TangoPlayController, modifier)
     }
 
+    override fun previewModel(preview: BoardPreview): RendererModel? = TangoThumbnail.model(preview)
+
+    @Composable
+    override fun BoardThumbnail(model: RendererModel, modifier: Modifier) {
+        // No placement callback: the thumbnail is read-only (no taps, ghosts or hint marks).
+        val renderer = remember { TangoBoardRenderer(onPlacement = null) }
+        renderer.Content(model, modifier)
+    }
+
     @Composable
     override fun Screen(
         controller: GamePlayController,
@@ -49,19 +61,18 @@ class TangoPlayUi : GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
-        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     ) {
-        TangoPlayScreen(controller as TangoPlayController, status, layout, onRetry, onSolved, modifier, onHowToPlay)
+        TangoPlayScreen(controller as TangoPlayController, status, layout, onRetry, onSolved, modifier)
     }
 }
 
 /**
- * The Tango play screen (tango-05): the Zip play shell (ticket 13/23 semantics) with
- * 04's board renderer — tap placements land through [TangoBoardRenderer]'s placement
- * callback, the timer/hint/undo/banner chrome is the shared [PlayChrome]. Design §6:
- * the win moment is the same route handoff; this screen never renders win content.
- * [onHowToPlay] (null = no button) reopens the tutorial from the chrome.
+ * The Tango play screen (tango-05, A14): the Zip play shell (ticket 13/23 semantics) with
+ * 04's board renderer. Tap placements land through [TangoBoardRenderer]'s placement
+ * callback; the caption and action bar are the shared [PlayChrome], with no Clear (Tango
+ * has none). Design §6: the win moment is the same [PlaySolveFrame] then route handoff;
+ * this screen never renders win content.
  */
 @Composable
 fun TangoPlayScreen(
@@ -71,32 +82,21 @@ fun TangoPlayScreen(
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
-    onHowToPlay: (() -> Unit)? = null,
 ) {
     val ready = status as? PlayBoardStatus.Ready
-
-    // The win moment: the one-shot route handoff (ticket-23 pattern) — the frozen facts
-    // go to the result route while the record write keeps running in the store.
-    val completed = controller.session?.takeIf { it.isComplete }
-    LaunchedEffect(completed) {
-        if (completed != null) onSolved(completed.elapsedMs, completed.hintsUsed)
-    }
-
     Box(modifier.fillMaxSize()) {
         AdaptivePlayScaffold(
             layout = layout,
             modifier = Modifier.fillMaxSize(),
-            board = { TangoBoardArea(controller, status, onRetry) },
+            board = { TangoBoardArea(controller, status, onRetry, onSolved) },
             side = {
                 PlayChrome(
-                    title = "Tango",
-                    subtitle = controller.subtitle,
                     clock = controller,
                     hints = controller,
                     undo = controller,
+                    clear = null,
                     banner = ready?.banner,
                     feedback = controller,
-                    onHowToPlay = onHowToPlay,
                 )
             },
         )
@@ -109,17 +109,29 @@ private fun BoxScope.TangoBoardArea(
     controller: TangoPlayController,
     status: PlayBoardStatus,
     onRetry: () -> Unit,
+    onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
 ) {
     Box(
         Modifier
-            .fillMaxSize()
+            .playBoardPane()
             .testTag("play.board_area")
             // A4: standard pane margins; the cap below is a max, not a fixed width.
             .padding(horizontal = Spacing.lg),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.TopCenter,
     ) {
-        if (status is PlayBoardStatus.Ready && controller.session != null) {
-            TangoBoard(controller, Modifier)
+        val session = controller.session
+        if (status is PlayBoardStatus.Ready && session != null) {
+            // The win moment: the one-shot route handoff (ticket-23 pattern) after the
+            // solve frame; the record write keeps running in the store.
+            PlaySolveFrame(
+                brand = TangoBrand,
+                solved = session.completedAt,
+                onHandOff = {
+                    controller.session?.takeIf { it.isComplete }?.let { onSolved(it.elapsedMs, it.hintsUsed) }
+                },
+            ) {
+                TangoBoard(controller, Modifier)
+            }
         } else {
             PlayBoardFallback(status, onRetry, tagPrefix = "play")
         }

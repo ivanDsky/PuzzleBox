@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.games.sudokuui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.ivandsky.puzzlebox.game.RendererModel
+import com.ivandsky.puzzlebox.gameui.BoardPreview
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
@@ -25,6 +27,14 @@ class SudokuPlayUi(private val definition: SudokuDefinition) : GamePlayUi {
         SudokuMotionHost(state) { SudokuStackedBoard(state, modifier) }
     }
 
+    /** No thumbnail: the hub card shows the game's glyph. */
+    override fun previewModel(preview: BoardPreview): RendererModel? = null
+
+    @Composable
+    override fun BoardThumbnail(model: RendererModel, modifier: Modifier) {
+        // Never called: previewModel never returns a model.
+    }
+
     @Composable
     override fun Screen(
         controller: GamePlayController,
@@ -32,17 +42,14 @@ class SudokuPlayUi(private val definition: SudokuDefinition) : GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
-        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     ) {
         SudokuPlayScreen(
             controller = controller as SudokuPlayController,
-            title = definition.displayName,
             status = status,
             layout = layout,
             onRetry = onRetry,
             onSolved = onSolved,
-            onHowToPlay = onHowToPlay,
             modifier = modifier,
         )
     }

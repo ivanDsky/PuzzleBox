@@ -9,7 +9,10 @@ import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** Solved-day streak (A8): consecutive solved puzzle days anchored at today or yesterday. */
+/**
+ * Solved-day streak (A8): consecutive solved puzzle days anchored at today or yesterday;
+ * the best streak is the longest run anywhere.
+ */
 class ComputeStreakTest {
 
     // 12:00 UTC on Nov 10 is 04:00 Nov 10 in Los Angeles: the puzzle day is Nov 10.
@@ -50,5 +53,29 @@ class ComputeStreakTest {
     @Test
     fun `duplicate days collapse`() {
         assertEquals(2, streak(listOf(today, today, yesterday, yesterday)))
+    }
+
+    @Test
+    fun `no solves is no best streak`() {
+        assertEquals(0, streak.best(emptyList()))
+    }
+
+    @Test
+    fun `the best streak is the longest run, wherever it falls`() {
+        val oldRun = (10L..13L).map { today.minusDays(it) }
+        assertEquals(4, streak.best(oldRun + listOf(yesterday, today)))
+    }
+
+    @Test
+    fun `the best streak ignores order and duplicates`() {
+        assertEquals(3, streak.best(listOf(today, today.minusDays(2), yesterday, today, yesterday)))
+    }
+
+    @Test
+    fun `a broken run still counts toward the best streak`() {
+        // Last solved a week ago: no current streak, but the run is still the best one.
+        val run = listOf(today.minusDays(7), today.minusDays(8))
+        assertEquals(0, streak(run))
+        assertEquals(2, streak.best(run))
     }
 }

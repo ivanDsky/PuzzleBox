@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
@@ -26,13 +26,14 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 
-private val DayBox = 32.dp
-private val TodayRing = 2.dp
+// Inside DayRing's 17dp inner edge, so a 2dp sliver separates today's disc from the ring.
+private val TodayDisc = 30.dp
 
 /**
- * A week of [days] as seven columns, oldest to newest (spec A18): the weekday initial,
- * the day number and that day's [DayDots] out of [total] games. Today's number is
- * ringed in ink, and any day with a solve shows its number in the success text colour.
+ * A week of [days] as seven columns, oldest to newest (spec A18): the weekday initial over
+ * that day's [DayRing] out of [total] games, with the day number inside. Today's number
+ * is bold on a filled inner disc (an ink ring would clash with the game ring), and any
+ * day with a solve shows its number in the success text colour.
  * Callers build the [WeekDay]s; the strip only draws them.
  */
 @Composable
@@ -57,19 +58,17 @@ private fun WeekStripDay(day: WeekDay, total: Int, modifier: Modifier) {
             style = MaterialTheme.typography.labelSmall,
             color = colors.onSurfaceVariant,
         )
-        Box(
-            modifier = Modifier
-                .size(DayBox)
-                .then(if (day.isToday) Modifier.border(TodayRing, colors.onSurface, CircleShape) else Modifier),
-            contentAlignment = Alignment.Center,
-        ) {
+        DayRing(solved = day.solved, total = total) {
+            if (day.isToday) {
+                Box(Modifier.size(TodayDisc).background(colors.surfaceContainerHighest, CircleShape))
+            }
             Text(
                 text = day.date.dayOfMonth.toString(),
                 style = MaterialTheme.typography.labelLarge.tabular(),
+                fontWeight = if (day.isToday) FontWeight.Bold else null,
                 color = if (day.solved.isEmpty()) colors.onSurface else LocalPrimaryText.current,
             )
         }
-        DayDots(solved = day.solved, total = total)
     }
 }
 

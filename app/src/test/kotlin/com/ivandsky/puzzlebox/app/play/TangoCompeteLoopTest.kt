@@ -74,7 +74,8 @@ class TangoCompeteLoopTest {
             single { GameRegistry(listOf(tangoPlugin)) }
             single { GamePlayRegistry(listOf(tangoUi)) }
             factory { LoadPastDay(get(), get()) }
-            factory { com.ivandsky.puzzlebox.domain.ObserveTodaySet(get(), get(), get(), get()) }
+            single { com.ivandsky.puzzlebox.domain.SyncTodayPuzzles(get(), get(), get()) }
+            factory { com.ivandsky.puzzlebox.domain.ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
             single<com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository> {
                 com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository(seen = setOf(TangoDefinition.id))
             }

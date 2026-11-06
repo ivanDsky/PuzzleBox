@@ -168,7 +168,6 @@ class SudokuMotionTest {
                         layout = PlayLayout.SinglePane,
                         onRetry = {},
                         onSolved = { time, hints -> solved += time to hints },
-                        onHowToPlay = null,
                         modifier = Modifier,
                     )
                 }

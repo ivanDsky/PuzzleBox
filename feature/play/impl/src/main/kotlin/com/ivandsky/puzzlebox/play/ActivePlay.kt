@@ -184,6 +184,9 @@ class ActivePlay internal constructor(
         scope.cancel()
     }
 
+    /** The slot's newest session change its writer still holds (not yet queued for disk). */
+    internal val unsavedSession: ByteArray? get() = writer.unsaved
+
     //region internals
 
     private fun newController(): GamePlayController {
@@ -275,9 +278,11 @@ class ActivePlay internal constructor(
 
     private val rankOrder: RankOrder get() = plugin.score.rankOrder
 
+    /** "Zip · #598" for a daily, "Tango · Practice" for a puzzle with no edition number. */
     private fun labelFor(ref: PuzzleRef?): String {
         val name = plugin.definition.displayName
-        return ref?.puzzleNumber?.let { "$name · #$it" } ?: name
+        if (ref == null) return name
+        return ref.puzzleNumber?.let { "$name · #$it" } ?: "$name · Practice"
     }
 
     private companion object {

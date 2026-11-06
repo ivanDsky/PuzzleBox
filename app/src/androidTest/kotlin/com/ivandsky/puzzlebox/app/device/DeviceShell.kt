@@ -95,6 +95,12 @@ class DeviceShell : TestRule {
     /** Today's live Zip trace. */
     fun zipPath(): List<Cell> = checkNotNull(rule.runOnIdle { liveZip()?.session?.path }) { "no live zip board" }
 
+    /** System back: one press through the activity's dispatcher. */
+    fun back() {
+        rule.runOnUiThread { rule.activity.onBackPressedDispatcher.onBackPressed() }
+        rule.waitForIdle()
+    }
+
     /** A predictive back gesture from the left edge, scrubbed halfway, then [commit]ted or cancelled. */
     fun predictiveBack(commit: Boolean) {
         val dispatcher = rule.activity.onBackPressedDispatcher
@@ -124,6 +130,13 @@ class DeviceShell : TestRule {
 
     fun assertSelectedTab(key: NavKey) {
         rule.onNodeWithTag(topLevelDestinations.single { it.key == key }.tag).assertIsSelected()
+    }
+
+    /** Immersive play (N2): neither bar nor rail shows a tab. */
+    fun assertNoNavigation() {
+        topLevelDestinations.forEach { destination ->
+            rule.onNodeWithTag(destination.tag).assertDoesNotExist()
+        }
     }
 
     /** Compact: the tabs sit side by side along the window's bottom edge. */

@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.games.strands.StrandsRating
 
 /** Every string Strands shows (A3, A7, A10, A14), plain sentence case with no emoji (A42). */
 internal object StrandsCopy {
-    const val TITLE = "Strands"
     const val THEME_LABEL = "Today's theme"
     const val HINT = "Hint"
     const val FOUND_WORDS = "Found words"

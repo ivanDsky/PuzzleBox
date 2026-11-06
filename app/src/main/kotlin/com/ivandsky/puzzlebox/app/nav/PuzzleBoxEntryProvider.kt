@@ -6,10 +6,10 @@ import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.app.CatalogScreen
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
+import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.navigation.historyEntry
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
-import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.play.navigation.resultEntry
@@ -22,9 +22,11 @@ import com.ivandsky.puzzlebox.profile.navigation.profileEntry
  * resolves each key against it and fails fast if a pushed key ever lacks a route.
  *
  * Loop wiring: Home's Today card selects the Play tab; its history teaser pushes History
- * on Home's stack; history rows push the day's game key; the account card
- * selects the Profile tab, leaving Home's stack as it was; Profile's catalog link pushes
- * [CatalogKey] on Profile's stack. Back pops the current tab's stack ([Navigator.pop]),
+ * on Home's stack, and the games hub's "Older puzzles" pushes it on Play's stack; history
+ * rows push the day's game key; the account card
+ * selects the Profile tab, leaving Home's stack as it was; a Profile game row pushes that
+ * game's [HistoryKey] and Profile's (debug-only) catalog link pushes [CatalogKey], both on
+ * Profile's stack. Back pops the current tab's stack ([Navigator.pop]),
  * including after process-death restore.
  */
 internal fun puzzleBoxEntryProvider(
@@ -32,13 +34,14 @@ internal fun puzzleBoxEntryProvider(
     homeLayout: HomeLayout,
     playLayout: PlayLayout,
     historyLayout: HistoryLayout,
-    themeMode: ThemeMode,
-    onSetThemeMode: (ThemeMode) -> Unit,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
-    homeEntry(navigator, homeLayout, themeMode, onSetThemeMode)
+    homeEntry(navigator, homeLayout)
     historyEntry(navigator, historyLayout)
-    playEntry(navigator, playLayout)
+    playEntry(navigator, playLayout, onOpenHistory = { navigator.pushOnce(HistoryKey()) })
     resultEntry(navigator)
-    profileEntry(onOpenCatalog = { navigator.push(CatalogKey) })
+    profileEntry(
+        onOpenHistory = { game -> navigator.pushOnce(HistoryKey(game.value)) },
+        onOpenCatalog = { navigator.push(CatalogKey) },
+    )
     entry<CatalogKey> { CatalogScreen() }
 }

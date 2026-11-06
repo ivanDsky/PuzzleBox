@@ -19,14 +19,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.designsystem.formatDuration
+import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 
 /**
  * Leaderboard v1 (brief §3): today's board, name + time + hints, own row highlighted.
- * [gameName] is the board's game (the featured one), named in the empty-board line.
+ * The copy names no single game (A20).
  */
 @Composable
-internal fun LeaderboardSection(board: TodayLeaderboard.Board, gameName: String, myUid: String) {
+internal fun LeaderboardSection(board: TodayLeaderboard.Board, myUid: String) {
     Column(
         modifier = Modifier.fillMaxWidth().testTag("leaderboard"),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -53,7 +54,7 @@ internal fun LeaderboardSection(board: TodayLeaderboard.Board, gameName: String,
             }
             is TodayLeaderboard.Board.Loaded -> if (board.snapshot.entries.isEmpty()) {
                 Text(
-                    text = "No one has finished today's $gameName yet.",
+                    text = "No one is on today's board yet.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -107,7 +108,7 @@ private fun LeaderboardRow(rank: Int, entry: LeaderboardEntry, isSelf: Boolean) 
         )
         Text(
             text = "${formatDuration(entry.timeMs)} · ${entry.hints} ${if (entry.hints == 1) "hint" else "hints"}",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium.tabular(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
