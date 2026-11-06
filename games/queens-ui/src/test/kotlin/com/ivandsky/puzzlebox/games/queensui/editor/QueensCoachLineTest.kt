@@ -98,6 +98,10 @@ class QueensCoachLineTest {
         assertProbe(null)
         assertEquals(incomplete, boardHeight())
 
+        verdict = Verdict.Checking
+        rule.waitForIdle()
+        assertCoach("ambiguous")
+
         verdict = Verdict.Unique(Solution(CROWNS))
         rule.waitForIdle()
         assertCoach("unique")
