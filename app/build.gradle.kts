@@ -114,6 +114,8 @@ dependencies {
     implementation(projects.feature.home.impl)
     implementation(projects.feature.play.api)
     implementation(projects.feature.play.impl)
+    implementation(projects.feature.create.api)
+    implementation(projects.feature.create.impl)
     implementation(projects.feature.history.api)
     implementation(projects.feature.history.impl)
     implementation(projects.feature.profile.api)
