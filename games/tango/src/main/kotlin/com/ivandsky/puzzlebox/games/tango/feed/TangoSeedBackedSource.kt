@@ -25,10 +25,25 @@ import java.time.LocalDate
  * It is NOT a fake LinkedIn response: the wrapped error still surfaces upstream, and
  * the seed's ref carries the requested date, never a LinkedIn edition string.
  * Zip/Queens keep their real anonymous fetches — this wrapper is Tango-only.
+ *
+ * The seed stands in for today only (A10): a past day is the primary's by-number fetch
+ * with no fallback, so offline shows needs-a-connection, and a stored seed copy is a
+ * placeholder ([isPlaceholder]) that the repository refetches for real.
  */
 class TangoSeedBackedSource(private val primary: LinkedInTangoDailySource) : DailySource {
 
     override val gameId: GameId = TangoDefinition.id
+
+    override val archiveSince: LocalDate? = primary.archiveSince
+
+    private val seed: Puzzle? by lazy { (seedDaily(primary.archiveSince) as? FetchResult.Ok)?.value?.puzzle }
+
+    override fun puzzleNumber(day: LocalDate): Int? = primary.puzzleNumber(day)
+
+    override suspend fun fetchPast(date: LocalDate): FetchResult<DailyFetch> = primary.fetchPast(date)
+
+    /** The seed's envelope carries no date, so any stored copy of it equals [seed] byte for byte. */
+    override fun isPlaceholder(puzzle: Puzzle): Boolean = puzzle == seed
 
     override suspend fun fetchDaily(date: LocalDate): FetchResult<DailyFetch> {
         when (val primaryResult = primary.fetchDaily(date)) {
