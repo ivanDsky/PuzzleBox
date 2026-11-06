@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.map
 import com.ivandsky.puzzlebox.model.GameId
+import java.security.MessageDigest
 
 /**
  * The type-erased draft handle features hold (ADR-0019): features keep an `EditorDraft<*>`,
@@ -16,6 +17,13 @@ class EditorDraft<D : Any>(val editor: GameEditor<D>, val state: DraftState<D>) 
     val variant: VariantId get() = editor.variantOf(state.draft)
     val canUndo: Boolean get() = state.history.canUndo
     val canRedo: Boolean get() = state.history.canRedo
+
+    /** SHA-256 hex of editor.encodeDraft(DraftState(state.draft)): board only, empty history. */
+    val layoutKey: String by lazy {
+        MessageDigest.getInstance("SHA-256")
+            .digest(editor.encodeDraft(DraftState(state.draft)))
+            .joinToString("") { "%02x".format(it) }
+    }
 
     /** Applies [command] to the board and records it as one undoable step. */
     fun apply(command: Command<D>): EditorDraft<D> =
