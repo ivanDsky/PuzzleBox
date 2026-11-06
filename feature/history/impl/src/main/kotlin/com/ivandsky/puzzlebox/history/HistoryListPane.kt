@@ -22,20 +22,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.EmptyState
-import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.model.GameId
@@ -268,29 +265,5 @@ private fun HistoryRowView(
                 }
             }
         }
-    }
-}
-
-/** The game's fastest numbered solve, in its accent (history.md §2). */
-@Composable
-internal fun BestPill(brand: GameBrand, modifier: Modifier = Modifier) {
-    AccentPill(text = "Best", brand = brand, style = MaterialTheme.typography.labelSmall, modifier = modifier)
-}
-
-/** A small tag on [brand]'s accent container: "Best", or "Keep going" on an unfinished row. */
-@Composable
-private fun AccentPill(text: String, brand: GameBrand, style: TextStyle, modifier: Modifier = Modifier) {
-    val accent = brand.accent.colors()
-    Surface(
-        modifier = modifier,
-        shape = PillShape,
-        color = accent.container,
-        contentColor = accent.onContainer,
-    ) {
-        Text(
-            text = text,
-            style = style,
-            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs / 2),
-        )
     }
 }
