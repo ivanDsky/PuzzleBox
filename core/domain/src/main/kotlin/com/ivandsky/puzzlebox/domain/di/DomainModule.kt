@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.domain.di
 
 import com.ivandsky.puzzlebox.domain.GetAppUpdate
 import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.LoadPastDay
@@ -13,14 +14,17 @@ import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import java.time.Instant
 import java.time.LocalDate
+import java.util.UUID
 import org.koin.dsl.module
 
 /**
  * Use-case wiring: stateless factories over :core:data's repositories and the app's
  * [com.ivandsky.puzzlebox.game.GameRegistry], except [SyncTodayPuzzles] — a single, so
  * every surface reads the same failed fetches. Today's leaderboard day is the device's
- * local date, read when the board (re)starts.
+ * local date, read when the board (re)starts. A new draft's id is a random UUID and its
+ * timestamp the wall clock.
  */
 val domainModule = module {
     factory { ObserveGameHistory(registry = get(), daily = get(), completions = get()) }
@@ -50,6 +54,14 @@ val domainModule = module {
             leaderboard = get(),
             featured = get(),
             today = { LocalDate.now() },
+        )
+    }
+    factory {
+        CreateDraft(
+            registry = get(),
+            drafts = get(),
+            newId = { UUID.randomUUID().toString() },
+            clock = { Instant.now() },
         )
     }
 }
