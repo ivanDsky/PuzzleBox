@@ -5,6 +5,9 @@ import com.ivandsky.puzzlebox.app.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.create.CreateViewModel
+import com.ivandsky.puzzlebox.create.api.EditorKey
+import com.ivandsky.puzzlebox.create.editor.EditorViewModel
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -25,7 +28,10 @@ import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorUi
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
+import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.history.HistoryViewModel
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.HomeViewModel
@@ -39,12 +45,16 @@ import com.ivandsky.puzzlebox.play.api.ResultKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.parameter.parametersOf
+import org.koin.core.qualifier.qualifier
+import org.koin.dsl.module
 import org.koin.test.KoinTest
 import org.koin.test.verify.verify
 import org.robolectric.RobolectricTestRunner
@@ -135,8 +145,31 @@ class DiGraphTest : KoinTest {
             // A past, uncached day: the slot opens as a cache miss, never today's network fetch.
             assertNotNull(koin.get<GameViewModel> { parametersOf(GameKey("zip", "2000-01-01")) }.play)
             assertNotNull(koin.get<ResultViewModel> { parametersOf(ResultKey("zip", "2026-11-04", 12_340L, 0)) })
+
+            // Editor mode (ADR-0019): Queens registers its editor UI, and the Create routes'
+            // ViewModels resolve (an unknown draft id loads as Missing, never a crash).
+            assertNotNull(koin.get<GameEditorRegistry>()[GameId("queens")])
+            assertNotNull(koin.get<CreateViewModel>())
+            assertNotNull(koin.get<EditorViewModel> { parametersOf(EditorKey("no-such-draft")) })
         } finally {
             stopKoin() // close() alone leaves the JVM-global context registered for later tests
+        }
+    }
+
+    /** S18: two editor UIs for one game is a wiring bug that fails the registry's first resolve. */
+    @Test
+    fun `a second editor UI for one game fails the registry`() {
+        val duplicate = module { single<GameEditorUi>(qualifier = qualifier("queens.editor.again")) { QueensEditorUi } }
+        val koinApp = startKoin {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(PuzzleBoxApplication.appModules + duplicate)
+        }
+        try {
+            val failure = assertThrows(Exception::class.java) { koinApp.koin.get<GameEditorRegistry>() }
+            val messages = generateSequence<Throwable>(failure) { it.cause }.mapNotNull { it.message }.toList()
+            assertTrue("expected the duplicate-id failure, got $messages", messages.any { "editor UI already registered for queens" in it })
+        } finally {
+            stopKoin()
         }
     }
 }

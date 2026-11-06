@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.app.nav.CatalogKey
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavKeys
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
+import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
@@ -288,8 +289,9 @@ class TabNavigationE2ETest {
         tab: NavKey,
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
+        create: List<NavKey> = listOf(CreateKey),
         profile: List<NavKey> = listOf(ProfileKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, profile))
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, create, profile))
 
     private companion object {
         const val HOME = "route.home"

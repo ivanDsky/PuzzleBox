@@ -1,0 +1,77 @@
+package com.ivandsky.puzzlebox.app.e2e
+
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
+import com.ivandsky.puzzlebox.create.api.CreateKey
+import com.ivandsky.puzzlebox.data.repository.DraftRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.koin.dsl.module
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/**
+ * Ticket 01's walking skeleton over the real shell: the Create tab's New puzzle opens a
+ * blank Queens 4×4 in the Studio (verdict Incomplete), a tap paints a cell, the draft is
+ * listed on the Create root, and after a relaunch the draft reopens with the same regions.
+ * The drafts store is the fake "disk" that outlives the relaunch.
+ */
+@RunWith(RobolectricTestRunner::class)
+// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+@Config(sdk = [34], application = android.app.Application::class)
+class CreateSkeletonE2ETest {
+
+    private val drafts = FakeDraftRepository()
+
+    @Test
+    fun `a new Queens draft is painted, listed, and reopens with its regions after a relaunch`() =
+        shellRobot(graph = E2eKoinGraph(E2E_TODAY, overrides = module { single<DraftRepository> { drafts } })) {
+            tapTab(CreateKey)
+            assertRoute(CREATE)
+            tap("create.new")
+            awaitTag(BOARD)
+            awaitTag(CELL_0)
+            assertRoute(EDITOR)
+            // Queens 4×4: 16 cells, all unpainted, and nothing to check yet.
+            rule.onAllNodesWithTag("queens.editor.cell.15", useUnmergedTree = true).assertCountEquals(1)
+            rule.onAllNodesWithTag("queens.editor.cell.16", useUnmergedTree = true).assertCountEquals(0)
+            rule.onNodeWithTag(PILL, useUnmergedTree = true)
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Incomplete"))
+            val blank = regionOf(CELL_0)
+
+            tap(CELL_0)
+            val painted = regionOf(CELL_0)
+            assertNotEquals("the tap paints the cell", blank, painted)
+            assertEquals(1, drafts.rows.size)
+
+            back()
+            assertRoute(CREATE)
+            awaitTag(ROW)
+            rule.onAllNodesWithTag(ROW).assertCountEquals(1)
+
+            relaunch()
+            tapTab(CreateKey)
+            tap(ROW)
+            awaitTag(CELL_0)
+            assertEquals("the reopened draft keeps its regions", painted, regionOf(CELL_0))
+        }
+
+    private fun ShellRobot.regionOf(tag: String): String =
+        rule.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsProperties.StateDescription]
+
+    private companion object {
+        const val CREATE = "route.create"
+        const val EDITOR = "route.editor"
+        const val BOARD = "create.editor.board"
+        const val PILL = "create.editor.pill"
+        const val ROW = "create.draft.row"
+        const val CELL_0 = "queens.editor.cell.0"
+    }
+}
