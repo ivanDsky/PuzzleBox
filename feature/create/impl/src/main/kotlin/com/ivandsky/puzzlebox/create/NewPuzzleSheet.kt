@@ -30,7 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -42,12 +41,12 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.launch
 
-private val GameRowMinHeight = 68.dp
 private val SizeRowMinHeight = 56.dp
 
 /**
- * The New puzzle sheet (spec A1, A5; 01 handoff "New puzzle sheet"): one row per game in
- * [games], then the picked game's sizes, exactly its editor's variants in order. Picking a
+ * The New puzzle sheet (spec A1, A5; 01 handoff "New puzzle sheet"): one [GameStartRow] per
+ * game in [games] (glyph tile, one-line rule, default size), then the picked game's sizes,
+ * exactly its editor's variants in order. Picking a
  * size slides the sheet away, then reports it through [onPick]; back on the sizes step
  * returns to the games. [initialGame] opens straight on that game's sizes.
  *
@@ -139,14 +138,7 @@ private fun GamesStep(games: List<CreateUiState.NewGame>, onGame: (GameId) -> Un
         )
     }
     games.forEach { game ->
-        SheetRow(
-            title = game.name,
-            meta = sizeRange(game),
-            minHeight = GameRowMinHeight,
-            tag = "create.new.game.${game.id.value}",
-            onClick = { onGame(game.id) },
-            trailing = true,
-        )
+        GameStartRow(game = game, tagRoot = "create.new", onClick = { onGame(game.id) }, chevron = true)
     }
 }
 
@@ -166,74 +158,28 @@ private fun SizesStep(game: CreateUiState.NewGame, onBack: () -> Unit, onSize: (
         )
     }
     game.sizes.forEach { size ->
-        SheetRow(
-            title = size.label,
-            meta = null,
-            minHeight = SizeRowMinHeight,
-            tag = "create.new.size.${size.variant.value}",
-            onClick = { onSize(size.variant) },
-            trailing = false,
-        )
+        SizeRow(label = size.label, tag = "create.new.size.${size.variant.value}", onClick = { onSize(size.variant) })
     }
 }
 
 @Composable
-private fun SheetRow(
-    title: String,
-    meta: String?,
-    minHeight: Dp,
-    tag: String,
-    onClick: () -> Unit,
-    trailing: Boolean,
-) {
+private fun SizeRow(label: String, tag: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = minHeight)
+            .heightIn(min = SizeRowMinHeight)
             .clickable(onClick = onClick)
             .testTag(tag)
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            if (meta != null) {
-                Text(
-                    text = meta,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        if (trailing) {
-            Icon(PuzzleIcons.Chevron, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
-
-/** "4×4 – 12×12", or the one size a single-variant game has. */
-private fun sizeRange(game: CreateUiState.NewGame): String? {
-    val first = game.sizes.firstOrNull()?.label ?: return null
-    val last = game.sizes.last().label
-    return if (first == last) first else "$first – $last"
-}
-
-private val PreviewGames = listOf(
-    CreateUiState.NewGame(
-        id = GameId("queens"),
-        name = "Queens",
-        sizes = (4..12).map { CreateUiState.Size(VariantId("queens/$it"), "$it×$it") },
-    ),
-    CreateUiState.NewGame(
-        id = GameId("zip"),
-        name = "Zip",
-        sizes = (5..8).map { CreateUiState.Size(VariantId("zip/$it"), "$it×$it") },
-    ),
-)
 
 @PuzzleBoxPreviews
 @Composable

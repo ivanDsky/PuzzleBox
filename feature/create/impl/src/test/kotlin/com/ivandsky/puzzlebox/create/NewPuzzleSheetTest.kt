@@ -37,6 +37,10 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import java.time.Instant
+import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
+import com.ivandsky.puzzlebox.data.model.Draft
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -52,10 +56,11 @@ import org.robolectric.annotation.Config
 
 /**
  * The Create root's New puzzle sheet over stand-in games (spec A1, A5): it lists one row
- * per game with a registered editor, in registration order; a picked game lists exactly
+ * per game with a registered editor, in registration order, each with its glyph tile, its
+ * default size and its one-line rule when one is written; a picked game lists exactly
  * its editor's variants, in order; picking a size stores that draft and pushes its Studio.
  * `beta` ships without an editor and `gamma` has an editor but no editor UI: neither is
- * offered.
+ * offered. One stored draft keeps the list (and its New puzzle button) on screen.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -87,8 +92,23 @@ class NewPuzzleSheetTest {
         )
         val editors = GameEditorRegistry(listOf(FakeGameEditorUi(queens), FakeGameEditorUi(alpha)))
         val createDraft = CreateDraft(games, drafts, newId = { "draft-1" }, clock = { NOW })
+        runBlocking { drafts.upsert(seed()) }
         startKoin {
-            modules(module { viewModel { CreateViewModel(games, editors, drafts, createDraft) } })
+            modules(
+                module {
+                    viewModel {
+                        CreateViewModel(
+                            games,
+                            editors,
+                            GamePlayRegistry(emptyList()),
+                            drafts,
+                            createDraft,
+                            DefaultDispatcherProvider(),
+                            clock = { NOW },
+                        )
+                    }
+                },
+            )
         }
         composeRule.setContent {
             PuzzleBoxTheme {
@@ -108,6 +128,10 @@ class NewPuzzleSheetTest {
         composeRule.onNodeWithTag(SHEET).assertExists()
 
         assertEquals(listOf(queens, alpha).map { "$GAME${it.value}" }, tagsStartingWith(GAME))
+        assertEquals(listOf(queens, alpha).map { "$GLYPH${it.value}" }, tagsStartingWith(GLYPH))
+        assertEquals(listOf(queens, alpha).map { "$DEFAULT${it.value}" }, tagsStartingWith(DEFAULT))
+        // Only queens has a written rule line; a game without one shows none.
+        assertEquals(listOf("$RULE${queens.value}"), tagsStartingWith(RULE))
         assertEquals(emptyList<String>(), tagsStartingWith(SIZE))
 
         composeRule.onNodeWithTag("$GAME${alpha.value}").performClick()
@@ -125,7 +149,7 @@ class NewPuzzleSheetTest {
         composeRule.onNodeWithTag("$GAME${queens.value}").performClick()
         composeRule.onNodeWithTag("${SIZE}queens/8").performScrollTo().performClick()
 
-        composeRule.waitUntil { drafts.rows.isNotEmpty() }
+        composeRule.waitUntil { drafts.rows.containsKey("draft-1") }
         val draft = drafts.rows.getValue("draft-1")
         assertEquals(queens, draft.gameId)
         assertEquals(VariantId("queens/8"), draft.variant)
@@ -134,11 +158,27 @@ class NewPuzzleSheetTest {
         composeRule.onAllNodesWithTag(SHEET).fetchSemanticsNodes().let { assertEquals(0, it.size) }
     }
 
+    private fun seed(): Draft = Draft(
+        id = "seed",
+        gameId = alpha,
+        variant = alphaSizes.first(),
+        draftFormatVersion = 1,
+        blob = alphaSizes.first().value.encodeToByteArray(),
+        title = "Seed",
+        updatedAt = NOW,
+        testSolve = null,
+        reservedCode = null,
+        imported = false,
+        authorName = "",
+        note = "",
+    )
+
     private fun tagsStartingWith(prefix: String): List<String> =
         composeRule.onAllNodes(
             SemanticsMatcher("test tag starts with $prefix") {
                 it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith(prefix) == true
             },
+            useUnmergedTree = true,
         ).fetchSemanticsNodes().map { it.config[SemanticsProperties.TestTag] }
 
     /** A blank board is its variant; nothing is ever analysed here. */
@@ -175,6 +215,9 @@ class NewPuzzleSheetTest {
         const val BACK = "create.new.back"
         const val GAME = "create.new.game."
         const val SIZE = "create.new.size."
+        const val GLYPH = "create.new.glyph."
+        const val RULE = "create.new.rule."
+        const val DEFAULT = "create.new.default."
 
         fun withEditor(game: GameId, editor: GameEditor<*>): GamePlugin<*, *, *> {
             val base = TestGames.plugin(game)

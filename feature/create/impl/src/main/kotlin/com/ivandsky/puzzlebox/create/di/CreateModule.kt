@@ -10,10 +10,11 @@ import org.koin.dsl.module
 
 /**
  * Create feature wiring: [com.ivandsky.puzzlebox.domain.CreateDraft] comes from :core:domain's
- * domainModule; the [com.ivandsky.puzzlebox.game.GameRegistry] and the
- * [com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry] from the app's aggregation (ADR-0001).
+ * domainModule; the [com.ivandsky.puzzlebox.game.GameRegistry], the
+ * [com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry] and the
+ * [com.ivandsky.puzzlebox.gameui.GamePlayRegistry] from the app's aggregation (ADR-0001).
  */
 val createModule: Module = module {
-    viewModel { CreateViewModel(get(), get(), get(), get()) }
+    viewModel { CreateViewModel(get(), get(), get(), get(), get(), get(), clock = { Instant.now() }) }
     viewModel { (key: EditorKey) -> EditorViewModel(key, get(), get(), get(), get(), clock = { Instant.now() }) }
 }

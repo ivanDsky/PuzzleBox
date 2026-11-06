@@ -18,10 +18,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Ticket 01's walking skeleton over the real shell: the Create tab's New puzzle sheet
- * (Queens, then 4×4) opens a blank Queens 4×4 in the Studio (verdict Incomplete), a tap
- * selects a cell and a ring pick paints it, the draft is listed on the Create root, and
- * after a relaunch the draft reopens with the same regions.
+ * Ticket 01's walking skeleton over the real shell: on the first-time Create root, one tap on
+ * Queens in the empty state's game list opens a blank Queens at its default size (8×8) in the
+ * Studio (verdict Incomplete), a tap selects a cell and a ring pick paints it, the draft is
+ * listed on the Create root, and after a relaunch the draft reopens with the same regions.
  * The drafts store is the fake "disk" that outlives the relaunch.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -36,15 +36,13 @@ class CreateSkeletonE2ETest {
         shellRobot(graph = E2eKoinGraph(E2E_TODAY, overrides = module { single<DraftRepository> { drafts } })) {
             tapTab(CreateKey)
             assertRoute(CREATE)
-            tap("create.new")
-            tap("create.new.game.queens")
-            tap("create.new.size.queens/n4")
+            tap("create.empty.game.queens")
             awaitTag(BOARD)
             awaitTag(CELL_0)
             assertRoute(EDITOR)
-            // Queens 4×4: 16 cells, all unpainted, and nothing to check yet (the verdict lands off the main thread).
-            rule.onAllNodesWithTag("queens.editor.cell.15", useUnmergedTree = true).assertCountEquals(1)
-            rule.onAllNodesWithTag("queens.editor.cell.16", useUnmergedTree = true).assertCountEquals(0)
+            // Queens 8×8: 64 cells, all unpainted, and nothing to check yet (the verdict lands off the main thread).
+            rule.onAllNodesWithTag("queens.editor.cell.63", useUnmergedTree = true).assertCountEquals(1)
+            rule.onAllNodesWithTag("queens.editor.cell.64", useUnmergedTree = true).assertCountEquals(0)
             rule.waitUntil(TIMEOUT_MS) {
                 val incomplete = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Incomplete")
                 rule.onAllNodes(hasTestTag(PILL) and incomplete, useUnmergedTree = true)
