@@ -45,7 +45,7 @@ class DeviceShell : TestRule {
     val graph = E2eKoinGraph(E2E_TODAY)
     val rule = createAndroidComposeRule<MainActivity>()
 
-    private val todaySlot = PlaySlot(ZipDefinition.id, E2E_TODAY)
+    private val todaySlot = PlaySlot.Daily(ZipDefinition.id, E2E_TODAY)
 
     override fun apply(base: Statement, description: Description): Statement {
         val inner = rule.apply(base, description)

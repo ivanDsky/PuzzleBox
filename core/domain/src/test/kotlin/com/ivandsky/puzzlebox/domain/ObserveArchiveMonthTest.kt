@@ -121,8 +121,8 @@ class ObserveArchiveMonthTest {
         val placeholderDay = day.plusDays(3)
         listOf(solvedDay, playingDay, storedDay).forEach { store(on = it) }
         storePlaceholder(on = placeholderDay)
-        saved.save(PlaySlot(alpha, solvedDay), byteArrayOf(1), elapsedMs = 9_000L)
-        saved.save(PlaySlot(alpha, playingDay), byteArrayOf(1), elapsedMs = 7_000L)
+        saved.save(PlaySlot.Daily(alpha, solvedDay), byteArrayOf(1), elapsedMs = 9_000L)
+        saved.save(PlaySlot.Daily(alpha, playingDay), byteArrayOf(1), elapsedMs = 7_000L)
         completions.onCompleted(record(time = 42_000L, on = solvedDay))
         completions.onCompleted(record(time = 1L, game = beta, on = storedDay))
 

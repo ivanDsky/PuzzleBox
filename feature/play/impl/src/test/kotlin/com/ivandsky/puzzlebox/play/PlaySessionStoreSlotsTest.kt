@@ -53,7 +53,7 @@ class PlaySessionStoreSlotsTest {
     private val alpha = TestGames.alpha
     private val beta = TestGames.beta
     private val today = LocalDate.parse("2026-11-04")
-    private val slot = PlaySlot(alpha, today)
+    private val slot = PlaySlot.Daily(alpha, today)
     private val key = GameKey(alpha.value, today.toString())
     private val todayKey = GameKey(alpha.value)
 
@@ -96,7 +96,7 @@ class PlaySessionStoreSlotsTest {
         assertSame(play, store.peek(slot))
         assertEquals(slot, play.slot)
         assertEquals(1, daily.todayCalls(alpha))
-        assertNull(store.peek(PlaySlot(beta, today)))
+        assertNull(store.peek(PlaySlot.Daily(beta, today)))
     }
 
     @Test
@@ -133,7 +133,7 @@ class PlaySessionStoreSlotsTest {
 
         store.retain(emptyList())
         runCurrent()
-        assertEquals("a released pin resolves today again", PlaySlot(alpha, next), store.open(todayKey)!!.slot)
+        assertEquals("a released pin resolves today again", PlaySlot.Daily(alpha, next), store.open(todayKey)!!.slot)
     }
 
     @Test
@@ -158,7 +158,7 @@ class PlaySessionStoreSlotsTest {
     fun `retain releases an unnamed slot after writing its latest save`() = runTest {
         val store = store()
         val kept = store.open(todayKey)!!
-        val betaSlot = PlaySlot(beta, today)
+        val betaSlot = PlaySlot.Daily(beta, today)
         val released = store.open(GameKey(beta.value, today.toString()))!!
         fakes[beta].latest.move()
         assertFalse("still inside the save window", betaSlot in saved.rows)
@@ -182,7 +182,7 @@ class PlaySessionStoreSlotsTest {
         runCurrent()
 
         assertSame("the result names its game's slot", play, store.peek(slot))
-        assertNull(store.peek(PlaySlot(beta, today)))
+        assertNull(store.peek(PlaySlot.Daily(beta, today)))
     }
 
     @Test

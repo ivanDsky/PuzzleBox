@@ -97,7 +97,7 @@ class RealGamesResultRouteTest {
         }
         val store = koin.koin.get<PlaySessionStore>()
         val gameKey = GameKey(ZipDefinition.id.value, today.toString())
-        fun zip() = store.peek(PlaySlot(ZipDefinition.id, today))!!.controller as ZipPlayController
+        fun zip() = store.peek(PlaySlot.Daily(ZipDefinition.id, today))!!.controller as ZipPlayController
         try {
             // Bring the slot to a solved play the way a play-through would.
             composeRule.runOnIdle { store.open(gameKey) }

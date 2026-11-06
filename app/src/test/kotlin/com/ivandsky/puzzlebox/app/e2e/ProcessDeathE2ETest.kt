@@ -157,7 +157,7 @@ class ProcessDeathE2ETest {
 
     @Test
     fun `SC8 the newest save evicts the oldest past the cap of 8`() = shellRobot(playHub, graph = roomGraph()) {
-        val older = (CAP downTo 1).map { PlaySlot(ZipDefinition.id, E2E_TODAY.minusDays(it.toLong())) }
+        val older = (CAP downTo 1).map { PlaySlot.Daily(ZipDefinition.id, E2E_TODAY.minusDays(it.toLong())) }
         runBlocking {
             older.forEach { slot ->
                 saves.save(slot, byteArrayOf(1), elapsedMs = 0L)
@@ -198,7 +198,7 @@ class ProcessDeathE2ETest {
         awaitTag(PAST_DAY_LABEL)
         rule.onNodeWithText("Yesterday's puzzle").assertIsDisplayed()
         assertEquals("the live board keeps its day and trace", MID_GAME, rule.runOnIdle { zip().session?.path })
-        assertNull("no board opened for the new day", rule.runOnIdle { store.peek(PlaySlot(ZipDefinition.id, E2E_TODAY.plusDays(1))) })
+        assertNull("no board opened for the new day", rule.runOnIdle { store.peek(PlaySlot.Daily(ZipDefinition.id, E2E_TODAY.plusDays(1))) })
     }
 
     private val ShellRobot.store: PlaySessionStore get() = graph.koin.get()
@@ -262,8 +262,8 @@ class ProcessDeathE2ETest {
     /** A History replay of [PAST_DAY], open on Home's stack. */
     private val pastGame = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey(), GameKey(ZIP, "$PAST_DAY")))
 
-    private val todaySlot = PlaySlot(ZipDefinition.id, E2E_TODAY)
-    private val pastSlot = PlaySlot(ZipDefinition.id, PAST_DAY)
+    private val todaySlot = PlaySlot.Daily(ZipDefinition.id, E2E_TODAY)
+    private val pastSlot = PlaySlot.Daily(ZipDefinition.id, PAST_DAY)
 
     private companion object {
         const val HISTORY = "route.history"

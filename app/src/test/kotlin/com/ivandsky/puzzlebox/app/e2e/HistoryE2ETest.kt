@@ -125,11 +125,11 @@ class HistoryE2ETest {
     private val ShellRobot.store: PlaySessionStore get() = graph.koin.get()
 
     private fun ShellRobot.zip(day: LocalDate): ZipPlayController =
-        checkNotNull(store.peek(PlaySlot(ZipDefinition.id, day))) { "no live zip play for $day" }.controller as ZipPlayController
+        checkNotNull(store.peek(PlaySlot.Daily(ZipDefinition.id, day))) { "no live zip play for $day" }.controller as ZipPlayController
 
     /** Waits until [day]'s live Zip has its session, and returns it. */
     private fun ShellRobot.awaitZip(day: LocalDate): ZipSession {
-        rule.waitUntil(TIMEOUT_MS) { rule.runOnIdle { store.peek(PlaySlot(ZipDefinition.id, day)) }?.let { (it.controller as ZipPlayController).session } != null }
+        rule.waitUntil(TIMEOUT_MS) { rule.runOnIdle { store.peek(PlaySlot.Daily(ZipDefinition.id, day)) }?.let { (it.controller as ZipPlayController).session } != null }
         return checkNotNull(rule.runOnIdle { zip(day).session })
     }
 

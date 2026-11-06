@@ -209,7 +209,7 @@ class StrandsPlayE2ETest {
 
     private companion object {
         val TODAY: LocalDate = LocalDate.of(2026, 11, 6)
-        val SLOT = PlaySlot(StrandsDefinition.id, TODAY)
+        val SLOT = PlaySlot.Daily(StrandsDefinition.id, TODAY)
         const val STRANDS = "strands"
         const val ROWS = 8
         const val COLS = 6

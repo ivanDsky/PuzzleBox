@@ -75,7 +75,7 @@ class ActivePlayTest {
     private fun loaded(): ActivePlay = store.open(key)!!
 
     /** The slot's saved row holds [session], as a released or app-stopped play left it. */
-    private fun savedRow(session: ByteArray) = runBlocking { saved.save(PlaySlot(game, day), SessionBlob.encode(game, session), elapsedMs = 0L) }
+    private fun savedRow(session: ByteArray) = runBlocking { saved.save(PlaySlot.Daily(game, day), SessionBlob.encode(game, session), elapsedMs = 0L) }
 
     private fun records() = runBlocking { completions.observeRecords().first() }
 

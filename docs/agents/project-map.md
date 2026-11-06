@@ -133,7 +133,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   (`ShowkaseBrowserModule` `@ShowkaseRoot` in `src/debug`; the browser screen lives in
   `app/src/debug`). Font license in `licenses/`.
 - `core/model/` (`:core:model`, pure JVM) — dependency-free shared types in package
-  `com.ivandsky.puzzlebox.model` (`GameId`, `ThemeMode`, `PlaySlot(gameId, day)`).
+  `com.ivandsky.puzzlebox.model` (`GameId`, `ThemeMode`, `PlaySlot` (`Daily`/`Custom`)).
 - `core/domain/` (`:core:domain`) — use cases (package `com.ivandsky.puzzlebox.domain`, Koin
   `domainModule`): `ObserveGameHistory` (records UNION every registered game's captured days →
   `GameHistoryDay`), `GetFeaturedGame` (registry's first game as `GameSummary`),

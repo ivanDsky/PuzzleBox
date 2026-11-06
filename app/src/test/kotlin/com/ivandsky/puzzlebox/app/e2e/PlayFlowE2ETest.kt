@@ -236,7 +236,7 @@ class PlayFlowE2ETest {
 
     private val playHub = stacks(tab = PlayKey)
     private val inZip = stacks(tab = PlayKey, play = listOf(PlayKey, GameKey(ZIP)))
-    private val todaySlot = PlaySlot(ZipDefinition.id, E2E_TODAY)
+    private val todaySlot = PlaySlot.Daily(ZipDefinition.id, E2E_TODAY)
 
     private companion object {
         const val HOME = "route.home"

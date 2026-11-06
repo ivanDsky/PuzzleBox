@@ -118,7 +118,7 @@ class GameRouteTest {
 
         composeRule.onNodeWithTag("route.game").assertExists()
         composeRule.onNodeWithText("alpha board 0").assertExists()
-        assertNotNull(store().peek(PlaySlot(alpha, day)))
+        assertNotNull(store().peek(PlaySlot.Daily(alpha, day)))
     }
 
     @Test
