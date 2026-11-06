@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensVerifier
 import com.ivandsky.puzzlebox.games.queens.render.QueensRendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.ZoneId
+import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.games.queens.feed.LinkedInQueensDailySource
 import org.koin.core.module.Module
@@ -171,6 +172,7 @@ val queensPlugin: GamePlugin<QueensState, QueensSession, QueensRendererModel> =
         rendererModel = { state, hint, _ ->
             QueensRendererModel.of(state.puzzle, state.queens.map { it.idx }.toSet(), hint)
         },
+        editor = QueensEditor,
     )
 
 /**
