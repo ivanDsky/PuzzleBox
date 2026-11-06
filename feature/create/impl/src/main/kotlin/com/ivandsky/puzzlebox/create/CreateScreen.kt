@@ -16,6 +16,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -26,6 +30,8 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.model.GameId
 
 private val DraftRowMinHeight = 72.dp
 
@@ -34,16 +40,18 @@ private val ListBottomInset = 56.dp + Spacing.lg * 2
 
 /**
  * The Create root: the author's drafts, newest edit first, under the large "Create" title,
- * and the New puzzle button over the list's end corner. Stateless: [onNew] starts a draft,
- * [onOpen] opens one by id.
+ * and the New puzzle button over the list's end corner. The button opens the
+ * [NewPuzzleSheet] over [CreateUiState.games]; [onNew] starts a draft of the picked game
+ * and size, [onOpen] opens one by id.
  */
 @Composable
 fun CreateScreen(
     state: CreateUiState,
-    onNew: () -> Unit,
+    onNew: (gameId: GameId, variant: VariantId) -> Unit,
     onOpen: (draftId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var sheetOpen by rememberSaveable { mutableStateOf(false) }
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             LargeTopBar(title = "Create")
@@ -57,10 +65,20 @@ fun CreateScreen(
             }
         }
         NewPuzzleButton(
-            onClick = onNew,
+            onClick = { sheetOpen = true },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(Spacing.lg),
+        )
+    }
+    if (sheetOpen) {
+        NewPuzzleSheet(
+            games = state.games,
+            onPick = { gameId, variant ->
+                sheetOpen = false
+                onNew(gameId, variant)
+            },
+            onDismiss = { sheetOpen = false },
         )
     }
 }
@@ -113,7 +131,7 @@ private fun CreateScreenPreview() {
                     CreateUiState.DraftRow("b", "Untitled 1", "Queens · 4×4"),
                 ),
             ),
-            onNew = {},
+            onNew = { _, _ -> },
             onOpen = {},
         )
     }
@@ -123,6 +141,6 @@ private fun CreateScreenPreview() {
 @Composable
 private fun CreateScreenEmptyPreview() {
     PuzzleBoxTheme {
-        CreateScreen(state = CreateUiState(), onNew = {}, onOpen = {})
+        CreateScreen(state = CreateUiState(), onNew = { _, _ -> }, onOpen = {})
     }
 }

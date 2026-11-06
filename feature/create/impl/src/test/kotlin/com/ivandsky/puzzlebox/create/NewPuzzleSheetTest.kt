@@ -1,0 +1,195 @@
+package com.ivandsky.puzzlebox.create
+
+import androidx.activity.ComponentActivity
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import com.ivandsky.puzzlebox.create.api.CreateKey
+import com.ivandsky.puzzlebox.create.api.EditorKey
+import com.ivandsky.puzzlebox.create.navigation.createEntry
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.domain.CreateDraft
+import com.ivandsky.puzzlebox.game.DecodeResult
+import com.ivandsky.puzzlebox.game.GamePlugin
+import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.game.editor.DraftState
+import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.GameEditor
+import com.ivandsky.puzzlebox.game.editor.IncompleteReason
+import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
+import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
+import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.navigation.NavigationState
+import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
+import java.time.Instant
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.core.module.dsl.viewModel
+import org.koin.dsl.module
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/**
+ * The Create root's New puzzle sheet over stand-in games (spec A1, A5): it lists one row
+ * per game with a registered editor, in registration order; a picked game lists exactly
+ * its editor's variants, in order; picking a size stores that draft and pushes its Studio.
+ * `beta` ships without an editor and `gamma` has an editor but no editor UI: neither is
+ * offered.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class NewPuzzleSheetTest {
+
+    @get:Rule
+    val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+    private val queens = GameId("queens")
+    private val alpha = TestGames.alpha
+    private val beta = TestGames.beta
+    private val gamma = GameId("gamma")
+
+    private val queensSizes = (4..12).map { VariantId("queens/$it") }
+    private val alphaSizes = listOf(VariantId("alpha/small"), VariantId("alpha/large"))
+
+    private val drafts = FakeDraftRepository()
+    private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey))))
+
+    @Before
+    fun setUp() {
+        val games = GameRegistry(
+            listOf(
+                withEditor(queens, FakeGameEditor(queens, queensSizes)),
+                TestGames.plugin(beta),
+                withEditor(alpha, FakeGameEditor(alpha, alphaSizes)),
+                withEditor(gamma, FakeGameEditor(gamma, alphaSizes)),
+            ),
+        )
+        val editors = GameEditorRegistry(listOf(FakeGameEditorUi(queens), FakeGameEditorUi(alpha)))
+        val createDraft = CreateDraft(games, drafts, newId = { "draft-1" }, clock = { NOW })
+        startKoin {
+            modules(module { viewModel { CreateViewModel(games, editors, drafts, createDraft) } })
+        }
+        composeRule.setContent {
+            PuzzleBoxTheme {
+                entryProvider<NavKey> { createEntry(navigator) }(CreateKey).Content()
+            }
+        }
+    }
+
+    @After
+    fun tearDown() {
+        stopKoin()
+    }
+
+    @Test
+    fun `the sheet lists the games with an editor, then the picked game's sizes in order`() {
+        composeRule.onNodeWithTag(NEW).performClick()
+        composeRule.onNodeWithTag(SHEET).assertExists()
+
+        assertEquals(listOf(queens, alpha).map { "$GAME${it.value}" }, tagsStartingWith(GAME))
+        assertEquals(emptyList<String>(), tagsStartingWith(SIZE))
+
+        composeRule.onNodeWithTag("$GAME${alpha.value}").performClick()
+        assertEquals(alphaSizes.map { "$SIZE${it.value}" }, tagsStartingWith(SIZE))
+        assertEquals(emptyList<String>(), tagsStartingWith(GAME))
+
+        composeRule.onNodeWithTag(BACK).performClick()
+        composeRule.onNodeWithTag("$GAME${queens.value}").performClick()
+        assertEquals(queensSizes.map { "$SIZE${it.value}" }, tagsStartingWith(SIZE))
+    }
+
+    @Test
+    fun `picking a size stores that draft and opens its Studio`() {
+        composeRule.onNodeWithTag(NEW).performClick()
+        composeRule.onNodeWithTag("$GAME${queens.value}").performClick()
+        composeRule.onNodeWithTag("${SIZE}queens/8").performScrollTo().performClick()
+
+        composeRule.waitUntil { drafts.rows.isNotEmpty() }
+        val draft = drafts.rows.getValue("draft-1")
+        assertEquals(queens, draft.gameId)
+        assertEquals(VariantId("queens/8"), draft.variant)
+        composeRule.waitForIdle()
+        assertEquals(listOf(CreateKey, EditorKey("draft-1")), navigator.state.currentStack)
+        composeRule.onAllNodesWithTag(SHEET).fetchSemanticsNodes().let { assertEquals(0, it.size) }
+    }
+
+    private fun tagsStartingWith(prefix: String): List<String> =
+        composeRule.onAllNodes(
+            SemanticsMatcher("test tag starts with $prefix") {
+                it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith(prefix) == true
+            },
+        ).fetchSemanticsNodes().map { it.config[SemanticsProperties.TestTag] }
+
+    /** A blank board is its variant; nothing is ever analysed here. */
+    private class FakeGameEditor(
+        override val gameId: GameId,
+        override val variants: List<VariantId>,
+    ) : GameEditor<VariantId> {
+        override val draftFormatVersion: Int = 1
+        override fun newDraft(variant: VariantId): VariantId = variant
+        override fun variantOf(draft: VariantId): VariantId = draft
+        override fun encodeDraft(state: DraftState<VariantId>): ByteArray = state.draft.value.encodeToByteArray()
+        override fun decodeDraft(bytes: ByteArray): DecodeResult<DraftState<VariantId>> =
+            DecodeResult.Ok(DraftState(VariantId(bytes.decodeToString())))
+        override fun analyze(draft: VariantId, budget: Budget): Verdict =
+            Verdict.Incomplete(IncompleteReason("fake", 0))
+    }
+
+    /** Labels a size by its variant id; the sheet never opens a board. */
+    private class FakeGameEditorUi(override val gameId: GameId) : GameEditorUi {
+        override fun sizeLabel(variant: VariantId): String = variant.value
+        override fun createController(
+            initial: EditorDraft<*>,
+            onEdit: (EditorDraft<*>) -> Unit,
+        ): GameEditorController = error("the sheet never opens a board")
+
+        @Composable
+        override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) = Unit
+    }
+
+    private companion object {
+        val NOW: Instant = Instant.parse("2026-11-06T10:00:00Z")
+        const val NEW = "create.new"
+        const val SHEET = "create.new.sheet"
+        const val BACK = "create.new.back"
+        const val GAME = "create.new.game."
+        const val SIZE = "create.new.size."
+
+        fun withEditor(game: GameId, editor: GameEditor<*>): GamePlugin<*, *, *> {
+            val base = TestGames.plugin(game)
+            return GamePlugin(
+                definition = base.definition,
+                rules = base.rules,
+                session = base.session,
+                score = base.score,
+                stateOf = base.stateOf,
+                initialSession = base.initialSession,
+                refOf = base.refOf,
+                replaySession = base.replaySession,
+                rendererModel = base.rendererModel,
+                editor = editor,
+            )
+        }
+    }
+}

@@ -18,9 +18,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Ticket 01's walking skeleton over the real shell: the Create tab's New puzzle opens a
- * blank Queens 4×4 in the Studio (verdict Incomplete), a tap paints a cell, the draft is
- * listed on the Create root, and after a relaunch the draft reopens with the same regions.
+ * Ticket 01's walking skeleton over the real shell: the Create tab's New puzzle sheet
+ * (Queens, then 4×4) opens a blank Queens 4×4 in the Studio (verdict Incomplete), a tap
+ * paints a cell, the draft is listed on the Create root, and after a relaunch the draft
+ * reopens with the same regions.
  * The drafts store is the fake "disk" that outlives the relaunch.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -36,6 +37,8 @@ class CreateSkeletonE2ETest {
             tapTab(CreateKey)
             assertRoute(CREATE)
             tap("create.new")
+            tap("create.new.game.queens")
+            tap("create.new.size.queens/n4")
             awaitTag(BOARD)
             awaitTag(CELL_0)
             assertRoute(EDITOR)
