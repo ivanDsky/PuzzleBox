@@ -3,14 +3,19 @@ package com.ivandsky.puzzlebox.profile.navigation
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.screens.ProfileRoute
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 
 /**
- * Profile's route (tab root). Its one outbound move is the design-system catalog, an
- * app-owned deep page, so the shell supplies [onOpenCatalog] rather than a key.
+ * Profile's route (tab root). A game row opens that game's History tab ([onOpenHistory],
+ * N3) and the debug catalog link opens the design-system catalog, an app-owned deep page;
+ * the shell supplies both, as it does for Play's "Older puzzles".
  */
-fun EntryProviderScope<NavKey>.profileEntry(onOpenCatalog: () -> Unit) {
+fun EntryProviderScope<NavKey>.profileEntry(
+    onOpenHistory: (GameId) -> Unit,
+    onOpenCatalog: () -> Unit,
+) {
     entry<ProfileKey> {
-        ProfileRoute(onOpenCatalog = onOpenCatalog)
+        ProfileRoute(onOpenHistory = onOpenHistory, onOpenCatalog = onOpenCatalog)
     }
 }

@@ -147,6 +147,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   per game as `GamePlugin<P, S, M>`; `GameRegistry` (the sole GameId → `GamePlugin` lookup);
   `DailySource : PuzzleSource` (per-game feed adapter, `fetchDaily` → `DailyFetch`, optional
   `archiveSince`) over `FeedTransport`/`FeedRequest` (LinkedIn) or `NytTransport` (NYT);
+  `LinkedInEdition` (ADR-0017: one LinkedIn game's day→number rule, games-by-id `FeedRequest`, `entityUrn` identity check);
   `RankOrder` (TimeThenHints/HintsThenTime, on `ScoreModel`); `Command`/`CommandHistory` (undo/redo); `SessionBlob`;
   supporting `Puzzle`, `DecodeResult`/`DecodeError`, `VariantId`, `RecordStats`,
   `CompletionRecord`.
@@ -171,7 +172,8 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 - `games/tango/` (`:games:tango`, pure JVM) — `tangoPlugin` + `tangoModule` (binds
   `TangoSeedBackedSource(LinkedInTangoDailySource)` as `DailySource`); `engine/` `TangoRules`
   (triple/count/marker rules, `TangoUniqueness`, `TangoHint`); `codec/` `TangoCodec`,
-  `TangoWireParser`, `TangoSessionCodec` v2; `feed/TangoGameExtractor`; `TangoScoreModel`.
+  `LotkaWireParser` (LinkedIn's `lotkaGamePuzzle`, stream + by-id shapes), `TangoSessionCodec` v2;
+  `feed/TangoGameExtractor`; `TangoScoreModel`.
 - `games/queens/` (`:games:queens`, pure JVM) — `queensPlugin` + `queensModule` (binds
   `LinkedInQueensDailySource` as `DailySource`); `engine/` rules (`QueensRules`,
   `QueensVerifier`, `NoTouchAdjacencyRule`) and `solve/` (`QueensSolver`/`QueensSearch`);
@@ -214,10 +216,11 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `EliminationStep` file, a line in `EliminationSteps.DEFAULT` and a `SudokuTechnique` entry;
   captions name only the single, so `SudokuHintCaptions` stays unchanged.
 - `feature/home/impl/` (`:feature:home:impl`) — `navigation/HomeEntry`, `HomeRoute` +
-  `HomeViewModel` (today's set via `ObserveTodaySet`, identity, cache-only history teaser via
-  `ObserveGameHistory`; `di/HomeModule`), `HomeScreen` with `HomeListPane`/`HomeDetailPane`/
-  `HomeTodayCard` (one row per game, "n of N done")/`HomeCards`, `ThemeDialog`, `HomeLayout` +
-  `homeLayoutFor` pure pane policy.
+  `HomeViewModel` (today's set via `ObserveTodaySet`, stats via `ObserveGameStats`, the 7-day
+  week, `GetNextRollover`, identity, cache-only history teaser via `ObserveGameHistory`;
+  `di/HomeModule`), `HomeScreen` with `HomeListPane`/`HomeDetailPane` stacking
+  `HomeTodaySection` (`TodayTile` grid + one CTA / rollover countdown)/`HomeStreakSection`/
+  `HomeRecentSection`/`HomeCards`, `HomeLayout` + `homeLayoutFor` pure pane policy.
 - `feature/play/impl/` (`:feature:play:impl`) — the one game-agnostic play surface (ADR-0006,
   ADR-0007; no `games:*` dependency): `PlaySessionStore` (Koin single: one `ActivePlay` per
   `PlaySlot`, `open(GameKey)`/`peek(slot)`/`retain(keys)`/`flush()`, `playable` games, pins a
@@ -225,8 +228,9 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   write, A10 verdict, slot saves with elapsed ms), `SlotOpening` (saved row → today's fetch → past-day replay build
   → Unavailable; undecodable row deleted), `SlotWriter` (per-slot 300 ms trailing-throttle
   saves, `discard` on solve), `WriteLane` (one Mutex-ordered lane for every saved-play I/O),
-  `HubRoute` + `HubViewModel` (Play tab's games hub: today's status line and Play/Continue/
-  Replay per game), `GameRoute` + `GameViewModel` (one `GameKey`'s board; first-play tutorial
+  `HubRoute` + `HubViewModel` (Play tab's games hub: buttonless tap-to-play cards with today's status
+  line and a live board thumbnail per game; phones stack them until 5+ games, then a 2-column grid of
+  `HubCardShape.Tile`s; two-pane is always a 2-column grid), `GameRoute` + `GameViewModel` (one `GameKey`'s board; first-play tutorial
   and How to play via `TutorialGate`), `ResultRoute` + `ResultViewModel` (verdict + previous
   best live, Play again, Next unsolved), `GamePicker`, `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
   `resultEntry`).
@@ -237,9 +241,11 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   day's `GameKey` on Home's stack, which resumes or replays the slot.
 - `feature/profile/impl/` (`:feature:profile:impl`) — packages kept from the app:
   `app/screens/` (`ProfileRoute`, `ProfileScreen`, `ProfileLeaderboard`, `ProfileViewModel`
-  over `ObserveTodayLeaderboard`, `ProfileUiState`), `app/auth/GoogleIdTokenProvider`
-  (Credential Manager, typed `Unavailable.Reason`), `profile/di/ProfileModule`
-  (`profileModule(serverClientIdRes)`), `profile/navigation/ProfileEntry`.
+  over `ObserveTodayLeaderboard` + `ObserveGameStats`/`ObserveGameHistory` (the record) +
+  `UserPreferencesRepository` (Appearance), `ProfileUiState`), `profile/ProfileRecord`
+  (header, lifetime grid, per-game rows opening `HistoryKey(game)`), `profile/AppearanceRow`,
+  `app/auth/GoogleIdTokenProvider` (Credential Manager, typed `Unavailable.Reason`),
+  `profile/di/ProfileModule` (`profileModule(serverClientIdRes)`), `profile/navigation/ProfileEntry`.
 - `backend/firebase/` (`:backend:firebase`) — implements the `core:data` seams:
   `FirebaseIdentityService` over an internal `AuthGateway`/`FirebaseAuthGateway`,
   `FirestoreLeaderboardStore` + `FirestoreLeaderboardRepository` (dedupe on (uid, puzzleRef)),
@@ -307,7 +313,9 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 - **E2E robot** (`app` tests, `e2e/`) — `shellRobot { … }` over `E2eKoinGraph` drives the real
   shell row by row in spec notation.
 - **`GamePlayRegistry`** (`core:game-ui`) — the game → UI seam; `:feature:play:impl` drives any
-  game through `GamePlayController`, so adding a game never touches Play.
+  game through `GamePlayController`, so adding a game never touches Play. Hub thumbnails go
+  through `GamePlayUi.previewModel(BoardPreview)` + `BoardThumbnail`, fed by `HubViewModel` from
+  `PlaySessionStore.latestSave` (in progress) or `DailyRepository.cached` (fresh / solved).
 - **Repository interfaces** (`core:data`) — `DailyRepository.today()` is network-first
   (`DailyToday.Cached` carries the fetch error), `cached()`/`observeHistory()` never touch the
   network; `CompletionRepository` stamps ADR-0004 first-win semantics via `FirstWinPolicy`
@@ -371,7 +379,7 @@ when any source, build script or allowlist changes).
 - `:feature:play:impl:testDebugUnitTest` — 67
 - `:feature:profile:impl:testDebugUnitTest` — 28
 - `:games:zip:test` — 155; `:games:zip-ui:testDebugUnitTest` — 70
-- `:games:tango:test` — 114; `:games:tango-ui:testDebugUnitTest` — 53
+- `:games:tango:test` — 121; `:games:tango-ui:testDebugUnitTest` — 53
 - `:games:queens:test` — 163; `:games:queens-ui:testDebugUnitTest` — 81
 - `:games:sudoku:test` — 126; `:games:sudoku-ui:testDebugUnitTest` — 96
 - `:games:strands:test` — 82; `:games:strands-ui:testDebugUnitTest` — 125 (executed `tests`

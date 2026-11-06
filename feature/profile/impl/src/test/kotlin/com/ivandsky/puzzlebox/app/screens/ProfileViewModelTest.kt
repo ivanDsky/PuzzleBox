@@ -16,16 +16,31 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
+import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
+import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -37,7 +52,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** Profile ViewModel states (brief §4): signed-out/in, sign-in results, board gating. */
+/** Profile ViewModel states (brief §4, A20, N4): the record, signed-out/in, sign-in results, board gating, theme. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProfileViewModelTest {
 
@@ -45,8 +60,13 @@ class ProfileViewModelTest {
     private val boardRef = LeaderboardRef("zip", day)
     private val dispatcher = StandardTestDispatcher()
 
+    private val zip = GameId("zip")
+    private val tango = GameId("tango")
+
     // Today's board is the featured game's: the registry's first, "zip".
-    private val featured = GetFeaturedGame(TestGames.registry(listOf(GameId("zip"))))
+    private val registry = TestGames.registry(listOf(zip, tango))
+    private val featured = GetFeaturedGame(registry)
+    private val clock = Clock.fixed(Instant.parse("2026-10-31T12:00:00Z"), ZoneOffset.UTC)
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule(dispatcher)
@@ -65,13 +85,17 @@ class ProfileViewModelTest {
         val identity: FakeIdentityService,
         val leaderboard: FakeLeaderboardRepository,
         val tokens: FakeTokenProvider,
+        val preferences: FakeUserPreferencesRepository,
     )
 
     private fun TestScope.viewModel(
         identity: FakeIdentityService = FakeIdentityService(initial = null),
         tokens: FakeTokenProvider = FakeTokenProvider(),
         leaderboard: FakeLeaderboardRepository = FakeLeaderboardRepository(),
+        completions: FakeCompletionRepository = FakeCompletionRepository(),
+        preferences: FakeUserPreferencesRepository = FakeUserPreferencesRepository(),
     ): Deps {
+        val history = ObserveGameHistory(registry, FakeDailyRepository(), completions)
         val vm = ProfileViewModel(
             identityService = identity,
             idTokenProvider = tokens,
@@ -81,19 +105,23 @@ class ProfileViewModelTest {
                 featured = featured,
                 today = { day },
             ),
-            featuredGame = featured,
+            observeGameStats = ObserveGameStats(history, ComputeStreak(GetPuzzleDay(registry, clock))),
+            observeGameHistory = history,
+            registry = registry,
+            brands = GamePlayRegistry(emptyList()),
+            preferences = preferences,
         )
         // The state is observed only while subscribed (the route's lifecycle collector).
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
-        return Deps(vm, identity, leaderboard, tokens)
+        return Deps(vm, identity, leaderboard, tokens, preferences)
     }
 
-    private val Deps.signedOut: ProfileUiState.SignedOut
-        get() = vm.uiState.value as ProfileUiState.SignedOut
+    private val Deps.signedOut: ProfileUiState.Account.SignedOut
+        get() = vm.uiState.value.account as ProfileUiState.Account.SignedOut
 
-    private val Deps.signedIn: ProfileUiState.SignedIn
-        get() = vm.uiState.value as ProfileUiState.SignedIn
+    private val Deps.signedIn: ProfileUiState.Account.SignedIn
+        get() = vm.uiState.value.account as ProfileUiState.Account.SignedIn
 
     // Plain JVM test: the fake provider ignores the context, so a mock satisfies the seam.
     private val appContext: Context = org.mockito.Mockito.mock(Context::class.java)
@@ -103,7 +131,7 @@ class ProfileViewModelTest {
         val deps = viewModel()
 
         // Signed out carries no board (nothing loading) and no sign-in progress.
-        assertEquals(ProfileUiState.SignedOut(), deps.vm.uiState.value)
+        assertEquals(ProfileUiState.Account.SignedOut(), deps.vm.uiState.value.account)
         assertTrue(deps.leaderboard.observedBoards.isEmpty())
     }
 
@@ -124,11 +152,48 @@ class ProfileViewModelTest {
     }
 
     @Test
-    fun `signed-in state carries the featured game's name for the board`() = runTest(dispatcher) {
-        val deps = viewModel(identity = FakeIdentityService(initial = Identity("u1", "Ann", null)))
+    fun `the record carries lifetime stats, days played and one row per game - A20`() = runTest(dispatcher) {
+        val completions = FakeCompletionRepository(
+            listOf(
+                record(zip, day, timeMs = 95_000, hints = 2),
+                record(zip, day.minusDays(1), timeMs = 80_000, hints = 0),
+                record(tango, day, timeMs = 61_000, hints = 0),
+                // Practice (no edition number) never counts.
+                record(tango, day.minusDays(5), timeMs = 10_000, hints = 0, puzzleNumber = null),
+            ),
+        )
 
-        assertEquals(featured().displayName, deps.signedIn.gameName)
+        val state = viewModel(completions = completions).vm.uiState.value
+
+        assertEquals(3, state.stats.solved)
+        assertEquals(2, state.stats.hintFree)
+        assertEquals(2, state.stats.bestStreak)
+        assertEquals(day.minusDays(1), state.stats.playingSince)
+        assertEquals(2, state.daysPlayed)
+        assertEquals(listOf(zip, tango), state.games.map { it.gameId })
+        assertEquals(listOf(2, 1), state.games.map { it.solved })
+        assertEquals(listOf<Long?>(80_000, 61_000), state.games.map { it.bestTimeMs })
     }
+
+    @Test
+    fun `choosing dark persists the theme - N4`() = runTest(dispatcher) {
+        val deps = viewModel()
+        assertEquals(ThemeMode.SYSTEM, deps.vm.uiState.value.themeMode)
+
+        deps.vm.onSetThemeMode(ThemeMode.DARK)
+        advanceUntilIdle()
+
+        assertEquals(ThemeMode.DARK, deps.preferences.themeMode.first())
+        assertEquals(ThemeMode.DARK, deps.vm.uiState.value.themeMode)
+    }
+
+    private fun record(game: GameId, on: LocalDate, timeMs: Long, hints: Int, puzzleNumber: Int? = 592) =
+        CompletionRecord(
+            puzzleRef = TestGames.Ref(game, on, puzzleNumber),
+            time = timeMs,
+            hints = hints,
+            stats = RecordStats(schemaVersion = 1, blob = "{}"),
+        )
 
     // ---- Ticket 24: sign-in copy per failure class -------------------------------
     // Exact strings lock the copy; "Check your connection" may appear on the NETWORK
@@ -166,7 +231,7 @@ class ProfileViewModelTest {
                 deps.signedOut.signInMessage,
             )
             // Still signed out: no identity (A7).
-            assertTrue(deps.vm.uiState.value is ProfileUiState.SignedOut)
+            assertTrue(deps.vm.uiState.value.account is ProfileUiState.Account.SignedOut)
             assertTrue(deps.leaderboard.observedBoards.isEmpty())
         }
 
@@ -259,13 +324,13 @@ class ProfileViewModelTest {
     fun `sign-out clears identity and drops the board`() = runTest(dispatcher) {
         val deps = viewModel(identity = FakeIdentityService(initial = Identity("u1", "Ann", null)))
         advanceUntilIdle()
-        assertTrue(deps.vm.uiState.value is ProfileUiState.SignedIn)
+        assertTrue(deps.vm.uiState.value.account is ProfileUiState.Account.SignedIn)
 
         deps.vm.onSignOut()
         advanceUntilIdle()
 
         // Signed out: no identity and no board.
-        assertTrue(deps.vm.uiState.value is ProfileUiState.SignedOut)
+        assertTrue(deps.vm.uiState.value.account is ProfileUiState.Account.SignedOut)
         assertEquals(1, deps.identity.signOutCalls.size)
     }
 

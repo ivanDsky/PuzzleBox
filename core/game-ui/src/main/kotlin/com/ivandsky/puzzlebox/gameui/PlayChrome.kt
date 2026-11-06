@@ -2,16 +2,9 @@ package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
-import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,11 +12,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -32,10 +23,10 @@ import kotlinx.coroutines.delay
 /*
  * The play chrome, split core | game (user ruling 2026-11-03): every game shows a title,
  * a clock, a hint control, undo/redo and a degrade banner, so those are CORE — drawn once
- * here from three small seams the game's play state implements. What each seam MEANS is
- * the game's: when its clock starts, what a hint does, what an undo unit is. Anything
- * truly game-specific (Queens' Auto-cross, Clear, conflict caption) rides the
- * [PlayChrome] `gameControls` slot.
+ * here from small seams the game's play state implements. What each seam MEANS is the
+ * game's: when its clock starts, what a hint does, what an undo unit is, what Clear wipes
+ * ([PlayClear]). A game's own settings (Queens' Auto-cross) ride the top bar's overflow
+ * as [PlayOverflowItem]s (A14).
  */
 
 /**
@@ -123,130 +114,52 @@ fun PlayClockEffects(clock: PlayClock) {
 }
 
 /**
- * The play chrome every game shares (tango-05, split core | game 2026-11-03): title /
- * subtitle voice, the hint control, the degrade banner (§6 copy passed in), the one
- * reserved caption slot ([PlayCaptionSlot] over [playCaption]: violation > rejection >
- * hint), the record-of-truth timer, and undo/redo (§5/§9: controls ≥ 48 dp — the M3
- * buttons carry their own floor). Seams are nullable so a game opts out of a control it
- * does not have; [onHowToPlay] (null = no button) reopens the game's tutorial (spec A11);
- * [gameControls] is the game-specific remainder.
+ * The play chrome under the board every game shares (A14, tango-05, split core | game
+ * 2026-11-03): the degrade banner (§6 copy passed in), the one reserved caption slot
+ * ([PlayCaptionSlot] over [playCaption]: violation > rejection > hint) and the bottom
+ * [PlayActionBar] (Undo · Redo · Hint · Clear). The title, timer, How to play and the
+ * overflow live in the route's top bar. [clock] runs the shared clock loop here so the
+ * fold follows the game's screen. Seams are nullable so a game opts out of a control it
+ * does not have: no [clear] hides Clear.
  */
 @Composable
 fun PlayChrome(
-    title: String,
-    subtitle: String,
     clock: PlayClock?,
     hints: PlayHints?,
     undo: PlayUndo?,
+    clear: PlayClear?,
     banner: String?,
     modifier: Modifier = Modifier,
     feedback: PlayFeedback? = null,
-    onHowToPlay: (() -> Unit)? = null,
-    gameControls: @Composable ColumnScope.() -> Unit = {},
 ) {
     if (clock != null) PlayClockEffects(clock)
 
     Column(
         modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
             .testTag("play.side_panel"),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            PlayTitle(title, subtitle, Modifier.weight(1f))
-            if (onHowToPlay != null) HowToPlayButton(onHowToPlay)
-            if (hints != null) {
-                HintButton(
-                    count = hints.hintsUsed,
-                    onHint = hints::requestHint,
-                    enabled = hints.hintEnabled,
+        banner?.let { message ->
+            Surface(
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("play.degrade_banner"),
+            ) {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
                 )
             }
         }
 
-        banner?.let { DegradeBanner(it) }
-
         PlayCaptionSlot(caption = playCaption(feedback, hints))
 
-        if (clock != null) TimerBar(elapsedMs = clock.displayedElapsedMs())
-
-        if (undo != null) UndoRedoRow(undo)
-
-        gameControls()
-    }
-}
-
-/** The game's title over its subtitle (edition, mode), the chrome's voice line. */
-@Composable
-internal fun PlayTitle(title: String, subtitle: String, modifier: Modifier = Modifier) {
-    Column(modifier) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-/** ⓘ: reopens the game's tutorial. Newer M3 IconButtons measure 40 dp; the floor is 48 dp (§9). */
-@Composable
-internal fun HowToPlayButton(onClick: () -> Unit) {
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag("play.how_to_play"),
-    ) {
-        Icon(
-            imageVector = PuzzleIcons.HowTo,
-            contentDescription = "How to play",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-/** The §6 degrade banner: the board plays, but something (network, catalog) fell back. */
-@Composable
-internal fun DegradeBanner(message: String) {
-    Surface(
-        color = MaterialTheme.colorScheme.tertiaryContainer,
-        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag("play.degrade_banner"),
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-        )
-    }
-}
-
-/** Undo / Redo over the game's command history — enabled exactly when the history can move. */
-@Composable
-fun UndoRedoRow(undo: PlayUndo, modifier: Modifier = Modifier) {
-    Row(
-        modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        SecondaryButton(
-            text = "Undo",
-            onClick = undo::undo,
-            enabled = undo.canUndo,
-            modifier = Modifier.testTag("play.undo"),
-        )
-        SecondaryButton(
-            text = "Redo",
-            onClick = undo::redo,
-            enabled = undo.canRedo,
-            modifier = Modifier.testTag("play.redo"),
-        )
+        if (undo != null && hints != null) PlayActionBar(undo, hints, clear)
     }
 }

@@ -104,6 +104,8 @@ class StrandsArchiveE2ETest {
             openPast(PAST)
             awaitStrands(PAST)
             assertEquals("the past day is fetched once", 1, requestsFor(PAST))
+            // Immersive play hides the bar (N2): back to the hub before hopping to History.
+            back()
             val opened = history()
             assertEquals("…and adjacent to today, still outside the streak", before.streak, opened.streak)
             assertEquals("the opened day is captured", before.rows + rowTag(PAST), opened.rows)
@@ -113,6 +115,7 @@ class StrandsArchiveE2ETest {
             openPast(PAST)
             awaitStrands(PAST)
             assertEquals("the reopen reads the cache, not the network", 1, requestsFor(PAST))
+            back()
             assertEquals("the streak and rows are unchanged after the reopen", opened, history())
         }
 
@@ -201,9 +204,7 @@ class StrandsArchiveE2ETest {
         tapText("See all")
         awaitTag(STREAK)
         val count = rule.onNodeWithTag(STREAK, useUnmergedTree = true).performScrollTo().fetchSemanticsNode()
-            .children.flatMap { generateSequence(listOf(it)) { level -> level.flatMap { c -> c.children }.takeIf(List<*>::isNotEmpty) }.flatten() }
-            .mapNotNull { it.config.getOrNull(SemanticsProperties.Text)?.firstOrNull()?.text }
-            .first()
+            .config.getOrNull(SemanticsProperties.Text)!!.first().text
         val rows = rule.onAllNodes(SemanticsMatcher("a History row") { node ->
             node.config.getOrNull(SemanticsProperties.TestTag)?.startsWith(ROW_PREFIX) == true
         }).fetchSemanticsNodes().mapNotNull { it.config.getOrNull(SemanticsProperties.TestTag) }.toSet()
@@ -289,7 +290,7 @@ class StrandsArchiveE2ETest {
         const val TIMEOUT_MS = 5_000L
         const val BOARD = "strands.board"
         const val PAST_BUTTON = "hub.past.$STRANDS"
-        const val STREAK = "history.streak"
+        const val STREAK = "history.stats.streak"
         const val ROW_PREFIX = "history.row."
         const val SAVE_GAP_MS = 5L
         val CELL_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.US)

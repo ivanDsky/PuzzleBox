@@ -82,7 +82,6 @@ class SudokuPlayUiTest {
                     layout = layout,
                     onRetry = {},
                     onSolved = { time, hints -> solved += time to hints },
-                    onHowToPlay = null,
                     modifier = Modifier,
                 )
             }
@@ -100,7 +99,6 @@ class SudokuPlayUiTest {
     fun `the 9x9 fits a 360x640 phone with grid, keypad and chrome apart`() {
         val classic = SudokuPlayUi(SudokuGames.CLASSIC)
         assertFitsSinglePane(classic, adopted(classic, SudokuSamples.classic, SudokuPuzzleRef(SudokuGames.CLASSIC.id, ref.date, null)), size = 9)
-        composeRule.onNodeWithText("Daily").assertExists()
     }
 
     @Test
@@ -200,7 +198,6 @@ class SudokuPlayUiTest {
         composeRule.onNode(hasTestTag("sudoku.keypad") and hasAnyAncestor(hasTestTag("play.side_panel"))).assertDoesNotExist()
         composeRule.onNode(hasTestTag("sudoku.clear") and hasAnyAncestor(hasTestTag("sudoku.keypad"))).assertExists()
         composeRule.onNode(hasTestTag("sudoku.clear") and hasAnyAncestor(hasTestTag("play.side_panel"))).assertDoesNotExist()
-        composeRule.onNodeWithText("Daily · #450").assertExists()
     }
 
     @Test
@@ -210,14 +207,13 @@ class SudokuPlayUiTest {
         setScreen(controller, PlayLayout.TwoPane)
 
         val inBoard = hasAnyAncestor(hasTestTag("sudoku.board_area"))
-        val inSide = hasAnyAncestor(hasTestTag("play.side_panel"))
+        val inSide = hasAnyAncestor(hasTestTag("sudoku.side"))
         composeRule.onNode(hasTestTag("sudoku.keypad") and inBoard).assertExists()
         composeRule.onNode(hasTestTag("sudoku.notes_key") and inBoard).assertExists()
         composeRule.onNode(hasText("Notes") and hasClickAction()).assertDoesNotExist()
         for (tag in listOf("play.undo", "play.redo", "sudoku.clear")) composeRule.onNode(hasTestTag(tag) and inSide).assertExists()
         composeRule.onNode(hasText("Erase") and inSide).assertExists()
         composeRule.onNode(hasClickAction() and hasText("Hint", substring = true) and inSide).assertExists()
-        composeRule.onNode(hasText("Daily · #450") and inSide).assertExists()
 
         // One row: the six digits and the notes key share a top, the key last; the grid
         // takes the 552dp cap the dropped button rows free.

@@ -19,9 +19,12 @@ dependencies {
     implementation(projects.core.data)
     // HomeViewModel resolves per-game names against the app's GameRegistry.
     implementation(projects.core.game)
-    // TodayStatus (today's set) appears in HomeUiState, part of HomeScreen's public signature.
+    // The domain use cases appear in HomeViewModel's public constructor.
     api(projects.core.domain)
-    // ThemeMode/GameId appear in Home's public composables.
+    // GameGlyph, WeekStrip and the per-game brands (GamePlayRegistry) for the Today tiles,
+    // streak card and recent chips.
+    implementation(projects.core.gameUi)
+    // GameId appears in Home's public composables.
     api(projects.core.model)
     testImplementation(projects.core.testing)
 }

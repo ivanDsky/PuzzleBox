@@ -6,224 +6,74 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.data.identity.Identity
-import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.LargeTopBar
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.model.ThemeMode
-import java.time.LocalDate
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
 
-/** The left pane and the whole single-pane screen share one stacked content column. */
+/**
+ * The left pane and the whole single-pane screen share one stacked column on the app
+ * background (identity §2.8): the header, then Today, the streak
+ * card, the recent days and the account card, each entering in turn.
+ */
 @Composable
 internal fun ListPane(
-    today: List<HomeUiState.TodayRow>,
-    identity: Identity?,
-    puzzleDay: LocalDate,
-    themeMode: ThemeMode,
-    onOpenTheme: () -> Unit,
+    state: HomeUiState,
     onOpenHistory: () -> Unit,
-    history: List<HistoryDay>,
     selectedDay: String?,
     onDayClick: (String) -> Unit,
     selectable: Boolean,
-    resume: Boolean,
-    onPlayToday: () -> Unit,
+    onOpenGame: (GameId) -> Unit,
     onOpenProfile: () -> Unit,
-    paneColor: Color,
-    cardColor: Color,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier
-            .background(paneColor)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState()),
     ) {
         LargeTopBar(
             title = "PuzzleBox",
-            subtitle = puzzleDay.format(HEADER_DATE),
-            actions = {
-                IconButton(onClick = onOpenTheme) {
-                    Icon(
-                        imageVector = PuzzleIcons.Appearance,
-                        contentDescription = "Appearance",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
+            subtitle = state.puzzleDay.format(HEADER_DATE),
         )
-        StaggeredItem(0) {
-            TodayCard(
-                today = today,
-                resume = resume,
-                onPlayToday = onPlayToday,
-                cardColor = cardColor,
-                modifier = Modifier.padding(horizontal = Spacing.lg),
-            )
-        }
-        StaggeredItem(1) {
-            HistorySection(
-                history = history,
-                selectedDay = selectedDay,
-                onDayClick = onDayClick,
-                selectable = selectable,
-                onOpenHistory = onOpenHistory,
-                cardColor = cardColor,
-                modifier = Modifier.padding(top = Spacing.xl),
-            )
-        }
-        StaggeredItem(2) {
-            AccountCard(
-                identity = identity,
-                onOpenProfile = onOpenProfile,
-                cardColor = cardColor,
-                modifier = Modifier.padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.xl, bottom = Spacing.xxl),
-            )
-        }
-    }
-}
-
-@Composable
-private fun HistorySection(
-    history: List<HistoryDay>,
-    selectedDay: String?,
-    onDayClick: (String) -> Unit,
-    selectable: Boolean,
-    onOpenHistory: () -> Unit,
-    cardColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier.padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.xxl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xl),
         ) {
-            Text(
-                text = "Your history",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f),
-            )
-            AppTextButton(text = "See all", onClick = onOpenHistory)
-        }
-        if (history.isEmpty()) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                color = cardColor,
-            ) {
-                EmptyState(
-                    title = "No games yet",
-                    message = "Finished puzzles and scores will appear here.",
+            StaggeredItem(0) {
+                HomeTodaySection(state = state, onOpenGame = onOpenGame, tagPrefix = "home.today")
+            }
+            StaggeredItem(1) {
+                HomeStreakSection(stats = state.stats, week = state.week, total = state.today.size)
+            }
+            StaggeredItem(2) {
+                HomeRecentSection(
+                    days = state.history,
+                    onSeeAll = onOpenHistory,
+                    selectedDay = selectedDay,
+                    onDayClick = onDayClick,
+                    selectable = selectable,
                 )
             }
-        } else {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                color = cardColor,
-            ) {
-                Column(Modifier.padding(Spacing.sm)) {
-                    history.forEach { day ->
-                        HistoryRow(
-                            day = day,
-                            selected = selectable && day.isoDay == selectedDay,
-                            onClick = if (selectable) {
-                                { onDayClick(day.isoDay) }
-                            } else {
-                                null
-                            },
-                        )
-                    }
-                }
+            StaggeredItem(3) {
+                AccountCard(identity = state.identity, onOpenProfile = onOpenProfile)
             }
         }
-    }
-}
-
-@Composable
-private fun HistoryRow(
-    day: HistoryDay,
-    selected: Boolean,
-    onClick: (() -> Unit)?,
-    modifier: Modifier = Modifier,
-) {
-    val rowContent: @Composable () -> Unit = {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = Spacing.md, vertical = Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = day.headline,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = day.games.joinToString(" · ") { "${it.gameName} ${it.resultText}" },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (onClick != null) {
-                Icon(
-                    imageVector = PuzzleIcons.Chevron,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-    val tagged = modifier
-        .fillMaxWidth()
-        .testTag("home.history_row_${day.isoDay}")
-    if (onClick != null) {
-        Surface(
-            selected = selected,
-            onClick = onClick,
-            modifier = tagged,
-            shape = MaterialTheme.shapes.small,
-            color = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-        ) { rowContent() }
-    } else {
-        Surface(
-            modifier = tagged,
-            shape = MaterialTheme.shapes.small,
-            color = Color.Transparent,
-        ) { rowContent() }
     }
 }
 
@@ -250,8 +100,5 @@ private fun StaggeredItem(
         },
     ) { content() }
 }
-
-/** The game's solve time, or "–" when it was opened but not solved. */
-internal val HistoryDay.GameResult.resultText: String get() = time ?: "–"
 
 private val HEADER_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d")

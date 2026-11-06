@@ -70,11 +70,10 @@ class PlayCaptionSlotTest {
                         board = { Box(Modifier.fillMaxSize().testTag("board")) },
                         side = {
                             PlayChrome(
-                                title = "Tango",
-                                subtitle = "Daily",
                                 clock = null,
                                 hints = hints,
                                 undo = null,
+                                clear = null,
                                 banner = null,
                                 feedback = feedback,
                             )

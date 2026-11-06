@@ -42,7 +42,8 @@ import com.ivandsky.puzzlebox.games.strandsui.chrome.FoundWordsList
 /**
  * The Strands play screen (A37). On a phone one column stacks the theme card, the header
  * line, the word slot, the board and the hint row under it (counter and Hint, as on NYT),
- * then the shared chrome (title, clock, How to play). On a tablet the board pane keeps only
+ * then the shared chrome (banner and caption; title, clock and How to play are in the
+ * route's top bar). On a tablet the board pane keeps only
  * the board and its hint row, so the board takes the pane's full height; the theme card,
  * header line, word slot and the found-words list move into the side panel under the shared
  * chrome. No undo and no shared hint control (A15: the hint is Strands' own economy). A
@@ -57,7 +58,6 @@ internal fun StrandsPlayScreen(
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
-    onHowToPlay: (() -> Unit)? = null,
 ) {
     // Keyed on completion, so a replay's next win hands off again.
     LaunchedEffect(controller.isComplete) {
@@ -75,7 +75,7 @@ internal fun StrandsPlayScreen(
                 val viewport = maxHeight
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).testTag("strands.scroll")) {
                     BoardColumn(controller, header, reduceMotion, fitHeight = viewport, withChrome = true)
-                    SidePanel(controller, status, reduceMotion, onHowToPlay, withChrome = false)
+                    SidePanel(controller, status, reduceMotion, withChrome = false)
                 }
             }
         } else {
@@ -83,7 +83,7 @@ internal fun StrandsPlayScreen(
                 layout = layout,
                 modifier = Modifier.fillMaxSize(),
                 board = { BoardPane(controller, status, reduceMotion, onRetry) },
-                side = { SidePanel(controller, status, reduceMotion, onHowToPlay, withChrome = true) },
+                side = { SidePanel(controller, status, reduceMotion, withChrome = true) },
             )
         }
     }
@@ -201,33 +201,33 @@ private fun PuzzleChrome(controller: StrandsPlayController, header: StrandsHeade
     }
 }
 
-/** The shared chrome; [withChrome] (a tablet) adds the puzzle's chrome and the found-words list under it. */
+/**
+ * The shared chrome (the degrade banner and caption; the title, clock and How to play sit
+ * in the route's top bar); [withChrome] (a tablet) adds the puzzle's chrome and the
+ * found-words list under it.
+ */
 @Composable
 private fun SidePanel(
     controller: StrandsPlayController,
     status: PlayBoardStatus,
     reduceMotion: Boolean,
-    onHowToPlay: (() -> Unit)?,
     withChrome: Boolean,
 ) {
     val ready = status as? PlayBoardStatus.Ready
     val header = controller.header.takeIf { withChrome && ready != null }
-    PlayChrome(
-        title = StrandsCopy.TITLE,
-        // "No. n" lives on the header line, next to the credit.
-        subtitle = "Daily",
-        clock = controller,
-        hints = null,
-        undo = null,
-        banner = ready?.banner,
-        onHowToPlay = onHowToPlay,
-        modifier = Modifier
-            .then(if (withChrome) Modifier.verticalScroll(rememberScrollState()) else Modifier)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-    ) {
+    Column(Modifier.testTag("strands.side_panel").then(if (withChrome) Modifier.verticalScroll(rememberScrollState()) else Modifier)) {
+        PlayChrome(
+            clock = controller,
+            hints = null,
+            undo = null,
+            clear = null,
+            banner = ready?.banner,
+        )
         if (header != null) {
-            PuzzleChrome(controller, header, reduceMotion)
-            FoundWordsList(controller.foundWords, controller.model.totalCount, Modifier.padding(top = Spacing.sm))
+            Column(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
+                PuzzleChrome(controller, header, reduceMotion)
+                FoundWordsList(controller.foundWords, controller.model.totalCount, Modifier.padding(top = Spacing.sm))
+            }
         }
     }
 }

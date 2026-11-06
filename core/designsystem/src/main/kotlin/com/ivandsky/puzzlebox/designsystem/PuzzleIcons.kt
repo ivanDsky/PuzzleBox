@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +51,9 @@ object PuzzleIcons {
     val Close: ImageVector = Icons.Rounded.Close
     val Search: ImageVector = Icons.Rounded.Search
     val ExpandMore: ImageVector = Icons.Rounded.KeyboardArrowDown
+
+    /** Overflow menu: three dots stacked. */
+    val More: ImageVector = Icons.Rounded.MoreVert
 
     /** Appearance setting: the half-filled `contrast` circle. */
     val Appearance: ImageVector

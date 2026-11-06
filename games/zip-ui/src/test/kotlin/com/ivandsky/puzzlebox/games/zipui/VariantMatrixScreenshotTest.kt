@@ -139,6 +139,7 @@ class VariantMatrixScreenshotTest {
                 hintsUsed = 1,
                 primary = ResultPrimaryAction.Next(GameId("tango"), "Tango"),
                 onPrimary = {},
+                onShare = {},
                 onPlayAgain = {},
                 verdict = RecordVerdict.NewBest,
                 modifier = Modifier.fillMaxSize(),

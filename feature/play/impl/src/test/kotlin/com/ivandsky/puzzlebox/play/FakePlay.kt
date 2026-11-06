@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.play
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,8 +14,10 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.BoardPreview
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
@@ -32,13 +33,16 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import java.time.LocalDate
 
+/** The fake's thumbnail model: what [FakePlayUi.previewModel] read, as a readable [label]. */
+data class FakePreview(val label: String) : RendererModel
+
 /**
  * A stand-in game play UI (feature:play:impl never sees a real game, ADR-0007 §7): its
  * session is a readable string — `fake|<moves>|<complete>|<date>|<number>|<elapsedMs>`
  * — so tests can assert exactly what was adopted, published and restored. Its clock is
  * the real games' shape: the first move opens a window, a background fold banks it into
  * the session (and publishes), folding a paused clock banks nothing. It has no tutorial
- * until a test calls [teach]; its screen offers How to play whenever the route passes it.
+ * until a test calls [teach]; the route's top bar then offers How to play.
  */
 class FakePlayUi(override val gameId: GameId) : GamePlayUi {
 
@@ -71,6 +75,22 @@ class FakePlayUi(override val gameId: GameId) : GamePlayUi {
         Text("${gameId.value} board ${(controller as FakeController).moves}", modifier.testTag("fake.board"))
     }
 
+    /** A save's move count, or today's puzzle fresh / solved (with its payload tag); null for another game's bytes. */
+    override fun previewModel(preview: BoardPreview): RendererModel? = when (preview) {
+        is BoardPreview.InProgress -> SessionBlob.decode(preview.bytes)
+            ?.takeIf { it.game == gameId }
+            ?.session?.decodeToString()?.split('|')
+            ?.takeIf { it.size in 5..6 && it[0] == "fake" }
+            ?.let { FakePreview("moves ${it[1]}") }
+        is BoardPreview.Fresh -> preview.puzzle.takeIf { it.gameId == gameId }?.let { FakePreview("fresh ${it.payload.last()}") }
+        is BoardPreview.Solved -> preview.puzzle.takeIf { it.gameId == gameId }?.let { FakePreview("solved ${it.payload.last()}") }
+    }
+
+    @Composable
+    override fun BoardThumbnail(model: RendererModel, modifier: Modifier) {
+        Text((model as FakePreview).label, modifier.testTag("fake.thumb"))
+    }
+
     @Composable
     override fun Screen(
         controller: GamePlayController,
@@ -78,12 +98,10 @@ class FakePlayUi(override val gameId: GameId) : GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
-        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     ) {
         val fake = controller as FakeController
         Column {
-            if (onHowToPlay != null) Text("How to play", Modifier.testTag("play.how_to_play").clickable(onClick = onHowToPlay))
             if (status is PlayBoardStatus.Ready) {
                 // The real games' chrome clock: leaving the composition folds the window.
                 PlayClockEffects(fake)

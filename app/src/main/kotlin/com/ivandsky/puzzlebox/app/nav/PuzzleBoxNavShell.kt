@@ -11,7 +11,6 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.home.HomeLayout
-import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import org.koin.compose.koinInject
@@ -34,8 +33,6 @@ internal fun PuzzleBoxNavShell(
     homeLayout: HomeLayout,
     playLayout: PlayLayout,
     historyLayout: HistoryLayout,
-    themeMode: ThemeMode,
-    onSetThemeMode: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,
     store: PlaySessionStore = koinInject(),
 ) {
@@ -51,8 +48,6 @@ internal fun PuzzleBoxNavShell(
             homeLayout = homeLayout,
             playLayout = playLayout,
             historyLayout = historyLayout,
-            themeMode = themeMode,
-            onSetThemeMode = onSetThemeMode,
         ),
     )
     NavDisplay(

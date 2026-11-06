@@ -93,32 +93,25 @@ class ZipPlayController(
             }
 
             // R1 tap on the first traced cell: the trace empties to the start state.
-            DragEvent.Clear -> commit(current.withMove(ZipMove.Reset, now()))
+            DragEvent.Clear -> edits.clear()
             // A7: the board refused a cell before it became a move — explain, never count.
             is DragEvent.Refused -> feedback.refused(current, cellOf(event.cell, board.n))
         }
     }
 
-    //region undo / redo (core PlayUndo over the session's command history)
+    //region undo / redo / clear (core PlayUndo + PlayClear, over the session's history)
 
-    override val canUndo: Boolean
-        get() = session?.let { !it.isComplete && it.history.canUndo } == true
+    /** The trace edits: each step drops the hint arrow (ticket 28: any input does) and
+     *  persists through [commit] like any move. */
+    internal val edits = ZipTraceEdits({ session }, now) { hintArrow = null; commit(it) }
 
-    override val canRedo: Boolean
-        get() = session?.let { !it.isComplete && it.history.canRedo } == true
+    override val canUndo: Boolean get() = edits.canUndo
 
-    override fun undo() = stepHistory(ZipSession::withUndo)
+    override val canRedo: Boolean get() = edits.canRedo
 
-    override fun redo() = stepHistory(ZipSession::withRedo)
+    override fun undo() = edits.undo()
 
-    /** The trace moves, nothing else: the session keeps timer/hints/counters, and the
-     *  step persists through [commit] like any move. A no-op step changes nothing. */
-    private fun stepHistory(step: (ZipSession) -> ZipSession) {
-        hintArrow = null // ticket 28: the arrow dies on the next input, always
-        val current = session ?: return
-        val next = step(current)
-        if (next !== current) commit(next)
-    }
+    override fun redo() = edits.redo()
 
     //endregion
 

@@ -1,18 +1,21 @@
 package com.ivandsky.puzzlebox.history
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,11 +26,17 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
-import com.ivandsky.puzzlebox.designsystem.PrimaryButton
+import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.formatDuration
+import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.gameui.GameGlyph
+import com.ivandsky.puzzlebox.gameui.GameGlyphSize
+
+private val ReplayHeight = 56.dp
 
 /** Expanded-width detail placeholder until a day is selected (home's DetailPane voice). */
 @Composable
@@ -49,13 +58,13 @@ internal fun DetailHint(
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = "Select a day",
+                text = "Pick a puzzle",
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "See what you captured and replay it whenever you like.",
+                text = "Tap a puzzle to see your time.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -64,14 +73,16 @@ internal fun DetailHint(
     }
 }
 
-/** One captured or solved day: identity, cached record state, and the replay action
- *  when the game supports it (fix round 5, defect C — the pane renders any game's row;
- *  the captured line + replay ride the game's cached day via LoadPastDay and
- *  appear only when [entry] supplies that captured day). */
+/**
+ * One game's day (history.md §3): the game, its number and day, the Time / Hints of the
+ * solve, and that game's best ([gameBest], its fastest numbered solve). The action
+ * follows the state: "Play again" once solved, "Keep going" while unfinished — both
+ * report the (game, day) through [onReplay]; the play store resumes or rebuilds it.
+ */
 @Composable
 internal fun DayDetailPane(
     row: HistoryDayRow,
-    record: CompletionRecord?,
+    gameBest: HistoryDayRow?,
     onBackToDayList: (() -> Unit)?,
     onReplay: () -> Unit,
     cardColor: Color,
@@ -83,7 +94,9 @@ internal fun DayDetailPane(
             .testTag("history.detail.${row.gameId.value}.${row.day}"),
     ) {
         CompactTopBar(
-            title = row.headline,
+            // The header below already names the puzzle: single-pane says where Back
+            // goes, two-pane keeps the bar for alignment with the list's (Result's pattern).
+            title = if (onBackToDayList != null) "History" else "",
             navigationIcon = onBackToDayList?.let {
                 {
                     IconButton(onClick = it) {
@@ -99,88 +112,145 @@ internal fun DayDetailPane(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.xxl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                .verticalScroll(rememberScrollState())
+                .padding(start = Spacing.xl, end = Spacing.xl, bottom = Spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
-            Text(
-                text = row.label,
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            RecordCard(
-                record = record,
-                cardColor = cardColor,
-                modifier = Modifier.padding(vertical = Spacing.md),
-            )
-            PrimaryButton(
-                text = "Replay this day",
-                onClick = onReplay,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("history.replay"),
-            )
-            Spacer(Modifier.padding(bottom = Spacing.xl))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+            ) {
+                GameGlyph(brand = row.brand, size = GameGlyphSize.Hero)
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Text(
+                        text = row.title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = row.headline,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    row.archiveNote?.let { note ->
+                        Text(
+                            text = note,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.testTag("history.detail.archived"),
+                        )
+                    }
+                }
+            }
+            ScoreCard(record = row.record, cardColor = cardColor)
+            gameBest?.record?.let { best ->
+                Row(
+                    modifier = Modifier.testTag("history.detail.best"),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    Text(
+                        text = "Your best time",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (row.isBest) BestPill(row.brand)
+                    Text(
+                        text = formatDuration(best.time),
+                        style = MaterialTheme.typography.titleMedium.tabular(),
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+            ReplayButton(row, onReplay)
+        }
+    }
+}
+
+/**
+ * The detail's one action, full width in the game's accent (the hub's pill pattern): a
+ * tonal accent-container "Play again" once solved, a filled accent "Keep going" while
+ * the day is unfinished.
+ */
+@Composable
+private fun ReplayButton(row: HistoryDayRow, onReplay: () -> Unit) {
+    val accent = row.brand.accent.colors()
+    val size = Modifier.fillMaxWidth().heightIn(min = ReplayHeight)
+    if (row.record != null) {
+        FilledTonalButton(
+            onClick = onReplay,
+            shape = PillShape,
+            colors = ButtonDefaults.filledTonalButtonColors(
+                containerColor = accent.container,
+                contentColor = accent.onContainer,
+            ),
+            modifier = size.testTag("history.play_again"),
+        ) { Text(text = "Play again", style = MaterialTheme.typography.labelLarge) }
+    } else {
+        Button(
+            onClick = onReplay,
+            shape = PillShape,
+            colors = ButtonDefaults.buttonColors(containerColor = accent.accent, contentColor = accent.onAccent),
+            modifier = size.testTag("history.keep_going"),
+        ) { Text(text = "Keep going", style = MaterialTheme.typography.labelLarge) }
+    }
+}
+
+/** Time | Hints of the solve, or a plain "not finished" line before there is one. */
+@Composable
+private fun ScoreCard(
+    record: CompletionRecord?,
+    cardColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("history.score"),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.outlinedCardColors(containerColor = cardColor),
+    ) {
+        if (record != null) {
+            Row(
+                modifier = Modifier.padding(Spacing.lg),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+            ) {
+                ScoreTile(value = formatDuration(record.time), label = "Time", modifier = Modifier.weight(1f))
+                ScoreTile(value = "${record.hints}", label = "Hints", modifier = Modifier.weight(1f))
+            }
+        } else {
+            Column(
+                modifier = Modifier.padding(Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                Text(
+                    text = "Not finished yet",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Finish it to see your time here.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun RecordCard(
-    record: CompletionRecord?,
-    cardColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag("history.record"),
-        shape = MaterialTheme.shapes.large,
-        color = cardColor,
-    ) {
-        Row(
-            modifier = Modifier.padding(Spacing.xl),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
-        ) {
-            if (record != null) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = PuzzleIcons.Check,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    Text(
-                        text = "Your record",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = "${formatDuration(record.time)} · ${record.hints} ${if (record.hints == 1) "hint" else "hints"}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    Text(
-                        text = "Not finished yet",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = "Finish it once and your time is locked in here.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
+private fun ScoreTile(value: String, label: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineMedium.tabular(),
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

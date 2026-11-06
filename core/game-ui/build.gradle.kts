@@ -12,6 +12,8 @@ dependencies {
     api(projects.core.model)
     implementation(projects.core.designsystem)
     implementation(projects.core.common)
+    // TodayStatus: todayStatusLine is the one status copy Home and the hub share.
+    implementation(projects.core.domain)
 
     implementation(libs.androidx.compose.material3.windowsizeclass)
     implementation(libs.kotlinx.coroutines.core)

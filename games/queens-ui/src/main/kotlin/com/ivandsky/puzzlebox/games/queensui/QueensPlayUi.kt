@@ -7,12 +7,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
@@ -20,11 +19,18 @@ import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
+import com.ivandsky.puzzlebox.gameui.PlayClear
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.PlayOverflowItem
+import com.ivandsky.puzzlebox.gameui.PlaySolveFrame
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.gameui.playBoardPane
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.game.RendererModel
+import com.ivandsky.puzzlebox.gameui.BoardPreview
+import com.ivandsky.puzzlebox.games.queens.render.QueensRendererModel
 
 /** Queens' one play registration (ADR-0001): its controller, its board and its play screen. */
 class QueensPlayUi : GamePlayUi {
@@ -41,6 +47,25 @@ class QueensPlayUi : GamePlayUi {
         QueensBoard(controller as QueensPlayController, modifier)
     }
 
+    override fun previewModel(preview: BoardPreview): RendererModel? = queensPreviewModel(preview)
+
+    @Composable
+    override fun BoardThumbnail(model: RendererModel, modifier: Modifier) {
+        (model as? QueensRendererModel)?.let { QueensBoardThumbnail(it, modifier) }
+    }
+
+    /**
+     * Clear wipes the whole board as one command (fix round 6). Round-7 ruling: it is live
+     * when ANYTHING can be wiped, any queen OR any mark (a crosses-only board clears).
+     */
+    override fun clearFor(controller: GamePlayController): PlayClear = QueensClear(controller as QueensPlayController)
+
+    /** A14: the Auto-cross setting (ON auto-fills exclusion marks, OFF places queens bare). */
+    override fun overflowFor(controller: GamePlayController): List<PlayOverflowItem> {
+        val board = (controller as QueensPlayController).board ?: return emptyList()
+        return listOf(PlayOverflowItem("Auto-cross", checked = board.autoCross) { board.setAutoCross(!board.autoCross) })
+    }
+
     @Composable
     override fun Screen(
         controller: GamePlayController,
@@ -48,20 +73,29 @@ class QueensPlayUi : GamePlayUi {
         layout: PlayLayout,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
-        onHowToPlay: (() -> Unit)?,
         modifier: Modifier,
     ) {
-        QueensPlayScreen(controller as QueensPlayController, status, layout, onRetry, onSolved, modifier, onHowToPlay)
+        QueensPlayScreen(controller as QueensPlayController, status, layout, onRetry, onSolved, modifier)
+    }
+}
+
+/** Queens' Clear over whatever board [controller] holds now. */
+private class QueensClear(private val controller: QueensPlayController) : PlayClear {
+    override val canClear: Boolean
+        get() = controller.board?.session?.let { !it.isComplete && (it.queens.isNotEmpty() || it.marks.isNotEmpty()) } == true
+
+    override fun clear() {
+        controller.board?.clearBoard()
     }
 }
 
 /**
- * The Queens play screen (queens-10): the queens-08 interactive board + control bar,
- * arranged by the same 07 adaptive policy as Zip. The win presentation is Zip's: the
- * solved transition hands the frozen result facts (time, hints) to the caller's
- * [onSolved] — the app navigates to the opaque result ROUTE (fix round 6; the modal
- * overlay is deleted). The record write already runs in the play feature's store.
- * [onHowToPlay] (null = no button) reopens the tutorial from the chrome.
+ * The Queens play screen (queens-10, A14): the queens-08 interactive board under the
+ * route's top bar, then the shared caption and action bar, arranged by the same 07
+ * adaptive policy as Zip. The win presentation is Zip's: the board plays its
+ * [PlaySolveFrame] moment, then the solved transition hands the frozen result facts
+ * (time, hints) to the caller's [onSolved]; the app navigates to the opaque result ROUTE
+ * (fix round 6). The record write already runs in the play feature's store.
  */
 @Composable
 fun QueensPlayScreen(
@@ -71,38 +105,58 @@ fun QueensPlayScreen(
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
-    onHowToPlay: (() -> Unit)? = null,
 ) {
-    // Win → result route (Zip's handoff): ONE navigation trigger per completion —
-    // keyed on the completedAt instance so a replay (new completion) hands off again.
-    LaunchedEffect(controller.board?.session?.completedAt) {
-        val completed = controller.board?.session?.takeIf { it.isComplete } ?: return@LaunchedEffect
-        onSolved(completed.elapsedMs, completed.hintsUsed)
-    }
+    val ready = status as? PlayBoardStatus.Ready
     Box(modifier.fillMaxSize()) {
         AdaptivePlayScaffold(
             layout = layout,
             modifier = Modifier.fillMaxSize(),
-            board = { BoardArea(controller, status, onRetry) },
-            side = { SidePanel(controller, status, onHowToPlay) },
+            board = { BoardArea(controller, status, onRetry, onSolved) },
+            side = {
+                PlayChrome(
+                    clock = controller,
+                    hints = controller,
+                    undo = controller,
+                    clear = remember(controller) { QueensClear(controller) },
+                    banner = ready?.banner,
+                    feedback = controller,
+                )
+            },
         )
     }
 }
 
 /** The board pane: Queens' one board once a puzzle is ready, the shared fallback otherwise. */
 @Composable
-private fun BoxScope.BoardArea(controller: QueensPlayController, status: PlayBoardStatus, onRetry: () -> Unit) {
+private fun BoxScope.BoardArea(
+    controller: QueensPlayController,
+    status: PlayBoardStatus,
+    onRetry: () -> Unit,
+    onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
+) {
+    val board = controller.board
     Box(
         Modifier
-            .fillMaxSize()
-            .testTag("queens.board_area"),
-        contentAlignment = Alignment.Center,
+            .playBoardPane()
+            .testTag("queens.board_area")
+            // The daily pane's §6 gutter lives here, not in the board: the tutorial host
+            // pads its own board pane, as it does for every game. Sideways only, so the
+            // board's top lines up with every game's (A14).
+            .padding(horizontal = board?.let { queensPanePaddingFor(it.session.puzzle.size) / 2 } ?: 0.dp),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        val board = controller.board
         if (status is PlayBoardStatus.Ready && board != null) {
-            // The daily pane's §6 gutter lives here, not in the board: the tutorial
-            // host pads its own board pane, as it does for every game.
-            QueensBoard(controller, Modifier.padding(queensPanePaddingFor(board.session.puzzle.size) / 2))
+            // Win → result route (Zip's handoff): ONE hand-off per completion, after the
+            // solve frame, keyed on the completedAt instance so a replay hands off again.
+            PlaySolveFrame(
+                brand = QueensBrand,
+                solved = board.session.completedAt,
+                onHandOff = {
+                    controller.board?.session?.takeIf { it.isComplete }?.let { onSolved(it.elapsedMs, it.hintsUsed) }
+                },
+            ) {
+                QueensBoard(controller, Modifier)
+            }
         } else {
             PlayBoardFallback(status, onRetry, tagPrefix = "queens")
         }
@@ -137,24 +191,5 @@ private fun QueensBoard(controller: QueensPlayController, modifier: Modifier) {
                 .size(side)
                 .testTag("queens.board"),
         )
-    }
-}
-
-@Composable
-private fun SidePanel(controller: QueensPlayController, status: PlayBoardStatus, onHowToPlay: (() -> Unit)?) {
-    val ready = status as? PlayBoardStatus.Ready
-    PlayChrome(
-        title = "Queens",
-        subtitle = ready?.let { controller.board?.session?.ref }
-            ?.let { ref -> ref.puzzleNumber?.let { "Daily · #$it" } ?: "Practice" } ?: "Daily",
-        clock = controller,
-        hints = controller,
-        undo = controller,
-        banner = ready?.banner,
-        feedback = controller,
-        onHowToPlay = onHowToPlay,
-        modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
-    ) {
-        controller.board?.let { QueensPlayControls(state = it) }
     }
 }

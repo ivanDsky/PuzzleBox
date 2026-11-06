@@ -33,6 +33,9 @@ internal class SlotWriter(
     /** The open throttle window; null when no window is open. */
     private var timer: Job? = null
 
+    /** The newest blob not yet handed to the lane; null once it is queued (or discarded). */
+    val unsaved: ByteArray? get() = pending?.blob
+
     /** Keeps [blob] at [elapsedMs] as the latest; the first offer of a window opens it, its
      *  end writes the latest. */
     fun offer(blob: ByteArray, elapsedMs: Long) {

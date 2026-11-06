@@ -1,30 +1,32 @@
 package com.ivandsky.puzzlebox.home
 
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
-import com.ivandsky.puzzlebox.model.ThemeMode
-import com.ivandsky.puzzlebox.data.identity.IdentityService
-import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
-import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
-import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
-import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
-import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.domain.di.domainModule
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.home.di.homeModule
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
@@ -34,7 +36,12 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.navigation.navigationState
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.LocalDate
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -42,10 +49,10 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
+import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
@@ -55,7 +62,8 @@ import org.robolectric.annotation.Config
  * games yet" forever watching an unfed legacy table; after the Zip fix it still dropped
  * every non-Zip record. Only a Zip-id test plugin is registered here, so Queens rows
  * exercise the registry-name fallback. The graph is the production one: domainModule's
- * use cases and homeModule's ViewModel over fakes.
+ * use cases and homeModule's ViewModel over fakes (no game UI registered: neutral
+ * brands). Copy is never pinned: tags, enabled state and callbacks.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -95,16 +103,15 @@ class HomeRouteTest {
         daily: FakeDailyRepository,
         completions: CompletionRepository,
         saved: SavedPlayRepository = FakeSavedPlayRepository(),
-        onPlayToday: (GameId) -> Unit = {},
+        onOpenGame: (GameId) -> Unit = {},
+        zipToday: DailyToday = DailyToday.Fresh(TestGames.puzzle(GameId("zip"))),
     ) {
-        startGraph(daily, completions, saved)
+        startGraph(daily, completions, saved, zipToday)
         composeRule.setContent {
             PuzzleBoxTheme {
                 HomeRoute(
                     layout = HomeLayout.SinglePane,
-                    themeMode = ThemeMode.SYSTEM,
-                    onSetThemeMode = {},
-                    onPlayToday = onPlayToday,
+                    onOpenGame = onOpenGame,
                     onOpenProfile = {},
                 )
             }
@@ -115,8 +122,11 @@ class HomeRouteTest {
         daily: FakeDailyRepository,
         completions: CompletionRepository,
         saved: SavedPlayRepository = FakeSavedPlayRepository(),
+        zipToday: DailyToday = DailyToday.Fresh(TestGames.puzzle(GameId("zip"))),
     ) {
         val fakeIdentity = FakeIdentityService()
+        // Home prefetches today's puzzles on resume (A12): by default a fresh fetch keeps Zip not started.
+        daily.setToday(GameId("zip"), zipToday)
         startKoin {
             modules(
                 module {
@@ -126,6 +136,7 @@ class HomeRouteTest {
                     single<IdentityService> { fakeIdentity }
                     single<SavedPlayRepository> { saved }
                     single<GameCalendar> { FakeGameCalendar(today) }
+                    single<GamePlayRegistry> { GamePlayRegistry(emptyList()) }
                 },
                 domainModule,
                 homeModule,
@@ -134,29 +145,50 @@ class HomeRouteTest {
     }
 
     @Test
-    fun `play today reports the first unsolved game id`() {
+    fun `the CTA names and reports the first unsolved game`() {
         val played = mutableListOf<GameId>()
-        setContent(FakeDailyRepository(), FakeCompletionRepository(), onPlayToday = { played += it })
+        setContent(FakeDailyRepository(), FakeCompletionRepository(), onOpenGame = { played += it })
 
-        composeRule.onNodeWithText("Play today").performClick()
+        composeRule.onNodeWithTag("home.today_play")
+            .assert(hasText("Zip", substring = true))
+            .performClick()
 
         composeRule.runOnIdle { assertEquals(listOf(GameId("zip")), played) }
     }
 
     @Test
-    fun `a saved featured play reads resume and still reports the featured game - SC11`() = kotlinx.coroutines.test.runTest {
+    fun `showing home prefetches today's puzzle and an unloadable one is a dead tile - A12`() {
+        val daily = FakeDailyRepository()
+        val played = mutableListOf<GameId>()
+        setContent(
+            daily,
+            FakeCompletionRepository(),
+            onOpenGame = { played += it },
+            zipToday = DailyToday.Unavailable(FetchError.Unavailable()),
+        )
+
+        composeRule.waitUntil(5_000) { offlineTile().fetchSemanticsNodes().isNotEmpty() }
+        composeRule.runOnIdle { assertEquals(1, daily.todayCalls(GameId("zip"))) }
+        composeRule.onNodeWithTag("home.today_tile_zip").assertIsNotEnabled().performClick()
+
+        composeRule.runOnIdle { assertEquals(emptyList<GameId>(), played) }
+    }
+
+    @Test
+    fun `a saved play keeps the CTA on that game - SC11`() = kotlinx.coroutines.test.runTest {
         val saved = FakeSavedPlayRepository()
         saved.save(PlaySlot(GameId("zip"), today), byteArrayOf(1), elapsedMs = 0L)
         val played = mutableListOf<GameId>()
-        setContent(FakeDailyRepository(), FakeCompletionRepository(), saved, onPlayToday = { played += it })
+        setContent(FakeDailyRepository(), FakeCompletionRepository(), saved, onOpenGame = { played += it })
 
         composeRule.waitUntil(5_000) {
-            composeRule.onAllNodesWithText("Resume").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithTag("home.today_play").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("Play today").assertDoesNotExist()
-        composeRule.onNodeWithText("Resume").performClick()
+        composeRule.onNodeWithTag("home.today_play")
+            .assert(hasText("Zip", substring = true))
+            .performClick()
 
-        // The same push as "Play today": the play reads its saved row and resumes the board.
+        // The same push as a fresh play: the play reads its saved row and resumes the board.
         composeRule.runOnIdle { assertEquals(listOf(GameId("zip")), played) }
     }
 
@@ -165,15 +197,15 @@ class HomeRouteTest {
         startGraph(FakeDailyRepository(), FakeCompletionRepository())
         val navigator = Navigator(navigationState(HomeKey, PlayKey))
         val provider = entryProvider {
-            homeEntry(navigator, HomeLayout.SinglePane, ThemeMode.SYSTEM, onSetThemeMode = {})
+            homeEntry(navigator, HomeLayout.SinglePane)
         }
         composeRule.setContent {
             PuzzleBoxTheme { provider(HomeKey).Content() }
         }
 
         // A double tap still lands one game: back from it returns to Home.
-        composeRule.onNodeWithText("Play today").performClick()
-        composeRule.onNodeWithText("Play today").performClick()
+        composeRule.onNodeWithTag("home.today_play").performClick()
+        composeRule.onNodeWithTag("home.today_play").performClick()
 
         composeRule.runOnIdle {
             assertEquals(HomeKey, navigator.state.tab)
@@ -220,16 +252,15 @@ class HomeRouteTest {
     }
 
     @Test
-    fun `today card follows today's set - a zip solve flips the done count`() = kotlinx.coroutines.test.runTest {
+    fun `a zip solve today turns the CTA into the countdown`() = kotlinx.coroutines.test.runTest {
         val completions = FakeCompletionRepository()
         setContent(FakeDailyRepository(), completions)
         composeRule.waitUntil(5_000) {
-            composeRule.onAllNodesWithText("Not started").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithTag("home.today_play").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithTag("home.today_summary").assertTextEquals("0 of 1 done")
-        composeRule.onNodeWithTag("home.today_status_zip").assertTextEquals("Not started")
+        composeRule.onNodeWithTag("home.today_countdown").assertDoesNotExist()
 
-        // The graph's calendar pins Zip's today: this record is on it.
+        // The graph's calendar pins Zip's today: this record is on it, and Zip is the whole set.
         completions.onCompleted(
             CompletionRecord(
                 puzzleRef = TestGames.Ref(GameId("zip"), today, 592),
@@ -240,8 +271,10 @@ class HomeRouteTest {
         )
 
         composeRule.waitUntil(5_000) {
-            composeRule.onAllNodesWithText("1 of 1 done").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithTag("home.today_countdown").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithTag("home.today_status_zip").assertTextEquals("Solved · 0:36 ✓")
+        composeRule.onNodeWithTag("home.today_play").assertDoesNotExist()
     }
+
+    private fun offlineTile() = composeRule.onAllNodes(hasTestTag("home.today_tile_zip") and isNotEnabled())
 }

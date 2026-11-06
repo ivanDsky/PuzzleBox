@@ -20,10 +20,12 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -38,6 +40,9 @@ import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.colors
+import com.ivandsky.puzzlebox.designsystem.rememberSolveSweepState
+import com.ivandsky.puzzlebox.designsystem.solveSweep
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -48,16 +53,14 @@ import kotlinx.coroutines.job
 private val DotSize = 8.dp
 private val CurrentDotWidth = 24.dp
 
-/** The calm success line the caption slot shows during the beat. */
-private const val SUCCESS_LINE = "✓ Nice!"
-
 /**
  * Plays a game's tutorial (spec A11): it draws [session] and nothing else decides here.
  * Each lesson shows its step dots, an always-visible Skip, the instruction line, the
  * game's own [GamePlayUi.Board] on a sandboxed controller ([TutorialSandbox]) and the
  * shared caption slot docked under the board, under the same precedence as the play
- * chrome. Solving a lesson holds its board with a calm "Nice!" for a short beat, then
- * moves on; after the last one a calm "You're ready" hands back through [onFinished].
+ * chrome. Solving a lesson holds its board for a short beat while it sweeps in the game's
+ * accent and [LessonCleared] stamps in under it, then moves on; after the last one a calm
+ * "You're ready" hands back through [onFinished].
  * Skip ends the session and calls [onFinished] at once. No clock runs here.
  */
 @Composable
@@ -102,9 +105,10 @@ private fun ColumnScope.LessonPane(
     onSkip: () -> Unit,
 ) {
     val controller = rememberLessonController(ui, session, lesson)
-    // The success beat: the solved board stays with "Nice!" for a pause, then the next
-    // lesson. It is a pause, not an animation, so it holds under reduced motion too. A
-    // rotation restarts the hold; next() only moves a solved lesson, so none is skipped.
+    // The success beat: the solved board stays for a pause while it sweeps and the lesson
+    // stamp lands, then the next lesson. The pause is not an animation, so it holds under
+    // reduced motion too. A rotation restarts the hold; next() only moves a solved lesson,
+    // so none is skipped.
     LaunchedEffect(session, lesson.index, lesson.solved) {
         if (lesson.solved) {
             delay(MotionTokens.SolveHoldMillis)
@@ -130,26 +134,36 @@ private fun ColumnScope.LessonPane(
     )
     // Board and caption are one group, centred in the space under the instruction. The
     // board gets the same room as before (the area less the caption and its gap), and the
-    // slot always reserves its lines, so the board never moves when a caption appears.
-    Column(
-        Modifier
-            .weight(1f)
-            .fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
+    // slot always reserves its lines, so the board never moves when a caption appears or
+    // the lesson stamp takes its place. Keyed per lesson, so each one gets a fresh sweep.
+    key(lesson.index) {
+        val sweep = rememberSolveSweepState()
+        LaunchedEffect(lesson.solved) { if (lesson.solved) sweep.play() }
+        Column(
             Modifier
-                .weight(1f, fill = false)
-                .fillMaxWidth()
-                .testTag("tutorial.board_area"),
-            contentAlignment = Alignment.Center,
+                .weight(1f)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            ui.Board(controller, Modifier)
-        }
-        val caption = if (lesson.solved) SUCCESS_LINE else playCaption(controller as? PlayFeedback, controller as? PlayHints)
-        Box(if (lesson.solved) Modifier.testTag("tutorial.success") else Modifier) {
-            PlayCaptionSlot(caption = caption, textAlign = TextAlign.Center)
+            Box(
+                Modifier
+                    .weight(1f, fill = false)
+                    .fillMaxWidth()
+                    .testTag("tutorial.board_area"),
+                contentAlignment = Alignment.Center,
+            ) {
+                // Lesson boards draw chrome-free, so the sweep follows the board's bounds
+                // (PlaySolveFrame's default shape).
+                Box(Modifier.solveSweep(sweep, ui.brand.accent.colors().accent, RectangleShape)) {
+                    ui.Board(controller, Modifier)
+                }
+            }
+            Box {
+                val caption = if (lesson.solved) null else playCaption(controller as? PlayFeedback, controller as? PlayHints)
+                PlayCaptionSlot(caption = caption, textAlign = TextAlign.Center)
+                if (lesson.solved) LessonCleared(ui.brand, lesson.index, Modifier.matchParentSize())
+            }
         }
     }
 }

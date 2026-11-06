@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -91,6 +93,14 @@ class ZipPlayUiScreenTest {
         }
     }
 
+    /** The solve moment's delays don't hold the rule busy: let the solve reach the board,
+     *  then run the clock past the moment. */
+    private fun playSolveMoment() {
+        composeRule.waitForIdle()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+    }
+
     @Test
     fun `loading state renders the board loading indicator`() {
         setContent(bareController(), PlayBoardStatus.Loading)
@@ -118,10 +128,10 @@ class ZipPlayUiScreenTest {
         readyController()
         composeRule.onNodeWithTag("play.board").assertExists()
         composeRule.onNodeWithTag("play.side_panel").assertExists()
-        composeRule.onNodeWithText("Zip").assertExists()
-        composeRule.onNodeWithText("Daily · #592").assertExists()
-        composeRule.onNodeWithText("Hint").assertExists()
-        composeRule.onNodeWithText("0:00").assertExists()
+        composeRule.onNodeWithTag("play.action_bar").assertExists()
+        composeRule.onNodeWithTag("play.hint").assertExists()
+        // Zip has a Clear: the trace empties to the start state.
+        composeRule.onNodeWithTag("play.clear").assertExists()
         // Ticket 22: the start waypoint is a dot with its bold label INSIDE it — bare
         // corner numbers are gone.
         composeRule.onNodeWithTag("play.waypoint_dot_0").assertExists()
@@ -140,9 +150,9 @@ class ZipPlayUiScreenTest {
     @Test
     fun `hint button counts up and highlights a cell`() {
         val controller = readyController()
-        composeRule.onNodeWithText("Hint").performClick()
+        composeRule.onNodeWithTag("play.hint").performClick()
         composeRule.runOnIdle { check(controller.session?.hintsUsed == 1) { "hint not counted" } }
-        composeRule.onNodeWithText("Hint · 1").assertExists()
+        composeRule.onNodeWithTag("play.hint").assert(hasText("1", substring = true))
         composeRule.onNodeWithTag("play.hint_cell").assertExists()
     }
 
@@ -154,7 +164,7 @@ class ZipPlayUiScreenTest {
         // + fade and confirm it clears. Representation: the plain centered arrowhead
         // glyph (ticket 28 r5) under the play.hint_arrow tag.
         composeRule.mainClock.autoAdvance = false
-        composeRule.onNodeWithText("Hint").performClick()
+        composeRule.onNodeWithTag("play.hint").performClick()
         composeRule.runOnIdle { check(controller.hintArrow != null) { "hint did not place an arrow" } }
         composeRule.mainClock.advanceTimeBy(16)
         composeRule.onNodeWithTag("play.hint_arrow").assertExists()
@@ -166,7 +176,7 @@ class ZipPlayUiScreenTest {
     fun `solving hands the frozen facts to the result route once`() {
         val controller = readyController()
         solve(controller)
-        composeRule.waitForIdle()
+        playSolveMoment()
         // Ticket 23: the win moment is a route handoff, not an overlay — the screen
         // carries the frozen A3 facts (time, hints) and never renders win content.
         val facts = solvedFacts
@@ -175,6 +185,34 @@ class ZipPlayUiScreenTest {
         check(facts.second == 0) { "no hints were used on this solve" }
         composeRule.onNodeWithText("Solved!").assertDoesNotExist()
         composeRule.onNodeWithTag("play.board").assertExists()
+    }
+
+    /** A14: the solve moment plays first (sweep, then the glyph stamp), then hands off once. */
+    @Test
+    fun `solving plays the solve moment before the hand off`() {
+        val controller = readyController()
+        solve(controller)
+        // Idle doesn't wait out the moment's delays: the board is solved, the hand-off pending.
+        composeRule.waitForIdle()
+        check(solvedFacts == null) { "handed off before the solve moment played" }
+
+        playSolveMoment()
+        composeRule.onNodeWithTag("play.solve_stamp").assertExists()
+        check(solvedFacts != null) { "the solve moment never handed off" }
+    }
+
+    /** A restored, already-solved board has no moment to play: it hands off at once. */
+    @Test
+    fun `an already solved board hands off at once`() {
+        val controller = adoptedController()
+        ZipPlayFixture.solution.forEach { cell ->
+            controller.onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
+        }
+        check(controller.isComplete)
+        composeRule.mainClock.autoAdvance = false
+        setContent(controller, PlayBoardStatus.Ready(null))
+        composeRule.mainClock.advanceTimeBy(16)
+        check(solvedFacts != null) { "a solved board waited for a moment it never plays" }
     }
 
     @Test
@@ -188,15 +226,15 @@ class ZipPlayUiScreenTest {
     fun `replay resets to a fresh board and can hand off again`() {
         val controller = readyController()
         solve(controller)
-        composeRule.waitForIdle()
+        playSolveMoment()
         check(solvedFacts != null) { "first solve did not hand off" }
         composeRule.runOnIdle { controller.replay() }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("0:00").assertExists()
+        composeRule.runOnIdle { check(controller.displayedElapsedMs() == 0L) { "replay kept the old time" } }
         composeRule.runOnIdle { check(controller.session?.path?.isEmpty() == true) }
 
         solve(controller)
-        composeRule.waitForIdle()
+        playSolveMoment()
         check(solvedFacts != null) { "second solve did not hand off" }
     }
 

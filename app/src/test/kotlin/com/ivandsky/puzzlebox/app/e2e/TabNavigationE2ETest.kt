@@ -1,8 +1,10 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performScrollToNode
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.serialization.NavBackStackSerializer
@@ -28,7 +30,8 @@ import org.robolectric.annotation.Config
 
 /**
  * Tab and back rows of the transition table (spec §2.6) over the real shell: N1, N12's
- * navigation half, N13–N16, SC2 (checked by every [ShellRobot.assertState]), SC13 and SC14.
+ * navigation half, N13–N16, N2 (immersive play), SC2 (checked by every
+ * [ShellRobot.assertState]), SC13 and SC14.
  * Every row asserts the navigation state and the visible `route.*` tag (SC1).
  */
 @RunWith(RobolectricTestRunner::class)
@@ -49,7 +52,7 @@ class TabNavigationE2ETest {
             assertState(inGame)
             assertRoute(GAME)
 
-            tapTab(ProfileKey)
+            switchTab(ProfileKey)
             assertState(inGame.selectTab(ProfileKey))
             assertRoute(PROFILE)
 
@@ -64,7 +67,7 @@ class TabNavigationE2ETest {
         shellRobot(stacks(tab = PlayKey, play = listOf(PlayKey, GameKey(ZIP)))) {
             assertRoute(GAME)
 
-            tapTab(PlayKey)
+            switchTab(PlayKey)
 
             assertState(stacks(tab = PlayKey))
             assertRoute(HUB)
@@ -111,12 +114,15 @@ class TabNavigationE2ETest {
         val graph = E2eKoinGraph(E2E_TODAY).apply {
             daily.setHistory(ZipDefinition.id, List(HISTORY_DAYS) { ZipPlayFixture.entry(E2E_TODAY.minusDays(it.toLong())) })
         }
-        val history = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey))
+        val history = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey()))
         shellRobot(graph = graph) {
             tapText("See all")
             assertState(history)
             assertRoute(HISTORY)
-            awaitTag(rowTag(0))
+            // The stats and weeks cards sit above the rows: wait for the first page by scrolling to it.
+            rule.waitUntil(TIMEOUT_MS) {
+                runCatching { rule.onNodeWithTag("history.list").performScrollToNode(hasTestTag(rowTag(0))) }.isSuccess
+            }
             rule.onNodeWithTag("history.list").performScrollToIndex(SCROLLED_INDEX)
             rule.waitForIdle()
             assertScrolled()
@@ -141,13 +147,11 @@ class TabNavigationE2ETest {
     }
 
     @Test
-    fun `SC13 compact width shows the bottom bar on every destination`() {
+    fun `SC13 compact width shows the bottom bar outside play`() {
         listOf(
             stacks(tab = HomeKey) to HOME,
-            stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey)) to HISTORY,
+            stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey())) to HISTORY,
             stacks(tab = PlayKey) to HUB,
-            stacks(tab = PlayKey, play = listOf(PlayKey, GameKey(ZIP))) to GAME,
-            stacks(tab = PlayKey, play = listOf(PlayKey, ResultKey(ZIP, "2026-03-09", timeMs = 1_000L, hintsUsed = 0))) to RESULT,
             stacks(tab = ProfileKey) to PROFILE,
             stacks(tab = ProfileKey, profile = listOf(ProfileKey, CatalogKey)) to CATALOG,
         ).forEach { (seed, route) ->
@@ -160,11 +164,40 @@ class TabNavigationE2ETest {
     }
 
     @Test
+    fun `N2 compact width hides the bottom bar on a board and a result`() {
+        listOf(
+            stacks(tab = PlayKey, play = listOf(PlayKey, GameKey(ZIP))) to GAME,
+            stacks(tab = PlayKey, play = listOf(PlayKey, RESULT_KEY)) to RESULT,
+            stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey(), GameKey(ZIP))) to GAME,
+        ).forEach { (seed, route) ->
+            shellRobot(seed) {
+                assertState(seed)
+                assertRoute(route)
+                assertNoNavigation()
+            }
+        }
+    }
+
+    @Test
+    fun `N2 back from a board returns to the hub with the bar`() {
+        shellRobot(stacks(tab = PlayKey, play = listOf(PlayKey, GameKey(ZIP)))) {
+            assertRoute(GAME)
+            assertNoNavigation()
+
+            back()
+
+            assertState(stacks(tab = PlayKey))
+            assertRoute(HUB)
+            assertBottomBar()
+        }
+    }
+
+    @Test
     @Config(qualifiers = "w1280dp-h800dp-land")
-    fun `SC13 expanded landscape shows the rail`() {
+    fun `SC13 expanded landscape shows the rail outside play`() {
         listOf(
             stacks(tab = HomeKey) to HOME,
-            stacks(tab = PlayKey, play = listOf(PlayKey, GameKey(ZIP))) to GAME,
+            stacks(tab = PlayKey) to HUB,
             stacks(tab = ProfileKey, profile = listOf(ProfileKey, CatalogKey)) to CATALOG,
         ).forEach { (seed, route) ->
             shellRobot(seed) {
@@ -176,10 +209,25 @@ class TabNavigationE2ETest {
     }
 
     @Test
+    @Config(qualifiers = "w1280dp-h800dp-land")
+    fun `N2 expanded landscape hides the rail on a board and a result`() {
+        listOf(
+            stacks(tab = PlayKey, play = listOf(PlayKey, GameKey(ZIP))) to GAME,
+            stacks(tab = PlayKey, play = listOf(PlayKey, RESULT_KEY)) to RESULT,
+        ).forEach { (seed, route) ->
+            shellRobot(seed) {
+                assertState(seed)
+                assertRoute(route)
+                assertNoNavigation()
+            }
+        }
+    }
+
+    @Test
     fun `SC14 the tab and all three stacks survive a restore, saved under 100 KB`() {
         val worst = stacks(
             tab = ProfileKey,
-            home = listOf(HomeKey, HistoryKey, GameKey(QUEENS)),
+            home = listOf(HomeKey, HistoryKey(), GameKey(QUEENS)),
             play = listOf(PlayKey, GameKey(ZIP)),
             profile = listOf(ProfileKey, CatalogKey),
         )
@@ -188,9 +236,9 @@ class TabNavigationE2ETest {
             assertRoute(CATALOG)
             tapTab(HomeKey)
             assertRoute(GAME)
-            tapTab(PlayKey)
+            switchTab(PlayKey)
             assertRoute(GAME)
-            tapTab(ProfileKey)
+            switchTab(ProfileKey)
             assertRoute(CATALOG)
 
             val bytes = savedStateBytes()
@@ -202,7 +250,7 @@ class TabNavigationE2ETest {
             tapTab(HomeKey)
             assertState(worst.selectTab(HomeKey))
             assertRoute(GAME)
-            tapTab(PlayKey)
+            switchTab(PlayKey)
             assertState(worst.selectTab(PlayKey))
             assertRoute(GAME)
         }
@@ -254,9 +302,11 @@ class TabNavigationE2ETest {
         const val ZIP = "zip"
         const val QUEENS = "queens"
         const val HISTORY_DAYS = 40
-        // Item 0 is the top bar and item 1 the streak teaser, so rows start at item 2.
+        // Items 0–3 are the top bar, game tabs, stats and weeks, so rows start at item 4.
         const val SCROLLED_INDEX = 15
-        const val SCROLLED_ROW = SCROLLED_INDEX - 2
+        const val SCROLLED_ROW = SCROLLED_INDEX - 4
         const val MAX_SAVED_BYTES = 100_000
+        val RESULT_KEY = ResultKey(ZIP, "2026-03-09", timeMs = 1_000L, hintsUsed = 0)
+        const val TIMEOUT_MS = 5_000L
     }
 }

@@ -102,7 +102,7 @@ class StrandsChromeScreenTest {
     @Test
     fun `the tablet side panel carries the theme card, slot and found words, the board pane the hint row`() {
         show(adopted(), PlayLayout.TwoPane)
-        val inSidePanel = hasAnyAncestor(hasTestTag("play.side_panel"))
+        val inSidePanel = hasAnyAncestor(hasTestTag("strands.side_panel"))
         val inBoardPane = hasAnyAncestor(hasTestTag("strands.board_area"))
         for (tag in listOf("strands.theme_card", "strands.slot", "strands.header_line", "strands.found_words")) {
             rule.onNode(hasTestTag(tag) and inSidePanel).assertExists()

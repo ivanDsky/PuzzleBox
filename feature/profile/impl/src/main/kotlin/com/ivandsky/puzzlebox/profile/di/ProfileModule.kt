@@ -12,8 +12,8 @@ import org.koin.dsl.module
 
 /**
  * Profile feature wiring: the Credential Manager sign-in seam and ProfileRoute's
- * koinViewModel(). Today's board is the featured game's (domainModule's
- * ObserveTodayLeaderboard). [serverClientIdRes] is the app's google-services
+ * koinViewModel(). The use cases come from domainModule; the GameRegistry, the per-game
+ * brands (GamePlayRegistry) and UserPreferencesRepository from the app graph. [serverClientIdRes] is the app's google-services
  * `default_web_client_id` — that resource is generated into the app module only.
  */
 fun profileModule(@StringRes serverClientIdRes: Int): Module = module {
@@ -25,7 +25,11 @@ fun profileModule(@StringRes serverClientIdRes: Int): Module = module {
             identityService = get<IdentityService>(),
             idTokenProvider = get<GoogleIdTokenProvider>(),
             observeTodayLeaderboard = get(),
-            featuredGame = get(),
+            observeGameStats = get(),
+            observeGameHistory = get(),
+            registry = get(),
+            brands = get(),
+            preferences = get(),
         )
     }
 }

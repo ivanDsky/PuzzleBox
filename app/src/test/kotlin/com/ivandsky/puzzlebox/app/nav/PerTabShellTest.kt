@@ -25,6 +25,7 @@ import androidx.savedstate.savedState
 import androidx.savedstate.serialization.encodeToSavedState
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
+import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -33,13 +34,11 @@ import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
-import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
-import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
@@ -81,7 +80,8 @@ class PerTabShellTest {
             androidContext(RuntimeEnvironment.getApplication())
             modules(
                 PuzzleBoxApplication.appModules + module {
-                    single<DailyRepository> { FakeDailyRepository() }
+                    // Home prefetches today's puzzles on resume: every game's fetch is scripted.
+                    single<DailyRepository> { freshDailyForAllGames() }
                     single<CompletionRepository> { FakeCompletionRepository() }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<IdentityService> { FakeIdentityService() }
@@ -101,8 +101,6 @@ class PerTabShellTest {
         PuzzleBoxTheme(darkTheme = false) {
             PuzzleBoxApp(
                 windowWidthSizeClass = WindowWidthSizeClass.Compact,
-                themeMode = ThemeMode.SYSTEM,
-                onSetThemeMode = {},
                 navigator = rememberNavigator().also { navigator = it },
             )
         }
@@ -153,6 +151,17 @@ class PerTabShellTest {
     }
 
     @Test
+    fun `a profile game row opens that game's history on the profile stack - N3`() {
+        composeRule.setContent { Shell() }
+        tap(PROFILE_TAB)
+
+        composeRule.onNodeWithTag("profile.game.tango").performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(listOf<NavKey>(ProfileKey, HistoryKey("tango")), state().currentStack)
+    }
+
+    @Test
     fun `back at the profile root highlights home`() {
         composeRule.setContent { Shell() }
         tap(PROFILE_TAB)
@@ -169,7 +178,7 @@ class PerTabShellTest {
         val restoration = StateRestorationTester(composeRule)
         restoration.setContent { Shell() }
         composeRule.runOnIdle {
-            navigator.push(HistoryKey)
+            navigator.push(HistoryKey())
             navigator.selectTab(ProfileKey)
             navigator.push(CatalogKey)
         }

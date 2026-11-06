@@ -25,9 +25,10 @@ import com.ivandsky.puzzlebox.gameui.playLayoutFor
 import com.ivandsky.puzzlebox.history.historyLayoutFor
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.homeLayoutFor
-import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.play.api.ResultKey
 import kotlinx.coroutines.flow.map
 import org.koin.compose.koinInject
 
@@ -35,12 +36,12 @@ import org.koin.compose.koinInject
  * The app shell: tab bar (or rail) over [PuzzleBoxNavShell]. The highlight is the
  * [navigator]'s selected tab, so it always names the tab that owns the screen on top.
  * The Play tab carries a dot while any of today's games is in progress (A13, SC11).
+ * Play is immersive (A15, N2): while the selected tab's top is a board ([GameKey]) or a
+ * result ([ResultKey]) neither bar nor rail shows, and back is the way out.
  */
 @Composable
 fun PuzzleBoxApp(
     windowWidthSizeClass: WindowWidthSizeClass,
-    themeMode: ThemeMode,
-    onSetThemeMode: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,
     navigator: Navigator = rememberNavigator(),
     todaySet: ObserveTodaySet = koinInject(),
@@ -69,6 +70,8 @@ fun PuzzleBoxApp(
     )
     val expanded = layout == HomeLayout.TwoPane
     val selected = navigator.state.tab
+    val top = navigator.state.currentStack.last()
+    val immersive = top is GameKey || top is ResultKey
     val anyInProgress by remember(todaySet) {
         todaySet().map { entries -> entries.any { it.status is TodayStatus.InProgress } }
     }.collectAsStateWithLifecycle(initialValue = false)
@@ -78,7 +81,7 @@ fun PuzzleBoxApp(
         modifier = modifier,
         bottomBar = {
             // Two-pane moves navigation to a rail; the bottom bar is every other shape.
-            if (!expanded) {
+            if (!expanded && !immersive) {
                 TopLevelNavBar(selected = selected, onSelect = navigator::selectTab, badged = badged)
             }
         },
@@ -88,7 +91,7 @@ fun PuzzleBoxApp(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            if (expanded) {
+            if (expanded && !immersive) {
                 TopLevelNavRail(selected = selected, onSelect = navigator::selectTab, badged = badged)
             }
             PuzzleBoxNavShell(
@@ -96,8 +99,6 @@ fun PuzzleBoxApp(
                 homeLayout = layout,
                 playLayout = playLayout,
                 historyLayout = historyLayout,
-                themeMode = themeMode,
-                onSetThemeMode = onSetThemeMode,
                 modifier = Modifier.weight(1f),
             )
         }

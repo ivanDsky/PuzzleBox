@@ -6,8 +6,9 @@ import org.koin.dsl.module
 
 /**
  * Home feature wiring: the use cases come from :core:domain's domainModule, the
- * [com.ivandsky.puzzlebox.game.GameRegistry] from the app's aggregation (ADR-0001).
+ * [com.ivandsky.puzzlebox.game.GameRegistry] and the per-game brands
+ * ([com.ivandsky.puzzlebox.gameui.GamePlayRegistry]) from the app's aggregation (ADR-0001).
  */
 val homeModule = module {
-    viewModel { HomeViewModel(get(), get(), get(), get(), get()) }
+    viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 }

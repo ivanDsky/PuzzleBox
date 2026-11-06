@@ -10,6 +10,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
+import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
@@ -88,7 +89,8 @@ class QueensRotationRestoreTest {
     private lateinit var koinApp: org.koin.core.KoinApplication
 
     private fun startGraph(): FakeDailyRepository {
-        val repo = FakeDailyRepository().apply {
+        // The hub prefetches every game's today on start; Queens gets this test's board.
+        val repo = freshDailyForAllGames().apply {
             setToday(QueensDefinition.id, DailyToday.Fresh(envelope()))
             setHistory(
                 QueensDefinition.id,
@@ -131,7 +133,7 @@ class QueensRotationRestoreTest {
                 NavDisplay(
                     backStack = navigator.state.currentStack,
                     onBack = { navigator.pop() },
-                    entryProvider = entryProvider { playEntry(navigator, PlayLayout.SinglePane) },
+                    entryProvider = entryProvider { playEntry(navigator, PlayLayout.SinglePane, onOpenHistory = {}) },
                 )
             }
         }
@@ -171,6 +173,8 @@ class QueensRotationRestoreTest {
         controller.setup()
         setContent(controller.get())
         idle()
+        // The hub's start prefetch is its own fetch; only opening the board is counted below.
+        val prefetched = repo.todayCalls(QueensDefinition.id)
         // The Play tab opens the hub; Queens is one of its games (the fix under test
         // is that it no longer bypasses the hub with its own stack).
         composeRule.onNodeWithTag("hub.row.queens").performClick()
@@ -185,7 +189,8 @@ class QueensRotationRestoreTest {
         board.undo() // back to: MANUAL X + queen
         idle()
         val before = queens(flow).board!!.session
-        assertEquals(1, repo.todayCalls(QueensDefinition.id))
+        val opened = prefetched + 1
+        assertEquals("opening the board fetches once", opened, repo.todayCalls(QueensDefinition.id))
 
         // The rotation: real save-instance-state → recreate.
         controller.get().recreate()
@@ -196,7 +201,7 @@ class QueensRotationRestoreTest {
 
         val after = queens(flow).board!!.session
         assertSameButClock("marks, queens, undo history, provenance identical", before, after)
-        assertEquals("no refetch on recreation", 1, repo.todayCalls(QueensDefinition.id))
+        assertEquals("no refetch on recreation", opened, repo.todayCalls(QueensDefinition.id))
 
         // Progress made AFTER a restored entry must also persist — the serialization
         // callback belongs to the restored entry now (R-4: stale-bytes regression).
@@ -216,7 +221,7 @@ class QueensRotationRestoreTest {
         val final = queens(flow).board!!.session
         assertSameButClock("post-restore progress survives the next recreation", mid, final)
         assertTrue("second-rotation marks present", final.markAt(Cell(5)) != null && Cell(6) in final.queens)
-        assertEquals("still no refetch", 1, repo.todayCalls(QueensDefinition.id))
+        assertEquals("still no refetch", opened, repo.todayCalls(QueensDefinition.id))
 
         // The critical leg (R-4): a process death while the entry is live — the activity,
         // its ViewModels and the Koin graph are all gone. The shell's stop flush lands the
