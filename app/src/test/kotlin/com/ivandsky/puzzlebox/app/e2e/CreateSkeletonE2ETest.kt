@@ -2,8 +2,8 @@ package com.ivandsky.puzzlebox.app.e2e
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import com.ivandsky.puzzlebox.create.api.CreateKey
@@ -42,11 +42,14 @@ class CreateSkeletonE2ETest {
             awaitTag(BOARD)
             awaitTag(CELL_0)
             assertRoute(EDITOR)
-            // Queens 4×4: 16 cells, all unpainted, and nothing to check yet.
+            // Queens 4×4: 16 cells, all unpainted, and nothing to check yet (the verdict lands off the main thread).
             rule.onAllNodesWithTag("queens.editor.cell.15", useUnmergedTree = true).assertCountEquals(1)
             rule.onAllNodesWithTag("queens.editor.cell.16", useUnmergedTree = true).assertCountEquals(0)
-            rule.onNodeWithTag(PILL, useUnmergedTree = true)
-                .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Incomplete"))
+            rule.waitUntil(TIMEOUT_MS) {
+                val incomplete = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Incomplete")
+                rule.onAllNodes(hasTestTag(PILL) and incomplete, useUnmergedTree = true)
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
             val blank = regionOf(CELL_0)
 
             tap(CELL_0)
@@ -76,5 +79,6 @@ class CreateSkeletonE2ETest {
         const val PILL = "create.editor.pill"
         const val ROW = "create.draft.row"
         const val CELL_0 = "queens.editor.cell.0"
+        const val TIMEOUT_MS = 5_000L
     }
 }

@@ -2,11 +2,11 @@ package com.ivandsky.puzzlebox.create.editor
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.game.GameRegistry
-import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import java.time.Instant
@@ -18,20 +18,23 @@ import kotlinx.coroutines.launch
 
 /**
  * The Studio's thin composition root: opens the stored draft named by [key], holds its
- * [EditorDraft], re-analyzes it after every edit and writes it back. Later tickets move each
- * concern into its own holder, wired here: VerdictPipeline (13), EditHistory (14/15),
- * DraftMeta (16), DraftAutosave (17), VerdictCardState (24), TestSolveSession (27).
+ * [EditorDraft], hands every edit to its holders and writes it back. Each concern moves into
+ * its own holder, wired here: VerdictPipeline (13), EditHistory (14/15), DraftMeta (16),
+ * DraftAutosave (17), VerdictCardState (24), TestSolveSession (27).
  */
 class EditorViewModel(
     private val key: EditorKey,
     private val drafts: DraftRepository,
     private val games: GameRegistry,
     private val editors: GameEditorRegistry,
+    dispatchers: DispatcherProvider,
     private val clock: () -> Instant,
 ) : ViewModel() {
 
     private val mutableState = MutableStateFlow<EditorUiState>(EditorUiState.Loading)
     val state: StateFlow<EditorUiState> = mutableState.asStateFlow()
+
+    private val verdicts = VerdictPipeline(viewModelScope, dispatchers)
 
     /** The stored row as last written; null until the draft has loaded. */
     private var lastStored: Draft? = null
@@ -43,6 +46,12 @@ class EditorViewModel(
         viewModelScope.launch { mutableState.value = load() }
         // One writer, newest value wins: edits faster than the store are conflated, never reordered.
         viewModelScope.launch { pending.filterNotNull().collect { drafts.upsert(it) } }
+        viewModelScope.launch {
+            verdicts.verdict.collect { verdict ->
+                val ready = mutableState.value as? EditorUiState.Ready ?: return@collect
+                mutableState.value = ready.copy(verdict = verdict)
+            }
+        }
     }
 
     private suspend fun load(): EditorUiState {
@@ -51,18 +60,19 @@ class EditorViewModel(
         val ui = editors[stored.gameId] ?: return EditorUiState.Missing
         val draft = EditorDraft.open(editor, stored.blob).getOrNull() ?: return EditorUiState.Missing
         lastStored = stored
+        // The verdict lands after the debounce; it is only published once this state is Ready.
+        verdicts.submit(draft)
         return EditorUiState.Ready(
             title = stored.title,
             subtitle = "${games.displayName(stored.gameId)} ${ui.sizeLabel(stored.variant)}",
-            verdict = draft.analyze(Budget.Unlimited),
+            verdict = verdicts.verdict.value,
             editor = ui,
             controller = ui.createController(draft, ::onEdit),
         )
     }
 
     private fun onEdit(draft: EditorDraft<*>) {
-        val ready = mutableState.value as? EditorUiState.Ready ?: return
-        mutableState.value = ready.copy(verdict = draft.analyze(Budget.Unlimited))
+        verdicts.submit(draft)
         val base = lastStored ?: return
         val next = base.copy(blob = draft.encode(), updatedAt = clock())
         lastStored = next
