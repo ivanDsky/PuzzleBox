@@ -11,7 +11,6 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
-import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
@@ -52,11 +51,6 @@ private object PreviewGame : GamePlayUi {
             modifier = modifier.size(PreviewBoardSide),
         ) {}
     }
-
-    override fun previewModel(preview: BoardPreview): RendererModel? = null
-
-    @Composable
-    override fun BoardThumbnail(model: RendererModel, modifier: Modifier) = Unit
 
     @Composable
     override fun Screen(
