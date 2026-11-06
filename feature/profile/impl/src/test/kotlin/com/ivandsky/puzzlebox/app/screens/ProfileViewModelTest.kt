@@ -105,7 +105,7 @@ class ProfileViewModelTest {
                 featured = featured,
                 today = { day },
             ),
-            observeGameStats = ObserveGameStats(history, ComputeStreak(GetPuzzleDay(registry, clock))),
+            observeGameStats = ObserveGameStats(registry, history, ComputeStreak(GetPuzzleDay(registry, clock))),
             observeGameHistory = history,
             registry = registry,
             brands = GamePlayRegistry(emptyList()),

@@ -111,7 +111,7 @@ class PlayBoardPositionTest {
                     factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
                     // The hub's best times and puzzle numbers.
                     factory { ObserveGameHistory(get(), get(), get()) }
-                    factory { ObserveGameStats(get(), ComputeStreak(GetPuzzleDay(get()))) }
+                    factory { ObserveGameStats(get(), get(), ComputeStreak(GetPuzzleDay(get()))) }
                     // Every tutorial seen: the boards draw straight away.
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository(seen = games.toSet()) }
                 },

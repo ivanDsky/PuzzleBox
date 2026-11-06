@@ -118,7 +118,7 @@ class ResultViewModelTest {
             todaySet = if (games === fakes.games) todaySet else todaySet(games),
             calendar = calendar,
             history = history,
-            stats = ObserveGameStats(history, ComputeStreak(GetPuzzleDay(games, clock))),
+            stats = ObserveGameStats(games, history, ComputeStreak(GetPuzzleDay(games, clock))),
             rollover = GetNextRollover(games, clock),
             ui = ui,
         )

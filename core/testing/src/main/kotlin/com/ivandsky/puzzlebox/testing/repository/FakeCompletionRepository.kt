@@ -49,10 +49,7 @@ class FakeCompletionRepository(
 
     /** Rows are verbatim, so the record is each identity's FIRST stored row (A4 stamping). */
     override suspend fun best(game: GameId): BestScore? {
-        val ranking = when (rankOrders[game] ?: RankOrder.TimeThenHints) {
-            RankOrder.TimeThenHints -> compareBy<BestScore>({ it.timeMs }, { it.hints })
-            RankOrder.HintsThenTime -> compareBy<BestScore>({ it.hints }, { it.timeMs })
-        }
+        val ranking = (rankOrders[game] ?: RankOrder.TimeThenHints).comparator
         return all.value.filter { it.puzzleRef.gameId == game }
             .distinctBy { Triple(it.puzzleRef.gameId, it.puzzleRef.date, it.puzzleRef.puzzleNumber) }
             .map { BestScore(it.time, it.hints) }

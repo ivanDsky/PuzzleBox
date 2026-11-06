@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.domain
 
+import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.RankOrder
 import java.time.LocalDate
 
 /**
@@ -20,4 +22,8 @@ data class GameStats(
     val averageTimeMs: Long?,
     /** The first solved day. */
     val playingSince: LocalDate?,
+    /** The best solved daily under [rankOrder]; null until the first solve. */
+    val best: BestScore? = null,
+    /** The game's ranking; [RankOrder.TimeThenHints] for every game's stats. */
+    val rankOrder: RankOrder = RankOrder.TimeThenHints,
 )

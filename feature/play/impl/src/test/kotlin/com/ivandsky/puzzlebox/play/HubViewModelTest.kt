@@ -88,7 +88,7 @@ class HubViewModelTest {
             store = store,
             todaySet = ObserveTodaySet(fakes.games, saved, completions, calendar, daily, sync),
             syncTodayPuzzles = sync,
-            stats = ObserveGameStats(history, ComputeStreak(GetPuzzleDay(fakes.games))),
+            stats = ObserveGameStats(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games))),
             history = history,
             calendar = calendar,
             registry = fakes.registry,

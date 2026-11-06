@@ -85,7 +85,7 @@ class HomeViewModelTest {
         val puzzleDay = GetPuzzleDay(registry, clock)
         val vm = HomeViewModel(
             observeGameHistory = history,
-            observeGameStats = ObserveGameStats(history, ComputeStreak(puzzleDay)),
+            observeGameStats = ObserveGameStats(registry, history, ComputeStreak(puzzleDay)),
             todaySet = ObserveTodaySet(registry, saved, completions, calendar, daily, sync),
             identityService = identity,
             registry = registry,
