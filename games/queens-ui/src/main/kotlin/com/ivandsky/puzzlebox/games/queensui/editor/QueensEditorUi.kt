@@ -32,7 +32,7 @@ object QueensEditorUi : GameEditorUi {
 
     @Composable
     override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) {
-        QueensEditorBoard(controller as QueensEditorController, modifier)
+        QueensEditorBoard(controller as QueensEditorController, verdict, modifier)
     }
 
     /** The paint gesture, in one line (prototype 02 "normal" hint row). */
