@@ -154,6 +154,48 @@ class VerdictPipelineTest {
         assertTrue("and stopped right after it: $polls polls", polls <= BUDGET_MS)
     }
 
+    @Test
+    fun `a board with the same layout key keeps its verdict and is never solved again`() = runTest {
+        val pipeline = pipeline(lanes())
+        val seen = seen(pipeline)
+
+        pipeline.submit(editor.draft(3))
+        settle()
+        // A crown-only edit: the board differs only outside layoutOf, so the key is unchanged.
+        pipeline.submit(editor.draft(3))
+        settle()
+
+        assertEquals(listOf(TestDraft(3)), editor.analyzed)
+        assertEquals(listOf(Verdict.Checking, Verdict.Unique(Solution(listOf(3)))), seen)
+    }
+
+    @Test
+    fun `a same-key submit during the debounce leaves the pending solve to finish`() = runTest {
+        val pipeline = pipeline(lanes())
+
+        pipeline.submit(editor.draft(3))
+        advanceTimeBy(DEBOUNCE_MS - 50)
+        pipeline.submit(editor.draft(3))
+        settle()
+
+        assertEquals(listOf(TestDraft(3)), editor.analyzed)
+        assertEquals(Verdict.Unique(Solution(listOf(3))), pipeline.verdict.value)
+    }
+
+    @Test
+    fun `recheck solves the same board again`() = runTest {
+        val pipeline = pipeline(lanes())
+
+        pipeline.submit(editor.draft(3))
+        settle()
+        pipeline.recheck(editor.draft(3))
+        assertEquals(Verdict.Checking, pipeline.verdict.value)
+        settle()
+
+        assertEquals(listOf(TestDraft(3), TestDraft(3)), editor.analyzed)
+        assertEquals(Verdict.Unique(Solution(listOf(3))), pipeline.verdict.value)
+    }
+
     private companion object {
         const val DEBOUNCE_MS = 150L
         const val BUDGET_MS = 1_500
