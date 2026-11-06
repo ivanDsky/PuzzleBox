@@ -2,7 +2,9 @@ package com.ivandsky.puzzlebox.history
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -11,8 +13,11 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.gameui.bestScoreText
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
@@ -67,6 +72,7 @@ class HistoryScreenTest {
         cached: Map<Pair<GameId, LocalDate>, Puzzle> = emptyMap(),
         key: HistoryKey = HistoryKey(),
         archives: Map<GameId, ClosedRange<LocalDate>> = emptyMap(),
+        hintsRanked: Set<GameId> = emptySet(),
     ) {
         handedToShell = null
         shellBacks = 0
@@ -76,7 +82,7 @@ class HistoryScreenTest {
             cached.forEach { (slot, puzzle) -> setCached(slot.first, slot.second, puzzle) }
             archives.forEach { (game, range) -> setArchiveRange(game, range) }
         }
-        val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository(records), key)
+        val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository(records), key, hintsRanked)
         composeRule.setContent {
             // Stand-in for the shell's NavDisplay pop: registered first, so History's own
             // handler (registered later) wins while it is enabled.
@@ -292,6 +298,31 @@ class HistoryScreenTest {
         awaitRow(ZIP, practice)
         assertNoTag("history.best.zip/$practice")
         composeRule.onAllNodesWithTag("history.best.zip/$fastest", useUnmergedTree = true).assertCountEquals(1)
+    }
+
+    @Test
+    fun `a hints-ranked game's stats Best and Best pill mark its fewest-hints day`() {
+        val quicker = day
+        val fewestHints = day.minusDays(1)
+        setContent(
+            zips = listOf(HistoryTestSupport.entry(quicker), HistoryTestSupport.entry(fewestHints)),
+            records = listOf(
+                HistoryTestSupport.record(quicker, timeMs = 60_000, hints = 2),
+                HistoryTestSupport.record(fewestHints, timeMs = 90_000, hints = 0),
+            ),
+            key = HistoryKey(gameId = ZIP.value),
+            hintsRanked = setOf(ZIP),
+        )
+
+        val expected = bestScoreText(BestScore(timeMs = 90_000, hints = 0), RankOrder.HintsThenTime)
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodes(hasText(expected) and hasAnyAncestor(hasTestTag("history.stats.best")), useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        awaitRow(ZIP, fewestHints)
+        awaitTag("history.best.zip/$fewestHints")
+        awaitRow(ZIP, quicker)
+        assertNoTag("history.best.zip/$quicker")
     }
 
     @Test

@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
@@ -258,6 +259,29 @@ class HistoryViewModelTest {
         val rows = HistoryTestSupport.viewModel(daily, completions).uiState.first { it.rows.size == 4 }.rows
 
         assertEquals(setOf("zip/${today.minusDays(1)}", "tango/$today"), rows.filter { it.isBest }.map { it.key }.toSet())
+    }
+
+    @Test
+    fun `a hints-ranked game's best is its fewest-hints numbered solve`() = runTest {
+        val today = HistoryTestSupport.TODAY
+        val daily = FakeDailyRepository().apply {
+            setHistory(ZIP, listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(today.minusDays(1))))
+        }
+        val completions = FakeCompletionRepository().apply {
+            setRecords(
+                listOf(
+                    HistoryTestSupport.record(today, timeMs = 60_000, hints = 2),
+                    // Slower, but fewer hints: hints rank first.
+                    HistoryTestSupport.record(today.minusDays(1), timeMs = 90_000, hints = 0),
+                ),
+            )
+        }
+
+        val rows = HistoryTestSupport.viewModel(daily, completions, hintsRanked = setOf(ZIP))
+            .uiState.first { it.rows.size == 2 }.rows
+
+        assertEquals(listOf("zip/${today.minusDays(1)}"), rows.filter { it.isBest }.map { it.key })
+        assertEquals(setOf(RankOrder.HintsThenTime), rows.map { it.rankOrder }.toSet())
     }
 
     @Test

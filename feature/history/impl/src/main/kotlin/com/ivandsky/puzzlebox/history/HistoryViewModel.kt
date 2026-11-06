@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.history.api.HistoryKey
@@ -67,7 +68,7 @@ data class HistoryUiState(
  * Tabs (spec A18): [selectedTab] is null for All or one registered game; the [key]
  * opens on its game, and an unknown id opens All. The stats are [ObserveGameStats] for
  * the tab, the same numbers Profile and Result show (practice never counts), and each
- * game's best row is its fastest numbered solve — the row those stats' best time reads.
+ * game's best row is its best numbered solve under its ranking — the row those stats' best reads.
  *
  * Calendar: [showCalendar] picks the shown week or month and the mode (clamped in the
  * state to the days with history, never past today) and [selectDay] toggles a one-day
@@ -109,7 +110,7 @@ class HistoryViewModel(
         val currentYear = puzzleDay().year
         merged.map { it.toRow(registry.displayName(it.gameId), playRegistry.brandOf(it.gameId), currentYear) }
             .sortedWith(HISTORY_ROW_ORDER)
-            .markBest()
+            .markBest { id -> registry[id]?.score?.rankOrder ?: RankOrder.TimeThenHints }
     }
 
     // The tab with its rows, so the state never pairs a new tab with the old one's rows.

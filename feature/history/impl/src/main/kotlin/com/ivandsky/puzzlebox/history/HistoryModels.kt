@@ -1,7 +1,9 @@
 package com.ivandsky.puzzlebox.history
 
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
@@ -12,8 +14,8 @@ import java.time.format.DateTimeFormatter
  * share the calendar, so every consumer keys by game+day). [fetchedAtMs] is 0 for rows
  * that came only from a completion record (never captured as a replayable day); it only
  * orders rows within a day. [record] is that day's solve (null = not finished yet);
- * [isBest] marks the game's one fastest numbered solve, the same rule as
- * `GameStats.bestTimeMs` (practice never counts).
+ * [isBest] marks the game's one best numbered solve under its [rankOrder], the same rule
+ * as `GameStats.best` (practice never counts).
  */
 data class HistoryDayRow(
     val day: LocalDate,
@@ -24,6 +26,8 @@ data class HistoryDayRow(
     val brand: GameBrand = GameBrand.Neutral,
     val record: CompletionRecord? = null,
     val isBest: Boolean = false,
+    /** How [gameId] ranks solves; set by [markBest], read wherever the best is spelled out. */
+    val rankOrder: RankOrder = RankOrder.TimeThenHints,
     /** The year "today" falls in; days from any other year spell theirs out (A23). */
     val currentYear: Int = LocalDate.now().year,
 ) {
@@ -65,16 +69,24 @@ internal fun GameHistoryDay.toRow(gameName: String, brand: GameBrand, currentYea
 )
 
 /**
- * Marks each game's best row: its fastest numbered solve, the earliest day on a tie —
- * the one row `ObserveGameStats` reads `bestTimeMs` from.
+ * Marks each game's best row: its best numbered solve under [rankOf] (the game's
+ * `RankOrder.comparator`), the earliest day on a tie — the one row `ObserveGameStats`
+ * reads `best` from. Every row carries its game's order for formatting.
  */
-internal fun List<HistoryDayRow>.markBest(): List<HistoryDayRow> {
-    val best = mapNotNull { row -> row.record?.takeIf { row.puzzleNumber != null }?.let { row to it.time } }
-        .groupBy { (row, _) -> row.gameId }
-        .mapNotNull { (_, solves) -> solves.minWithOrNull(compareBy({ it.second }, { it.first.day }))?.first?.key }
+internal fun List<HistoryDayRow>.markBest(rankOf: (GameId) -> RankOrder): List<HistoryDayRow> {
+    val ranked = map { it.copy(rankOrder = rankOf(it.gameId)) }
+    val best = ranked.filter { it.counts }
+        .groupBy { it.gameId }
+        .mapNotNull { (_, solves) ->
+            val order = compareBy<HistoryDayRow, BestScore>(solves.first().rankOrder.comparator) { it.score() }
+            solves.minWithOrNull(order.thenBy { it.day })?.key
+        }
         .toSet()
-    return map { if (it.key in best) it.copy(isBest = true) else it }
+    return ranked.map { if (it.key in best) it.copy(isBest = true) else it }
 }
+
+/** [record] as the score a ranking compares; only called on solved rows. */
+internal fun HistoryDayRow.score(): BestScore = BestScore(record!!.time, record.hints)
 
 /**
  * The brands of [rows]' numbered solves per day, in [order] — practice never fills a
