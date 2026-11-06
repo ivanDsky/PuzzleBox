@@ -129,6 +129,8 @@ private fun PreviewLayout(layout: PlayLayout) {
             )
         },
         issues = {},
-        actionArea = { areaModifier -> ActionArea(passed = null, canTestSolve = false, onTestSolve = {}, modifier = areaModifier) },
+        actionArea = { areaModifier ->
+            ActionArea(passed = null, canTestSolve = false, onTestSolve = {}, blocks = emptyList(), modifier = areaModifier)
+        },
     )
 }
