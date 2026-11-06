@@ -147,7 +147,7 @@ class HomeViewModelTest {
                 history = emptyList(),
                 puzzleDay = day,
                 playTarget = zip,
-                stats = GameStats(0, 0, 0, null, 0, null, null),
+                stats = GameStats(0, 0, 0, 0, null, null, best = null, rankOrder = RankOrder.TimeThenHints),
                 week = (6L downTo 0L).map { WeekDay(day.minusDays(it), emptyList(), isToday = it == 0L) },
                 rolloverAt = Instant.parse("2026-11-05T00:00:00Z"),
             ),

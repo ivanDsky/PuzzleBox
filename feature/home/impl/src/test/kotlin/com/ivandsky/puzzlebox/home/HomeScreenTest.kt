@@ -273,7 +273,7 @@ class HomeScreenTest {
             history = history,
             puzzleDay = DAY,
             playTarget = playTarget,
-            stats = GameStats(3, 5, 12, 36_000L, 4, 48_000L, DAY.minusDays(20)),
+            stats = GameStats(3, 5, 12, 4, 48_000L, DAY.minusDays(20), best = null, rankOrder = RankOrder.TimeThenHints),
             week = (6L downTo 0L).map { WeekDay(DAY.minusDays(it), emptyList(), isToday = it == 0L) },
             rolloverAt = Instant.now().plus(3, ChronoUnit.HOURS),
         )

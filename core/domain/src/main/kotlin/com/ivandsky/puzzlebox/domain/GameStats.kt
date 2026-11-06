@@ -6,8 +6,8 @@ import java.time.LocalDate
 
 /**
  * One player's daily-puzzle numbers ([ObserveGameStats]), for one game or all of them.
- * Times are solve times in ms; the time fields and [playingSince] are null until the
- * first solve.
+ * Times are solve times in ms; [averageTimeMs], [best] and [playingSince] are null until
+ * the first solve.
  */
 data class GameStats(
     /** The solved-day streak ([ComputeStreak]). */
@@ -16,14 +16,13 @@ data class GameStats(
     val bestStreak: Int,
     /** Solved dailies, one per game and day. */
     val solved: Int,
-    val bestTimeMs: Long?,
     /** Solved dailies that used no hint. */
     val hintFree: Int,
     val averageTimeMs: Long?,
     /** The first solved day. */
     val playingSince: LocalDate?,
     /** The best solved daily under [rankOrder]; null until the first solve. */
-    val best: BestScore? = null,
+    val best: BestScore?,
     /** The game's ranking; [RankOrder.TimeThenHints] for every game's stats. */
-    val rankOrder: RankOrder = RankOrder.TimeThenHints,
+    val rankOrder: RankOrder,
 )

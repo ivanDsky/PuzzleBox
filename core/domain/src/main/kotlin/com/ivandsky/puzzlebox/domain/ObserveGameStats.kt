@@ -35,7 +35,6 @@ class ObserveGameStats(
                 currentStreak = computeStreak(streakDays),
                 bestStreak = computeStreak.best(streakDays),
                 solved = records.size,
-                bestTimeMs = records.minOfOrNull { it.time },
                 hintFree = records.count { it.hints == 0 },
                 averageTimeMs = if (records.isEmpty()) null else records.sumOf { it.time } / records.size,
                 playingSince = solvedDays.minOrNull(),

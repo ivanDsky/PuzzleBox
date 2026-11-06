@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
+import com.ivandsky.puzzlebox.gameui.bestScoreText
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -93,7 +94,8 @@ private fun StatTile(value: String, label: String, tag: String, modifier: Modifi
 
 /**
  * One row per game (A20, tag `profile.game.<gameId>`): its glyph, name and solved count,
- * then its best time (`profile.game.best.<gameId>`). A tap opens that game's History tab (N3).
+ * then its best under the game's ranking (`profile.game.best.<gameId>`). A tap opens that
+ * game's History tab (N3).
  */
 @Composable
 internal fun GameRows(games: List<ProfileUiState.GameRow>, onOpenHistory: (GameId) -> Unit, modifier: Modifier = Modifier) {
@@ -136,7 +138,7 @@ private fun GameRow(game: ProfileUiState.GameRow, onClick: () -> Unit) {
         }
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(
-                text = game.bestTimeMs?.let(::formatDuration) ?: "–",
+                text = game.best?.let { bestScoreText(it, game.rankOrder) } ?: "–",
                 style = MaterialTheme.typography.titleMedium.tabular(),
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.testTag("profile.game.best.$id"),
