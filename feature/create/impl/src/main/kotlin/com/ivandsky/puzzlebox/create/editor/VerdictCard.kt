@@ -48,11 +48,17 @@ private val GradeIconSize = 16.dp
  * The verdict in full (02 handoff, "Pill popover"): title, subtitle, the grade of a Unique
  * (its difficulty, or the Needs guessing flag, under `create.verdict.grade` with the grade's
  * machine name as state), a line on what the verdict means and, after Undetermined,
- * Check again ([onCheckAgain]). Motion: a new verdict **Crossfade**s in on MotionTokens
- * medium, emphasized decelerate; under reduced motion a plain 120 ms fade.
+ * Check again ([onCheckAgain]), then the game's fix list ([issues], `GameEditorUi.Issues`).
+ * Motion: a new verdict **Crossfade**s in on MotionTokens medium, emphasized decelerate;
+ * under reduced motion a plain 120 ms fade.
  */
 @Composable
-fun VerdictCard(verdict: Verdict, onCheckAgain: () -> Unit, modifier: Modifier = Modifier) {
+fun VerdictCard(
+    verdict: Verdict,
+    onCheckAgain: () -> Unit,
+    modifier: Modifier = Modifier,
+    issues: @Composable (Modifier) -> Unit = {},
+) {
     val reducedMotion = rememberReducedMotion()
     Surface(
         modifier = modifier.widthIn(max = CardMaxWidth).testTag("create.verdict.card"),
@@ -73,12 +79,12 @@ fun VerdictCard(verdict: Verdict, onCheckAgain: () -> Unit, modifier: Modifier =
             },
             label = "create-verdict-card",
             contentKey = ::faceKey,
-        ) { shown -> CardFace(shown, onCheckAgain) }
+        ) { shown -> CardFace(shown, onCheckAgain, issues) }
     }
 }
 
 @Composable
-private fun CardFace(verdict: Verdict, onCheckAgain: () -> Unit) {
+private fun CardFace(verdict: Verdict, onCheckAgain: () -> Unit, issues: @Composable (Modifier) -> Unit) {
     Column(
         modifier = Modifier.padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -105,6 +111,7 @@ private fun CardFace(verdict: Verdict, onCheckAgain: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().testTag("create.verdict.checkAgain"),
             )
         }
+        issues(Modifier.fillMaxWidth())
     }
 }
 

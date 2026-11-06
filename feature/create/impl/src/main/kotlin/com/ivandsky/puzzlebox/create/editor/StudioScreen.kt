@@ -47,8 +47,8 @@ private const val CardEnterScale = 0.9f
  * the largest square that fits, with the [toolStrip] under it. In [PlayLayout.TwoPane] the square
  * sits centred in the space; on a phone it hangs from the bar. The pill opens [verdictCard]'s
  * card as a popover anchored at
- * the pill's top-right; the title and the overflow's Rename open the [RenameSheet], whose Save
- * reports through [onRename].
+ * the pill's top-right, the game's fix list ([issues]) inside it; the title and the overflow's
+ * Rename open the [RenameSheet], whose Save reports through [onRename].
  */
 @Composable
 fun StudioScreen(
@@ -65,6 +65,7 @@ fun StudioScreen(
     board: @Composable (Modifier) -> Unit,
     toolStrip: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier,
+    issues: @Composable (Modifier) -> Unit = {},
 ) {
     var renaming by rememberSaveable { mutableStateOf(false) }
     Column(modifier.fillMaxSize()) {
@@ -76,7 +77,7 @@ fun StudioScreen(
             onRename = { renaming = true },
             onDuplicate = onDuplicate,
             onDelete = onDelete,
-            pill = { PillWithCard(verdict = verdict, verdictCard = verdictCard) },
+            pill = { PillWithCard(verdict = verdict, verdictCard = verdictCard, issues = issues) },
         )
         BoardSlot(
             alignment = if (layout == PlayLayout.TwoPane) Alignment.Center else Alignment.TopCenter,
@@ -99,10 +100,10 @@ fun StudioScreen(
 
 /** The verdict pill with its card's popover anchored at the pill's top-right. */
 @Composable
-private fun PillWithCard(verdict: Verdict, verdictCard: VerdictCardState) {
+private fun PillWithCard(verdict: Verdict, verdictCard: VerdictCardState, issues: @Composable (Modifier) -> Unit) {
     Box {
         VerdictPill(verdict = verdict, onClick = verdictCard::show)
-        VerdictCardPopover(verdict = verdict, state = verdictCard)
+        VerdictCardPopover(verdict = verdict, state = verdictCard, issues = issues)
     }
 }
 
@@ -112,7 +113,7 @@ private fun PillWithCard(verdict: Verdict, verdictCard: VerdictCardState) {
  * MotionTokens medium, emphasized decelerate; under reduced motion a plain 120 ms fade.
  */
 @Composable
-private fun VerdictCardPopover(verdict: Verdict, state: VerdictCardState) {
+private fun VerdictCardPopover(verdict: Verdict, state: VerdictCardState, issues: @Composable (Modifier) -> Unit) {
     val open by state.open.collectAsStateWithLifecycle()
     if (!open) return
     val reducedMotion = rememberReducedMotion()
@@ -131,7 +132,7 @@ private fun VerdictCardPopover(verdict: Verdict, state: VerdictCardState) {
                 scaleIn(spec, CardEnterScale, TransformOrigin(1f, 0f)) + fadeIn(spec)
             },
         ) {
-            VerdictCard(verdict = verdict, onCheckAgain = state::checkAgain)
+            VerdictCard(verdict = verdict, onCheckAgain = state::checkAgain, issues = issues)
         }
     }
 }
