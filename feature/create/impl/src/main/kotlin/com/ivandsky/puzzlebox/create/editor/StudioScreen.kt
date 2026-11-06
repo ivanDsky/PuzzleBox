@@ -221,7 +221,7 @@ private fun StudioScreenPreview() {
                 )
             },
             actionArea = { areaModifier ->
-                ActionArea(passed = null, canTestSolve = false, onTestSolve = {}, modifier = areaModifier)
+                ActionArea(passed = null, canTestSolve = false, onTestSolve = {}, blocks = emptyList(), modifier = areaModifier)
             },
         )
     }
