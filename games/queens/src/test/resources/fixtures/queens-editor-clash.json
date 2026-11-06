@@ -1,0 +1,13 @@
+{
+  "note": "6x6 board where rows 1-2 wholly contain regions 0, 1 and 2 (3 regions, 2 queens): no solution; conflicts are those regions' cells, the only clash on the board.",
+  "size": 6,
+  "regions": [
+    5, 5, 5, 5, 5, 5,
+    5, 0, 0, 1, 1, 5,
+    5, 0, 2, 2, 1, 5,
+    5, 3, 3, 3, 3, 3,
+    4, 4, 3, 3, 4, 4,
+    4, 4, 4, 4, 4, 4
+  ],
+  "conflicts": [7, 8, 9, 10, 13, 14, 15, 16]
+}
