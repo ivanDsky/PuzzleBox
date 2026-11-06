@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.game.editor
 
 import com.ivandsky.puzzlebox.game.Command
 import com.ivandsky.puzzlebox.game.DecodeResult
+import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.map
 import com.ivandsky.puzzlebox.model.GameId
@@ -17,6 +18,9 @@ class EditorDraft<D : Any>(val editor: GameEditor<D>, val state: DraftState<D>) 
     val variant: VariantId get() = editor.variantOf(state.draft)
     val canUndo: Boolean get() = state.history.canUndo
     val canRedo: Boolean get() = state.history.canRedo
+
+    /** True when [editor] also implements [DraftExport]. */
+    val canTestSolve: Boolean get() = editor is DraftExport<*>
 
     /** SHA-256 hex of editor.encodeDraft(DraftState(editor.layoutOf(state.draft))): layout only, empty history. */
     val layoutKey: String by lazy {
@@ -49,6 +53,12 @@ class EditorDraft<D : Any>(val editor: GameEditor<D>, val state: DraftState<D>) 
 
     /** The game's board gates for this board under [verdict]; empty for a game without any. */
     fun publishBlocks(verdict: Verdict): List<PublishBlock> = editor.publishBlocks(state.draft, verdict)
+
+    /**
+     * (editor as? DraftExport<D>)?.toPuzzle(state.draft, solution); null when !canTestSolve.
+     * The cast is erased: a game's editor implements both capabilities over the same [D].
+     */
+    fun toPuzzle(solution: Solution): Puzzle? = (editor as? DraftExport<D>)?.toPuzzle(state.draft, solution)
 
     companion object {
         /** A blank [variant] board with an empty history. */
