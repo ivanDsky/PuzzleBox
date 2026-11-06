@@ -15,7 +15,7 @@ dependencies {
     // HistoryViewModel resolves per-game names against the app's GameRegistry.
     implementation(projects.core.game)
     // ADR-0001: history is game-agnostic — replay sessions come from each game's plugin
-    // through GetReplaySession, never a games:* edge.
+    // through LoadPastDay, never a games:* edge.
     implementation(projects.core.domain)
 
     implementation(libs.androidx.lifecycle.runtime.compose)

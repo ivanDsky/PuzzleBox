@@ -27,6 +27,9 @@ data class GameHistoryDay(
     /** Capture recency when the day was fetched into the daily cache; 0 for rows that
      *  exist only as a completion record. */
     val fetchedAtMs: Long = 0L,
+    /** Played from the archive (A23) rather than captured as that day's daily; false for
+     *  rows that exist only as a completion record. */
+    val archived: Boolean = false,
 )
 
 /**
@@ -73,6 +76,7 @@ class ObserveGameHistory(
                     puzzleNumber = entry.puzzleNumber ?: solved?.puzzleNumber,
                     record = solved?.record,
                     fetchedAtMs = entry.fetchedAtMs,
+                    archived = entry.archived,
                 )
             }
 

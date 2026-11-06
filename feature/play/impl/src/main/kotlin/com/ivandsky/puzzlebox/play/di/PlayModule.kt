@@ -39,7 +39,7 @@ val playModule = module {
             ui = get(),
             opening = SlotOpening(
                 daily = get(),
-                replays = get(),
+                pastDays = get(),
                 saved = saved,
                 calendar = get(),
                 games = get(),
@@ -51,7 +51,7 @@ val playModule = module {
             dispatchers = dispatchers,
         )
     }
-    viewModel { HubViewModel(get(), get()) }
+    viewModel { HubViewModel(get(), get(), get()) }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
     viewModel { (key: ResultKey) -> ResultViewModel(key, get(), get(), get()) }
 }

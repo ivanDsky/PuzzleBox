@@ -9,6 +9,7 @@ const val BROKEN_PUZZLE_MESSAGE: String = "This puzzle didn't load right. Try ag
 fun unavailableMessage(error: FetchError): String = when (error) {
     is FetchError.Unavailable -> "Can't load today's puzzle. Check your connection and try again."
     is FetchError.Throttled -> "Can't load today's puzzle right now. Wait a minute and try again."
+    is FetchError.NotFound -> "Today's puzzle isn't out yet. Try again later."
     is FetchError.Untrusted -> BROKEN_PUZZLE_MESSAGE
 }
 
@@ -16,5 +17,6 @@ fun unavailableMessage(error: FetchError): String = when (error) {
 fun degradeBannerMessage(error: FetchError): String = when (error) {
     is FetchError.Unavailable -> "You're offline. Playing today's saved puzzle."
     is FetchError.Throttled -> "Can't load a new copy right now. Playing today's saved puzzle."
+    is FetchError.NotFound -> "Can't find a new copy. Playing today's saved puzzle."
     is FetchError.Untrusted -> "The new copy didn't load right. Playing today's saved puzzle."
 }

@@ -11,10 +11,12 @@ import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
-import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -63,6 +65,8 @@ class ResultScreenTest {
     private fun setContent(
         verdict: RecordVerdict? = null,
         previousBestMs: Long? = null,
+        previousHints: Int = 0,
+        rankOrder: RankOrder = RankOrder.TimeThenHints,
         writeFailed: Boolean = false,
         primary: ResultPrimaryAction? = ResultPrimaryAction.Done,
         onPrimary: () -> Unit = {},
@@ -78,7 +82,8 @@ class ResultScreenTest {
                     onPrimary = onPrimary,
                     onPlayAgain = onPlayAgain,
                     verdict = verdict,
-                    previousBestMs = previousBestMs,
+                    previousBest = previousBestMs?.let { BestScore(it, previousHints) },
+                    rankOrder = rankOrder,
                     writeFailed = writeFailed,
                     onRetryWrite = onRetryWrite,
                 )
@@ -135,6 +140,24 @@ class ResultScreenTest {
         setContent(verdict = RecordVerdict.Replay, previousBestMs = 80_000)
         composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
         composeRule.onNodeWithText("Replay · Best 1:20").assertExists()
+    }
+
+    @Test
+    fun `a hints-first game leads its best line with the hints`() {
+        setContent(verdict = RecordVerdict.NotBest, previousBestMs = 102_000, rankOrder = RankOrder.HintsThenTime)
+        composeRule.onNodeWithText("Best 0 hints · 1:42").assertExists()
+    }
+
+    @Test
+    fun `a hints-first new best shows the score it beat`() {
+        setContent(verdict = RecordVerdict.NewBest, previousBestMs = 80_000, previousHints = 1, rankOrder = RankOrder.HintsThenTime)
+        composeRule.onNodeWithText("Previous best 1 hint · 1:20").assertExists()
+    }
+
+    @Test
+    fun `a time-first best line never shows hints`() {
+        setContent(verdict = RecordVerdict.NotBest, previousBestMs = 80_000, previousHints = 2)
+        composeRule.onNodeWithText("Best 1:20").assertExists()
     }
 
     @Test
@@ -323,7 +346,7 @@ class ResultScreenTest {
                     single<CompletionRepository> { FakeCompletionRepository() }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<GameCalendar> { FakeGameCalendar(day) }
-                    factory { GetReplaySession(get(), get()) }
+                    factory { LoadPastDay(get(), get()) }
                     factory { ObserveTodaySet(get(), get(), get(), get()) }
                 },
                 playModule,
