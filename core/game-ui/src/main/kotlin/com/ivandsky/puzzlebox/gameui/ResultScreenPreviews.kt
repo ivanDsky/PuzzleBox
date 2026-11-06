@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 
@@ -31,7 +32,7 @@ internal fun ResultScreenNewBestPreview() {
             game = "Queens",
             puzzleNumber = 918,
             verdict = RecordVerdict.NewBest,
-            previousBestMs = 65_000,
+            previousBest = BestScore(65_000, hints = 0),
             streak = 3,
             doneToday = 2,
             total = 3,
@@ -54,7 +55,7 @@ internal fun ResultScreenAllDonePreview() {
             game = "Queens",
             puzzleNumber = 918,
             verdict = RecordVerdict.NotBest,
-            previousBestMs = 46_000,
+            previousBest = BestScore(46_000, hints = 0),
             streak = 1,
             doneToday = 3,
             total = 3,
@@ -99,7 +100,7 @@ internal fun ResultScreenReplayPreview() {
             game = "Queens",
             puzzleNumber = 917,
             verdict = RecordVerdict.Replay,
-            previousBestMs = 88_000,
+            previousBest = BestScore(88_000, hints = 0),
             streak = 3,
             doneToday = 1,
             total = 3,

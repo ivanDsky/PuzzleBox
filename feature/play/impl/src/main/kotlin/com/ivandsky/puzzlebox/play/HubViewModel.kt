@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.cachedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -17,6 +18,7 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import java.time.LocalDate
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -33,7 +35,8 @@ import kotlinx.coroutines.withContext
 
 /**
  * One hub card: a playable game, its display name, its [brand], today's puzzle number
- * (null when the day has none or isn't cached yet) and today's status (null = not yet known).
+ * (null when the day has none or isn't cached yet), today's status (null = not yet known)
+ * and the days it can open by date ([archive], null = no archive, so no "Past puzzles").
  */
 internal data class HubRow(
     val game: GameId,
@@ -41,6 +44,7 @@ internal data class HubRow(
     val brand: GameBrand = GameBrand.Neutral,
     val puzzleNumber: Int? = null,
     val status: TodayStatus? = null,
+    val archive: ClosedRange<LocalDate>? = null,
 )
 
 /**
@@ -63,7 +67,9 @@ internal data class HubUiState(
  * The games hub's state holder: the [PlaySessionStore]'s playable games in registry order,
  * each with its [ObserveTodaySet] status, today's puzzle number (from [ObserveGameHistory]
  * on the game's [GameCalendar] day) and its best time ([ObserveGameStats], dailies only)
- * (A13, A14, SC11). The next game is the play target ([playTarget]) among the games that
+ * (A13, A14, SC11), plus the days it can open by date ([DailyRepository.archiveRange],
+ * A22: the source's arithmetic, re-read on every status change so the range's end moves
+ * with the day). The next game is the play target ([playTarget]) among the games that
  * can load, unless it is already solved. Before the first emission no row has a status.
  *
  * Each card's thumbnail is its game's own [com.ivandsky.puzzlebox.gameui.GamePlayUi.previewModel]
@@ -91,7 +97,9 @@ class HubViewModel(
     private val previewDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
-    private val seed = store.playable.map { (game, name) -> HubRow(game, name, registry.brandOf(game)) }
+    private val seed = store.playable.map { (game, name) ->
+        HubRow(game, name, registry.brandOf(game), archive = daily.archiveRange(game))
+    }
 
     private val bests: Flow<Map<GameId, Long?>> =
         if (seed.isEmpty()) {
@@ -126,7 +134,13 @@ class HubViewModel(
         combine(today, numbers, bests.onStart { emit(emptyMap()) }) { (entries, previews), number, best ->
             val status = entries.associate { it.game to it.status }
             HubUiState(
-                rows = seed.map { it.copy(puzzleNumber = number[it.game], status = status[it.game]) },
+                rows = seed.map {
+                    it.copy(
+                        puzzleNumber = number[it.game],
+                        status = status[it.game],
+                        archive = daily.archiveRange(it.game),
+                    )
+                },
                 bestByGame = best,
                 doneCount = seed.count { status[it.game] is TodayStatus.Solved },
                 next = nextOf(entries.filter { entry -> seed.any { it.game == entry.game } }),
@@ -155,8 +169,8 @@ class HubViewModel(
         val day = calendar.today(game) ?: return null
         val preview = when (status) {
             is TodayStatus.InProgress -> store.latestSave(PlaySlot(game, day))?.let(BoardPreview::InProgress)
-            TodayStatus.NotStarted -> daily.cached(game, day)?.let(BoardPreview::Fresh)
-            is TodayStatus.Solved -> daily.cached(game, day)?.let(BoardPreview::Solved)
+            TodayStatus.NotStarted -> daily.cachedPuzzle(game, day)?.let(BoardPreview::Fresh)
+            is TodayStatus.Solved -> daily.cachedPuzzle(game, day)?.let(BoardPreview::Solved)
             TodayStatus.Offline, null -> null
         } ?: return null
         val ui = registry[game] ?: return null

@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.domain.di
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetNextRollover
-import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
@@ -26,7 +26,7 @@ val domainModule = module {
     factory { GetNextRollover(registry = get()) }
     factory { ComputeStreak(puzzleDay = get()) }
     factory { ObserveGameStats(observeGameHistory = get(), computeStreak = get()) }
-    factory { GetReplaySession(daily = get(), registry = get()) }
+    factory { LoadPastDay(daily = get(), registry = get()) }
     single { SyncTodayPuzzles(registry = get(), daily = get(), calendar = get()) }
     factory {
         ObserveTodaySet(

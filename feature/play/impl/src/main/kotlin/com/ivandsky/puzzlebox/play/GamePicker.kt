@@ -13,6 +13,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -22,6 +26,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
+import java.time.LocalDate
 
 /** The hub's grid width in cards, in two-pane and in the phone grid. */
 private const val GRID_COLUMNS = 2
@@ -39,7 +44,10 @@ private val GridThumbSize = 128.dp
  * a two-column grid of [HubCardShape.Tile]s — each showing today's board as its game in
  * [games] draws [HubUiState.previews], with the [HubUiState.next] game's card up next.
  * Below them, "Older puzzles" (`hub.older`, [onOpenHistory]) and the line that more games
- * are on the way (`hub.more_coming`). Stateless; picking a card is [onPick].
+ * are on the way (`hub.more_coming`). Picking a card is [onPick]. A card with an archive
+ * also offers "Past puzzles" (`hub.past.<gameId>`, A22), which opens [PastPuzzlesPicker]
+ * over its range; opening a day there is [onPickDay]. Which game's picker is open is the
+ * only state held here.
  */
 @Composable
 internal fun GamePicker(
@@ -47,9 +55,11 @@ internal fun GamePicker(
     games: GamePlayRegistry,
     layout: PlayLayout,
     onPick: (GameId) -> Unit,
+    onPickDay: (GameId, LocalDate) -> Unit,
     onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var pastFor by rememberSaveable { mutableStateOf<String?>(null) }
     Column(
         modifier
             .fillMaxWidth()
@@ -89,6 +99,7 @@ internal fun GamePicker(
                         modifier = Modifier.weight(1f),
                         thumbSize = if (twoPane) GridThumbSize else HubThumbSize,
                         shape = if (tiles) HubCardShape.Tile else HubCardShape.Row,
+                        onPast = row.archive?.let { { pastFor = row.game.value } },
                     )
                 }
                 // A short last line keeps its cards at grid width.
@@ -112,6 +123,17 @@ internal fun GamePicker(
                 modifier = Modifier.testTag("hub.more_coming"),
             )
         }
+    }
+    val past = state.rows.firstOrNull { it.game.value == pastFor }
+    past?.archive?.let { range ->
+        PastPuzzlesPicker(
+            range = range,
+            onOpen = { day ->
+                pastFor = null
+                onPickDay(past.game, day)
+            },
+            onDismiss = { pastFor = null },
+        )
     }
 }
 

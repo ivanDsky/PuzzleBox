@@ -7,4 +7,7 @@ package com.ivandsky.puzzlebox.game
  */
 interface ScoreModel<S : GameSession> {
     fun completion(session: S): CompletionRecord?
+
+    /** How this game's completions rank (ADR-0013); time, then hints unless the game says otherwise. */
+    val rankOrder: RankOrder get() = RankOrder.TimeThenHints
 }

@@ -8,6 +8,9 @@ import java.time.LocalDate
  * no solve yet, so the run stays alive until the day is actually missed. Callers pass
  * only solved days; opened-but-unsolved days never count. Duplicates collapse. [best] is
  * the same rule's longest run, so both streaks live in this one file.
+ *
+ * Archived days (A23) are history, not habit: playing one never extends or bridges
+ * the run, so callers drop them before counting.
  */
 class ComputeStreak(private val puzzleDay: GetPuzzleDay) {
 

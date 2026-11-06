@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
@@ -13,13 +14,15 @@ import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
-import com.ivandsky.puzzlebox.domain.GetReplaySession
+import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -70,6 +73,8 @@ class ResultScreenTest {
     private fun setContent(
         verdict: RecordVerdict? = null,
         previousBestMs: Long? = null,
+        previousHints: Int = 0,
+        rankOrder: RankOrder = RankOrder.TimeThenHints,
         writeFailed: Boolean = false,
         primary: ResultPrimaryAction? = ResultPrimaryAction.Done,
         practice: Boolean = false,
@@ -93,7 +98,8 @@ class ResultScreenTest {
                     puzzleNumber = if (practice) null else 7,
                     practice = practice,
                     verdict = verdict,
-                    previousBestMs = previousBestMs,
+                    previousBest = previousBestMs?.let { BestScore(it, previousHints) },
+                    rankOrder = rankOrder,
                     streak = streak,
                     doneToday = 1,
                     total = 2,
@@ -170,6 +176,24 @@ class ResultScreenTest {
         composeRule.onNodeWithTag("result.tile.streak").assertDoesNotExist()
         composeRule.onNodeWithTag("result.previous_best").assertDoesNotExist()
         composeRule.onNodeWithTag("result.tile.hints").assertExists()
+    }
+
+    @Test
+    fun `a hints-first game leads its best line with the hints`() {
+        setContent(verdict = RecordVerdict.NotBest, previousBestMs = 102_000, rankOrder = RankOrder.HintsThenTime)
+        composeRule.onNodeWithText("Your best is 0 hints · 1:42").assertExists()
+    }
+
+    @Test
+    fun `a hints-first new best shows the score it beat`() {
+        setContent(verdict = RecordVerdict.NewBest, previousBestMs = 80_000, previousHints = 1, rankOrder = RankOrder.HintsThenTime)
+        composeRule.onNodeWithText("Previous best 1 hint · 1:20").assertExists()
+    }
+
+    @Test
+    fun `a time-first best line never shows hints`() {
+        setContent(verdict = RecordVerdict.NotBest, previousBestMs = 80_000, previousHints = 2)
+        composeRule.onNodeWithText("Your best is 1:20").assertExists()
     }
 
     @Test
@@ -367,7 +391,7 @@ class ResultScreenTest {
                     single<CompletionRepository> { FakeCompletionRepository() }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<GameCalendar> { FakeGameCalendar(day) }
-                    factory { GetReplaySession(get(), get()) }
+                    factory { LoadPastDay(get(), get()) }
                     single { SyncTodayPuzzles(get(), get(), get()) }
                     factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
                     factory { ObserveGameHistory(get(), get(), get()) }

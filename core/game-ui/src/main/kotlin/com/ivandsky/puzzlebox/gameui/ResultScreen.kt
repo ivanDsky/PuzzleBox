@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
+import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.RankOrder
 import java.time.Instant
 
 /**
@@ -40,7 +42,7 @@ private val CardMaxWidth = 420.dp
  * The solved-session result (spec A16): its own nav route paints one opaque card in
  * place of the board. In order: the header — [brand]'s glyph (stamped on entry), the
  * puzzle ([game] and its [puzzleNumber]) and the record pill; the time as the hero
- * number; the comparison to your best ([previousBestMs]); the Hints · Streak · Today
+ * number; the comparison to your best ([previousBest], ranked by [rankOrder]); the Hints · Streak · Today
  * tiles; the primary step; then Share ([onShare]) and "Play again" ([onPlayAgain], null
  * hides it).
  *
@@ -75,7 +77,8 @@ fun ResultScreen(
     puzzleNumber: Int? = null,
     practice: Boolean = false,
     verdict: RecordVerdict? = null,
-    previousBestMs: Long? = null,
+    previousBest: BestScore? = null,
+    rankOrder: RankOrder = RankOrder.TimeThenHints,
     streak: Int? = null,
     doneToday: Int? = null,
     total: Int? = null,
@@ -121,7 +124,7 @@ fun ResultScreen(
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.testTag("result.time"),
                         )
-                        BestLine(shownVerdict, previousBestMs, timeMs, brand)
+                        BestLine(shownVerdict, previousBest, rankOrder, timeMs, brand)
                     }
                     ResultStatTiles(
                         hintsUsed = hintsUsed,

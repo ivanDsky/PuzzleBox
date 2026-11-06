@@ -23,6 +23,9 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -148,9 +151,13 @@ class ShellRobot internal constructor(
         rule.waitForIdle()
     }
 
+    /** Taps the node tagged [tag], scrolling it into view first when it sits in a scrolling screen. */
     fun tap(tag: String) {
         awaitTag(tag)
-        rule.onNodeWithTag(tag).performClick()
+        val node = rule.onNodeWithTag(tag)
+        val scrolls = rule.onAllNodes(hasTestTag(tag) and hasAnyAncestor(hasScrollAction())).fetchSemanticsNodes().isNotEmpty()
+        if (scrolls) node.performScrollTo()
+        node.performClick()
         rule.waitForIdle()
     }
 

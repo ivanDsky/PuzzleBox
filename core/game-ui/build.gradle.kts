@@ -17,4 +17,7 @@ dependencies {
 
     implementation(libs.androidx.compose.material3.windowsizeclass)
     implementation(libs.kotlinx.coroutines.core)
+
+    // RecordVerdictTest runs core:testing's shared RankOrderCases table (ADR-0013).
+    testImplementation(projects.core.testing)
 }

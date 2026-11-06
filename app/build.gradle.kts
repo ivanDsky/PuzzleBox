@@ -52,6 +52,20 @@ android {
     }
 }
 
+// AGP host-tests only the debug build type by default; ReleaseGameModulesTest needs the
+// release source set to prove debug-only games stay out of the release graph (ADR-0015).
+androidComponents {
+    beforeVariants(selector().withBuildType("release")) { variant ->
+        variant.hostTests[com.android.build.api.variant.HostTestBuilder.UNIT_TEST_TYPE]?.enable = true
+    }
+}
+
+// The release host-test task exists for ReleaseGameModulesTest alone: the src/test suite needs
+// debug-only dependencies (ui-test-manifest) and runs under testDebugUnitTest.
+tasks.withType<Test>().matching { it.name == "testReleaseUnitTest" }.configureEach {
+    filter.includeTestsMatching("com.ivandsky.puzzlebox.app.ReleaseGameModulesTest")
+}
+
 dependencies {
     implementation(projects.backend.firebase)
     implementation(projects.core.common)
@@ -69,6 +83,10 @@ dependencies {
     implementation(projects.games.queensUi)
     implementation(projects.games.tango)
     implementation(projects.games.tangoUi)
+    implementation(projects.games.sudoku)
+    implementation(projects.games.sudokuUi)
+    implementation(projects.games.strands)
+    implementation(projects.games.strandsUi)
     implementation(projects.core.navigation)
     // The shell composes every feature's entries and registers every feature's keys.
     implementation(projects.feature.home.api)
