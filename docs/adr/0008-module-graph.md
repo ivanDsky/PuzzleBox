@@ -90,3 +90,5 @@ No `core:*` or `feature:*` module changes; `checkModuleGraph` rejects any shortc
 - New module families need a rule in `forbiddenEdgeReason` and an update here.
 - What is inside a module (file size, one type per file, package and naming rules) is guarded by
   the `:konsist` suite, not by this task: see ADR-0009.
+
+*(Amended 2026-11-06 by ADR-0019: `GamePlugin.editor` plus a single-owner `GameEditorRegistry` in `core:game-ui`; and by ADR-0021: the `tools:*` family and its two `forbiddenEdgeReason` arms.)*
