@@ -28,16 +28,25 @@ import com.ivandsky.puzzlebox.games.queens.editor.QueensAnswerFit
 import com.ivandsky.puzzlebox.games.queens.editor.QueensContiguity
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queensui.QueensBoardDefaults
+import com.ivandsky.puzzlebox.games.queensui.drawQueen
 import com.ivandsky.puzzlebox.games.queensui.drawViolationStripes
+import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import kotlinx.coroutines.delay
 
 /**
  * What the editor board flags for the author (prototype 03 b, spec S19): [diff] are the cells
  * two solutions disagree on (a Multiple verdict), [clash] the cells that break a rule (None),
  * [split] the stray pieces of regions in more than one piece, [ghosts] the other answer's
- * queens when the author has crowns (40).
+ * queens when the author has crowns (40), [witness] the queens of the solution the verdict
+ * card shows on a board without crowns (31).
  */
-internal data class QueensDiagnostics(val diff: Set<Int>, val clash: Set<Int>, val split: Set<Int>, val ghosts: Set<Int>)
+internal data class QueensDiagnostics(
+    val diff: Set<Int>,
+    val clash: Set<Int>,
+    val split: Set<Int>,
+    val ghosts: Set<Int>,
+    val witness: Set<Int>,
+)
 
 /**
  * Diagnostics for [board] under [verdict]. Diff and clash follow the verdict at once. A stray
@@ -46,9 +55,18 @@ internal data class QueensDiagnostics(val diff: Set<Int>, val clash: Set<Int>, v
  * is [QueensAnswerFit.Ambiguous] (crowns + 2 answers; the board passes the last settled
  * reading through Checking, as the coach line does) the other answer shows as [ghosts] and
  * the diff ring marks only its movable cells, where a recolour can kill that answer.
+ * The card's [overlay] with Show on board (31) reads [held], the same settled verdict [fit]
+ * reads: with crowns it picks which witness the ghosts are drawn from
+ * ([QueensAnswerFit.ghostsOf]); without, it draws the chosen witness's queens as [QueensDiagnostics.witness].
  */
 @Composable
-internal fun rememberQueensDiagnostics(verdict: Verdict, board: QueensDraft, fit: QueensAnswerFit): QueensDiagnostics {
+internal fun rememberQueensDiagnostics(
+    verdict: Verdict,
+    held: Verdict,
+    board: QueensDraft,
+    fit: QueensAnswerFit,
+    overlay: EditorOverlay,
+): QueensDiagnostics {
     val strays = remember(board) { strayCells(board) }
     // A preview has no clock to wait out the pause on, so it shows the settled stripes.
     val still = LocalInspectionMode.current
@@ -59,19 +77,27 @@ internal fun rememberQueensDiagnostics(verdict: Verdict, board: QueensDraft, fit
         settled = strays
     }
     val ambiguous = fit as? QueensAnswerFit.Ambiguous
+    val shown = (held as? Verdict.Multiple)?.takeIf { overlay.showOnBoard }
+    val b = overlay.witness == EditorOverlay.Witness.B
     return QueensDiagnostics(
         diff = ambiguous?.movable ?: (verdict as? Verdict.Multiple)?.differingCells.orEmpty(),
         clash = (verdict as? Verdict.None)?.conflicts.orEmpty(),
         split = settled intersect strays,
-        ghosts = ambiguous?.ghosts.orEmpty(),
+        ghosts = when {
+            ambiguous == null -> emptySet()
+            shown != null -> QueensAnswerFit.ghostsOf(board, shown, b)
+            else -> ambiguous.ghosts
+        },
+        witness = if (ambiguous == null && shown != null) (if (b) shown.solutionB else shown.solutionA).values.toSet() else emptySet(),
     )
 }
 
 /**
  * Cell [idx]'s marks, drawn over its fill: the split stripes (the play UI's violation
  * stripes, which appear after a delay rather than animate), then the clash fill, the
- * diff ring and the ghost crown ([QueensGhostLayer]), each fading in. Each mark carries
- * `queens.editor.cell.<idx>.<split|clash|diff|ghost>`.
+ * diff ring, the witness queen (a solid crown in the diff ring's tint) and the ghost crown
+ * ([QueensGhostLayer]), each fading in. Each mark carries
+ * `queens.editor.cell.<idx>.<split|clash|diff|witness|ghost>`.
  */
 @Composable
 internal fun QueensCellDiagnostics(idx: Int, diagnostics: QueensDiagnostics, reducedMotion: Boolean) {
@@ -95,6 +121,11 @@ internal fun QueensCellDiagnostics(idx: Int, diagnostics: QueensDiagnostics, red
     }
     if (idx in diagnostics.diff) {
         FadingMark("queens.editor.cell.$idx.diff", reducedMotion) { drawInsetRing(tokens.editorDiffRing) }
+    }
+    if (idx in diagnostics.witness) {
+        FadingMark("queens.editor.cell.$idx.witness", reducedMotion) {
+            drawQueen(tokens.editorDiffRing, QueensBoardDefaults.queenHeightFraction, alpha = 1f)
+        }
     }
     QueensGhostLayer(idx, idx in diagnostics.ghosts, reducedMotion)
 }

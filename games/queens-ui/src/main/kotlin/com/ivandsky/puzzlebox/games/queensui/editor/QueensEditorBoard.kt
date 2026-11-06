@@ -56,6 +56,7 @@ import com.ivandsky.puzzlebox.games.queensui.QueensCellVisual
 import com.ivandsky.puzzlebox.games.queensui.QueensRegionPalette
 import com.ivandsky.puzzlebox.games.queensui.drawCellEdges
 import com.ivandsky.puzzlebox.gameui.BoardGrid
+import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 
 /** What a cell's semantics say when no region is painted on it yet. */
 internal const val UNPAINTED_DESCRIPTION = "unpainted"
@@ -73,7 +74,8 @@ internal const val UNPAINTED_DESCRIPTION = "unpainted"
  * ring at the new centroid. Each cell says its region's hue in its state description, so
  * tests read the painting without pixels. Over the fills, [QueensCellDiagnostics] shows what
  * the [verdict] found, which region pieces stray and, with crowns on a 2-answer board, the
- * other answer's ghost crowns. Under the grid, [QueensCoachLine] and [QueensProbeStrip] each
+ * other answer's ghost crowns; the verdict card's witness choice ([QueensEditorController.overlay])
+ * picks the ghosts' witness, or, without crowns, draws that witness's queens. Under the grid, [QueensCoachLine] and [QueensProbeStrip] each
  * reserve one line; Crown mode keeps the context bar's height empty.
  */
 @Composable
@@ -81,6 +83,7 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
     val draft by controller.draft.collectAsState()
     val selection by controller.selection.collectAsState()
     val mode by controller.mode.collectAsState()
+    val overlay by controller.overlay.collectAsState()
     val board = draft.state.draft as QueensDraft
     val touch = remember { QueensBoardTouch() }
     val shown = touch.preview(board)
@@ -88,13 +91,13 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
     val model = remember(shown) { modelOf(shown) }
     val n = model.n
     val reducedMotion = rememberReducedMotion()
-    // The last non-Checking verdict, so the coach line, probe strip and ghost crowns hold their content while a new analysis runs.
+    // The last non-Checking verdict, so the coach line, probe strip, ghost and witness crowns hold their content while a new analysis runs.
     val settled = remember { mutableStateOf<Verdict?>(null) }
     SideEffect { if (verdict != Verdict.Checking) settled.value = verdict }
     val held = if (verdict == Verdict.Checking) settled.value else null
     val probed = held ?: verdict
     val fit = remember(board, probed) { QueensAnswerFit.of(board, probed) }
-    val diagnostics = rememberQueensDiagnostics(verdict, board, fit)
+    val diagnostics = rememberQueensDiagnostics(verdict, probed, board, fit, overlay)
     val autoX = remember(board) { QueensCrowns.crossed(board) }
     val rejection = rememberQueensRejection(controller)
     var frame by remember { mutableStateOf(BoardFrame.Zero) }
@@ -227,6 +230,15 @@ private fun QueensEditorBoardSelectedPreview() {
 private fun QueensEditorBoardMultiplePreview() {
     val verdict = Verdict.Multiple(Solution(listOf(1, 7, 8, 14)), Solution(listOf(2, 4, 11, 13)), setOf(1, 2, 4, 7, 8, 11, 13, 14))
     PuzzleBoxTheme { QueensEditorBoard(previewController(), verdict, Modifier.fillMaxWidth()) }
+}
+
+@PuzzleBoxPreviews
+@Preview(name = "2+ solutions, witness B on board", widthDp = 360, heightDp = 420, showBackground = true)
+@Composable
+private fun QueensEditorBoardWitnessPreview() {
+    val verdict = Verdict.Multiple(Solution(listOf(1, 7, 8, 14)), Solution(listOf(2, 4, 11, 13)), setOf(1, 2, 4, 7, 8, 11, 13, 14))
+    val controller = previewController().apply { adoptOverlay(EditorOverlay(EditorOverlay.Witness.B, showOnBoard = true)) }
+    PuzzleBoxTheme { QueensEditorBoard(controller, verdict, Modifier.fillMaxWidth()) }
 }
 
 @PuzzleBoxPreviews

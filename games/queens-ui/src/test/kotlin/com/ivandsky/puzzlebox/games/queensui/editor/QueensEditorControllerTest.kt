@@ -12,10 +12,13 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.queens.QueensVariants
+import com.ivandsky.puzzlebox.games.queens.editor.QueensAnswerFit
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
+import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -30,7 +33,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Tickets 18–19: select cells (tap, drag, All of colour, Area), pick one ring colour → one Paint step. Ticket 36: Crown | Paint modes. */
+/**
+ * Tickets 18–19: select cells (tap, drag, All of colour, Area), pick one ring colour → one Paint step. Ticket 36: Crown | Paint modes.
+ * Ticket 31: adoptOverlay updates the overlay the board draws (witness queens without crowns, the ghosts' witness with them).
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -307,6 +313,62 @@ class QueensEditorControllerTest {
         assertEquals(regionsOf(fresh()), regionsOf(controller.draft.value))
     }
 
+    @Test
+    fun `adoptOverlay B with Show on board draws exactly B's queens as the witness on a crownless board`() {
+        val controller = controller()
+        controller.adoptOverlay(EditorOverlay(EditorOverlay.Witness.B, showOnBoard = true))
+        assertEquals(EditorOverlay.Witness.B, controller.overlay.value.witness)
+
+        showVerdict(controller, MULTIPLE)
+
+        assertEquals(MULTIPLE.solutionB.values.toSet(), tagged("witness"))
+        assertEquals(emptySet<Int>(), tagged("ghost"))
+    }
+
+    @Test
+    fun `a crownless Multiple opens at the default overlay, so the diff ring stays and no witness is drawn`() {
+        val controller = controller()
+        val opening = controller.openingOverlay(MULTIPLE)
+        assertEquals(EditorOverlay(), opening)
+        controller.adoptOverlay(opening)
+
+        showVerdict(controller, MULTIPLE)
+
+        assertEquals(emptySet<Int>(), tagged("witness"))
+        assertEquals(MULTIPLE.differingCells, tagged("diff"))
+    }
+
+    @Test
+    fun `with crowns on B's queens the card opens on A with Show on board, and flipping to B redraws the ghosts`() {
+        val start = painted()
+        val board = start.state.draft.copy(crowns = CROWNS_ON_B)
+        val controller = QueensEditorController(EditorDraft(QueensEditor, start.state.copy(draft = board))) {}
+        val opening = controller.openingOverlay(MULTIPLE)
+        assertEquals(EditorOverlay(EditorOverlay.Witness.A, showOnBoard = true), opening)
+        controller.adoptOverlay(opening)
+
+        showVerdict(controller, MULTIPLE)
+        assertEquals(QueensAnswerFit.ghostsOf(board, MULTIPLE, b = false), tagged("ghost"))
+        assertEquals(emptySet<Int>(), tagged("witness"))
+
+        controller.adoptOverlay(opening.copy(witness = EditorOverlay.Witness.B))
+        rule.waitForIdle()
+        assertEquals(QueensAnswerFit.ghostsOf(board, MULTIPLE, b = true), tagged("ghost"))
+        assertEquals(emptySet<Int>(), tagged("witness"))
+    }
+
+    private fun showVerdict(controller: QueensEditorController, verdict: Verdict) {
+        rule.setContent {
+            PuzzleBoxTheme { QueensEditorBoard(controller, verdict, Modifier.fillMaxWidth()) }
+        }
+    }
+
+    /** Every cell carrying `queens.editor.cell.<idx>.<mark>`. */
+    private fun tagged(mark: String): Set<Int> =
+        (0 until SIZE * SIZE).filterTo(sortedSetOf()) { idx ->
+            rule.onAllNodesWithTag("queens.editor.cell.$idx.$mark", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+
     private fun count(k: Int) = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "$k")
 
     private fun show(controller: QueensEditorController) {
@@ -318,6 +380,16 @@ class QueensEditorControllerTest {
     private companion object {
         const val SIZE = 6
         const val CROWNED = 8 // row 1 (region 1), inside the stroke's path
+
+        /** Two answers on the row-painted board, sharing no cell. */
+        val MULTIPLE = Verdict.Multiple(
+            Solution(listOf(0, 8, 16, 24, 32, 34)),
+            Solution(listOf(1, 9, 14, 22, 30, 35)),
+            setOf(0, 8, 16, 24, 32, 34, 1, 9, 14, 22, 30, 35),
+        )
+
+        /** Two of B's queens crowned, none of A's: the author's witness is B. */
+        val CROWNS_ON_B = setOf(1, 9)
         const val RING = "queens.editor.ring"
         const val UNPAINT = "queens.editor.ring.unpaint"
         const val COUNT = "queens.editor.context.count"
