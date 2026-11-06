@@ -20,8 +20,8 @@ import org.robolectric.annotation.Config
 /**
  * Ticket 01's walking skeleton over the real shell: the Create tab's New puzzle sheet
  * (Queens, then 4×4) opens a blank Queens 4×4 in the Studio (verdict Incomplete), a tap
- * paints a cell, the draft is listed on the Create root, and after a relaunch the draft
- * reopens with the same regions.
+ * selects a cell and a ring pick paints it, the draft is listed on the Create root, and
+ * after a relaunch the draft reopens with the same regions.
  * The drafts store is the fake "disk" that outlives the relaunch.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -53,6 +53,7 @@ class CreateSkeletonE2ETest {
             val blank = regionOf(CELL_0)
 
             tap(CELL_0)
+            tap(RING_NEXT)
             val painted = regionOf(CELL_0)
             assertNotEquals("the tap paints the cell", blank, painted)
             assertEquals(1, drafts.rows.size)
@@ -80,5 +81,6 @@ class CreateSkeletonE2ETest {
         const val ROW = "create.draft.row"
         const val CELL_0 = "queens.editor.cell.0"
         const val TIMEOUT_MS = 5_000L
+        const val RING_NEXT = "queens.editor.ring.slot.1"
     }
 }
