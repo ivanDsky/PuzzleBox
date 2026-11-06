@@ -16,7 +16,9 @@ import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.playTarget
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.WeekDay
@@ -28,6 +30,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -51,8 +55,20 @@ internal data class HomeUiState(
     val week: List<WeekDay>,
     val rolloverAt: Instant,
 ) {
-    /** One game's Today tile (A10); [status] is null until today's set first emits. */
-    data class TodayRow(val game: GameId, val displayName: String, val status: TodayStatus?, val brand: GameBrand)
+    /**
+     * One game's Today tile (A9, A10): [status] is null until today's set first emits,
+     * [puzzleNumber] until today's history row lands, [best] until the game's first daily
+     * solve; [best] ranks by the game's own [rankOrder].
+     */
+    data class TodayRow(
+        val game: GameId,
+        val displayName: String,
+        val status: TodayStatus?,
+        val brand: GameBrand,
+        val rankOrder: RankOrder,
+        val puzzleNumber: Int? = null,
+        val best: BestScore? = null,
+    )
 
     /** The row the CTA names; null only for an empty set. */
     val target: TodayRow?
@@ -96,8 +112,17 @@ class HomeViewModel(
 
     private val seed = registry.all.map {
         val id = it.definition.id
-        HomeUiState.TodayRow(id, it.definition.displayName, status = null, brand = brands.brandOf(id))
+        HomeUiState.TodayRow(
+            id, it.definition.displayName, status = null, brand = brands.brandOf(id), rankOrder = rankOrderOf(id),
+        )
     }
+
+    private val bests: Flow<Map<GameId, BestScore?>> =
+        if (seed.isEmpty()) {
+            flowOf(emptyMap())
+        } else {
+            combine(seed.map { row -> observeGameStats(row.game).map { row.game to it.best } }) { it.toMap() }
+        }.onStart { emit(emptyMap()) }
 
     // Before the set lands every row is unknown and the CTA opens the first game.
     private val seedTarget = seed.firstOrNull()?.game
@@ -111,12 +136,15 @@ class HomeViewModel(
             observeGameHistory(),
             observeGameStats(),
             identityService.current,
-        ) { entries, days, stats, identity ->
+            bests,
+        ) { entries, days, stats, identity, best ->
             val day = puzzleDay()
+            val numbers = days.filter { it.day == day }.associate { it.gameId to it.puzzleNumber }
+            val rows = entries?.map {
+                HomeUiState.TodayRow(it.game, it.displayName, it.status, brands.brandOf(it.game), rankOrderOf(it.game))
+            } ?: seed
             HomeUiState(
-                today = entries?.map {
-                    HomeUiState.TodayRow(it.game, it.displayName, it.status, brands.brandOf(it.game))
-                } ?: seed,
+                today = rows.map { it.copy(puzzleNumber = numbers[it.game], best = best[it.game]) },
                 identity = identity,
                 history = recentDays(days, before = day),
                 puzzleDay = day,
@@ -187,6 +215,8 @@ class HomeViewModel(
 
     private fun registryRank(id: GameId): Int =
         registry.all.indexOfFirst { it.definition.id == id }.let { if (it < 0) Int.MAX_VALUE else it }
+
+    private fun rankOrderOf(id: GameId): RankOrder = registry[id]?.score?.rankOrder ?: RankOrder.TimeThenHints
 
     private companion object {
         const val RECENT_DAYS = 3
