@@ -79,17 +79,25 @@ private fun previewState(
 }
 
 @Composable
+private fun PreviewDayCard(row: LibraryRowModel) {
+    ArchiveDayCard(row, PreviewToday, past = null, offline = false, onPlay = {}, onRetry = {}, onBackToToday = {})
+}
+
+@Composable
 private fun PreviewScreen(state: LibraryUiState, layout: PlayLayout) {
     PuzzleBoxTheme {
         Box(Modifier.background(MaterialTheme.colorScheme.background)) {
             LibraryScreen(
                 state = state,
+                page = null,
+                month = null,
                 layout = layout,
                 hasLesson = { true },
                 onSelect = {},
-                onPlay = {},
+                onPlay = { _, _ -> },
                 onRetry = {},
                 onOpenLesson = {},
+                calendar = CalendarActions(),
             )
         }
     }
@@ -140,7 +148,7 @@ internal fun GamePagePhonePreview() {
             GamePage(
                 row = row,
                 layout = PlayLayout.SinglePane,
-                dayCard = { ArchiveDayCard(row, PreviewToday, onPlay = {}, onRetry = {}) },
+                dayCard = { PreviewDayCard(row) },
                 calendar = {},
                 onBack = {},
                 onOpenLesson = {},
@@ -164,7 +172,7 @@ internal fun LibraryPartsPreview() {
             rows.forEachIndexed { index, row ->
                 LibraryRow(row, selected = index == 0, compact = false, onClick = {})
             }
-            rows.take(4).forEach { ArchiveDayCard(it, PreviewToday, onPlay = {}, onRetry = {}) }
+            rows.take(4).forEach { PreviewDayCard(it) }
             GameStatsCard(previewRow("zip", "Zip", AccentSlot.Teal, TodayStatus.NotStarted, 598, 0))
             HowToPlayCard(rows[0], hasLesson = true, onOpenLesson = {})
             OfflinePill()

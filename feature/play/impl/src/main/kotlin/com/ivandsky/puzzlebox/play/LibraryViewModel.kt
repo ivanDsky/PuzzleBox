@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.domain.ArchiveDay
 import com.ivandsky.puzzlebox.domain.ArchiveProgress
 import com.ivandsky.puzzlebox.domain.GameStats
+import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
@@ -19,12 +21,16 @@ import com.ivandsky.puzzlebox.gameui.GameCardModel
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.TutorialSession
 import com.ivandsky.puzzlebox.model.GameId
+import java.time.LocalDate
+import java.time.YearMonth
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -55,6 +61,17 @@ internal data class LibraryRowModel(
     val rules: List<String>,
 )
 
+/**
+ * The selected game's calendar (A26): the shown [month] and its archive [days], and the
+ * [picked] past day the day card shows (null = today).
+ */
+internal data class ArchivePageState(
+    val game: GameId,
+    val month: YearMonth,
+    val days: List<ArchiveDay>,
+    val picked: ArchiveDay?,
+)
+
 /** An open lesson: [game]'s tutorial running in [session]. */
 internal data class OpenLesson(val game: GameId, val session: TutorialSession)
 
@@ -68,6 +85,10 @@ internal data class OpenLesson(val game: GameId, val session: TutorialSession)
  * library left in a back stack across a deep sleep re-reads the day when it shows again.
  * Each start prefetches today's uncached puzzles ([syncToday], A12), so a game that can't
  * load reads Offline. The lesson lives here, so a rotation keeps its step.
+ *
+ * The selected game's [page] is its calendar month ([ObserveArchiveMonth], today's until
+ * [showMonth]) and the past day [pick]ed for the day card; a month change keeps the picked
+ * day, and a game switch or [backToToday] returns both to today.
  */
 class LibraryViewModel(
     store: PlaySessionStore,
@@ -76,6 +97,7 @@ class LibraryViewModel(
     stats: ObserveGameStats,
     history: ObserveGameHistory,
     progress: ObserveArchiveProgress,
+    private val archiveMonth: ObserveArchiveMonth,
     private val calendar: GameCalendar,
     games: GameRegistry,
     private val registry: GamePlayRegistry,
@@ -95,6 +117,16 @@ class LibraryViewModel(
     }
 
     private val selected = MutableStateFlow(seed.firstOrNull()?.card?.game ?: GameId(""))
+
+    // Null is today's month / today: both follow the game's day without a stored date.
+    private val month = MutableStateFlow<YearMonth?>(null)
+    private val picked = MutableStateFlow<LocalDate?>(null)
+
+    /**
+     * The month the calendar asked for (null = today's), ahead of [page]: its days load from
+     * disk, and a ‹ › step must count from the month on screen, not the last one loaded.
+     */
+    internal val shownMonth: StateFlow<YearMonth?> = month.asStateFlow()
 
     private val _lesson = MutableStateFlow<OpenLesson?>(null)
     internal val lesson: StateFlow<OpenLesson?> = _lesson.asStateFlow()
@@ -141,6 +173,12 @@ class LibraryViewModel(
             LibraryUiState(seed, selected.value, offline = false),
         )
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    internal val page: StateFlow<ArchivePageState?> =
+        combine(selected, month, picked, ::Triple)
+            .flatMapLatest { (game, shown, day) -> pageOf(game, shown, day) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
     /** Fetches today's uncached puzzles; a failure shows as that game's Offline row. */
     internal fun syncToday() {
         viewModelScope.launch { syncTodayPuzzles() }
@@ -148,7 +186,25 @@ class LibraryViewModel(
 
     /** [game]'s page opens (the tablet's right pane; the phone pushes it). */
     internal fun select(game: GameId) {
+        if (game == selected.value) return
         selected.value = game
+        backToToday()
+    }
+
+    /** The calendar shows [shown]; the day card keeps its day. */
+    internal fun showMonth(shown: YearMonth) {
+        month.value = shown
+    }
+
+    /** The day card shows [day]; today's own disc returns it to today. */
+    internal fun pick(day: LocalDate) {
+        picked.value = day.takeUnless { it == calendar.today(selected.value) }
+    }
+
+    /** The day card shows today and the calendar today's month. */
+    internal fun backToToday() {
+        picked.value = null
+        month.value = null
     }
 
     /** [game]'s lesson opens over the library; a no-op without lessons or while one is open. */
@@ -163,6 +219,20 @@ class LibraryViewModel(
         val open = _lesson.value ?: return
         _lesson.value = null
         viewModelScope.launch { prefs.markTutorialSeen(open.game) }
+    }
+
+    private fun pageOf(game: GameId, shown: YearMonth?, day: LocalDate?): Flow<ArchivePageState?> {
+        val target = shown ?: calendar.today(game)?.let(YearMonth::from) ?: return flowOf(null)
+        val days = archiveMonth(game, target)
+        if (day == null) return days.map { ArchivePageState(game, target, it, null) }
+        val dayMonth = YearMonth.from(day)
+        if (dayMonth == target) {
+            return days.map { list -> ArchivePageState(game, target, list, list.firstOrNull { it.date == day }) }
+        }
+        // The picked day sits in another month: its own query keeps its status live.
+        return combine(days, archiveMonth(game, dayMonth)) { list, other ->
+            ArchivePageState(game, target, list, other.firstOrNull { it.date == day })
+        }
     }
 
     private fun todayNumber(game: GameId, archive: ArchiveProgress?): Int? =

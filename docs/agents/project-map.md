@@ -229,8 +229,9 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   → Unavailable; undecodable row deleted), `SlotWriter` (per-slot 300 ms trailing-throttle
   saves, `discard` on solve), `WriteLane` (one Mutex-ordered lane for every saved-play I/O),
   `LibraryRoute` + `LibraryViewModel` (Play tab's games library: a row per game with today's status;
-  two-pane shows the list beside the selected game's `GamePage` — `ArchiveDayCard` (play today),
-  calendar slot, `GameStatsCard`, `HowToPlayCard` (rules + Open the lesson); a phone pushes the
+  two-pane shows the list beside the selected game's `GamePage` — `ArchiveDayCard` (today, or the
+  picked past day → `GameKey(game, day)`), `ArchiveMonthCalendar` (`ArchiveMonthNav` ‹ › + jumps,
+  `ArchiveDayDisc` per day from `ObserveArchiveMonth`), `GameStatsCard`, `HowToPlayCard` (rules + Open the lesson); a phone pushes the
   page over the list), `GameRoute` + `GameViewModel` (one `GameKey`'s board; first-play tutorial
   and How to play via `TutorialGate`), `ResultRoute` + `ResultViewModel` (verdict + previous
   best live, Play again, Next unsolved), `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,

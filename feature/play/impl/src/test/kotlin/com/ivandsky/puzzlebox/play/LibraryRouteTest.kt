@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -22,6 +23,7 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
@@ -64,7 +66,8 @@ import org.robolectric.annotation.Config
  * beside the first game's page and a row tap switches it; the phone pushes a page from a
  * row and back returns to the list. The day card's action reports its game; opening the
  * library fetches today once, and an offline row's tap retries. "Open the lesson" runs
- * the game's tutorial. Stats before any solve show the empty layout.
+ * the game's tutorial. Stats before any solve show the empty layout. The page's calendar
+ * reaches any day from #1 to today (‹ › and the jumps) and the day card then plays it.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w1280dp-h900dp")
@@ -79,8 +82,8 @@ class LibraryRouteTest {
     private val daily = FakeDailyRepository()
     private val today = LocalDate.parse("2026-11-04")
 
-    /** Every game a test's day card asked to play, in order. */
-    private val played = ArrayList<GameId>()
+    /** Every game and day (null = today) a test's day card asked to play, in order. */
+    private val played = ArrayList<Pair<GameId, LocalDate?>>()
 
     private var koin: KoinApplication? = null
 
@@ -106,6 +109,7 @@ class LibraryRouteTest {
                     factory { ObserveGameHistory(get(), get(), get()) }
                     factory { ObserveGameStats(get(), get(), ComputeStreak(GetPuzzleDay(get()))) }
                     factory { ObserveArchiveProgress(get(), get(), get()) }
+                    factory { ObserveArchiveMonth(get(), get(), get(), get()) }
                 },
                 playModule,
             )
@@ -120,7 +124,7 @@ class LibraryRouteTest {
     private fun setContent(layout: PlayLayout) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                LibraryRoute(layout = layout, onPlay = { played.add(it) })
+                LibraryRoute(layout = layout, onPlay = { game, day -> played.add(game to day) })
             }
         }
     }
@@ -160,7 +164,7 @@ class LibraryRouteTest {
         assertEquals(1, daily.todayCalls(zip))
 
         tap("library.play")
-        assertEquals(listOf(zip), played)
+        assertEquals(listOf(zip to null), played)
         assertEquals(1, daily.todayCalls(zip))
     }
 
@@ -198,7 +202,7 @@ class LibraryRouteTest {
         assertEquals(before + 1, daily.todayCalls(alpha))
 
         tap("library.play")
-        assertEquals("offline, the action retries instead of playing", emptyList<GameId>(), played)
+        assertEquals("offline, the action retries instead of playing", emptyList<Pair<GameId, LocalDate?>>(), played)
         assertEquals(before + 2, daily.todayCalls(alpha))
     }
 
@@ -265,12 +269,15 @@ class LibraryRouteTest {
             PuzzleBoxTheme(darkTheme = false) {
                 LibraryScreen(
                     state = LibraryUiState(rows, zip, offline = false),
+                    page = null,
+                    month = null,
                     layout = PlayLayout.TwoPane,
                     hasLesson = { false },
                     onSelect = {},
-                    onPlay = {},
+                    onPlay = { _, _ -> },
                     onRetry = {},
                     onOpenLesson = {},
+                    calendar = CalendarActions(),
                 )
             }
         }
@@ -279,5 +286,51 @@ class LibraryRouteTest {
             3, // two rows plus the day card
             composeRule.onAllNodesWithTag("card.status_mark.loading", useUnmergedTree = true).fetchSemanticsNodes().size,
         )
+    }
+
+    @Test
+    fun `the calendar reaches any day from #1 to today and the day card plays it`() {
+        val first = LocalDate.parse("2025-01-10")
+        daily.setArchiveRange(zip, first..today)
+        setContent(PlayLayout.TwoPane)
+        awaitTag("library.calendar.month.2026-11")
+        composeRule.onNodeWithTag("library.calendar.jump.today").assertIsSelected()
+        awaitTag("library.day_card.day.$today")
+
+        tap("library.calendar.prev")
+        awaitTag("library.calendar.month.2026-10")
+        tap("library.calendar.jump.2025")
+        awaitTag("library.calendar.month.2025-10")
+        composeRule.onNodeWithTag("library.calendar.jump.2025").assertIsSelected()
+        tap("library.calendar.jump.first")
+        awaitTag("library.calendar.month.2025-01")
+        composeRule.onNodeWithTag("library.calendar.prev").assertIsNotEnabled()
+        composeRule.onNodeWithTag("library.calendar.day.2025-01-09").assertDoesNotExist()
+
+        tap("library.calendar.day.$first")
+        awaitTag("library.day_card.day.$first")
+        composeRule.onNodeWithTag("library.day_card.tag.past", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithTag("library.calendar.day.$first").assertIsSelected()
+        tap("library.play")
+        assertEquals(listOf(zip to first), played)
+
+        tap("library.day_card.back")
+        awaitTag("library.day_card.day.$today")
+        awaitTag("library.calendar.month.2026-11")
+        tap("library.play")
+        assertEquals(listOf(zip to first, zip to null), played)
+    }
+
+    @Test
+    fun `the last day before today plays from today's month`() {
+        daily.setArchiveRange(zip, today.minusDays(30)..today)
+        setContent(PlayLayout.TwoPane)
+        awaitTag("library.calendar.month.2026-11")
+        composeRule.onNodeWithTag("library.calendar.next").assertIsNotEnabled()
+        val yesterday = today.minusDays(1)
+        tap("library.calendar.day.$yesterday")
+        awaitTag("library.day_card.day.$yesterday")
+        tap("library.play")
+        assertEquals(listOf(zip to yesterday), played)
     }
 }

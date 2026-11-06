@@ -13,8 +13,8 @@ import com.ivandsky.puzzlebox.play.api.ResultKey
 
 /**
  * The play feature's routes. [PlayKey] is the Play tab's games library: a day card's
- * action pushes that game's [GameKey] (guarded against a double tap), so back returns to
- * the library (N2, N3). [onOpenHistory] is unused since the library replaced the hub's
+ * action pushes that game's [GameKey] for today, or with the day for a past one picked on
+ * the calendar (guarded against a double tap), so back returns to the library (N2, N3). [onOpenHistory] is unused since the library replaced the hub's
  * "Older puzzles" footer; it stays because the app's entry provider (outside this ticket)
  * still passes it. A [GameKey] on any stack draws its slot's live play: Up is
  * the navigator's back, and solving replaces the board with its slot's result, so back
@@ -28,7 +28,7 @@ fun EntryProviderScope<NavKey>.playEntry(
     entry<PlayKey> {
         LibraryRoute(
             layout = layout,
-            onPlay = { game -> navigator.pushOnce(GameKey(game.value)) },
+            onPlay = { game, day -> navigator.pushOnce(GameKey(game.value, day?.toString())) },
         )
     }
     entry<GameKey> { key ->

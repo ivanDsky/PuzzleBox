@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -30,6 +32,9 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.TutorialHost
 import com.ivandsky.puzzlebox.model.GameId
+import java.time.LocalDate
+import java.time.YearMonth
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 
@@ -37,21 +42,24 @@ import org.koin.compose.koinInject
  * The Play tab's root (A25–A29, N2): the games library. [PlayLayout.TwoPane] shows the
  * list beside the selected game's page, a game always selected; [PlayLayout.SinglePane]
  * shows the list and pushes a game's page over it, back returning to the list. The day
- * card's action is [onPlay] (the entry pushes the game's key, so back from the board
- * returns here, N3). A row whose today can't load also retries; each start prefetches
+ * card's action is [onPlay] with the shown day, null for today (the entry pushes the
+ * game's key, so back from the board returns here, N3). The page's calendar picks the
+ * day card's day and pages months ([LibraryViewModel.page]). A row whose today can't load also retries; each start prefetches
  * today's uncached puzzles ([LibraryViewModel.syncToday], A12). "Open the lesson" runs
  * the game's tutorial over the library.
  */
 @Composable
 internal fun LibraryRoute(
     layout: PlayLayout,
-    onPlay: (GameId) -> Unit,
+    onPlay: (GameId, LocalDate?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: LibraryViewModel = koinViewModel()
     val registry: GamePlayRegistry = koinInject()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val lesson by viewModel.lesson.collectAsStateWithLifecycle()
+    val page by viewModel.page.collectAsStateWithLifecycle()
+    val month by viewModel.shownMonth.collectAsStateWithLifecycle()
     LifecycleStartEffect(viewModel) {
         viewModel.syncToday()
         onStopOrDispose { }
@@ -59,12 +67,19 @@ internal fun LibraryRoute(
     Box(modifier.fillMaxSize().testTag("route.library")) {
         LibraryScreen(
             state = state,
+            page = page,
+            month = month,
             layout = layout,
             hasLesson = { registry[it]?.tutorial?.isNotEmpty() == true },
             onSelect = viewModel::select,
             onPlay = onPlay,
             onRetry = viewModel::syncToday,
             onOpenLesson = viewModel::openLesson,
+            calendar = CalendarActions(
+                onShowMonth = viewModel::showMonth,
+                onPick = viewModel::pick,
+                onBackToToday = viewModel::backToToday,
+            ),
         )
         val open = lesson
         val ui = open?.let { registry[it.game] }
@@ -80,16 +95,30 @@ internal fun LibraryRoute(
     }
 }
 
-/** The library for [state]: list and page side by side, or the phone's list → page push. */
+/** The calendar's callbacks: page a month, pick the day card's day, return to today. */
+internal class CalendarActions(
+    val onShowMonth: (YearMonth) -> Unit = {},
+    val onPick: (LocalDate) -> Unit = {},
+    val onBackToToday: () -> Unit = {},
+)
+
+/**
+ * The library for [state]: list and page side by side, or the phone's list → page push.
+ * [page] is the selected game's calendar and [month] the one it asked for (null = today's);
+ * on the phone a picked day scrolls the page up to the day card.
+ */
 @Composable
 internal fun LibraryScreen(
     state: LibraryUiState,
+    page: ArchivePageState?,
+    month: YearMonth?,
     layout: PlayLayout,
     hasLesson: (GameId) -> Boolean,
     onSelect: (GameId) -> Unit,
-    onPlay: (GameId) -> Unit,
+    onPlay: (GameId, LocalDate?) -> Unit,
     onRetry: () -> Unit,
     onOpenLesson: (GameId) -> Unit,
+    calendar: CalendarActions,
     modifier: Modifier = Modifier,
 ) {
     val listScroll = rememberScrollState()
@@ -102,6 +131,13 @@ internal fun LibraryScreen(
     @Composable
     fun Page(row: LibraryRowModel, onBack: (() -> Unit)?) {
         val game = row.card.game
+        val shown = page?.takeIf { it.game == game }
+        val past = shown?.picked
+        // This game's source, not the library's: another game's failed today says nothing about it.
+        val unreachable = row.card.status == TodayStatus.Offline
+        val scroll = rememberScrollState()
+        val scope = rememberCoroutineScope()
+        val reduced = rememberReducedMotion()
         GamePage(
             row = row,
             layout = layout,
@@ -109,15 +145,42 @@ internal fun LibraryScreen(
                 ArchiveDayCard(
                     row = row,
                     today = row.progress?.range?.endInclusive,
-                    onPlay = { onPlay(game) },
+                    past = past,
+                    offline = unreachable,
+                    onPlay = { onPlay(game, past?.date) },
                     onRetry = onRetry,
+                    onBackToToday = calendar.onBackToToday,
                 )
             },
-            calendar = {},
+            calendar = {
+                val range = row.progress?.range
+                if (range != null) {
+                    val shownMonth = month ?: YearMonth.from(range.endInclusive)
+                    ArchiveMonthCalendar(
+                        range = range,
+                        month = shownMonth,
+                        // Until the month's days load, its discs draw as outside rather than the old month's.
+                        days = shown?.takeIf { it.month == shownMonth }?.days.orEmpty(),
+                        picked = past?.date,
+                        offline = unreachable,
+                        accent = libraryCardColors(row.card.brand).fill,
+                        compact = layout == PlayLayout.SinglePane,
+                        onMonth = calendar.onShowMonth,
+                        onPick = { day ->
+                            calendar.onPick(day)
+                            if (layout == PlayLayout.SinglePane) {
+                                scope.launch { if (reduced) scroll.scrollTo(0) else scroll.animateScrollTo(0) }
+                            }
+                        },
+                        modifier = if (layout == PlayLayout.TwoPane) Modifier.fillMaxHeight() else Modifier,
+                    )
+                }
+            },
             onBack = onBack,
             onOpenLesson = { onOpenLesson(game) },
             offline = state.offline,
             hasLesson = hasLesson(game),
+            scroll = scroll,
         )
     }
     val selected = state.rows.firstOrNull { it.card.game == state.selected } ?: state.rows.firstOrNull()

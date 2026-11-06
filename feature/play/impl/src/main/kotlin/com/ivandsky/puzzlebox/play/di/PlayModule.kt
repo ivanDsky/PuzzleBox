@@ -51,7 +51,7 @@ val playModule = module {
             dispatchers = dispatchers,
         )
     }
-    viewModel { LibraryViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { LibraryViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
     viewModel { (key: ResultKey) -> ResultViewModel(key, get(), get(), get(), get(), get(), get(), get(), get()) }
 }
