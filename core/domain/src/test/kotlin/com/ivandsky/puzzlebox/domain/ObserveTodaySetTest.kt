@@ -4,6 +4,8 @@ import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
@@ -25,6 +27,9 @@ import org.junit.Test
 
 /** Today's set (A12–A14, SC10, SC11) over the core:testing fakes; Offline comes from [SyncTodayPuzzles]. */
 class ObserveTodaySetTest {
+
+    /** A friend-puzzle ref (ADR-0018): its key is custom, so it has no date. */
+    private data class CustomRef(override val gameId: GameId, override val key: PuzzleKey) : PuzzleRef
 
     private val gamma = GameId("gamma")
     private val today = LocalDate.of(2026, 11, 4)
@@ -222,5 +227,21 @@ class ObserveTodaySetTest {
 
         assertNull(set.nextUnsolved(after = gamma))
         assertNull(set.map { it.copy(status = TodayStatus.Solved(1L)) }.nextUnsolved(after = alpha))
+    }
+
+    @Test
+    fun `a custom record beside the dailies never marks today solved`() = runTest {
+        completions.setRecords(
+            listOf(
+                record(beta, today, time = 61_000L).copy(puzzleRef = CustomRef(alpha, PuzzleKey.Custom("ABC123"))),
+                record(beta, today, time = 61_000L),
+            ),
+        )
+
+        val status = statuses(todaySet().first())
+
+        assertEquals(TodayStatus.NotStarted, status[alpha])
+        assertEquals(TodayStatus.Solved(61_000L), status[beta])
+        assertEquals(TodayStatus.NotStarted, status[gamma])
     }
 }

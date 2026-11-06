@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -37,7 +38,8 @@ data class GameHistoryDay(
  * UNION the captured days of every game in [GameRegistry.all] (replayable through the daily cache; a solved day merges into its captured
  * row instead of duplicating it). Rows whose key no registered game can decode are
  * dropped upstream by the repository's preserve-or-drop read (A19), so every record here
- * is decodable. An unlisted game's records (the debug 9x9, ADR-0015) are dropped here, so
+ * is decodable. A custom (friend-puzzle) record has no day and adds no row (A12). An
+ * unlisted game's records (the debug 9x9, ADR-0015) are dropped here, so
  * no history, Home, stats or Profile surface ever shows them.
  *
  * Ordering is stable: records arrive newest-first (firstCompletedAtMs DESC) and each
@@ -62,7 +64,7 @@ class ObserveGameHistory(
             // Every game's solved day — typed identity straight off the ref, no casting.
             for (record in records) {
                 val ref = record.puzzleRef
-                if (ref.gameId !in listed) continue
+                if (ref.gameId !in listed || ref.key !is PuzzleKey.Daily) continue
                 rows[ref.gameId to ref.date] =
                     GameHistoryDay(ref.gameId, ref.date, ref.puzzleNumber, record)
             }

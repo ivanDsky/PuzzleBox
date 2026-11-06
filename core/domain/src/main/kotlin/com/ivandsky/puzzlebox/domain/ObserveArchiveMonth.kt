@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.temporal.ChronoUnit
@@ -18,7 +19,8 @@ import kotlinx.coroutines.flow.flowOf
  * Every day of [YearMonth] inside [game]'s archive range ([DailyRepository.archiveRange],
  * #1 .. today), ascending, from local data only (spec A27). Status follows
  * this precedence, Solved > InProgress > Stored > NeedsConnection, over one
- * combined flow of completion records, in-progress slots and the game's captured history;
+ * combined flow of daily completion records (a custom record fills no cell, A12),
+ * in-progress slots and the game's captured history;
  * the game's day ticks it, so today joins the month at the game's midnight. A game without
  * an archive has no days.
  *
@@ -46,7 +48,7 @@ class ObserveArchiveMonth(
             val first = maxOf(month.atDay(1), range.start)
             val last = minOf(month.atEndOfMonth(), range.endInclusive)
             if (first > last) return@combine emptyList()
-            val solved = records.filter { it.puzzleRef.gameId == game }.groupBy { it.puzzleRef.date }
+            val solved = records.filter { it.puzzleRef.gameId == game && it.puzzleRef.key is PuzzleKey.Daily }.groupBy { it.puzzleRef.date }
             val captured = entries.associateBy { it.day }
             (0..ChronoUnit.DAYS.between(first, last)).map { offset ->
                 val day = first.plusDays(offset)
