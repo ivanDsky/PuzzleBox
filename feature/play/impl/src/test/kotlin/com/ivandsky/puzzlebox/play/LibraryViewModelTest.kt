@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
@@ -23,6 +24,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
+import java.time.YearMonth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -40,7 +42,8 @@ import org.junit.Test
 /**
  * The library's state (A25–A29): rows in registry order with today's status, number,
  * archive progress and stats; the first game selected until [LibraryViewModel.select];
- * offline when any today can't load; the lesson opens and closing it marks it seen.
+ * offline when any today can't load; the lesson opens and closing it marks it seen; the
+ * page's calendar month and picked day (A26) survive a month change and reset to today.
  */
 class LibraryViewModelTest {
 
@@ -93,6 +96,7 @@ class LibraryViewModelTest {
             stats = ObserveGameStats(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games))),
             history = history,
             progress = ObserveArchiveProgress(daily, calendar, history),
+            archiveMonth = ObserveArchiveMonth(daily, saved, completions, calendar),
             calendar = calendar,
             games = fakes.games,
             registry = fakes.registry,
@@ -100,6 +104,7 @@ class LibraryViewModelTest {
             prefs = prefs,
         ).also { vm ->
             screen.launch { vm.uiState.collect {} }
+            screen.launch { vm.page.collect {} }
             dispatcher.scheduler.runCurrent()
         }
     }
@@ -165,5 +170,63 @@ class LibraryViewModelTest {
         dispatcher.scheduler.runCurrent()
         assertNull(vm.lesson.value)
         assertEquals(setOf(alpha), prefs.seen)
+    }
+
+    @Test
+    fun `the page opens on today's month with today on the day card`() {
+        daily.setArchiveRange(alpha, day.minusDays(60)..day)
+        val vm = observedVm()
+        val page = vm.page.value
+        assertNotNull(page)
+        assertEquals(alpha, page!!.game)
+        assertEquals(YearMonth.from(day), page.month)
+        assertEquals(day, page.days.last().date)
+        assertNull(page.picked)
+    }
+
+    @Test
+    fun `a picked day survives a month change until back to today`() {
+        daily.setArchiveRange(alpha, day.minusDays(60)..day)
+        val vm = observedVm()
+        val past = day.minusDays(2)
+        vm.pick(past)
+        dispatcher.scheduler.runCurrent()
+        assertEquals(past, vm.page.value?.picked?.date)
+
+        val earlier = YearMonth.from(day).minusMonths(1)
+        vm.showMonth(earlier)
+        assertEquals("the asked month leads its days", earlier, vm.shownMonth.value)
+        dispatcher.scheduler.runCurrent()
+        assertEquals(earlier, vm.page.value?.month)
+        assertEquals("the day card keeps its day", past, vm.page.value?.picked?.date)
+
+        vm.backToToday()
+        dispatcher.scheduler.runCurrent()
+        assertNull(vm.shownMonth.value)
+        assertEquals(YearMonth.from(day), vm.page.value?.month)
+        assertNull(vm.page.value?.picked)
+    }
+
+    @Test
+    fun `picking today returns to today and a game switch resets the page`() {
+        daily.setArchiveRange(alpha, day.minusDays(60)..day)
+        daily.setArchiveRange(beta, day.minusDays(60)..day)
+        val vm = observedVm()
+        vm.pick(day.minusDays(1))
+        vm.pick(day)
+        dispatcher.scheduler.runCurrent()
+        assertNull(vm.page.value?.picked)
+
+        vm.pick(day.minusDays(40))
+        vm.showMonth(YearMonth.from(day).minusMonths(2))
+        vm.select(alpha)
+        dispatcher.scheduler.runCurrent()
+        assertNotNull("re-selecting the open game keeps its day", vm.page.value?.picked)
+
+        vm.select(beta)
+        dispatcher.scheduler.runCurrent()
+        assertEquals(beta, vm.page.value?.game)
+        assertEquals(YearMonth.from(day), vm.page.value?.month)
+        assertNull(vm.page.value?.picked)
     }
 }

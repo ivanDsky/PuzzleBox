@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -34,7 +35,8 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
  * lays them in two columns that fill the pane and never scroll (left: day card over the
  * calendar; right: stats over how to play). [PlayLayout.SinglePane] stacks them in one
  * scrolling column under a back button ([onBack]; null hides it). [offline] adds the
- * offline pill; [hasLesson] false hides "Open the lesson" ([onOpenLesson]).
+ * offline pill; [hasLesson] false hides "Open the lesson" ([onOpenLesson]). [scroll] is
+ * the phone column's, so picking a day can bring the day card back into view.
  */
 @Composable
 internal fun GamePage(
@@ -47,6 +49,7 @@ internal fun GamePage(
     modifier: Modifier = Modifier,
     offline: Boolean = false,
     hasLesson: Boolean = true,
+    scroll: ScrollState = rememberScrollState(),
 ) {
     val reduced = rememberReducedMotion()
     val tag = "library.page.${row.card.game.value}"
@@ -74,7 +77,7 @@ internal fun GamePage(
             modifier = modifier
                 .fillMaxSize()
                 .testTag(tag)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scroll)
                 .padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.xl),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
