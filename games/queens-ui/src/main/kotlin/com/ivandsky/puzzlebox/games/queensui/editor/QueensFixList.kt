@@ -97,20 +97,25 @@ private fun letterOf(region: Int): String = ('A' + region).toString()
 
 /**
  * The verdict card's Queens fix list over [controller]'s draft: one row per problem
- * ([QueensFixRow.of]); a row's **Select** switches to Paint and selects its cells, so the
- * fix is one ring pick or one drag away. Draws nothing when there is nothing to fix.
+ * ([QueensFixRow.of]); a row's **Select** switches to Paint and selects its cells, then calls
+ * [onSelect] (the host closes the card), so the fix is one ring pick or one drag away. Draws
+ * nothing when there is nothing to fix.
  */
 @Composable
 internal fun QueensFixList(
     controller: QueensEditorController,
     verdict: Verdict,
     blocks: List<PublishBlock>,
+    onSelect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val editorDraft by controller.draft.collectAsState()
     val draft = editorDraft.state.draft as QueensDraft
     val rows = remember(draft, verdict, blocks) { QueensFixRow.of(draft, verdict, blocks) }
-    QueensFixRows(rows, draft.size, onSelect = { cells -> controller.selectFix(cells) }, modifier = modifier)
+    QueensFixRows(rows, draft.size, onSelect = { cells ->
+        controller.selectFix(cells)
+        onSelect()
+    }, modifier = modifier)
 }
 
 /** Paint mode with exactly [cells] selected; not an edit. */

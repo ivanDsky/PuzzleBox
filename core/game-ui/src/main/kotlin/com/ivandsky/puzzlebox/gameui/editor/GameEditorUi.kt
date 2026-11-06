@@ -29,11 +29,15 @@ interface GameEditorUi {
     /** Context line beside the tool strip; the default draws nothing. */
     @Composable fun ToolHint(controller: GameEditorController, modifier: Modifier) {}
 
-    /** Fix list inside the verdict card; the default draws nothing. */
+    /**
+     * Fix list inside the verdict card; the default draws nothing. A fix's Select calls
+     * [onSelect] once its cells are selected, and the host closes the card.
+     */
     @Composable fun Issues(
         controller: GameEditorController,
         verdict: Verdict,
         blocks: List<PublishBlock>,
+        onSelect: () -> Unit,
         modifier: Modifier,
     ) {}
 }

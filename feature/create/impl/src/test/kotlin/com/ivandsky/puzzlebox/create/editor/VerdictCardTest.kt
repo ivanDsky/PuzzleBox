@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
+import com.ivandsky.puzzlebox.create.FakeEditorController
 import com.ivandsky.puzzlebox.create.FakeGameEditor
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
 import com.ivandsky.puzzlebox.create.api.CreateKey
@@ -128,6 +129,19 @@ class VerdictCardTest {
         assertGrade(CARD_GRADE, NEEDS_GUESSING)
     }
 
+    @Test
+    fun `a fix's Select closes the card and leaves its cells selected`() {
+        open(marks = 1)
+        openCard()
+        composeRule.onNodeWithTag(CARD).assertExists()
+
+        composeRule.onNodeWithTag(FIX_SELECT).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(CARD).assertDoesNotExist()
+        assertEquals(FakeEditorController.FIX_CELLS, ui.controllers.single().selected)
+    }
+
     /** Taps the pill and lets the card's popover settle in its window. */
     private fun openCard() {
         composeRule.onNodeWithTag(PILL).performClick()
@@ -192,6 +206,7 @@ class VerdictCardTest {
         const val CARD = "create.verdict.card"
         const val CARD_GRADE = "create.verdict.grade"
         const val CHECK_AGAIN = "create.verdict.checkAgain"
+        const val FIX_SELECT = "fake.editor.fix.select"
         const val NEEDS_GUESSING = "NeedsGuessing"
 
         fun storedRow(blob: ByteArray) = Draft(
