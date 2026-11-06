@@ -72,8 +72,9 @@ jobs:
           echo "Using $apksigner"
           certs=$("$apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk)
           echo "$certs"
-          # Newer apksigner labels signers "Signer #1" or "Signer (minSdkVersion=…)"; every signer must be the release key.
-          actual=$(printf '%s\n' "$certs" | sed -n 's/^Signer.* certificate SHA-256 digest: //p' \
+          # Signer labels vary by build-tools: "Signer #1" (36), "V2 Signer:" (37), "Signer (minSdkVersion=…)".
+          # Every signer must be the release key; the source-stamp signer is not an app signer.
+          actual=$(printf '%s\n' "$certs" | sed -n '/^Source Stamp/d; s/^.*Signer[^:]*:\{0,1\} certificate SHA-256 digest: //p' \
             | tr -d ': ' | tr '[:upper:]' '[:lower:]' | sort -u)
           expected=$(echo "$RELEASE_CERT_SHA256" | tr -d ': ' | tr '[:upper:]' '[:lower:]')
           if [ -z "$actual" ] || [ "$actual" != "$expected" ]; then
