@@ -133,6 +133,14 @@ internal fun DayDetailPane(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    row.archiveNote?.let { note ->
+                        Text(
+                            text = note,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.testTag("history.detail.archived"),
+                        )
+                    }
                 }
             }
             ScoreCard(record = row.record, cardColor = cardColor)

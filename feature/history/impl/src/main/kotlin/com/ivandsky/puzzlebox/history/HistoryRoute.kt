@@ -44,6 +44,7 @@ fun HistoryRoute(
         onShowCalendar = viewModel::showCalendar,
         onSelectDay = viewModel::selectDay,
         onReplay = onReplay,
+        pastDay = viewModel::pastDay,
         modifier = modifier.testTag("route.history"),
     )
 }

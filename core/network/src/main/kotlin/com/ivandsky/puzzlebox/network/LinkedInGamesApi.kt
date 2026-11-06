@@ -15,10 +15,9 @@ import retrofit2.http.Query
  * sign-in), parameterised by the game's route ([path], e.g. `games/zip/`). The primary
  * route is the screen-load GET LinkedIn's own web client sends: stateless, cookieless,
  * csrf-free — gated only by the `x-li-rsc-stream` + `x-li-initial-url` header pair. The
- * response is a React Flight stream carrying the plain-quoted puzzle object. [stream],
- * [persistedQuery] and [graphql] return a [Response] wrapper so the throttle signature
- * (empty 200 + `location` header) is observable. Parsing is each game's extractor's job —
- * never a pinned path.
+ * response is a React Flight stream carrying the plain-quoted puzzle object. Every call
+ * returns a [Response] wrapper so the throttle signature (empty 200 + `location` header)
+ * is observable. Parsing is each game's extractor's job — never a pinned path.
  */
 internal interface LinkedInGamesApi {
 
@@ -45,7 +44,7 @@ internal interface LinkedInGamesApi {
     @POST("voyager/api/graphql")
     suspend fun graphql(@Body body: RequestBody): Response<ResponseBody>
 
-    /** Opportunistic last scan target: the SPA shell (anonymous SSR carries no puzzle today; R-19-1). */
+    /** The plain page GET: the session handshake (sets `JSESSIONID`, F1) and the opportunistic last scan target. */
     @GET("{path}")
-    suspend fun page(@Path("path", encoded = true) path: String): ResponseBody
+    suspend fun page(@Path("path", encoded = true) path: String): Response<ResponseBody>
 }

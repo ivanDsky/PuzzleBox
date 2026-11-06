@@ -20,13 +20,7 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.ComputeStreak
-import com.ivandsky.puzzlebox.domain.GetPuzzleDay
-import com.ivandsky.puzzlebox.domain.LoadPastDay
-import com.ivandsky.puzzlebox.domain.ObserveGameHistory
-import com.ivandsky.puzzlebox.domain.ObserveGameStats
-import com.ivandsky.puzzlebox.domain.ObserveTodaySet
-import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.domain.di.domainModule
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -129,12 +123,7 @@ class RealGamesPlayRouteTest {
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     // Every real game shares the America/Los_Angeles cadence zone.
                     single<GameCalendar> { FakeGameCalendar(cadenceToday) }
-                    factory { LoadPastDay(get(), get()) }
-                    single { SyncTodayPuzzles(get(), get(), get()) }
-                    factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
-                    // The hub's best times and puzzle numbers.
-                    factory { ObserveGameHistory(get(), get(), get()) }
-                    factory { ObserveGameStats(get(), get(), ComputeStreak(GetPuzzleDay(get()))) }
+
                     // Every tutorial seen: these paths are about the boards; the lessons have their own tests.
                     single<UserPreferencesRepository> {
                         FakeUserPreferencesRepository(
@@ -142,6 +131,8 @@ class RealGamesPlayRouteTest {
                         )
                     }
                 },
+                // The app's real use-case wiring, so the hub gets every use case it asks for (A20).
+                domainModule,
                 playModule,
             )
         }

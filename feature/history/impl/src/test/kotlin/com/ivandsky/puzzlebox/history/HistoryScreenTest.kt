@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.history
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
@@ -27,6 +28,8 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import java.time.LocalDate
+import java.util.TimeZone
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -63,6 +66,14 @@ class HistoryScreenTest {
     private var shellBacks = 0
 
     private val day: LocalDate = HistoryTestSupport.TODAY
+
+    /** "Opened" is a wall-clock date in the device zone; tests that read it pin the zone. */
+    private val hostZone: TimeZone = TimeZone.getDefault()
+
+    @After
+    fun restoreZone() {
+        TimeZone.setDefault(hostZone)
+    }
 
     private fun setContent(
         zips: List<DailyEntry> = emptyList(),
@@ -371,7 +382,7 @@ class HistoryScreenTest {
     }
 
     @Test
-    fun `older puzzles opens one archive game's picker and replays the picked day`() {
+    fun `older puzzles opens one archive game's picker on yesterday and replays the picked day`() {
         val range = day.minusDays(30)..day
         setContent(listOf(HistoryTestSupport.entry(day)), archives = mapOf(TANGO to range))
 
@@ -381,7 +392,7 @@ class HistoryScreenTest {
         composeRule.onNodeWithTag("history.older.open").performClick()
 
         composeRule.waitUntil(5_000) { handedToShell != null }
-        assertEquals(TANGO to day, handedToShell)
+        assertEquals(TANGO to day.minusDays(1), handedToShell)
     }
 
     @Test
@@ -397,7 +408,7 @@ class HistoryScreenTest {
         composeRule.onNodeWithTag("history.older.open").performClick()
 
         composeRule.waitUntil(5_000) { handedToShell != null }
-        assertEquals(TANGO to day, handedToShell)
+        assertEquals(TANGO to day.minusDays(1), handedToShell)
     }
 
     @Test
@@ -406,6 +417,36 @@ class HistoryScreenTest {
 
         awaitRow(ZIP)
         assertNoTag(OLDER)
+    }
+
+    @Test
+    fun `an archived row carries the archive tag and its detail the streak note`() {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+        val past = day.minusDays(30)
+        setContent(
+            zips = listOf(HistoryTestSupport.entry(past, fetchedAtMs = fetchedAtMs(day)).copy(archived = true)),
+            records = listOf(HistoryTestSupport.record(past)),
+        )
+
+        awaitRow(ZIP, past)
+        awaitTag("history.archived.zip/$past")
+        openRow(ZIP, past)
+        awaitTag("history.detail.archived")
+        composeRule.onNodeWithTag("history.detail.archived", useUnmergedTree = true)
+            .assertTextEquals("Opened Nov 3 · doesn't count toward your streak")
+    }
+
+    @Test
+    fun `a same-day row shows neither the archive tag nor the note`() {
+        setContent(
+            zips = listOf(HistoryTestSupport.entry(day, fetchedAtMs = fetchedAtMs(day))),
+            records = listOf(HistoryTestSupport.record(day)),
+        )
+
+        awaitRow(ZIP)
+        assertNoTag("history.archived.zip/$day")
+        openRow(ZIP)
+        assertNoTag("history.detail.archived")
     }
 
     private companion object {

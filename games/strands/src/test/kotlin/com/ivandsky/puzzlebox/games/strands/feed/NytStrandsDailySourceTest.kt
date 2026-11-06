@@ -5,11 +5,14 @@ import com.ivandsky.puzzlebox.game.FetchResult
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.StrandsFixtures
+import com.ivandsky.puzzlebox.games.strands.StrandsNumber
 import com.ivandsky.puzzlebox.games.strands.StrandsPuzzleRef
 import com.ivandsky.puzzlebox.games.strands.codec.StrandsCodec
 import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -68,5 +71,30 @@ class NytStrandsDailySourceTest {
     fun `a body missing a field is Untrusted`() = runTest {
         val source = NytStrandsDailySource { FetchResult.Ok(StrandsFixtures.json(day).replace("\"clue\"", "\"clueX\"")) }
         assertEquals(FetchResult.Err(FetchError.Untrusted("missing clue")), source.fetchDaily(day))
+    }
+
+    @Test
+    fun `puzzleNumber is the date-derived number from #1 on, null before it`() {
+        val source = NytStrandsDailySource { error("puzzleNumber never fetches") }
+        assertEquals(977, source.puzzleNumber(day))
+        assertEquals(1, source.puzzleNumber(StrandsNumber.EPOCH))
+        assertEquals(source.archiveSince, StrandsNumber.EPOCH)
+        assertNull(source.puzzleNumber(StrandsNumber.EPOCH.minusDays(1)))
+    }
+
+    @Test
+    fun `a past day fetches the same dated GET as fetchDaily`() = runTest {
+        val paths = mutableListOf<String>()
+        val source = NytStrandsDailySource { path -> paths += path; FetchResult.Ok(StrandsFixtures.json(day)) }
+
+        assertEquals(source.fetchDaily(day), source.fetchPast(day))
+        assertEquals(listOf("svc/strands/v2/2026-11-05.json", "svc/strands/v2/2026-11-05.json"), paths)
+    }
+
+    @Test
+    fun `no stored Strands puzzle is a placeholder`() = runTest {
+        val source = NytStrandsDailySource { FetchResult.Ok(StrandsFixtures.json(day)) }
+        val puzzle = (source.fetchDaily(day) as FetchResult.Ok).value.puzzle
+        assertFalse(source.isPlaceholder(puzzle))
     }
 }

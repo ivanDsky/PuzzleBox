@@ -84,6 +84,9 @@ class DiGraphTest : KoinTest {
                 setOf(GameId("zip"), GameId("tango"), GameId("queens"), GameId("minisudoku"), GameId("sudoku"), GameId("strands")),
                 koin.getAll<DailySource>().map { it.gameId }.toSet(),
             )
+            // A9: one bound source per game — the repository's associateBy would silently keep the last.
+            val boundIds = koin.getAll<DailySource>().map { it.gameId }
+            assertEquals("a gameId is bound to more than one DailySource", boundIds.distinct(), boundIds)
             assertNotNull(koin.get<UserPreferencesRepository>())
             // Ticket 16: backend bindings resolve against the app-provided scope.
             assertNotNull(koin.get<IdentityService>())
