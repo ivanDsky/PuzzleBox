@@ -13,6 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -69,8 +71,10 @@ internal const val UNPAINTED_DESCRIPTION = "unpainted"
  * and edges over the [controller]'s draft, an unpainted cell left on the surface tone. A tap
  * toggles the cell under it (edge-clamped, as in play); a drag adds every cell it crosses.
  * The selection wears an accent wash and outline, and while it is non-empty the colour
- * ring sits at the lift point, pushed back inside the board. Each cell says its region's
- * hue in its state description, so tests read the painting without pixels.
+ * ring sits at the lift point, pushed back inside the board. The context bar below counts
+ * the selection; its Area and All of colour chips grow it and re-open the ring at the new
+ * centroid. Each cell says its region's hue in its state description, so tests read the
+ * painting without pixels.
  */
 @Composable
 internal fun QueensEditorBoard(controller: QueensEditorController, modifier: Modifier = Modifier) {
@@ -84,74 +88,78 @@ internal fun QueensEditorBoard(controller: QueensEditorController, modifier: Mod
     var dragging by remember { mutableStateOf(false) }
     var boardSize by remember { mutableStateOf(IntSize.Zero) }
     CompositionLocalProvider(LocalQueensReducedMotion provides reducedMotion) {
-        Box(
-            modifier = modifier
-                .aspectRatio(1f)
-                .testTag("queens.editor.board")
-                .onSizeChanged { boardSize = it }
-                .pointerInput(controller, n) {
-                    detectTapGestures(onTap = { offset ->
-                        lift = offset
-                        controller.tap(cellAt(offset, size.toSize(), n))
-                    })
-                }
-                .pointerInput(controller, n) {
-                    var last = Offset.Zero
-                    detectDragGestures(
-                        onDragStart = { start ->
-                            dragging = true
-                            last = start
-                            controller.add(listOf(cellAt(start, size.toSize(), n)))
-                        },
-                        onDragEnd = {
-                            dragging = false
-                            lift = last
-                        },
-                        onDragCancel = { dragging = false },
-                    ) { change, _ ->
-                        controller.add(crossed(last, change.position, size.toSize(), n))
-                        last = change.position
+        Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .aspectRatio(1f, matchHeightConstraintsFirst = true)
+                    .testTag("queens.editor.board")
+                    .onSizeChanged { boardSize = it }
+                    .pointerInput(controller, n) {
+                        detectTapGestures(onTap = { offset ->
+                            lift = offset
+                            controller.tap(cellAt(offset, size.toSize(), n))
+                        })
                     }
-                },
-        ) {
-            val unpainted = MaterialTheme.colorScheme.surfaceContainerHighest
-            BoardGrid(
-                rows = n,
-                cols = n,
-                modifier = Modifier.matchParentSize(),
-                cellContent = { row, col ->
-                    val idx = row * n + col
-                    val region = board.regions[idx]
-                    Box(
-                        Modifier
-                            .fillMaxSize()
-                            .testTag("queens.editor.cell.$idx")
-                            .semantics { stateDescription = describe(region) },
-                    ) {
-                        if (region == QueensDraft.UNPAINTED) {
-                            Box(Modifier.fillMaxSize().background(unpainted))
-                        } else {
-                            QueensCell(model = model, idx = idx)
+                    .pointerInput(controller, n) {
+                        var last = Offset.Zero
+                        detectDragGestures(
+                            onDragStart = { start ->
+                                dragging = true
+                                last = start
+                                controller.add(listOf(cellAt(start, size.toSize(), n)))
+                            },
+                            onDragEnd = {
+                                dragging = false
+                                lift = last
+                            },
+                            onDragCancel = { dragging = false },
+                        ) { change, _ ->
+                            controller.add(crossed(last, change.position, size.toSize(), n))
+                            last = change.position
                         }
-                    }
-                },
-            )
-            val edgeInk = MaterialTheme.colorScheme.onSurface
-            val hintColor = LocalBoardColors.current.boardSelection
-            val accent = QueensBrand.accent.colors().accent
-            Canvas(Modifier.matchParentSize()) {
-                drawCellEdges(model, hintColor, edgeInk)
-                drawSelection(selection, n, accent)
+                    },
+            ) {
+                val unpainted = MaterialTheme.colorScheme.surfaceContainerHighest
+                BoardGrid(
+                    rows = n,
+                    cols = n,
+                    modifier = Modifier.matchParentSize(),
+                    cellContent = { row, col ->
+                        val idx = row * n + col
+                        val region = board.regions[idx]
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .testTag("queens.editor.cell.$idx")
+                                .semantics { stateDescription = describe(region) },
+                        ) {
+                            if (region == QueensDraft.UNPAINTED) {
+                                Box(Modifier.fillMaxSize().background(unpainted))
+                            } else {
+                                QueensCell(model = model, idx = idx)
+                            }
+                        }
+                    },
+                )
+                val edgeInk = MaterialTheme.colorScheme.onSurface
+                val hintColor = LocalBoardColors.current.boardSelection
+                val accent = QueensBrand.accent.colors().accent
+                Canvas(Modifier.matchParentSize()) {
+                    drawCellEdges(model, hintColor, edgeInk)
+                    drawSelection(selection, n, accent)
+                }
+                SelectionRing(
+                    visible = selection.isNotEmpty() && !dragging,
+                    board = board,
+                    selection = selection,
+                    lift = lift,
+                    boardSize = boardSize,
+                    reducedMotion = reducedMotion,
+                    onPick = controller::pick,
+                )
             }
-            SelectionRing(
-                visible = selection.isNotEmpty() && !dragging,
-                board = board,
-                selection = selection,
-                lift = lift,
-                boardSize = boardSize,
-                reducedMotion = reducedMotion,
-                onPick = controller::pick,
-            )
+            QueensSelectionChips(controller, onGrown = { lift = centroid(it, n, boardSize) })
         }
     }
 }
@@ -201,6 +209,12 @@ private fun SelectionRing(
 private fun QueensEditorController.add(cells: List<Int>) {
     cells.forEach { if (it !in selection.value) tap(it) }
 }
+
+/** The middle of [cells] in board pixels, where the ring re-opens after a chip grows the selection. */
+private fun centroid(cells: Set<Int>, n: Int, board: IntSize): Offset = Offset(
+    x = (cells.sumOf { it % n }.toFloat() / cells.size + 0.5f) * board.width / n,
+    y = (cells.sumOf { it / n }.toFloat() / cells.size + 0.5f) * board.height / n,
+)
 
 /** Keeps a [half]-wide ring inside [extent]; a board smaller than the ring centres it. */
 private fun clampCentre(at: Float, half: Float, extent: Float): Float =
