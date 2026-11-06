@@ -20,8 +20,9 @@ import kotlinx.coroutines.withContext
  * Cache-first daily for every registered game (A7/A8, ADR-0012). Fresh fetches overwrite
  * the row (a source may revise the daily before first play); failed fetches degrade to
  * the cached row with the sealed error attached. A past day is served from cache, and
- * fetched on a miss only when its source declares `archiveSince` — the LinkedIn feeds
- * ignore the date, so fetching a past day there would store today's puzzle under it.
+ * fetched on a miss only when its source declares `archiveSince`: through `fetchPast`
+ * before the game's today, `fetchDaily` on it (A5). A past day's row the source calls a
+ * placeholder is a miss (A10); a failed refetch is Failed, never the placeholder.
  * Rows share the `puzzle_dailies` store keyed by `gameId`; cached payloads decode through
  * the owning game's definition from [registry].
  *
@@ -75,12 +76,16 @@ internal class OfflineFirstDailyRepository(
 
     override suspend fun day(game: GameId, day: LocalDate): DailyDay = withContext(dispatchers.io) {
         val definition = registry[game]?.definition ?: return@withContext DailyDay.NotCaptured
+        val past = calendar.today(game)?.let(day::isBefore) == true
         dao.get(game.value, day.toString())?.let { row ->
-            row.toPuzzle(definition)?.let { return@withContext DailyDay.Ready(it, row.puzzleNumber) }
+            row.toPuzzle(definition)
+                ?.takeUnless { past && sources[game]?.isPlaceholder(it) == true }
+                ?.let { return@withContext DailyDay.Ready(it, row.puzzleNumber) }
         }
         val range = archiveRange(game) ?: return@withContext DailyDay.NotCaptured
         if (day !in range) return@withContext DailyDay.OutOfRange
-        when (val fetch = sources.getValue(game).fetchDaily(day)) {
+        val source = sources.getValue(game)
+        when (val fetch = if (past) source.fetchPast(day) else source.fetchDaily(day)) {
             is FetchResult.Ok -> {
                 dao.upsert(fetch.value.puzzle.toEntity(fetch.value.ref, clock()))
                 DailyDay.Ready(fetch.value.puzzle, fetch.value.ref.puzzleNumber)
@@ -94,6 +99,8 @@ internal class OfflineFirstDailyRepository(
         val today = calendar.today(game) ?: return null
         return since..today
     }
+
+    override fun puzzleNumber(game: GameId, day: LocalDate): Int? = sources[game]?.puzzleNumber(day)
 
     private suspend fun cachedRow(game: GameId, day: LocalDate): Puzzle? {
         val definition = registry[game]?.definition ?: return null

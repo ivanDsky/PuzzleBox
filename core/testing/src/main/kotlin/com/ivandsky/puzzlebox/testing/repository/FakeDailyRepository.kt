@@ -14,7 +14,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * Scriptable in-memory [DailyRepository] for feature and app tests, keyed by [GameId]
  * like the real one: per-game scripted [today] results (counted), per-game history
  * flows (newest first, live via [addEntry]), cached days ([setCached]), per-game
- * [archiveRange]s and per-day scripted [day] outcomes (counted). An unscripted [today]
+ * [archiveRange]s, per-game [puzzleNumber]s ([setPuzzleNumbers]; none by default) and
+ * per-day scripted [day] outcomes (counted). An unscripted [today]
  * fails loudly — history surfaces are cache-only (A8) and must never fetch. An unscripted
  * [day] mirrors the real read: the [setCached] puzzle (numbered from history) is Ready,
  * no archive is NotCaptured, outside the range is OutOfRange, and an in-range miss —
@@ -29,6 +30,7 @@ class FakeDailyRepository : DailyRepository {
     private val archiveRanges = mutableMapOf<GameId, ClosedRange<LocalDate>>()
     private val dayResults = mutableMapOf<Pair<GameId, LocalDate>, DailyDay>()
     private val dayCallCounts = mutableMapOf<Pair<GameId, LocalDate>, Int>()
+    private val puzzleNumbers = mutableMapOf<GameId, (LocalDate) -> Int?>()
 
     /** Scripts [game]'s next (and every following) [today] outcome. */
     fun setToday(game: GameId, result: DailyToday) {
@@ -70,6 +72,11 @@ class FakeDailyRepository : DailyRepository {
     /** How many times [day] ran for [game]'s [day]. */
     fun dayCalls(game: GameId, day: LocalDate): Int = dayCallCounts[game to day] ?: 0
 
+    /** Declares [game]'s source numbering ([numbering] null = none, the default). */
+    fun setPuzzleNumbers(game: GameId, numbering: ((LocalDate) -> Int?)?) {
+        if (numbering == null) puzzleNumbers -= game else puzzleNumbers[game] = numbering
+    }
+
     override suspend fun today(game: GameId): DailyToday {
         calls[game] = todayCalls(game) + 1
         return todayResults[game] ?: error("no today() scripted for ${game.value} (history is cache-only, A8)")
@@ -90,6 +97,8 @@ class FakeDailyRepository : DailyRepository {
     }
 
     override fun archiveRange(game: GameId): ClosedRange<LocalDate>? = archiveRanges[game]
+
+    override fun puzzleNumber(game: GameId, day: LocalDate): Int? = puzzleNumbers[game]?.invoke(day)
 
     private fun history(game: GameId): MutableStateFlow<List<DailyEntry>> =
         histories.getOrPut(game) { MutableStateFlow(emptyList()) }

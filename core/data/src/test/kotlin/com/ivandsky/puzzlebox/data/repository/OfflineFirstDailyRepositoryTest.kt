@@ -331,6 +331,85 @@ class OfflineFirstDailyRepositoryTest {
     }
 
     @Test
+    fun `a past day fetches through fetchPast, today through fetchDaily`() = runTest {
+        val archive = archiveRepository()
+        alphaSource.nextPuzzle = TestGames.puzzle(alpha)
+
+        archive.day(alpha, pastDay)
+        archive.day(alpha, today)
+
+        assertEquals(listOf(pastDay), alphaSource.requestedPastDates)
+        assertEquals(listOf(pastDay, today), alphaSource.requestedDates)
+    }
+
+    @Test
+    fun `today's live path never calls fetchPast`() = runTest {
+        alphaSource.nextPuzzle = TestGames.puzzle(alpha)
+
+        archiveRepository().today(alpha)
+
+        assertEquals(listOf(today), alphaSource.requestedDates)
+        assertTrue(alphaSource.requestedPastDates.isEmpty())
+    }
+
+    @Test
+    fun `a stored placeholder is a miss - refetched by date and replaced by the real puzzle`() = runTest {
+        val stand = TestGames.puzzle(alpha, tag = 9)
+        alphaSource.placeholder = stand
+        db.puzzleDailyDao().upsert(stand.toEntity(Ref(alpha, pastDay, 584), noonOf(pastDay)))
+        alphaSource.nextPuzzle = TestGames.puzzle(alpha, tag = 7)
+        alphaSource.nextPuzzleNumber = 584
+        nowMs = 5_000L
+
+        val result = archiveRepository().day(alpha, pastDay)
+
+        result as DailyDay.Ready
+        assertEquals(7.toByte(), result.puzzle.payload[1])
+        assertEquals(listOf(pastDay), alphaSource.requestedPastDates)
+        val row = db.puzzleDailyDao().get("alpha", pastDay.toString())!!
+        assertEquals(7.toByte(), row.payload[1])
+        assertEquals(5_000L, row.fetchedAtMs)
+    }
+
+    @Test
+    fun `a placeholder whose refetch fails is Failed, never served, and stays stored`() = runTest {
+        val stand = TestGames.puzzle(alpha, tag = 9)
+        alphaSource.placeholder = stand
+        db.puzzleDailyDao().upsert(stand.toEntity(Ref(alpha, pastDay, 584), noonOf(pastDay)))
+        alphaSource.nextError = FetchError.Unavailable("offline")
+
+        val result = archiveRepository().day(alpha, pastDay)
+
+        assertTrue(result is DailyDay.Failed && result.error is FetchError.Unavailable)
+        assertEquals(listOf(pastDay), alphaSource.requestedPastDates)
+        assertEquals(9.toByte(), db.puzzleDailyDao().get("alpha", pastDay.toString())!!.payload[1])
+    }
+
+    @Test
+    fun `a stored real puzzle never refetches, even for a source that declares placeholders`() = runTest {
+        alphaSource.placeholder = TestGames.puzzle(alpha, tag = 9)
+        db.puzzleDailyDao().upsert(TestGames.puzzle(alpha, tag = 7).toEntity(Ref(alpha, pastDay, 584), noonOf(pastDay)))
+        alphaSource.nextPuzzle = TestGames.puzzle(alpha, tag = 8)
+
+        val result = archiveRepository().day(alpha, pastDay)
+
+        assertEquals(7.toByte(), (result as DailyDay.Ready).puzzle.payload[1])
+        assertTrue(alphaSource.requestedDates.isEmpty())
+    }
+
+    @Test
+    fun `puzzleNumber passes the source's number through, null without one`() {
+        alphaSource.puzzleNumbers = { day -> if (day == pastDay) 584 else null }
+        val archive = archiveRepository()
+
+        assertEquals(584, archive.puzzleNumber(alpha, pastDay))
+        assertNull(archive.puzzleNumber(alpha, today))
+        assertNull(archive.puzzleNumber(beta, pastDay))
+        assertNull(archive.puzzleNumber(GameId("strands"), pastDay))
+        assertTrue(alphaSource.requestedDates.isEmpty())
+    }
+
+    @Test
     fun `history marks archived only rows fetched after their own day`() = runTest {
         val dao = db.puzzleDailyDao()
         val live = LocalDate.of(2026, 10, 30)
