@@ -31,8 +31,10 @@ import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.domain.PastDay
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
 
 /**
  * The history browser (spec A18): tabs for All and each game, the tab's stats and a
@@ -45,6 +47,10 @@ import java.time.LocalDate
  *
  * Replay (A4, ticket 11): tapping a day opens its detail; "Play again" / "Keep going"
  * reports the (game, day) through [onReplay] and the shell opens that day's game slot.
+ * On a game's tab any archive day can be picked on the calendar; its day header's action
+ * reports through [onReplay] too (ticket 09).
+ * "Older puzzles" opens any archive game's date picker, its headline the selected day as
+ * [pastDay] reads it; opening a day there reports through [onReplay] as well.
  * Every identity (selection, best lookup, replay) is (game, day), never day alone
  * (tango-05). A selection outside the [selectedTab] closes, back to the list.
  */
@@ -59,6 +65,7 @@ fun HistoryScreen(
     onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit,
     onSelectDay: (LocalDate?) -> Unit,
     onReplay: (GameId, LocalDate) -> Unit,
+    pastDay: (GameId, LocalDate) -> Flow<PastDay>,
     modifier: Modifier = Modifier,
 ) {
     var selectedKey by rememberSaveable { mutableStateOf<String?>(null) }
@@ -101,6 +108,7 @@ fun HistoryScreen(
                     onSelectDay = onSelectDay,
                     selectedKey = selectedRow?.key,
                     onDayClick = { selectedKey = it.key },
+                    onReplay = onReplay,
                     onBack = onBack,
                     cardColor = cardColor,
                     modifier = Modifier
@@ -149,6 +157,7 @@ fun HistoryScreen(
                         onSelectDay = onSelectDay,
                         selectedKey = null,
                         onDayClick = { selectedKey = it.key },
+                        onReplay = onReplay,
                         onBack = onBack,
                         cardColor = cardColor,
                         modifier = Modifier.fillMaxSize(),
@@ -170,6 +179,7 @@ fun HistoryScreen(
             OlderPuzzles(
                 games = state.archiveGames,
                 onOpen = onReplay,
+                pastDay = pastDay,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(Spacing.lg),
@@ -184,12 +194,14 @@ private fun HistoryUiState.bestOf(row: HistoryDayRow): HistoryDayRow? =
 
 /**
  * The "Older puzzles" entry (A12): one archive game opens its date picker directly,
- * several ask for the game first. The picked (game, day) goes out as a replay.
+ * several ask for the game first. The picked (game, day) goes out as a replay; the
+ * picker's headline reads the selected day through [pastDay].
  */
 @Composable
 private fun OlderPuzzles(
     games: List<ArchiveGame>,
     onOpen: (GameId, LocalDate) -> Unit,
+    pastDay: (GameId, LocalDate) -> Flow<PastDay>,
     modifier: Modifier = Modifier,
 ) {
     var choosing by rememberSaveable { mutableStateOf(false) }
@@ -217,6 +229,8 @@ private fun OlderPuzzles(
     picking?.let { game ->
         OlderPuzzlesPicker(
             range = game.range,
+            gameName = game.name,
+            pastDay = { day -> pastDay(game.gameId, day) },
             onOpen = { day ->
                 pickingId = null
                 onOpen(game.gameId, day)

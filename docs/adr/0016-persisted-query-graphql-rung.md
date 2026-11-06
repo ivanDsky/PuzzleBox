@@ -13,6 +13,10 @@ GraphQL rung POSTs a raw body to bare `voyager/api/graphql`, and LinkedIn answer
 403 for any body (verified live 2026-11-05). So no game can fetch Mini Sudoku through the
 current seam.
 
+> **Amended (F1, d7fcb31):** the stream GET sets no `JSESSIONID` — only the plain page GET
+> of the game's route does (research 01 §2). Without it the csrf echo is missing and
+> LinkedIn answers 403 `CSRF check failed.`
+
 ## Decision
 1. **`FeedRequest.persistedQuery: PersistedQuery?`** (`core:game`) carries `queryId` and the
    Rest.li `variables` string (e.g. `(gameTypeId:7)`), both sent verbatim.
@@ -22,6 +26,12 @@ current seam.
    so the parentheses and colon reach LinkedIn unescaped. The existing csrf interceptor signs
    it. The response is accepted by the game's extractor like every other rung's.
    Throttle and failure accounting are the same as for the other rungs.
+
+   > **Amended (F1, d7fcb31):** the stream does not seed the jar. Before the first session
+   > rung (this GET or the POST), and only while the jar holds no `JSESSIONID`, the
+   > transport sends one plain page GET as the session handshake; a 403 on the rung is an
+   > `Unavailable` naming it, never retried. A request may skip the stream
+   > (`FeedRequest.stream = false`), as ADR-0017's past-day request does.
 3. **The hash is data.** Each game keeps its `queryId` as one constant. A rotated hash
    surfaces as `Unavailable` and degrades to cache. There is no guessing and no seed fallback.
 4. **Queens' bare-POST GraphQL body is not changed.** It already 403s. The stream rung still

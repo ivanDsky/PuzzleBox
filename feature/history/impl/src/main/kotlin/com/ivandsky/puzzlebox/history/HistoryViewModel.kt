@@ -9,6 +9,8 @@ import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ObservePastDay
+import com.ivandsky.puzzlebox.domain.PastDay
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
@@ -36,11 +39,14 @@ import kotlinx.coroutines.flow.stateIn
  *
  * The calendar shows the week — or, [calendarExpanded], the month — holding
  * [calendarDay] (null until the first emission), between [earliestDay] (History's
- * oldest row, any game — stable across tabs) and [today].
+ * oldest row, any game, or a game tab's archive start when that is older) and [today].
  * [solvedByDay] holds each day's numbered solves as brands, [gamesPerDay] ring segments a day —
  * every game on All, one on a game's tab — and [daysWithRows] the days the tab has any
- * row (solved or not). [selectedDay] filters the list to one day and survives tab
- * switches. [today] is the puzzle day the list's "Today" / "Yesterday" count from.
+ * row (solved or not). [archiveRange] is a game tab's openable days (null on All or a
+ * game without an archive). [selectedDay] filters the list to one day and survives tab
+ * switches; on a game tab, [pastDay] is that day's number and status for the day header
+ * (null on All or before it loads). [today] is the puzzle day the list's "Today" /
+ * "Yesterday" count from.
  */
 data class HistoryUiState(
     val tabs: List<HistoryTab> = emptyList(),
@@ -52,10 +58,19 @@ data class HistoryUiState(
     val selectedDay: LocalDate? = null,
     val solvedByDay: Map<LocalDate, List<GameBrand>> = emptyMap(),
     val daysWithRows: Set<LocalDate> = emptySet(),
+    val archiveRange: ClosedRange<LocalDate>? = null,
+    val pastDay: PastDay? = null,
     val gamesPerDay: Int = 0,
     val today: LocalDate? = null,
     val archiveGames: List<ArchiveGame> = emptyList(),
-)
+) {
+    /**
+     * Whether the calendar's [date] taps: never after today; on All only a day with rows,
+     * on a game's tab also any day of its [archiveRange] (ticket 09).
+     */
+    fun canSelect(date: LocalDate): Boolean =
+        today != null && date <= today && (date in daysWithRows || archiveRange?.contains(date) == true)
+}
 
 /**
  * History's state holder: cache-only reads over the GAME-AGNOSTIC merged history
@@ -71,13 +86,17 @@ data class HistoryUiState(
  * game's best row is its best numbered solve under its ranking — the row those stats' best reads.
  *
  * Calendar: [showCalendar] picks the shown week or month and the mode (clamped in the
- * state to the days with history, never past today) and [selectDay] toggles a one-day
- * filter. Both live here beside the tab, so a rotation keeps the calendar, the filter
- * and the rows they are clamped to together.
+ * state to the days with history — on a game tab also its archive range — never past
+ * today) and [selectDay] toggles a one-day filter. Both live here beside the tab, so a
+ * rotation keeps the calendar, the filter and the rows they are clamped to together.
+ *
+ * Day header (ticket 09, spec A20): on a game tab the selected day's number and status
+ * come from [ObservePastDay] — local data only, so showing it never fetches.
  *
  * Older puzzles (A12): [HistoryUiState.archiveGames] are the registered games whose
  * source has an archive ([DailyRepository.archiveRange]), re-read on every emission so
- * the range's end moves with the day.
+ * the range's end moves with the day; the picker's headline reads its selected day
+ * through [pastDay] ([ObservePastDay]: local data only, so moving the selection fetches nothing).
  *
  * Replay is navigation only (ticket 11): the route reports the (game, day) and the play
  * store opens that day's slot — History never builds a session blob.
@@ -90,6 +109,7 @@ class HistoryViewModel(
     private val registry: GameRegistry,
     private val playRegistry: GamePlayRegistry,
     private val puzzleDay: GetPuzzleDay,
+    private val observePastDay: ObservePastDay,
     private val daily: DailyRepository,
 ) : ViewModel() {
 
@@ -122,15 +142,23 @@ class HistoryViewModel(
         )
     }.distinctUntilChanged().shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
+    // The game tab's selected day (null on All or without a day), as ObservePastDay reads it.
+    private val pastDay: Flow<PastDay?> = combine(tab, day) { game, selected -> game to selected }
+        .flatMapLatest { (game, selected) ->
+            if (game == null || selected == null) flowOf(null) else observePastDay(game, selected)
+        }
+
     val uiState: StateFlow<HistoryUiState> = combine(
         tabRows,
         tab.flatMapLatest { observeGameStats(it) },
         calendar,
         day,
-    ) { (game, rows, oldest), stats, (wanted, wide), selected ->
+        pastDay,
+    ) { (game, rows, oldest), stats, (wanted, wide), selected, past ->
         val order = if (game == null) tabs.map { it.gameId } else listOf(game)
         val today = puzzleDay()
-        val earliest = oldest?.coerceAtMost(today) ?: today
+        val range = game?.let(daily::archiveRange)
+        val earliest = listOfNotNull(oldest, range?.start).minOrNull()?.coerceAtMost(today) ?: today
         HistoryUiState(
             tabs = tabs,
             rows = rows,
@@ -141,15 +169,23 @@ class HistoryViewModel(
             selectedDay = selected,
             solvedByDay = solvedByDay(rows, order),
             daysWithRows = rows.mapTo(HashSet()) { it.day },
+            archiveRange = range,
             gamesPerDay = order.size,
             today = today,
             archiveGames = archiveGames(),
-        )
+        ).let { state ->
+            // Only this tab's own selectable day heads the list, never a stale tab's or day's.
+            val current = past?.takeIf { it.game == game && it.day == selected && state.canSelect(it.day) }
+            state.copy(pastDay = current)
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState(tabs = tabs))
 
     private fun archiveGames(): List<ArchiveGame> = tabs.mapNotNull { tab ->
         daily.archiveRange(tab.gameId)?.let { ArchiveGame(tab.gameId, tab.name, tab.brand, it) }
     }
+
+    /** [game]'s [day] number and status, for the Older puzzles picker's headline (A20, A22). */
+    fun pastDay(game: GameId, day: LocalDate): Flow<PastDay> = observePastDay(game, day)
 
     // Rows only: a stats-only emission must not start a new paging generation.
     val pagedDays: Flow<PagingData<HistoryDayRow>> = tabRows.map { it.rows }.distinctUntilChanged()

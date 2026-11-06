@@ -112,7 +112,8 @@ internal fun CalendarMonth(month: YearMonth, state: HistoryUiState, onSelectDay:
 /**
  * One day: its [weekday] letter (week view only) over its [DayRing], with the number
  * inside — on an ink disc when selected, bold on a tinted disc today. Later days and the
- * neighbouring months' days are dimmed with no ring; only a day the tab has a row on taps.
+ * neighbouring months' days are dimmed with no ring; a day taps when the tab can open it
+ * ([HistoryUiState.canSelect]: a row on it, or on a game's tab any archive day).
  */
 @Composable
 private fun CalendarDay(
@@ -136,7 +137,7 @@ private fun CalendarDay(
     Column(
         modifier = modifier
             .clip(MaterialTheme.shapes.small)
-            .clickable(enabled = inMonth && !later && date in state.daysWithRows) { onSelectDay(date) }
+            .clickable(enabled = inMonth && state.canSelect(date)) { onSelectDay(date) }
             .then(if (inMonth) Modifier.testTag("history.calendar.day.$date") else Modifier)
             .alpha(if (shown) 1f else DIMMED),
         horizontalAlignment = Alignment.CenterHorizontally,

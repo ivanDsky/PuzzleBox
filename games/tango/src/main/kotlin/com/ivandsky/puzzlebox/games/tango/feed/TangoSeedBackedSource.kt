@@ -7,8 +7,8 @@ import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.FetchResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
+import com.ivandsky.puzzlebox.games.tango.codec.LotkaWireParser
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
-import com.ivandsky.puzzlebox.games.tango.codec.TangoWireParser
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
@@ -19,15 +19,31 @@ import java.time.LocalDate
  * so until auth ships, fetch failures degrade to a BUNDLED seed puzzle instead of an
  * empty board — the user must always have a playable Tango.
  *
- * The seed is the canonical 12-given fixture grid (fixtures/linkedin-tango-rsc-301.txt
- * provenance), brute-force verified exactly-one-solution; the A15 gate re-runs at use.
+ * The seed is the canonical 12-given grid of the retired synthetic #301 fixture, in
+ * LinkedIn's lotka wire shape, brute-force verified exactly-one-solution; the A15 gate
+ * re-runs at use.
  * It is NOT a fake LinkedIn response: the wrapped error still surfaces upstream, and
  * the seed's ref carries the requested date, never a LinkedIn edition string.
  * Zip/Queens keep their real anonymous fetches — this wrapper is Tango-only.
+ *
+ * The seed stands in for today only (A10): a past day is the primary's by-number fetch
+ * with no fallback, so offline shows needs-a-connection, and a stored seed copy is a
+ * placeholder ([isPlaceholder]) that the repository refetches for real.
  */
 class TangoSeedBackedSource(private val primary: LinkedInTangoDailySource) : DailySource {
 
     override val gameId: GameId = TangoDefinition.id
+
+    override val archiveSince: LocalDate? = primary.archiveSince
+
+    private val seed: Puzzle? by lazy { (seedDaily(primary.archiveSince) as? FetchResult.Ok)?.value?.puzzle }
+
+    override fun puzzleNumber(day: LocalDate): Int? = primary.puzzleNumber(day)
+
+    override suspend fun fetchPast(date: LocalDate): FetchResult<DailyFetch> = primary.fetchPast(date)
+
+    /** The seed's envelope carries no date, so any stored copy of it equals [seed] byte for byte. */
+    override fun isPlaceholder(puzzle: Puzzle): Boolean = puzzle == seed
 
     override suspend fun fetchDaily(date: LocalDate): FetchResult<DailyFetch> {
         when (val primaryResult = primary.fetchDaily(date)) {
@@ -41,7 +57,7 @@ class TangoSeedBackedSource(private val primary: LinkedInTangoDailySource) : Dai
     }
 
     private fun seedDaily(date: LocalDate): FetchResult<DailyFetch> {
-        val daily = when (val parsed = TangoWireParser.parse(SEED_PAYLOAD, date)) {
+        val daily = when (val parsed = LotkaWireParser.parse(SEED_PAYLOAD, date)) {
             is DecodeResult.Ok -> parsed.value
             is DecodeResult.Err ->
                 return FetchResult.Err(FetchError.Unavailable("seed parse failed: ${parsed.error}"))
@@ -59,9 +75,12 @@ class TangoSeedBackedSource(private val primary: LinkedInTangoDailySource) : Dai
     }
 
     companion object {
-        /** Wire-shape payload of the verified fixture grid (see fixture 301 for provenance). */
+        /** Lotka-shape payload of the verified seed grid: 12 presets, one `=` and one `×` edge. */
         val SEED_PAYLOAD: String =
-            """{"gridSize":6,"given":[["S","","","S","",""],["","M","","","M",""],["","S","","S","S",""],["S","","","M","",""],["","","","M","",""],["","S","","","","M"]],""" +
-            """"constraints":[{"r1":0,"c1":0,"r2":0,"c2":1,"kind":"="},{"r1":2,"c1":3,"r2":3,"c2":3,"kind":"x"}],"zone":"America/Los_Angeles"}"""
+            """{"gridSize":6,"presetCellIdxes":[0,3,7,10,13,15,16,18,21,27,31,35],""" +
+            """"edges":[{"startIdx":0,"endIdx":1,"isEqual":true},{"startIdx":15,"endIdx":21,"isEqual":false}],""" +
+            """"solution":["ZERO","ZERO","ONE","ZERO","ONE","ONE","ZERO","ONE","ZERO","ONE","ONE","ZERO",""" +
+            """"ONE","ZERO","ONE","ZERO","ZERO","ONE","ZERO","ONE","ZERO","ONE","ONE","ZERO",""" +
+            """"ONE","ONE","ZERO","ONE","ZERO","ZERO","ONE","ZERO","ONE","ZERO","ZERO","ONE"]}"""
     }
 }

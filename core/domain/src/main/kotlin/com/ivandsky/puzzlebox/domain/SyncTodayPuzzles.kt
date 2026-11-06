@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.domain
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
-import com.ivandsky.puzzlebox.data.repository.cachedPuzzle
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.flow.MutableStateFlow

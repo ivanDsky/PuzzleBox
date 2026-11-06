@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain
 
+import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GamePlugin
@@ -35,10 +36,11 @@ class ObserveGameStatsTest {
     // beta ranks hints first, as Strands does; alpha keeps the time-first default.
     private val registry = GameRegistry(listOf(TestGames.plugin(alpha), hintsFirst(TestGames.plugin(beta))))
     private val completions = FakeCompletionRepository()
+    private val daily = FakeDailyRepository()
 
     private fun stats(game: GameId? = null) = ObserveGameStats(
         registry,
-        ObserveGameHistory(registry, FakeDailyRepository(), completions),
+        ObserveGameHistory(registry, daily, completions),
         ComputeStreak(GetPuzzleDay(registry, clock)),
     )(game)
 
@@ -171,6 +173,41 @@ class ObserveGameStatsTest {
 
         assertEquals(RankOrder.TimeThenHints, stats.rankOrder)
         assertEquals(BestScore(timeMs = 10_000L, hints = 2), stats.best)
+    }
+
+    @Test
+    fun `an archived solve counts toward solves and times but never the streak`() = runTest {
+        completions.setRecords(
+            listOf(
+                solve(alpha, daysAgo = 0, time = 40_000L),
+                solve(alpha, daysAgo = 1, time = 20_000L, hints = 1),
+            ),
+        )
+        // Yesterday was opened from the archive today (A13/A23): fetched after its own day.
+        daily.addEntry(
+            DailyEntry(
+                gameId = alpha,
+                day = today.minusDays(1),
+                puzzleNumber = 99,
+                variant = "v",
+                fetchedAtMs = clock.millis(),
+                archived = true,
+            ),
+        )
+
+        assertEquals(
+            GameStats(
+                currentStreak = 1,
+                bestStreak = 1,
+                solved = 2,
+                hintFree = 1,
+                averageTimeMs = 30_000L,
+                playingSince = today.minusDays(1),
+                best = BestScore(timeMs = 20_000L, hints = 1),
+                rankOrder = RankOrder.TimeThenHints,
+            ),
+            stats().first(),
+        )
     }
 
     private fun <P> hintsFirst(

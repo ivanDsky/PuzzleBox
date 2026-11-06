@@ -6,54 +6,60 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * Rotation-tolerant extraction of the Tango puzzle from any LinkedIn body (research
- * 01-tango-payload, [INFERRED]: the flight-stream object key follows Zip's
- * `trailGamePuzzle` suffix pattern — the live key is ticket 06's DoD). The key and the
- * structural probe live here and only here; nothing downstream inlines them.
+ * Rotation-tolerant extraction of the Tango puzzle from any LinkedIn body (spec A10:
+ * LinkedIn's live key is `lotkaGamePuzzle`, research 02). The key and the structural probe
+ * live here and only here; nothing downstream inlines them.
  *
- * Like Zip's TrailGameExtractor: scan the raw body for the data-bearing `tangoGamePuzzle`
- * object — wherever it sits (an RSC flight-stream line, a bare JSON response, an SSR
- * `<script>` blob). An occurrence counts only when the brace-matched region parses as a
- * JSON object containing a numeric `gridSize`, so code/JS *mentions* of the key (the
- * SPA shell) never win. Structural validation stays with
- * [com.ivandsky.puzzlebox.games.tango.codec.TangoWireParser].
+ * Like Zip's TrailGameExtractor: scan the raw body for the data-bearing `lotkaGamePuzzle`
+ * member — wherever it sits (an RSC flight-stream line, a by-id GraphQL body, an SSR
+ * `<script>` blob). An occurrence counts only when the key is followed by an object value
+ * that parses as JSON with a numeric `gridSize`, so mentions of the key (the stream's
+ * `"$case":"lotkaGamePuzzle"`, a by-id `"lotkaGamePuzzle": null` union member, SPA code)
+ * never win. Structural validation stays with
+ * [com.ivandsky.puzzlebox.games.tango.codec.LotkaWireParser].
  */
 object TangoGameExtractor {
 
-    /** Exact flight-stream object key candidate — ticket 06 validates this live. */
-    const val KEY: String = "tangoGamePuzzle"
+    /** LinkedIn's flight-stream and GraphQL object key for the Tango puzzle. */
+    const val KEY: String = "lotkaGamePuzzle"
 
     private const val KEY_TOKEN = "\"$KEY\""
     private const val EDITION_KEY = "todaysGameEditionText"
 
     private val editionRegex = Regex("\"$EDITION_KEY\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"")
 
-    /** Whatever the fetch produced for [com.ivandsky.puzzlebox.games.tango.codec.TangoWireParser]. */
+    /** Whatever the fetch produced for [com.ivandsky.puzzlebox.games.tango.codec.LotkaWireParser]. */
     data class Match(
-        /** The tangoGamePuzzle JSON object, verbatim wire shape. */
-        val tangoGamePuzzleJson: String,
-        /** Daily number string ("301"), when the body carried it. */
+        /** The lotkaGamePuzzle JSON object, verbatim wire shape. */
+        val lotkaGamePuzzleJson: String,
+        /** Daily number string ("759"), when the body carried it. */
         val editionText: String?,
     )
 
-    /** First data-bearing tangoGamePuzzle object in [body], or null. */
+    /** First data-bearing lotkaGamePuzzle object in [body], or null. */
     fun extract(body: String): Match? {
         var from = 0
         while (true) {
             val keyIndex = body.indexOf(KEY_TOKEN, from)
             if (keyIndex < 0) return null
-            val candidate = objectAfter(body, keyIndex)
+            val candidate = objectValueAfter(body, keyIndex + KEY_TOKEN.length)
             if (candidate != null && isDataObject(candidate)) {
-                return Match(tangoGamePuzzleJson = candidate, editionText = editionText(body))
+                return Match(lotkaGamePuzzleJson = candidate, editionText = editionText(body))
             }
             from = keyIndex + KEY_TOKEN.length
         }
     }
 
-    /** Brace-balanced JSON object following the key occurrence, string-escape aware. */
-    private fun objectAfter(text: String, keyIndex: Int): String? {
-        val start = text.indexOf('{', keyIndex)
-        if (start < 0) return null
+    /**
+     * The brace-balanced object that is this key's own value (`"key" : {…}`), string-escape
+     * aware; null when the value is anything else — a later, unrelated object must never be
+     * mistaken for it.
+     */
+    private fun objectValueAfter(text: String, afterKey: Int): String? {
+        var start = skipWhitespace(text, afterKey)
+        if (start >= text.length || text[start] != ':') return null
+        start = skipWhitespace(text, start + 1)
+        if (start >= text.length || text[start] != '{') return null
         var depth = 0
         var inString = false
         var escaped = false
@@ -71,6 +77,12 @@ object TangoGameExtractor {
             }
         }
         return null
+    }
+
+    private fun skipWhitespace(text: String, from: Int): Int {
+        var i = from
+        while (i < text.length && text[i].isWhitespace()) i++
+        return i
     }
 
     /** Data, not a mention: parses as JSON and carries a numeric gridSize. */
