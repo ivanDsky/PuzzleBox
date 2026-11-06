@@ -39,6 +39,9 @@ class EditorViewModel(
     private val verdicts = VerdictPipeline(viewModelScope, dispatchers)
     private val history = EditHistory()
 
+    /** The verdict card; Check again resubmits the board as it stands. */
+    val verdictCard = VerdictCardState { (state.value as? EditorUiState.Ready)?.controller?.draft?.value?.let(verdicts::submit) }
+
     /** Undo and Redo are enabled only when the open draft has a step to move. */
     val canUndo: StateFlow<Boolean> = history.canUndo
     val canRedo: StateFlow<Boolean> = history.canRedo
@@ -117,6 +120,7 @@ class EditorViewModel(
     }
 
     private fun changed(draft: EditorDraft<*>) {
+        verdictCard.dismiss()
         verdicts.submit(draft)
         val base = lastStored ?: return
         val next = base.copy(variant = draft.variant, blob = draft.encode(), updatedAt = clock())

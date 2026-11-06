@@ -43,6 +43,7 @@ internal fun EditorRoute(
             title = ready.title,
             subtitle = ready.subtitle,
             verdict = ready.verdict,
+            verdictCard = viewModel.verdictCard,
             layout = layout,
             onBack = onBack,
             board = { boardModifier -> ready.editor.Board(ready.controller, ready.verdict, boardModifier) },
