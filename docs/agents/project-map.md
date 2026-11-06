@@ -72,7 +72,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   polymorphic `SavedStateConfiguration` over every feature's keys),
   `leaderboard/LeaderboardSubmitWatcher` (auto-submits records when signed in),
   `di/AppModule` (app scope; `GameRegistry` over `getAll<GamePlugin>()` sorted by the app-side
-  `GAME_ORDER` zip → tango → queens → strands → minisudoku → sudoku; `GamePlayRegistry(getAll())` over every game's
+  `GAME_ORDER`, unlisted set from `buildTypeUnlistedGames`; zip → tango → queens → strands → minisudoku → sudoku; `GamePlayRegistry(getAll())` over every game's
   `GamePlayUi`), debug-only Showkase browser (`CatalogDebugBinding`, `ShowkaseBrowserScreen`,
   `PreviewBackdrop`, `BrowserRadioControls`; goldens in `app/snapshots/`). Tests:
   `src/test/.../e2e/` the E2E robot (`shellRobot`/`ShellRobot`: gestures, back and
@@ -144,7 +144,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 - `core/game/` (`:core:game`, pure JVM) — the orthogonal game contracts (ADR-0001):
   `GameDefinition`, `GameRules<P>`, `GameSession` + `GameSessionCodec`, `ScoreModel<S>` →
   `CompletionRecord?`, `PuzzleSource` (`fetch(date)` → `FetchResult`; `FetchError`), composed
-  per game as `GamePlugin<P, S, M>`; `GameRegistry` (the sole GameId → `GamePlugin` lookup);
+  per game as `GamePlugin<P, S, M>`; `GameRegistry` (the sole GameId → `GamePlugin` lookup; `get` resolves listed + unlisted, `all` = listed only and feeds every surface, `unlisted` = debug-only 9x9 opened from Catalog → Design settings);
   `DailySource : PuzzleSource` (per-game feed adapter, `fetchDaily` → `DailyFetch`, optional
   `archiveSince`) over `FeedTransport`/`FeedRequest` (LinkedIn) or `NytTransport` (NYT);
   `RankOrder` (TimeThenHints/HintsThenTime, on `ScoreModel`); `Command`/`CommandHistory` (undo/redo); `SessionBlob`;

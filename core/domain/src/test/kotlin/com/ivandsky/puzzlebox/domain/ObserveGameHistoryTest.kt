@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.domain
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
@@ -88,7 +89,7 @@ class ObserveGameHistoryTest {
     }
 
     @Test
-    fun `games outside the list contribute records but no captured days`() = runTest {
+    fun `games outside the list contribute no captured days`() = runTest {
         val day = LocalDate.of(2026, 11, 1)
         val rows = gameHistoryDays(
             daily = daily(entry(beta, day)),
@@ -97,6 +98,19 @@ class ObserveGameHistoryTest {
         ).first()
 
         assertEquals(emptyList<GameHistoryDay>(), rows)
+    }
+
+    @Test
+    fun `an unlisted game's completion surfaces nowhere`() = runTest {
+        val day = LocalDate.of(2026, 11, 1)
+        val registry = GameRegistry(listOf(TestGames.plugin(alpha), TestGames.plugin(beta)), unlisted = setOf(beta))
+        val rows = ObserveGameHistory(
+            registry,
+            daily(entry(beta, day)),
+            FakeCompletionRepository(listOf(record(beta, day), record(alpha, day))),
+        )().first()
+
+        assertEquals(listOf(alpha), rows.map { it.gameId })
     }
 
     @Test

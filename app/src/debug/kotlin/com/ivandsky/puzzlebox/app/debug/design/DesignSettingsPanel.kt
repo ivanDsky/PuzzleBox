@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.app.debug.RadioOption
 import com.ivandsky.puzzlebox.designsystem.AccentSet
 import com.ivandsky.puzzlebox.designsystem.DesignVariants
@@ -27,10 +29,10 @@ private val SweepOptions = listOf(320, 480, 640)
  * Developer design settings (spec A7): one radio row per open visual choice, built from
  * the catalog browser's compact radio options. A pick updates [DesignVariantsStore]
  * (every PuzzleBoxTheme re-themes live) and is saved to [DesignVariantsPrefs] so it
- * survives a restart. Debug only: release compiles none of this.
+ * survives a restart. [openGame] opens a game by id (the unlisted 9x9). Debug only: release compiles none of this.
  */
 @Composable
-internal fun DesignSettingsPanel(modifier: Modifier = Modifier) {
+internal fun DesignSettingsPanel(openGame: (String) -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val prefs = remember(context) { DesignVariantsPrefs(context) }
     val variants = DesignVariantsStore.current
@@ -71,8 +73,18 @@ internal fun DesignSettingsPanel(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // The 9x9 is unlisted (ADR-0015): this button is its only way in.
+        OutlinedButton(
+            onClick = { openGame(SUDOKU_9X9) },
+            modifier = Modifier.testTag("debug.play.sudoku"),
+        ) {
+            Text("Play 9x9 Sudoku")
+        }
     }
 }
+
+private const val SUDOKU_9X9 = "sudoku"
+
 
 @Composable
 private fun <T> VariantRow(

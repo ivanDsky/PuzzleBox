@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app.di
 
+import com.ivandsky.puzzlebox.app.buildTypeUnlistedGames
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -37,7 +38,7 @@ val appModule = module {
     // place in [GAME_ORDER]. Koin's getAll order is not a product order, so the
     // registry is sorted here: Home's Today card and the play picker follow it.
     single {
-        GameRegistry(getAll<GamePlugin<*, *, *>>().sortedWith(gameOrder))
+        GameRegistry(getAll<GamePlugin<*, *, *>>().sortedWith(gameOrder), buildTypeUnlistedGames)
             .also { requireEveryGamePlayable(it, get()) }
     }
 
@@ -48,7 +49,7 @@ val appModule = module {
 /** ADR-0008 "Adding a game": a plugin bound without its GamePlayUi is a wiring bug —
  *  fail at the registry's first resolve instead of silently leaving the picker. */
 internal fun requireEveryGamePlayable(games: GameRegistry, play: GamePlayRegistry) {
-    for (plugin in games.all) {
+    for (plugin in games.all + games.unlisted) {
         val id = plugin.definition.id
         require(play[id] != null) { "game '${id.value}' has no GamePlayUi registered (missing its -ui module)" }
     }

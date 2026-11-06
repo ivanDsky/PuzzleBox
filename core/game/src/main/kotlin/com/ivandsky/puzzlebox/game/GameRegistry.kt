@@ -6,15 +6,24 @@ import com.ivandsky.puzzlebox.model.GameId
  * The app's registered games (ADR-0001), in registration order — the ONE lookup every
  * consumer uses instead of aggregating plugins and scanning for an id. `app` builds it
  * once from every game module's Koin-registered [GamePlugin].
+ *
+ * A game in [unlisted] ships and opens by id ([get]) but stays off every surface that
+ * reads [all] — hub, Home, History, stats, Profile (ADR-0015: the debug 9x9 Sudoku).
  */
-class GameRegistry(plugins: List<GamePlugin<*, *, *>>) {
+class GameRegistry(
+    plugins: List<GamePlugin<*, *, *>>,
+    unlisted: Set<GameId> = emptySet(),
+) {
 
-    /** Every registered game, registration order (Home's featured game is the first). */
-    val all: List<GamePlugin<*, *, *>> = plugins.toList()
+    /** Every listed game, registration order (Home's featured game is the first). */
+    val all: List<GamePlugin<*, *, *>> = plugins.filter { it.definition.id !in unlisted }
 
-    private val byId: Map<GameId, GamePlugin<*, *, *>> = all.associateBy { it.definition.id }
+    /** Registered games no surface lists; reachable only by id (debug settings). */
+    val unlisted: List<GamePlugin<*, *, *>> = plugins.filter { it.definition.id in unlisted }
 
-    /** The registered plugin for [id]; null for a game this build does not ship. */
+    private val byId: Map<GameId, GamePlugin<*, *, *>> = plugins.associateBy { it.definition.id }
+
+    /** The registered plugin for [id], listed or not; null for a game this build does not ship. */
     operator fun get(id: GameId): GamePlugin<*, *, *>? = byId[id]
 
     /** [id]'s display name; the raw id for a game this build does not ship. */

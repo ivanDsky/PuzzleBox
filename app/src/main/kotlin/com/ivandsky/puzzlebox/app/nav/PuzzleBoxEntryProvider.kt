@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.history.navigation.historyEntry
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.play.navigation.resultEntry
 import com.ivandsky.puzzlebox.profile.navigation.profileEntry
@@ -43,5 +44,5 @@ internal fun puzzleBoxEntryProvider(
         onOpenHistory = { game -> navigator.pushOnce(HistoryKey(game.value)) },
         onOpenCatalog = { navigator.push(CatalogKey) },
     )
-    entry<CatalogKey> { CatalogScreen() }
+    entry<CatalogKey> { CatalogScreen(openGame = { navigator.pushOnce(GameKey(it)) }) }
 }
