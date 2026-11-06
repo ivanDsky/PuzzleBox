@@ -30,4 +30,11 @@ interface GameEditor<D : Any> {
 
     /** Board gates outside the solver (contiguity in 09, needs-guessing in 11). */
     fun publishBlocks(draft: D, verdict: Verdict): List<PublishBlock> = emptyList()
+
+    /**
+     * The part of [draft] that decides layout identity ([EditorDraft.layoutKey]). Author-only aids
+     * that never reach the puzzle (Queens answer crowns) are stripped here, so editing them never
+     * clears a test solve. The default is the draft itself.
+     */
+    fun layoutOf(draft: D): D = draft
 }

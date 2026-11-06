@@ -117,6 +117,19 @@ class ValidatePublishTest {
         )
     }
 
+    @Test
+    fun `an aid-only edit keeps the test solve while a board edit after it blocks as not tested`() {
+        val aided = EditorDraft.fresh(AidEditor, SMALL)
+        val solve = solveOf(aided)
+
+        val aidEdited = aided.apply(SetAid(from = 0, to = 7))
+        val boardEdited = aidEdited.apply(SetAidCell(0, 0, 1))
+
+        assertEquals(aided.layoutKey, aidEdited.layoutKey)
+        assertEquals(emptyList<String>(), blocks(on = aidEdited, testSolve = solve))
+        assertEquals(listOf(PublishBlock.NOT_TESTED), blocks(on = boardEdited, testSolve = solve))
+    }
+
     private fun solveOf(on: EditorDraft<*>) = TestSolve(layoutKey = on.layoutKey, timeMs = 1_000, hints = 0)
 
     /** Writes [to] at [index]; [from] is what [revert] restores. */
@@ -150,6 +163,37 @@ class ValidatePublishTest {
 
         override fun publishBlocks(draft: List<Int>, verdict: Verdict): List<PublishBlock> =
             if (BLOCKED in draft) listOf(PublishBlock(BOARD_BLOCK)) else emptyList()
+    }
+
+    /** A board plus an author-only [aid] that never reaches the puzzle. */
+    private data class AidBoard(val cells: List<Int>, val aid: Int)
+
+    private data class SetAid(val from: Int, val to: Int) : Command<AidBoard> {
+        override fun apply(state: AidBoard): AidBoard = state.copy(aid = to)
+        override fun revert(state: AidBoard): AidBoard = state.copy(aid = from)
+    }
+
+    private data class SetAidCell(val index: Int, val from: Int, val to: Int) : Command<AidBoard> {
+        override fun apply(state: AidBoard): AidBoard = state.copy(cells = state.cells.toMutableList().also { it[index] = to })
+        override fun revert(state: AidBoard): AidBoard = state.copy(cells = state.cells.toMutableList().also { it[index] = from })
+    }
+
+    /** Encodes the board and its aid; [layoutOf] strips the aid, so only the board decides the layout key. */
+    private object AidEditor : GameEditor<AidBoard> {
+        override val gameId: GameId = GameId("aid")
+        override val variants: List<VariantId> = listOf(SMALL)
+        override val draftFormatVersion: Int = 1
+        override fun newDraft(variant: VariantId): AidBoard = AidBoard(listOf(0, 0, 0), aid = 0)
+        override fun variantOf(draft: AidBoard): VariantId = SMALL
+        override fun layoutOf(draft: AidBoard): AidBoard = draft.copy(aid = 0)
+
+        override fun encodeDraft(state: DraftState<AidBoard>): ByteArray =
+            (state.draft.cells + state.draft.aid).map { it.toByte() }.toByteArray()
+
+        override fun decodeDraft(bytes: ByteArray): DecodeResult<DraftState<AidBoard>> =
+            DecodeResult.Err(DecodeError.Malformed("not needed"))
+
+        override fun analyze(draft: AidBoard, budget: Budget): Verdict = Verdict.Unique(Solution(draft.cells))
     }
 
     private companion object {

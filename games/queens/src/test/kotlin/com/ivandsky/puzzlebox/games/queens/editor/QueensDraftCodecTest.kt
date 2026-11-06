@@ -136,4 +136,109 @@ class QueensDraftCodecTest {
 
         malformed(bytes)
     }
+
+    @Test
+    fun `the format stays version 1 with crowns`() {
+        assertEquals(1, QueensDraftCodec.VERSION)
+        assertEquals(1, QueensDraftCodec.encode(crownedState())[0].toInt())
+    }
+
+    /**
+     * What `queens-draft-v1-crowns.bin` holds (bytes written by hand from the layout): a crowned
+     * 5×5 → 4×4 resize, a seeded crown on 5, a paint of 0 and 15, a crown on painted 15, the
+     * crown on 5 lifted (its paint stays); redo stack: a crowned 4×4 → 6×6 resize, then a seeded
+     * crown on the 6×6. Board crowns {15}.
+     */
+    private fun crownedState(): DraftState<QueensDraft> {
+        val resize = ReplaceDraft(blank(5).copy(regions = listOf(0) + List(24) { UNPAINTED }, crowns = setOf(0)), blank(4))
+        val seed = QueensDraftCommand.Crown(5, placed = true, seed = 0)
+        val paint = seed.apply(blank(4)).paint(setOf(0, 15), 1)
+        val crown15 = QueensDraftCommand.Crown(15, placed = true, seed = null)
+        val lift5 = QueensDraftCommand.Crown(5, placed = false, seed = null)
+        val done = listOf(resize, seed, paint, crown15, lift5)
+        val board = done.drop(1).fold(resize.after) { d, step -> step.apply(d) }
+        val undone = listOf(QueensDraftCommand.Crown(7, placed = true, seed = 0), ReplaceDraft(board, blank(6)))
+        return DraftState(board, CommandHistory(done, undone))
+    }
+
+    @Test
+    fun `frozen crowned fixture decodes to its pinned state and re-encodes byte-identically`() {
+        val bytes = fixture("queens-draft-v1-crowns.bin")
+
+        val decoded = decodeOk(bytes)
+
+        assertEquals(crownedState(), decoded)
+        assertEquals(setOf(15), decoded.draft.crowns)
+        assertEquals(listOf(1, UNPAINTED, UNPAINTED, UNPAINTED, UNPAINTED, 0), decoded.draft.regions.take(6))
+        assertEquals(setOf(0), ((decoded.history.done[0] as ReplaceDraft<*>).before as QueensDraft).crowns)
+        assertArrayEquals(bytes, QueensDraftCodec.encode(crownedState()))
+    }
+
+    @Test
+    fun `crowned history undoes back to the crowned 5x5 and redoes through the 6x6 crown`() {
+        val state = decodeOk(fixture("queens-draft-v1-crowns.bin"))
+
+        var undo = CommandHistory.Step(state.draft, state.history)
+        while (undo.history.canUndo) undo = undo.history.undo(undo.state)!!
+        assertEquals(setOf(0), undo.state.crowns)
+        assertEquals(5, undo.state.size)
+
+        val first = state.history.redo(state.draft)!!
+        val second = first.history.redo(first.state)!!
+        assertEquals(6, second.state.size)
+        assertEquals(setOf(7), second.state.crowns)
+        assertEquals(0, second.state.regions[7])
+    }
+
+    @Test
+    fun `a crowned draft with crown and crowned replace steps in both stacks round-trips`() {
+        val crowned = blank(4).copy(crowns = setOf(2))
+        val state = DraftState(
+            crowned.copy(crowns = setOf(2, 8)),
+            CommandHistory(
+                listOf(ReplaceDraft(blank(6), crowned), QueensDraftCommand.Crown(8, placed = true, seed = null)),
+                listOf(QueensDraftCommand.Crown(1, placed = false, seed = null), ReplaceDraft(crowned, blank(5).copy(crowns = setOf(3)))),
+            ),
+        )
+
+        assertEquals(state, roundTrip(state))
+    }
+
+    @Test
+    fun `a crown-free draft writes no crowns section`() {
+        assertEquals(1 + 1 + 16 + 2 + 2, QueensDraftCodec.encode(DraftState(blank(4))).size)
+    }
+
+    @Test
+    fun `a truncated crowns section is malformed`() {
+        val bytes = fixture("queens-draft-v1-crowns.bin")
+
+        malformed(bytes.copyOf(bytes.size - 1)) // top-level section: k = 1, cell missing
+        malformed(bytes.copyOf(bytes.size - 2) + 0) // top-level section present with k = 0
+        malformed(bytes.copyOf(bytes.size - 3)) // redo replace: after-board crowns missing
+    }
+
+    @Test
+    fun `crowns off the board, out of order or on a replace without crowns are malformed`() {
+        malformed(fixture("queens-draft-v1-crowns.bin").also { it[it.size - 1] = 16 }) // cell 16 on a 4×4
+        val twoCrowns = QueensDraftCodec.encode(DraftState(blank(4).copy(crowns = setOf(3, 9))))
+        malformed(twoCrowns.also { it[it.size - 2] = 9; it[it.size - 1] = 3 })
+
+        // A crown-free resize re-spelled as TAG_REPLACE_CROWNED with two empty crown lists.
+        val plain = QueensDraftCodec.encode(DraftState(blank(4), CommandHistory(listOf(ReplaceDraft(blank(5), blank(4))))))
+        val tag = 2 + 16 + 2
+        val before = plain.copyOfRange(tag + 1, tag + 1 + 26)
+        val after = plain.copyOfRange(tag + 1 + 26, tag + 1 + 26 + 17)
+        malformed(plain.copyOf(tag) + 0x04 + before + 0 + after + 0 + plain.copyOfRange(plain.size - 2, plain.size))
+    }
+
+    @Test
+    fun `a crown removal carrying a seed, a bad placed flag or an off-board seed is malformed`() {
+        val crown = QueensDraftCodec.encode(DraftState(blank(4), CommandHistory(listOf(QueensDraftCommand.Crown(3, placed = true, seed = 0)))))
+        val tag = 2 + 16 + 2
+
+        malformed(crown.copyOf().also { it[tag + 2] = 0 }) // removal with seed 0
+        malformed(crown.copyOf().also { it[tag + 2] = 2 }) // placed flag 2
+        malformed(crown.copyOf().also { it[tag + 3] = 4 }) // seed 4 on a 4×4
+    }
 }

@@ -18,10 +18,10 @@ class EditorDraft<D : Any>(val editor: GameEditor<D>, val state: DraftState<D>) 
     val canUndo: Boolean get() = state.history.canUndo
     val canRedo: Boolean get() = state.history.canRedo
 
-    /** SHA-256 hex of editor.encodeDraft(DraftState(state.draft)): board only, empty history. */
+    /** SHA-256 hex of editor.encodeDraft(DraftState(editor.layoutOf(state.draft))): layout only, empty history. */
     val layoutKey: String by lazy {
         MessageDigest.getInstance("SHA-256")
-            .digest(editor.encodeDraft(DraftState(state.draft)))
+            .digest(editor.encodeDraft(DraftState(editor.layoutOf(state.draft))))
             .joinToString("") { "%02x".format(it) }
     }
 

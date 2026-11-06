@@ -16,11 +16,17 @@ import java.io.ByteArrayOutputStream
  * `0 until size` or [UNPAINTED_BYTE]:
  *
  * ```
- * v1: [u8 VERSION] board  [u16 n][n × step] done (oldest first)  [u16 m][m × step] undone
- *     board = [u8 size][size² × u8 region]
- *     step  = [u8 TAG_PAINT][u8 region][u8 k][k × u8 cell][u8 p][p × (u8 cell, u8 region)]
- *           | [u8 TAG_REPLACE] board before, board after
+ * v1: [u8 VERSION] board  [u16 n][n × step] done (oldest first)  [u16 m][m × step] undone  [crowns]
+ *     board  = [u8 size][size² × u8 region]
+ *     crowns = [u8 k][k × u8 cell]   (ascending; top level: only when k > 0, end of bytes ⇒ no crowns)
+ *     step   = [u8 TAG_PAINT][u8 region][u8 k][k × u8 cell][u8 p][p × (u8 cell, u8 region)]
+ *            | [u8 TAG_REPLACE] board before, board after                       (both crown-free)
+ *            | [u8 TAG_CROWN][u8 cell][u8 placed 0|1][u8 seed | UNPAINTED_BYTE]  (since 35)
+ *            | [u8 TAG_REPLACE_CROWNED] board crowns before, board crowns after (since 35; either crowned)
  * ```
+ *
+ * Crowns joined v1 without a bump (ledger ruling): a crown-free draft writes exactly its
+ * pre-35 bytes, so every stored draft and the frozen `queens-draft-v1.bin` decode unchanged.
  *
  * Each stack keeps its newest [MAX_HISTORY] steps; older ones drop on encode (undo depth
  * shrinks, the board never changes). Decode replays board sizes through the stacks, so a
@@ -36,14 +42,17 @@ object QueensDraftCodec {
     private const val UNPAINTED_BYTE = 0xFF
     private const val TAG_PAINT = 0x01
     private const val TAG_REPLACE = 0x02
+    private const val TAG_CROWN = 0x03
+    private const val TAG_REPLACE_CROWNED = 0x04
 
-    /** History entries: QueensDraftCommand.Paint and ReplaceDraft<QueensDraft>, each with a tag byte. */
+    /** History entries: QueensDraftCommand.Paint/Crown and ReplaceDraft<QueensDraft>, each with a tag byte. */
     fun encode(state: DraftState<QueensDraft>): ByteArray {
         val out = ByteArrayOutputStream()
         out.write(VERSION)
         writeBoard(out, state.draft)
         writeSteps(out, state.history.done)
         writeSteps(out, state.history.undone)
+        if (state.draft.crowns.isNotEmpty()) writeCrowns(out, state.draft.crowns)
         return out.toByteArray()
     }
 
@@ -57,15 +66,23 @@ object QueensDraftCodec {
         }
         val done = readSteps(cursor) ?: return malformed("malformed undo history")
         val undone = readSteps(cursor) ?: return malformed("malformed redo history")
+        // Present only when k > 0, so an empty section is malformed rather than a second spelling.
+        val crowns = if (cursor.pos == bytes.size) emptySet() else readCrowns(cursor, draft.regions.size)?.ifEmpty { null }
+        if (crowns == null) return malformed("malformed crowns section")
         if (cursor.pos != bytes.size) return malformed("${bytes.size - cursor.pos} trailing bytes")
         if (!fitsBackward(done, draft.size)) return malformed("undo history does not fit the board")
         if (!fitsForward(undone, draft.size)) return malformed("redo history does not fit the board")
-        return DecodeResult.Ok(DraftState(draft, CommandHistory(done, undone)))
+        return DecodeResult.Ok(DraftState(draft.copy(crowns = crowns), CommandHistory(done, undone)))
     }
 
     private fun writeBoard(out: ByteArrayOutputStream, draft: QueensDraft) {
         out.write(draft.size)
         draft.regions.forEach { out.write(regionByte(it)) }
+    }
+
+    private fun writeCrowns(out: ByteArrayOutputStream, crowns: Set<Int>) {
+        out.write(crowns.size)
+        crowns.sorted().forEach(out::write)
     }
 
     private fun writeSteps(out: ByteArrayOutputStream, steps: List<Command<QueensDraft>>) {
@@ -86,17 +103,30 @@ object QueensDraftCodec {
                     }
                 }
 
-                is ReplaceDraft<*> -> {
-                    out.write(TAG_REPLACE)
-                    writeBoard(out, step.before as QueensDraft)
-                    writeBoard(out, step.after as QueensDraft)
+                is QueensDraftCommand.Crown -> {
+                    out.write(TAG_CROWN)
+                    out.write(step.cell)
+                    out.write(if (step.placed) 1 else 0)
+                    out.write(step.seed ?: UNPAINTED_BYTE)
                 }
+
+                is ReplaceDraft<*> -> writeReplace(out, step.before as QueensDraft, step.after as QueensDraft)
 
                 else -> error("no draft codec tag for ${step::class.simpleName}")
             }
         }
     }
 
+    private fun writeReplace(out: ByteArrayOutputStream, before: QueensDraft, after: QueensDraft) {
+        val crowned = before.crowns.isNotEmpty() || after.crowns.isNotEmpty()
+        out.write(if (crowned) TAG_REPLACE_CROWNED else TAG_REPLACE)
+        for (board in listOf(before, after)) {
+            writeBoard(out, board)
+            if (crowned) writeCrowns(out, board.crowns)
+        }
+    }
+
+    /** Crown-free; the crowns section, when present, follows separately. */
     private fun readBoard(cursor: SessionCursor): DecodeResult<QueensDraft> {
         val size = cursor.u8() ?: return malformed("truncated board size")
         val variant = queensVariantId(size)
@@ -123,6 +153,9 @@ object QueensDraftCodec {
                     ReplaceDraft(before, readBoard(cursor).getOrNull() ?: return null)
                 }
 
+                TAG_CROWN -> readCrown(cursor) ?: return null
+                TAG_REPLACE_CROWNED -> readCrownedReplace(cursor) ?: return null
+
                 else -> return null
             }
             steps.add(step)
@@ -143,13 +176,47 @@ object QueensDraftCodec {
         return QueensDraftCommand.Paint(cells, region, previous)
     }
 
+    /** Seed ids are range-checked later, like paint regions. A removal carries no seed. */
+    private fun readCrown(cursor: SessionCursor): QueensDraftCommand.Crown? {
+        val cell = cursor.u8() ?: return null
+        val placed = when (cursor.u8() ?: return null) {
+            0 -> false
+            1 -> true
+            else -> return null
+        }
+        val seed = (cursor.u8() ?: return null).takeIf { it != UNPAINTED_BYTE }
+        if (!placed && seed != null) return null
+        return QueensDraftCommand.Crown(cell, placed, seed)
+    }
+
+    /** Null when malformed, or when neither board has crowns (that step is always TAG_REPLACE). */
+    private fun readCrownedReplace(cursor: SessionCursor): ReplaceDraft<QueensDraft>? {
+        val boards = List(2) {
+            val board = readBoard(cursor).getOrNull() ?: return null
+            board.copy(crowns = readCrowns(cursor, board.regions.size) ?: return null)
+        }
+        if (boards.all { it.crowns.isEmpty() }) return null
+        return ReplaceDraft(boards[0], boards[1])
+    }
+
+    /** `[u8 k][k × u8 cell]`, strictly ascending and on the board; null when malformed or truncated. */
+    private fun readCrowns(cursor: SessionCursor, cellCount: Int): Set<Int>? {
+        val crowns = LinkedHashSet<Int>()
+        repeat(cursor.u8() ?: return null) {
+            val cell = cursor.u8() ?: return null
+            if (cell >= cellCount || crowns.any { it >= cell }) return null
+            crowns.add(cell)
+        }
+        return crowns
+    }
+
     /** Walk [done] newest-first from the current [size]: each step must apply to the size it meets. */
     private fun fitsBackward(done: List<Command<QueensDraft>>, size: Int): Boolean {
         var current = size
         for (step in done.asReversed()) {
             current = when (step) {
                 is ReplaceDraft<*> -> (step.before as QueensDraft).size.takeIf { (step.after as QueensDraft).size == current }
-                else -> current.takeIf { (step as QueensDraftCommand.Paint).fits(current) }
+                else -> current.takeIf { (step as QueensDraftCommand).fits(current) }
             } ?: return false
         }
         return true
@@ -161,16 +228,21 @@ object QueensDraftCodec {
         for (step in undone.asReversed()) {
             current = when (step) {
                 is ReplaceDraft<*> -> (step.after as QueensDraft).size.takeIf { (step.before as QueensDraft).size == current }
-                else -> current.takeIf { (step as QueensDraftCommand.Paint).fits(current) }
+                else -> current.takeIf { (step as QueensDraftCommand).fits(current) }
             } ?: return false
         }
         return true
     }
 
-    private fun QueensDraftCommand.Paint.fits(size: Int): Boolean {
+    private fun QueensDraftCommand.fits(size: Int): Boolean {
         val cellCount = size * size
         fun ok(region: Int) = region == QueensDraft.UNPAINTED || region in 0 until size
-        return ok(region) && cells.all { it < cellCount } && previous.all { (cell, prev) -> cell < cellCount && ok(prev) }
+        return when (this) {
+            is QueensDraftCommand.Paint ->
+                ok(region) && cells.all { it < cellCount } && previous.all { (cell, prev) -> cell < cellCount && ok(prev) }
+
+            is QueensDraftCommand.Crown -> cell < cellCount && (seed == null || seed in 0 until size)
+        }
     }
 
     private fun regionByte(region: Int): Int = if (region == QueensDraft.UNPAINTED) UNPAINTED_BYTE else region
