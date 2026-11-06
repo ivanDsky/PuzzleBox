@@ -12,6 +12,26 @@ sealed interface QueensDraftCommand : Command<QueensDraft> {
         override fun apply(state: QueensDraft): QueensDraft = state.with(cells.associateWith { region })
         override fun revert(state: QueensDraft): QueensDraft = state.with(previous)
     }
+
+    /**
+     * One crown tap = one step. [placed]: apply adds [cell] to crowns; false removes it.
+     * [seed]: region painted on [cell] by a placement on an UNPAINTED cell (revert unpaints it);
+     * null otherwise. Removing a crown keeps its paint (ruling round 6).
+     */
+    data class Crown(val cell: Int, val placed: Boolean, val seed: Int?) : QueensDraftCommand {
+        override fun apply(state: QueensDraft): QueensDraft = if (placed) place(state) else lift(state)
+        override fun revert(state: QueensDraft): QueensDraft = if (placed) lift(state) else place(state)
+
+        private fun place(state: QueensDraft): QueensDraft {
+            val crowned = state.copy(crowns = state.crowns + cell)
+            return if (seed == null) crowned else crowned.with(mapOf(cell to seed))
+        }
+
+        private fun lift(state: QueensDraft): QueensDraft {
+            val lifted = state.copy(crowns = state.crowns - cell)
+            return if (seed == null) lifted else lifted.with(mapOf(cell to QueensDraft.UNPAINTED))
+        }
+    }
 }
 
 /** Paint [cells] with [region], capturing each cell's current region so the step reverts exactly. */

@@ -39,4 +39,7 @@ object QueensEditor : GameEditor<QueensDraft> {
 
     override fun publishBlocks(draft: QueensDraft, verdict: Verdict): List<PublishBlock> =
         QueensPublishGates.blocks(draft, verdict)
+
+    /** Answer crowns are author-only: placing, moving or removing one never clears a test solve. */
+    override fun layoutOf(draft: QueensDraft): QueensDraft = draft.copy(crowns = emptySet())
 }

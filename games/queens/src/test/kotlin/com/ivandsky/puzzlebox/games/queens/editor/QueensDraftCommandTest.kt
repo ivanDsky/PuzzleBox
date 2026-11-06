@@ -86,6 +86,53 @@ class QueensDraftCommandTest {
         assertEquals(painted, clear.revert(clear.apply(painted)))
     }
 
+    @Test
+    fun `a seeded crown applies paint and crown in one step and reverts both exactly`() {
+        val draft = QueensDraft(4, PARTIAL, crowns = setOf(0))
+        val crown = QueensDraftCommand.Crown(9, placed = true, seed = 2)
+
+        val placed = crown.apply(draft)
+
+        assertEquals(setOf(0, 9), placed.crowns)
+        assertEquals(2, placed.regions[9])
+        assertEquals(draft, crown.revert(placed))
+    }
+
+    @Test
+    fun `reverting a seeded crown placed on an unpainted cell unpaints it`() {
+        val draft = QueensDraft(4, PARTIAL)
+        val crown = QueensDraftCommand.Crown(1, placed = true, seed = 0)
+
+        val reverted = crown.revert(crown.apply(draft))
+
+        assertEquals(QueensDraft.UNPAINTED, reverted.regions[1])
+        assertEquals(draft, reverted)
+    }
+
+    @Test
+    fun `an unseeded crown on a painted cell and a removal round-trip without touching paint`() {
+        val draft = QueensDraft(4, PARTIAL, crowns = setOf(5))
+        val place = QueensDraftCommand.Crown(15, placed = true, seed = null)
+        val remove = QueensDraftCommand.Crown(5, placed = false, seed = null)
+
+        assertEquals(draft.copy(crowns = setOf(5, 15)), place.apply(draft))
+        assertEquals(draft, place.revert(place.apply(draft)))
+        assertEquals(draft.copy(crowns = emptySet()), remove.apply(draft))
+        assertEquals(draft, remove.revert(remove.apply(draft)))
+    }
+
+    @Test
+    fun `new drafts and a replace to a resized board carry no crowns`() {
+        val crowned = QueensDraft(4, PARTIAL, crowns = setOf(0, 7))
+        for (variant in QueensEditor.variants) {
+            val blank = QueensEditor.newDraft(variant)
+
+            assertEquals(emptySet<Int>(), blank.crowns)
+            assertEquals(emptySet<Int>(), ReplaceDraft(crowned, blank).apply(crowned).crowns)
+            assertEquals(crowned, ReplaceDraft(crowned, blank).revert(blank))
+        }
+    }
+
     private companion object {
         val PARTIAL = listOf(
             0, -1, 0, 1,
