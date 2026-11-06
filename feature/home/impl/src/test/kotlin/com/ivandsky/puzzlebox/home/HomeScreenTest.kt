@@ -34,8 +34,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Robolectric compose tests (A17): pane choice, the Today tiles and the one CTA (A10), the
- * Offline tile (A12), the streak card's week (A8) and the absent theme control (N4), no emulator. Copy
+ * Robolectric compose tests (A17): pane choice, the Today summary card's badges and the one CTA (A10), the
+ * Offline badge (A12), the streak card's week (A8) and the absent theme control (N4), no emulator. Copy
  * is never pinned: tags, enabled state and callbacks only (the CTA is checked to NAME its
  * game, not for its wording).
  */
@@ -87,10 +87,43 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `today lists one shared tile per game`() {
+    fun `today lists one badge per game in the summary card`() {
         setContent(HomeLayout.SinglePane)
 
-        TODAY.forEach { composeRule.onNodeWithTag("card.tile.${it.game.value}").assertExists() }
+        composeRule.onNodeWithTag("home.today_summary").assertExists()
+        TODAY.forEach { composeRule.onNodeWithTag("home.badge.${it.game.value}").assertExists() }
+    }
+
+    @Test
+    fun `an all-new set offers to play the first game`() {
+        val fresh = TODAY.map { it.copy(status = TodayStatus.NotStarted) }
+        setContent(HomeLayout.SinglePane, today = mutableStateOf(fresh), playTarget = GameId("zip"))
+
+        composeRule.onNodeWithTag("home.today_summary").assertExists()
+        composeRule.onNodeWithTag("home.today_play").assert(hasText("Zip", substring = true))
+        composeRule.onNodeWithTag("home.today_countdown").assertDoesNotExist()
+    }
+
+    @Test
+    fun `while the set loads the card shows skeletons and keeps the CTA`() {
+        // Skeleton sheens loop forever: a free-running clock would never idle.
+        composeRule.mainClock.autoAdvance = false
+        val loading = TODAY.map { it.copy(status = null) }
+        setContent(HomeLayout.SinglePane, today = mutableStateOf(loading), playTarget = GameId("zip"))
+        composeRule.mainClock.advanceTimeBy(1_000L)
+
+        composeRule.onNodeWithTag("home.today_loading").assertExists()
+        composeRule.onNodeWithTag("home.today_summary").assertDoesNotExist()
+        TODAY.forEach { composeRule.onNodeWithTag("home.badge.${it.game.value}").assertExists() }
+        composeRule.onNodeWithTag("home.today_play").assertExists()
+    }
+
+    @Test
+    fun `two pane list and detail badges never share a tag`() {
+        setContent(HomeLayout.TwoPane)
+
+        composeRule.onNodeWithTag("home.badge.zip").assertExists()
+        composeRule.onNodeWithTag("home.detail_badge.zip").assertExists()
     }
 
     @Test
@@ -142,23 +175,34 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `a tile opens its game`() {
+    fun `a badge opens its game`() {
         val opened = mutableListOf<GameId>()
         setContent(HomeLayout.SinglePane, onOpenGame = { opened += it })
 
-        composeRule.onNodeWithTag("card.tile.queens").performClick()
+        composeRule.onNodeWithTag("home.badge.queens").performClick()
 
         composeRule.runOnIdle { assertEquals(listOf(GameId("queens")), opened) }
     }
 
     @Test
-    fun `an offline tile stays enabled and its tap retries by opening the game - A9`() {
+    fun `an in-progress next game keeps the CTA on it`() {
+        val opened = mutableListOf<GameId>()
+        setContent(HomeLayout.SinglePane, onOpenGame = { opened += it })
+
+        composeRule.onNodeWithTag("home.today_play").assert(hasText("Tango", substring = true)).performScrollTo().performClick()
+        composeRule.onNodeWithTag("home.badge.tango").performClick()
+
+        composeRule.runOnIdle { assertEquals(listOf(GameId("tango"), GameId("tango")), opened) }
+    }
+
+    @Test
+    fun `an offline badge stays enabled and its tap retries by opening the game - A9`() {
         val opened = mutableListOf<GameId>()
         val today = TODAY.map { if (it.game == GameId("zip")) it.copy(status = TodayStatus.Offline) else it }
         setContent(HomeLayout.SinglePane, today = mutableStateOf(today), onOpenGame = { opened += it })
 
-        TODAY.forEach { composeRule.onNodeWithTag("card.tile.${it.game.value}").assertIsEnabled() }
-        composeRule.onNodeWithTag("card.tile.zip").performClick()
+        TODAY.forEach { composeRule.onNodeWithTag("home.badge.${it.game.value}").assertIsEnabled() }
+        composeRule.onNodeWithTag("home.badge.zip").performClick()
 
         composeRule.runOnIdle { assertEquals(listOf(GameId("zip")), opened) }
     }
@@ -251,7 +295,7 @@ class HomeScreenTest {
     private companion object {
         val DAY: LocalDate = LocalDate.of(2026, 11, 4)
 
-        /** Registry order. A loading tile shimmers forever (idling would hang); core:game-ui covers it. */
+        /** Registry order. A loading badge shimmers forever: the loading test stops the clock. */
         val TODAY = listOf(
             row("zip", "Zip", TodayStatus.Solved(36_000L)),
             row("tango", "Tango", TodayStatus.InProgress(42_000L)),

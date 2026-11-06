@@ -58,7 +58,7 @@ internal fun DetailPane(
     }
 }
 
-/** Today's set again, roomier: the two-pane hero (A15), with the same tiles and CTA. */
+/** Today's set again, roomier: the two-pane hero (A15), with the same summary card. */
 @Composable
 private fun TodayDetail(
     state: HomeUiState,
