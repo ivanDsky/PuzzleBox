@@ -1,5 +1,8 @@
 package com.ivandsky.puzzlebox.home
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasText
@@ -17,6 +20,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.data.update.AppRelease
 import com.ivandsky.puzzlebox.data.update.AppReleaseRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.AppBuild
@@ -108,6 +112,7 @@ class HomeRouteTest {
         completions: CompletionRepository,
         saved: SavedPlayRepository = FakeSavedPlayRepository(),
         zipToday: DailyToday = DailyToday.Fresh(TestGames.puzzle(GameId("zip"))),
+        releases: AppReleaseRepository = FakeAppReleaseRepository(),
     ) {
         val fakeIdentity = FakeIdentityService()
         // Home prefetches today's puzzles on resume (A12): by default a fresh fetch keeps Zip not started.
@@ -122,8 +127,8 @@ class HomeRouteTest {
                     single<SavedPlayRepository> { saved }
                     single<GameCalendar> { FakeGameCalendar(today) }
                     single<GamePlayRegistry> { GamePlayRegistry(emptyList()) }
-                    // Resume also checks for an update: no release known, so no pill.
-                    single<AppReleaseRepository> { FakeAppReleaseRepository() }
+                    // Resume also checks for an update: by default no release known, so no pill.
+                    single<AppReleaseRepository> { releases }
                     single { AppBuild(versionName = "1.0.0", checksForUpdates = true) }
                 },
                 domainModule,
@@ -267,5 +272,33 @@ class HomeRouteTest {
             composeRule.onAllNodesWithTag("home.today_countdown").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag("home.today_play").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a newer release shows the pill and its tap opens the release page - S4`() {
+        val url = "https://github.com/ivanDsky/PuzzleBox/releases/tag/v1.3.0"
+        startGraph(
+            FakeDailyRepository(),
+            FakeCompletionRepository(),
+            releases = FakeAppReleaseRepository(AppRelease(tag = "v1.3.0", url = url)),
+        )
+        val opened = mutableListOf<String>()
+        val uriHandler = object : UriHandler {
+            override fun openUri(uri: String) { opened += uri }
+        }
+        composeRule.setContent {
+            CompositionLocalProvider(LocalUriHandler provides uriHandler) {
+                PuzzleBoxTheme {
+                    HomeRoute(layout = HomeLayout.SinglePane, onOpenGame = {}, onOpenProfile = {})
+                }
+            }
+        }
+
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithTag("home.update_pill").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("home.update_pill").performClick()
+
+        composeRule.runOnIdle { assertEquals(listOf(url), opened) }
     }
 }

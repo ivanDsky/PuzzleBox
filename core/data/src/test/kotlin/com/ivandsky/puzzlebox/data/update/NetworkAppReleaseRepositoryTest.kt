@@ -7,6 +7,9 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -61,5 +64,29 @@ class NetworkAppReleaseRepositoryTest {
         transport.result = GitHubRelease("v1.2.0", "u")
         assertEquals("v1.2.0", repo.latest()?.tag)
         assertEquals(2, transport.calls)
+    }
+
+    @Test
+    fun `concurrent calls share one in-flight transport call - R7`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val slow = object : GitHubReleaseTransport {
+            var calls = 0
+            override suspend fun latest(): GitHubRelease {
+                calls++
+                gate.await()
+                return GitHubRelease("v1.2.0", "https://example.com/v1.2.0")
+            }
+        }
+        val shared = NetworkAppReleaseRepository(slow, clock)
+
+        val first = async { shared.latest() }
+        val second = async { shared.latest() }
+        runCurrent()
+        gate.complete(Unit)
+
+        val expected = AppRelease("v1.2.0", "https://example.com/v1.2.0")
+        assertEquals(expected, first.await())
+        assertEquals(expected, second.await())
+        assertEquals(1, slow.calls)
     }
 }
