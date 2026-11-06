@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.game
 
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -26,6 +27,9 @@ object TestGame {
         override val date: LocalDate = TestGame.date,
         override val puzzleNumber: Int? = null,
     ) : PuzzleRef
+
+    /** The ref [plugin]'s `refOf` builds: any [PuzzleKey], daily or custom. */
+    data class KeyRef(override val key: PuzzleKey, override val gameId: GameId = TestGame.id) : PuzzleRef
     data class Model(val solved: Boolean, val lastVerdict: MoveVerdict? = null) : RendererModel
 
     object Definition : GameDefinition {
@@ -103,7 +107,7 @@ object TestGame {
         Score,
         stateOf = { session -> stateOf(session) },
         initialSession = { puzzle -> initialSession(puzzle) },
-        refOf = { date, number -> Ref("t-$date", date = date, puzzleNumber = number) },
-        replaySession = { cached, _, _ -> DecodeResult.Ok(SessionBlob.encode(Definition.id, cached.payload)) },
+        refOf = { key -> KeyRef(key) },
+        replaySession = { cached, _ -> DecodeResult.Ok(SessionBlob.encode(Definition.id, cached.payload)) },
     ) { state, _, lastVerdict -> Model(state.solved, lastVerdict) }
 }

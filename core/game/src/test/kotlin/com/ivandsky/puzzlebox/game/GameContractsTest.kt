@@ -89,10 +89,13 @@ class GameContractsTest {
         assertSame(plugin, registry[TestGame.id])
         assertNull(registry[GameId("unregistered")])
 
-        val ref = plugin.refOf(TestGame.date, 7)
-        assertEquals(TestGame.id, ref.gameId)
-        assertEquals(TestGame.date, ref.date)
-        assertEquals(7, ref.puzzleNumber)
+        val daily = plugin.refOf(PuzzleKey.Daily(TestGame.date, 7))
+        assertEquals(TestGame.id, daily.gameId)
+        assertEquals(PuzzleKey.Daily(TestGame.date, 7), daily.key)
+
+        val custom = plugin.refOf(PuzzleKey.Custom("K7Q2MX"))
+        assertEquals(TestGame.id, custom.gameId)
+        assertEquals(PuzzleKey.Custom("K7Q2MX"), custom.key)
     }
 
     @Test

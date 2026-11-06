@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHint
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHints
 import com.ivandsky.puzzlebox.games.sudoku.render.SudokuRendererModel
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -81,12 +82,23 @@ class SudokuPluginTest {
     @Test
     fun `replay seeds a fresh session carrying the day's ref`() {
         val envelope = Puzzle(SudokuGames.MINI.id, SudokuVariants.MINI.id, SudokuCodec.VERSION, payload)
-        val blob = (plugin.replaySession(envelope, date, 450) as DecodeResult.Ok).value
+        val key = PuzzleKey.Daily(date, 450)
+        val blob = (plugin.replaySession(envelope, key) as DecodeResult.Ok).value
         val decoded = SessionBlob.decode(blob)!!
         assertEquals(SudokuGames.MINI.id, decoded.game)
         val session = (SudokuSessionCodec.deserialize(decoded.session) as DecodeResult.Ok).value
         assertEquals(SudokuSession(ref = SudokuPuzzleRef(SudokuGames.MINI.id, date, 450), puzzle = puzzle), session)
-        assertEquals(SudokuPuzzleRef(SudokuGames.MINI.id, date, 450), plugin.refOf(date, 450))
+        assertEquals(SudokuPuzzleRef(SudokuGames.MINI.id, date, 450), plugin.refOf(key))
+    }
+
+    @Test
+    fun `a custom key replays carrying the friend's puzzle identity`() {
+        val envelope = Puzzle(SudokuGames.MINI.id, SudokuVariants.MINI.id, SudokuCodec.VERSION, payload)
+        val custom = PuzzleKey.Custom("K7Q2MX")
+        val decoded = SessionBlob.decode((plugin.replaySession(envelope, custom) as DecodeResult.Ok).value)!!
+        val session = (SudokuSessionCodec.deserialize(decoded.session) as DecodeResult.Ok).value
+        assertEquals(SudokuPuzzleRef(SudokuGames.MINI.id, custom), session.ref)
+        assertEquals(SudokuPuzzleRef(SudokuGames.MINI.id, custom), plugin.refOf(custom))
     }
 
     @Test

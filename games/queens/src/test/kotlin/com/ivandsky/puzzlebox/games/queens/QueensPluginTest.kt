@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRuleId
 import com.ivandsky.puzzlebox.games.queens.render.QueensRendererModel
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -92,8 +93,9 @@ class QueensPluginTest {
         assertTrue(queensPlugin.initialSession(Puzzle(GameId("zip"), queensVariantId(8), 1, bytes)) is DecodeResult.Err)
         // refOf rebuilds the typed fetch-time identity from stored columns (ADR-0004).
         val day = LocalDate.of(2026, 11, 2)
-        assertEquals(QueensPuzzleRef(day, 12), queensPlugin.refOf(day, 12))
-        assertEquals(QueensPuzzleRef(day, null), queensPlugin.refOf(day, null))
+        assertEquals(QueensPuzzleRef(day, 12), queensPlugin.refOf(PuzzleKey.Daily(day, 12)))
+        assertEquals(QueensPuzzleRef(day, null), queensPlugin.refOf(PuzzleKey.Daily(day, null)))
+        assertEquals(QueensPuzzleRef(PuzzleKey.Custom("K7Q2MX")), queensPlugin.refOf(PuzzleKey.Custom("K7Q2MX")))
 
         val model = queensPlugin.rendererModel(QueensState(puzzle, setOf(Cell(0), Cell(9))), QueensHint.None, null)
         assertEquals(8, model.n)
@@ -169,8 +171,8 @@ private val otherPlugin: GamePlugin<OtherGameState, com.ivandsky.puzzlebox.game.
         score = OtherGameScore,
         stateOf = { OtherGameState },
         initialSession = { DecodeResult.Err(DecodeError.Malformed("no payload")) },
-        refOf = { _, _ -> error("no refs") },
-        replaySession = { _, _, _ -> DecodeResult.Err(DecodeError.Malformed("no payload")) },
+        refOf = { _ -> error("no refs") },
+        replaySession = { _, _ -> DecodeResult.Err(DecodeError.Malformed("no payload")) },
         rendererModel = { _, _, _ -> OtherRendererModel },
     )
 

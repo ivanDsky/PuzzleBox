@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.games.strands.StrandsWord
 import com.ivandsky.puzzlebox.games.strands.codec.StrandsCodec
 import com.ivandsky.puzzlebox.games.strands.strandsPlugin
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 
 /**
@@ -60,7 +61,7 @@ internal object StrandsTutorial {
         return TutorialStep(
             instruction = instruction,
             puzzle = StrandsCodec.envelope(puzzle),
-            ref = strandsPlugin.refOf(day, number),
+            ref = strandsPlugin.refOf(PuzzleKey.Daily(day, number)),
         )
     }
 }

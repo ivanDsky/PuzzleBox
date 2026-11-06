@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.games.zip.engine.ZipState
 import com.ivandsky.puzzlebox.games.zip.engine.ZipValidation
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -136,8 +137,9 @@ class ZipPluginTest {
 
         // refOf: persisted identity -> Zip's typed ref (storage round-trips refs generically)
         val day = LocalDate.of(2026, 10, 31)
-        assertEquals(ZipPuzzleRef(day, 592), zipPlugin.refOf(day, 592))
-        assertEquals(ZipPuzzleRef(day, null), zipPlugin.refOf(day, null))
+        assertEquals(ZipPuzzleRef(day, 592), zipPlugin.refOf(PuzzleKey.Daily(day, 592)))
+        assertEquals(ZipPuzzleRef(day, null), zipPlugin.refOf(PuzzleKey.Daily(day, null)))
+        assertEquals(ZipPuzzleRef(PuzzleKey.Custom("K7Q2MX")), zipPlugin.refOf(PuzzleKey.Custom("K7Q2MX")))
 
         // rendererModel: rejected verdict -> rejection; valid/absent verdict -> none
         val state = ZipState(puzzle, ZipTestSupport.path(0))
@@ -211,8 +213,8 @@ private val otherPlugin: GamePlugin<OtherGameState, OtherGameSession, OtherRende
         score = OtherGameScore,
         stateOf = { OtherGameState },
         initialSession = { DecodeResult.Err(DecodeError.Malformed("no payload")) },
-        refOf = { _, _ -> error("no refs") },
-        replaySession = { _, _, _ -> DecodeResult.Err(DecodeError.Malformed("no payload")) },
+        refOf = { _ -> error("no refs") },
+        replaySession = { _, _ -> DecodeResult.Err(DecodeError.Malformed("no payload")) },
         rendererModel = { _, _, _ -> OtherRendererModel },
     )
 

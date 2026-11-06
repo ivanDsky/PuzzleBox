@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.games.tango
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.games.tango.engine.TangoMove
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -65,8 +66,9 @@ class TangoPluginTest {
     @Test
     fun `refOf rebuilds the typed ref and the module registers the seed-backed daily source`() {
         val day = LocalDate.of(2026, 11, 2)
-        assertEquals(TangoPuzzleRef(day, 301), tangoPlugin.refOf(day, 301))
-        assertEquals(TangoPuzzleRef(day, null), tangoPlugin.refOf(day, null))
+        assertEquals(TangoPuzzleRef(day, 301), tangoPlugin.refOf(PuzzleKey.Daily(day, 301)))
+        assertEquals(TangoPuzzleRef(day, null), tangoPlugin.refOf(PuzzleKey.Daily(day, null)))
+        assertEquals(TangoPuzzleRef(PuzzleKey.Custom("K7Q2MX")), tangoPlugin.refOf(PuzzleKey.Custom("K7Q2MX")))
 
         val transport = com.ivandsky.puzzlebox.game.FeedTransport {
             com.ivandsky.puzzlebox.game.FetchResult.Err(com.ivandsky.puzzlebox.game.FetchError.Unavailable())

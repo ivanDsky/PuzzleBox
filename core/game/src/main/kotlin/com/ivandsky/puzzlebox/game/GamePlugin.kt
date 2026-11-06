@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.game
 
-import java.time.LocalDate
+import com.ivandsky.puzzlebox.model.PuzzleKey
 
 /** Marker for a game's pure drawable model. :core:game-ui maps it to Compose by [com.ivandsky.puzzlebox.model.GameId];
  *  no Compose ever appears in core or in the game module (finding F2-1). */
@@ -19,11 +19,11 @@ interface RendererModel
  * (typed rejection for a foreign envelope), [stateOf] derives the rules state from a
  * restored (or freshly built) session, and [rendererModel] projects state + hint + the
  * last move's verdict onto the drawable model. [refOf] rebuilds the game's typed
- * [PuzzleRef] from its persisted identity (date + optional puzzle number), so storage
- * round-trips refs without knowing any game. [replaySession] turns a cached day's
- * [Puzzle] into the play route's replay hand-off: the [SessionBlob]-encoded bytes of a
- * fresh session carrying that day's identity, or the typed reason it can't be replayed
- * (A16) — History replays any game without naming one.
+ * [PuzzleRef] from its persisted [PuzzleKey] (a day's daily or a friend's custom puzzle,
+ * ADR-0018), so storage round-trips refs without knowing any game. [replaySession] turns a
+ * cached [Puzzle] into the play route's replay hand-off: the [SessionBlob]-encoded bytes of
+ * a fresh session carrying that key, or the typed reason it can't be replayed (A16) —
+ * History replays any game, and a friend's puzzle replays, without naming one.
  *
  * @param P the game's rules state (input to [rules] and [rendererModel])
  * @param S the game's persisted session type
@@ -36,7 +36,7 @@ class GamePlugin<P, S : GameSession, M : RendererModel>(
     val score: ScoreModel<S>,
     val stateOf: (session: S) -> P,
     val initialSession: (puzzle: Puzzle) -> DecodeResult<S>,
-    val refOf: (date: LocalDate, puzzleNumber: Int?) -> PuzzleRef,
-    val replaySession: (cached: Puzzle, day: LocalDate, puzzleNumber: Int?) -> DecodeResult<ByteArray>,
+    val refOf: (key: PuzzleKey) -> PuzzleRef,
+    val replaySession: (cached: Puzzle, key: PuzzleKey) -> DecodeResult<ByteArray>,
     val rendererModel: (state: P, hint: Hint?, lastVerdict: MoveVerdict?) -> M,
 )

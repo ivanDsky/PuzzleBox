@@ -149,16 +149,16 @@ val queensPlugin: GamePlugin<QueensState, QueensSession, QueensRendererModel> =
                 }
             }
         },
-        refOf = { date, puzzleNumber -> QueensPuzzleRef(date, puzzleNumber) },
+        refOf = { key -> QueensPuzzleRef(key) },
         // Replay hand-off: zip's shape — the play state trusts any payload the codec decodes.
-        replaySession = { cached, day, puzzleNumber ->
+        replaySession = { cached, key ->
             when (val decoded = QueensCodec.decode(cached.payload)) {
                 is DecodeResult.Ok -> DecodeResult.Ok(
                     SessionBlob.encode(
                         QueensDefinition.id,
                         QueensSessionCodec.serialize(
                             QueensSession(
-                                ref = QueensPuzzleRef(date = day, puzzleNumber = puzzleNumber),
+                                ref = QueensPuzzleRef(key),
                                 puzzle = decoded.value,
                             ),
                         ),

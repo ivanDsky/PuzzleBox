@@ -24,6 +24,7 @@ import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -40,12 +41,14 @@ object TestGames {
     val alpha = GameId("alpha")
     val beta = GameId("beta")
 
-    /** A game's typed ref, round-trippable through [com.ivandsky.puzzlebox.data.model.PuzzleRefKeys]. */
+    /** A game's typed ref (daily or custom), round-trippable through [com.ivandsky.puzzlebox.data.model.PuzzleRefKeys]. */
     data class Ref(
         override val gameId: GameId,
-        override val date: LocalDate,
-        override val puzzleNumber: Int? = null,
-    ) : PuzzleRef
+        override val key: PuzzleKey,
+    ) : PuzzleRef {
+        constructor(gameId: GameId, date: LocalDate, puzzleNumber: Int? = null) :
+            this(gameId, PuzzleKey.Daily(date, puzzleNumber))
+    }
 
     fun variant(game: GameId) = VariantId("${game.value}/v1")
 
@@ -71,10 +74,10 @@ object TestGames {
         score = Score,
         stateOf = { },
         initialSession = { DecodeResult.Ok(Session) },
-        refOf = { date, number -> Ref(game, date, number) },
-        replaySession = { cached, day, number ->
+        refOf = { key -> Ref(game, key) },
+        replaySession = { cached, key ->
             if (cached.payload.isNotEmpty() && cached.payload[0] == MAGIC) {
-                DecodeResult.Ok(replayBlob(game, cached, day, number))
+                DecodeResult.Ok(replayBlob(game, cached, key))
             } else {
                 DecodeResult.Err(DecodeError.Malformed("not a ${game.value} payload"))
             }
@@ -82,9 +85,13 @@ object TestGames {
         rendererModel = { _, _, _ -> Model },
     )
 
-    /** The replay hand-off [plugin] builds: [game]'s envelope over the payload plus the day's identity. */
+    /** The replay hand-off [plugin] builds: [game]'s envelope over the payload plus the puzzle's identity. */
+    fun replayBlob(game: GameId, cached: Puzzle, key: PuzzleKey): ByteArray =
+        SessionBlob.encode(game, cached.payload + key.toString().toByteArray(Charsets.UTF_8))
+
+    /** [replayBlob] for a day's daily. */
     fun replayBlob(game: GameId, cached: Puzzle, day: LocalDate, puzzleNumber: Int?): ByteArray =
-        SessionBlob.encode(game, cached.payload + "$day#$puzzleNumber".toByteArray(Charsets.UTF_8))
+        replayBlob(game, cached, PuzzleKey.Daily(day, puzzleNumber))
 
     fun registry(games: List<GameId>): GameRegistry = GameRegistry(games.map(::plugin))
 
