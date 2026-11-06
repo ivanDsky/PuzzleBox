@@ -1,11 +1,15 @@
 package com.ivandsky.puzzlebox.data.model
 
+import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -56,4 +60,22 @@ class PuzzleRefKeysTest {
     fun `a game dropped from the build no longer decodes its keys`() {
         assertNull(PuzzleRefKeys.decode("beta/2026-10-31/42", TestGames.registry(listOf(alpha))))
     }
+
+    @Test
+    fun `custom ref encodes under the custom namespace, never its game's daily prefix`() {
+        val key = PuzzleRefKeys.encode(CustomRef(GameId("queens"), PuzzleKey.Custom("K7Q2MX")))
+        assertEquals("custom/queens/K7Q2MX", key)
+        assertFalse(key.startsWith("queens/"))
+    }
+
+    @Test
+    fun `daily key form is unchanged for a ref that overrides key`() {
+        val ref = object : PuzzleRef {
+            override val gameId = GameId("queens")
+            override val key = PuzzleKey.Daily(LocalDate.of(2026, 11, 6), 918)
+        }
+        assertEquals("queens/2026-11-06/918", PuzzleRefKeys.encode(ref))
+    }
+
+    private data class CustomRef(override val gameId: GameId, override val key: PuzzleKey.Custom) : PuzzleRef
 }

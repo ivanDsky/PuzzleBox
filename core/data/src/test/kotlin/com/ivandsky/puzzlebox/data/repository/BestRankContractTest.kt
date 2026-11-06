@@ -6,10 +6,12 @@ import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.RankOrderCases
@@ -36,6 +38,7 @@ class BestRankContractTest {
     private val day = LocalDate.of(2026, 10, 31)
     private val cases = RankOrderCases.all.mapIndexed { i, case -> GameId("case$i") to case }
     private val orders = cases.associate { (game, case) -> game to case.order }
+    private val queens = GameId("queens")
 
     private val db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
         .allowMainThreadQueries()
@@ -73,6 +76,36 @@ class BestRankContractTest {
         hints = score.hints,
         stats = RecordStats(schemaVersion = 1, blob = "{}"),
     )
+
+    @Test
+    fun `room best never counts a custom completion`() = runTest {
+        val registry = GameRegistry(listOf(TestGames.plugin(queens)))
+        assertCustomExcluded(RoomCompletionRepository(db, db.completionDao(), registry))
+    }
+
+    @Test
+    fun `fake best never counts a custom completion`() = runTest {
+        assertCustomExcluded(FakeCompletionRepository())
+    }
+
+    /** Spec A11/A12: a friend's Queens solve keys as `custom/queens/…`, outside the `queens/` best prefix. */
+    private suspend fun assertCustomExcluded(repository: CompletionRepository) {
+        val custom = CompletionRecord(
+            puzzleRef = CustomRef(queens, PuzzleKey.Custom("K7Q2MX")),
+            time = 1_000,
+            hints = 0,
+            stats = RecordStats(schemaVersion = 1, blob = "{}"),
+        )
+        repository.onCompleted(custom)
+        assertNull(repository.best(queens))
+
+        val daily = BestScore(timeMs = 90_000, hints = 2)
+        repository.onCompleted(completion(queens, 918, daily))
+        repository.onCompleted(custom.copy(time = 500))
+        assertEquals(daily, repository.best(queens))
+    }
+
+    private data class CustomRef(override val gameId: GameId, override val key: PuzzleKey.Custom) : PuzzleRef
 
     /** [TestGames.plugin] under [game], ranking by [order]. */
     private fun plugin(game: GameId, order: RankOrder): GamePlugin<*, *, *> {
