@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.queens.engine.solve
 
+import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRuleId
@@ -36,6 +37,10 @@ class QueensSolver {
     /** Up to [limit] distinct solutions in deterministic search order (repair loops, tests). */
     fun solutionsUpTo(puzzle: QueensPuzzle, limit: Int): List<List<Cell>> =
         QueensSearch.solutions(puzzle, limit)
+
+    /** [solutionsUpTo] under [budget]: [QueensSearchOutcome.Exhausted] once it is spent (editor). */
+    fun solutionsWithin(puzzle: QueensPuzzle, limit: Int, budget: Budget): QueensSearchOutcome =
+        QueensSearch.bounded(puzzle, limit, budget)
 
     /**
      * Is [queens] the puzzle's rule-satisfying solution? Delegates to the queens-02
