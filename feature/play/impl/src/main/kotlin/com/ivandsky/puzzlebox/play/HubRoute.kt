@@ -43,6 +43,7 @@ internal fun HubRoute(
         layout = layout,
         onPick = onPick,
         onPickDay = onPickDay,
+        pastDay = viewModel::pastDay,
         onOpenHistory = onOpenHistory,
         modifier = modifier,
     )
