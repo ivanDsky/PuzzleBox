@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.games.queens
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 
 /** Row-major board cell, `0 until size*size` (zip precedent: idx = row*size + col). */
@@ -82,14 +83,12 @@ data class QueensPuzzle(
 }
 
 /**
- * Official daily identity (zip precedent, F2-3 / ADR-0004): the LinkedIn day plus the
- * puzzle number, null for undated boards. Codec bytes stay identity-free.
+ * Queens puzzle identity (ADR-0018, spec A11): a LinkedIn daily (day + puzzle number, null
+ * for undated boards) or a friend's custom puzzle. Codec bytes stay identity-free.
  */
-data class QueensPuzzleRef(
-    override val date: LocalDate,
-    override val puzzleNumber: Int?,
-) : PuzzleRef {
+data class QueensPuzzleRef(override val key: PuzzleKey) : PuzzleRef {
     override val gameId: GameId get() = QueensDefinition.id
+    constructor(date: LocalDate, puzzleNumber: Int?) : this(PuzzleKey.Daily(date, puzzleNumber)) // deleted in P12
 }
 
 /** The variant id for a board size, e.g. "queens/n8". Single naming seam for all modules. */

@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
 import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSolver
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.io.ByteArrayOutputStream
 import java.time.Instant
 import java.time.LocalDate
@@ -16,10 +17,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Session codec v3 (command-pattern undo/redo history + banked clock; v2 still reads,
- * history dropped): zip ZipSessionCodecTest conventions — exact round trip (C1)
+ * Session codec v4 (v3 + a key tag on the ref: Daily | Custom; v3 and v2 still read as
+ * dailies, v2 history dropped): zip ZipSessionCodecTest conventions — exact round trip (C1)
  * including the command history, pinned layout (C2), determinism (C3), version guard
- * (C5), the v2 read path, and malformed-input rejection.
+ * (C5), frozen v3/v4 fixtures, the v2 read path, and malformed-input rejection.
  */
 class QueensSessionCodecTest {
 
@@ -32,6 +33,8 @@ class QueensSessionCodecTest {
     private fun cell(row: Int, col: Int, size: Int = 8) = QueensTestSupport.cell(row, col, size)
 
     private fun ref() = QueensPuzzleRef(LocalDate.of(2026, 11, 2), 7)
+
+    private fun customRef() = QueensPuzzleRef(PuzzleKey.Custom("ABC234"))
 
     private val now = Instant.ofEpochMilli(completed.toEpochMilli() - 60_000)
 
@@ -138,7 +141,7 @@ class QueensSessionCodecTest {
         val puzzleBytes = QueensCodec.encode(puzzle)
         val blob = QueensSessionCodec.serialize(QueensSession(ref = null, puzzle = puzzle))
         val expected = buildList {
-            add(3) // version
+            add(4) // version
             add((puzzleBytes.size shr 8) and 0xFF); add(puzzleBytes.size and 0xFF)
             addAll(puzzleBytes.map(Byte::toInt))
             add(0) // flags: no completedAt, no ref, autoCross ON
@@ -149,7 +152,7 @@ class QueensSessionCodecTest {
             repeat(8) { add(0) } // elapsedMs i64
             add(0) // hintsUsed
         }.map(Int::toByte).toByteArray()
-        assertEquals(3, QueensSessionCodec.VERSION)
+        assertEquals(4, QueensSessionCodec.VERSION)
         assertArrayEquals(expected, blob)
     }
 
@@ -163,6 +166,65 @@ class QueensSessionCodecTest {
     @Test
     fun `ref absence is a flag, not a sentinel`() {
         assertNull(roundTrip(session(ref = null)).ref)
+    }
+
+    @Test
+    fun `C1 - both key kinds round trip`() {
+        assertEquals(PuzzleKey.Daily(LocalDate.of(2026, 11, 2), 7), roundTrip(session(ref = ref())).ref?.key)
+        val undated = QueensPuzzleRef(LocalDate.of(2026, 1, 1), null)
+        assertEquals(undated, roundTrip(session(ref = undated)).ref)
+        val custom = session(completedAt = null, ref = customRef())
+        val restored = roundTrip(custom)
+        assertEquals(custom, restored)
+        assertEquals(PuzzleKey.Custom("ABC234"), restored.ref?.key)
+    }
+
+    @Test
+    fun `C2 - the ref carries a key tag after the flags byte`() {
+        val puzzleLen = QueensCodec.encode(puzzle()).size
+        val at = 3 + puzzleLen + 1 // version + puzzleLen u16 + puzzle + flags
+        val daily = QueensSessionCodec.serialize(session(ref = ref()))
+        assertEquals(0, daily[at].toInt())
+        val custom = QueensSessionCodec.serialize(session(ref = customRef()))
+        val tail = listOf(1, 6) + "ABC234".map { it.code }
+        assertEquals(tail, custom.copyOfRange(at, at + tail.size).map(Byte::toInt))
+    }
+
+    // ------------------------------------------------------------- frozen fixtures
+
+    private fun fixture(name: String): ByteArray =
+        QueensSessionCodecTest::class.java.getResourceAsStream("/fixtures/$name")!!.use { it.readBytes() }
+
+    /** The session both fixtures froze, minus the ref: MANUAL+AUTO marks, two placements, a hint. */
+    private fun frozen(ref: QueensPuzzleRef): QueensSession {
+        val p = puzzle()
+        val solution = solver.solve(p) ?: error("fixture board must be solvable")
+        var s = QueensSession(ref = ref, puzzle = p)
+        s = s.withCrossToggled(cell(3, 3), now)
+        s = s.withQueenPlaced(solution[0], now)
+        s = s.withQueenPlaced(solution[1], now)
+        return s.withHintUsed().copy(elapsedMs = 42_000L)
+    }
+
+    @Test
+    fun `frozen v3 daily save decodes as a Daily key`() {
+        val bytes = fixture("queens-session-v3.bin")
+        assertEquals(3, bytes[0].toInt())
+        val restored = (QueensSessionCodec.deserialize(bytes) as DecodeResult.Ok).value
+        assertEquals(PuzzleKey.Daily(LocalDate.of(2026, 11, 2), 7), restored.ref?.key)
+        assertEquals(frozen(ref()), restored)
+        assertEquals(frozen(ref()).history, restored.history)
+    }
+
+    @Test
+    fun `frozen v4 custom save decodes as a Custom key`() {
+        val bytes = fixture("queens-session-v4-custom.bin")
+        assertEquals(4, bytes[0].toInt())
+        val restored = (QueensSessionCodec.deserialize(bytes) as DecodeResult.Ok).value
+        assertEquals(PuzzleKey.Custom("ABC234"), restored.ref?.key)
+        assertEquals(frozen(customRef()), restored)
+        assertEquals(frozen(customRef()).history, restored.history)
+        assertArrayEquals(bytes, QueensSessionCodec.serialize(restored))
     }
 
     // ------------------------------------------------------------- v2 compatibility
@@ -208,16 +270,17 @@ class QueensSessionCodecTest {
         val restored = (QueensSessionCodec.deserialize(v2Blob(complete = true)) as DecodeResult.Ok).value
         assertTrue(restored.isComplete)
         assertEquals(50_000L, restored.elapsedMs)
-        // and re-serializes as v3
+        // and re-serializes as v4
         assertEquals(restored, roundTrip(restored))
     }
 
     @Test
     fun `v1 and future blobs are rejected as UnsupportedVersion`() {
-        for (version in listOf(1, 4, 99)) {
+        for (version in listOf(1, 5, 99)) {
             val blob = QueensSessionCodec.serialize(session()).also { it[0] = version.toByte() }
             val err = QueensSessionCodec.deserialize(blob)
             assertTrue("v$version", err is DecodeResult.Err && err.error is DecodeError.UnsupportedVersion)
+            assertEquals(4, ((err as DecodeResult.Err).error as DecodeError.UnsupportedVersion).maxKnown)
         }
     }
 
@@ -232,6 +295,15 @@ class QueensSessionCodecTest {
     fun `malformed - truncated after the history`() {
         val full = QueensSessionCodec.serialize(historied())
         assertTrue(QueensSessionCodec.deserialize(full.copyOfRange(0, full.size - 3)) is DecodeResult.Err)
+    }
+
+    @Test
+    fun `malformed - unknown key tag and empty puzzleId`() {
+        val blob = QueensSessionCodec.serialize(session(ref = ref()))
+        val at = 3 + QueensCodec.encode(puzzle()).size + 1
+        assertTrue("unknown tag", isMalformed(blob.copyOf().also { it[at] = 2 }))
+        val custom = QueensSessionCodec.serialize(session(ref = customRef()))
+        assertTrue("empty puzzleId", isMalformed(custom.copyOf().also { it[at + 1] = 0 }))
     }
 
     /** A fresh-session blob with [doneTail] spliced in as the done-list (count + commands). */
