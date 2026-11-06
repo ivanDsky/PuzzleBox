@@ -93,11 +93,22 @@ internal fun rememberQueensDiagnostics(
 }
 
 /**
- * Cell [idx]'s marks, drawn over its fill: the split stripes (the play UI's violation
- * stripes, which appear after a delay rather than animate), then the clash fill, the
- * diff ring, the witness queen (a solid crown in the diff ring's tint) and the ghost crown
- * ([QueensGhostLayer]), each fading in. Each mark carries
- * `queens.editor.cell.<idx>.<split|clash|diff|witness|ghost>`.
+ * Cell [idx]'s clash fill (tag `queens.editor.cell.<idx>.clash`), fading in. It sits on the
+ * fill under the crown layer, so a clashing crown stays legible over it (29).
+ */
+@Composable
+internal fun QueensClashWash(idx: Int, diagnostics: QueensDiagnostics, reducedMotion: Boolean) {
+    if (idx !in diagnostics.clash) return
+    val wash = LocalBoardColors.current.editorClashFill
+    FadingMark("queens.editor.cell.$idx.clash", reducedMotion) { drawRect(wash) }
+}
+
+/**
+ * Cell [idx]'s marks over its crown layer: the split stripes (the play UI's violation
+ * stripes, which appear after a delay rather than animate), then the diff ring, the witness
+ * queen (a solid crown in the diff ring's tint) and the ghost crown ([QueensGhostLayer]),
+ * each fading in; the clash fill is [QueensClashWash], beneath the crown. Each mark carries
+ * `queens.editor.cell.<idx>.<split|diff|witness|ghost>`.
  */
 @Composable
 internal fun QueensCellDiagnostics(idx: Int, diagnostics: QueensDiagnostics, reducedMotion: Boolean) {
@@ -115,9 +126,6 @@ internal fun QueensCellDiagnostics(idx: Int, diagnostics: QueensDiagnostics, red
                 )
             }
         }
-    }
-    if (idx in diagnostics.clash) {
-        FadingMark("queens.editor.cell.$idx.clash", reducedMotion) { drawRect(tokens.editorClashFill) }
     }
     if (idx in diagnostics.diff) {
         FadingMark("queens.editor.cell.$idx.diff", reducedMotion) { drawInsetRing(tokens.editorDiffRing) }

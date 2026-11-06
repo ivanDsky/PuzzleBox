@@ -10,6 +10,12 @@ import kotlin.math.PI
  * No colours here: every hue comes from the theme or [com.ivandsky.puzzlebox.games.queensui.QueensRegionPalette].
  */
 object QueensEditorDefaults {
+    /**
+     * The ghost crown's dashed outline over the diff ring's tint (40): fainter than a placed
+     * crown, yet ≥ 3:1 over every region fill (the play ghost's 0.7 is 2.7:1 on light fills).
+     */
+    const val ghostOutlineAlpha: Float = 0.85f
+
     /** Accent wash over a selected cell. */
     const val selectionOverlayAlpha: Float = 0.28f
 
