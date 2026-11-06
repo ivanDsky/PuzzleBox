@@ -38,8 +38,9 @@ import org.junit.Test
 
 /**
  * The Studio's autosave wired into [EditorViewModel] (spec A5; 16 handoff): an edit is stored
- * once the 300 ms window ends, app stop and leaving the Studio store it at once, Duplicate
- * stores it before copying, and Delete drops it so a late save never brings the draft back.
+ * once the 300 ms window ends, app stop and leaving the Studio store it at once, and Duplicate
+ * and Delete store it first, so the copy and the Create root's Undo both have it; after
+ * Delete no late save brings the draft back.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class EditorAutosaveTest {
@@ -135,19 +136,24 @@ class EditorAutosaveTest {
     }
 
     @Test
-    fun `delete right after an edit keeps the draft deleted once the window has passed`() = runTest(mainRule.testDispatcher) {
+    fun `delete right after an edit stays deleted, and undo restores the edited board`() = runTest(mainRule.testDispatcher) {
         val vm = open()
         val create = createViewModel()
         controller.edit(edited)
 
         vm.delete { draftId -> create.delete(draftId) }
         runCurrent()
-        assertNull("deleted at once", drafts.rows[DRAFT_ID])
+        assertNull("deleted once the edit is stored", drafts.rows[DRAFT_ID])
+        controller.edit(editor.draft(marks = 9))
 
         advanceTimeBy(WINDOW_MS * 2)
-        assertNull("the dropped save never brings it back", drafts.rows[DRAFT_ID])
-        assertTrue(writes.isEmpty())
+        assertNull("no late save brings it back", drafts.rows[DRAFT_ID])
+        assertEquals("only the edit before Delete was stored", 1, writes.size)
         assertFalse(vm.saving.value)
+
+        create.undoDelete()
+        runCurrent()
+        assertArrayEquals("undo restores the board with the edit", edited.encode(), drafts.rows.getValue(DRAFT_ID).blob)
     }
 
     @Test

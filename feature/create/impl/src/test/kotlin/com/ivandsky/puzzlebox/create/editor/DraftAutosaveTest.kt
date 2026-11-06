@@ -18,8 +18,8 @@ import org.junit.Test
 
 /**
  * [DraftAutosave] (spec A5): a trailing throttle, not a debounce, so a steady run of edits is
- * still stored every window; writes are conflated and never overlap; discard waits out a
- * write already running.
+ * still stored every window; writes are conflated and never overlap; finish stores the last
+ * row after any write already running and takes no more.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class DraftAutosaveTest {
@@ -60,38 +60,40 @@ class DraftAutosaveTest {
     }
 
     @Test
-    fun `discard drops the pending row`() = runTest {
+    fun `finish stores the pending row and later offers are never stored`() = runTest {
         val autosave = autosave()
         autosave.offer(row("edit"))
 
-        autosave.discard()
+        autosave.finish()
+        assertEquals(listOf("edit"), stored)
+        autosave.offer(row("late"))
         advanceTimeBy(WINDOW_MS * 2)
 
-        assertTrue(stored.isEmpty())
+        assertEquals(listOf("edit"), stored)
         assertFalse(autosave.saving.value)
     }
 
     @Test
-    fun `discard waits for a write already running and a newer offer is not stored`() = runTest {
+    fun `finish waits for a write already running, then stores the newer row`() = runTest {
         val release = CompletableDeferred<Unit>()
         val autosave = autosave { stored += it.title; release.await() }
         autosave.offer(row("first"))
         advanceTimeBy(WINDOW_MS + 1)
         autosave.offer(row("second"))
 
-        var discarded = false
+        var finished = false
         backgroundScope.launch {
-            autosave.discard()
-            discarded = true
+            autosave.finish()
+            finished = true
         }
         runCurrent()
-        assertFalse("still waiting for the running write", discarded)
+        assertFalse("still waiting for the running write", finished)
+        assertEquals(listOf("first"), stored)
 
         release.complete(Unit)
         runCurrent()
-        assertTrue(discarded)
-        advanceTimeBy(WINDOW_MS * 2)
-        assertEquals(listOf("first"), stored)
+        assertTrue(finished)
+        assertEquals(listOf("first", "second"), stored)
     }
 
     private fun row(title: String) = Draft(

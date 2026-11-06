@@ -25,8 +25,8 @@ import kotlinx.coroutines.launch
 /**
  * The Studio's thin composition root: opens the stored draft named by [key], holds its
  * [EditorDraft], hands every edit to its holders and autosaves it with its undo history
- * ([saving]; stored at once on [flush], before [duplicate] and on leaving the Studio, dropped
- * by [delete]). Each concern moves into its own holder, wired here: VerdictPipeline (13),
+ * ([saving]; stored at once on [flush], before [duplicate] and [delete] and on leaving the
+ * Studio). Each concern moves into its own holder, wired here: VerdictPipeline (13),
  * EditHistory (14/15), DraftMeta (16), DraftAutosave (17), VerdictCardState (24),
  * TestSolveSession (27).
  */
@@ -130,10 +130,13 @@ class EditorViewModel(
         }
     }
 
-    /** Delete drops the pending edit first, so no late save brings the deleted draft back. */
+    /**
+     * Delete stores the pending edit and takes no more, then hands the id on: the Create root's
+     * Undo restores the board the author last saw, and no late save brings the draft back.
+     */
     fun delete(onDelete: (draftId: String) -> Unit) {
         saves.launch(start = CoroutineStart.UNDISPATCHED) {
-            autosave.discard()
+            autosave.finish()
             meta.delete(onDelete)
         }
     }

@@ -22,8 +22,8 @@ import org.koin.core.parameter.parametersOf
 /**
  * The Studio's DI-bound entry point: one [EditorViewModel] per [key]; the game's editor UI
  * draws the board. Edits autosave, and the app's stop (ON_STOP) stores the pending one at once
- * (A5). Duplicate stores the pending edit, then reports the copy's id to [onOpen]; Delete drops
- * it, then reports the draft's id to [onDelete], which leaves the Studio and deletes it with Undo.
+ * (A5). Duplicate stores the pending edit, then reports the copy's id to [onOpen]; Delete stores
+ * it too, then reports the draft's id to [onDelete], which leaves the Studio and deletes it with Undo.
  */
 @Composable
 internal fun EditorRoute(
