@@ -46,7 +46,7 @@ class LinkedInTangoDailySource(
 
     override val archiveSince: LocalDate = EDITION.day1
 
-    override fun puzzleNumber(day: LocalDate): Int? = if (day.isBefore(archiveSince)) null else EDITION.number(day)
+    override fun puzzleNumber(day: LocalDate): Int? = EDITION.numberOrNull(day)
 
     override suspend fun fetchDaily(date: LocalDate): FetchResult<DailyFetch> {
         val body = when (val fetched = transport.fetch(REQUEST)) {
@@ -59,20 +59,14 @@ class LinkedInTangoDailySource(
     }
 
     override suspend fun fetchPast(date: LocalDate): FetchResult<DailyFetch> {
-        val number = EDITION.number(date)
-        val todays = EDITION.number(today())
-        if (number !in 1..todays) {
-            return FetchResult.Err(FetchError.NotFound("Tango #$number is outside #1..#$todays"))
-        }
-        val body = when (val fetched = transport.fetch(EDITION.request(number))) {
+        val body = when (val fetched = EDITION.fetch(transport, date, today())) {
             is FetchResult.Ok -> fetched.value
             is FetchResult.Err -> return FetchResult.Err(fetched.error)
         }
-        EDITION.check(body, number)?.let { return FetchResult.Err(it) }
         val match = TangoGameExtractor.extract(body)
             ?: return FetchResult.Err(FetchError.Unavailable("no ${TangoGameExtractor.KEY} in by-id body"))
         // By-id bodies carry no edition text; the number is the checked request's (A6).
-        return trusted(match.lotkaGamePuzzleJson, date, number.toString())
+        return trusted(match.lotkaGamePuzzleJson, date, EDITION.number(date).toString())
     }
 
     /** Parse -> A15 uniqueness gate -> canonical envelope, shared by today's and past days' bodies. */

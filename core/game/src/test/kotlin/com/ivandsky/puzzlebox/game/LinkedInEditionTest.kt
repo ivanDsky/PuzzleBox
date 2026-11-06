@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.game
 
 import java.time.LocalDate
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -103,7 +104,69 @@ class LinkedInEditionTest {
         assertTrue(zip.check(normalized(6, 592, puzzle = " null"), 592) is FetchError.NotFound)
     }
 
+    @Test
+    fun `numberOrNull is null before day1 and the number from day1 on`() {
+        assertNull(zip.numberOrNull(LocalDate.of(2025, 3, 17)))
+        assertEquals(1, zip.numberOrNull(LocalDate.of(2025, 3, 18)))
+        assertEquals(592, zip.numberOrNull(LocalDate.of(2026, 10, 30)))
+    }
+
+    @Test
+    fun `fetch outside #1 to today's number is NotFound and sends no request`() = runTest {
+        val transport = Recording(FetchResult.Ok(normalized(6, 599)))
+
+        val tomorrow = zip.fetch(transport, day = TODAY.plusDays(1), today = TODAY)
+        val beforeDay1 = zip.fetch(transport, day = zip.day1.minusDays(1), today = TODAY)
+
+        assertTrue((tomorrow as FetchResult.Err).error is FetchError.NotFound)
+        assertTrue((beforeDay1 as FetchResult.Err).error is FetchError.NotFound)
+        assertTrue(transport.requests.isEmpty())
+    }
+
+    @Test
+    fun `fetch asks games-by-id for the day's number and passes a transport error through`() = runTest {
+        val error = FetchError.Throttled("cooldown")
+        val transport = Recording(FetchResult.Err(error))
+
+        val result = zip.fetch(transport, day = PAST, today = TODAY)
+
+        assertEquals(FetchResult.Err(error), result)
+        val request = transport.requests.single()
+        assertEquals(zip.request(592).persistedQuery?.variables, request.persistedQuery?.variables)
+        assertFalse(request.stream)
+    }
+
+    @Test
+    fun `fetch refuses a body of another edition as Untrusted`() = runTest {
+        val result = zip.fetch(Recording(FetchResult.Ok(normalized(6, 591))), day = PAST, today = TODAY)
+
+        assertTrue((result as FetchResult.Err).error is FetchError.Untrusted)
+    }
+
+    @Test
+    fun `fetch reads a null puzzle as NotFound`() = runTest {
+        val result = zip.fetch(Recording(FetchResult.Ok(normalized(6, 592, puzzle = "null"))), day = PAST, today = TODAY)
+
+        assertTrue((result as FetchResult.Err).error is FetchError.NotFound)
+    }
+
+    @Test
+    fun `fetch returns the checked body of the day's edition, today's included`() = runTest {
+        val body = normalized(6, 592)
+
+        assertEquals(FetchResult.Ok(body), zip.fetch(Recording(FetchResult.Ok(body)), day = PAST, today = TODAY))
+        assertEquals(FetchResult.Ok(plain(598)), zip.fetch(Recording(FetchResult.Ok(plain(598))), day = TODAY, today = TODAY))
+    }
+
+    /** A transport that answers every request with [reply] and records what it was asked. */
+    private class Recording(private val reply: FetchResult<String>) : FeedTransport {
+        val requests = mutableListOf<FeedRequest>()
+        override suspend fun fetch(request: FeedRequest): FetchResult<String> = reply.also { requests += request }
+    }
+
     private companion object {
         const val GUEST = "ACoAAAAAAAABWzs7tPEzjbzdTu0bZDhDZpin_Ds"
+        val TODAY: LocalDate = LocalDate.of(2026, 11, 5) // Zip #598
+        val PAST: LocalDate = LocalDate.of(2026, 10, 30) // Zip #592
     }
 }
