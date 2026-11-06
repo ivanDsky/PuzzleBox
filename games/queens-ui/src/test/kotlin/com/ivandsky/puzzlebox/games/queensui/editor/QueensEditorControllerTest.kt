@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.queens.QueensVariants
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
@@ -186,7 +187,7 @@ class QueensEditorControllerTest {
 
     private fun show(controller: QueensEditorController) {
         rule.setContent {
-            PuzzleBoxTheme { QueensEditorBoard(controller, Modifier.fillMaxWidth()) }
+            PuzzleBoxTheme { QueensEditorBoard(controller, Verdict.Checking, Modifier.fillMaxWidth()) }
         }
     }
 

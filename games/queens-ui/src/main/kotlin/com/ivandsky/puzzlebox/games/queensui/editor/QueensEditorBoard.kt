@@ -39,6 +39,8 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.Solution
+import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.queens.QueensVariants
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
@@ -63,16 +65,18 @@ internal const val UNPAINTED_DESCRIPTION = "unpainted"
  * ring sits at the lift point, pushed back inside the board and the window. The context
  * bar below counts the selection; its Area and All of colour chips grow it and re-open the
  * ring at the new centroid. Each cell says its region's hue in its state description, so
- * tests read the painting without pixels.
+ * tests read the painting without pixels. Over the fills, [QueensCellDiagnostics] shows what
+ * the [verdict] found and which region pieces stray.
  */
 @Composable
-internal fun QueensEditorBoard(controller: QueensEditorController, modifier: Modifier = Modifier) {
+internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verdict, modifier: Modifier = Modifier) {
     val draft by controller.draft.collectAsState()
     val selection by controller.selection.collectAsState()
     val board = draft.state.draft as QueensDraft
     val model = remember(board) { modelOf(board) }
     val n = model.n
     val reducedMotion = rememberReducedMotion()
+    val diagnostics = rememberQueensDiagnostics(verdict, board)
     var lift by remember { mutableStateOf(Offset.Zero) }
     var dragging by remember { mutableStateOf(false) }
     var frame by remember { mutableStateOf(BoardFrame.Zero) }
@@ -128,6 +132,7 @@ internal fun QueensEditorBoard(controller: QueensEditorController, modifier: Mod
                             } else {
                                 QueensCell(model = model, idx = idx)
                             }
+                            QueensCellDiagnostics(idx, diagnostics, reducedMotion)
                         }
                     },
                 )
@@ -219,7 +224,7 @@ private fun modelOf(board: QueensDraft): QueensBoardModel = QueensBoardModel(
 @Preview(name = "Compact width", widthDp = 360, heightDp = 420, showBackground = true)
 @Composable
 private fun QueensEditorBoardPreview() {
-    PuzzleBoxTheme { QueensEditorBoard(previewController(), Modifier.fillMaxWidth()) }
+    PuzzleBoxTheme { QueensEditorBoard(previewController(), Verdict.Checking, Modifier.fillMaxWidth()) }
 }
 
 @PuzzleBoxPreviews
@@ -227,11 +232,35 @@ private fun QueensEditorBoardPreview() {
 @Composable
 private fun QueensEditorBoardSelectedPreview() {
     val controller = previewController().apply { listOf(5, 6, 9).forEach(::tap) }
-    PuzzleBoxTheme { QueensEditorBoard(controller, Modifier.fillMaxWidth()) }
+    PuzzleBoxTheme { QueensEditorBoard(controller, Verdict.Checking, Modifier.fillMaxWidth()) }
 }
 
-private fun previewController(): QueensEditorController {
+@PuzzleBoxPreviews
+@Preview(name = "2+ solutions", widthDp = 360, heightDp = 420, showBackground = true)
+@Composable
+private fun QueensEditorBoardMultiplePreview() {
+    val verdict = Verdict.Multiple(Solution(listOf(1, 7, 8, 14)), Solution(listOf(2, 4, 11, 13)), setOf(1, 2, 4, 7, 8, 11, 13, 14))
+    PuzzleBoxTheme { QueensEditorBoard(previewController(), verdict, Modifier.fillMaxWidth()) }
+}
+
+@PuzzleBoxPreviews
+@Preview(name = "No solution, clash", widthDp = 360, heightDp = 420, showBackground = true)
+@Composable
+private fun QueensEditorBoardClashPreview() {
+    PuzzleBoxTheme { QueensEditorBoard(previewController(), Verdict.None(setOf(0, 5)), Modifier.fillMaxWidth()) }
+}
+
+@PuzzleBoxPreviews
+@Preview(name = "Split region", widthDp = 360, heightDp = 420, showBackground = true)
+@Composable
+private fun QueensEditorBoardSplitPreview() {
+    val regions = List(16) { it / 4 }.toMutableList().apply { this[15] = 0 }
+    PuzzleBoxTheme { QueensEditorBoard(previewController(regions), Verdict.Checking, Modifier.fillMaxWidth()) }
+}
+
+private fun previewController(
+    regions: List<Int> = List(16) { if (it % 4 == 3) QueensDraft.UNPAINTED else it / 4 },
+): QueensEditorController {
     val blank = EditorDraft.fresh(QueensEditor, QueensVariants.variant(4).id)
-    val painted = blank.state.draft.copy(regions = List(16) { if (it % 4 == 3) QueensDraft.UNPAINTED else it / 4 })
-    return QueensEditorController(EditorDraft(QueensEditor, blank.state.copy(draft = painted))) {}
+    return QueensEditorController(EditorDraft(QueensEditor, blank.state.copy(draft = blank.state.draft.copy(regions = regions)))) {}
 }

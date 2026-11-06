@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.queens.QueensVariants
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
@@ -41,7 +42,7 @@ class QueensSelectionRingTest {
         val controller = QueensEditorController(EditorDraft.fresh(QueensEditor, QueensVariants.variant(SIZE).id)) { edits += it }
         rule.setContent {
             PuzzleBoxTheme {
-                Box(Modifier.padding(top = 80.dp).size(120.dp)) { QueensEditorBoard(controller, Modifier.fillMaxSize()) }
+                Box(Modifier.padding(top = 80.dp).size(120.dp)) { QueensEditorBoard(controller, Verdict.Checking, Modifier.fillMaxSize()) }
             }
         }
 

@@ -63,6 +63,16 @@ data class BoardColors(
     val strandsThemeConnector: Color,
     val strandsSpangramConnector: Color,
     val strandsHintConnector: Color,
+
+    // Editor diagnostics (editor spec S19, prototype 03 b): editor-only shading the play
+    // board never draws. The "2+ solutions" ring deliberately avoids boardSelection (the
+    // play hint tint): a saturated teal, light over dark fills and deep over pastel ones,
+    // so the ring reads on any region. The clash fill is the scheme error at 45% so the
+    // region underneath stays legible; split stripes are the play UI's violation stripes,
+    // so they take the scheme error as is.
+    val editorDiffRing: Color,
+    val editorClashFill: Color,
+    val editorSplitHatch: Color,
 )
 
 // Dark mode keeps the softened blue step Zip's trace settled on (T27: scheme #1CB0F6 read
@@ -97,6 +107,9 @@ val DarkBoardTokens = BoardColors(
     strandsThemeConnector = DarkColorScheme.primary,
     strandsSpangramConnector = DarkColorScheme.tertiary,
     strandsHintConnector = DarkColorScheme.primary,
+    editorDiffRing = Color(0xFF7FE3F0), // new: light teal, >= 7:1 over every dark region fill (L* 18–26)
+    editorClashFill = DarkColorScheme.error.copy(alpha = 0.45f),
+    editorSplitHatch = DarkColorScheme.error,
 )
 
 // Light mirrors dark role-for-role: reuses plus the three new darker steps (dot
@@ -126,6 +139,9 @@ val LightBoardTokens = BoardColors(
     strandsThemeConnector = LightColorScheme.primary,
     strandsSpangramConnector = DarkColorScheme.tertiary,
     strandsHintConnector = LightTimerFill,
+    editorDiffRing = Color(0xFF006874), // new: deep teal, >= 4:1 over every light region fill (L* 84–92)
+    editorClashFill = LightColorScheme.error.copy(alpha = 0.45f),
+    editorSplitHatch = LightColorScheme.error,
 )
 
 object BoardTokens {
