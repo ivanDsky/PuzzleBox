@@ -10,8 +10,8 @@ import com.ivandsky.puzzlebox.network.NytApi
 import com.ivandsky.puzzlebox.network.NytHttpTransport
 import com.ivandsky.puzzlebox.network.gitHubReleaseTransport
 import com.ivandsky.puzzlebox.network.linkedInFeedTransport
-import com.ivandsky.puzzlebox.network.nytClient
 import com.ivandsky.puzzlebox.network.retrofit
+import com.ivandsky.puzzlebox.network.sessionlessClient
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 
@@ -25,7 +25,7 @@ val networkModule = module {
     single { Json { ignoreUnknownKeys = true } }
     single<FeedTransport> { linkedInFeedTransport(LINKEDIN_BASE_URL, get()) }
     single {
-        retrofit(baseUrl = NYT_BASE_URL, client = nytClient(), json = get()).create(NytApi::class.java)
+        retrofit(baseUrl = NYT_BASE_URL, client = sessionlessClient(), json = get()).create(NytApi::class.java)
     }
     single<NytTransport> { NytHttpTransport(get()) }
     single<GitHubReleaseTransport> { gitHubReleaseTransport(GITHUB_API_BASE_URL, get()) }

@@ -2,11 +2,9 @@ package com.ivandsky.puzzlebox.data.update
 
 import com.ivandsky.puzzlebox.network.GitHubRelease
 import com.ivandsky.puzzlebox.network.GitHubReleaseTransport
-import java.time.Clock
-import java.time.Duration
-import java.time.Instant
-import java.time.ZoneId
-import java.time.ZoneOffset
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TestTimeSource
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runCurrent
@@ -17,21 +15,14 @@ import org.junit.Test
 
 class NetworkAppReleaseRepositoryTest {
 
-    private class MutableClock(var now: Instant = Instant.parse("2026-11-06T12:00:00Z")) : Clock() {
-        override fun getZone(): ZoneId = ZoneOffset.UTC
-        override fun withZone(zone: ZoneId?): Clock = this
-        override fun instant(): Instant = now
-        fun advance(d: Duration) { now = now.plus(d) }
-    }
-
     private class CountingTransport(var result: GitHubRelease?) : GitHubReleaseTransport {
         var calls = 0
         override suspend fun latest(): GitHubRelease? { calls++; return result }
     }
 
-    private val clock = MutableClock()
+    private val time = TestTimeSource()
     private val transport = CountingTransport(GitHubRelease("v1.2.0", "https://example.com/v1.2.0"))
-    private val repo = NetworkAppReleaseRepository(transport, clock)
+    private val repo = NetworkAppReleaseRepository(transport, time)
 
     @Test
     fun `first call hits the transport and maps the release`() = runTest {
@@ -42,7 +33,7 @@ class NetworkAppReleaseRepositoryTest {
     @Test
     fun `second call inside 15 minutes returns the remembered value without a call`() = runTest {
         repo.latest()
-        clock.advance(Duration.ofMinutes(14).plusSeconds(59))
+        time += 14.minutes + 59.seconds
         transport.result = GitHubRelease("v9", "u")
         assertEquals("v1.2.0", repo.latest()?.tag)
         assertEquals(1, transport.calls)
@@ -51,7 +42,7 @@ class NetworkAppReleaseRepositoryTest {
     @Test
     fun `call after 15 minutes hits the transport again`() = runTest {
         repo.latest()
-        clock.advance(Duration.ofMinutes(15))
+        time += 15.minutes
         transport.result = GitHubRelease("v1.3.0", "u")
         assertEquals("v1.3.0", repo.latest()?.tag)
         assertEquals(2, transport.calls)
@@ -77,7 +68,7 @@ class NetworkAppReleaseRepositoryTest {
                 return GitHubRelease("v1.2.0", "https://example.com/v1.2.0")
             }
         }
-        val shared = NetworkAppReleaseRepository(slow, clock)
+        val shared = NetworkAppReleaseRepository(slow, time)
 
         val first = async { shared.latest() }
         val second = async { shared.latest() }
