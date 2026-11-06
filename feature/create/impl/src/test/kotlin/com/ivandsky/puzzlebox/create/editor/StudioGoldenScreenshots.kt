@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -95,9 +96,9 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
                     if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
             }
             CompositionLocalProvider(LocalConfiguration provides config) {
-                // The app's scene canvas: an opaque background behind every screen.
+                // The app's root Scaffold: the background colour, onBackground content colour.
                 PuzzleBoxTheme(darkTheme = dark) {
-                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) { Studio(verdict, card) }
+                    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { Studio(verdict, card) }
                 }
             }
         }
