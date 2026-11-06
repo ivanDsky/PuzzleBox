@@ -6,6 +6,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +29,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
@@ -36,25 +39,32 @@ import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.pressScale
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
+import com.ivandsky.puzzlebox.game.editor.LadderRung
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 
 private val PillHeight = 36.dp
 private val PillTouchHeight = 48.dp
-private val PillMaxWidth = 168.dp
+// Wide enough for "Unique · needs guessing" (spec A8) in labelLarge; the handoff's 168 dp clipped it.
+private val PillMaxWidth = 208.dp
 
 /**
- * The Studio top bar's verdict at a glance: one line in the verdict's tone. Its state
+ * The Studio top bar's verdict at a glance: one line in the verdict's tone; a Unique adds its
+ * grade ("Unique · Medium", "Unique · needs guessing") under `create.editor.pill.grade`, whose
+ * state is the grade's machine name. Tapping it ([onClick]) opens the verdict card. Its state
  * description is the verdict's machine name ("Unique", "Incomplete", …) for tests and
  * accessibility services alike. Motion (spec S19): a new verdict crossfades in on
  * MotionTokens short (already the 120 ms reduced-motion fade); entering Checking pulses once
- * (none under reduced motion), however many edits it stays Checking through; and settling on
- * Unique from another settled verdict fires exactly one haptic.
+ * (none under reduced motion), however many edits it stays Checking through; settling on
+ * Unique from another settled verdict fires exactly one haptic; a press is Press feedback at
+ * MotionTokens.PressScale.
  */
 @Composable
-fun VerdictPill(verdict: Verdict, modifier: Modifier = Modifier) {
+fun VerdictPill(verdict: Verdict, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val reducedMotion = rememberReducedMotion()
     val pulse = remember { Animatable(1f) }
     val checking = verdict == Verdict.Checking
@@ -68,14 +78,17 @@ fun VerdictPill(verdict: Verdict, modifier: Modifier = Modifier) {
         }
     }
     UniqueHaptic(verdict)
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
             .heightIn(min = PillTouchHeight)
+            .pressScale(interactionSource, reducedMotion)
+            .clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClick = onClick)
             .testTag("create.editor.pill")
             .semantics { stateDescription = stateOf(verdict) },
         contentAlignment = Alignment.Center,
     ) {
-        // A crossfade keyed on the verdict's kind: only a change of kind fades, not a new solution.
+        // A crossfade keyed on the verdict's kind and grade: a new solution alone doesn't fade.
         AnimatedContent(
             targetState = verdict,
             modifier = Modifier.graphicsLayer {
@@ -88,7 +101,7 @@ fun VerdictPill(verdict: Verdict, modifier: Modifier = Modifier) {
             },
             contentAlignment = Alignment.Center,
             label = "create-verdict-pill",
-            contentKey = ::stateOf,
+            contentKey = { shown -> stateOf(shown) + (shown as? Verdict.Unique)?.gradeState().orEmpty() },
         ) { shown -> PillFace(shown) }
     }
 }
@@ -103,8 +116,14 @@ private fun PillFace(verdict: Verdict) {
         contentColor = content,
     ) {
         Box(Modifier.padding(horizontal = Spacing.md), contentAlignment = Alignment.Center) {
+            val grade = (verdict as? Verdict.Unique)?.gradeState()
             Text(
                 text = labelOf(verdict),
+                modifier = if (grade == null) {
+                    Modifier
+                } else {
+                    Modifier.testTag("create.editor.pill.grade").semantics { stateDescription = grade }
+                },
                 style = MaterialTheme.typography.labelLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -140,7 +159,7 @@ private fun stateOf(verdict: Verdict): String = when (verdict) {
 private fun labelOf(verdict: Verdict): String = when (verdict) {
     is Verdict.Incomplete -> "Not checked"
     Verdict.Checking -> "Checking…"
-    is Verdict.Unique -> "Unique"
+    is Verdict.Unique -> verdict.gradeLabel()?.let { "Unique · $it" } ?: "Unique"
     is Verdict.Multiple -> "2+ solutions"
     is Verdict.None -> "No solution"
     Verdict.Undetermined -> "Couldn't decide"
@@ -167,13 +186,21 @@ private fun VerdictPillPreview() {
                 modifier = Modifier.padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                VerdictPill(Verdict.Incomplete(IncompleteReason("queens.unpainted", 16)))
-                VerdictPill(Verdict.Checking)
-                VerdictPill(Verdict.Unique(Solution(listOf(1, 7, 8, 14))))
-                VerdictPill(Verdict.Multiple(Solution(emptyList()), Solution(emptyList()), emptySet()))
-                VerdictPill(Verdict.None(emptySet()))
-                VerdictPill(Verdict.Undetermined)
+                VerdictPill(Verdict.Incomplete(IncompleteReason("queens.unpainted", 16)), onClick = {})
+                VerdictPill(Verdict.Checking, onClick = {})
+                VerdictPill(Verdict.Unique(Solution(listOf(1, 7, 8, 14))), onClick = {})
+                VerdictPill(Verdict.Unique(Solution(listOf(1, 7, 8, 14)), Difficulty(PillPreviewRung)), onClick = {})
+                VerdictPill(Verdict.Unique(Solution(listOf(1, 7, 8, 14)), needsGuessing = true), onClick = {})
+                VerdictPill(Verdict.Multiple(Solution(emptyList()), Solution(emptyList()), emptySet()), onClick = {})
+                VerdictPill(Verdict.None(emptySet()), onClick = {})
+                VerdictPill(Verdict.Undetermined, onClick = {})
             }
         }
     }
+}
+
+private object PillPreviewRung : LadderRung {
+    override val id: String = "preview.lineLock"
+    override val level: Difficulty.Level = Difficulty.Level.Medium
+    override val captionKey: String = "preview.lineLock"
 }
