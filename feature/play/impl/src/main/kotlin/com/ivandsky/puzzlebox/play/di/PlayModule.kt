@@ -51,8 +51,8 @@ val playModule = module {
             dispatchers = dispatchers,
         )
     }
-    // The hub builds its board thumbnails off the main thread.
-    viewModel { HubViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get<DispatcherProvider>().default) }
+    // The hub reads its boards' thumbnails and Up-next lines off the main thread.
+    viewModel { HubViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get<DispatcherProvider>().default) }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
     viewModel { (key: ResultKey) -> ResultViewModel(key, get(), get(), get(), get(), get(), get(), get()) }
 }
