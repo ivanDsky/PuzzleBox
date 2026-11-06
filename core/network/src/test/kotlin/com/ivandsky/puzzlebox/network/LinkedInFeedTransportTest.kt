@@ -4,6 +4,10 @@ import com.ivandsky.puzzlebox.game.FeedRequest
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.FetchResult
 import com.ivandsky.puzzlebox.game.PersistedQuery
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZoneOffset
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
@@ -27,6 +31,12 @@ class LinkedInFeedTransportTest {
     private lateinit var server: MockWebServer
     private lateinit var jar: LinkedInSessionCookieJar
     private lateinit var transport: LinkedInFeedTransport
+    private var now: Instant = Instant.parse("2026-11-05T12:00:00Z")
+    private val clock = object : Clock() {
+        override fun instant(): Instant = now
+        override fun getZone(): ZoneId = ZoneOffset.UTC
+        override fun withZone(zone: ZoneId): Clock = this
+    }
 
     @Before
     fun setUp() {
@@ -38,12 +48,45 @@ class LinkedInFeedTransportTest {
             client = OkHttpClient.Builder().cookieJar(jar).addInterceptor(LinkedInCsrfInterceptor(jar)).build(),
             json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
-        transport = LinkedInFeedTransport(retrofit.create(LinkedInGamesApi::class.java))
+        transport = LinkedInFeedTransport(retrofit.create(LinkedInGamesApi::class.java), clock)
     }
 
     @After
     fun tearDown() {
         server.shutdown()
+    }
+
+    @Test
+    fun `a throttle starts a cooldown - the next fetch is Throttled without a request`() = runBlocking {
+        server.enqueue(throttled())
+        server.enqueue(ok(fixture("linkedin-zip-page-shell.html")))
+        transport.fetch(request())
+        val requestsAfterThrottle = server.requestCount
+
+        now = now.plusSeconds(1)
+        val result = transport.fetch(request())
+
+        assertTrue((result as FetchResult.Err).error is FetchError.Throttled)
+        assertEquals(requestsAfterThrottle, server.requestCount)
+    }
+
+    @Test
+    fun `after the cooldown requests resume`() = runBlocking {
+        server.enqueue(throttled())
+        server.enqueue(ok(fixture("linkedin-zip-page-shell.html")))
+        transport.fetch(request())
+        server.enqueue(ok(dataBearing()))
+
+        now = now.plus(LinkedInFeedTransport.THROTTLE_COOLDOWN)
+        val result = transport.fetch(request())
+
+        assertTrue(result is FetchResult.Ok)
+        assertEquals(3, server.requestCount)
+    }
+
+    @Test
+    fun `the LinkedIn client gives every call a 10 s budget`() {
+        assertEquals(10_000, linkedInClient(LinkedInSessionCookieJar()).callTimeoutMillis)
     }
 
     private fun request(

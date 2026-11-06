@@ -24,10 +24,11 @@ internal fun retrofit(baseUrl: String, client: OkHttpClient, json: Json): Retrof
 /**
  * Client for the anonymous LinkedIn screen endpoints (research 01 §2): cookie jar for the
  * JSESSIONID handshake, csrf interceptor echoing it, logging that redacts both session
- * vectors.
+ * vectors, and the same whole-call timeout as NYT's client.
  */
 internal fun linkedInClient(jar: LinkedInSessionCookieJar): OkHttpClient =
     OkHttpClient.Builder()
+        .callTimeout(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .cookieJar(jar)
         .addInterceptor(LinkedInCsrfInterceptor(jar))
         .addInterceptor(
@@ -46,8 +47,9 @@ internal fun linkedInClient(jar: LinkedInSessionCookieJar): OkHttpClient =
  */
 internal fun nytClient(): OkHttpClient =
     OkHttpClient.Builder()
-        .callTimeout(NYT_CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .callTimeout(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
         .build()
 
-private const val NYT_CALL_TIMEOUT_SECONDS = 10L
+/** Whole-call budget shared by both clients (A18): a stalled fetch degrades to cache, never hangs. */
+private const val CALL_TIMEOUT_SECONDS = 10L

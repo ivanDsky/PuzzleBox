@@ -5,6 +5,9 @@ import com.ivandsky.puzzlebox.game.FeedTransport
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.FetchResult
 import java.io.IOException
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -34,10 +37,24 @@ import retrofit2.Response
  *
  * Any body the request [FeedRequest.accepts] wins — the game's extractor, not the URL,
  * decides. The caller's backstop is degrade-to-cache (A7/A8).
+ *
+ * After a throttle, every fetch within [THROTTLE_COOLDOWN] of it returns
+ * [FetchError.Throttled] without a request (A17).
  */
-internal class LinkedInFeedTransport(private val api: LinkedInGamesApi) : FeedTransport {
+internal class LinkedInFeedTransport(
+    private val api: LinkedInGamesApi,
+    private val clock: Clock = Clock.systemUTC(),
+) : FeedTransport {
+
+    /** Shared across games: the throttle is per-IP, so one game's throttle blocks them all. */
+    @Volatile
+    private var cooldownUntil: Instant = Instant.MIN
 
     override suspend fun fetch(request: FeedRequest): FetchResult<String> {
+        // WHY: every request inside the window extends LinkedIn's throttle; fail fast instead.
+        if (clock.instant().isBefore(cooldownUntil)) {
+            return FetchResult.Err(FetchError.Throttled("cooldown until $cooldownUntil"))
+        }
         val reasons = mutableListOf<String>()
         var throttled = false
         rung("stream", reasons) {
@@ -81,6 +98,7 @@ internal class LinkedInFeedTransport(private val api: LinkedInGamesApi) : FeedTr
         }
         val detail = reasons.joinToString("; ")
         return if (throttled) {
+            cooldownUntil = clock.instant().plus(THROTTLE_COOLDOWN)
             FetchResult.Err(FetchError.Throttled(detail))
         } else {
             FetchResult.Err(FetchError.Unavailable(detail))
@@ -123,9 +141,11 @@ internal class LinkedInFeedTransport(private val api: LinkedInGamesApi) : FeedTr
         }
     }
 
-    private companion object {
-        const val PERSISTED_QUERY = "persisted-query"
-        const val GRAPHQL = "graphql"
-        val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
+    internal companion object {
+        /** LinkedIn's observed per-IP throttle window (research R-19-1: ~100 s). */
+        val THROTTLE_COOLDOWN: Duration = Duration.ofSeconds(100)
+        private const val PERSISTED_QUERY = "persisted-query"
+        private const val GRAPHQL = "graphql"
+        private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }
 }
