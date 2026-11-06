@@ -33,10 +33,15 @@ class DragTraceTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    /** 5x5 board; hooks mimic Zip: 4-way adjacency + no revisit, first cell = waypoint 1. */
-    private class ZipLikeHooks(private val rows: Int = 5, private val cols: Int = 5) : DragTraceHooks {
+    /** 5x5 board; hooks mimic Zip: 4-way adjacency + no revisit, first cell = waypoint 1;
+     *  [blocked] cells stand in for walls. */
+    private class ZipLikeHooks(
+        private val rows: Int = 5,
+        private val cols: Int = 5,
+        private val blocked: Set<GridCell> = emptySet(),
+    ) : DragTraceHooks {
         override fun canExtend(path: List<GridCell>, next: GridCell): Boolean {
-            if (next in path) return false
+            if (next in path || next in blocked) return false
             val last = path.lastOrNull() ?: return next == GridCell(0, 0) // start = waypoint 1
             return next.row in (last.row - 1)..(last.row + 1) &&
                 next.col in (last.col - 1)..(last.col + 1) &&
@@ -58,7 +63,7 @@ class DragTraceTest {
         )
     }
 
-    private fun setContent(path: List<GridCell> = emptyList()) {
+    private fun setContent(path: List<GridCell> = emptyList(), blocked: Set<GridCell> = emptySet()) {
         events.clear()
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
@@ -69,7 +74,7 @@ class DragTraceTest {
                         rows = 5,
                         cols = 5,
                         path = path,
-                        hooks = ZipLikeHooks(),
+                        hooks = ZipLikeHooks(blocked = blocked),
                         onEvent = { events += it },
                         modifier = Modifier.fillMaxWidth().testTag("trace"),
                     )
@@ -99,18 +104,49 @@ class DragTraceTest {
     }
 
     @Test
+    fun `one fast move across several legal cells extends every crossed cell in order`() {
+        setContent(path = listOf(GridCell(0, 0)))
+        composeRule.onNodeWithTag("trace").performTouchInput {
+            down(cellCenter(0, 0))
+            moveTo(cellCenter(0, 4))
+            up()
+        }
+        composeRule.waitForIdle()
+        assertEquals((1..4).map { DragEvent.Extend(GridCell(0, it)) }, events)
+    }
+
+    @Test
+    fun `a fast move stops before the first refused cell and reports it once`() {
+        setContent(path = listOf(GridCell(0, 0)), blocked = setOf(GridCell(0, 3)))
+        composeRule.onNodeWithTag("trace").performTouchInput {
+            down(cellCenter(0, 0))
+            moveTo(cellCenter(0, 4))
+            up()
+        }
+        composeRule.waitForIdle()
+        assertEquals(
+            listOf(
+                DragEvent.Extend(GridCell(0, 1)),
+                DragEvent.Extend(GridCell(0, 2)),
+                DragEvent.Refused(GridCell(0, 3)),
+            ),
+            events,
+        )
+    }
+
+    @Test
     fun `wandering over invalid cells never extends or cancels, only reports refusals`() {
         setContent()
         composeRule.onNodeWithTag("trace").performTouchInput {
             down(cellCenter(3, 3))
             moveTo(cellCenter(3, 4))
             moveTo(cellCenter(4, 4))
-            moveTo(cellCenter(2, 2))
+            moveTo(cellCenter(2, 2)) // through the (4,4) vertex: walks back into (3,3) first
             up()
         }
         composeRule.waitForIdle()
         assertEquals(
-            listOf(GridCell(3, 3), GridCell(3, 4), GridCell(4, 4), GridCell(2, 2)).map(DragEvent::Refused),
+            listOf(GridCell(3, 3), GridCell(3, 4), GridCell(4, 4), GridCell(3, 3)).map(DragEvent::Refused),
             events,
         )
     }
@@ -146,6 +182,7 @@ class DragTraceTest {
         setContent(path = listOf(GridCell(2, 1), GridCell(2, 2), GridCell(1, 2), GridCell(0, 2)))
         composeRule.onNodeWithTag("trace").performTouchInput {
             down(cellCenter(2, 2)) // traced, NOT the previous cell — touch-down retracts nothing
+            moveTo(cellCenter(2, 1)) // traced, not the previous cell → ignored
             moveTo(cellCenter(1, 1)) // untraced, hook-rejected → refused, trace untouched
             moveTo(cellCenter(1, 2)) // previous → retract one
             moveTo(cellCenter(2, 2)) // previous again → retract one
