@@ -1,6 +1,6 @@
 # PuzzleBox — project map
 
-pinned: d1acf404450135d21fd5acd5c548b3756f0e3267
+pinned: fabf460be3eab2b645c5fc418f60f4ad90a0abe5
 
 ## Purpose
 
@@ -356,7 +356,7 @@ modules run `test`. Full suite:
 :games:tango:test :games:strands:test :games:sudoku:test :core:model:test :core:network:test -Proborazzi.verify=true --continue` —
 the 0.13.0 gate.
 
-Structure rules (ADR-0009): `./gradlew :konsist:test` — runs the 13 in-module rules, the
+Structure rules (ADR-0009): `./gradlew :konsist:test` — runs the 14 in-module rules (incl. `S6NoInfiniteAnimation`), the
 census and the engine tests over the whole repo's sources (not in the count above; reruns
 when any source, build script or allowlist changes).
 

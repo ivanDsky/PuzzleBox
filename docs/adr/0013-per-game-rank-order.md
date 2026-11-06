@@ -28,3 +28,5 @@ accept only Zip refs, so no non-Zip game reaches a leaderboard today.
 - Keep A3 for Strands: contradicts the user ruling.
 - Flip A3 for every game: changes three shipped games' records semantics.
 - Order on `GameDefinition`: identity/wire concerns; ranking is a score concern.
+
+*(Amended 2026-11-06 by ADR-0020: per-puzzle custom boards rank by the game's `RankOrder`, with a hints-then-time index for Strands; daily boards stay Zip-only and time-first.)*

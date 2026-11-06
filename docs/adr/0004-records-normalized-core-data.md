@@ -18,3 +18,5 @@ explicit one-time `core/data` migration. Games never touch records persistence d
 ## Rejected alternative
 Per-game score tables: cross-game queries become per-game code; A3's "time + hints only"
 contract would fragment.
+
+*(Amended 2026-11-06 by ADR-0018: `puzzleRef` carries a sealed `PuzzleKey`, `Daily(date, n?)` | `Custom(code)`; custom refs encode as `custom/<gameId>/<code>`.)*

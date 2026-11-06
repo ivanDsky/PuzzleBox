@@ -15,3 +15,5 @@ reusable board components — so an editor never forces `:core:game` changes.
 ## Consequences
 No editor code or tickets before its game ships; editor work reuses the game's own
 validation and components by construction.
+
+*(Amended 2026-11-06 by ADR-0019: all five shipped games get editors in one run, Queens first; and by ADR-0018: custom identity changes `:core:game` (`PuzzleKey`, `refOf(key)`).)*
