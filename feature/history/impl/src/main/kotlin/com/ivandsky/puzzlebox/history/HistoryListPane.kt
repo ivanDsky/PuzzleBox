@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -45,8 +46,10 @@ private val DAY_GROUP_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("E
 /**
  * History's list column (spec A18): the tabs, the tab's stats and week/month calendar, then
  * its paged rows grouped under a day label. A day picked on the calendar swaps the pages
- * for that day's rows from the state, under a pill that clears it. A tab with nothing
- * in it shows only the empty state.
+ * for that day's rows from the state, under a pill that clears it; on a game's tab the
+ * day's header ([HistoryDayHeader]) sits above them and its action reports the (game, day)
+ * through [onReplay]. A tab with nothing in it shows only the empty state — except a game
+ * tab with an archive, which keeps its calendar so any archive day can be picked (ticket 09).
  */
 @Composable
 internal fun ListPane(
@@ -58,10 +61,12 @@ internal fun ListPane(
     onSelectDay: (LocalDate?) -> Unit,
     selectedKey: String?,
     onDayClick: (HistoryDayRow) -> Unit,
+    onReplay: (GameId, LocalDate) -> Unit,
     onBack: () -> Unit,
     cardColor: Color,
     modifier: Modifier = Modifier,
 ) {
+    val empty = days.loadState.refresh is LoadState.NotLoading && days.itemCount == 0
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -86,22 +91,8 @@ internal fun ListPane(
         item(key = "tabs") {
             HistoryTabs(tabs = state.tabs, selected = selectedTab, onSelect = onSelectTab)
         }
-        if (days.loadState.refresh is LoadState.NotLoading && days.itemCount == 0) {
-            item(key = "empty") {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.lg, vertical = Spacing.xl),
-                    shape = MaterialTheme.shapes.large,
-                    color = cardColor,
-                ) {
-                    EmptyState(
-                        title = "Nothing here yet",
-                        message = "Solve a puzzle and it shows up here.",
-                        modifier = Modifier.testTag("history.empty"),
-                    )
-                }
-            }
+        if (empty && state.archiveRange == null) {
+            emptyItem(cardColor)
             return@LazyColumn
         }
         // Stats and the calendar are always items 2 and 3 (rows start at 4), filled once they load.
@@ -134,7 +125,19 @@ internal fun ListPane(
                 )
             }
             val dayRows = state.rows.filter { it.day == day }
-            if (dayRows.isEmpty()) {
+            val past = state.pastDay
+            val pastTab = past?.let { state.tabs.firstOrNull { tab -> tab.gameId == it.game } }
+            if (past != null && pastTab != null) {
+                item(key = "day_header") {
+                    HistoryDayHeader(
+                        pastDay = past,
+                        tab = pastTab,
+                        onPlay = { onReplay(past.game, past.day) },
+                        cardColor = cardColor,
+                        modifier = Modifier.padding(horizontal = Spacing.lg),
+                    )
+                }
+            } else if (dayRows.isEmpty()) {
                 item(key = "day_empty") {
                     Text(
                         text = "Nothing played on this day.",
@@ -157,6 +160,7 @@ internal fun ListPane(
             }
             return@LazyColumn
         }
+        if (empty) emptyItem(cardColor)
         items(
             count = days.itemCount,
             // Game-keyed identity: two games can share a day — the key never
@@ -187,6 +191,25 @@ internal fun ListPane(
                     cardColor = cardColor,
                 )
             }
+        }
+    }
+}
+
+/** The tab's "Nothing here yet" card. */
+private fun LazyListScope.emptyItem(cardColor: Color) {
+    item(key = "empty") {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.xl),
+            shape = MaterialTheme.shapes.large,
+            color = cardColor,
+        ) {
+            EmptyState(
+                title = "Nothing here yet",
+                message = "Solve a puzzle and it shows up here.",
+                modifier = Modifier.testTag("history.empty"),
+            )
         }
     }
 }
