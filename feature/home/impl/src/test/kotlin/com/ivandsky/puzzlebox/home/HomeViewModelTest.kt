@@ -3,8 +3,11 @@ package com.ivandsky.puzzlebox.home
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.update.AppRelease
+import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GameStats
+import com.ivandsky.puzzlebox.domain.GetAppUpdate
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
@@ -28,6 +31,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.repository.FakeAppReleaseRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -81,6 +85,7 @@ class HomeViewModelTest {
         identity: FakeIdentityService = FakeIdentityService(initial = null),
         collect: Boolean = true,
         hintsRanked: Set<GameId> = emptySet(),
+        release: AppRelease? = null,
     ): Deps {
         val registry = GameRegistry(
             listOf(zip, tango).map { if (it in hintsRanked) hintsFirst(TestGames.plugin(it)) else TestGames.plugin(it) },
@@ -102,6 +107,10 @@ class HomeViewModelTest {
             puzzleDay = puzzleDay,
             nextRollover = GetNextRollover(registry, clock),
             syncTodayPuzzles = sync,
+            getAppUpdate = GetAppUpdate(
+                FakeAppReleaseRepository(release),
+                AppBuild(versionName = "1.2.0", checksForUpdates = true),
+            ),
         )
         if (collect) backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return Deps(vm, daily, completions, saved, identity)
@@ -363,6 +372,25 @@ class HomeViewModelTest {
         deps.identity.currentIdentity = ann
 
         assertEquals(ann, deps.vm.uiState.value.identity)
+    }
+
+    @Test
+    fun `a newer release with checks on sets the update url - A4 A7`() = runTest {
+        val url = "https://github.com/ivanDsky/PuzzleBox/releases/tag/v1.3.0"
+        val deps = viewModel(release = AppRelease(tag = "v1.3.0", url = url))
+
+        deps.vm.checkForUpdate()
+
+        assertEquals(url, deps.vm.uiState.value.updateUrl)
+    }
+
+    @Test
+    fun `no release leaves the update url null`() = runTest {
+        val deps = viewModel(release = null)
+
+        deps.vm.checkForUpdate()
+
+        assertNull(deps.vm.uiState.value.updateUrl)
     }
 }
 
