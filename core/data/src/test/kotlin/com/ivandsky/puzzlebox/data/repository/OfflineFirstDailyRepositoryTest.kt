@@ -398,6 +398,45 @@ class OfflineFirstDailyRepositoryTest {
     }
 
     @Test
+    fun `cachedPuzzle reads a past placeholder row as null, never fetching`() = runTest {
+        val stand = TestGames.puzzle(alpha, tag = 9)
+        alphaSource.placeholder = stand
+        db.puzzleDailyDao().upsert(stand.toEntity(Ref(alpha, pastDay, 584), noonOf(pastDay)))
+        alphaSource.nextPuzzle = TestGames.puzzle(alpha, tag = 7)
+
+        assertNull(archiveRepository().cachedPuzzle(alpha, pastDay))
+        assertTrue(alphaSource.requestedDates.isEmpty())
+    }
+
+    @Test
+    fun `cachedPuzzle serves a past real row, never fetching`() = runTest {
+        alphaSource.placeholder = TestGames.puzzle(alpha, tag = 9)
+        db.puzzleDailyDao().upsert(TestGames.puzzle(alpha, tag = 7).toEntity(Ref(alpha, pastDay, 584), noonOf(pastDay)))
+
+        assertEquals(7.toByte(), archiveRepository().cachedPuzzle(alpha, pastDay)!!.payload[1])
+        assertTrue(alphaSource.requestedDates.isEmpty())
+    }
+
+    @Test
+    fun `cachedPuzzle is null for an in-range day without a row, never fetching`() = runTest {
+        alphaSource.nextPuzzle = TestGames.puzzle(alpha)
+
+        assertNull(archiveRepository().cachedPuzzle(alpha, pastDay))
+        assertTrue(alphaSource.requestedDates.isEmpty())
+    }
+
+    @Test
+    fun `cachedPuzzle serves today's row, even a placeholder, never fetching`() = runTest {
+        val stand = TestGames.puzzle(alpha, tag = 9)
+        alphaSource.placeholder = stand
+        db.puzzleDailyDao().upsert(stand.toEntity(Ref(alpha, today, 600), noonOf(today)))
+        alphaSource.nextPuzzle = TestGames.puzzle(alpha, tag = 7)
+
+        assertEquals(9.toByte(), archiveRepository().cachedPuzzle(alpha, today)!!.payload[1])
+        assertTrue(alphaSource.requestedDates.isEmpty())
+    }
+
+    @Test
     fun `puzzleNumber passes the source's number through, null without one`() {
         alphaSource.puzzleNumbers = { day -> if (day == pastDay) 584 else null }
         val archive = archiveRepository()

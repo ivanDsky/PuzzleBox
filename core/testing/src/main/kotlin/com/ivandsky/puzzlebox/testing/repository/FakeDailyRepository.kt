@@ -13,7 +13,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 /**
  * Scriptable in-memory [DailyRepository] for feature and app tests, keyed by [GameId]
  * like the real one: per-game scripted [today] results (counted), per-game history
- * flows (newest first, live via [addEntry]), cached days ([setCached]), per-game
+ * flows (newest first, live via [addEntry]), cached days ([setCached], read uncounted by
+ * [cachedPuzzle]), per-game
  * [archiveRange]s, per-game [puzzleNumber]s ([setPuzzleNumbers]; none by default) and
  * per-day scripted [day] outcomes (counted). An unscripted [today]
  * fails loudly — history surfaces are cache-only (A8) and must never fetch. An unscripted
@@ -99,6 +100,8 @@ class FakeDailyRepository : DailyRepository {
     override fun archiveRange(game: GameId): ClosedRange<LocalDate>? = archiveRanges[game]
 
     override fun puzzleNumber(game: GameId, day: LocalDate): Int? = puzzleNumbers[game]?.invoke(day)
+
+    override suspend fun cachedPuzzle(game: GameId, day: LocalDate): Puzzle? = cachedByDay[game to day]
 
     private fun history(game: GameId): MutableStateFlow<List<DailyEntry>> =
         histories.getOrPut(game) { MutableStateFlow(emptyList()) }

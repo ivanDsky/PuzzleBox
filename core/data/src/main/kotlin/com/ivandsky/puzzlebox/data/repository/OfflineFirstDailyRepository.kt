@@ -76,10 +76,10 @@ internal class OfflineFirstDailyRepository(
 
     override suspend fun day(game: GameId, day: LocalDate): DailyDay = withContext(dispatchers.io) {
         val definition = registry[game]?.definition ?: return@withContext DailyDay.NotCaptured
-        val past = calendar.today(game)?.let(day::isBefore) == true
+        val past = isPast(game, day)
         dao.get(game.value, day.toString())?.let { row ->
             row.toPuzzle(definition)
-                ?.takeUnless { past && sources[game]?.isPlaceholder(it) == true }
+                ?.takeUnless { past && isPlaceholder(game, it) }
                 ?.let { return@withContext DailyDay.Ready(it, row.puzzleNumber) }
         }
         val range = archiveRange(game) ?: return@withContext DailyDay.NotCaptured
@@ -101,6 +101,14 @@ internal class OfflineFirstDailyRepository(
     }
 
     override fun puzzleNumber(game: GameId, day: LocalDate): Int? = sources[game]?.puzzleNumber(day)
+
+    override suspend fun cachedPuzzle(game: GameId, day: LocalDate): Puzzle? = withContext(dispatchers.io) {
+        cachedRow(game, day)?.takeUnless { isPast(game, day) && isPlaceholder(game, it) }
+    }
+
+    private fun isPast(game: GameId, day: LocalDate): Boolean = calendar.today(game)?.let(day::isBefore) == true
+
+    private fun isPlaceholder(game: GameId, puzzle: Puzzle): Boolean = sources[game]?.isPlaceholder(puzzle) == true
 
     private suspend fun cachedRow(game: GameId, day: LocalDate): Puzzle? {
         val definition = registry[game]?.definition ?: return null
