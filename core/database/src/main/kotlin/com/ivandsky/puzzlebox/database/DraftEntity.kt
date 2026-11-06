@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -23,4 +24,7 @@ class DraftEntity(
     val testHints: Int?,
     val reservedCode: String?,
     val imported: Boolean,
+    /** M3 publish details; "" until the author sets them. */
+    @ColumnInfo(defaultValue = "") val authorName: String,
+    @ColumnInfo(defaultValue = "") val note: String,
 )

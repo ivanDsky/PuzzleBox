@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 7,
-    "identityHash": "85f302e53652eaf7419f0bc70587e364",
+    "identityHash": "c02288e873c8b32c7f1bf5334c52b453",
     "entities": [
       {
         "tableName": "puzzle_dailies",
@@ -179,7 +179,7 @@
       },
       {
         "tableName": "drafts",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `gameId` TEXT NOT NULL, `variant` TEXT NOT NULL, `draftFormatVersion` INTEGER NOT NULL, `blob` BLOB NOT NULL, `title` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, `testLayoutKey` TEXT, `testTimeMs` INTEGER, `testHints` INTEGER, `reservedCode` TEXT, `imported` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `gameId` TEXT NOT NULL, `variant` TEXT NOT NULL, `draftFormatVersion` INTEGER NOT NULL, `blob` BLOB NOT NULL, `title` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, `testLayoutKey` TEXT, `testTimeMs` INTEGER, `testHints` INTEGER, `reservedCode` TEXT, `imported` INTEGER NOT NULL, `authorName` TEXT NOT NULL DEFAULT '', `note` TEXT NOT NULL DEFAULT '', PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -248,6 +248,20 @@
             "columnName": "imported",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "authorName",
+            "columnName": "authorName",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
           }
         ],
         "primaryKey": {
@@ -259,7 +273,7 @@
       },
       {
         "tableName": "published_puzzles",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`code` TEXT NOT NULL, `gameId` TEXT NOT NULL, `variant` TEXT NOT NULL, `title` TEXT NOT NULL, `authorTimeMs` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `unpublished` INTEGER NOT NULL, `solvesCount` INTEGER, `solvesCountAt` INTEGER, PRIMARY KEY(`code`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`code` TEXT NOT NULL, `gameId` TEXT NOT NULL, `variant` TEXT NOT NULL, `title` TEXT NOT NULL, `authorTimeMs` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `unpublished` INTEGER NOT NULL, `solvesCount` INTEGER, `solvesCountAt` INTEGER, `authorHints` INTEGER NOT NULL, PRIMARY KEY(`code`))",
         "fields": [
           {
             "fieldPath": "code",
@@ -312,6 +326,12 @@
             "fieldPath": "solvesCountAt",
             "columnName": "solvesCountAt",
             "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "authorHints",
+            "columnName": "authorHints",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -323,7 +343,7 @@
       },
       {
         "tableName": "received_puzzles",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`code` TEXT NOT NULL, `gameId` TEXT NOT NULL, `variant` TEXT NOT NULL, `sharedFormatVersion` INTEGER NOT NULL, `puzzleBytes` BLOB NOT NULL, `title` TEXT NOT NULL, `authorName` TEXT NOT NULL, `note` TEXT NOT NULL, `authorTimeMs` INTEGER NOT NULL, `authorHints` INTEGER NOT NULL, `authorUid` TEXT NOT NULL, `openedAt` INTEGER NOT NULL, `unpublished` INTEGER NOT NULL, `postState` TEXT NOT NULL, `postAttempts` INTEGER NOT NULL, PRIMARY KEY(`code`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`code` TEXT NOT NULL, `gameId` TEXT NOT NULL, `variant` TEXT NOT NULL, `sharedFormatVersion` INTEGER NOT NULL, `puzzleBytes` BLOB NOT NULL, `title` TEXT NOT NULL, `authorName` TEXT NOT NULL, `note` TEXT NOT NULL, `authorTimeMs` INTEGER NOT NULL, `authorHints` INTEGER NOT NULL, `authorUid` TEXT NOT NULL, `openedAt` INTEGER NOT NULL, `unpublished` INTEGER NOT NULL, `postState` TEXT NOT NULL, `postAttempts` INTEGER NOT NULL, `difficulty` TEXT, PRIMARY KEY(`code`))",
         "fields": [
           {
             "fieldPath": "code",
@@ -414,6 +434,11 @@
             "columnName": "postAttempts",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "difficulty",
+            "columnName": "difficulty",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -468,7 +493,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '85f302e53652eaf7419f0bc70587e364')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c02288e873c8b32c7f1bf5334c52b453')"
     ]
   }
 }

@@ -19,4 +19,6 @@ class PublishedPuzzleEntity(
     val unpublished: Boolean,
     val solvesCount: Int?,
     val solvesCountAt: Long?,
+    /** Hints the author used in the test solve behind [authorTimeMs] (M3). */
+    val authorHints: Int,
 )
