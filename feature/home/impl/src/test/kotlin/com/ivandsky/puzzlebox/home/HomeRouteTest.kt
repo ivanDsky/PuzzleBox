@@ -1,10 +1,8 @@
 package com.ivandsky.puzzlebox.home
 
 import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -157,7 +155,7 @@ class HomeRouteTest {
     }
 
     @Test
-    fun `showing home prefetches today's puzzle and an unloadable one is a dead tile - A12`() {
+    fun `showing home prefetches today's puzzle and an unloadable one's tile stays a retry - A9 A12`() {
         val daily = FakeDailyRepository()
         val played = mutableListOf<GameId>()
         setContent(
@@ -167,11 +165,10 @@ class HomeRouteTest {
             zipToday = DailyToday.Unavailable(FetchError.Unavailable()),
         )
 
-        composeRule.waitUntil(5_000) { offlineTile().fetchSemanticsNodes().isNotEmpty() }
-        composeRule.runOnIdle { assertEquals(1, daily.todayCalls(GameId("zip"))) }
-        composeRule.onNodeWithTag("home.today_tile_zip").assertIsNotEnabled().performClick()
+        composeRule.waitUntil(5_000) { daily.todayCalls(GameId("zip")) == 1 }
+        composeRule.onNodeWithTag("card.tile.zip").assertIsEnabled().performClick()
 
-        composeRule.runOnIdle { assertEquals(emptyList<GameId>(), played) }
+        composeRule.runOnIdle { assertEquals(listOf(GameId("zip")), played) }
     }
 
     @Test
@@ -275,6 +272,4 @@ class HomeRouteTest {
         }
         composeRule.onNodeWithTag("home.today_play").assertDoesNotExist()
     }
-
-    private fun offlineTile() = composeRule.onAllNodes(hasTestTag("home.today_tile_zip") and isNotEnabled())
 }

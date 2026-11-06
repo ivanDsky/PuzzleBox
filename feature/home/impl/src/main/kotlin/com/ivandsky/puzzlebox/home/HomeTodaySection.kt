@@ -3,12 +3,9 @@ package com.ivandsky.puzzlebox.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +30,8 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.gameui.GameCardModel
+import com.ivandsky.puzzlebox.gameui.GameTile
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import kotlinx.coroutines.delay
@@ -46,11 +45,12 @@ private const val TICK_MS = 1_000L
 private val CtaHeight = 52.dp
 
 /**
- * Today's set (A10): one [TodayTile] per game, then the one primary action naming
+ * Today's set (A9, A10): one shared [GameTile] per game — an offline tile stays enabled and
+ * its tap is the retry, as on the hub — then the one primary action naming
  * [HomeUiState.target] — "Continue" when it has a save, "Play" otherwise — which becomes
  * the countdown to [HomeUiState.rolloverAt] once every game is solved. Tapping a tile or
  * the CTA is [onOpenGame]. [tagPrefix] keeps the list and detail copies apart in tests:
- * `<prefix>_tile_<id>`, `<prefix>_play`, `<prefix>_countdown`.
+ * `<prefix>_play`, `<prefix>_countdown`; tiles carry the shared `card.tile.<id>`.
  */
 @Composable
 internal fun HomeTodaySection(
@@ -69,7 +69,7 @@ internal fun HomeTodaySection(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.testTag("${tagPrefix}_summary"),
         )
-        TileGrid(state.today, onOpenGame, tagPrefix)
+        TileGrid(state.today, onOpenGame)
         val target = state.target
         when {
             state.allSolved -> RolloverCountdown(
@@ -89,24 +89,20 @@ internal fun HomeTodaySection(
 private fun TileGrid(
     today: List<HomeUiState.TodayRow>,
     onOpenGame: (GameId) -> Unit,
-    tagPrefix: String,
 ) {
     if (today.isEmpty()) return
     val columns = if (today.size >= GRID_FROM) GRID_COLUMNS else today.size
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         today.chunked(columns).forEach { row ->
             Row(
-                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 row.forEach { entry ->
-                    TodayTile(
-                        entry = entry,
+                    GameTile(
+                        model = entry.toCardModel(),
                         onClick = { onOpenGame(entry.game) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .testTag("${tagPrefix}_tile_${entry.game.value}"),
+                        modifier = Modifier.weight(1f),
                     )
                 }
                 // A short last row keeps its tiles the grid's width.
@@ -115,6 +111,16 @@ private fun TileGrid(
         }
     }
 }
+
+private fun HomeUiState.TodayRow.toCardModel() = GameCardModel(
+    game = game,
+    name = displayName,
+    brand = brand,
+    status = status,
+    rankOrder = rankOrder,
+    puzzleNumber = puzzleNumber,
+    best = best,
+)
 
 /**
  * "New puzzles in 3:12:08": a quiet tonal pill in the CTA's place, ticking once a second

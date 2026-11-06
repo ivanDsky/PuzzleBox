@@ -6,7 +6,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelected
@@ -20,6 +19,7 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.WeekDay
 import com.ivandsky.puzzlebox.model.GameId
@@ -87,10 +87,10 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `today lists one tile per game`() {
+    fun `today lists one shared tile per game`() {
         setContent(HomeLayout.SinglePane)
 
-        TODAY.forEach { composeRule.onNodeWithTag("home.today_tile_${it.game.value}").assertExists() }
+        TODAY.forEach { composeRule.onNodeWithTag("card.tile.${it.game.value}").assertExists() }
     }
 
     @Test
@@ -114,6 +114,7 @@ class HomeScreenTest {
 
         composeRule.onNodeWithTag("home.detail_today_play")
             .assert(hasText("Queens", substring = true))
+            .performScrollTo()
             .performClick()
 
         composeRule.runOnIdle { assertEquals(listOf(GameId("queens")), opened) }
@@ -145,21 +146,21 @@ class HomeScreenTest {
         val opened = mutableListOf<GameId>()
         setContent(HomeLayout.SinglePane, onOpenGame = { opened += it })
 
-        composeRule.onNodeWithTag("home.today_tile_queens").performClick()
+        composeRule.onNodeWithTag("card.tile.queens").performClick()
 
         composeRule.runOnIdle { assertEquals(listOf(GameId("queens")), opened) }
     }
 
     @Test
-    fun `an offline tile is disabled and does not navigate - A12`() {
+    fun `an offline tile stays enabled and its tap retries by opening the game - A9`() {
         val opened = mutableListOf<GameId>()
         val today = TODAY.map { if (it.game == GameId("zip")) it.copy(status = TodayStatus.Offline) else it }
         setContent(HomeLayout.SinglePane, today = mutableStateOf(today), onOpenGame = { opened += it })
 
-        composeRule.onNodeWithTag("home.today_tile_zip").assertIsNotEnabled().performClick()
-        composeRule.onNodeWithTag("home.today_tile_tango").assertIsEnabled()
+        TODAY.forEach { composeRule.onNodeWithTag("card.tile.${it.game.value}").assertIsEnabled() }
+        composeRule.onNodeWithTag("card.tile.zip").performClick()
 
-        composeRule.runOnIdle { assertEquals(emptyList<GameId>(), opened) }
+        composeRule.runOnIdle { assertEquals(listOf(GameId("zip")), opened) }
     }
 
     @Test
@@ -250,13 +251,16 @@ class HomeScreenTest {
     private companion object {
         val DAY: LocalDate = LocalDate.of(2026, 11, 4)
 
-        /** Registry order; Pinpoint's status is not known yet. */
+        /** Registry order. A loading tile shimmers forever (idling would hang); core:game-ui covers it. */
         val TODAY = listOf(
-            HomeUiState.TodayRow(GameId("zip"), "Zip", TodayStatus.Solved(36_000L), GameBrand.Neutral),
-            HomeUiState.TodayRow(GameId("tango"), "Tango", TodayStatus.InProgress(42_000L), GameBrand.Neutral),
-            HomeUiState.TodayRow(GameId("queens"), "Queens", TodayStatus.NotStarted, GameBrand.Neutral),
-            HomeUiState.TodayRow(GameId("pinpoint"), "Pinpoint", status = null, brand = GameBrand.Neutral),
+            row("zip", "Zip", TodayStatus.Solved(36_000L)),
+            row("tango", "Tango", TodayStatus.InProgress(42_000L)),
+            row("queens", "Queens", TodayStatus.NotStarted),
+            row("pinpoint", "Pinpoint", TodayStatus.NotStarted),
         )
+
+        fun row(id: String, name: String, status: TodayStatus?) =
+            HomeUiState.TodayRow(GameId(id), name, status, GameBrand.Neutral, RankOrder.TimeThenHints)
 
         fun state(
             today: List<HomeUiState.TodayRow>,
