@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.testing.repository
 
+import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -47,12 +48,17 @@ class FakeCompletionRepository(
     override fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
         all.map { rows -> rows.filter { it.puzzleRef == puzzleRef } }
 
-    /** Rows are verbatim, so the record is each identity's FIRST stored row (A4 stamping). */
+    /**
+     * Rows are verbatim, so the record is each identity's FIRST stored row (A4 stamping).
+     * Same `"$gameId/"` key-prefix rule as Room, so a custom (`custom/…`) solve never ranks.
+     */
     override suspend fun best(game: GameId): BestScore? {
         val ranking = (rankOrders[game] ?: RankOrder.TimeThenHints).comparator
-        return all.value.filter { it.puzzleRef.gameId == game }
-            .distinctBy { Triple(it.puzzleRef.gameId, it.puzzleRef.date, it.puzzleRef.puzzleNumber) }
-            .map { BestScore(it.time, it.hints) }
+        val prefix = "${game.value}/"
+        return all.value.groupBy { PuzzleRefKeys.encode(it.puzzleRef) }
+            .filterKeys { it.startsWith(prefix) }
+            .values
+            .map { rows -> rows.first().let { BestScore(it.time, it.hints) } }
             .minWithOrNull(ranking)
     }
 }
