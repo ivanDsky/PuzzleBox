@@ -11,7 +11,6 @@ core/designsystem/src/main/kotlin/com/ivandsky/puzzlebox/designsystem/Motion.kt 
 core/designsystem/src/main/kotlin/com/ivandsky/puzzlebox/designsystem/States.kt 2  # S1
 core/designsystem/src/main/kotlin/com/ivandsky/puzzlebox/designsystem/TopBars.kt 2  # S1
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/GetFeaturedGame.kt 2  # S1
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/GetReplaySession.kt 2  # S1
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveGameHistory.kt 2  # S1
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveTodayLeaderboard.kt 2  # S1
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/BoardGrid.kt 3  # S1

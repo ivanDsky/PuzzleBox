@@ -1,8 +1,10 @@
 package com.ivandsky.puzzlebox.testing.repository
 
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
@@ -14,9 +16,13 @@ import kotlinx.coroutines.flow.update
  * In-memory [CompletionRepository]: stores verbatim what callers write (A4 stamping lives
  * in the Room implementation) and re-emits the whole list on every change, like the real
  * DAO flow. [fail] drives the write-failure path; [writeGate] suspends writes until it
- * completes; [setRecords] replaces the stored rows.
+ * completes; [setRecords] replaces the stored rows. [rankOrders] stands in for the registry's
+ * per-game order; a game missing from it ranks time-first, as in Room.
  */
-class FakeCompletionRepository(records: List<CompletionRecord> = emptyList()) : CompletionRepository {
+class FakeCompletionRepository(
+    records: List<CompletionRecord> = emptyList(),
+    private val rankOrders: Map<GameId, RankOrder> = emptyMap(),
+) : CompletionRepository {
 
     var fail = false
 
@@ -42,8 +48,14 @@ class FakeCompletionRepository(records: List<CompletionRecord> = emptyList()) : 
         all.map { rows -> rows.filter { it.puzzleRef == puzzleRef } }
 
     /** Rows are verbatim, so the record is each identity's FIRST stored row (A4 stamping). */
-    override suspend fun bestTimeMs(game: GameId): Long? =
-        all.value.filter { it.puzzleRef.gameId == game }
+    override suspend fun best(game: GameId): BestScore? {
+        val ranking = when (rankOrders[game] ?: RankOrder.TimeThenHints) {
+            RankOrder.TimeThenHints -> compareBy<BestScore>({ it.timeMs }, { it.hints })
+            RankOrder.HintsThenTime -> compareBy<BestScore>({ it.hints }, { it.timeMs })
+        }
+        return all.value.filter { it.puzzleRef.gameId == game }
             .distinctBy { Triple(it.puzzleRef.gameId, it.puzzleRef.date, it.puzzleRef.puzzleNumber) }
-            .minOfOrNull { it.time }
+            .map { BestScore(it.time, it.hints) }
+            .minWithOrNull(ranking)
+    }
 }

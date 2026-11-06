@@ -154,31 +154,8 @@ fun PlayChrome(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (onHowToPlay != null) {
-                // Newer M3 IconButtons measure 40 dp; the floor is 48 dp (§9).
-                IconButton(
-                    onClick = onHowToPlay,
-                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag("play.how_to_play"),
-                ) {
-                    Icon(
-                        imageVector = PuzzleIcons.HowTo,
-                        contentDescription = "How to play",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            PlayTitle(title, subtitle, Modifier.weight(1f))
+            if (onHowToPlay != null) HowToPlayButton(onHowToPlay)
             if (hints != null) {
                 HintButton(
                     count = hints.hintsUsed,
@@ -188,22 +165,7 @@ fun PlayChrome(
             }
         }
 
-        banner?.let { message ->
-            Surface(
-                color = MaterialTheme.colorScheme.tertiaryContainer,
-                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("play.degrade_banner"),
-            ) {
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                )
-            }
-        }
+        banner?.let { DegradeBanner(it) }
 
         PlayCaptionSlot(caption = playCaption(feedback, hints))
 
@@ -212,6 +174,57 @@ fun PlayChrome(
         if (undo != null) UndoRedoRow(undo)
 
         gameControls()
+    }
+}
+
+/** The game's title over its subtitle (edition, mode), the chrome's voice line. */
+@Composable
+internal fun PlayTitle(title: String, subtitle: String, modifier: Modifier = Modifier) {
+    Column(modifier) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** ⓘ: reopens the game's tutorial. Newer M3 IconButtons measure 40 dp; the floor is 48 dp (§9). */
+@Composable
+internal fun HowToPlayButton(onClick: () -> Unit) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag("play.how_to_play"),
+    ) {
+        Icon(
+            imageVector = PuzzleIcons.HowTo,
+            contentDescription = "How to play",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** The §6 degrade banner: the board plays, but something (network, catalog) fell back. */
+@Composable
+internal fun DegradeBanner(message: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("play.degrade_banner"),
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        )
     }
 }
 

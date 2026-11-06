@@ -3,21 +3,31 @@ package com.ivandsky.puzzlebox.play
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -26,18 +36,23 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.model.GameId
+import java.time.LocalDate
 
 /**
  * The games hub's list (tag `route.hub`, spec A14): one card per playable game
  * (`hub.row.<gameId>`), in the order given, with today's status — "Not started",
  * "In progress · m:ss" (a saved play, as a tonal tag: the A13 cue) or "Solved · m:ss ✓" —
  * and what a tap does (Play, Continue, Replay) in the primary-text colour before the
- * chevron. No status line until the status is known. Stateless; picking a card is [onPick].
+ * chevron. No status line until the status is known. Picking a card is [onPick]. A card
+ * with an archive also offers "Past puzzles" (`hub.past.<gameId>`, A22), which opens
+ * [PastPuzzlesPicker] over its range; opening a day there is [onPickDay]. Which game's
+ * picker is open is the only state held here.
  */
 @Composable
 internal fun GamePicker(
     rows: List<HubRow>,
     onPick: (GameId) -> Unit,
+    onPickDay: (GameId, LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Home's card pairing (HomeScreen): cards float ABOVE the shell's ground in both
@@ -45,6 +60,7 @@ internal fun GamePicker(
     val scheme = MaterialTheme.colorScheme
     val cardsFloatLighter = scheme.surface.luminance() > scheme.surfaceContainerHighest.luminance()
     val cardColor = if (cardsFloatLighter) scheme.surface else scheme.surfaceContainerLow
+    var pastFor by rememberSaveable { mutableStateOf<String?>(null) }
     Column(
         modifier
             .fillMaxWidth()
@@ -57,12 +73,28 @@ internal fun GamePicker(
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        rows.forEach { row -> HubCard(row, cardColor, onPick) }
+        rows.forEach { row -> HubCard(row, cardColor, onPick, onPast = { pastFor = row.game.value }) }
+    }
+    val past = rows.firstOrNull { it.game.value == pastFor }
+    past?.archive?.let { range ->
+        PastPuzzlesPicker(
+            range = range,
+            onOpen = { day ->
+                pastFor = null
+                onPickDay(past.game, day)
+            },
+            onDismiss = { pastFor = null },
+        )
     }
 }
 
 @Composable
-private fun HubCard(row: HubRow, color: androidx.compose.ui.graphics.Color, onPick: (GameId) -> Unit) {
+private fun HubCard(
+    row: HubRow,
+    color: androidx.compose.ui.graphics.Color,
+    onPick: (GameId) -> Unit,
+    onPast: () -> Unit,
+) {
     val action = row.status?.let(::actionLabel)
     Surface(
         // Surface's own onClick clips the ripple to the card's rounded shape.
@@ -93,6 +125,7 @@ private fun HubCard(row: HubRow, color: androidx.compose.ui.graphics.Color, onPi
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 row.status?.let { status -> StatusLine(status, tag = "hub.status.${row.game.value}") }
+                if (row.archive != null) PastPuzzlesAction(row, onPast)
             }
             action?.let { label ->
                 Text(
@@ -110,6 +143,24 @@ private fun HubCard(row: HubRow, color: androidx.compose.ui.graphics.Color, onPi
             )
         }
     }
+}
+
+/**
+ * The card's secondary action. Its own click target inside the card's, so a tap opens the
+ * picker rather than today's play; TalkBack names the game it browses.
+ */
+@Composable
+private fun PastPuzzlesAction(row: HubRow, onClick: () -> Unit) {
+    // Pulled back by the button's inner start padding so its label lines up with the name.
+    val inset = ButtonDefaults.TextButtonContentPadding.calculateStartPadding(LocalLayoutDirection.current)
+    AppTextButton(
+        text = "Past puzzles",
+        onClick = onClick,
+        modifier = Modifier
+            .offset(x = -inset)
+            .testTag("hub.past.${row.game.value}")
+            .semantics { contentDescription = "Past ${row.name} puzzles" },
+    )
 }
 
 /** The status line; in progress is the A13 cue — a small tonal tag on the secondary pair. */
@@ -160,9 +211,16 @@ private fun GamePickerPreview() {
                 HubRow(GameId("zip"), "Zip", TodayStatus.Solved(36_000L)),
                 HubRow(GameId("tango"), "Tango", TodayStatus.InProgress(42_000L)),
                 HubRow(GameId("queens"), "Queens", TodayStatus.NotStarted),
+                HubRow(
+                    GameId("strands"),
+                    "Strands",
+                    TodayStatus.NotStarted,
+                    archive = LocalDate.of(2024, 3, 4)..LocalDate.of(2026, 11, 4),
+                ),
                 HubRow(GameId("pinpoint"), "Pinpoint", status = null),
             ),
             onPick = {},
+            onPickDay = { _, _ -> },
         )
     }
 }

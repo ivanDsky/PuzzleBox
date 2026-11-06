@@ -1,8 +1,12 @@
 # PROFILE.md — written by init-profile, read by /start
-# version: 0.12.0 (semver source of truth, per deliver: feature → minor, fix → patch (every bugfix, however small); 0.12.0 = identity layer: game brands + accent slots, 9-role type, pill buttons, icon set + game glyphs, nav icon states, motion tokens + solve sweep/stamp, week strip, debug design settings; 0.11.1 = solved-day streak, Home recent grouped by day, puzzle-day clock, m:ss everywhere, Tango Practice, plain copy; 0.11.0 = per-tab back stacks, games hub, saved plays per (game, day) that resume after process death (replaces 0.9.0's kept sessions); 0.10.1 = Queens lesson 2 taps, dashed ghost crowns, Tango lesson 4 copy; 0.10.0 = first-play tutorials + How to play, Home Today card, plain copy; 0.9.0 = kept sessions + Continue, feedback caption slot, contrast floors, honest best; 0.8.0 = Play tab opens the game picker; core|game chrome split; command-based undo/redo; 0.7.0 = merge of Queens and Tango runs)
 # 1.0.0 = public release of ALL games (Zip, Queens, Tango, MiniSudoku, Strands) in a
 # good tested state. Until then the app is ALPHA: 0.x.y forever; minor = phase/feature
 # milestone, patch = fix rounds.
+
+## Version
+- app-id: com.ivandsky.puzzlebox
+- app-name: PuzzleBox
+- version: 0.12.0  # semver source of truth; bumped ONLY on a user-requested release (on main, with the Gradle versionName fallback in one commit); every bugfix bumps the patch, however small. Installs use deliver build_identity.py: <semver>-<slug>.<n>. History: 0.12.0 = identity layer: game brands + accent slots, 9-role type, pill buttons, icon set + game glyphs, nav icon states, motion tokens + solve sweep/stamp, week strip, debug design settings; 0.11.1 = solved-day streak, Home recent grouped by day, puzzle-day clock, m:ss everywhere, Tango Practice, plain copy; main: 0.13.0 = Mini Sudoku (LinkedIn daily) + debug 9x9 Sudoku on one engine; main: 0.12.0 = NYT Strands (fifth game: drag board, hints, rating) + past puzzles by date for archive games, per-game rank order, per-game saved-play cap; 0.11.0 = per-tab back stacks, games hub, saved plays per (game, day) that resume after process death (replaces 0.9.0's kept sessions); 0.10.1 = Queens lesson 2 taps, dashed ghost crowns, Tango lesson 4 copy; 0.10.0 = first-play tutorials + How to play, Home Today card, plain copy; 0.9.0 = kept sessions + Continue, feedback caption slot, contrast floors, honest best; 0.8.0 = Play tab opens the game picker; core|game chrome split; command-based undo/redo; 0.7.0 = merge of Queens and Tango runs
 
 ## Product (frame)
 # purpose: one app for daily logic puzzles — play official NYT/LinkedIn dailies, build and share custom games, compete via leaderboards and 1v1; Zip ships first
@@ -34,7 +38,10 @@
 # - firebase: <project id>  # activate once the Firebase project is created; deliver moves off tailscale then
 
 ## Review site publish
-always  # user ruling 2026-10-31: every review gate publishes a localhost HTML review page (REVIEW.md contract + archify diagrams); served on LAN :8777
+off  # user ruling 2026-11-05 (replaces 2026-10-31 `always`): publish the review site ONLY when the user explicitly asks. Explicit user no — also overrides the thorough-effort default. REVIEW.md is still written every review; deliver gives its file path only.
+
+## Delivery
+- changes: pr   # user ruling 2026-11-05 (strands run): runs land as a PR from the run branch into main
 
 ## Testing style
 - runner: ./gradlew :app:testDebugUnitTest   # JVM unit tests against fakes
@@ -46,3 +53,8 @@ always  # user ruling 2026-10-31: every review gate publishes a localhost HTML r
 - NYT Strands: public API exists — no scraping needed
 - LinkedIn games (Zip, Queens, Tango, MiniSudoku): no public API — unofficial endpoints + session; research Unknown at spec time
 - Firebase: Auth Google-sign-in-only (no email/password); leaderboard / 1v1 backend decided at spec
+
+## Device access (Bug C session, 2026-11-02)
+- Tab (ivans-tab-s9-ultra, 100.93.158.113) supports wireless adb over Tailscale: user opens Developer options → Wireless debugging → "Pair device with pairing code" (code+port rotate EVERY open — pair within seconds of receiving), then `adb connect 100.93.158.113:<debug-port-from-main-screen>`. Paired 2026-11-02, persists.
+- Supervised-process PATH lacks sdk tools: use full path `/Users/ivandsky/Library/Android/sdk/platform-tools/adb`.
+- The tab runs ReVanced microG, not real GMS — Credential Manager Google-ID works ONLY with the type-first + `GoogleIdTokenCredential.createFrom(credential.data)` pattern (4b7b419). `is GoogleIdTokenCredential` checks silently drop microG tokens.

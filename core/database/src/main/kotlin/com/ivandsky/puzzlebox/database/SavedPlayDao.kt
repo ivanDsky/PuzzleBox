@@ -6,15 +6,15 @@ import androidx.room.Transaction
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
-/** Saved in-progress plays (A10): one slot per (gameId, day), capped at the newest `cap`. */
+/** Saved in-progress plays (A10): one slot per (gameId, day), capped at the newest `cap` per game (A28). */
 @Dao
 interface SavedPlayDao {
 
-    /** Upserts [row], then keeps only the newest [cap] slots by updatedAt (SC8), atomically. */
+    /** Upserts [row], then keeps only the newest [cap] slots of its game by updatedAt (SC8, SC16), atomically. */
     @Transaction
     suspend fun saveAndPrune(row: SavedPlayEntity, cap: Int) {
         upsert(row)
-        pruneTo(cap)
+        pruneTo(row.gameId, cap)
     }
 
     /** The saved session blob of one daily, or null when no slot exists. */
@@ -32,8 +32,8 @@ interface SavedPlayDao {
     suspend fun upsert(row: SavedPlayEntity)
 
     @Query(
-        "DELETE FROM saved_plays WHERE rowid NOT IN " +
-            "(SELECT rowid FROM saved_plays ORDER BY updatedAt DESC LIMIT :cap)",
+        "DELETE FROM saved_plays WHERE gameId = :gameId AND rowid NOT IN " +
+            "(SELECT rowid FROM saved_plays WHERE gameId = :gameId ORDER BY updatedAt DESC LIMIT :cap)",
     )
-    suspend fun pruneTo(cap: Int)
+    suspend fun pruneTo(gameId: String, cap: Int)
 }

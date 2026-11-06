@@ -11,10 +11,14 @@ import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.domain.di.domainModule
 import com.ivandsky.puzzlebox.games.queens.queensModule
 import com.ivandsky.puzzlebox.games.queensui.queensUiModule
+import com.ivandsky.puzzlebox.games.sudoku.miniSudokuModule
+import com.ivandsky.puzzlebox.games.sudokuui.miniSudokuUiModule
 import com.ivandsky.puzzlebox.games.zip.zipModule
 import com.ivandsky.puzzlebox.games.zipui.zipUiModule
 import com.ivandsky.puzzlebox.games.tango.tangoModule
 import com.ivandsky.puzzlebox.games.tangoui.tangoUiModule
+import com.ivandsky.puzzlebox.games.strands.strandsModule
+import com.ivandsky.puzzlebox.games.strandsui.strandsUiModule
 import com.ivandsky.puzzlebox.history.di.historyModule
 import com.ivandsky.puzzlebox.home.di.homeModule
 import com.ivandsky.puzzlebox.play.di.playModule
@@ -54,6 +58,6 @@ class PuzzleBoxApplication : Application() {
 
     companion object {
         val appModules =
-            listOf(commonModule, dataModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, profileModule(R.string.default_web_client_id), zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, appModule)
+            listOf(commonModule, dataModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, profileModule(R.string.default_web_client_id), zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, strandsModule, strandsUiModule, miniSudokuModule, miniSudokuUiModule, appModule) + buildTypeGameModules
     }
 }
