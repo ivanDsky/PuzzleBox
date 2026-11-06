@@ -110,6 +110,21 @@ class QueensCoachLineTest {
     }
 
     @Test
+    fun `a Kept probe stays Kept through Checking`() {
+        val controller = QueensEditorController(crowned()) {}
+        var verdict: Verdict by mutableStateOf(Verdict.Unique(Solution(CROWNS)))
+        rule.setContent {
+            PuzzleBoxTheme { QueensEditorBoard(controller, verdict, Modifier.fillMaxSize()) }
+        }
+        assertProbe("kept")
+
+        verdict = Verdict.Checking
+        rule.waitForIdle()
+
+        assertProbe("kept")
+    }
+
+    @Test
     fun `crown mode shows the coach instead of the paint hint and the tool strip keeps its height`() {
         val controller = QueensEditorController(EditorDraft.fresh(QueensEditor, QueensVariants.variant(SIZE).id)) {}
         rule.setContent {

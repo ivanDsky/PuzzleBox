@@ -91,7 +91,7 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
     val autoX = remember(board) { QueensCrowns.crossed(board) }
     val rejection = rememberQueensRejection(controller)
     var frame by remember { mutableStateOf(BoardFrame.Zero) }
-    // The last non-Checking verdict, so the coach line holds its step while a new analysis runs.
+    // The last non-Checking verdict, so the coach line and probe strip hold their content while a new analysis runs.
     val settled = remember { mutableStateOf<Verdict?>(null) }
     SideEffect { if (verdict != Verdict.Checking) settled.value = verdict }
     CompositionLocalProvider(LocalQueensReducedMotion provides reducedMotion) {
@@ -146,9 +146,10 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
                     onPick = controller::pick,
                 )
             }
-            val coach = QueensCoachState.shown(board, verdict, if (verdict == Verdict.Checking) settled.value else null, mode)
-            QueensCoachLine(coach, reducedMotion, Modifier.padding(top = Spacing.xs))
-            QueensProbeStrip(remember(board, verdict) { QueensAnswerFit.of(board, verdict) }, board.crowns.size)
+            val held = if (verdict == Verdict.Checking) settled.value else null
+            QueensCoachLine(QueensCoachState.shown(board, verdict, held, mode), reducedMotion, Modifier.padding(top = Spacing.xs))
+            val probed = held ?: verdict
+            QueensProbeStrip(remember(board, probed) { QueensAnswerFit.of(board, probed) }, board.crowns.size)
             if (mode == QueensEditorMode.Paint) {
                 QueensSelectionChips(controller, onGrown = { touch.lift = centroid(it, n, frame.size) })
             } else {
