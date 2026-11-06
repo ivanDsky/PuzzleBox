@@ -27,6 +27,8 @@ internal fun EditorRoute(
 ) {
     val viewModel: EditorViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val canUndo by viewModel.canUndo.collectAsStateWithLifecycle()
+    val canRedo by viewModel.canRedo.collectAsStateWithLifecycle()
     val routeModifier = modifier.testTag("route.editor")
     when (val ready = state) {
         EditorUiState.Loading -> Box(routeModifier.fillMaxSize())
@@ -44,6 +46,16 @@ internal fun EditorRoute(
             layout = layout,
             onBack = onBack,
             board = { boardModifier -> ready.editor.Board(ready.controller, ready.verdict, boardModifier) },
+            toolStrip = { stripModifier ->
+                ToolStrip(
+                    canUndo = canUndo,
+                    canRedo = canRedo,
+                    onUndo = viewModel::undo,
+                    onRedo = viewModel::redo,
+                    hint = { hintModifier -> ready.editor.ToolHint(ready.controller, hintModifier) },
+                    modifier = stripModifier,
+                )
+            },
             modifier = routeModifier,
         )
     }
