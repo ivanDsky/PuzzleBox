@@ -124,6 +124,8 @@ object Migrations {
                     "`testHints` INTEGER, " +
                     "`reservedCode` TEXT, " +
                     "`imported` INTEGER NOT NULL, " +
+                    "`authorName` TEXT NOT NULL DEFAULT '', " +
+                    "`note` TEXT NOT NULL DEFAULT '', " +
                     "PRIMARY KEY(`id`))",
             )
             db.execSQL(
@@ -137,6 +139,7 @@ object Migrations {
                     "`unpublished` INTEGER NOT NULL, " +
                     "`solvesCount` INTEGER, " +
                     "`solvesCountAt` INTEGER, " +
+                    "`authorHints` INTEGER NOT NULL, " +
                     "PRIMARY KEY(`code`))",
             )
             db.execSQL(
@@ -156,6 +159,7 @@ object Migrations {
                     "`unpublished` INTEGER NOT NULL, " +
                     "`postState` TEXT NOT NULL, " +
                     "`postAttempts` INTEGER NOT NULL, " +
+                    "`difficulty` TEXT, " +
                     "PRIMARY KEY(`code`))",
             )
             db.execSQL(

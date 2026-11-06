@@ -26,4 +26,6 @@ class ReceivedPuzzleEntity(
     val unpublished: Boolean,
     val postState: String,
     val postAttempts: Int,
+    /** The author's difficulty label, null when the share carried none (M3). */
+    val difficulty: String?,
 )
