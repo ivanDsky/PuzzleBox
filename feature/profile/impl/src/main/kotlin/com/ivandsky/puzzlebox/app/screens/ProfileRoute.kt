@@ -11,7 +11,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import org.koin.androidx.compose.koinViewModel
 
 /**
- * Profile's DI-bound entry point. [onOpenHistory] opens a game's History tab (N3);
+ * Profile's DI-bound entry point. [onOpenHistory] opens History's timeline (N3);
  * [onOpenCatalog] is offered only in debuggable builds (the catalog is a debug tool).
  */
 @Composable

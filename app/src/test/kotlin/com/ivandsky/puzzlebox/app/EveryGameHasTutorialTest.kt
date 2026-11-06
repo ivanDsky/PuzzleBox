@@ -34,7 +34,7 @@ class EveryGameHasTutorialTest {
             val playUis = koin.getAll<GamePlayUi>()
             // Every registered game is in the sweep: none can slip past without a play UI.
             assertEquals(
-                koin.get<GameRegistry>().all.map { it.definition.id }.toSet(),
+                koin.get<GameRegistry>().let { it.all + it.unlisted }.map { it.definition.id }.toSet(),
                 playUis.map { it.gameId }.toSet(),
             )
             for (ui in playUis) {

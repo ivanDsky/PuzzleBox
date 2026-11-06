@@ -1,10 +1,8 @@
 package com.ivandsky.puzzlebox.home
 
 import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -24,7 +22,6 @@ import com.ivandsky.puzzlebox.domain.di.domainModule
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.GameRegistry
-import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.home.api.HomeKey
@@ -60,8 +57,8 @@ import org.robolectric.annotation.Config
  * HomeRoute must observe the GAME-AGNOSTIC merged history — every game's completion
  * records UNION every registered game's captured days. The teaser first showed "No
  * games yet" forever watching an unfed legacy table; after the Zip fix it still dropped
- * every non-Zip record. Only a Zip-id test plugin is registered here, so Queens rows
- * exercise the registry-name fallback. The graph is the production one: domainModule's
+ * every non-Zip record. Only a Zip-id test plugin is registered here; records of a game
+ * the registry does not list never surface (ADR-0015). The graph is the production one: domainModule's
  * use cases and homeModule's ViewModel over fakes (no game UI registered: neutral
  * brands). Copy is never pinned: tags, enabled state and callbacks.
  */
@@ -71,21 +68,6 @@ class HomeRouteTest {
 
     @get:Rule
     val composeRule = createComposeRule()
-
-    /** A ref shape Queens authors — local because :feature:home:impl has no games:queens dep. */
-    private data class QueensRef(
-        override val date: LocalDate,
-        override val puzzleNumber: Int?,
-    ) : PuzzleRef {
-        override val gameId: GameId = GameId("queens")
-    }
-
-    private fun queensRecord(day: LocalDate) = CompletionRecord(
-        puzzleRef = QueensRef(day, 916),
-        time = 41_000L,
-        hints = 1,
-        stats = RecordStats(schemaVersion = 1, blob = "{}"),
-    )
 
     @Before
     fun resetKoin() {
@@ -157,7 +139,7 @@ class HomeRouteTest {
     }
 
     @Test
-    fun `showing home prefetches today's puzzle and an unloadable one is a dead tile - A12`() {
+    fun `showing home prefetches today's puzzle and an unloadable one's badge stays a retry - A9 A12`() {
         val daily = FakeDailyRepository()
         val played = mutableListOf<GameId>()
         setContent(
@@ -167,11 +149,10 @@ class HomeRouteTest {
             zipToday = DailyToday.Unavailable(FetchError.Unavailable()),
         )
 
-        composeRule.waitUntil(5_000) { offlineTile().fetchSemanticsNodes().isNotEmpty() }
-        composeRule.runOnIdle { assertEquals(1, daily.todayCalls(GameId("zip"))) }
-        composeRule.onNodeWithTag("home.today_tile_zip").assertIsNotEnabled().performClick()
+        composeRule.waitUntil(5_000) { daily.todayCalls(GameId("zip")) == 1 }
+        composeRule.onNodeWithTag("home.badge.zip").assertIsEnabled().performClick()
 
-        composeRule.runOnIdle { assertEquals(emptyList<GameId>(), played) }
+        composeRule.runOnIdle { assertEquals(listOf(GameId("zip")), played) }
     }
 
     @Test
@@ -233,15 +214,21 @@ class HomeRouteTest {
     }
 
     @Test
-    fun `a queens completion surfaces in the teaser - fix round 5 defect C`() = kotlinx.coroutines.test.runTest {
+    fun `a completion without a captured day surfaces in the teaser - fix round 5 defect C`() = kotlinx.coroutines.test.runTest {
         val completions = FakeCompletionRepository()
         setContent(FakeDailyRepository(), completions)
         composeRule.onNodeWithText("No games yet").assertExists()
 
-        // A solved Queens game writes its record (no Zip capture anywhere) — the teaser
-        // must surface it; the row names the game by its id (Queens is not registered in
-        // this test's Koin graph, so the registry fallback applies).
-        completions.onCompleted(queensRecord(LocalDate.of(2026, 11, 1)))
+        // A solved game writes only its record (no daily capture anywhere) — the teaser
+        // must still surface it.
+        completions.onCompleted(
+            CompletionRecord(
+                puzzleRef = TestGames.Ref(GameId("zip"), LocalDate.of(2026, 11, 1), 916),
+                time = 41_000L,
+                hints = 1,
+                stats = RecordStats(schemaVersion = 1, blob = "{}"),
+            ),
+        )
 
         composeRule.waitUntil(5_000) {
             composeRule.onAllNodesWithText("November 1").fetchSemanticsNodes().isNotEmpty()
@@ -275,6 +262,4 @@ class HomeRouteTest {
         }
         composeRule.onNodeWithTag("home.today_play").assertDoesNotExist()
     }
-
-    private fun offlineTile() = composeRule.onAllNodes(hasTestTag("home.today_tile_zip") and isNotEnabled())
 }

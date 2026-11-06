@@ -12,7 +12,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.gameui.GameBrand
 
-/** The game's fastest numbered solve, in its accent (history.md §2). */
+/** The game's best numbered solve under its ranking, in its accent (history.md §2). */
 @Composable
 internal fun BestPill(brand: GameBrand, modifier: Modifier = Modifier) {
     AccentPill(text = "Best", brand = brand, style = MaterialTheme.typography.labelSmall, modifier = modifier)

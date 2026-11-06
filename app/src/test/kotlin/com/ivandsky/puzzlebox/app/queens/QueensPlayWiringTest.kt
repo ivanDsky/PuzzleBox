@@ -1,12 +1,15 @@
 package com.ivandsky.puzzlebox.app.queens
 
 import androidx.compose.material3.Text
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
@@ -141,8 +144,11 @@ class QueensPlayWiringTest {
 
         // The Play tab lands on the shared games hub, Queens among its games — never
         // straight on a Queens board.
-        composeRule.onNodeWithTag("route.hub").assertExists()
-        composeRule.onNodeWithTag("hub.row.queens").performClick()
+        composeRule.onNodeWithTag("route.library").assertExists()
+        composeRule.onNodeWithTag("library.row.queens").performClick()
+        composeRule.waitForIdle()
+        composeRule.waitUntil(10_000) { composeRule.onAllNodes(hasTestTag("library.play") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+        composeRule.onNodeWithTag("library.play").performScrollTo().performClick()
         // Opening reads the saved-play row off the real Room graph first: the board lands async.
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodesWithTag("queens.board").fetchSemanticsNodes().isNotEmpty()

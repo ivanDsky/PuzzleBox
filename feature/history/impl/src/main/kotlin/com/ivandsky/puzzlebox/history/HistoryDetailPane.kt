@@ -35,6 +35,7 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
+import com.ivandsky.puzzlebox.gameui.bestScoreText
 
 private val ReplayHeight = 56.dp
 
@@ -75,7 +76,7 @@ internal fun DetailHint(
 
 /**
  * One game's day (history.md §3): the game, its number and day, the Time / Hints of the
- * solve, and that game's best ([gameBest], its fastest numbered solve). The action
+ * solve, and that game's best ([gameBest], its best numbered solve under the game's ranking). The action
  * follows the state: "Play again" once solved, "Keep going" while unfinished — both
  * report the (game, day) through [onReplay]; the play store resumes or rebuilds it.
  */
@@ -143,21 +144,21 @@ internal fun DayDetailPane(
                 }
             }
             ScoreCard(record = row.record, cardColor = cardColor)
-            gameBest?.record?.let { best ->
+            gameBest?.takeIf { it.record != null }?.let { best ->
                 Row(
                     modifier = Modifier.testTag("history.detail.best"),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
                     Text(
-                        text = "Your best time",
+                        text = "Your best",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f),
                     )
                     if (row.isBest) BestPill(row.brand)
                     Text(
-                        text = formatDuration(best.time),
+                        text = bestScoreText(best.score(), best.rankOrder),
                         style = MaterialTheme.typography.titleMedium.tabular(),
                         color = MaterialTheme.colorScheme.onSurface,
                     )

@@ -19,4 +19,15 @@ class GameWiringTest {
         }
         assertTrue(error.message!!, error.message!!.contains("'tango'"))
     }
+
+    @Test
+    fun `an unlisted game without a play ui also fails fast`() {
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            requireEveryGamePlayable(
+                GameRegistry(listOf(zipPlugin, tangoPlugin), unlisted = setOf(tangoPlugin.definition.id)),
+                GamePlayRegistry(listOf(ZipPlayUi())),
+            )
+        }
+        assertTrue(error.message!!, error.message!!.contains("'tango'"))
+    }
 }

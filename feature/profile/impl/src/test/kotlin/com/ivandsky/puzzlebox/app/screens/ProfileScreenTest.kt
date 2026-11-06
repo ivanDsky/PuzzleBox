@@ -19,6 +19,8 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
+import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
@@ -49,8 +51,8 @@ class ProfileScreenTest {
     private val zip = GameId("zip")
     private val tango = GameId("tango")
     private val games = listOf(
-        ProfileUiState.GameRow(zip, "Zip", GameBrand.Neutral, solved = 4, bestTimeMs = 41_000),
-        ProfileUiState.GameRow(tango, "Tango", GameBrand.Neutral, solved = 0, bestTimeMs = null),
+        ProfileUiState.GameRow(zip, "Zip", GameBrand.Neutral, solved = 4, BestScore(41_000, hints = 0), RankOrder.TimeThenHints),
+        ProfileUiState.GameRow(tango, "Tango", GameBrand.Neutral, solved = 0, best = null, RankOrder.TimeThenHints),
     )
     private val me = Identity(uid = "u1", displayName = "Ann", photoUrl = null)
     private val entries = listOf(

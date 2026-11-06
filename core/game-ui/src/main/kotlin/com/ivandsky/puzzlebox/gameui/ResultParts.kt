@@ -118,7 +118,7 @@ internal fun RecordTag(verdict: RecordVerdict?, brand: GameBrand, modifier: Modi
  * the best to chase, calmly; a replay says it was one. A first solve has no best yet, and
  * a tie's hero time IS the best: no line. A hints-first game ranks by hints (A26), so its
  * new best names the score it beat and its best leads with the hints — "Your best is
- * 0 hints · 1:42" — the way the pill beside it ranks; time-first shows the time alone.
+ * Perfect · 1:42" ([bestScoreText]) — the way the pill beside it ranks; time-first shows the time alone.
  */
 @Composable
 internal fun BestLine(
@@ -128,12 +128,7 @@ internal fun BestLine(
     timeMs: Long,
     brand: GameBrand,
 ) {
-    val best = previousBest?.let {
-        when (rankOrder) {
-            RankOrder.TimeThenHints -> formatDuration(it.timeMs)
-            RankOrder.HintsThenTime -> "${hintCount(it.hints)} · ${formatDuration(it.timeMs)}"
-        }
-    }
+    val best = previousBest?.let { bestScoreText(it, rankOrder) }
     val line = when (verdict) {
         RecordVerdict.NewBest -> previousBest?.let {
             when (rankOrder) {
@@ -162,9 +157,6 @@ private fun gap(bestMs: Long, timeMs: Long): String {
     val seconds = bestMs / 1000 - timeMs / 1000
     return if (seconds < 60) "${seconds}s" else formatDuration(seconds * 1000)
 }
-
-/** "1 hint" / "N hints", as a hints-first best reads. */
-private fun hintCount(hints: Int): String = if (hints == 1) "1 hint" else "$hints hints"
 
 /**
  * The result's actions: the primary, then Share (tag `result.share`) and "Play again"

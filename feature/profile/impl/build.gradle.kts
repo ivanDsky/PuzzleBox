@@ -14,7 +14,7 @@ dependencies {
     implementation(projects.core.domain)
     // Per-game brands (GamePlayRegistry) and GameGlyph for the game rows.
     implementation(projects.core.gameUi)
-    // A game row opens that game's History tab (api edge only).
+    // A game row opens History (api edge only).
     implementation(projects.feature.history.api)
 
     implementation(libs.androidx.lifecycle.runtime.compose)

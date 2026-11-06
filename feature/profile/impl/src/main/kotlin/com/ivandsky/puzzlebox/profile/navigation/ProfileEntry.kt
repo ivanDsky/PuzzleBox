@@ -7,9 +7,9 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 
 /**
- * Profile's route (tab root). A game row opens that game's History tab ([onOpenHistory],
- * N3) and the debug catalog link opens the design-system catalog, an app-owned deep page;
- * the shell supplies both, as it does for Play's "Older puzzles".
+ * Profile's route (tab root). A game row opens History's timeline ([onOpenHistory], N3)
+ * and the debug catalog link opens the design-system catalog, an app-owned deep page;
+ * the shell supplies both.
  */
 fun EntryProviderScope<NavKey>.profileEntry(
     onOpenHistory: (GameId) -> Unit,

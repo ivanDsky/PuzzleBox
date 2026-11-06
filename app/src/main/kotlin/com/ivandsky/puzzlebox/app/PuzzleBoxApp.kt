@@ -116,17 +116,17 @@ fun PuzzleBoxApp(
 internal object DebugCatalogContent {
     @Volatile
     var browser: (
-@Composable () -> Unit)? = null
+@Composable (openGame: (String) -> Unit) -> Unit)? = null
 }
 
 private const val DEBUG_CATALOG_BINDING =
     "com.ivandsky.puzzlebox.app.debug.CatalogDebugBinding"
 @Composable
-internal fun CatalogScreen() {
+internal fun CatalogScreen(openGame: (String) -> Unit) {
     val debugBrowser = debugCatalogBrowser()
     Box(Modifier.testTag("route.catalog")) {
         if (debugBrowser != null) {
-            debugBrowser()
+            debugBrowser(openGame)
         } else {
             CatalogUnavailableScreen()
         }
@@ -135,7 +135,7 @@ internal fun CatalogScreen() {
 
 @Composable
 private fun debugCatalogBrowser(): (
-@Composable () -> Unit)? {
+@Composable (openGame: (String) -> Unit) -> Unit)? {
     val isDebuggable = LocalContext.current.applicationInfo.flags and
         android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
     return if (isDebuggable) {

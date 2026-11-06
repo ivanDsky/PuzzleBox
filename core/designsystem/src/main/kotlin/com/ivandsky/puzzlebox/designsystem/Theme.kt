@@ -23,6 +23,13 @@ val LocalPrimaryText = staticCompositionLocalOf { LightPrimaryText }
 val LocalTimerFill = staticCompositionLocalOf { LightTimerFill }
 
 /**
+ * Content colour on a full accent fill (ColorTokens.kt): hub card text, status marks and
+ * motif read this. Same for every accent slot. Provided by [PuzzleBoxTheme] like
+ * [LocalTimerFill].
+ */
+val LocalOnFill = staticCompositionLocalOf { LightOnFill }
+
+/**
  * Board color roles (BoardTokens.kt, spec UIUX-01 A5): the board renders from these named
  * roles, never raw colors. Provided by [PuzzleBoxTheme] so board rendering always follows
  * the RESOLVED theme — same contract as [LocalPrimaryText], including a forced appearance
@@ -53,6 +60,7 @@ fun PuzzleBoxTheme(
         LocalDesignVariants provides variants,
         LocalPrimaryText provides if (darkTheme) DarkPrimaryText else LightPrimaryText,
         LocalTimerFill provides if (darkTheme) DarkTimerFill else LightTimerFill,
+        LocalOnFill provides if (darkTheme) DarkOnFill else LightOnFill,
         LocalBoardColors provides if (darkTheme) DarkBoardTokens else LightBoardTokens,
         LocalAccentPalette provides accentPalette(variants.accentSet, darkTheme),
     ) {

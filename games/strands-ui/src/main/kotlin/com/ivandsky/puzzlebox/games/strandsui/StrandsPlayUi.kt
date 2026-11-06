@@ -2,8 +2,7 @@ package com.ivandsky.puzzlebox.games.strandsui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.ivandsky.puzzlebox.game.RendererModel
-import com.ivandsky.puzzlebox.gameui.BoardPreview
+import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
@@ -19,19 +18,13 @@ class StrandsPlayUi : GamePlayUi {
 
     override fun createController(env: PlayEnvironment): GamePlayController = StrandsPlayController(env)
 
+    override val brand: GameBrand get() = StrandsBrand
+
     override val tutorial: List<TutorialStep> get() = StrandsTutorial.steps
 
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
         StrandsBoard(controller as StrandsPlayController, modifier)
-    }
-
-    /** No thumbnail: the hub card shows Strands' glyph. */
-    override fun previewModel(preview: BoardPreview): RendererModel? = null
-
-    @Composable
-    override fun BoardThumbnail(model: RendererModel, modifier: Modifier) {
-        // Never called: previewModel never returns a model.
     }
 
     @Composable

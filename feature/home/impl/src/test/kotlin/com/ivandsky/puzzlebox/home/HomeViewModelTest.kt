@@ -13,9 +13,14 @@ import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.designsystem.formatDuration
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.FetchError
+import com.ivandsky.puzzlebox.game.GamePlugin
+import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.WeekDay
@@ -62,6 +67,7 @@ class HomeViewModelTest {
     // The test games roll over at UTC midnight: midday UTC is [day].
     private val clock = Clock.fixed(Instant.parse("2026-11-04T12:00:00Z"), ZoneOffset.UTC)
     private val neutral = GameBrand.Neutral
+    private val timeFirst = RankOrder.TimeThenHints
 
     private data class Deps(
         val vm: HomeViewModel,
@@ -74,8 +80,11 @@ class HomeViewModelTest {
     private fun TestScope.viewModel(
         identity: FakeIdentityService = FakeIdentityService(initial = null),
         collect: Boolean = true,
+        hintsRanked: Set<GameId> = emptySet(),
     ): Deps {
-        val registry = TestGames.registry(listOf(zip, tango))
+        val registry = GameRegistry(
+            listOf(zip, tango).map { if (it in hintsRanked) hintsFirst(TestGames.plugin(it)) else TestGames.plugin(it) },
+        )
         val daily = FakeDailyRepository()
         val completions = FakeCompletionRepository()
         val saved = FakeSavedPlayRepository()
@@ -85,7 +94,7 @@ class HomeViewModelTest {
         val puzzleDay = GetPuzzleDay(registry, clock)
         val vm = HomeViewModel(
             observeGameHistory = history,
-            observeGameStats = ObserveGameStats(history, ComputeStreak(puzzleDay)),
+            observeGameStats = ObserveGameStats(registry, history, ComputeStreak(puzzleDay)),
             todaySet = ObserveTodaySet(registry, saved, completions, calendar, daily, sync),
             identityService = identity,
             registry = registry,
@@ -97,6 +106,24 @@ class HomeViewModelTest {
         if (collect) backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return Deps(vm, daily, completions, saved, identity)
     }
+
+    /** [plugin] ranking its bests hints first, as Strands does. */
+    private fun <P> hintsFirst(
+        plugin: GamePlugin<P, TestGames.Session, TestGames.Model>,
+    ): GamePlugin<P, TestGames.Session, TestGames.Model> = GamePlugin(
+        definition = plugin.definition,
+        rules = plugin.rules,
+        session = plugin.session,
+        score = object : ScoreModel<TestGames.Session> {
+            override fun completion(session: TestGames.Session) = plugin.score.completion(session)
+            override val rankOrder = RankOrder.HintsThenTime
+        },
+        stateOf = plugin.stateOf,
+        initialSession = plugin.initialSession,
+        refOf = plugin.refOf,
+        replaySession = plugin.replaySession,
+        rendererModel = plugin.rendererModel,
+    )
 
     private fun record(game: GameId, on: LocalDate, timeMs: Long) = CompletionRecord(
         puzzleRef = TestGames.Ref(game, on, 916),
@@ -113,14 +140,14 @@ class HomeViewModelTest {
         assertEquals(
             HomeUiState(
                 today = listOf(
-                    HomeUiState.TodayRow(zip, "Zip", status = null, brand = neutral),
-                    HomeUiState.TodayRow(tango, "Tango", status = null, brand = neutral),
+                    HomeUiState.TodayRow(zip, "Zip", status = null, brand = neutral, rankOrder = timeFirst),
+                    HomeUiState.TodayRow(tango, "Tango", status = null, brand = neutral, rankOrder = timeFirst),
                 ),
                 identity = ann,
                 history = emptyList(),
                 puzzleDay = day,
                 playTarget = zip,
-                stats = GameStats(0, 0, 0, null, 0, null, null),
+                stats = GameStats(0, 0, 0, 0, null, null, best = null, rankOrder = RankOrder.TimeThenHints),
                 week = (6L downTo 0L).map { WeekDay(day.minusDays(it), emptyList(), isToday = it == 0L) },
                 rolloverAt = Instant.parse("2026-11-05T00:00:00Z"),
             ),
@@ -164,11 +191,30 @@ class HomeViewModelTest {
 
         assertEquals(
             listOf(
-                HomeUiState.TodayRow(zip, "Zip", TodayStatus.NotStarted, neutral),
-                HomeUiState.TodayRow(tango, "Tango", TodayStatus.InProgress(42_000L), neutral),
+                HomeUiState.TodayRow(zip, "Zip", TodayStatus.NotStarted, neutral, timeFirst),
+                HomeUiState.TodayRow(tango, "Tango", TodayStatus.InProgress(42_000L), neutral, timeFirst),
             ),
             deps.vm.uiState.value.today,
         )
+    }
+
+    @Test
+    fun `a hints-ranked game's row carries its fewest-hints best - A10`() = runTest {
+        val deps = viewModel(hintsRanked = setOf(tango))
+        deps.completions.setRecords(
+            listOf(
+                CompletionRecord(TestGames.Ref(tango, day.minusDays(1), 6), 10_000L, 2, RecordStats(1, "{}"), isRecord = true),
+                CompletionRecord(TestGames.Ref(tango, day.minusDays(2), 5), 90_000L, 0, RecordStats(1, "{}"), isRecord = true),
+                CompletionRecord(TestGames.Ref(zip, day, 916), 36_000L, 1, RecordStats(1, "{}"), isRecord = true),
+            ),
+        )
+
+        val rows = deps.vm.uiState.value.today.associateBy { it.game }
+
+        assertEquals(RankOrder.HintsThenTime, rows.getValue(tango).rankOrder)
+        assertEquals(BestScore(timeMs = 90_000L, hints = 0), rows.getValue(tango).best)
+        assertEquals(timeFirst, rows.getValue(zip).rankOrder)
+        assertEquals(BestScore(timeMs = 36_000L, hints = 1), rows.getValue(zip).best)
     }
 
     @Test
@@ -270,20 +316,19 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `a queens completion surfaces in the teaser - fix round 5 defect C`() = runTest {
+    fun `a non-featured game's completion surfaces in the teaser - fix round 5 defect C`() = runTest {
         val deps = viewModel()
 
-        // A solved Queens game writes its record (no Zip capture anywhere) — the teaser
-        // must surface it; the row names the game by its id (Queens is not registered,
-        // so the registry fallback applies).
-        deps.completions.onCompleted(record(GameId("queens"), LocalDate.of(2026, 11, 1), 41_000L))
+        // A solved Tango game writes its record (no Zip capture anywhere) — the teaser
+        // must surface it under the registry's display name.
+        deps.completions.onCompleted(record(tango, LocalDate.of(2026, 11, 1), 41_000L))
 
         assertEquals(
             listOf(
                 HistoryDay(
                     "2026-11-01",
                     "November 1",
-                    listOf(HistoryDay.GameResult("queens", neutral, formatDuration(41_000L))),
+                    listOf(HistoryDay.GameResult("Tango", neutral, formatDuration(41_000L))),
                 ),
             ),
             deps.vm.uiState.value.history,

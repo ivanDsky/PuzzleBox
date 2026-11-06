@@ -2,7 +2,7 @@ package com.ivandsky.puzzlebox.app.device
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.GAME
-import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.HUB
+import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.LIBRARY
 import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.ZIP
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import org.junit.Assert.assertEquals
@@ -28,7 +28,7 @@ class PredictiveBackDeviceTest {
 
         predictiveBack(commit = true)
 
-        assertRoute(HUB)
+        assertRoute(LIBRARY)
         assertSelectedTab(PlayKey)
         openGame(ZIP)
         assertEquals("the board survives the committed gesture", left, zipPath())

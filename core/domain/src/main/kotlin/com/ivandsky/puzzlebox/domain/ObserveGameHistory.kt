@@ -33,12 +33,12 @@ data class GameHistoryDay(
 )
 
 /**
- * The merged, newest-first history across games: every record row (any game — the
- * completions store is game-agnostic) UNION the captured days of every game in the
- * [registry] (replayable through the daily cache; a solved day merges into its captured
+ * The merged, newest-first history across games: every listed game's record rows
+ * UNION the captured days of every game in [GameRegistry.all] (replayable through the daily cache; a solved day merges into its captured
  * row instead of duplicating it). Rows whose key no registered game can decode are
  * dropped upstream by the repository's preserve-or-drop read (A19), so every record here
- * is decodable.
+ * is decodable. An unlisted game's records (the debug 9x9, ADR-0015) are dropped here, so
+ * no history, Home, stats or Profile surface ever shows them.
  *
  * Ordering is stable: records arrive newest-first (firstCompletedAtMs DESC) and each
  * game's entries newest-first (games in registration order), so same-day rows across
@@ -52,6 +52,7 @@ class ObserveGameHistory(
 
     operator fun invoke(): Flow<List<GameHistoryDay>> {
         val games = registry.all.map { it.definition.id }
+        val listed = games.toSet()
         val captured: Flow<List<DailyEntry>> =
             if (games.isEmpty()) flowOf(emptyList())
             else combine(games.map { daily.observeHistory(it) }) { perGame -> perGame.flatMap { it } }
@@ -61,6 +62,7 @@ class ObserveGameHistory(
             // Every game's solved day — typed identity straight off the ref, no casting.
             for (record in records) {
                 val ref = record.puzzleRef
+                if (ref.gameId !in listed) continue
                 rows[ref.gameId to ref.date] =
                     GameHistoryDay(ref.gameId, ref.date, ref.puzzleNumber, record)
             }
