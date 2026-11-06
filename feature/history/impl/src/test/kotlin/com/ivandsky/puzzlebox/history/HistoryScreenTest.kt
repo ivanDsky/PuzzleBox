@@ -337,6 +337,33 @@ class HistoryScreenTest {
         openRow(ZIP)
     }
 
+    @Test
+    fun `an archived row carries the archive tag and its detail the streak note`() {
+        val past = day.minusDays(30)
+        setContent(
+            zips = listOf(HistoryTestSupport.entry(past, fetchedAtMs = fetchedAtMs(day)).copy(archived = true)),
+            records = listOf(HistoryTestSupport.record(past)),
+        )
+
+        awaitRow(ZIP, past)
+        awaitTag("history.archived.zip/$past")
+        openRow(ZIP, past)
+        awaitTag("history.detail.archived")
+    }
+
+    @Test
+    fun `a same-day row shows neither the archive tag nor the note`() {
+        setContent(
+            zips = listOf(HistoryTestSupport.entry(day, fetchedAtMs = fetchedAtMs(day))),
+            records = listOf(HistoryTestSupport.record(day)),
+        )
+
+        awaitRow(ZIP)
+        assertNoTag("history.archived.zip/$day")
+        openRow(ZIP)
+        assertNoTag("history.detail.archived")
+    }
+
     private companion object {
         const val LIST = "history.list"
     }
