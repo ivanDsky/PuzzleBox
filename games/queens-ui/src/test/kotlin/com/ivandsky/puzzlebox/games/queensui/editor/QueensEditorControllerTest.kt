@@ -24,7 +24,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Ticket 18: select cells, pick one ring colour → one Paint step, selection cleared. */
+/** Tickets 18–19: select cells (tap, drag, All of colour, Area), pick one ring colour → one Paint step. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w420dp-h900dp-420dpi")
@@ -131,6 +131,59 @@ class QueensEditorControllerTest {
         assertEquals(emptySet<Int>(), controller.selection.value)
     }
 
+    @Test
+    fun `selectAllOf grows the selection to exactly that region's cells without an edit`() {
+        val controller = controller()
+        controller.tap(20)
+
+        controller.selectAllOf(3)
+
+        assertEquals((3 * SIZE until 4 * SIZE).toSet(), controller.selection.value)
+        assertEquals(0, edits.size)
+    }
+
+    @Test
+    fun `selectArea selects the bounding rectangle from the first cell to the last`() {
+        val controller = controller()
+
+        controller.selectArea(0, 2 * SIZE + 2)
+
+        assertEquals(setOf(0, 1, 2, 6, 7, 8, 12, 13, 14), controller.selection.value)
+        controller.cancel()
+        controller.selectArea(2 * SIZE + 2, 0)
+        assertEquals(setOf(0, 1, 2, 6, 7, 8, 12, 13, 14), controller.selection.value)
+        assertEquals(0, edits.size)
+    }
+
+    @Test
+    fun `the context bar counts the selection and its chips grow or cancel it`() {
+        val controller = controller()
+        show(controller)
+        rule.onAllNodesWithTag(COUNT).assertCountEquals(0)
+        rule.onNodeWithTag(HINT).assertExists()
+
+        controller.tap(0)
+        controller.tap(2 * SIZE + 2)
+        rule.onNodeWithTag(COUNT).assert(count(2))
+
+        rule.onNodeWithTag(AREA).performClick()
+        assertEquals(setOf(0, 1, 2, 6, 7, 8, 12, 13, 14), controller.selection.value)
+        rule.onNodeWithTag(COUNT).assert(count(9))
+        rule.onAllNodesWithTag(RING).assertCountEquals(1)
+
+        rule.onNodeWithTag(ALL_OF).performClick()
+        assertEquals((0 until 3 * SIZE).toSet(), controller.selection.value)
+        rule.onNodeWithTag(COUNT).assert(count(3 * SIZE))
+
+        rule.onNodeWithTag(CANCEL).performClick()
+        assertEquals(emptySet<Int>(), controller.selection.value)
+        rule.onAllNodesWithTag(COUNT).assertCountEquals(0)
+        rule.onAllNodesWithTag(RING).assertCountEquals(0)
+        assertEquals(0, edits.size)
+    }
+
+    private fun count(k: Int) = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "$k")
+
     private fun show(controller: QueensEditorController) {
         rule.setContent {
             PuzzleBoxTheme { QueensEditorBoard(controller, Modifier.fillMaxWidth()) }
@@ -141,5 +194,10 @@ class QueensEditorControllerTest {
         const val SIZE = 6
         const val RING = "queens.editor.ring"
         const val UNPAINT = "queens.editor.ring.unpaint"
+        const val COUNT = "queens.editor.context.count"
+        const val HINT = "queens.editor.context.hint"
+        const val AREA = "queens.editor.chip.area"
+        const val ALL_OF = "queens.editor.chip.allOf"
+        const val CANCEL = "queens.editor.chip.cancel"
     }
 }

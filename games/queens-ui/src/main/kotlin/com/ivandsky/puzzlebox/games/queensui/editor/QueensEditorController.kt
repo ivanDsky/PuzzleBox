@@ -11,9 +11,9 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * The Queens editor screen's live draft and selection (spec S3, select then colour). A tap
- * toggles a cell in the [selection] ([QueensSelection]); a ring [pick] paints every selected
- * cell as one undoable step, sends the new draft out through [onEdit], and clears the
- * selection. The VM hands replacement drafts back through [adopt].
+ * toggles a cell in the [selection] ([QueensSelection]); [selectAllOf] and [selectArea] grow
+ * it; a ring [pick] paints every selected cell as one undoable step, sends the new draft out
+ * through [onEdit], and clears the selection. The VM hands replacement drafts back through [adopt].
  */
 class QueensEditorController(
     initial: EditorDraft<*>,
@@ -38,6 +38,16 @@ class QueensEditorController(
     /** Toggles [cell] in the selection. Not an edit. */
     fun tap(cell: Int) {
         selected.value = QueensSelection(selected.value).tap(cell).cells
+    }
+
+    /** Grows the selection by every cell painted [region] (`QueensDraft.UNPAINTED` too). Not an edit. */
+    fun selectAllOf(region: Int) {
+        selected.value = QueensSelection(selected.value).allOf(current.value.state.draft, region).cells
+    }
+
+    /** Grows the selection by the rectangle with corners [from] and [to]. Not an edit. */
+    fun selectArea(from: Int, to: Int) {
+        selected.value = QueensSelection(selected.value).area(current.value.state.draft.size, from, to).cells
     }
 
     /**
