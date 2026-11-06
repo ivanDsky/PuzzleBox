@@ -20,7 +20,6 @@ import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.Adopt
-import com.ivandsky.puzzlebox.gameui.BoardPreview
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
@@ -73,16 +72,6 @@ class FakePlayUi(override val gameId: GameId) : GamePlayUi {
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
         Text("${gameId.value} board ${(controller as FakeController).moves}", modifier.testTag("fake.board"))
-    }
-
-    /** A save's move count or today's fresh puzzle tag as a line, so a test can tell which board it was read from; null for another game's bytes. */
-    override fun hubLine(today: BoardPreview): String? = when (today) {
-        is BoardPreview.InProgress -> SessionBlob.decode(today.bytes)
-            ?.takeIf { it.game == gameId }
-            ?.session?.decodeToString()?.split('|')
-            ?.takeIf { it.size in 5..6 && it[0] == "fake" }
-            ?.let { "line moves ${it[1]}" }
-        is BoardPreview.Fresh -> today.puzzle.takeIf { it.gameId == gameId }?.let { "line fresh ${it.payload.last()}" }
     }
 
     @Composable

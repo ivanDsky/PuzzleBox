@@ -94,8 +94,8 @@ private fun StatTile(value: String, label: String, tag: String, modifier: Modifi
 
 /**
  * One row per game (A20, tag `profile.game.<gameId>`): its glyph, name and solved count,
- * then its best under the game's ranking (`profile.game.best.<gameId>`). A tap opens that
- * game's History tab (N3).
+ * then its best under the game's ranking (`profile.game.best.<gameId>`). A tap opens
+ * History's timeline (N3).
  */
 @Composable
 internal fun GameRows(games: List<ProfileUiState.GameRow>, onOpenHistory: (GameId) -> Unit, modifier: Modifier = Modifier) {

@@ -56,9 +56,8 @@ internal data class HomeUiState(
     val rolloverAt: Instant,
 ) {
     /**
-     * One game's Today tile (A9, A10): [status] is null until today's set first emits,
-     * [puzzleNumber] until today's history row lands, [best] until the game's first daily
-     * solve; [best] ranks by the game's own [rankOrder].
+     * One game's Today row (A9, A10): [status] is null until today's set first emits,
+     * [best] until the game's first daily solve; [best] ranks by the game's own [rankOrder].
      */
     data class TodayRow(
         val game: GameId,
@@ -66,7 +65,6 @@ internal data class HomeUiState(
         val status: TodayStatus?,
         val brand: GameBrand,
         val rankOrder: RankOrder,
-        val puzzleNumber: Int? = null,
         val best: BestScore? = null,
     )
 
@@ -139,12 +137,11 @@ class HomeViewModel(
             bests,
         ) { entries, days, stats, identity, best ->
             val day = puzzleDay()
-            val numbers = days.filter { it.day == day }.associate { it.gameId to it.puzzleNumber }
             val rows = entries?.map {
                 HomeUiState.TodayRow(it.game, it.displayName, it.status, brands.brandOf(it.game), rankOrderOf(it.game))
             } ?: seed
             HomeUiState(
-                today = rows.map { it.copy(puzzleNumber = numbers[it.game], best = best[it.game]) },
+                today = rows.map { it.copy(best = best[it.game]) },
                 identity = identity,
                 history = recentDays(days, before = day),
                 puzzleDay = day,

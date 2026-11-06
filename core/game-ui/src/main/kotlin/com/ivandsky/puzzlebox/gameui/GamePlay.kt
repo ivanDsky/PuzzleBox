@@ -39,13 +39,6 @@ interface GamePlayUi {
     fun Board(controller: GamePlayController, modifier: Modifier)
 
     /**
-     * One short line for the hub's Up-next card read from [today]'s board: a theme, a
-     * progress count. Null when the game has none or the board can't be read. Pure, no
-     * I/O: the hub calls it off the main thread.
-     */
-    fun hubLine(today: BoardPreview): String? = null
-
-    /**
      * The game's Clear over [controller] (A14): null when the game has none, which hides
      * the action bar's Clear. [Screen] hands the same seam to [PlayChrome].
      */

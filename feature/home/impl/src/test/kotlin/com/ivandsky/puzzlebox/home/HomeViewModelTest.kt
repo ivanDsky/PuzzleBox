@@ -199,7 +199,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `a hints-ranked game's row carries its fewest-hints best and today's number - A10`() = runTest {
+    fun `a hints-ranked game's row carries its fewest-hints best - A10`() = runTest {
         val deps = viewModel(hintsRanked = setOf(tango))
         deps.completions.setRecords(
             listOf(
@@ -215,7 +215,6 @@ class HomeViewModelTest {
         assertEquals(BestScore(timeMs = 90_000L, hints = 0), rows.getValue(tango).best)
         assertEquals(timeFirst, rows.getValue(zip).rankOrder)
         assertEquals(BestScore(timeMs = 36_000L, hints = 1), rows.getValue(zip).best)
-        assertEquals(916, rows.getValue(zip).puzzleNumber)
     }
 
     @Test

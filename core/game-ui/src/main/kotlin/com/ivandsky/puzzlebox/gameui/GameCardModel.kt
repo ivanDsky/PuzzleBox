@@ -7,10 +7,9 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
- * The plain inputs one hub card renders. [status] null means today's status is still
+ * The plain inputs one game card renders. [status] null means today's status is still
  * loading, so the card draws skeletons in its slots. [rankOrder] has no default: a card
- * that dropped its game's order would format the best time-first by accident. [line] is
- * the Up-next card's extra line (GamePlayUi.hubLine); tiles leave it null.
+ * that dropped its game's order would format the best time-first by accident.
  */
 @Immutable
 data class GameCardModel(
@@ -21,5 +20,4 @@ data class GameCardModel(
     val rankOrder: RankOrder,
     val puzzleNumber: Int? = null,
     val best: BestScore? = null,
-    val line: String? = null,
 )

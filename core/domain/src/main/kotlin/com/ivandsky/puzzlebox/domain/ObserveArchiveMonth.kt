@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.flowOf
 /**
  * Every day of [YearMonth] inside [game]'s archive range ([DailyRepository.archiveRange],
  * #1 .. today), ascending, from local data only (spec A27). Status follows
- * [ObservePastDay]'s precedence, Solved > InProgress > Stored > NeedsConnection, over one
+ * this precedence, Solved > InProgress > Stored > NeedsConnection, over one
  * combined flow of completion records, in-progress slots and the game's captured history;
  * the game's day ticks it, so today joins the month at the game's midnight. A game without
  * an archive has no days.
