@@ -171,7 +171,8 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 - `games/tango/` (`:games:tango`, pure JVM) — `tangoPlugin` + `tangoModule` (binds
   `TangoSeedBackedSource(LinkedInTangoDailySource)` as `DailySource`); `engine/` `TangoRules`
   (triple/count/marker rules, `TangoUniqueness`, `TangoHint`); `codec/` `TangoCodec`,
-  `TangoWireParser`, `TangoSessionCodec` v2; `feed/TangoGameExtractor`; `TangoScoreModel`.
+  `LotkaWireParser` (LinkedIn's `lotkaGamePuzzle`, stream + by-id shapes), `TangoSessionCodec` v2;
+  `feed/TangoGameExtractor`; `TangoScoreModel`.
 - `games/queens/` (`:games:queens`, pure JVM) — `queensPlugin` + `queensModule` (binds
   `LinkedInQueensDailySource` as `DailySource`); `engine/` rules (`QueensRules`,
   `QueensVerifier`, `NoTouchAdjacencyRule`) and `solve/` (`QueensSolver`/`QueensSearch`);
@@ -377,7 +378,7 @@ when any source, build script or allowlist changes).
 - `:feature:play:impl:testDebugUnitTest` — 67
 - `:feature:profile:impl:testDebugUnitTest` — 28
 - `:games:zip:test` — 155; `:games:zip-ui:testDebugUnitTest` — 70
-- `:games:tango:test` — 114; `:games:tango-ui:testDebugUnitTest` — 53
+- `:games:tango:test` — 121; `:games:tango-ui:testDebugUnitTest` — 53
 - `:games:queens:test` — 163; `:games:queens-ui:testDebugUnitTest` — 81
 - `:games:sudoku:test` — 126; `:games:sudoku-ui:testDebugUnitTest` — 96
 - `:games:strands:test` — 82; `:games:strands-ui:testDebugUnitTest` — 125 (executed `tests`

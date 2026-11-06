@@ -142,9 +142,9 @@ class LinkedInFeedTransportTest {
 
     @Test
     fun `the route is the request path - one transport serves every game`() = runBlocking {
-        server.enqueue(ok(dataBearing("tangoGamePuzzle")))
+        server.enqueue(ok(dataBearing("lotkaGamePuzzle")))
 
-        val result = transport.fetch(request(path = "games/tango/", objectName = "tangoGamePuzzle"))
+        val result = transport.fetch(request(path = "games/tango/", objectName = "lotkaGamePuzzle"))
 
         assertTrue(result is FetchResult.Ok)
         val recorded = server.takeRequest()

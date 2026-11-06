@@ -9,14 +9,14 @@ import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.FetchResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
+import com.ivandsky.puzzlebox.games.tango.codec.LotkaWireParser
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
-import com.ivandsky.puzzlebox.games.tango.codec.TangoWireParser
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
 /**
- * The LinkedInDaily adapter for Tango (ADR-0002): wire body -> [TangoWireParser] ->
+ * The LinkedInDaily adapter for Tango (ADR-0002): wire body -> [LotkaWireParser] ->
  * A15 gate -> canonical [TangoCodec] bytes in a [Puzzle] envelope, with the fetch-time
  * identity ([com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef]) core/data persists per
  * ADR-0004. The body comes through the generic [FeedTransport] ([REQUEST]: stream GET,
@@ -24,8 +24,8 @@ import java.time.LocalDate
  *
  * Error split per the FetchError contract: transport/parse failures are
  * [FetchError.Unavailable]; the throttle signature is [FetchError.Throttled] (the
- * transport decides from the wire, not the URL). A payload naming an unknown variant is
- * [FetchError.Unavailable] (parse family) — ADR-0005 never guesses the variant. A
+ * transport decides from the wire, not the URL). A payload outside the shipped grid
+ * sizes is [FetchError.Unavailable] (parse family) — ADR-0005 never guesses the variant. A
  * payload that parses but is not uniquely solvable is [FetchError.Untrusted]
  * (fix-round-1 I1, Zip oracle parity): trust is a source-boundary responsibility, so
  * the ambiguous daily is refused BEFORE the offline cache can overwrite a good
@@ -41,8 +41,8 @@ class LinkedInTangoDailySource(private val transport: FeedTransport) : DailySour
             is FetchResult.Err -> return FetchResult.Err(fetched.error)
         }
         val match = TangoGameExtractor.extract(body)
-            ?: return FetchResult.Err(FetchError.Unavailable("no tangoGamePuzzle in body"))
-        val daily = when (val parsed = TangoWireParser.parse(match.tangoGamePuzzleJson, date, match.editionText)) {
+            ?: return FetchResult.Err(FetchError.Unavailable("no ${TangoGameExtractor.KEY} in body"))
+        val daily = when (val parsed = LotkaWireParser.parse(match.lotkaGamePuzzleJson, date, match.editionText)) {
             is DecodeResult.Ok -> parsed.value
             is DecodeResult.Err -> return FetchResult.Err(FetchError.Unavailable("wire parse failed: ${parsed.error}"))
         }
@@ -64,7 +64,7 @@ class LinkedInTangoDailySource(private val transport: FeedTransport) : DailySour
         /** Tango's feed: the stream GET, then the page-shell scan (no GraphQL rung). */
         val REQUEST = FeedRequest(
             path = "games/tango/",
-            objectName = "tangoGamePuzzle",
+            objectName = TangoGameExtractor.KEY,
             accepts = { TangoGameExtractor.extract(it) != null },
             scanPageShell = true,
         )

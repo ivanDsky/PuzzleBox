@@ -3,7 +3,11 @@ package com.ivandsky.puzzlebox.games.tango.feed
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.FetchResult
-import com.ivandsky.puzzlebox.games.tango.codec.TangoWireParser
+import com.ivandsky.puzzlebox.games.tango.TangoCell
+import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
+import com.ivandsky.puzzlebox.games.tango.TangoMarker
+import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
+import com.ivandsky.puzzlebox.games.tango.codec.LotkaWireParser
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
@@ -20,14 +24,30 @@ class TangoSeedBackedSourceTest {
         TangoSeedBackedSource(LinkedInTangoDailySource { FetchResult.Err(error) })
 
     @Test
-    fun `seed payload parses to a uniquely solvable n6 puzzle`() {
-        val parsed = TangoWireParser.parse(TangoSeedBackedSource.SEED_PAYLOAD, day)
-        assertTrue(parsed is DecodeResult.Ok)
-        val daily = (parsed as DecodeResult.Ok).value
-        assertEquals("tango/n6", daily.puzzle.variant.value)
-        assertEquals(6, daily.puzzle.n)
-        assertEquals(12, daily.puzzle.givens.size)
-        assertTrue(TangoUniqueness.isUniquelySolvable(daily.puzzle))
+    fun `lotka-shaped seed payload parses to the same uniquely solvable n6 grid`() {
+        val parsed = LotkaWireParser.parse(TangoSeedBackedSource.SEED_PAYLOAD, day)
+        assertTrue("expected Ok, got $parsed", parsed is DecodeResult.Ok)
+        val puzzle = (parsed as DecodeResult.Ok).value.puzzle
+        assertEquals("tango/n6", puzzle.variant.value)
+        assertEquals(6, puzzle.n)
+        // The pre-lotka seed's grid, unchanged: its canonical bytes (and any row equal to it) stay the same.
+        val sun = TangoCell.SUN
+        val moon = TangoCell.MOON
+        assertEquals(
+            mapOf(
+                0 to sun, 3 to sun, 7 to moon, 10 to moon, 13 to sun, 15 to sun,
+                16 to sun, 18 to sun, 21 to moon, 27 to moon, 31 to sun, 35 to moon,
+            ),
+            puzzle.givens,
+        )
+        assertEquals(
+            listOf(
+                TangoMarker(0, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME),
+                TangoMarker(15, TangoEdgeSide.DOWN, TangoMarkerKind.OPPOSITE),
+            ),
+            puzzle.markers,
+        )
+        assertTrue(TangoUniqueness.isUniquelySolvable(puzzle))
     }
 
     @Test
