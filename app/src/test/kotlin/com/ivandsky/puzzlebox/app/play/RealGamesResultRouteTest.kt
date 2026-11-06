@@ -85,7 +85,7 @@ class RealGamesResultRouteTest {
                     factory { ObserveGameHistory(get(), get(), get()) }
                     factory { GetPuzzleDay(get()) }
                     factory { ComputeStreak(get()) }
-                    factory { ObserveGameStats(get(), get()) }
+                    factory { ObserveGameStats(get(), get(), get()) }
                     factory { GetNextRollover(get()) }
                     // Tutorial seen: this path is about the result; the lessons have their own tests.
                     single<UserPreferencesRepository> {

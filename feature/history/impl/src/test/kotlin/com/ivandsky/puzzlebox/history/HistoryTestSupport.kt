@@ -52,6 +52,7 @@ object HistoryTestSupport {
             key = key,
             observeGameHistory = observeGameHistory,
             observeGameStats = ObserveGameStats(
+                registry = registry,
                 observeGameHistory = observeGameHistory,
                 computeStreak = ComputeStreak(puzzleDay = puzzleDay),
             ),

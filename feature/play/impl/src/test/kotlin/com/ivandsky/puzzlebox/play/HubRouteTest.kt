@@ -119,7 +119,7 @@ class HubRouteTest {
                     single { SyncTodayPuzzles(get(), get(), get()) }
                     factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
                     factory { ObserveGameHistory(get(), get(), get()) }
-                    factory { ObserveGameStats(get(), ComputeStreak(GetPuzzleDay(get()))) }
+                    factory { ObserveGameStats(get(), get(), ComputeStreak(GetPuzzleDay(get()))) }
                 },
                 playModule,
             )

@@ -25,7 +25,7 @@ val domainModule = module {
     factory { GetPuzzleDay(registry = get()) }
     factory { GetNextRollover(registry = get()) }
     factory { ComputeStreak(puzzleDay = get()) }
-    factory { ObserveGameStats(observeGameHistory = get(), computeStreak = get()) }
+    factory { ObserveGameStats(registry = get(), observeGameHistory = get(), computeStreak = get()) }
     factory { LoadPastDay(daily = get(), registry = get()) }
     single { SyncTodayPuzzles(registry = get(), daily = get(), calendar = get()) }
     factory {
