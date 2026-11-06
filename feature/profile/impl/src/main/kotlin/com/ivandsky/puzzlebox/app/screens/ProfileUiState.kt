@@ -15,9 +15,13 @@ sealed interface ProfileUiState {
         val signInMessage: String? = null,
     ) : ProfileUiState
 
-    /** The player and today's board ([TodayLeaderboard.Board]: loading, loaded, or unavailable). */
+    /**
+     * The player and today's board ([TodayLeaderboard.Board]: loading, loaded, or
+     * unavailable). [gameName] is the featured game's display name — the board's game.
+     */
     data class SignedIn(
         val identity: Identity,
         val board: TodayLeaderboard.Board,
+        val gameName: String,
     ) : ProfileUiState
 }

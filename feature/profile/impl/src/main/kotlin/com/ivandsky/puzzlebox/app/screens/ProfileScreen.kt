@@ -110,6 +110,6 @@ private fun SignedInSection(
             AppTextButton(text = "Sign out", onClick = onSignOut)
         }
 
-        LeaderboardSection(state.board, myUid = identity.uid)
+        LeaderboardSection(state.board, gameName = state.gameName, myUid = identity.uid)
     }
 }

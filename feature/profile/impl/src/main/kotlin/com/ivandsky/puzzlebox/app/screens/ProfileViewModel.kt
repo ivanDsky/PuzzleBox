@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.app.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,28 +28,32 @@ private const val SIGN_IN_RETRY_MESSAGE = "Sign-in failed. Please try again."
 
 /**
  * Profile's state holder: today's identity-gated board ([ObserveTodayLeaderboard]) plus
- * the sign-in flow's own progress/outcome, shown while signed out. The activity context
- * the credential sheet needs (I2) is passed per call and never stored.
+ * the sign-in flow's own progress/outcome, shown while signed out. The board is the
+ * featured game's ([GetFeaturedGame]), so its display name rides along for the copy.
+ * The activity context the credential sheet needs (I2) is passed per call and never stored.
  */
 class ProfileViewModel(
     private val identityService: IdentityService,
     private val idTokenProvider: GoogleIdTokenProvider,
     observeTodayLeaderboard: ObserveTodayLeaderboard,
+    featuredGame: GetFeaturedGame,
 ) : ViewModel() {
 
     private val signIn = MutableStateFlow(ProfileUiState.SignedOut())
+
+    private val gameName: String = featuredGame().displayName
 
     val uiState: StateFlow<ProfileUiState> =
         combine(observeTodayLeaderboard(), signIn) { today, prompt ->
             when (today) {
                 TodayLeaderboard.SignedOut -> prompt
-                is TodayLeaderboard.SignedIn -> ProfileUiState.SignedIn(today.identity, today.board)
+                is TodayLeaderboard.SignedIn -> ProfileUiState.SignedIn(today.identity, today.board, gameName)
             }
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = identityService.current.value
-                ?.let { ProfileUiState.SignedIn(it, TodayLeaderboard.Board.Loading) }
+                ?.let { ProfileUiState.SignedIn(it, TodayLeaderboard.Board.Loading, gameName) }
                 ?: signIn.value,
         )
 

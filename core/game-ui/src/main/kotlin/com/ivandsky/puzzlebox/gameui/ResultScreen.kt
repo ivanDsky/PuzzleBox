@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
@@ -137,7 +138,7 @@ fun ResultScreen(
             }
             // The hero metric (senior-UX Lens 4): time first, at display weight.
             Text(
-                text = formatClock(timeMs),
+                text = formatDuration(timeMs),
                 style = if (compact) {
                     MaterialTheme.typography.displaySmall
                 } else {

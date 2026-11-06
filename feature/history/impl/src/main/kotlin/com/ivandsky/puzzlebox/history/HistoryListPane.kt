@@ -89,7 +89,6 @@ internal fun ListPane(
                 item(key = "streak") {
                     StreakTeaser(
                         streak = streak,
-                        captured = capturedCount,
                         cardColor = cardColor,
                         modifier = Modifier.padding(horizontal = Spacing.lg),
                     )
@@ -115,11 +114,10 @@ internal fun ListPane(
     }
 }
 
-/** Cached-data-only streak teaser (A8): consecutive captured days up to the newest. */
+/** Solved-day streak card (A8): consecutive solved puzzle days up to today or yesterday. */
 @Composable
 private fun StreakTeaser(
     streak: Int,
-    captured: Int,
     cardColor: Color,
     modifier: Modifier = Modifier,
 ) {
@@ -149,12 +147,12 @@ private fun StreakTeaser(
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(
-                    text = "Day streak",
+                    text = if (streak > 0) "Day streak" else "No streak yet",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = if (captured == 1) "1 day saved on this device" else "$captured days saved on this device",
+                    text = if (streak > 0) "days in a row" else "Solve a puzzle to start",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -4,7 +4,9 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
@@ -16,7 +18,10 @@ import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -65,6 +70,8 @@ class HomeViewModelTest {
             todaySet = ObserveTodaySet(registry, saved, completions, FakeGameCalendar(day)),
             identityService = identity,
             registry = registry,
+            // The test games roll over at UTC midnight: midday UTC is [day].
+            puzzleDay = GetPuzzleDay(registry, Clock.fixed(Instant.parse("2026-11-04T12:00:00Z"), ZoneOffset.UTC)),
         )
         if (collect) backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return Deps(vm, daily, completions, saved, identity)
@@ -90,6 +97,7 @@ class HomeViewModelTest {
                 ),
                 identity = ann,
                 history = emptyList(),
+                puzzleDay = day,
             ),
             deps.vm.uiState.value,
         )
@@ -182,7 +190,10 @@ class HomeViewModelTest {
         // teaser must follow, formatted like the rows the user knows.
         deps.daily.addEntry(DailyEntry(zip, LocalDate.of(2026, 10, 31), 592, "zip/n5", 0L))
 
-        assertEquals(listOf(HistoryDay("2026-10-31", "October 31", "Zip")), deps.vm.uiState.value.history)
+        assertEquals(
+            listOf(HistoryDay("2026-10-31", "October 31", listOf(HistoryDay.GameResult("Zip", time = null)))),
+            deps.vm.uiState.value.history,
+        )
     }
 
     @Test
@@ -194,7 +205,36 @@ class HomeViewModelTest {
         // so the registry fallback applies).
         deps.completions.onCompleted(record(GameId("queens"), LocalDate.of(2026, 11, 1), 41_000L))
 
-        assertEquals(listOf(HistoryDay("2026-11-01", "November 1", "queens")), deps.vm.uiState.value.history)
+        assertEquals(
+            listOf(
+                HistoryDay(
+                    "2026-11-01",
+                    "November 1",
+                    listOf(HistoryDay.GameResult("queens", formatDuration(41_000L))),
+                ),
+            ),
+            deps.vm.uiState.value.history,
+        )
+    }
+
+    @Test
+    fun `teaser keeps the newest three days before today, one row per day`() = runTest {
+        val deps = viewModel()
+        for (offset in 1L..5L) {
+            deps.daily.addEntry(DailyEntry(zip, day.minusDays(offset), 592, "zip/n5", 0L))
+        }
+        // The newest past day has two games; tango lands first but lists after zip.
+        deps.completions.onCompleted(record(tango, day.minusDays(1), timeMs = 61_000L))
+        // Today lives in the Today card, never in the teaser.
+        deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
+
+        val history = deps.vm.uiState.value.history
+        assertEquals(listOf("2026-11-03", "2026-11-02", "2026-11-01"), history.map { it.isoDay })
+        assertEquals(history.size, history.map { it.isoDay }.toSet().size)
+        assertEquals(
+            listOf(HistoryDay.GameResult("Zip", null), HistoryDay.GameResult("Tango", formatDuration(61_000L))),
+            history.first().games,
+        )
     }
 
     @Test

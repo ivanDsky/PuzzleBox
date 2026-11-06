@@ -142,7 +142,8 @@ private fun SidePanel(controller: QueensPlayController, status: PlayBoardStatus,
     val ready = status as? PlayBoardStatus.Ready
     PlayChrome(
         title = "Queens",
-        subtitle = ready?.let { controller.board?.session?.ref?.puzzleNumber }?.let { "Daily · #$it" } ?: "Daily",
+        subtitle = ready?.let { controller.board?.session?.ref }
+            ?.let { ref -> ref.puzzleNumber?.let { "Daily · #$it" } ?: "Practice" } ?: "Daily",
         clock = controller,
         hints = controller,
         undo = controller,
