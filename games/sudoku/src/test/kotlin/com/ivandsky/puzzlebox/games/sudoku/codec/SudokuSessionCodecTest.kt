@@ -29,7 +29,7 @@ class SudokuSessionCodecTest {
     private val date = LocalDate.of(2026, 11, 4)
     private val now = Instant.parse("2026-11-04T18:00:00.123Z")
     private val puzzle = KnownSolutions.peanut450
-    private val start = SudokuSession(ref = SudokuPuzzleRef(SudokuGames.MINI.id, date, 450), puzzle = puzzle)
+    private val start = SudokuSession(ref = SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(date, 450)), puzzle = puzzle)
 
     /** #450's first open cell and its open row peer. */
     private val a = 0
@@ -84,7 +84,7 @@ class SudokuSessionCodecTest {
             notesMode = true,
         )
         assertEquals(session, roundTrip(session))
-        val unnumbered = SudokuSession(ref = SudokuPuzzleRef(SudokuGames.MINI.id, date, null), puzzle = puzzle)
+        val unnumbered = SudokuSession(ref = SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(date, null)), puzzle = puzzle)
         assertEquals(unnumbered, roundTrip(unnumbered))
         val bare = SudokuSession(ref = null, puzzle = KnownSolutions.classicSample)
         assertEquals(bare, roundTrip(bare))

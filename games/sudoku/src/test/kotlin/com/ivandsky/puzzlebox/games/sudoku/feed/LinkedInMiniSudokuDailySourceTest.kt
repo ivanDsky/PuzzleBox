@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -68,7 +69,7 @@ class LinkedInMiniSudokuDailySourceTest {
             val puzzle = (SudokuCodec.decode(fetched.puzzle.payload) as DecodeResult.Ok).value
             assertEquals(name, 12, puzzle.givens.count { it != 0 })
             assertEquals(KnownSolutions.peanut450, puzzle)
-            assertEquals(SudokuPuzzleRef(SudokuGames.MINI.id, date, 450), fetched.ref)
+            assertEquals(SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(date, 450)), fetched.ref)
         }
     }
 
@@ -119,7 +120,7 @@ class LinkedInMiniSudokuDailySourceTest {
         val today = (source(FetchResult.Ok(live)).fetchDaily(date) as FetchResult.Ok).value
         val past = (source(FetchResult.Ok(byId(450))).fetchPast(date) as FetchResult.Ok).value
 
-        assertEquals(SudokuPuzzleRef(SudokuGames.MINI.id, date, 450), past.ref)
+        assertEquals(SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(date, 450)), past.ref)
         assertEquals(today.puzzle, past.puzzle)
         assertEquals(KnownSolutions.peanut450, (SudokuCodec.decode(past.puzzle.payload) as DecodeResult.Ok).value)
     }
@@ -130,7 +131,7 @@ class LinkedInMiniSudokuDailySourceTest {
 
         val past = (source(FetchResult.Ok(byId(1))).fetchPast(day1) as FetchResult.Ok).value
 
-        assertEquals(SudokuPuzzleRef(SudokuGames.MINI.id, day1, 1), past.ref)
+        assertEquals(SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(day1, 1)), past.ref)
         assertEquals(VariantId("sudoku/6x6"), past.puzzle.variant)
     }
 

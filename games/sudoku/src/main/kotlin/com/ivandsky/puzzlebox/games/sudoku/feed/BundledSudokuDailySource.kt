@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSamples
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 
 /** The 9x9 game has no live feed (ADR-0015): every date serves [SudokuSamples.classic]. */
@@ -24,6 +25,6 @@ class BundledSudokuDailySource : DailySource {
             formatVersion = SudokuCodec.VERSION,
             payload = SudokuCodec.encode(puzzle),
         )
-        return FetchResult.Ok(DailyFetch(envelope, SudokuPuzzleRef(gameId, date, null)))
+        return FetchResult.Ok(DailyFetch(envelope, SudokuPuzzleRef(gameId, PuzzleKey.Daily(date, null))))
     }
 }

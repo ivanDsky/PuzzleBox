@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSamples
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 
 private val PREVIEW_SOLUTION = "463251521436142563356142234615615324".map { it.digitToInt() }
@@ -31,7 +32,7 @@ private fun rememberPreviewController(definition: SudokuDefinition, puzzle: Sudo
     return remember {
         SudokuPlayController(definition, PlayEnvironment(scope, {}, {})).apply {
             val envelope = Puzzle(definition.id, puzzle.variant.id, SudokuCodec.VERSION, SudokuCodec.encode(puzzle))
-            adoptToday(envelope, SudokuPuzzleRef(definition.id, LocalDate.of(2026, 11, 4), edition))
+            adoptToday(envelope, SudokuPuzzleRef(definition.id, PuzzleKey.Daily(LocalDate.of(2026, 11, 4), edition)))
         }
     }
 }

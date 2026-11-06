@@ -27,6 +27,7 @@ import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,7 +52,7 @@ class SudokuMotionTest {
     private val givens = grid("..3.5. .2.4.6 1..... .....2 2.4.1. .1.3..")
     private val solution = grid("463251 521436 142563 356142 234615 615324")
     private val peanut450 = SudokuPuzzle(SudokuGames.MINI.variant, givens, solution)
-    private val ref = SudokuPuzzleRef(SudokuGames.MINI.id, LocalDate.of(2026, 11, 4), 450)
+    private val ref = SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(LocalDate.of(2026, 11, 4), 450))
     private val openCells = givens.indices.filter { givens[it] == 0 }
     private val haptics = RecordingHaptics()
 

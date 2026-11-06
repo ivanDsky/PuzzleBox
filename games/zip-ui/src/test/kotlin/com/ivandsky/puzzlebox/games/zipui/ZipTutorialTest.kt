@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
 import com.ivandsky.puzzlebox.games.zip.engine.ZipSolver
 import com.ivandsky.puzzlebox.games.zip.engine.ZipValidation
 import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -61,7 +62,7 @@ class ZipTutorialTest {
             assertEquals(ZipDefinition.id, step.puzzle.gameId)
             assertTrue(variant in ZipVariants.tutorial.keys)
             assertNull(ZipVariants.dailyById(variant)) // never a daily size
-            assertEquals(ZipPuzzleRef(LocalDate.of(2026, 1, 1), puzzleNumber = null), step.ref)
+            assertEquals(ZipPuzzleRef(PuzzleKey.Daily(LocalDate.of(2026, 1, 1), puzzleNumber = null)), step.ref)
         }
         assertEquals(listOf(2, 4, 2), steps.map { zip(it).board.waypoints.size })
     }

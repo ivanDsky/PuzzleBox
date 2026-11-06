@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.games.strands.StrandsPuzzleRef
 import com.ivandsky.puzzlebox.games.strands.StrandsWord
 import com.ivandsky.puzzlebox.games.strands.codec.StrandsCodec
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 
 /**
@@ -44,7 +45,9 @@ class NytStrandsDailySource(private val transport: NytTransport) : DailySource {
         }
         StrandsTrustGate.check(wire, date)?.let { return FetchResult.Err(FetchError.Untrusted(it)) }
         val puzzle = wire.toPuzzle()
-        return FetchResult.Ok(DailyFetch(StrandsCodec.envelope(puzzle), StrandsPuzzleRef(date, StrandsNumber.of(date))))
+        return FetchResult.Ok(
+            DailyFetch(StrandsCodec.envelope(puzzle), StrandsPuzzleRef(PuzzleKey.Daily(date, StrandsNumber.of(date)))),
+        )
     }
 
     /** Only called on a wire the gate trusted, so every field is present and every coord a pair. */

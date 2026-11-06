@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import java.time.LocalDate
 
@@ -65,7 +66,7 @@ class FakePlayUi(override val gameId: GameId) : GamePlayUi {
     /** Gives the game [count] lessons; each is won with one [FakeController.win]. */
     fun teach(count: Int) {
         tutorial = (1..count).map { lesson ->
-            TutorialStep("Lesson $lesson", TestGames.puzzle(gameId, lesson.toByte()), TestGames.Ref(gameId, LESSON_DAY))
+            TutorialStep("Lesson $lesson", TestGames.puzzle(gameId, lesson.toByte()), TestGames.Ref(gameId, PuzzleKey.Daily(LESSON_DAY, null)))
         }
     }
 
@@ -173,7 +174,7 @@ class FakeController(
         if (parts.size !in 5..6 || parts[0] != "fake") return null
         moves = parts[1].toInt()
         isComplete = parts[2].toBoolean()
-        ref = TestGames.Ref(game, LocalDate.parse(parts[3]), parts[4].toIntOrNull())
+        ref = TestGames.Ref(game, PuzzleKey.Daily(LocalDate.parse(parts[3]), parts[4].toIntOrNull()))
         bankedMs = parts.getOrNull(5)?.toLong() ?: 0L
         windowMs = null
         return Restored(ref)
@@ -213,8 +214,10 @@ class FakeController(
 
         fun record(ref: PuzzleRef) = CompletionRecord(ref, TIME_MS, 0, RecordStats(1, "{}"))
 
-        fun encode(moves: Int, complete: Boolean, ref: PuzzleRef?, elapsedMs: Long = 0L): ByteArray =
-            "fake|$moves|$complete|${ref?.date}|${ref?.puzzleNumber}|$elapsedMs".encodeToByteArray()
+        fun encode(moves: Int, complete: Boolean, ref: PuzzleRef?, elapsedMs: Long = 0L): ByteArray {
+            val daily = ref?.key as? PuzzleKey.Daily
+            return "fake|$moves|$complete|${daily?.date}|${daily?.puzzleNumber}|$elapsedMs".encodeToByteArray()
+        }
 
         /** A [SessionBlob] envelope of a fake session, as the route's saveable holds it. */
         fun envelope(
@@ -224,7 +227,7 @@ class FakeController(
             day: LocalDate,
             number: Int? = 7,
             elapsedMs: Long = 0L,
-        ): SessionBlob.Decoded = SessionBlob.Decoded(game, encode(moves, complete, TestGames.Ref(game, day, number), elapsedMs))
+        ): SessionBlob.Decoded = SessionBlob.Decoded(game, encode(moves, complete, TestGames.Ref(game, PuzzleKey.Daily(day, number)), elapsedMs))
     }
 }
 

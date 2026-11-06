@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.games.strands.StrandsFixtures
 import com.ivandsky.puzzlebox.games.strands.StrandsNumber
 import com.ivandsky.puzzlebox.games.strands.StrandsPuzzleRef
 import com.ivandsky.puzzlebox.games.strands.codec.StrandsCodec
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -28,7 +29,7 @@ class NytStrandsDailySourceTest {
         val daily = (source.fetchDaily(day) as FetchResult.Ok).value
 
         assertEquals(listOf("svc/strands/v2/2026-11-05.json"), paths)
-        assertEquals(StrandsPuzzleRef(day, 977), daily.ref)
+        assertEquals(StrandsPuzzleRef(PuzzleKey.Daily(day, 977)), daily.ref)
         assertEquals(StrandsDefinition.id, daily.puzzle.gameId)
         assertEquals(StrandsDefinition.VARIANT, daily.puzzle.variant)
         val puzzle = StrandsCodec.decode(daily.puzzle.payload).getOrNull()!!

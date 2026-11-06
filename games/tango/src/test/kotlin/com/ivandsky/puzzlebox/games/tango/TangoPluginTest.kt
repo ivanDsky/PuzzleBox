@@ -66,8 +66,8 @@ class TangoPluginTest {
     @Test
     fun `refOf rebuilds the typed ref and the module registers the seed-backed daily source`() {
         val day = LocalDate.of(2026, 11, 2)
-        assertEquals(TangoPuzzleRef(day, 301), tangoPlugin.refOf(PuzzleKey.Daily(day, 301)))
-        assertEquals(TangoPuzzleRef(day, null), tangoPlugin.refOf(PuzzleKey.Daily(day, null)))
+        assertEquals(TangoPuzzleRef(PuzzleKey.Daily(day, 301)), tangoPlugin.refOf(PuzzleKey.Daily(day, 301)))
+        assertEquals(TangoPuzzleRef(PuzzleKey.Daily(day, null)), tangoPlugin.refOf(PuzzleKey.Daily(day, null)))
         assertEquals(TangoPuzzleRef(PuzzleKey.Custom("K7Q2MX")), tangoPlugin.refOf(PuzzleKey.Custom("K7Q2MX")))
 
         val transport = com.ivandsky.puzzlebox.game.FeedTransport {

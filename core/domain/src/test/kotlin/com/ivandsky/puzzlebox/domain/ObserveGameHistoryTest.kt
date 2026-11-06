@@ -33,7 +33,7 @@ class ObserveGameHistoryTest {
     private val games = listOf(alpha, beta)
 
     private fun record(game: GameId, day: LocalDate, puzzleNumber: Int? = 916) = CompletionRecord(
-        puzzleRef = Ref(game, day, puzzleNumber),
+        puzzleRef = Ref(game, PuzzleKey.Daily(day, puzzleNumber)),
         time = 41_000L,
         hints = 1,
         stats = RecordStats(schemaVersion = 1, blob = "{}"),

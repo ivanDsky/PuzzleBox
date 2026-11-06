@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.game.VariantId
-import java.time.LocalDate
 
 /** Row-major board cell, `0 until n*n` (research 01: idx = row*n + col). */
 @JvmInline
@@ -100,5 +99,4 @@ data class ZipPuzzle(
  */
 data class ZipPuzzleRef(override val key: PuzzleKey) : PuzzleRef {
     override val gameId: GameId get() = ZipDefinition.id
-    constructor(date: LocalDate, puzzleNumber: Int?) : this(PuzzleKey.Daily(date, puzzleNumber)) // deleted in P12
 }

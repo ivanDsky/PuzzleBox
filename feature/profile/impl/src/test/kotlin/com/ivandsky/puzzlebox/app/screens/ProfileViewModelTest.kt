@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -230,7 +231,7 @@ class ProfileViewModelTest {
 
     private fun record(game: GameId, on: LocalDate, timeMs: Long, hints: Int, puzzleNumber: Int? = 592) =
         CompletionRecord(
-            puzzleRef = TestGames.Ref(game, on, puzzleNumber),
+            puzzleRef = TestGames.Ref(game, PuzzleKey.Daily(on, puzzleNumber)),
             time = timeMs,
             hints = hints,
             stats = RecordStats(schemaVersion = 1, blob = "{}"),

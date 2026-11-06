@@ -48,7 +48,8 @@ class ObserveArchiveMonth(
             val first = maxOf(month.atDay(1), range.start)
             val last = minOf(month.atEndOfMonth(), range.endInclusive)
             if (first > last) return@combine emptyList()
-            val solved = records.filter { it.puzzleRef.gameId == game && it.puzzleRef.key is PuzzleKey.Daily }.groupBy { it.puzzleRef.date }
+            // Custom refs group under null, which no calendar day looks up.
+            val solved = records.filter { it.puzzleRef.gameId == game }.groupBy { (it.puzzleRef.key as? PuzzleKey.Daily)?.date }
             val captured = entries.associateBy { it.day }
             (0..ChronoUnit.DAYS.between(first, last)).map { offset ->
                 val day = first.plusDays(offset)

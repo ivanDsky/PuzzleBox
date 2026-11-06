@@ -15,13 +15,13 @@ import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 
 private data class LessonRef(
     val lesson: Int,
     override val gameId: GameId = GameId("lesson"),
-    override val date: LocalDate = LocalDate.of(2026, 11, 4),
-    override val puzzleNumber: Int? = null,
+    override val key: PuzzleKey = PuzzleKey.Daily(LocalDate.of(2026, 11, 4), null),
 ) : PuzzleRef
 
 /**

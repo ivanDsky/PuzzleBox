@@ -41,7 +41,7 @@ class ZipSessionCodecTest {
         completedAt = completedAt,
     )
 
-    private fun ref() = ZipPuzzleRef(LocalDate.of(2026, 10, 30), 592)
+    private fun ref() = ZipPuzzleRef(PuzzleKey.Daily(LocalDate.of(2026, 10, 30), 592))
 
     private fun customRef() = ZipPuzzleRef(PuzzleKey.Custom("7K3M9Q"))
 
@@ -133,7 +133,7 @@ class ZipSessionCodecTest {
 
     @Test
     fun `C1 - daily key without a number round trips`() {
-        val s = session(ref = ZipPuzzleRef(LocalDate.of(2026, 10, 30), null)).copy(runningSince = null)
+        val s = session(ref = ZipPuzzleRef(PuzzleKey.Daily(LocalDate.of(2026, 10, 30), null))).copy(runningSince = null)
         val restored = (ZipSessionCodec.deserialize(ZipSessionCodec.serialize(s)) as DecodeResult.Ok).value
         assertEquals(PuzzleKey.Daily(LocalDate.of(2026, 10, 30), null), restored.ref!!.key)
     }

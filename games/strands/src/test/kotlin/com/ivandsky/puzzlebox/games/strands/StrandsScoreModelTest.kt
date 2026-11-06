@@ -9,7 +9,7 @@ import org.junit.Test
 
 class StrandsScoreModelTest {
 
-    private val ref = StrandsPuzzleRef(LocalDate.of(2026, 11, 5), 977)
+    private val ref = StrandsPuzzleRef(PuzzleKey.Daily(LocalDate.of(2026, 11, 5), 977))
     private val complete = StrandsState(tinyPuzzle, found = listOf("CAT", "ATS"), nonTheme = setOf("TAT"), hintsUsed = 2)
 
     @Test
@@ -24,7 +24,7 @@ class StrandsScoreModelTest {
     @Test
     fun `incomplete or unnumbered play emits nothing`() {
         assertNull(StrandsScoreModel.completion(StrandsSession(ref, complete.copy(found = listOf("CAT")))))
-        assertNull(StrandsScoreModel.completion(StrandsSession(StrandsPuzzleRef(ref.date, null), complete)))
+        assertNull(StrandsScoreModel.completion(StrandsSession(StrandsPuzzleRef(PuzzleKey.Daily((ref.key as PuzzleKey.Daily).date, null)), complete)))
         assertNull(StrandsScoreModel.completion(StrandsSession(null, complete)))
     }
 

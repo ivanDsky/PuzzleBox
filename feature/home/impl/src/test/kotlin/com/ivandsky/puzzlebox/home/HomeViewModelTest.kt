@@ -30,6 +30,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.WeekDay
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeAppReleaseRepository
@@ -138,7 +139,7 @@ class HomeViewModelTest {
     )
 
     private fun record(game: GameId, on: LocalDate, timeMs: Long) = CompletionRecord(
-        puzzleRef = TestGames.Ref(game, on, 916),
+        puzzleRef = TestGames.Ref(game, PuzzleKey.Daily(on, 916)),
         time = timeMs,
         hints = 0,
         stats = RecordStats(schemaVersion = 1, blob = "{}"),
@@ -215,9 +216,9 @@ class HomeViewModelTest {
         val deps = viewModel(hintsRanked = setOf(tango))
         deps.completions.setRecords(
             listOf(
-                CompletionRecord(TestGames.Ref(tango, day.minusDays(1), 6), 10_000L, 2, RecordStats(1, "{}"), isRecord = true),
-                CompletionRecord(TestGames.Ref(tango, day.minusDays(2), 5), 90_000L, 0, RecordStats(1, "{}"), isRecord = true),
-                CompletionRecord(TestGames.Ref(zip, day, 916), 36_000L, 1, RecordStats(1, "{}"), isRecord = true),
+                CompletionRecord(TestGames.Ref(tango, PuzzleKey.Daily(day.minusDays(1), 6)), 10_000L, 2, RecordStats(1, "{}"), isRecord = true),
+                CompletionRecord(TestGames.Ref(tango, PuzzleKey.Daily(day.minusDays(2), 5)), 90_000L, 0, RecordStats(1, "{}"), isRecord = true),
+                CompletionRecord(TestGames.Ref(zip, PuzzleKey.Daily(day, 916)), 36_000L, 1, RecordStats(1, "{}"), isRecord = true),
             ),
         )
 

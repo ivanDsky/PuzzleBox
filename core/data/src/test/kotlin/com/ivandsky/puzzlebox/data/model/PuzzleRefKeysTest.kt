@@ -24,25 +24,25 @@ class PuzzleRefKeysTest {
 
     @Test
     fun `numbered ref encodes and decodes symmetrically`() {
-        val ref = Ref(alpha, day, 592)
+        val ref = Ref(alpha, PuzzleKey.Daily(day, 592))
         assertEquals("alpha/2026-10-31/592", PuzzleRefKeys.encode(ref))
         assertEquals(ref, PuzzleRefKeys.decode("alpha/2026-10-31/592", registry))
     }
 
     @Test
     fun `unnumbered ref encodes and decodes symmetrically`() {
-        val ref = Ref(alpha, day, puzzleNumber = null)
+        val ref = Ref(alpha, PuzzleKey.Daily(day, puzzleNumber = null))
         assertEquals("alpha/2026-10-31", PuzzleRefKeys.encode(ref))
         assertEquals(ref, PuzzleRefKeys.decode("alpha/2026-10-31", registry))
     }
 
     @Test
     fun `each registered game decodes under its own game id`() {
-        val numbered = Ref(beta, day, 42)
+        val numbered = Ref(beta, PuzzleKey.Daily(day, 42))
         assertEquals("beta/2026-10-31/42", PuzzleRefKeys.encode(numbered))
         assertEquals(numbered, PuzzleRefKeys.decode("beta/2026-10-31/42", registry))
 
-        val unnumbered = Ref(beta, day, puzzleNumber = null)
+        val unnumbered = Ref(beta, PuzzleKey.Daily(day, puzzleNumber = null))
         assertEquals("beta/2026-10-31", PuzzleRefKeys.encode(unnumbered))
         assertEquals(unnumbered, PuzzleRefKeys.decode("beta/2026-10-31", registry))
     }

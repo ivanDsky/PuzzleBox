@@ -39,7 +39,7 @@ class StrandsPluginTest {
         val blob = SessionBlob.decode(strandsPlugin.replaySession(envelope, key).getOrNull()!!)!!
         assertEquals(StrandsDefinition.id, blob.game)
         assertEquals(
-            StrandsSession(ref = StrandsPuzzleRef(day, 977), state = StrandsState(tinyPuzzle)),
+            StrandsSession(ref = StrandsPuzzleRef(PuzzleKey.Daily(day, 977)), state = StrandsState(tinyPuzzle)),
             StrandsSessionCodec.deserialize(blob.session).getOrNull(),
         )
     }

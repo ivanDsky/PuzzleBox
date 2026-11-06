@@ -61,12 +61,13 @@ class ObserveGameHistory(
         return combine(captured, completions.observeRecords()) { entries, records ->
             val rows = LinkedHashMap<Pair<GameId, LocalDate>, GameHistoryDay>()
 
-            // Every game's solved day — typed identity straight off the ref, no casting.
+            // Every game's solved daily — typed identity straight off the ref's key; custom puzzles have no day.
             for (record in records) {
                 val ref = record.puzzleRef
-                if (ref.gameId !in listed || ref.key !is PuzzleKey.Daily) continue
-                rows[ref.gameId to ref.date] =
-                    GameHistoryDay(ref.gameId, ref.date, ref.puzzleNumber, record)
+                val key = ref.key
+                if (ref.gameId !in listed || key !is PuzzleKey.Daily) continue
+                rows[ref.gameId to key.date] =
+                    GameHistoryDay(ref.gameId, key.date, key.puzzleNumber, record)
             }
 
             // Captured days keep their richer identity (edition number, replayable cache);

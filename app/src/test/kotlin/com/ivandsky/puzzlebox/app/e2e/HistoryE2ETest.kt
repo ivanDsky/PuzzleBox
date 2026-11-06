@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -101,7 +102,7 @@ class HistoryE2ETest {
         assertState(stacks(tab = PlayKey, home = replaying.stacks.first(), play = listOf(PlayKey, GameKey(ZIP))))
         assertRoute(GAME)
         val today = awaitZip(E2E_TODAY)
-        assertEquals("today's board is a fresh session of today", E2E_TODAY, today.ref?.date)
+        assertEquals("today's board is a fresh session of today", E2E_TODAY, (today.ref?.key as? PuzzleKey.Daily)?.date)
         assertEquals("today's board starts empty", emptyList<Cell>(), today.path)
         assertEquals("the replay keeps its own trace", MID_GAME, rule.runOnIdle { zip(REPLAY_DAY).session?.path })
     }

@@ -99,14 +99,6 @@ class GameContractsTest {
     }
 
     @Test
-    fun `a ref overriding only date and puzzleNumber reports a daily key`() {
-        val ref: PuzzleRef = TestGame.Ref("legacy", date = TestGame.date, puzzleNumber = 7)
-
-        assertEquals(PuzzleKey.Daily(TestGame.date, 7), ref.key)
-        assertEquals(PuzzleKey.Daily(TestGame.date, null), TestGame.Ref("unnumbered").key)
-    }
-
-    @Test
     fun `registry refuses a plugin that claims the reserved custom game id`() {
         val reserved = GameId(PuzzleKey.Custom.NAMESPACE)
         val base = TestGame.plugin()

@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.codec.ZipWireParser
 import com.ivandsky.puzzlebox.games.zip.engine.ZipSolver
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
@@ -60,8 +61,8 @@ class LinkedInZipDailySourceTest {
         assertEquals("zip", daily.puzzle.gameId.value)
         assertEquals("zip/n6", daily.puzzle.variant.value)
         assertEquals(ZipCodec.VERSION, daily.puzzle.formatVersion)
-        assertEquals(592, daily.ref.puzzleNumber)
-        assertEquals(date, daily.ref.date)
+        assertEquals(592, (daily.ref.key as PuzzleKey.Daily).puzzleNumber)
+        assertEquals(date, (daily.ref.key as PuzzleKey.Daily).date)
         assertEquals(ZipDefinition.id, daily.ref.gameId)
         // Envelope bytes decode back to the same typed puzzle the parser produced.
         val reparsed = ZipCodec.decode(daily.puzzle.payload)
@@ -176,8 +177,8 @@ class LinkedInZipDailySourceTest {
         val result = source(fixture("02-byid-gt6-592.json")).fetchPast(date)
 
         val daily = (result as FetchResult.Ok).value
-        assertEquals(592, daily.ref.puzzleNumber)
-        assertEquals(date, daily.ref.date)
+        assertEquals(592, (daily.ref.key as PuzzleKey.Daily).puzzleNumber)
+        assertEquals(date, (daily.ref.key as PuzzleKey.Daily).date)
         val live = (ZipWireParser.parse(fixture("zip-daily-592.json"), date, "592") as DecodeResult.Ok).value
         assertArrayEquals(ZipCodec.encode(live.puzzle), daily.puzzle.payload)
     }
@@ -189,8 +190,8 @@ class LinkedInZipDailySourceTest {
         val result = source(fixture("02-byid-gt6-1.json")).fetchPast(day1)
 
         val daily = (result as FetchResult.Ok).value
-        assertEquals(1, daily.ref.puzzleNumber)
-        assertEquals(day1, daily.ref.date)
+        assertEquals(1, (daily.ref.key as PuzzleKey.Daily).puzzleNumber)
+        assertEquals(day1, (daily.ref.key as PuzzleKey.Daily).date)
         assertEquals("zip/n6", daily.puzzle.variant.value)
     }
 

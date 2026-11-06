@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.app.play
 
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.VariantId
@@ -147,7 +148,7 @@ object TangoPlayFixture {
         payload = TangoCodec.encode(puzzle),
     )
 
-    fun ref(day: LocalDate, puzzleNumber: Int? = 301) = TangoPuzzleRef(day, puzzleNumber)
+    fun ref(day: LocalDate, puzzleNumber: Int? = 301) = TangoPuzzleRef(PuzzleKey.Daily(day, puzzleNumber))
 
     /** [day]'s captured Tango entry. */
     fun entry(day: LocalDate, puzzleNumber: Int? = 301, fetchedAtMs: Long = 0L) =

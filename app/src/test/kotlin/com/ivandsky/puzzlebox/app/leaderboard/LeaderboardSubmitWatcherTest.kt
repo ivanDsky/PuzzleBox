@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
@@ -40,7 +41,7 @@ class LeaderboardSubmitWatcherTest {
     private val day = LocalDate.of(2026, 10, 31)
 
     private fun record(
-        ref: PuzzleRef = ZipPuzzleRef(day, 592),
+        ref: PuzzleRef = ZipPuzzleRef(PuzzleKey.Daily(day, 592)),
         timeMs: Long = 95_000,
         hints: Int = 2,
         isRecord: Boolean = true,
@@ -101,7 +102,7 @@ class LeaderboardSubmitWatcherTest {
         scheduler.advanceUntilIdle()
 
         // Room re-emits the whole records list on any write.
-        records.setRecords(listOf(record(), record(ref = ZipPuzzleRef(day, 593))))
+        records.setRecords(listOf(record(), record(ref = ZipPuzzleRef(PuzzleKey.Daily(day, 593)))))
         scheduler.advanceUntilIdle()
 
         assertEquals(2, leaderboard.submitted.size)
@@ -114,7 +115,7 @@ class LeaderboardSubmitWatcherTest {
     @Test
     fun `replays and non-daily records never submit (A5)`() = runTest {
         val records = FakeCompletionRepository(
-            listOf(record(isRecord = false), record(ref = ZipPuzzleRef(day, puzzleNumber = null))),
+            listOf(record(isRecord = false), record(ref = ZipPuzzleRef(PuzzleKey.Daily(day, puzzleNumber = null)))),
         )
         val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
         val leaderboard = FakeLeaderboardRepository()
@@ -183,7 +184,7 @@ class LeaderboardSubmitWatcherTest {
         // A records change re-emits the list (Room semantics) and must retry the
         // failed key — pre-fix it stayed marked. The identical single-record list
         // would conflate away on the StateFlow, so the write adds another day.
-        records.setRecords(listOf(record(), record(ref = ZipPuzzleRef(day, 593))))
+        records.setRecords(listOf(record(), record(ref = ZipPuzzleRef(PuzzleKey.Daily(day, 593)))))
         scheduler.advanceUntilIdle()
 
         assertEquals(3, attempts) // 592 retried, 593 first attempt

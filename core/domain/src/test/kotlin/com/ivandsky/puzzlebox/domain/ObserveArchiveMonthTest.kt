@@ -50,7 +50,7 @@ class ObserveArchiveMonthTest {
 
     private fun record(time: Long, game: GameId = alpha, on: LocalDate = day) =
         CompletionRecord(
-            puzzleRef = Ref(game, on),
+            puzzleRef = Ref(game, PuzzleKey.Daily(on, null)),
             time = time,
             hints = 0,
             stats = RecordStats(schemaVersion = 1, blob = "{}"),

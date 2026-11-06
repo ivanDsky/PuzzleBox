@@ -28,7 +28,7 @@ class QueensReplaySessionTest {
         val restored = QueensSessionCodec.deserialize(blob!!.session)
         assertTrue("codec must accept the blob", restored is DecodeResult.Ok)
         val session = (restored as DecodeResult.Ok).value
-        assertEquals(QueensPuzzleRef(day, 916), session.ref)
+        assertEquals(QueensPuzzleRef(PuzzleKey.Daily(day, 916)), session.ref)
         assertEquals(original, session.puzzle)
         assertTrue(session.queens.isEmpty())
     }

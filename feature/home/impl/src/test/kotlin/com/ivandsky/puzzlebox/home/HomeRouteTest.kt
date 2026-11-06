@@ -35,6 +35,7 @@ import com.ivandsky.puzzlebox.home.di.homeModule
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.navigation.navigationState
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -234,7 +235,7 @@ class HomeRouteTest {
         // must still surface it.
         completions.onCompleted(
             CompletionRecord(
-                puzzleRef = TestGames.Ref(GameId("zip"), LocalDate.of(2026, 11, 1), 916),
+                puzzleRef = TestGames.Ref(GameId("zip"), PuzzleKey.Daily(LocalDate.of(2026, 11, 1), 916)),
                 time = 41_000L,
                 hints = 1,
                 stats = RecordStats(schemaVersion = 1, blob = "{}"),
@@ -261,7 +262,7 @@ class HomeRouteTest {
         // The graph's calendar pins Zip's today: this record is on it, and Zip is the whole set.
         completions.onCompleted(
             CompletionRecord(
-                puzzleRef = TestGames.Ref(GameId("zip"), today, 592),
+                puzzleRef = TestGames.Ref(GameId("zip"), PuzzleKey.Daily(today, 592)),
                 time = 36_000L,
                 hints = 0,
                 stats = RecordStats(schemaVersion = 1, blob = "{}"),

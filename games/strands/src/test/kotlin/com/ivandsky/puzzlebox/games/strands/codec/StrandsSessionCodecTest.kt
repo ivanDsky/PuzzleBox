@@ -23,7 +23,7 @@ class StrandsSessionCodecTest {
     private val real = StrandsFixtures.puzzle(day)
 
     private val midGame = StrandsSession(
-        ref = StrandsPuzzleRef(day, StrandsNumber.of(day)),
+        ref = StrandsPuzzleRef(PuzzleKey.Daily(day, StrandsNumber.of(day))),
         state = StrandsState(
             puzzle = real,
             found = listOf("WIND", "GIVEMEABREAK", "BREAD"),
@@ -46,7 +46,7 @@ class StrandsSessionCodecTest {
         assertEquals(2, restored.state.hintsUsed)
         assertEquals(ActiveHint("FAITH", HintStage.OrderRevealed), restored.state.activeHint)
         assertEquals(987_654_321L, restored.elapsedMs)
-        assertEquals(StrandsPuzzleRef(day, 977), restored.ref)
+        assertEquals(StrandsPuzzleRef(PuzzleKey.Daily(day, 977)), restored.ref)
     }
 
     @Test
@@ -63,7 +63,7 @@ class StrandsSessionCodecTest {
 
     @Test
     fun `ref without a number round-trips`() {
-        val session = StrandsSession(ref = StrandsPuzzleRef(day, null), state = StrandsState(tinyPuzzle))
+        val session = StrandsSession(ref = StrandsPuzzleRef(PuzzleKey.Daily(day, null)), state = StrandsState(tinyPuzzle))
         assertEquals(session, roundTrip(session))
     }
 
@@ -96,7 +96,7 @@ class StrandsSessionCodecTest {
     fun `the ref carries a key tag right after the flags byte`() {
         val fresh = StrandsState(tinyPuzzle)
         val at = 1 + StrandsSessionCodec.serialize(StrandsSession(null, fresh)).indexOfFlags()
-        val daily = StrandsSessionCodec.serialize(StrandsSession(StrandsPuzzleRef(day, null), fresh))
+        val daily = StrandsSessionCodec.serialize(StrandsSession(StrandsPuzzleRef(PuzzleKey.Daily(day, null)), fresh))
         assertEquals(0, daily[at].toInt())
         val custom = StrandsSessionCodec.serialize(StrandsSession(StrandsPuzzleRef(PuzzleKey.Custom("ABC234")), fresh))
         val tail = listOf(1, 6) + "ABC234".map { it.code }
@@ -143,7 +143,7 @@ class StrandsSessionCodecTest {
         assertEquals(1, bytes[0].toInt())
         val restored = StrandsSessionCodec.deserialize(bytes).getOrNull()!!
         assertEquals(PuzzleKey.Daily(day, 977), restored.ref?.key)
-        assertEquals(frozen(StrandsPuzzleRef(day, 977)), restored)
+        assertEquals(frozen(StrandsPuzzleRef(PuzzleKey.Daily(day, 977))), restored)
     }
 
     @Test
