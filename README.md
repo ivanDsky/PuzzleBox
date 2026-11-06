@@ -2,7 +2,16 @@
 
 One Android app for daily logic puzzles — play official NYT/LinkedIn dailies, build and share custom games, and compete via leaderboards and 1v1.
 
-> **Status: alpha (0.x)** — Zip ships first; more games (Queens, Tango, MiniSudoku, Strands) and social features are on the roadmap.
+> **Status: alpha (0.x)** — Zip, Queens, Tango and Mini Sudoku are playable; Strands and social features are on the roadmap.
+
+## Games
+
+- **Zip** — LinkedIn daily: draw one path through every cell, visiting the numbers in order
+- **Tango** — LinkedIn daily: fill suns and moons with balanced rows and columns
+- **Queens** — LinkedIn daily: one crown per row, column and color region, none touching
+- **Mini Sudoku** — LinkedIn daily: 6x6 Sudoku with 2x3 boxes, notes, undo and staged hints
+- **Sudoku** — 9x9 on the same engine, debug builds only (one bundled puzzle; no content source yet)
+- **Strands** — NYT daily *(planned)*
 
 <p>
   <img src="docs/screenshots/home.png" width="720" alt="PuzzleBox home screen">

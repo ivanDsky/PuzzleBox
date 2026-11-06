@@ -4,9 +4,10 @@ import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
-import com.ivandsky.puzzlebox.domain.GetReplaySession
-import com.ivandsky.puzzlebox.domain.ReplayOutcome
+import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.domain.PastDayOutcome
 import com.ivandsky.puzzlebox.game.DecodeResult
+import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.Puzzle
@@ -14,6 +15,9 @@ import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
 import com.ivandsky.puzzlebox.gameui.unavailableMessage
 import com.ivandsky.puzzlebox.model.PlaySlot
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlinx.coroutines.flow.first
 
 /**
@@ -23,13 +27,14 @@ import kotlinx.coroutines.flow.first
  *    game and the game's session codec must read it. An undecodable row is deleted and
  *    the slot is built fresh (arch-11);
  * 2. today's daily fetch, when the slot's day is the game's current day;
- * 3. a past day's replay build, carrying the day's puzzleNumber from the cache so the
- *    record identity (ADR-0004) survives keys that name only game and day (arch-2);
- * 4. otherwise [Origin.Unavailable].
+ * 3. a past day opened by date — from the cache, or fetched once for an archive game —
+ *    carrying the day's puzzleNumber from the cache so the record identity (ADR-0004)
+ *    survives keys that name only game and day (arch-2);
+ * 4. otherwise [Origin.Unavailable], whose copy names the cause.
  */
 internal class SlotOpening(
     private val daily: DailyRepository,
-    private val replays: GetReplaySession,
+    private val pastDays: LoadPastDay,
     private val saved: SavedPlayRepository,
     private val calendar: GameCalendar,
     private val games: GameRegistry,
@@ -44,8 +49,9 @@ internal class SlotOpening(
          *  [puzzleNumber] is the day's number from the cache's history (ADR-0004), if any. */
         class Fetched(val puzzle: Puzzle, val banner: String?, val puzzleNumber: Int?) : Origin
 
-        /** Nothing to play; [message] is the copy. */
-        class Unavailable(val message: String) : Origin
+        /** Nothing to play; [message] is the copy; [retryable] offers Retry (false when the
+         *  source has said the day doesn't exist or can't be trusted — retrying won't help). */
+        class Unavailable(val message: String, val retryable: Boolean = true) : Origin
     }
 
     suspend fun open(slot: PlaySlot): Origin {
@@ -80,10 +86,15 @@ internal class SlotOpening(
     }
 
     private suspend fun build(slot: PlaySlot): Origin =
-        when (val replay = replays(slot.gameId, slot.day, puzzleNumberOf(slot))) {
-            is ReplayOutcome.Ready -> Origin.Restored(replay.session)
-            ReplayOutcome.Missing -> Origin.Unavailable(DAY_MISSING)
-            is ReplayOutcome.Unreadable -> Origin.Unavailable(DAY_UNREADABLE)
+        when (val opened = pastDays(slot.gameId, slot.day, puzzleNumberOf(slot))) {
+            is PastDayOutcome.Ready -> Origin.Restored(opened.session)
+            PastDayOutcome.Missing -> Origin.Unavailable(DAY_MISSING)
+            PastDayOutcome.OutOfRange -> Origin.Unavailable(PAST_DAY_OUT_OF_RANGE, retryable = false)
+            is PastDayOutcome.Failed -> Origin.Unavailable(
+                pastDayUnavailableMessage(slot.day, opened.error),
+                retryable = opened.error is FetchError.Unavailable || opened.error is FetchError.Throttled,
+            )
+            is PastDayOutcome.Unreadable -> Origin.Unavailable(DAY_UNREADABLE)
         }
 
     /** The day's puzzleNumber from the cache's history rows (null when the day has none). */
@@ -96,3 +107,19 @@ internal class SlotOpening(
         const val DAY_UNREADABLE = "This day didn't load right, so it can't be played again."
     }
 }
+
+/** Copy for a day outside the game's archive, or one its source says doesn't exist. */
+internal const val PAST_DAY_OUT_OF_RANGE = "This puzzle isn't available."
+
+/** Why an archive day that isn't on the device could not be fetched (SC9). */
+internal fun pastDayUnavailableMessage(day: LocalDate, error: FetchError): String = when (error) {
+    is FetchError.NotFound -> PAST_DAY_OUT_OF_RANGE
+    // Unavailable covers 5xx and unreadable bodies too, so offline is named as likely, not certain.
+    is FetchError.Unavailable ->
+        "Couldn't load ${day.format(PAST_DAY)}. You may be offline — it needs a connection the first time it opens."
+    is FetchError.Untrusted -> "This puzzle couldn't be read. Try again later."
+    is FetchError.Throttled -> "Can't load ${day.format(PAST_DAY)} right now. Wait a minute and try again."
+}
+
+// The copy is English-only, so the date follows it rather than the device locale.
+private val PAST_DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", Locale.ENGLISH)

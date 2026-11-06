@@ -38,11 +38,16 @@ object HistoryTestSupport {
     private val clock: Clock = Clock.fixed(Instant.parse("2026-11-03T12:00:00Z"), ZoneOffset.UTC)
 
     /** History's ViewModel over [daily]/[completions] and the production use cases. */
-    fun viewModel(daily: DailyRepository, completions: CompletionRepository): HistoryViewModel =
+    fun viewModel(
+        daily: DailyRepository,
+        completions: CompletionRepository,
+        today: LocalDate = LocalDate.of(2026, 11, 5),
+    ): HistoryViewModel =
         HistoryViewModel(
             observeGameHistory = ObserveGameHistory(registry, daily, completions),
             computeStreak = ComputeStreak(puzzleDay = GetPuzzleDay(registry, clock)),
             registry = registry,
+            today = { today },
         )
 
     fun entry(day: LocalDate, puzzleNumber: Int? = PUZZLE_NUMBER, fetchedAtMs: Long = 0L) = DailyEntry(
