@@ -16,6 +16,11 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.queens.QueensVariants
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -25,7 +30,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Tickets 18–19: select cells (tap, drag, All of colour, Area), pick one ring colour → one Paint step. */
+/** Tickets 18–19: select cells (tap, drag, All of colour, Area), pick one ring colour → one Paint step. Ticket 36: Crown | Paint modes. */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w420dp-h900dp-420dpi")
@@ -46,6 +52,95 @@ class QueensEditorControllerTest {
     private fun controller() = QueensEditorController(painted()) { edits += it }
 
     private fun regionsOf(draft: EditorDraft<*>): List<Int> = (draft.state.draft as QueensDraft).regions
+
+    private fun fresh(): EditorDraft<QueensDraft> = EditorDraft.fresh(QueensEditor, QueensVariants.variant(SIZE).id)
+
+    private fun crownsOf(draft: EditorDraft<*>): Set<Int> = (draft.state.draft as QueensDraft).crowns
+
+    /** Every cell [QueensEditorController.rejected] emits, collected eagerly so none is missed. */
+    private fun TestScope.rejections(controller: QueensEditorController): List<Int> {
+        val seen = ArrayList<Int>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { controller.rejected.collect { seen += it } }
+        return seen
+    }
+
+    @Test
+    fun `a fresh draft opens in Crown and a painted draft in Paint`() {
+        assertEquals(QueensEditorMode.Crown, QueensEditorController(fresh()) {}.mode.value)
+        assertEquals(QueensEditorMode.Paint, controller().mode.value)
+    }
+
+    @Test
+    fun `a crown tap is one undo step that also removes its seed`() {
+        val controller = QueensEditorController(fresh()) { edits += it }
+
+        controller.tap(7)
+
+        assertEquals(1, edits.size)
+        assertEquals(setOf(7), crownsOf(edits.single()))
+        assertTrue(regionsOf(edits.single())[7] != QueensDraft.UNPAINTED)
+        assertEquals(edits.single(), controller.draft.value)
+        assertEquals(emptySet<Int>(), controller.selection.value)
+        val undone = edits.single().undo()!!
+        assertEquals(emptySet<Int>(), crownsOf(undone))
+        assertEquals(regionsOf(fresh()), regionsOf(undone))
+        assertTrue(undone.canUndo.not())
+    }
+
+    @Test
+    fun `a crown tap on a crossed cell is refused without an edit`() = runTest {
+        val controller = QueensEditorController(fresh()) { edits += it }
+        val refused = rejections(controller)
+        controller.tap(7)
+        val before = controller.draft.value
+
+        controller.tap(8)
+
+        assertEquals(1, edits.size)
+        assertEquals(before, controller.draft.value)
+        assertEquals(listOf(8), refused)
+    }
+
+    @Test
+    fun `a crown tap on a crown removes it`() {
+        val controller = QueensEditorController(fresh()) { edits += it }
+        controller.tap(7)
+
+        controller.tap(7)
+
+        assertEquals(2, edits.size)
+        assertEquals(emptySet<Int>(), crownsOf(edits.last()))
+        assertEquals(edits.last(), controller.draft.value)
+    }
+
+    @Test
+    fun `in Paint a tap selects as before and never edits crowns`() = runTest {
+        val controller = QueensEditorController(fresh()) { edits += it }
+        val refused = rejections(controller)
+        controller.tap(7)
+
+        controller.setMode(QueensEditorMode.Paint)
+        controller.tap(7)
+        controller.tap(8)
+
+        assertEquals(QueensEditorMode.Paint, controller.mode.value)
+        assertEquals(setOf(7, 8), controller.selection.value)
+        assertEquals(1, edits.size)
+        assertEquals(setOf(7), crownsOf(controller.draft.value))
+        assertEquals(emptyList<Int>(), refused)
+    }
+
+    @Test
+    fun `switching mode clears the selection without an edit`() {
+        val controller = controller()
+        listOf(0, 7).forEach(controller::tap)
+
+        controller.setMode(QueensEditorMode.Crown)
+
+        assertEquals(QueensEditorMode.Crown, controller.mode.value)
+        assertEquals(emptySet<Int>(), controller.selection.value)
+        assertEquals(0, edits.size)
+    }
 
     @Test
     fun `three selected cells and one pick give exactly one Paint step and an empty selection`() {

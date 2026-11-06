@@ -40,6 +40,7 @@ class QueensSelectionRingTest {
     fun `a ring wider than a small board still takes the pick`() {
         val edits = ArrayList<EditorDraft<*>>()
         val controller = QueensEditorController(EditorDraft.fresh(QueensEditor, QueensVariants.variant(SIZE).id)) { edits += it }
+            .apply { setMode(QueensEditorMode.Paint) } // a fresh draft opens in Crown (36)
         rule.setContent {
             PuzzleBoxTheme {
                 Box(Modifier.padding(top = 80.dp).size(120.dp)) { QueensEditorBoard(controller, Verdict.Checking, Modifier.fillMaxSize()) }

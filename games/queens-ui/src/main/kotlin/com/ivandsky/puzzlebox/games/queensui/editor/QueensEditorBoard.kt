@@ -42,6 +42,7 @@ import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.queens.QueensVariants
+import com.ivandsky.puzzlebox.games.queens.editor.QueensCrowns
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.games.queensui.LocalQueensReducedMotion
@@ -58,9 +59,11 @@ import kotlin.math.ceil
 internal const val UNPAINTED_DESCRIPTION = "unpainted"
 
 /**
- * The editor's square board (spec S3, select then colour): the play board's region fills
- * and edges over the [controller]'s draft, an unpainted cell left on the surface tone. A tap
- * toggles the cell under it (edge-clamped, as in play); a drag adds every cell it crosses.
+ * The editor's square board (spec S3, select then colour; flow C crowns): the play board's
+ * region fills and edges over the [controller]'s draft, an unpainted cell left on the surface
+ * tone, and the answer crowns with their auto-× ([QueensCrownLayer]) in both modes. A tap
+ * hits the cell under it (edge-clamped, as in play): Crown mode toggles a crown, and a refused
+ * tap jolts that cell; Paint mode toggles it in the selection, and a drag adds every cell it crosses.
  * The selection wears an accent wash and outline, and while it is non-empty the colour
  * ring sits at the lift point, pushed back inside the board and the window. The context
  * bar below counts the selection; its Area and All of colour chips grow it and re-open the
@@ -77,6 +80,9 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
     val n = model.n
     val reducedMotion = rememberReducedMotion()
     val diagnostics = rememberQueensDiagnostics(verdict, board)
+    val mode by controller.mode.collectAsState()
+    val autoX = remember(board) { QueensCrowns.crossed(board) }
+    val rejection = rememberQueensRejection(controller)
     var lift by remember { mutableStateOf(Offset.Zero) }
     var dragging by remember { mutableStateOf(false) }
     var frame by remember { mutableStateOf(BoardFrame.Zero) }
@@ -94,7 +100,9 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
                             controller.tap(cellAt(offset, size.toSize(), n))
                         })
                     }
-                    .pointerInput(controller, n) {
+                    .pointerInput(controller, n, mode) {
+                        // Crown mode has no drag yet (37 adds the colour stroke).
+                        if (mode != QueensEditorMode.Paint) return@pointerInput
                         var last = Offset.Zero
                         detectDragGestures(
                             onDragStart = { start ->
@@ -132,6 +140,7 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
                             } else {
                                 QueensCell(model = model, idx = idx)
                             }
+                            QueensCrownLayer(idx, region, idx in board.crowns, idx in autoX, rejection, reducedMotion)
                             QueensCellDiagnostics(idx, diagnostics, reducedMotion)
                         }
                     },
@@ -256,6 +265,14 @@ private fun QueensEditorBoardClashPreview() {
 private fun QueensEditorBoardSplitPreview() {
     val regions = List(16) { it / 4 }.toMutableList().apply { this[15] = 0 }
     PuzzleBoxTheme { QueensEditorBoard(previewController(regions), Verdict.Checking, Modifier.fillMaxWidth()) }
+}
+
+@PuzzleBoxPreviews
+@Preview(name = "Crown mode, one crown", widthDp = 360, heightDp = 420, showBackground = true)
+@Composable
+private fun QueensEditorBoardCrownPreview() {
+    val controller = previewController(List(16) { QueensDraft.UNPAINTED }).apply { tap(5) }
+    PuzzleBoxTheme { QueensEditorBoard(controller, Verdict.Checking, Modifier.fillMaxWidth()) }
 }
 
 private fun previewController(
