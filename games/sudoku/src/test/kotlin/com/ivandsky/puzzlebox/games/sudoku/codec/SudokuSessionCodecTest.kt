@@ -15,7 +15,9 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.feed.LinkedInMiniSudokuDailySource
 import com.ivandsky.puzzlebox.games.sudoku.sudokuPlugin
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -166,12 +168,93 @@ class SudokuSessionCodecTest {
     @Test
     fun `an unknown version is reported as unsupported`() {
         val bytes = SudokuSessionCodec.serialize(start)
-        for (version in listOf(0, 2, 255)) {
+        for (version in listOf(0, 3, 255)) {
             assertEquals(
-                DecodeResult.Err(DecodeError.UnsupportedVersion(version, 1)),
+                DecodeResult.Err(DecodeError.UnsupportedVersion(version, 2)),
                 decode(bytes.copyOf().also { it[0] = version.toByte() }),
             )
         }
+    }
+
+    /** S13: bytes written by the v1 codec, frozen before the bump, still restore as a daily. */
+    @Test
+    fun `frozen v1 fixture decodes as a Daily key`() {
+        val bytes = fixture("sudoku-session-v1.bin")
+        assertEquals(1, bytes[0].toInt())
+        val restored = (decode(bytes) as DecodeResult.Ok).value
+        assertEquals(SudokuGames.MINI.id, restored.ref!!.gameId)
+        assertEquals(PuzzleKey.Daily(date, 450), restored.ref!!.key)
+        assertFixtureBody(restored)
+        // re-saving upgrades to the current version and loses nothing
+        val upgraded = SudokuSessionCodec.serialize(restored)
+        assertEquals(SudokuSessionCodec.VERSION, upgraded[0].toInt())
+        assertEquals(restored, roundTrip(restored))
+    }
+
+    /** S13: frozen v2 bytes of a friend's puzzle restore with their Custom key. */
+    @Test
+    fun `frozen v2 custom fixture decodes as a Custom key`() {
+        val bytes = fixture("sudoku-session-v2-custom.bin")
+        assertEquals(2, bytes[0].toInt())
+        val restored = (decode(bytes) as DecodeResult.Ok).value
+        assertEquals(SudokuGames.MINI.id, restored.ref!!.gameId)
+        assertEquals(PuzzleKey.Custom("7K3M9Q"), restored.ref!!.key)
+        assertFixtureBody(restored)
+    }
+
+    @Test
+    fun `both key kinds round-trip`() {
+        val custom = start.copy(ref = SudokuPuzzleRef(SudokuGames.CLASSIC.id, PuzzleKey.Custom("7K3M9Q")))
+        assertEquals(custom, roundTrip(custom))
+        val daily = start.copy(ref = SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(date, 450)))
+        assertEquals(daily, roundTrip(daily))
+    }
+
+    /** The key tag sits right after the flags, then the gameId, then the key's fields. */
+    @Test
+    fun `key layout is tag, gameId, then the key fields`() {
+        val custom = SudokuSessionCodec.serialize(start.copy(ref = SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Custom("7K3M9Q"))))
+        val tag = keyTagOffset(custom)
+        assertEquals(2, custom[tag - 1].toInt()) // flags: bit1 ref present
+        assertEquals(1, custom[tag].toInt()) // Custom
+        val id = SudokuGames.MINI.id.value.encodeToByteArray()
+        assertEquals(id.size, custom[tag + 1].toInt())
+        assertArrayEquals(id, custom.copyOfRange(tag + 2, tag + 2 + id.size))
+        val code = tag + 2 + id.size
+        assertEquals(6, custom[code].toInt())
+        assertArrayEquals("7K3M9Q".encodeToByteArray(), custom.copyOfRange(code + 1, code + 7))
+
+        val daily = SudokuSessionCodec.serialize(start)
+        assertEquals(0, daily[keyTagOffset(daily)].toInt()) // Daily
+    }
+
+    @Test
+    fun `an empty custom id or an unknown key tag is malformed`() {
+        val custom = SudokuSessionCodec.serialize(start.copy(ref = SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Custom("7K3M9Q"))))
+        val tag = keyTagOffset(custom)
+        val code = tag + 2 + SudokuGames.MINI.id.value.length
+        val emptyId = custom.copyOfRange(0, code) + byteArrayOf(0) + custom.copyOfRange(code + 7, custom.size)
+        assertMalformed("malformed ref", emptyId)
+        assertMalformed("malformed ref", custom.copyOf().also { it[tag] = 2 })
+    }
+
+    private fun fixture(name: String): ByteArray =
+        requireNotNull(javaClass.classLoader).getResourceAsStream("fixtures/$name")!!.readBytes()
+
+    /** Offset of the v2 key tag: version(1) + u16 puzzle length + puzzle bytes + flags(1). */
+    private fun keyTagOffset(blob: ByteArray): Int =
+        3 + ((blob[1].toInt() and 0xFF) or ((blob[2].toInt() and 0xFF) shl 8)) + 1
+
+    /** The frozen fixtures' shared play state: #450, cell 0 = 3, a note then an undone 6 on cell 1. */
+    private fun assertFixtureBody(restored: SudokuSession) {
+        assertEquals(puzzle, restored.puzzle)
+        assertEquals(SudokuCell.Entry(3), restored.board.cells[0])
+        assertEquals(SudokuCell.Notes(1 shl (5 - 1)), restored.board.cells[1])
+        assertEquals(2, restored.history.done.size)
+        assertEquals(1, restored.history.undone.size)
+        assertEquals(42_000L, restored.elapsedMs)
+        assertEquals(1, restored.hintsUsed)
+        assertTrue(restored.notesMode)
     }
 
     @Test
