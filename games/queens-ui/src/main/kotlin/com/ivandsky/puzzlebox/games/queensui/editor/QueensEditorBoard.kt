@@ -2,8 +2,6 @@ package com.ivandsky.puzzlebox.games.queensui.editor
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -23,7 +21,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
@@ -32,7 +29,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.toSize
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -53,7 +49,6 @@ import com.ivandsky.puzzlebox.games.queensui.QueensCellVisual
 import com.ivandsky.puzzlebox.games.queensui.QueensRegionPalette
 import com.ivandsky.puzzlebox.games.queensui.drawCellEdges
 import com.ivandsky.puzzlebox.gameui.BoardGrid
-import kotlin.math.ceil
 
 /** What a cell's semantics say when no region is painted on it yet. */
 internal const val UNPAINTED_DESCRIPTION = "unpainted"
@@ -61,9 +56,10 @@ internal const val UNPAINTED_DESCRIPTION = "unpainted"
 /**
  * The editor's square board (spec S3, select then colour; flow C crowns): the play board's
  * region fills and edges over the [controller]'s draft, an unpainted cell left on the surface
- * tone, and the answer crowns with their auto-× ([QueensCrownLayer]) in both modes. A tap
- * hits the cell under it (edge-clamped, as in play): Crown mode toggles a crown, and a refused
- * tap jolts that cell; Paint mode toggles it in the selection, and a drag adds every cell it crosses.
+ * tone, and the answer crowns with their auto-× ([QueensCrownLayer]) in both modes. Touch is
+ * [queensBoardGestures]: a tap toggles a crown (Crown, a refused tap jolts that cell) or a
+ * selected cell (Paint); a drag from a coloured cell previews its colour stroke live (crossed
+ * cells tagged `.stroke`), and a drag from an unpainted cell selects what it crosses (Paint).
  * The selection wears an accent wash and outline, and while it is non-empty the colour
  * ring sits at the lift point, pushed back inside the board and the window. The context
  * bar below counts the selection; its Area and All of colour chips grow it and re-open the
@@ -76,15 +72,15 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
     val draft by controller.draft.collectAsState()
     val selection by controller.selection.collectAsState()
     val board = draft.state.draft as QueensDraft
-    val model = remember(board) { modelOf(board) }
+    val touch = remember { QueensBoardTouch() }
+    val shown = touch.preview(board)
+    val stroked = touch.stroked(board)
+    val model = remember(shown) { modelOf(shown) }
     val n = model.n
     val reducedMotion = rememberReducedMotion()
     val diagnostics = rememberQueensDiagnostics(verdict, board)
-    val mode by controller.mode.collectAsState()
     val autoX = remember(board) { QueensCrowns.crossed(board) }
     val rejection = rememberQueensRejection(controller)
-    var lift by remember { mutableStateOf(Offset.Zero) }
-    var dragging by remember { mutableStateOf(false) }
     var frame by remember { mutableStateOf(BoardFrame.Zero) }
     CompositionLocalProvider(LocalQueensReducedMotion provides reducedMotion) {
         Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -94,32 +90,7 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
                     .aspectRatio(1f, matchHeightConstraintsFirst = true)
                     .testTag("queens.editor.board")
                     .onGloballyPositioned { frame = BoardFrame(it.size, it.positionInRoot(), it.findRootCoordinates().size) }
-                    .pointerInput(controller, n) {
-                        detectTapGestures(onTap = { offset ->
-                            lift = offset
-                            controller.tap(cellAt(offset, size.toSize(), n))
-                        })
-                    }
-                    .pointerInput(controller, n, mode) {
-                        // Crown mode has no drag yet (37 adds the colour stroke).
-                        if (mode != QueensEditorMode.Paint) return@pointerInput
-                        var last = Offset.Zero
-                        detectDragGestures(
-                            onDragStart = { start ->
-                                dragging = true
-                                last = start
-                                controller.add(listOf(cellAt(start, size.toSize(), n)))
-                            },
-                            onDragEnd = {
-                                dragging = false
-                                lift = last
-                            },
-                            onDragCancel = { dragging = false },
-                        ) { change, _ ->
-                            controller.add(crossed(last, change.position, size.toSize(), n))
-                            last = change.position
-                        }
-                    },
+                    .queensBoardGestures(controller, n, touch),
             ) {
                 val unpainted = MaterialTheme.colorScheme.surfaceContainerHighest
                 BoardGrid(
@@ -128,7 +99,7 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
                     modifier = Modifier.matchParentSize(),
                     cellContent = { row, col ->
                         val idx = row * n + col
-                        val region = board.regions[idx]
+                        val region = shown.regions[idx]
                         Box(
                             Modifier
                                 .fillMaxSize()
@@ -142,6 +113,7 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
                             }
                             QueensCrownLayer(idx, region, idx in board.crowns, idx in autoX, rejection, reducedMotion)
                             QueensCellDiagnostics(idx, diagnostics, reducedMotion)
+                            if (idx in stroked) Box(Modifier.matchParentSize().testTag("queens.editor.cell.$idx.stroke"))
                         }
                     },
                 )
@@ -153,23 +125,18 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
                     drawSelection(selection, n, accent)
                 }
                 QueensSelectionRing(
-                    visible = selection.isNotEmpty() && !dragging,
+                    visible = selection.isNotEmpty() && !touch.dragging,
                     board = board,
                     selection = selection,
-                    lift = lift,
+                    lift = touch.lift,
                     frame = frame,
                     reducedMotion = reducedMotion,
                     onPick = controller::pick,
                 )
             }
-            QueensSelectionChips(controller, onGrown = { lift = centroid(it, n, frame.size) })
+            QueensSelectionChips(controller, onGrown = { touch.lift = centroid(it, n, frame.size) })
         }
     }
-}
-
-/** Adds the [cells] a drag crossed; a cell already selected stays selected. */
-private fun QueensEditorController.add(cells: List<Int>) {
-    cells.forEach { if (it !in selection.value) tap(it) }
 }
 
 /** The middle of [cells] in board pixels, where the ring re-opens after a chip grows the selection. */
@@ -177,19 +144,6 @@ private fun centroid(cells: Set<Int>, n: Int, board: IntSize): Offset = Offset(
     x = (cells.sumOf { it % n }.toFloat() / cells.size + 0.5f) * board.width / n,
     y = (cells.sumOf { it / n }.toFloat() / cells.size + 0.5f) * board.height / n,
 )
-
-private fun cellAt(offset: Offset, size: Size, n: Int): Int {
-    val col = (offset.x / size.width * n).toInt().coerceIn(0, n - 1)
-    val row = (offset.y / size.height * n).toInt().coerceIn(0, n - 1)
-    return row * n + col
-}
-
-/** Every cell on the segment [from]→[to], sampled at a quarter cell so a fast drag skips none. */
-private fun crossed(from: Offset, to: Offset, size: Size, n: Int): List<Int> {
-    val step = minOf(size.width, size.height) / n / 4
-    val samples = ceil((to - from).getDistance() / step).toInt().coerceAtLeast(1)
-    return (0..samples).map { cellAt(from + (to - from) * (it / samples.toFloat()), size, n) }.distinct()
-}
 
 /** Accent wash on each selected cell, and an accent outline along the selection's outer edge. */
 private fun DrawScope.drawSelection(selection: Set<Int>, n: Int, accent: Color) {
