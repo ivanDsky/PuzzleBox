@@ -70,7 +70,12 @@ class StrandsPlayController(
     private var verdictSeq = 0
     private var foundSeq = 0
 
-    /** The drawable board, live trace included; an empty 0×0 board before a puzzle is adopted. */
+    /** The board at rest, without the live trace: it changes only when the game state does, never on a trace step. */
+    internal val baseModel: StrandsRendererModel by derivedStateOf {
+        session?.let { StrandsRendererModel.of(it.state) } ?: EMPTY_MODEL
+    }
+
+    /** The drawable board, live trace included; an empty 0×0 board before a puzzle is adopted. The board draws [baseModel]. */
     val model: StrandsRendererModel by derivedStateOf {
         session?.let { StrandsRendererModel.of(it.state, trace.path) } ?: EMPTY_MODEL
     }

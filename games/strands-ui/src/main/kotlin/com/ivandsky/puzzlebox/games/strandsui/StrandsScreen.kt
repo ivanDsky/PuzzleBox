@@ -137,7 +137,7 @@ private fun BoardColumn(
     withChrome: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val model = controller.model
+    val model = controller.baseModel
     Layout(
         contents = listOf(
             { if (withChrome) PuzzleChrome(controller, header, reduceMotion) },
@@ -193,7 +193,7 @@ private fun BoardColumn(
 /** The puzzle's own chrome: the theme card, the header line and the word slot. */
 @Composable
 private fun PuzzleChrome(controller: StrandsPlayController, header: StrandsHeader, reduceMotion: Boolean) {
-    val model = controller.model
+    val model = controller.baseModel
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ThemeCard(header.clue, controller.solvedHints?.let(StrandsRating::of), Modifier.fillMaxWidth())
         StrandsHeaderLine(header)
@@ -226,7 +226,7 @@ private fun SidePanel(
         if (header != null) {
             Column(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
                 PuzzleChrome(controller, header, reduceMotion)
-                FoundWordsList(controller.foundWords, controller.model.totalCount, Modifier.padding(top = Spacing.sm))
+                FoundWordsList(controller.foundWords, controller.baseModel.totalCount, Modifier.padding(top = Spacing.sm))
             }
         }
     }
