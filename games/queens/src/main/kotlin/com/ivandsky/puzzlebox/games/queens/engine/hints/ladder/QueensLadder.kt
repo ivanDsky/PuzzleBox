@@ -34,6 +34,9 @@ class QueensLadder(private val rungs: List<QueensRung>) {
         rungs.firstNotNullOfOrNull { it.step(puzzle, candidates) }
 
     companion object {
-        val Default: QueensLadder = QueensLadder(listOf(SinglesRung))
+        private val propagation: List<QueensRung> = listOf(SinglesRung, LineLockRung, PigeonholeRung)
+
+        /** All four rungs in difficulty order; look-ahead probes with the three below it. */
+        val Default: QueensLadder = QueensLadder(propagation + LookAheadRung(propagation))
     }
 }

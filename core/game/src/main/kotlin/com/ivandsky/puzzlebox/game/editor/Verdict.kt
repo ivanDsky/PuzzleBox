@@ -8,7 +8,17 @@ sealed interface Verdict {
     /** The board cannot be solved yet for a game-defined [reason] (unpainted cells, region count). */
     data class Incomplete(val reason: IncompleteReason) : Verdict
     data object Checking : Verdict
-    data class Unique(val solution: Solution) : Verdict
+
+    /**
+     * Exactly one solution. [difficulty] is the hardest ladder rung the solve needs; null
+     * with [needsGuessing] when the game's ladder cannot finish the board (spec A9).
+     */
+    data class Unique(
+        val solution: Solution,
+        val difficulty: Difficulty? = null,   // since 11
+        val needsGuessing: Boolean = false,   // since 11
+    ) : Verdict
+
     data class Multiple(val solutionA: Solution, val solutionB: Solution, val differingCells: Set<Int>) : Verdict
     data class None(val conflicts: Set<Int>) : Verdict
 

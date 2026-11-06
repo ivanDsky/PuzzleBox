@@ -53,7 +53,7 @@ class QueensVerdictFixturesTest {
 
         val verdict = QueensDraftAnalyzer.analyze(QueensDraft(puzzle.size, puzzle.regions), Budget.Unlimited)
 
-        assertEquals(Verdict.Unique(Solution(puzzle.solution!!.map { it.idx }.sorted())), verdict)
+        assertEquals(Solution(puzzle.solution!!.map { it.idx }.sorted()), (verdict as Verdict.Unique).solution)
     }
 
     @Test

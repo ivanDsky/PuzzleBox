@@ -69,7 +69,7 @@ class QueensPublishGatesTest {
 
     @Test
     fun `blockIds lists every id blocks can emit`() {
-        assertEquals(setOf(PublishBlock.SPLIT_REGION), QueensPublishGates.blockIds)
+        assertEquals(setOf(PublishBlock.SPLIT_REGION, PublishBlock.NEEDS_GUESSING), QueensPublishGates.blockIds)
     }
 
     private companion object {

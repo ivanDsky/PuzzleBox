@@ -41,7 +41,7 @@ class QueensDraftAnalyzerTest {
     fun `a board only placement A fits is Unique with the queen column of each row`() {
         val verdict = QueensDraftAnalyzer.analyze(QueensDraft(4, UNIQUE), Budget.Unlimited)
 
-        assertEquals(Verdict.Unique(Solution(listOf(1, 7, 8, 14))), verdict)
+        assertEquals(Solution(listOf(1, 7, 8, 14)), (verdict as Verdict.Unique).solution)
     }
 
     @Test
