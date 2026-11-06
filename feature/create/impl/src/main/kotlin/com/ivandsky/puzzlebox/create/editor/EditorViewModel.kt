@@ -5,11 +5,15 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.data.model.Draft
+import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
+import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.PublishBlock
+import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
@@ -40,6 +44,7 @@ class EditorViewModel(
     copyDraft: CreateDraftCopy,
     dispatchers: DispatcherProvider,
     private val clock: () -> Instant,
+    private val validatePublish: ValidatePublish = ValidatePublish(),
 ) : ViewModel() {
 
     private val mutableState = MutableStateFlow<EditorUiState>(EditorUiState.Loading)
@@ -170,6 +175,10 @@ class EditorViewModel(
 
     private fun subtitleOf(draft: EditorDraft<*>, ui: GameEditorUi): String =
         "${games.displayName(draft.gameId)} ${ui.sizeLabel(draft.variant)}"
+
+    /** The readiness line's blocks (33): what still keeps the open board, title and test from publishing. */
+    fun readiness(draft: EditorDraft<*>, verdict: Verdict, title: String, passed: TestSolve?): List<PublishBlock> =
+        validatePublish(draft, verdict, title, passed)
 
     private fun onEdit(draft: EditorDraft<*>) {
         history.record(draft)

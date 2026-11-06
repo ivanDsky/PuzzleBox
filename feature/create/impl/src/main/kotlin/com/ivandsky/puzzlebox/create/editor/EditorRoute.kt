@@ -109,6 +109,7 @@ internal fun EditorRoute(
                     passed = passed,
                     canTestSolve = draft.canTestSolve && ready.verdict is Verdict.Unique,
                     onTestSolve = { viewModel.testSolve.start(draft, ready.verdict) },
+                    blocks = remember(draft, ready.verdict, title, passed) { viewModel.readiness(draft, ready.verdict, title, passed) },
                     modifier = areaModifier,
                 )
             },
