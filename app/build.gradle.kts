@@ -14,7 +14,7 @@ android {
         applicationId = "com.ivandsky.puzzlebox"
         // Agent builds pass -PagentVersionCode/-PagentVersionName (deliver build_identity.py); the fallback is the committed release value.
         versionCode = providers.gradleProperty("agentVersionCode").orNull?.toInt() ?: 100
-        versionName = providers.gradleProperty("agentVersionName").orNull ?: "0.14.0"
+        versionName = providers.gradleProperty("agentVersionName").orNull ?: "0.15.0"
         // Device tests run on a plain Application; each test starts its own E2eKoinGraph.
         testInstrumentationRunner = "com.ivandsky.puzzlebox.app.device.PuzzleBoxTestRunner"
     }
@@ -30,7 +30,24 @@ android {
         }
     }
 
+    // The release key lives outside the repo (owner: ~/.gradle/gradle.properties, CI: -P from
+    // secrets). Absent properties leave release unsigned; it never falls back to the debug key.
+    val releaseSigning = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+        .associateWith { providers.gradleProperty("puzzlebox.signing.$it").orNull }
+    if (releaseSigning.values.all { it != null }) {
+        signingConfigs.create("release") {
+            storeFile = file(releaseSigning.getValue("storeFile")!!)
+            storePassword = releaseSigning.getValue("storePassword")
+            keyAlias = releaseSigning.getValue("keyAlias")
+            keyPassword = releaseSigning.getValue("keyPassword")
+        }
+    }
+
     buildTypes {
+        debug {
+            // Debug and release install side by side; the debug label is "PuzzleBox Dev".
+            applicationIdSuffix = ".debug"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -38,9 +55,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            // Local distribution (tailnet test device): unsigned release APKs
-            // cannot install; the debug key is the distribution key here.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 
