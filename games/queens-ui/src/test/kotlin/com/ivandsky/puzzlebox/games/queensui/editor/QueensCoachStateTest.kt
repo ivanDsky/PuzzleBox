@@ -64,6 +64,23 @@ class QueensCoachStateTest {
         }
     }
 
+    @Test
+    fun `while Checking the coach keeps the last settled verdict's state`() {
+        assertEquals(QueensCoachState.Ambiguous, shown(SEVEN, MULTIPLE, settled = null))
+        assertEquals(QueensCoachState.Ambiguous, shown(SEVEN, Verdict.Checking, settled = MULTIPLE))
+        assertEquals(QueensCoachState.Unique, shown(SEVEN, Verdict.Checking, settled = UNIQUE))
+        assertEquals(QueensCoachState.PaintRegions, shown(SEVEN, INCOMPLETE, settled = MULTIPLE))
+    }
+
+    @Test
+    fun `the first analysis of an empty board shows step 1`() {
+        assertEquals(QueensCoachState.PlaceCrowns(0, SIZE), shown(emptySet(), Verdict.Checking, settled = null))
+        assertEquals(QueensCoachState.PlaceCrowns(3, SIZE), shown(THREE, Verdict.Checking, settled = null))
+    }
+
+    private fun shown(crowns: Set<Int>, verdict: Verdict, settled: Verdict?) =
+        QueensCoachState.shown(draft(crowns), verdict, settled, QueensEditorMode.Crown)
+
     private companion object {
         const val SIZE = 7
         val THREE = setOf(0, 9, 18)

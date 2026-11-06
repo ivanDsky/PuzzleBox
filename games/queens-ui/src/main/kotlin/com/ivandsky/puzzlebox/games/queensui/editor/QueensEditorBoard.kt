@@ -14,6 +14,7 @@ import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -90,6 +91,9 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
     val autoX = remember(board) { QueensCrowns.crossed(board) }
     val rejection = rememberQueensRejection(controller)
     var frame by remember { mutableStateOf(BoardFrame.Zero) }
+    // The last non-Checking verdict, so the coach line holds its step while a new analysis runs.
+    val settled = remember { mutableStateOf<Verdict?>(null) }
+    SideEffect { if (verdict != Verdict.Checking) settled.value = verdict }
     CompositionLocalProvider(LocalQueensReducedMotion provides reducedMotion) {
         Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
@@ -142,7 +146,8 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
                     onPick = controller::pick,
                 )
             }
-            QueensCoachLine(QueensCoachState.of(board, verdict, mode), reducedMotion, Modifier.padding(top = Spacing.xs))
+            val coach = QueensCoachState.shown(board, verdict, if (verdict == Verdict.Checking) settled.value else null, mode)
+            QueensCoachLine(coach, reducedMotion, Modifier.padding(top = Spacing.xs))
             QueensProbeStrip(remember(board, verdict) { QueensAnswerFit.of(board, verdict) }, board.crowns.size)
             if (mode == QueensEditorMode.Paint) {
                 QueensSelectionChips(controller, onGrown = { touch.lift = centroid(it, n, frame.size) })
