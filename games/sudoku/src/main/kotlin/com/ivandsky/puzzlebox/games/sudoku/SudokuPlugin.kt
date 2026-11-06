@@ -25,11 +25,11 @@ fun sudokuPlugin(definition: SudokuDefinition): GamePlugin<SudokuState, SudokuSe
                 }
             }
         },
-        refOf = { date, puzzleNumber -> SudokuPuzzleRef(definition.id, date, puzzleNumber) },
-        replaySession = { cached, day, puzzleNumber ->
+        refOf = { key -> SudokuPuzzleRef(definition.id, key) },
+        replaySession = { cached, key ->
             when (val decoded = definition.decodePuzzle(cached.payload)) {
                 is DecodeResult.Ok -> {
-                    val session = SudokuSession(ref = SudokuPuzzleRef(definition.id, day, puzzleNumber), puzzle = decoded.value)
+                    val session = SudokuSession(ref = SudokuPuzzleRef(definition.id, key), puzzle = decoded.value)
                     DecodeResult.Ok(SessionBlob.encode(definition.id, SudokuSessionCodec.serialize(session)))
                 }
                 is DecodeResult.Err -> decoded

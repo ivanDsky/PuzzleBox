@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -129,7 +130,7 @@ class ActivePlay internal constructor(
      *  number the opening read from the cache's history rows. */
     private fun adopt(controller: GamePlayController, fetched: SlotOpening.Origin.Fetched): PlayBoardStatus {
         val day = checkNotNull((slot as? PlaySlot.Daily)?.day) { "only a daily slot is fetched" }
-        val resolved = plugin.refOf(day, fetched.puzzleNumber)
+        val resolved = plugin.refOf(PuzzleKey.Daily(day, fetched.puzzleNumber))
         if (controller !== this.controller) return PlayBoardStatus.Loading // superseded; never shown
         return when (val adopted = controller.adoptToday(fetched.puzzle, resolved)) {
             is Adopt.Rejected -> PlayBoardStatus.Unavailable(adopted.message)

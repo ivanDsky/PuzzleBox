@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 
 /**
@@ -29,7 +30,8 @@ class LoadPastDay(
             DailyDay.OutOfRange -> return PastDayOutcome.OutOfRange
             is DailyDay.Failed -> return PastDayOutcome.Failed(read.error)
         }
-        return when (val session = plugin.replaySession(ready.puzzle, day, puzzleNumber ?: ready.puzzleNumber)) {
+        val key = PuzzleKey.Daily(day, puzzleNumber ?: ready.puzzleNumber)
+        return when (val session = plugin.replaySession(ready.puzzle, key)) {
             is DecodeResult.Ok -> PastDayOutcome.Ready(session.value)
             is DecodeResult.Err -> PastDayOutcome.Unreadable(session.error)
         }

@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 
 /**
@@ -94,7 +95,7 @@ internal object TangoTutorial {
                 formatVersion = TangoCodec.VERSION,
                 payload = TangoCodec.encode(puzzle),
             ),
-            ref = tangoPlugin.refOf(day, null),
+            ref = tangoPlugin.refOf(PuzzleKey.Daily(day, null)),
             guided = guided,
         )
     }

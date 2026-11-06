@@ -14,7 +14,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * The composite record identity (gameId + day/puzzleNumber) round-trips through one key
+ * The composite record identity (gameId + PuzzleKey, daily or custom) round-trips through one key
  * form, rebuilt by the owning game's `refOf` from the [com.ivandsky.puzzlebox.game.GameRegistry].
  */
 class PuzzleRefKeysTest {
@@ -66,6 +66,21 @@ class PuzzleRefKeysTest {
         val key = PuzzleRefKeys.encode(CustomRef(GameId("queens"), PuzzleKey.Custom("K7Q2MX")))
         assertEquals("custom/queens/K7Q2MX", key)
         assertFalse(key.startsWith("queens/"))
+    }
+
+    @Test
+    fun `custom key decodes back to the authoring game's typed ref`() {
+        val ref = Ref(alpha, PuzzleKey.Custom("K7Q2MX"))
+        assertEquals("custom/alpha/K7Q2MX", PuzzleRefKeys.encode(ref))
+        assertEquals(ref, PuzzleRefKeys.decode("custom/alpha/K7Q2MX", registry))
+    }
+
+    @Test
+    fun `custom keys for an unregistered game or of the wrong shape decode to null`() {
+        assertNull(PuzzleRefKeys.decode("custom/strands/K7Q2MX", registry))
+        assertNull(PuzzleRefKeys.decode("custom/alpha", registry))
+        assertNull(PuzzleRefKeys.decode("custom/alpha/", registry))
+        assertNull(PuzzleRefKeys.decode("custom/alpha/K7Q2MX/extra", registry))
     }
 
     @Test

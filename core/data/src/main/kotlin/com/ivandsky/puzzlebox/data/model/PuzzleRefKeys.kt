@@ -23,10 +23,14 @@ object PuzzleRefKeys {
         is PuzzleKey.Custom -> "${PuzzleKey.Custom.NAMESPACE}/${ref.gameId.value}/${key.puzzleId}"
     }
 
-    /** Inverse of [encode]; null for keys no game in [registry] authored (never reinterpreted). */
+    /**
+     * Inverse of [encode]; null for keys no game in [registry] authored (never reinterpreted).
+     * A custom key goes through `registry[gameId].refOf(PuzzleKey.Custom(id))` (since P11).
+     */
     fun decode(key: String, registry: GameRegistry): PuzzleRef? {
         val parts = key.split('/')
         val gameId = parts.getOrNull(0) ?: return null
+        if (gameId == PuzzleKey.Custom.NAMESPACE) return custom(parts, registry)
         val date = parts.getOrNull(1)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
             ?: return null
         val number = when (parts.size) {
@@ -34,7 +38,12 @@ object PuzzleRefKeys {
             3 -> parts[2].toIntOrNull() ?: return null
             else -> return null
         }
-        return registry[GameId(gameId)]?.refOf?.invoke(date, number)
+        return registry[GameId(gameId)]?.refOf?.invoke(PuzzleKey.Daily(date, number))
+    }
+
+    private fun custom(parts: List<String>, registry: GameRegistry): PuzzleRef? {
+        if (parts.size != 3 || parts[1].isEmpty() || parts[2].isEmpty()) return null
+        return registry[GameId(parts[1])]?.refOf?.invoke(PuzzleKey.Custom(parts[2]))
     }
 
     private fun daily(gameId: String, date: LocalDate, puzzleNumber: Int?): String =
