@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.play.di
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.play.GameViewModel
-import com.ivandsky.puzzlebox.play.HubViewModel
+import com.ivandsky.puzzlebox.play.LibraryViewModel
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.ResultViewModel
 import com.ivandsky.puzzlebox.play.SlotOpening
@@ -51,8 +51,7 @@ val playModule = module {
             dispatchers = dispatchers,
         )
     }
-    // The hub reads its boards' thumbnails and Up-next lines off the main thread.
-    viewModel { HubViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get<DispatcherProvider>().default) }
+    viewModel { LibraryViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
     viewModel { (key: ResultKey) -> ResultViewModel(key, get(), get(), get(), get(), get(), get(), get(), get()) }
 }

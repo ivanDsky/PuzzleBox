@@ -26,7 +26,7 @@ import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.domain.TodayStatus
 
 /** Every card's mark sits in this column, whatever the icon [size], so status text aligns. */
-private val MarkColumn = 16.dp
+internal val MarkColumn = 16.dp
 
 /**
  * [status] as a [size] icon centred in the 16dp mark column (hub-card §Text slots): ring

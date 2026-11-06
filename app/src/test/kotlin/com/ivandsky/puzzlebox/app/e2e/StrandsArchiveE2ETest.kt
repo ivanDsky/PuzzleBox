@@ -62,7 +62,7 @@ import org.robolectric.annotation.Config
  * The Strands archive over the REAL data path: production `DailyRepository` and
  * `SavedPlayRepository` over in-memory Room, with the real NYT source and trust gate reading
  * committed fixtures through [FakeNytTransport]. A past day opened from History's "Older
- * puzzles" (reached from the hub's footer) costs one request, reopens from the cache with
+ * puzzles" (reached from Home's "See all") costs one request, reopens from the cache with
  * the network gone and leaves the streak alone (SC6, SC7); nine archive days later the Zip
  * save is still there, because the prune caps each game on its own (SC16).
  */
@@ -105,7 +105,7 @@ class StrandsArchiveE2ETest {
             openPast(PAST)
             awaitStrands(PAST)
             assertEquals("the past day is fetched once", 1, requestsFor(PAST))
-            // Immersive play hides the bar (N2): back through History to the hub before hopping tabs.
+            // Immersive play hides the bar (N2): back through History to Home before hopping tabs.
             leavePast()
             val opened = history()
             assertEquals("…and adjacent to today, still outside the streak", before.streak, opened.streak)
@@ -175,9 +175,10 @@ class StrandsArchiveE2ETest {
         return (0 until cells.length()).map { i -> cells.getJSONArray(i).let { it.getInt(0) to it.getInt(1) } }
     }
 
-    /** The hub's "Older puzzles", then History's "Older puzzles": Strands is the one game with an archive, so its picker opens. */
+    /** Home's "See all", then History's "Older puzzles": Strands is the one game with an archive, so its picker opens. */
     private fun ShellRobot.openOlderPicker() {
-        tap(HUB_OLDER)
+        tapTab(HomeKey)
+        tapText("See all")
         tap(HISTORY_OLDER)
         awaitTag(PICKER)
     }
@@ -189,7 +190,7 @@ class StrandsArchiveE2ETest {
         tap(OPEN)
     }
 
-    /** From a past day's board back through History to the hub, where [openPast] starts. */
+    /** From a past day's board back through History to Home, where [openPast] starts. */
     private fun ShellRobot.leavePast() {
         back()
         back()
@@ -302,7 +303,6 @@ class StrandsArchiveE2ETest {
         const val STRANDS = "strands"
         const val TIMEOUT_MS = 5_000L
         const val BOARD = "strands.board"
-        const val HUB_OLDER = "hub.older"
         const val HISTORY_OLDER = "history.older"
         const val PICKER = "history.older.picker"
         const val OPEN = "history.older.open"

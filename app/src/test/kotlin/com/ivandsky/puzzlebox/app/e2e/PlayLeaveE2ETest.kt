@@ -289,7 +289,7 @@ class PlayLeaveE2ETest {
 
     private companion object {
         const val HOME = "route.home"
-        const val HUB = "route.hub"
+        const val HUB = "route.library"
         const val GAME = "route.game"
         const val PROFILE = "route.profile"
         const val GAME_UP = "game.up"
