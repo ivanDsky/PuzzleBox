@@ -59,7 +59,7 @@ class SudokuPlayController(
             is DecodeResult.Ok -> result.value
             is DecodeResult.Err -> return Adopt.Rejected(BROKEN_PUZZLE_MESSAGE)
         }
-        val sudokuRef = ref as? SudokuPuzzleRef ?: SudokuPuzzleRef(ref.gameId, ref.date, ref.puzzleNumber)
+        val sudokuRef = ref as? SudokuPuzzleRef ?: SudokuPuzzleRef(ref.gameId, ref.key)
         start(SudokuSession(ref = sudokuRef, puzzle = decoded))
         return Adopt.Adopted
     }
