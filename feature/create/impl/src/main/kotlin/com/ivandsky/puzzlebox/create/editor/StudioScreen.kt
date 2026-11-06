@@ -7,12 +7,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -51,13 +48,14 @@ private const val CardEnterScale = 0.9f
 
 /**
  * The Studio: the [StudioTopBar] (Back, the draft's [title] over its [subtitle] and the
- * autosave's [saving] state, the [verdict] pill, the overflow) over the game's [board], drawn as
- * the largest square that fits, with the [toolStrip] and the [actionArea] (test status, Test solve)
- * under it. In [PlayLayout.TwoPane] the square sits centred in the space; on a phone it hangs from
- * the bar. The pill opens [verdictCard]'s card as a popover anchored at the pill's top-right, the
- * game's fix list ([issues]) inside it; the title and the overflow's Rename open the
- * [RenameSheet], whose Save reports through [onRename]. Each [testCleared] event (a board edit
- * invalidated the passed test) shows a toast whose Undo reports through [onUndo].
+ * autosave's [saving] state, the overflow) over the [StudioLayout]: the game's [board], drawn as
+ * the largest square that fits, the [toolStrip] and the [actionArea] (test status, Test solve).
+ * On a phone ([PlayLayout.SinglePane]) the bar carries the [verdict] pill, which opens
+ * [verdictCard]'s card as a popover anchored at the pill's top-right, the game's fix list
+ * ([issues]) inside it; in [PlayLayout.TwoPane] the card sits inline in the side pane and there
+ * is no pill. The title and the overflow's Rename open the [RenameSheet], whose Save reports
+ * through [onRename]. Each [testCleared] event (a board edit invalidated the passed test) shows
+ * a toast whose Undo reports through [onUndo].
  */
 @Composable
 fun StudioScreen(
@@ -90,15 +88,20 @@ fun StudioScreen(
                 onRename = { renaming = true },
                 onDuplicate = onDuplicate,
                 onDelete = onDelete,
-                pill = { PillWithCard(verdict = verdict, verdictCard = verdictCard, issues = issues) },
+                pill = {
+                    if (layout == PlayLayout.SinglePane) PillWithCard(verdict = verdict, verdictCard = verdictCard, issues = issues)
+                },
             )
-            BoardSlot(
-                alignment = if (layout == PlayLayout.TwoPane) Alignment.Center else Alignment.TopCenter,
+            StudioLayout(
+                layout = layout,
+                verdict = verdict,
+                verdictCard = verdictCard,
                 board = board,
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(Spacing.lg),
+                toolStrip = toolStrip,
+                issues = issues,
+                actionArea = actionArea,
+                modifier = Modifier.weight(1f),
             )
-            toolStrip(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md))
-            actionArea(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg))
         }
         TestClearedToast(cleared = testCleared, onUndo = onUndo, modifier = Modifier.align(Alignment.BottomCenter))
     }
@@ -168,21 +171,6 @@ private fun VerdictCardPopover(verdict: Verdict, state: VerdictCardState, issues
             },
         ) {
             VerdictCard(verdict = verdict, onCheckAgain = state::checkAgain, overlay = overlay, onOverlay = state::choose, issues = issues)
-        }
-    }
-}
-
-/** The square the game's board fills: the smaller of the slot's width and height. */
-@Composable
-private fun BoardSlot(
-    alignment: Alignment,
-    board: @Composable (Modifier) -> Unit,
-    modifier: Modifier,
-) {
-    BoxWithConstraints(modifier, contentAlignment = alignment) {
-        val side = minOf(maxWidth, maxHeight)
-        Box(Modifier.size(side).testTag("create.editor.board")) {
-            board(Modifier.fillMaxSize())
         }
     }
 }

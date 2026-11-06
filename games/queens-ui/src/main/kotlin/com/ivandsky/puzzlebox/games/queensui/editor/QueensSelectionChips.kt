@@ -2,13 +2,16 @@ package com.ivandsky.puzzlebox.games.queensui.editor
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -20,10 +23,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
@@ -64,8 +69,9 @@ internal fun QueensSelectionChips(
 /**
  * The context bar under the editor board (prototype 03 b). With nothing selected ([count] 0)
  * it shows the first-timer hint; with a selection, "{k} cells" and the chips **Area**,
- * **All of colour** and **Cancel**. It keeps one touch-target height either way, so the
- * board above never jumps. The count node says k in its state description.
+ * **All of colour** and **Cancel**. It is always one line of one touch-target height, scrolling
+ * sideways when the board is narrow, never wrapping, so the board above never jumps or shrinks
+ * (ledger ruling, 28). The count node says k in its state description.
  */
 @Composable
 internal fun QueensSelectionChips(
@@ -75,11 +81,17 @@ internal fun QueensSelectionChips(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // A chip is its label plus padding, at least one touch target; the bar reserves that height
+    // with or without chips, so a large font scale cannot make the selection push the board up.
+    val label = MaterialTheme.typography.labelLarge
+    val measurer = rememberTextMeasurer()
+    val chipLabel = with(LocalDensity.current) { remember(measurer, label) { measurer.measure("Area", label).size.height }.toDp() }
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = LocalMinimumInteractiveComponentSize.current)
-            .testTag("queens.editor.context"),
+            .heightIn(min = maxOf(LocalMinimumInteractiveComponentSize.current, chipLabel + Spacing.sm * 2))
+            .testTag("queens.editor.context")
+            .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -89,6 +101,7 @@ internal fun QueensSelectionChips(
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                softWrap = false,
                 modifier = Modifier.testTag("queens.editor.context.hint"),
             )
             return@Row
@@ -97,11 +110,13 @@ internal fun QueensSelectionChips(
             text = if (count == 1) "1 cell" else "$count cells",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
+            softWrap = false,
             modifier = Modifier
-                .weight(1f)
                 .testTag("queens.editor.context.count")
                 .semantics { stateDescription = "$count" },
         )
+        // Takes the slack while the line fits (chips to the end); nothing once it scrolls.
+        Spacer(Modifier.weight(1f))
         ContextChip("Area", "queens.editor.chip.area", onArea)
         ContextChip("All of colour", "queens.editor.chip.allOf", onAllOfColour)
         ContextChip("Cancel", "queens.editor.chip.cancel", onCancel)
@@ -135,6 +150,7 @@ private fun ContextChip(label: String, tag: String, onClick: () -> Unit) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
+            softWrap = false,
             modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
         )
     }
