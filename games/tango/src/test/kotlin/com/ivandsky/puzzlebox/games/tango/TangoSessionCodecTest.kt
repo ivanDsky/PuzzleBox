@@ -16,7 +16,7 @@ import org.junit.Test
 class TangoSessionCodecTest {
 
     private val session = TangoSession(
-        ref = TangoPuzzleRef(LocalDate.of(2026, 11, 2), 42),
+        ref = TangoPuzzleRef(PuzzleKey.Daily(LocalDate.of(2026, 11, 2), 42)),
         puzzle = TangoTestSupport.sample,
         placements = mapOf(2 to TangoCell.MOON, 15 to TangoCell.SUN),
         hintsUsed = 1,

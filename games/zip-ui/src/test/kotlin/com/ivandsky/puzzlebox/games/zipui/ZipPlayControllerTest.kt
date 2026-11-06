@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.games.zip.engine.ZipValidation
 import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import com.ivandsky.puzzlebox.gameui.playCaption
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicLong
@@ -69,7 +70,7 @@ class ZipPlayControllerTest {
         assertNull(c.session)
         assertEquals(Adopt.Adopted, c.adoptToday(ZipPlayFixture.envelope(), ref))
 
-        assertEquals(ZipPuzzleRef(day, 592), c.session?.ref)
+        assertEquals(ZipPuzzleRef(PuzzleKey.Daily(day, 592)), c.session?.ref)
         assertEquals(emptyList<Cell>(), c.session?.path)
         assertEquals(ZipRendererModel.Status.IDLE, c.rendererModel()?.status)
         assertFalse(c.isComplete)

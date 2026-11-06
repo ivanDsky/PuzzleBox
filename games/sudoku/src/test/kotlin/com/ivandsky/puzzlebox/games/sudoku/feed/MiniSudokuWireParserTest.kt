@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.games.sudoku.KnownSolutions
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.SudokuVariants
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -29,13 +30,13 @@ class MiniSudokuWireParserTest {
         val daily = (parse() as DecodeResult.Ok).value
         assertEquals(KnownSolutions.peanut450, daily.puzzle)
         assertEquals(KnownSolutions.PEANUT_450_PRESETS, daily.puzzle.givens.indices.filter { daily.puzzle.givens[it] != 0 })
-        assertEquals(SudokuPuzzleRef(SudokuGames.MINI.id, date, 450), daily.ref)
+        assertEquals(SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(date, 450)), daily.ref)
     }
 
     @Test
     fun `a missing or non-numeric edition leaves the number null`() {
         val daily = (MiniSudokuWireParser.parse(json, date, null, SudokuVariants.MINI) as DecodeResult.Ok).value
-        assertEquals(null, daily.ref.puzzleNumber)
+        assertEquals(null, (daily.ref.key as PuzzleKey.Daily).puzzleNumber)
     }
 
     @Test

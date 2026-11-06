@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 
 // Previews of TutorialHost — a stand-in game whose board is a plain tile: a lesson, the
@@ -24,8 +25,7 @@ private val PreviewScreenHeight = 640.dp
 
 private object PreviewRef : PuzzleRef {
     override val gameId = GameId("preview")
-    override val date: LocalDate = LocalDate.of(2026, 11, 4)
-    override val puzzleNumber: Int? = null
+    override val key: PuzzleKey = PuzzleKey.Daily(LocalDate.of(2026, 11, 4), null)
 }
 
 private object PreviewController : GamePlayController {

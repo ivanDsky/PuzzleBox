@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
 import com.ivandsky.puzzlebox.gameui.unavailableMessage
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -111,7 +112,7 @@ class SlotOpeningTest {
 
         val origin = opening.open(PlaySlot(alpha, yesterday)) as SlotOpening.Origin.Restored
 
-        assertArrayEquals(TestGames.replayBlob(alpha, puzzle, yesterday, 412), origin.session)
+        assertArrayEquals(TestGames.replayBlob(alpha, puzzle, PuzzleKey.Daily(yesterday, 412)), origin.session)
         assertEquals(0, daily.todayCalls(alpha))
     }
 
@@ -142,7 +143,7 @@ class SlotOpeningTest {
 
         val origin = opening.open(PlaySlot(alpha, yesterday)) as SlotOpening.Origin.Restored
 
-        assertArrayEquals(TestGames.replayBlob(alpha, puzzle, yesterday, 412), origin.session)
+        assertArrayEquals(TestGames.replayBlob(alpha, puzzle, PuzzleKey.Daily(yesterday, 412)), origin.session)
         assertEquals(1, daily.dayCalls(alpha, yesterday))
     }
 

@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.games.strands
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
-import java.time.LocalDate
 
 /**
  * Strands puzzle identity (ADR-0018, spec A11): an NYT daily (print date + its date-derived
@@ -11,5 +10,4 @@ import java.time.LocalDate
  */
 data class StrandsPuzzleRef(override val key: PuzzleKey) : PuzzleRef {
     override val gameId: GameId get() = StrandsDefinition.id
-    constructor(date: LocalDate, puzzleNumber: Int?) : this(PuzzleKey.Daily(date, puzzleNumber)) // deleted in P12
 }

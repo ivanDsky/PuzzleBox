@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.engine.TangoMove
 import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
 import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -46,7 +47,7 @@ class TangoGoldenPathTest {
     @Test
     fun `a completed session emits a record when a ref is present`() {
         val completed = playSolution(
-            freshSession().copy(ref = TangoPuzzleRef(LocalDate.of(2026, 11, 2), 1), elapsedMs = 120_000, hintsUsed = 2),
+            freshSession().copy(ref = TangoPuzzleRef(PuzzleKey.Daily(LocalDate.of(2026, 11, 2), 1)), elapsedMs = 120_000, hintsUsed = 2),
         )
         val record = TangoScoreModel().completion(completed)
         assertNotNull(record)

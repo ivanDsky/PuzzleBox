@@ -3,35 +3,24 @@ package com.ivandsky.puzzlebox.game
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
-import java.time.LocalDate
 
 /**
  * Per-puzzle identity as the game authors it (finding F2-3 / ADR-0004). Record semantics
  * are per-puzzle, so a record without identity cannot exist. core/data keys and stamps
  * records per game + ref.
  *
- * The ref carries its own normalized identity (ADR-0004: `gameId + date/puzzleNumber`,
- * the same composite `PuzzleRefKeys` encodes): consumers project history per
- * [GameId] without ever casting to a concrete game's ref type — the fix-round-5
- * defect-C class (Home/History dropped every non-Zip ref). The ref stays opaque about
- * PAYLOAD: nothing here parses board data.
- *
- * Transitional (ADR-0018 expand, P01 → P12): [key] and the legacy [date]/[puzzleNumber]
- * pair default to each other, so an implementer overrides EITHER the pair OR [key] — never
- * neither (the defaults would recurse). P12 deletes the pair and both defaults.
+ * The ref carries its own normalized identity (ADR-0004/ADR-0018: `gameId + key`, the
+ * same composite `PuzzleRefKeys` encodes): consumers project history per [GameId]
+ * without ever casting to a concrete game's ref type — the fix-round-5 defect-C class
+ * (Home/History dropped every non-Zip ref). The ref stays opaque about PAYLOAD: nothing
+ * here parses board data. Readers handle both [PuzzleKey.Daily] and [PuzzleKey.Custom].
  */
 interface PuzzleRef {
     /** Which game authored this ref — identity part 1. */
     val gameId: GameId
 
     /** Which puzzle of the game: a day's daily or a shared custom puzzle — identity part 2. */
-    val key: PuzzleKey get() = PuzzleKey.Daily(date, puzzleNumber)
-
-    /** The daily identity's calendar day; throws for a [PuzzleKey.Custom] ref. Deleted in P12. */
-    val date: LocalDate get() = (key as PuzzleKey.Daily).date
-
-    /** The daily's edition number when the game publishes one; null otherwise. Deleted in P12. */
-    val puzzleNumber: Int? get() = (key as PuzzleKey.Daily).puzzleNumber
+    val key: PuzzleKey
 }
 
 /**

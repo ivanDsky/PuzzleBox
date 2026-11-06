@@ -137,8 +137,8 @@ class ZipPluginTest {
 
         // refOf: persisted identity -> Zip's typed ref (storage round-trips refs generically)
         val day = LocalDate.of(2026, 10, 31)
-        assertEquals(ZipPuzzleRef(day, 592), zipPlugin.refOf(PuzzleKey.Daily(day, 592)))
-        assertEquals(ZipPuzzleRef(day, null), zipPlugin.refOf(PuzzleKey.Daily(day, null)))
+        assertEquals(ZipPuzzleRef(PuzzleKey.Daily(day, 592)), zipPlugin.refOf(PuzzleKey.Daily(day, 592)))
+        assertEquals(ZipPuzzleRef(PuzzleKey.Daily(day, null)), zipPlugin.refOf(PuzzleKey.Daily(day, null)))
         assertEquals(ZipPuzzleRef(PuzzleKey.Custom("K7Q2MX")), zipPlugin.refOf(PuzzleKey.Custom("K7Q2MX")))
 
         // rendererModel: rejected verdict -> rejection; valid/absent verdict -> none

@@ -54,7 +54,7 @@ class ObserveTodaySetTest {
     private fun statuses(entries: List<TodayEntry>) = entries.associate { it.game to it.status }
 
     private fun record(game: GameId, day: LocalDate, time: Long = 1_000L) = CompletionRecord(
-        puzzleRef = Ref(game, day),
+        puzzleRef = Ref(game, PuzzleKey.Daily(day, null)),
         time = time,
         hints = 0,
         stats = RecordStats(schemaVersion = 1, blob = "{}"),

@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
@@ -54,7 +55,7 @@ class CompletionRepositoryTest {
 
     private fun completion(day: LocalDate, puzzleNumber: Int?, timeMs: Long, hints: Int) =
         CompletionRecord(
-            puzzleRef = Ref(alpha, day, puzzleNumber),
+            puzzleRef = Ref(alpha, PuzzleKey.Daily(day, puzzleNumber)),
             time = timeMs,
             hints = hints,
             stats = RecordStats(schemaVersion = 1, blob = """{"v":1,"mistakes":3}"""),
@@ -63,7 +64,7 @@ class CompletionRepositoryTest {
     @Test
     fun `play twice - record immutable, replay kept`() = runTest {
         val day = LocalDate.of(2026, 10, 31)
-        val ref = Ref(alpha, day, 592)
+        val ref = Ref(alpha, PuzzleKey.Daily(day, 592))
 
         repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 2))
         nowMs += 60_000
@@ -101,17 +102,17 @@ class CompletionRepositoryTest {
 
         val records = repository.observeRecords().first()
         assertEquals(2, records.size)
-        assertEquals(listOf(593, 592), records.map { it.puzzleRef.puzzleNumber })
+        assertEquals(listOf(593, 592), records.map { (it.puzzleRef.key as PuzzleKey.Daily).puzzleNumber })
 
-        assertEquals(1, repository.observeReplays(Ref(alpha, day, 592)).first().size)
-        assertEquals(0, repository.observeReplays(Ref(alpha, day, 593)).first().size)
+        assertEquals(1, repository.observeReplays(Ref(alpha, PuzzleKey.Daily(day, 592))).first().size)
+        assertEquals(0, repository.observeReplays(Ref(alpha, PuzzleKey.Daily(day, 593))).first().size)
     }
 
     @Test
     fun `empty stores observe empty before any completion`() = runTest {
         val day = LocalDate.of(2026, 10, 31)
         assertTrue(repository.observeRecords().first().isEmpty())
-        assertTrue(repository.observeReplays(Ref(alpha, day, 592)).first().isEmpty())
+        assertTrue(repository.observeReplays(Ref(alpha, PuzzleKey.Daily(day, 592))).first().isEmpty())
     }
 
     @Test
@@ -124,8 +125,8 @@ class CompletionRepositoryTest {
         repository.onCompleted(completion(day.plusDays(1), 593, timeMs = 88_000, hints = 1))
         // Faster rows of other games: a different id, a longer id sharing the prefix, and
         // an id whose `_` would be a LIKE wildcard matching "alpha".
-        repository.onCompleted(completion(day, 592, timeMs = 30_000, hints = 0).copy(puzzleRef = Ref(beta, day, 592)))
-        repository.onCompleted(completion(day, 592, timeMs = 20_000, hints = 0).copy(puzzleRef = Ref(GameId("alpha2"), day, 592)))
+        repository.onCompleted(completion(day, 592, timeMs = 30_000, hints = 0).copy(puzzleRef = Ref(beta, PuzzleKey.Daily(day, 592))))
+        repository.onCompleted(completion(day, 592, timeMs = 20_000, hints = 0).copy(puzzleRef = Ref(GameId("alpha2"), PuzzleKey.Daily(day, 592))))
 
         assertEquals("the 71 s replay never ranks", 88_000L, repository.best(alpha)?.timeMs)
         assertEquals(30_000L, repository.best(beta)?.timeMs)

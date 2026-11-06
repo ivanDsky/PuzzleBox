@@ -81,7 +81,7 @@ class QueensPluginTest {
         assertEquals(QueensDefinition, queensPlugin.definition)
         assertEquals(QueensSessionCodec, queensPlugin.session)
 
-        val session = QueensSession(ref = QueensPuzzleRef(LocalDate.of(2026, 11, 2), 7), puzzle = puzzle)
+        val session = QueensSession(ref = QueensPuzzleRef(PuzzleKey.Daily(LocalDate.of(2026, 11, 2), 7)), puzzle = puzzle)
         assertEquals(QueensState(puzzle), queensPlugin.stateOf(session))
 
         val placed = session.withQueenPlaced(Cell(0), Instant.now())
@@ -93,8 +93,8 @@ class QueensPluginTest {
         assertTrue(queensPlugin.initialSession(Puzzle(GameId("zip"), queensVariantId(8), 1, bytes)) is DecodeResult.Err)
         // refOf rebuilds the typed fetch-time identity from stored columns (ADR-0004).
         val day = LocalDate.of(2026, 11, 2)
-        assertEquals(QueensPuzzleRef(day, 12), queensPlugin.refOf(PuzzleKey.Daily(day, 12)))
-        assertEquals(QueensPuzzleRef(day, null), queensPlugin.refOf(PuzzleKey.Daily(day, null)))
+        assertEquals(QueensPuzzleRef(PuzzleKey.Daily(day, 12)), queensPlugin.refOf(PuzzleKey.Daily(day, 12)))
+        assertEquals(QueensPuzzleRef(PuzzleKey.Daily(day, null)), queensPlugin.refOf(PuzzleKey.Daily(day, null)))
         assertEquals(QueensPuzzleRef(PuzzleKey.Custom("K7Q2MX")), queensPlugin.refOf(PuzzleKey.Custom("K7Q2MX")))
 
         val model = queensPlugin.rendererModel(QueensState(puzzle, setOf(Cell(0), Cell(9))), QueensHint.None, null)

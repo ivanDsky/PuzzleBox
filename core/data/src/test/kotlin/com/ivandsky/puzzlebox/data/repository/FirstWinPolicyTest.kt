@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.data.repository
 
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
@@ -19,7 +20,7 @@ class FirstWinPolicyTest {
     private val refKey = "zip/2026-10-31/592"
 
     private fun emitted(timeMs: Long, hints: Int) = CompletionRecord(
-        puzzleRef = Ref(GameId("zip"), day, 592),
+        puzzleRef = Ref(GameId("zip"), PuzzleKey.Daily(day, 592)),
         time = timeMs,
         hints = hints,
         stats = RecordStats(schemaVersion = 1, blob = """{"v":1,"mistakes":3}"""),

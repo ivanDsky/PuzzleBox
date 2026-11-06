@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
@@ -44,7 +45,7 @@ class ObserveArchiveProgressTest {
     /** [game]'s first solve of [on]; a null [puzzleNumber] is a practice play. */
     private fun solve(on: LocalDate, game: GameId = alpha, puzzleNumber: Int? = 100) =
         CompletionRecord(
-            puzzleRef = Ref(game, on, puzzleNumber),
+            puzzleRef = Ref(game, PuzzleKey.Daily(on, puzzleNumber)),
             time = 30_000L,
             hints = 0,
             stats = RecordStats(schemaVersion = 1, blob = "{}"),

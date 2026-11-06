@@ -32,7 +32,7 @@ class QueensSessionCodecTest {
 
     private fun cell(row: Int, col: Int, size: Int = 8) = QueensTestSupport.cell(row, col, size)
 
-    private fun ref() = QueensPuzzleRef(LocalDate.of(2026, 11, 2), 7)
+    private fun ref() = QueensPuzzleRef(PuzzleKey.Daily(LocalDate.of(2026, 11, 2), 7))
 
     private fun customRef() = QueensPuzzleRef(PuzzleKey.Custom("ABC234"))
 
@@ -171,7 +171,7 @@ class QueensSessionCodecTest {
     @Test
     fun `C1 - both key kinds round trip`() {
         assertEquals(PuzzleKey.Daily(LocalDate.of(2026, 11, 2), 7), roundTrip(session(ref = ref())).ref?.key)
-        val undated = QueensPuzzleRef(LocalDate.of(2026, 1, 1), null)
+        val undated = QueensPuzzleRef(PuzzleKey.Daily(LocalDate.of(2026, 1, 1), null))
         assertEquals(undated, roundTrip(session(ref = undated)).ref)
         val custom = session(completedAt = null, ref = customRef())
         val restored = roundTrip(custom)

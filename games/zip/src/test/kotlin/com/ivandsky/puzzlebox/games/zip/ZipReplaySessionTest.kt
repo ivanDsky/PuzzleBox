@@ -41,7 +41,7 @@ class ZipReplaySessionTest {
         assertTrue("codec must accept the blob", restored is DecodeResult.Ok)
         val zip = (restored as DecodeResult.Ok).value
         // The ref is the replayed DAY's identity, never today's (ADR-0004/A4 attribution).
-        assertEquals(ZipPuzzleRef(day, 592), zip.ref)
+        assertEquals(ZipPuzzleRef(PuzzleKey.Daily(day, 592)), zip.ref)
         assertEquals(original, zip.puzzle)
         assertTrue(!zip.isComplete)
         assertTrue(zip.path.isEmpty())
@@ -51,7 +51,7 @@ class ZipReplaySessionTest {
     fun `missing puzzle number still yields a valid ref`() {
         val blob = SessionBlob.decode(zipPlugin.replaySession(envelope(), PuzzleKey.Daily(day, null)).getOrThrow())
         val zip = ZipSessionCodec.deserialize(blob!!.session).getOrThrow()
-        assertEquals(ZipPuzzleRef(day, null), zip.ref)
+        assertEquals(ZipPuzzleRef(PuzzleKey.Daily(day, null)), zip.ref)
     }
 
     @Test

@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import java.time.ZoneOffset
 
@@ -23,8 +24,7 @@ private val PreviewToday: LocalDate = LocalDate.of(2026, 11, 5)
 private fun previewRow(day: LocalDate, number: Int, archived: Boolean): HistoryDayRow {
     val ref = object : PuzzleRef {
         override val gameId = PreviewGame
-        override val date = day
-        override val puzzleNumber: Int? = number
+        override val key = PuzzleKey.Daily(day, number)
     }
     return HistoryDayRow(
         day = day,

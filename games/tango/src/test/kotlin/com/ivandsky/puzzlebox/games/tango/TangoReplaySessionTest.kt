@@ -42,14 +42,14 @@ class TangoReplaySessionTest {
         val original = TangoTestSupport.sample
         val session = tangoPlugin.replaySession(envelope(original), PuzzleKey.Daily(day, 301)).session()
 
-        assertEquals(TangoPuzzleRef(day, 301), session.ref)
+        assertEquals(TangoPuzzleRef(PuzzleKey.Daily(day, 301)), session.ref)
         assertEquals(original, session.puzzle)
         assertArrayEquals(original.markers.toTypedArray(), session.puzzle.markers.toTypedArray())
     }
 
     @Test
     fun `missing puzzle number still yields a valid ref`() {
-        assertEquals(TangoPuzzleRef(day, null), tangoPlugin.replaySession(envelope(), PuzzleKey.Daily(day, null)).session().ref)
+        assertEquals(TangoPuzzleRef(PuzzleKey.Daily(day, null)), tangoPlugin.replaySession(envelope(), PuzzleKey.Daily(day, null)).session().ref)
     }
 
     @Test

@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import java.time.Clock
 import java.time.Instant
@@ -94,7 +95,7 @@ object HistoryTestSupport {
     )
 
     fun record(day: LocalDate, timeMs: Long = 95_000, hints: Int = 2) = CompletionRecord(
-        puzzleRef = TestGames.Ref(ZIP, day, PUZZLE_NUMBER),
+        puzzleRef = TestGames.Ref(ZIP, PuzzleKey.Daily(day, PUZZLE_NUMBER)),
         time = timeMs,
         hints = hints,
         stats = RecordStats(schemaVersion = 1, blob = """{"v":1,"mistakes":0}"""),
@@ -109,14 +110,14 @@ object HistoryTestSupport {
     )
 
     fun tangoRecord(day: LocalDate, timeMs: Long = 61_000, hints: Int = 0) = CompletionRecord(
-        puzzleRef = TestGames.Ref(TANGO, day, TANGO_PUZZLE_NUMBER),
+        puzzleRef = TestGames.Ref(TANGO, PuzzleKey.Daily(day, TANGO_PUZZLE_NUMBER)),
         time = timeMs,
         hints = hints,
         stats = RecordStats(schemaVersion = 1, blob = """{"v":1,"mistakes":0}"""),
     )
 
     fun queensRecord(day: LocalDate) = CompletionRecord(
-        puzzleRef = TestGames.Ref(QUEENS, day, QUEENS_PUZZLE_NUMBER),
+        puzzleRef = TestGames.Ref(QUEENS, PuzzleKey.Daily(day, QUEENS_PUZZLE_NUMBER)),
         time = 41_000L,
         hints = 1,
         stats = RecordStats(schemaVersion = 1, blob = "{}"),

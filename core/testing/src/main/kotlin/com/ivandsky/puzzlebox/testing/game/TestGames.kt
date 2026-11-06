@@ -45,10 +45,7 @@ object TestGames {
     data class Ref(
         override val gameId: GameId,
         override val key: PuzzleKey,
-    ) : PuzzleRef {
-        constructor(gameId: GameId, date: LocalDate, puzzleNumber: Int? = null) :
-            this(gameId, PuzzleKey.Daily(date, puzzleNumber))
-    }
+    ) : PuzzleRef
 
     fun variant(game: GameId) = VariantId("${game.value}/v1")
 
@@ -88,10 +85,6 @@ object TestGames {
     /** The replay hand-off [plugin] builds: [game]'s envelope over the payload plus the puzzle's identity. */
     fun replayBlob(game: GameId, cached: Puzzle, key: PuzzleKey): ByteArray =
         SessionBlob.encode(game, cached.payload + key.toString().toByteArray(Charsets.UTF_8))
-
-    /** [replayBlob] for a day's daily. */
-    fun replayBlob(game: GameId, cached: Puzzle, day: LocalDate, puzzleNumber: Int?): ByteArray =
-        replayBlob(game, cached, PuzzleKey.Daily(day, puzzleNumber))
 
     fun registry(games: List<GameId>): GameRegistry = GameRegistry(games.map(::plugin))
 
@@ -135,7 +128,7 @@ class FakeDailySource(override val gameId: GameId) : DailySource {
         requestedDates += date
         val puzzle = nextPuzzle ?: return FetchResult.Err(nextError)
         // Mirror the real adapters: the ref is always built from the requested day.
-        return FetchResult.Ok(DailyFetch(puzzle, TestGames.Ref(gameId, date, nextPuzzleNumber)))
+        return FetchResult.Ok(DailyFetch(puzzle, TestGames.Ref(gameId, PuzzleKey.Daily(date, nextPuzzleNumber))))
     }
 
     override suspend fun fetchPast(date: LocalDate): FetchResult<DailyFetch> {

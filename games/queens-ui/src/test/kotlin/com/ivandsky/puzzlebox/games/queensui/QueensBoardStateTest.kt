@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.games.queens.MarkKind
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.queens.QueensScoreModel
 import com.ivandsky.puzzlebox.games.queens.QueensSession
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -16,7 +17,7 @@ import java.time.LocalDate
 /** The board state holder's command-undo and clock-hook behavior, no Compose needed. */
 class QueensBoardStateTest {
 
-    private val ref = QueensPuzzleRef(LocalDate.parse("2026-11-02"), 1)
+    private val ref = QueensPuzzleRef(PuzzleKey.Daily(LocalDate.parse("2026-11-02"), 1))
     private fun fresh(settle: (QueensSession) -> QueensSession = { it }, onWin: (CompletionRecord) -> Unit = {}) =
         QueensBoardState(
             initialSession = QueensSession(ref = ref, puzzle = QueensUiFixtures.puzzle()),

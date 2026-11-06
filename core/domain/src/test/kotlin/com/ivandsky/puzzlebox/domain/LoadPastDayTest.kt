@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -50,7 +51,7 @@ class LoadPastDayTest {
 
         val ready = replay(daily)(alpha, day, puzzleNumber = null) as PastDayOutcome.Ready
 
-        assertArrayEquals(TestGames.replayBlob(alpha, fetched, day, 584), ready.session)
+        assertArrayEquals(TestGames.replayBlob(alpha, fetched, PuzzleKey.Daily(day, 584)), ready.session)
         assertEquals(1, daily.dayCalls(alpha, day))
     }
 
@@ -81,7 +82,7 @@ class LoadPastDayTest {
 
         // The envelope NAMES the game (ADR-0005) — the play route dispatches on it.
         assertEquals(beta, SessionBlob.decode(ready.session)?.game)
-        assertArrayEquals(TestGames.replayBlob(beta, cached, day, 301), ready.session)
+        assertArrayEquals(TestGames.replayBlob(beta, cached, PuzzleKey.Daily(day, 301)), ready.session)
     }
 
     @Test
@@ -91,7 +92,7 @@ class LoadPastDayTest {
 
         val ready = replay(daily)(alpha, day, puzzleNumber = null) as PastDayOutcome.Ready
 
-        assertArrayEquals(TestGames.replayBlob(alpha, cached, day, null), ready.session)
+        assertArrayEquals(TestGames.replayBlob(alpha, cached, PuzzleKey.Daily(day, null)), ready.session)
     }
 
     @Test

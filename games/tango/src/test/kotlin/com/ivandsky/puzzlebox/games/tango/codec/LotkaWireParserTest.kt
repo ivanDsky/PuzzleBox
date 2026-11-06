@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.games.tango.TangoMarker
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import com.ivandsky.puzzlebox.games.tango.feed.TangoGameExtractor
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -52,8 +53,8 @@ class LotkaWireParserTest {
         val daily = ok(match.lotkaGamePuzzleJson, match.editionText)
 
         assertEquals("tango/n6", daily.puzzle.variant.value)
-        assertEquals(759, daily.ref.puzzleNumber)
-        assertEquals(day, daily.ref.date)
+        assertEquals(759, (daily.ref.key as PuzzleKey.Daily).puzzleNumber)
+        assertEquals(day, (daily.ref.key as PuzzleKey.Daily).date)
         // Cross-checked against community #759 (research 04): row 0 starts S S M.
         assertEquals(
             mapOf(
@@ -107,7 +108,7 @@ class LotkaWireParserTest {
 
         assertTrue(daily.puzzle.givens.isEmpty())
         assertTrue(daily.puzzle.markers.isEmpty())
-        assertNull(daily.ref.puzzleNumber)
+        assertNull((daily.ref.key as PuzzleKey.Daily).puzzleNumber)
     }
 
     @Test

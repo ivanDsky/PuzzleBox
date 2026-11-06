@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.model.PuzzleKey
-import java.time.LocalDate
 
 /** Row-major board cell, `0 until size*size` (zip precedent: idx = row*size + col). */
 @JvmInline
@@ -88,7 +87,6 @@ data class QueensPuzzle(
  */
 data class QueensPuzzleRef(override val key: PuzzleKey) : PuzzleRef {
     override val gameId: GameId get() = QueensDefinition.id
-    constructor(date: LocalDate, puzzleNumber: Int?) : this(PuzzleKey.Daily(date, puzzleNumber)) // deleted in P12
 }
 
 /** The variant id for a board size, e.g. "queens/n8". Single naming seam for all modules. */

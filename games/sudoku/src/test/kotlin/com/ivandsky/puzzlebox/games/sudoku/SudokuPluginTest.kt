@@ -87,8 +87,8 @@ class SudokuPluginTest {
         val decoded = SessionBlob.decode(blob)!!
         assertEquals(SudokuGames.MINI.id, decoded.game)
         val session = (SudokuSessionCodec.deserialize(decoded.session) as DecodeResult.Ok).value
-        assertEquals(SudokuSession(ref = SudokuPuzzleRef(SudokuGames.MINI.id, date, 450), puzzle = puzzle), session)
-        assertEquals(SudokuPuzzleRef(SudokuGames.MINI.id, date, 450), plugin.refOf(key))
+        assertEquals(SudokuSession(ref = SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(date, 450)), puzzle = puzzle), session)
+        assertEquals(SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(date, 450)), plugin.refOf(key))
     }
 
     @Test
@@ -146,7 +146,7 @@ class SudokuPluginTest {
 
     @Test
     fun `score records completed daily sessions with the variant in the stats blob`() {
-        val ref = SudokuPuzzleRef(SudokuGames.MINI.id, date, 450)
+        val ref = SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(date, 450))
         val done = SudokuSession(ref = ref, puzzle = puzzle, completedAt = Instant.EPOCH, elapsedMs = 61_000, hintsUsed = 1)
         val record = plugin.score.completion(done)!!
         assertEquals(ref, record.puzzleRef)

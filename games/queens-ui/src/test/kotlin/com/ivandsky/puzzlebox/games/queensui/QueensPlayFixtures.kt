@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.queensVariantId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 
 /** Deterministic 8×8 fixture (queens-10 wiring tests): one queen per row/column/region
@@ -35,5 +36,5 @@ object QueensPlayFixtures {
     fun today(): LocalDate = QueensDefinition.cadence.today()
 
     /** Today's resolved record identity (#42). */
-    fun ref(): QueensPuzzleRef = QueensPuzzleRef(today(), 42)
+    fun ref(): QueensPuzzleRef = QueensPuzzleRef(PuzzleKey.Daily(today(), 42))
 }

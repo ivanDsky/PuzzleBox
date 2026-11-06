@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.games.tango.TangoMarker
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -101,7 +102,7 @@ object LotkaWireParser {
         return DecodeResult.Ok(
             TangoDaily(
                 puzzle = TangoPuzzle(variant = VariantId("tango/n$n"), n = n, givens = givens, markers = markers),
-                ref = TangoPuzzleRef(date = date, puzzleNumber = editionText?.toIntOrNull()),
+                ref = TangoPuzzleRef(PuzzleKey.Daily(date, editionText?.toIntOrNull())),
             ),
         )
     }

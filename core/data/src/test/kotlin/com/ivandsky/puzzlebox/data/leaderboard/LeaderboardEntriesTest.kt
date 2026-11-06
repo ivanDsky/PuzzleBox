@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.data.leaderboard
 
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
 import com.ivandsky.puzzlebox.database.CompletionEntity
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -26,7 +27,7 @@ class LeaderboardEntriesTest {
         timeMs: Long = 95_000,
         hints: Int = 2,
         isRecord: Boolean = true,
-        ref: PuzzleRef = Ref(zip, day, 592),
+        ref: PuzzleRef = Ref(zip, PuzzleKey.Daily(day, 592)),
         firstCompletedAt: Instant? = Instant.ofEpochMilli(1_700_000_000_000),
     ) = CompletionRecord(
         puzzleRef = ref,
@@ -95,7 +96,7 @@ class LeaderboardEntriesTest {
         // No puzzle number: not official-daily-shaped (Phase-2 custom boards later).
         assertNull(
             LeaderboardEntries.fromRecord(
-                record(ref = Ref(zip, day, puzzleNumber = null)),
+                record(ref = Ref(zip, PuzzleKey.Daily(day, puzzleNumber = null))),
                 "u1",
                 "Ann",
             ),
@@ -199,6 +200,6 @@ class LeaderboardEntriesTest {
 private class UnregisteredRef : PuzzleRef {
     override val gameId: com.ivandsky.puzzlebox.model.GameId =
         com.ivandsky.puzzlebox.model.GameId("unregistered")
-    override val date: java.time.LocalDate = java.time.LocalDate.of(2026, 10, 31)
-    override val puzzleNumber: Int? = null
+    override val key: com.ivandsky.puzzlebox.model.PuzzleKey =
+        com.ivandsky.puzzlebox.model.PuzzleKey.Daily(java.time.LocalDate.of(2026, 10, 31), null)
 }

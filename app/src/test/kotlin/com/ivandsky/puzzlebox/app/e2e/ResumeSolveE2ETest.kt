@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.games.zip.ZipSession
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.PlayKey
@@ -123,7 +124,7 @@ class ResumeSolveE2ETest {
         graph.leaderboard.submitted.toList().filter { it.puzzleRef.startsWith("zip/$E2E_TODAY") }
 
     private fun ShellRobot.zipRecords() = runBlocking { graph.koin.get<CompletionRepository>().observeRecords().first() }
-        .filter { it.puzzleRef.gameId == ZipDefinition.id && it.puzzleRef.date == E2E_TODAY }
+        .filter { it.puzzleRef.gameId == ZipDefinition.id && (it.puzzleRef.key as? PuzzleKey.Daily)?.date == E2E_TODAY }
 
     /** Lets [ms] of wall clock pass (Zip's clock is the wall clock) while the UI keeps idling. */
     private fun ShellRobot.awaitWallClock(since: Long, ms: Long) {

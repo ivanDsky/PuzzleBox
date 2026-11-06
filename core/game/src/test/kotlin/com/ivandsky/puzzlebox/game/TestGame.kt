@@ -24,8 +24,7 @@ object TestGame {
     data class Ref(
         val label: String,
         override val gameId: GameId = TestGame.id,
-        override val date: LocalDate = TestGame.date,
-        override val puzzleNumber: Int? = null,
+        override val key: PuzzleKey = PuzzleKey.Daily(TestGame.date, null),
     ) : PuzzleRef
 
     /** The ref [plugin]'s `refOf` builds: any [PuzzleKey], daily or custom. */

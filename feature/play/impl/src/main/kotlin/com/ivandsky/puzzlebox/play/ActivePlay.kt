@@ -232,7 +232,7 @@ class ActivePlay internal constructor(
                 // baseline (the write raced the baseline read) stays null. A practice
                 // puzzle (no edition number) never ranks: its verdict stays null.
                 is AppResult.Ok -> _record.update {
-                    if (!baselineKnown || record.puzzleRef.puzzleNumber == null) {
+                    if (!baselineKnown || record.puzzleRef.edition == null) {
                         it
                     } else {
                         it.copy(
@@ -272,8 +272,10 @@ class ActivePlay internal constructor(
         }
     }
 
-    private fun PuzzleRef.sameIdentity(other: PuzzleRef) =
-        gameId == other.gameId && date == other.date && puzzleNumber == other.puzzleNumber
+    private fun PuzzleRef.sameIdentity(other: PuzzleRef) = gameId == other.gameId && key == other.key
+
+    /** The daily's edition number; null for an unnumbered daily or a custom puzzle. */
+    private val PuzzleRef.edition: Int? get() = (key as? PuzzleKey.Daily)?.puzzleNumber
 
     private fun blankRecord(label: String) =
         Record(verdict = null, previousBest = null, writeFailed = false, label = label, rankOrder = rankOrder)
@@ -284,7 +286,7 @@ class ActivePlay internal constructor(
     private fun labelFor(ref: PuzzleRef?): String {
         val name = plugin.definition.displayName
         if (ref == null) return name
-        return ref.puzzleNumber?.let { "$name · #$it" } ?: "$name · Practice"
+        return ref.edition?.let { "$name · #$it" } ?: "$name · Practice"
     }
 
     private companion object {

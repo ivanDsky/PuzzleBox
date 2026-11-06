@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.gameui.BROKEN_PUZZLE_MESSAGE
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -59,7 +60,7 @@ class StrandsPlayControllerTest {
 
         assertEquals(1, saved.size)
         assertEquals(StrandsUiFixtures.ref, lastSaved().ref)
-        assertEquals(StrandsHeader("Bake sale", StrandsUiFixtures.ref.puzzleNumber, "by Tess Tester"), c.header)
+        assertEquals(StrandsHeader("Bake sale", (StrandsUiFixtures.ref.key as PuzzleKey.Daily).puzzleNumber, "by Tess Tester"), c.header)
         assertEquals(4, c.model.rows)
         assertEquals(4, c.model.totalCount)
         assertEquals(WordSlot.Empty, c.slot)

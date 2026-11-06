@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.codec.QueensWireParser
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.queensVariantId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
@@ -62,7 +63,7 @@ class LinkedInQueensDailySourceTest {
         assertEquals(QueensDefinition.id, daily.puzzle.gameId)
         assertEquals(queensVariantId(8), daily.puzzle.variant)
         assertEquals(QueensCodec.VERSION, daily.puzzle.formatVersion)
-        assertEquals(date, daily.ref.date)
+        assertEquals(date, (daily.ref.key as PuzzleKey.Daily).date)
     }
 
     @Test
@@ -141,8 +142,8 @@ class LinkedInQueensDailySourceTest {
         val result = source(fixture("02-byid-gt3-916.json")).fetchPast(date)
 
         val daily = (result as FetchResult.Ok).value
-        assertEquals(916, daily.ref.puzzleNumber)
-        assertEquals(date, daily.ref.date)
+        assertEquals(916, (daily.ref.key as PuzzleKey.Daily).puzzleNumber)
+        assertEquals(date, (daily.ref.key as PuzzleKey.Daily).date)
         assertEquals(QueensDefinition.id, daily.puzzle.gameId)
         val live = QueensGameExtractor.extract(fixture("queens-daily-real-916.json"))!!
         val parsed = (QueensWireParser.parse(live.queensGamePuzzleJson, date, live.editionText) as DecodeResult.Ok).value
@@ -155,8 +156,8 @@ class LinkedInQueensDailySourceTest {
 
         val daily = (source(fixture("02-byid-gt3-1.json")).fetchPast(day1) as FetchResult.Ok).value
 
-        assertEquals(1, daily.ref.puzzleNumber)
-        assertEquals(day1, daily.ref.date)
+        assertEquals(1, (daily.ref.key as PuzzleKey.Daily).puzzleNumber)
+        assertEquals(day1, (daily.ref.key as PuzzleKey.Daily).date)
     }
 
     @Test
@@ -165,8 +166,8 @@ class LinkedInQueensDailySourceTest {
 
         val daily = (source(fixture("02-byid-gt3-918.json")).fetchPast(day) as FetchResult.Ok).value
 
-        assertEquals(918, daily.ref.puzzleNumber)
-        assertEquals(day, daily.ref.date)
+        assertEquals(918, (daily.ref.key as PuzzleKey.Daily).puzzleNumber)
+        assertEquals(day, (daily.ref.key as PuzzleKey.Daily).date)
     }
 
     @Test

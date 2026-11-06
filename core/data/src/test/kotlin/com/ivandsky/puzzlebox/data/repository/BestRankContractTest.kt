@@ -71,7 +71,7 @@ class BestRankContractTest {
     }
 
     private fun completion(game: GameId, puzzleNumber: Int, score: BestScore) = CompletionRecord(
-        puzzleRef = TestGames.Ref(game, day, puzzleNumber),
+        puzzleRef = TestGames.Ref(game, PuzzleKey.Daily(day, puzzleNumber)),
         time = score.timeMs,
         hints = score.hints,
         stats = RecordStats(schemaVersion = 1, blob = "{}"),

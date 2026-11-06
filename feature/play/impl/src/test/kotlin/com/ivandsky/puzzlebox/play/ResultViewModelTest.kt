@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -141,7 +142,7 @@ class ResultViewModelTest {
     }
 
     private fun record(time: Long, hints: Int, date: LocalDate = day, game: GameId = alpha) =
-        CompletionRecord(TestGames.Ref(game, date, 7), time, hints, RecordStats(1, "{}"), isRecord = true)
+        CompletionRecord(TestGames.Ref(game, PuzzleKey.Daily(date, 7)), time, hints, RecordStats(1, "{}"), isRecord = true)
 
     @Test
     fun `live result shows the play's verdict`() {

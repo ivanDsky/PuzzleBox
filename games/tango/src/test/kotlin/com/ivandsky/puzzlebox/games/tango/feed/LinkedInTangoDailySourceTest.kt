@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.codec.LotkaWireParser
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
@@ -60,8 +61,8 @@ class LinkedInTangoDailySourceTest {
         assertTrue("expected Ok, got $result", daily != null)
         assertEquals("tango", daily!!.puzzle.gameId.value)
         assertEquals("tango/n6", daily.puzzle.variant.value)
-        assertEquals(759, daily.ref.puzzleNumber)
-        assertEquals(date, daily.ref.date)
+        assertEquals(759, (daily.ref.key as PuzzleKey.Daily).puzzleNumber)
+        assertEquals(date, (daily.ref.key as PuzzleKey.Daily).date)
         // The stored bytes decode back into the envelope — the single reader path.
         val decoded = TangoDefinition.decode(daily.puzzle.payload)
         assertTrue(decoded is DecodeResult.Ok)
@@ -171,8 +172,8 @@ class LinkedInTangoDailySourceTest {
         val result = source(fixture("linkedin-tango-byid-758.json")).fetchPast(yesterday)
 
         val daily = (result as FetchResult.Ok).value
-        assertEquals(758, daily.ref.puzzleNumber)
-        assertEquals(yesterday, daily.ref.date)
+        assertEquals(758, (daily.ref.key as PuzzleKey.Daily).puzzleNumber)
+        assertEquals(yesterday, (daily.ref.key as PuzzleKey.Daily).date)
         val match = TangoGameExtractor.extract(fixture("linkedin-tango-byid-758.json"))!!
         val wire = (LotkaWireParser.parse(match.lotkaGamePuzzleJson, yesterday) as DecodeResult.Ok).value
         assertArrayEquals(TangoCodec.encode(wire.puzzle), daily.puzzle.payload)
@@ -184,7 +185,7 @@ class LinkedInTangoDailySourceTest {
 
         val daily = (source(fixture("linkedin-tango-byid-1.json")).fetchPast(day1) as FetchResult.Ok).value
 
-        assertEquals(1, daily.ref.puzzleNumber)
+        assertEquals(1, (daily.ref.key as PuzzleKey.Daily).puzzleNumber)
         assertEquals("tango/n6", daily.puzzle.variant.value)
     }
 

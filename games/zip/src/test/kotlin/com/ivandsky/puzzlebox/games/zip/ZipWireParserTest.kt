@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.zip
 
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
@@ -43,8 +44,8 @@ class ZipWireParserTest {
             daily.puzzle.board.walls,
         )
         assertEquals(ZipTestSupport.n5Solution, daily.puzzle.solution)
-        assertEquals(date, daily.ref.date)
-        assertEquals(587, daily.ref.puzzleNumber)
+        assertEquals(date, (daily.ref.key as PuzzleKey.Daily).date)
+        assertEquals(587, (daily.ref.key as PuzzleKey.Daily).puzzleNumber)
     }
 
     /** The full wire spelling carries ${'$'}type discriminators; unknown keys are ignored (F2-5). */
@@ -66,10 +67,10 @@ class ZipWireParserTest {
     fun `edition text is optional and non-numeric text yields a null number`() {
         val json = """{"gridSize": 5, "orderedSequence": [0, 12, 24]}"""
         val base = com.ivandsky.puzzlebox.games.zip.codec.ZipWireParser.parse(json, date)
-        assertNull((base as DecodeResult.Ok).value.ref.puzzleNumber)
+        assertNull(((base as DecodeResult.Ok).value.ref.key as PuzzleKey.Daily).puzzleNumber)
         val custom = com.ivandsky.puzzlebox.games.zip.codec.ZipWireParser.parse(json, date, "practice")
-        assertNull((custom as DecodeResult.Ok).value.ref.puzzleNumber)
-        assertEquals(date, (custom as DecodeResult.Ok).value.ref.date)
+        assertNull(((custom as DecodeResult.Ok).value.ref.key as PuzzleKey.Daily).puzzleNumber)
+        assertEquals(date, ((custom as DecodeResult.Ok).value.ref.key as PuzzleKey.Daily).date)
     }
 
     @Test
