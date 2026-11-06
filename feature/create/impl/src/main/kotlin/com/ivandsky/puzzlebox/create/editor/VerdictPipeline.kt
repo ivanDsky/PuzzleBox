@@ -19,8 +19,10 @@ import kotlinx.coroutines.withContext
  * once, waits [debounceMs] for the author to stop, then analyzes on [DispatcherProvider.default]
  * under a [budgetMs] budget, so a solve past it settles on [Verdict.Undetermined]. A newer
  * submit cancels the older one, debouncing or solving; cancellation reaches the solver through
- * the budget, and a cancelled solve never publishes. [submit] and the publish run on [scope]'s
- * dispatcher (the VM's main), so the newest submit always has the last word.
+ * the budget, and a cancelled solve never publishes. A board whose [EditorDraft.layoutKey]
+ * matches the last submitted one (e.g. a Queens answer-crown edit, 38) keeps its verdict and is
+ * never solved again; [recheck] (Check again) always solves. [submit] and the publish run on
+ * [scope]'s dispatcher (the VM's main), so the newest submit always has the last word.
  */
 internal class VerdictPipeline(
     private val scope: CoroutineScope,
@@ -33,8 +35,16 @@ internal class VerdictPipeline(
     val verdict: StateFlow<Verdict> = mutableVerdict.asStateFlow()
 
     private var pending: Job? = null
+    private var submittedKey: String? = null
 
     fun submit(draft: EditorDraft<*>) {
+        if (draft.layoutKey == submittedKey) return
+        recheck(draft)
+    }
+
+    /** Solves [draft] even when its layout matches the last one submitted. */
+    fun recheck(draft: EditorDraft<*>) {
+        submittedKey = draft.layoutKey
         pending?.cancel()
         mutableVerdict.value = Verdict.Checking
         pending = scope.launch {

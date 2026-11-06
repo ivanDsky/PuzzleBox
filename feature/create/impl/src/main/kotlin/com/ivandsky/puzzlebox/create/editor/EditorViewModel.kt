@@ -42,7 +42,7 @@ class EditorViewModel(
     private val history = EditHistory()
 
     /** The verdict card; Check again resubmits the board as it stands. */
-    val verdictCard = VerdictCardState { (state.value as? EditorUiState.Ready)?.controller?.draft?.value?.let(verdicts::submit) }
+    val verdictCard = VerdictCardState { (state.value as? EditorUiState.Ready)?.controller?.draft?.value?.let(verdicts::recheck) }
 
     /** The draft's title, rename, duplicate and delete. */
     val meta = DraftMeta(key.draftId, copyDraft, viewModelScope) { title -> lastStored?.let { write(it.copy(title = title)) } }
