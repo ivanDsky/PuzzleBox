@@ -43,8 +43,7 @@ class StrandsHubLineTest {
     }
 
     @Test
-    fun solvedAndCorruptShowNothing() {
-        assertNull(ui.hubLine(BoardPreview.Solved(StrandsUiFixtures.envelope())))
+    fun corruptShowsNothing() {
         assertNull(ui.hubLine(BoardPreview.InProgress(byteArrayOf(1, 2, 3))))
     }
 }

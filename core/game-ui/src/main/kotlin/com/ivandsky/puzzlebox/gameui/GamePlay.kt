@@ -5,7 +5,6 @@ import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
-import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.CoroutineScope
 
@@ -45,13 +44,6 @@ interface GamePlayUi {
      * I/O: the hub calls it off the main thread.
      */
     fun hubLine(today: BoardPreview): String? = null
-
-    /** Retired thumbnail model; null means the hub shows the glyph. Removed once no game overrides it. */
-    fun previewModel(preview: BoardPreview): RendererModel? = null
-
-    /** Retired thumbnail; draws nothing unless a game still overrides it. */
-    @Composable
-    fun BoardThumbnail(model: RendererModel, modifier: Modifier) {}
 
     /**
      * The game's Clear over [controller] (A14): null when the game has none, which hides
