@@ -42,10 +42,11 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 private const val CardEnterScale = 0.9f
 
 /**
- * The Studio: the [StudioTopBar] (Back, the draft's [title] over its [subtitle], the [verdict]
- * pill, the overflow) over the game's [board], drawn as the largest square that fits, with the
- * [toolStrip] under it. In [PlayLayout.TwoPane] the square sits centred in the space; on a
- * phone it hangs from the bar. The pill opens [verdictCard]'s card as a popover anchored at
+ * The Studio: the [StudioTopBar] (Back, the draft's [title] over its [subtitle] and the
+ * autosave's [saving] state, the [verdict] pill, the overflow) over the game's [board], drawn as
+ * the largest square that fits, with the [toolStrip] under it. In [PlayLayout.TwoPane] the square
+ * sits centred in the space; on a phone it hangs from the bar. The pill opens [verdictCard]'s
+ * card as a popover anchored at
  * the pill's top-right; the title and the overflow's Rename open the [RenameSheet], whose Save
  * reports through [onRename].
  */
@@ -53,6 +54,7 @@ private const val CardEnterScale = 0.9f
 fun StudioScreen(
     title: String,
     subtitle: String,
+    saving: Boolean,
     verdict: Verdict,
     verdictCard: VerdictCardState,
     layout: PlayLayout,
@@ -69,6 +71,7 @@ fun StudioScreen(
         StudioTopBar(
             title = title,
             subtitle = subtitle,
+            saving = saving,
             onBack = onBack,
             onRename = { renaming = true },
             onDuplicate = onDuplicate,
@@ -155,6 +158,7 @@ private fun StudioScreenPreview() {
         StudioScreen(
             title = "Untitled 1",
             subtitle = "Queens 4×4",
+            saving = false,
             verdict = Verdict.Incomplete(IncompleteReason("queens.unpainted", 16)),
             verdictCard = VerdictCardState(recheck = {}),
             layout = PlayLayout.SinglePane,

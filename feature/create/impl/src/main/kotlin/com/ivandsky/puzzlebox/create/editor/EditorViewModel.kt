@@ -13,17 +13,22 @@ import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import java.time.Instant
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
 /**
  * The Studio's thin composition root: opens the stored draft named by [key], holds its
- * [EditorDraft], hands every edit to its holders and writes it back. Each concern moves into
- * its own holder, wired here: VerdictPipeline (13), EditHistory (14/15), DraftMeta (16),
- * DraftAutosave (17), VerdictCardState (24), TestSolveSession (27).
+ * [EditorDraft], hands every edit to its holders and autosaves it with its undo history
+ * ([saving]; stored at once on [flush], before [duplicate] and on leaving the Studio, dropped
+ * by [delete]). Each concern moves into its own holder, wired here: VerdictPipeline (13),
+ * EditHistory (14/15), DraftMeta (16), DraftAutosave (17), VerdictCardState (24),
+ * TestSolveSession (27).
  */
 class EditorViewModel(
     private val key: EditorKey,
@@ -54,13 +59,18 @@ class EditorViewModel(
     /** The stored row as last written; null until the draft has loaded. */
     private var lastStored: Draft? = null
 
-    /** The next row to write; null until the first edit. */
-    private val pending = MutableStateFlow<Draft?>(null)
+    /**
+     * The saves' own scope: it outlives [viewModelScope], which is cancelled before [onCleared],
+     * so leaving the Studio still stores the last edit. It ends once that final save is stored.
+     */
+    private val saves = CoroutineScope(SupervisorJob() + dispatchers.main)
+    private val autosave = DraftAutosave(saves, drafts::upsert)
+
+    /** "Saving…" while an edit waits to be stored, "✓ Saved" once it is. */
+    val saving: StateFlow<Boolean> = autosave.saving
 
     init {
         viewModelScope.launch { mutableState.value = load() }
-        // One writer, newest value wins: edits faster than the store are conflated, never reordered.
-        viewModelScope.launch { pending.filterNotNull().collect { drafts.upsert(it) } }
         viewModelScope.launch {
             verdicts.verdict.collect { verdict ->
                 val ready = mutableState.value as? EditorUiState.Ready ?: return@collect
@@ -107,6 +117,32 @@ class EditorViewModel(
         history.clear()?.let(::adopt)
     }
 
+    /** App stop (A5): the pending edit is stored now, not at the window's end. */
+    fun flush() {
+        saves.launch { autosave.flush() }
+    }
+
+    /** Duplicate copies the stored row, so the pending edit is stored first and the copy has it. */
+    fun duplicate(onCopied: (draftId: String) -> Unit) {
+        saves.launch(start = CoroutineStart.UNDISPATCHED) {
+            autosave.flush()
+            meta.duplicate(onCopied)
+        }
+    }
+
+    /** Delete drops the pending edit first, so no late save brings the deleted draft back. */
+    fun delete(onDelete: (draftId: String) -> Unit) {
+        saves.launch(start = CoroutineStart.UNDISPATCHED) {
+            autosave.discard()
+            meta.delete(onDelete)
+        }
+    }
+
+    /** Back, a tab's stack dropping the Studio, Duplicate's replace: the last edit is stored, then the saves end. */
+    override fun onCleared() {
+        saves.launch { autosave.flush() }.invokeOnCompletion { saves.cancel() }
+    }
+
     /** Undo, redo, resize and clear replace the board; only these can change its size, so the subtitle follows here. */
     private fun adopt(draft: EditorDraft<*>) {
         (mutableState.value as? EditorUiState.Ready)?.let { ready ->
@@ -131,10 +167,10 @@ class EditorViewModel(
         write(base.copy(variant = draft.variant, blob = draft.encode()))
     }
 
-    /** Stamps [next] and queues it for the one writer. */
+    /** Stamps [next] and hands it to the autosave. */
     private fun write(next: Draft) {
         val stamped = next.copy(updatedAt = clock())
         lastStored = stamped
-        pending.value = stamped
+        autosave.offer(stamped)
     }
 }

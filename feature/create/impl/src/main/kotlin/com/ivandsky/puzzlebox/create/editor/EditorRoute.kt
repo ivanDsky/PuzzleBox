@@ -10,6 +10,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -19,8 +21,9 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * The Studio's DI-bound entry point: one [EditorViewModel] per [key]; the game's editor UI
- * draws the board. Duplicate reports the copy's id to [onOpen]; Delete reports the draft's id
- * to [onDelete], which leaves the Studio and deletes it with Undo.
+ * draws the board. Edits autosave, and the app's stop (ON_STOP) stores the pending one at once
+ * (A5). Duplicate stores the pending edit, then reports the copy's id to [onOpen]; Delete drops
+ * it, then reports the draft's id to [onDelete], which leaves the Studio and deletes it with Undo.
  */
 @Composable
 internal fun EditorRoute(
@@ -36,6 +39,8 @@ internal fun EditorRoute(
     val canUndo by viewModel.canUndo.collectAsStateWithLifecycle()
     val canRedo by viewModel.canRedo.collectAsStateWithLifecycle()
     val title by viewModel.meta.title.collectAsStateWithLifecycle()
+    val saving by viewModel.saving.collectAsStateWithLifecycle()
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flush() }
     val routeModifier = modifier.testTag("route.editor")
     when (val ready = state) {
         EditorUiState.Loading -> Box(routeModifier.fillMaxSize())
@@ -49,13 +54,14 @@ internal fun EditorRoute(
         is EditorUiState.Ready -> StudioScreen(
             title = title,
             subtitle = ready.subtitle,
+            saving = saving,
             verdict = ready.verdict,
             verdictCard = viewModel.verdictCard,
             layout = layout,
             onBack = onBack,
             onRename = viewModel.meta::rename,
-            onDuplicate = { viewModel.meta.duplicate(onOpen) },
-            onDelete = { viewModel.meta.delete(onDelete) },
+            onDuplicate = { viewModel.duplicate(onOpen) },
+            onDelete = { viewModel.delete(onDelete) },
             board = { boardModifier -> ready.editor.Board(ready.controller, ready.verdict, boardModifier) },
             toolStrip = { stripModifier ->
                 // The board's controller adopts every resize and undo, so its draft names the open size.

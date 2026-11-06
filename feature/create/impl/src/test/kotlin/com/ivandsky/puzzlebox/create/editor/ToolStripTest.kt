@@ -30,6 +30,7 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import java.time.Instant
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -44,6 +45,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowLooper
 
 /**
  * The Studio tool strip (spec S3, S19): Undo and Redo are enabled only when a step exists,
@@ -117,11 +119,19 @@ class ToolStripTest {
         composeRule.onNodeWithTag(REDO).assertIsEnabled()
         assertEquals(onePaint.state.draft, controller().draft.value.state.draft)
         assertEquals(3, controller().adopted.size)
-        composeRule.waitUntil { drafts.rows.getValue(DRAFT_ID).blob.contentEquals(onePaint.encode()) }
+        awaitStored { drafts.rows.getValue(DRAFT_ID).blob.contentEquals(onePaint.encode()) }
         assertTrue(drafts.rows.getValue(DRAFT_ID).blob.contentEquals(onePaint.encode()))
     }
 
     private fun controller(): FakeEditorController = ui.controllers.single()
+
+    /** Waits for the autosave's 300 ms window to store the row, running the paused main looper's clock. */
+    private fun awaitStored(condition: () -> Boolean) {
+        composeRule.waitUntil {
+            ShadowLooper.idleMainLooper(FRAME_MS, TimeUnit.MILLISECONDS)
+            condition()
+        }
+    }
 
     private fun paint(next: EditorDraft<TestDraft>) {
         composeRule.runOnIdle { controller().edit(next) }
@@ -136,6 +146,7 @@ class ToolStripTest {
 
     private companion object {
         val NOW: Instant = Instant.parse("2026-11-06T10:00:00Z")
+        const val FRAME_MS = 16L
         const val DRAFT_ID = "draft-1"
         const val STRIP = "create.tool.strip"
         const val UNDO = "create.tool.undo"
