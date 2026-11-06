@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.history
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -22,6 +23,8 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import java.time.LocalDate
+import java.util.TimeZone
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -58,6 +61,14 @@ class HistoryScreenTest {
     private var shellBacks = 0
 
     private val day: LocalDate = HistoryTestSupport.TODAY
+
+    /** "Opened" is a wall-clock date in the device zone; tests that read it pin the zone. */
+    private val hostZone: TimeZone = TimeZone.getDefault()
+
+    @After
+    fun restoreZone() {
+        TimeZone.setDefault(hostZone)
+    }
 
     private fun setContent(
         zips: List<DailyEntry> = emptyList(),
@@ -339,6 +350,7 @@ class HistoryScreenTest {
 
     @Test
     fun `an archived row carries the archive tag and its detail the streak note`() {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
         val past = day.minusDays(30)
         setContent(
             zips = listOf(HistoryTestSupport.entry(past, fetchedAtMs = fetchedAtMs(day)).copy(archived = true)),
@@ -349,6 +361,8 @@ class HistoryScreenTest {
         awaitTag("history.archived.zip/$past")
         openRow(ZIP, past)
         awaitTag("history.detail.archived")
+        composeRule.onNodeWithTag("history.detail.archived", useUnmergedTree = true)
+            .assertTextEquals("Opened Nov 3 · doesn't count toward your streak")
     }
 
     @Test

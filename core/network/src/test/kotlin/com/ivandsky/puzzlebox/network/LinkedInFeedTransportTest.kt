@@ -3,15 +3,19 @@ package com.ivandsky.puzzlebox.network
 import com.ivandsky.puzzlebox.game.FeedRequest
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.FetchResult
+import com.ivandsky.puzzlebox.game.LinkedInEdition
 import com.ivandsky.puzzlebox.game.PersistedQuery
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
+import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.RecordedRequest
 import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -294,5 +298,55 @@ class LinkedInFeedTransportTest {
         val error = (result as FetchResult.Err).error as FetchError.Unavailable
         assertTrue(error.detail!!.contains("persisted-query HTTP 403"))
         assertEquals(4, server.requestCount)
+    }
+
+    @Test
+    fun `a by-id GET refused for csrf loads once the page GET hands out the session`() = runBlocking {
+        val wire = LinkedInLikeWire(sessionId = "ajax:5490")
+        server.dispatcher = wire
+
+        val result = transport.fetch(zipEdition.request(549))
+
+        assertTrue("expected Ok, got $result", result is FetchResult.Ok)
+        assertEquals("ajax:5490", wire.acceptedCsrfToken)
+    }
+
+    private val zipEdition = LinkedInEdition(
+        gameTypeId = 6,
+        day1 = LocalDate.of(2025, 3, 18),
+        path = "games/zip/",
+        objectName = "trailGamePuzzle",
+    )
+
+    /**
+     * The wire as LinkedIn serves an anonymous session (F1, research 01 §2): the stream is
+     * data-less and sets no `JSESSIONID`; only the plain page GET does; games-by-id refuses
+     * any request whose `csrf-token` is not that session, and answers a games-by-id body
+     * otherwise.
+     */
+    private class LinkedInLikeWire(private val sessionId: String) : Dispatcher() {
+
+        @Volatile
+        var acceptedCsrfToken: String? = null
+            private set
+
+        override fun dispatch(request: RecordedRequest): MockResponse {
+            val path = request.path.orEmpty()
+            return when {
+                path.startsWith("/voyager/api/graphql") -> byId(request)
+                request.getHeader("x-li-rsc-stream") != null -> MockResponse().setBody("2:\"\$Sreact.fragment\"\n5:I[0]")
+                else -> MockResponse().setBody("<html></html>").addHeader("Set-Cookie", "JSESSIONID=$sessionId; Path=/")
+            }
+        }
+
+        private fun byId(request: RecordedRequest): MockResponse {
+            val token = request.getHeader("csrf-token")
+            if (token != sessionId) return MockResponse().setResponseCode(403).setBody("CSRF check failed.")
+            acceptedCsrfToken = token
+            return MockResponse().setBody(
+                """{"data":{"identityDashGamesById":{"entityUrn":"urn:li:fsd_game:(guest,6,549)",""" +
+                    """"gamePuzzle":{"trailGamePuzzle":{"gridSize":2,"orderedSequence":[0,3]}}}}}""",
+            )
+        }
     }
 }

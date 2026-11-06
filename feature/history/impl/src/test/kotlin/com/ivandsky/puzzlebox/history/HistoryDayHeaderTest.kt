@@ -61,12 +61,13 @@ class HistoryDayHeaderTest {
         tangos: List<DailyEntry> = emptyList(),
         records: List<CompletionRecord> = emptyList(),
         savedSlots: Map<PlaySlot, Long> = emptyMap(),
+        archiveStart: LocalDate = dayOne,
     ) {
         val daily = FakeDailyRepository().apply {
             setHistory(ZIP, zips)
             setHistory(TANGO, tangos)
-            setArchiveRange(ZIP, dayOne..today)
-            setPuzzleNumbers(ZIP) { day -> NUMBER_TODAY - today.toEpochDay().minus(day.toEpochDay()).toInt() }
+            setArchiveRange(ZIP, archiveStart..today)
+            setPuzzleNumbers(ZIP, ::puzzleNumber)
         }
         val saved = FakeSavedPlayRepository().apply {
             runBlocking { savedSlots.forEach { (slot, elapsed) -> save(slot, byteArrayOf(1), elapsed) } }
@@ -84,6 +85,8 @@ class HistoryDayHeaderTest {
             }
         }
     }
+
+    private fun puzzleNumber(day: LocalDate): Int = NUMBER_TODAY - today.toEpochDay().minus(day.toEpochDay()).toInt()
 
     private fun hasTag(tag: String) =
         composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
@@ -172,6 +175,31 @@ class HistoryDayHeaderTest {
         scrollTo("history.day_filter")
 
         assertFalse("All shows no day header", hasTag(HEADER))
+    }
+
+    @Test
+    fun `the calendar pages back months to day1, and a day there opens its header`() {
+        // Spec SC9: an archive that opens in August, with no row anywhere.
+        val augustDayOne = LocalDate.of(2026, 8, 20)
+        val between = LocalDate.of(2026, 9, 17)
+        setContent(archiveStart = augustDayOne)
+        scrollTo("history.calendar.expand")
+        composeRule.onNodeWithTag("history.calendar.expand").performClick()
+        composeRule.waitUntil(5_000) { hasTag("history.calendar.grid") }
+
+        repeat(3) { // November → August
+            composeRule.onNodeWithTag("history.calendar.prev").assertIsEnabled().performClick()
+            composeRule.waitForIdle()
+        }
+        composeRule.waitUntil(5_000) { hasTag(dayTag(augustDayOne)) }
+        composeRule.onNodeWithTag(dayTag(augustDayOne)).assertIsEnabled()
+        composeRule.onNodeWithTag(dayTag(augustDayOne.minusDays(1))).assertIsNotEnabled()
+        composeRule.onNodeWithTag("history.calendar.prev").assertIsNotEnabled()
+
+        composeRule.onNodeWithTag("history.calendar.next").assertIsEnabled().performClick()
+        composeRule.waitUntil(5_000) { hasTag(dayTag(between)) }
+        openHeader(between)
+        assertHeader("Zip #${puzzleNumber(between)}", "Needs a connection the first time", "Play")
     }
 
     private companion object {

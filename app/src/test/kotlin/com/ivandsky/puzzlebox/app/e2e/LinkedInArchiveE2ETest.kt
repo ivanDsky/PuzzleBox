@@ -116,13 +116,13 @@ class LinkedInArchiveE2ETest {
     }
 
     @Test
-    fun `SC5 an offline past Tango day needs a connection and never falls back to the seed`() {
-        val tango = GAMES.single { it.id == GameId("tango") }
+    fun `SC5 an offline past day needs a connection, and Tango never falls back to the seed`() = forEachGame { game ->
         val transport = FakeFeedTransport()
         val graph = graph(transport)
-        runBlocking { assertFailed<FetchError.Unavailable>(graph.open(tango, tango.day(1))) }
-        assertEquals("the by-id request was tried once", listOf(FakeFeedTransport.keyOf(tango.byId(1))), transport.requests)
-        assertEquals("nothing stored", emptyList<Pair<LocalDate, Int?>>(), runBlocking { graph.rows(tango) })
+        // Failed, not Ready: for Tango this is also "never the bundled seed".
+        assertFailed<FetchError.Unavailable>(graph.open(game, game.day(1)))
+        assertEquals("the by-id request was tried once", listOf(FakeFeedTransport.keyOf(game.byId(1))), transport.requests)
+        assertEquals("nothing stored", emptyList<Pair<LocalDate, Int?>>(), graph.rows(game))
     }
 
     @Test
