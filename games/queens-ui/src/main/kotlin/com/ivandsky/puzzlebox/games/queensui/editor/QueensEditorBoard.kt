@@ -1,27 +1,51 @@
 package com.ivandsky.puzzlebox.games.queensui.editor
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.toSize
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.queens.QueensVariants
@@ -29,38 +53,65 @@ import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.games.queensui.LocalQueensReducedMotion
 import com.ivandsky.puzzlebox.games.queensui.QueensBoardModel
+import com.ivandsky.puzzlebox.games.queensui.QueensBrand
 import com.ivandsky.puzzlebox.games.queensui.QueensCell
 import com.ivandsky.puzzlebox.games.queensui.QueensCellVisual
 import com.ivandsky.puzzlebox.games.queensui.QueensRegionPalette
 import com.ivandsky.puzzlebox.games.queensui.drawCellEdges
 import com.ivandsky.puzzlebox.gameui.BoardGrid
+import kotlin.math.ceil
 
 /** What a cell's semantics say when no region is painted on it yet. */
 internal const val UNPAINTED_DESCRIPTION = "unpainted"
 
 /**
- * The editor's square board: the play board's region fills and edges over the
- * [controller]'s draft, with an unpainted cell left on the surface tone. A tap paints the
- * cell under it (edge-clamped, as in play). Each cell says its region's hue in its state
- * description, so tests read the painting without pixels.
+ * The editor's square board (spec S3, select then colour): the play board's region fills
+ * and edges over the [controller]'s draft, an unpainted cell left on the surface tone. A tap
+ * toggles the cell under it (edge-clamped, as in play); a drag adds every cell it crosses.
+ * The selection wears an accent wash and outline, and while it is non-empty the colour
+ * ring sits at the lift point, pushed back inside the board. Each cell says its region's
+ * hue in its state description, so tests read the painting without pixels.
  */
 @Composable
 internal fun QueensEditorBoard(controller: QueensEditorController, modifier: Modifier = Modifier) {
     val draft by controller.draft.collectAsState()
+    val selection by controller.selection.collectAsState()
     val board = draft.state.draft as QueensDraft
     val model = remember(board) { modelOf(board) }
     val n = model.n
-    CompositionLocalProvider(LocalQueensReducedMotion provides rememberReducedMotion()) {
+    val reducedMotion = rememberReducedMotion()
+    var lift by remember { mutableStateOf(Offset.Zero) }
+    var dragging by remember { mutableStateOf(false) }
+    var boardSize by remember { mutableStateOf(IntSize.Zero) }
+    CompositionLocalProvider(LocalQueensReducedMotion provides reducedMotion) {
         Box(
             modifier = modifier
                 .aspectRatio(1f)
                 .testTag("queens.editor.board")
+                .onSizeChanged { boardSize = it }
                 .pointerInput(controller, n) {
                     detectTapGestures(onTap = { offset ->
-                        val col = (offset.x / size.width * n).toInt().coerceIn(0, n - 1)
-                        val row = (offset.y / size.height * n).toInt().coerceIn(0, n - 1)
-                        controller.paint(row * n + col)
+                        lift = offset
+                        controller.tap(cellAt(offset, size.toSize(), n))
                     })
+                }
+                .pointerInput(controller, n) {
+                    var last = Offset.Zero
+                    detectDragGestures(
+                        onDragStart = { start ->
+                            dragging = true
+                            last = start
+                            controller.add(listOf(cellAt(start, size.toSize(), n)))
+                        },
+                        onDragEnd = {
+                            dragging = false
+                            lift = last
+                        },
+                        onDragCancel = { dragging = false },
+                    ) { change, _ ->
+                        controller.add(crossed(last, change.position, size.toSize(), n))
+                        last = change.position
+                    }
                 },
         ) {
             val unpainted = MaterialTheme.colorScheme.surfaceContainerHighest
@@ -87,8 +138,106 @@ internal fun QueensEditorBoard(controller: QueensEditorController, modifier: Mod
             )
             val edgeInk = MaterialTheme.colorScheme.onSurface
             val hintColor = LocalBoardColors.current.boardSelection
-            Canvas(Modifier.matchParentSize()) { drawCellEdges(model, hintColor, edgeInk) }
+            val accent = QueensBrand.accent.colors().accent
+            Canvas(Modifier.matchParentSize()) {
+                drawCellEdges(model, hintColor, edgeInk)
+                drawSelection(selection, n, accent)
+            }
+            SelectionRing(
+                visible = selection.isNotEmpty() && !dragging,
+                board = board,
+                selection = selection,
+                lift = lift,
+                boardSize = boardSize,
+                reducedMotion = reducedMotion,
+                onPick = controller::pick,
+            )
         }
+    }
+}
+
+/** The ring centred on [lift], pushed back inside the board; Scale in + Fade in from the lift point. */
+@Composable
+private fun SelectionRing(
+    visible: Boolean,
+    board: QueensDraft,
+    selection: Set<Int>,
+    lift: Offset,
+    boardSize: IntSize,
+    reducedMotion: Boolean,
+    onPick: (Int) -> Unit,
+) {
+    val diameter = with(LocalDensity.current) { QueensEditorDefaults.ringDiameter(board.size).toPx() }
+    val half = diameter / 2
+    val centre = Offset(clampCentre(lift.x, half, boardSize.width.toFloat()), clampCentre(lift.y, half, boardSize.height.toFloat()))
+    val topLeft = centre - Offset(half, half)
+    val origin = TransformOrigin(
+        ((lift.x - topLeft.x) / diameter).coerceIn(0f, 1f),
+        ((lift.y - topLeft.y) / diameter).coerceIn(0f, 1f),
+    )
+    val used = remember(board) { board.regions.filterTo(HashSet()) { it != QueensDraft.UNPAINTED } }
+    val current = selection.map { board.regions[it] }.distinct().singleOrNull()?.takeIf { it != QueensDraft.UNPAINTED }
+    AnimatedVisibility(
+        visible = visible,
+        modifier = Modifier.offset { IntOffset(topLeft.x.toInt(), topLeft.y.toInt()) },
+        enter = if (reducedMotion) {
+            EnterTransition.None
+        } else {
+            val spec = tween<Float>(QueensEditorDefaults.ringEnterMillis, easing = MotionTokens.EasingEmphasizedDecelerate)
+            scaleIn(spec, QueensEditorDefaults.ringEnterScale, origin) + fadeIn(spec)
+        },
+        exit = if (reducedMotion) {
+            ExitTransition.None
+        } else {
+            val spec = tween<Float>(QueensEditorDefaults.ringExitMillis, easing = MotionTokens.EasingEmphasizedAccelerate)
+            scaleOut(spec, QueensEditorDefaults.ringExitScale, origin) + fadeOut(spec)
+        },
+    ) {
+        QueensColourRing(colours = board.size, used = used, current = current, onPick = onPick)
+    }
+}
+
+/** Adds the [cells] a drag crossed; a cell already selected stays selected. */
+private fun QueensEditorController.add(cells: List<Int>) {
+    cells.forEach { if (it !in selection.value) tap(it) }
+}
+
+/** Keeps a [half]-wide ring inside [extent]; a board smaller than the ring centres it. */
+private fun clampCentre(at: Float, half: Float, extent: Float): Float =
+    if (extent < 2 * half) extent / 2 else at.coerceIn(half, extent - half)
+
+private fun cellAt(offset: Offset, size: Size, n: Int): Int {
+    val col = (offset.x / size.width * n).toInt().coerceIn(0, n - 1)
+    val row = (offset.y / size.height * n).toInt().coerceIn(0, n - 1)
+    return row * n + col
+}
+
+/** Every cell on the segment [from]→[to], sampled at a quarter cell so a fast drag skips none. */
+private fun crossed(from: Offset, to: Offset, size: Size, n: Int): List<Int> {
+    val step = minOf(size.width, size.height) / n / 4
+    val samples = ceil((to - from).getDistance() / step).toInt().coerceAtLeast(1)
+    return (0..samples).map { cellAt(from + (to - from) * (it / samples.toFloat()), size, n) }.distinct()
+}
+
+/** Accent wash on each selected cell, and an accent outline along the selection's outer edge. */
+private fun DrawScope.drawSelection(selection: Set<Int>, n: Int, accent: Color) {
+    if (selection.isEmpty()) return
+    val cw = size.width / n
+    val ch = size.height / n
+    val stroke = QueensEditorDefaults.selectionStrokeWeight.toPx()
+    val inset = stroke / 2
+    val wash = accent.copy(alpha = QueensEditorDefaults.selectionOverlayAlpha)
+    fun selected(row: Int, col: Int) = row in 0 until n && col in 0 until n && (row * n + col) in selection
+    for (idx in selection) {
+        val row = idx / n
+        val col = idx % n
+        val left = col * cw
+        val top = row * ch
+        drawRect(wash, Offset(left, top), Size(cw, ch))
+        if (!selected(row - 1, col)) drawLine(accent, Offset(left, top + inset), Offset(left + cw, top + inset), stroke)
+        if (!selected(row + 1, col)) drawLine(accent, Offset(left, top + ch - inset), Offset(left + cw, top + ch - inset), stroke)
+        if (!selected(row, col - 1)) drawLine(accent, Offset(left + inset, top), Offset(left + inset, top + ch), stroke)
+        if (!selected(row, col + 1)) drawLine(accent, Offset(left + cw - inset, top), Offset(left + cw - inset, top + ch), stroke)
     }
 }
 
@@ -112,12 +261,19 @@ private fun modelOf(board: QueensDraft): QueensBoardModel = QueensBoardModel(
 @Preview(name = "Compact width", widthDp = 360, heightDp = 420, showBackground = true)
 @Composable
 private fun QueensEditorBoardPreview() {
+    PuzzleBoxTheme { QueensEditorBoard(previewController(), Modifier.fillMaxWidth()) }
+}
+
+@PuzzleBoxPreviews
+@Preview(name = "Selection with ring", widthDp = 360, heightDp = 420, showBackground = true)
+@Composable
+private fun QueensEditorBoardSelectedPreview() {
+    val controller = previewController().apply { listOf(5, 6, 9).forEach(::tap) }
+    PuzzleBoxTheme { QueensEditorBoard(controller, Modifier.fillMaxWidth()) }
+}
+
+private fun previewController(): QueensEditorController {
     val blank = EditorDraft.fresh(QueensEditor, QueensVariants.variant(4).id)
     val painted = blank.state.draft.copy(regions = List(16) { if (it % 4 == 3) QueensDraft.UNPAINTED else it / 4 })
-    PuzzleBoxTheme {
-        QueensEditorBoard(
-            controller = QueensEditorController(EditorDraft(QueensEditor, blank.state.copy(draft = painted))) {},
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
+    return QueensEditorController(EditorDraft(QueensEditor, blank.state.copy(draft = painted))) {}
 }

@@ -1,18 +1,19 @@
 package com.ivandsky.puzzlebox.games.queensui.editor
 
-import com.ivandsky.puzzlebox.game.Command
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
+import com.ivandsky.puzzlebox.games.queens.editor.paint
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * The Queens editor screen's live draft. A tap paints one cell with the next region
- * colour ([paint]); each paint is one undoable step on the draft's history and goes out
- * through [onEdit]. The VM hands replacement drafts back through [adopt].
+ * The Queens editor screen's live draft and selection (spec S3, select then colour). A tap
+ * toggles a cell in the [selection] ([QueensSelection]); a ring [pick] paints every selected
+ * cell as one undoable step, sends the new draft out through [onEdit], and clears the
+ * selection. The VM hands replacement drafts back through [adopt].
  */
 class QueensEditorController(
     initial: EditorDraft<*>,
@@ -20,29 +21,43 @@ class QueensEditorController(
 ) : GameEditorController {
 
     private val current = MutableStateFlow(typed(initial))
+    private val selected = MutableStateFlow<Set<Int>>(emptySet())
 
     override val draft: StateFlow<EditorDraft<*>> = current.asStateFlow()
 
+    /** The selected cells, row-major indices; the ring is open while it is non-empty. */
+    val selection: StateFlow<Set<Int>> = selected.asStateFlow()
+
     override fun adopt(draft: EditorDraft<*>) {
-        current.value = typed(draft)
+        val next = typed(draft)
+        // A resize renumbers every cell, so the old selection no longer means anything.
+        if (next.state.draft.size != current.value.state.draft.size) cancel()
+        current.value = next
     }
 
-    /** Cycles [cell] to the next region: unpainted → 0, then 0, 1, …, size − 1, 0. */
-    internal fun paint(cell: Int) {
+    /** Toggles [cell] in the selection. Not an edit. */
+    fun tap(cell: Int) {
+        selected.value = QueensSelection(selected.value).tap(cell).cells
+    }
+
+    /**
+     * Paints the selection with [region] (`QueensDraft.UNPAINTED` unpaints) as one
+     * `QueensDraftCommand.Paint` step, then clears the selection. Nothing selected: no edit.
+     */
+    fun pick(region: Int) {
+        val chosen = selected.value
+        if (chosen.isEmpty()) return
         val board = current.value.state.draft
-        val before = board.regions[cell]
-        val after = if (before == QueensDraft.UNPAINTED) 0 else (before + 1) % board.size
-        val next = current.value.apply(PaintCell(cell, before, after))
+        require(region == QueensDraft.UNPAINTED || region in 0 until board.size) { "no region $region on a ${board.size}×${board.size} board" }
+        val next = current.value.apply(board.paint(chosen, region))
         current.value = next
+        cancel()
         onEdit(next)
     }
 
-    /** One cell's region change. Ticket 02 replaces it with the shared QueensDraftCommand. */
-    private class PaintCell(val cell: Int, val before: Int, val after: Int) : Command<QueensDraft> {
-        override fun apply(state: QueensDraft): QueensDraft = state.painted(after)
-        override fun revert(state: QueensDraft): QueensDraft = state.painted(before)
-        private fun QueensDraft.painted(region: Int): QueensDraft =
-            copy(regions = regions.toMutableList().also { it[cell] = region })
+    /** Drops the selection without an edit. */
+    fun cancel() {
+        selected.value = emptySet()
     }
 
     private companion object {
