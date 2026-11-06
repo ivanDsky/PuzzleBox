@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 
 /**
@@ -105,12 +106,12 @@ fun DragTraceBoard(
                         var workingPath = latestPath.toList()
                         val downCell = geometry.cellAt(down.position)
                         var dragged = false
-                        var currentCell = downCell
+                        var lastPosition = down.position
 
                         /** One drag step: previous-cell draw-back retracts by one, hook-approved
                          *  cells extend, hook-refused cells report Refused (no state change),
-                         *  earlier traced cells are ignored. */
-                        fun dragStep(cell: GridCell) {
+                         *  earlier traced cells are ignored. Returns false only on a refusal. */
+                        fun dragStep(cell: GridCell): Boolean {
                             val trimmed = workingPath.dropLast(1)
                             when {
                                 cell == workingPath.lastOrNull() -> Unit // tail re-entry
@@ -123,9 +124,36 @@ fun DragTraceBoard(
                                     workingPath = workingPath + cell
                                     latestOnEvent(DragEvent.Extend(cell))
                                 }
-                                // The trace stays put; the game decides whether to explain (A7).
-                                else -> latestOnEvent(DragEvent.Refused(cell))
+                                else -> {
+                                    // The trace stays put; the game decides whether to explain (A7).
+                                    latestOnEvent(DragEvent.Refused(cell))
+                                    return false
+                                }
                             }
+                            return true
+                        }
+
+                        fun movesTrace(cell: GridCell): Boolean =
+                            cell == workingPath.dropLast(1).lastOrNull() ||
+                                (cell !in workingPath && latestHooks.canExtend(workingPath, cell))
+
+                        /** Steps through every cell the finger crossed since the last sample, so a
+                         *  fast swipe never leaves gaps; stops at the first refusal. */
+                        fun walkTo(position: Offset): Boolean {
+                            val steps = geometry.walkCells(lastPosition, position)
+                            lastPosition = position
+                            for (step in steps) {
+                                val accepted = when (step) {
+                                    is WalkStep.Enter -> dragStep(step.cell)
+                                    is WalkStep.Corner -> {
+                                        val side = listOf(step.first, step.second).firstOrNull(::movesTrace)
+                                        // No side cell fits: an 8-way trace may still take the diagonal.
+                                        (side == null || dragStep(side)) && dragStep(step.diagonal)
+                                    }
+                                }
+                                if (!accepted) return false
+                            }
+                            return true
                         }
 
                         while (true) {
@@ -141,16 +169,12 @@ fun DragTraceBoard(
                                     // (empty path + start cell, or the tail), then follows it.
                                     dragged = true
                                     dragStep(downCell)
-                                    val cell = geometry.cellAt(change.position)
-                                    if (cell != currentCell) {
-                                        currentCell = cell
-                                        dragStep(cell)
-                                    }
-                                } else {
-                                    val cell = geometry.cellAt(change.position)
-                                    if (cell != currentCell) {
-                                        currentCell = cell
-                                        dragStep(cell)
+                                }
+                                val samples = change.historical.map { it.position } + change.position
+                                for (sample in samples) {
+                                    if (!walkTo(sample)) {
+                                        lastPosition = change.position
+                                        break
                                     }
                                 }
                             } else {
