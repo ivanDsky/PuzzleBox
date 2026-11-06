@@ -24,7 +24,7 @@ internal fun QueensGhostLayer(idx: Int, ghost: Boolean, reducedMotion: Boolean) 
         drawQueen(
             tint,
             QueensBoardDefaults.queenHeightFraction,
-            alpha = QueensBoardDefaults.ghostOutlineAlpha,
+            alpha = QueensEditorDefaults.ghostOutlineAlpha,
             style = Stroke(
                 width = QueensBoardDefaults.ghostStrokeWeight.toPx(),
                 join = StrokeJoin.Round,

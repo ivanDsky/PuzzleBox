@@ -13,10 +13,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
+import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queensui.QueensBoardDefaults
@@ -52,9 +55,10 @@ internal fun rememberQueensRejection(controller: QueensEditorController): Queens
 /**
  * Cell [idx]'s answer-crown layer over its fill: the play board's crown when [crowned]
  * (tag `queens.editor.cell.<idx>.crown`), else its automatic × when [crossed] (tag
- * `.autoX`), both in the region's on-ink. While [rejection] points here the cell wears the
- * error wash and plays the Reject jolt (a medium-bouncy spring dip and back); reduced
- * motion keeps the wash without the jolt. Draws nothing on a plain cell.
+ * `.autoX`), both in the region's on-ink ([crownInk]; over the clash wash when [clash]).
+ * While [rejection] points here the cell wears the error wash and plays the Reject jolt
+ * (a medium-bouncy spring dip and back); reduced motion keeps the wash without the jolt.
+ * Draws nothing on a plain cell.
  */
 @Composable
 internal fun QueensCrownLayer(
@@ -62,15 +66,18 @@ internal fun QueensCrownLayer(
     region: Int,
     crowned: Boolean,
     crossed: Boolean,
+    clash: Boolean,
     rejection: QueensRejection?,
     reducedMotion: Boolean,
 ) {
     if (!crowned && !crossed) return
     val dark = isSystemInDarkTheme()
-    val onSurface = MaterialTheme.colorScheme.onSurface
-    val scrim = MaterialTheme.colorScheme.scrim
-    val ink = remember(region, dark, onSurface, scrim) {
-        if (region == QueensDraft.UNPAINTED) onSurface else QueensRegionPalette.onInkFor(QueensRegionPalette.fill(region, dark), onSurface, scrim)
+    val scheme = MaterialTheme.colorScheme
+    val clashWash = LocalBoardColors.current.editorClashFill.takeIf { clash }
+    val ink = remember(region, dark, scheme, clashWash) {
+        val fill = if (region == QueensDraft.UNPAINTED) scheme.surfaceContainerHighest else QueensRegionPalette.fill(region, dark)
+        if (region == QueensDraft.UNPAINTED && clashWash == null) scheme.onSurface
+        else crownInk(fill, clashWash, scheme.onSurface, scheme.scrim, scheme.surface)
     }
     val wash = MaterialTheme.colorScheme.errorContainer.copy(alpha = REJECT_WASH_ALPHA)
     val mine = rejection?.takeIf { it.cell == idx }
@@ -103,3 +110,14 @@ private const val REJECT_SCALE = 0.86f
 
 /** The refused cell's error wash, as Zip's rejected cell. */
 private const val REJECT_WASH_ALPHA = 0.7f
+
+/**
+ * The crown and ×'s ink on a cell with [fill]: the region's on-ink, or, under the clash
+ * [wash] (drawn beneath the crown), the highest-contrast of [onSurface], [scrim] and
+ * [surface] over the washed fill, so the crown keeps its 4.5:1 there too.
+ */
+internal fun crownInk(fill: Color, wash: Color?, onSurface: Color, scrim: Color, surface: Color): Color {
+    if (wash == null) return QueensRegionPalette.onInkFor(fill, onSurface, scrim)
+    val washed = wash.compositeOver(fill)
+    return listOf(onSurface, scrim, surface).maxBy { QueensRegionPalette.contrast(it, washed) }
+}
