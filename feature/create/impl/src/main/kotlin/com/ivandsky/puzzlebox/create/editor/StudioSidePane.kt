@@ -106,7 +106,13 @@ private fun PreviewPane(verdict: Verdict) {
             )
         },
         actionArea = { areaModifier ->
-            ActionArea(passed = null, canTestSolve = verdict is Verdict.Unique, onTestSolve = {}, modifier = areaModifier)
+            ActionArea(
+                passed = null,
+                canTestSolve = verdict is Verdict.Unique,
+                onTestSolve = {},
+                blocks = emptyList(),
+                modifier = areaModifier,
+            )
         },
         modifier = Modifier.fillMaxHeight(),
     )
