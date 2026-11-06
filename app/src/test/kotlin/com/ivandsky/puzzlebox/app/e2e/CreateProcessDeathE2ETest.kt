@@ -68,6 +68,8 @@ class CreateProcessDeathE2ETest {
             tap("create.empty.game.queens")
             awaitTag(cell(0))
             val blank = regionOf(cell(0))
+            // A new draft opens in Crown mode (36); painting needs Paint.
+            tap("queens.editor.mode.paint")
             (0..2).forEach { i ->
                 tap(cell(i))
                 tap("queens.editor.ring.slot.${i + 1}")
