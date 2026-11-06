@@ -17,7 +17,9 @@ import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.data.update.AppReleaseRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.di.domainModule
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.FetchError
@@ -35,6 +37,7 @@ import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.repository.FakeAppReleaseRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -119,6 +122,9 @@ class HomeRouteTest {
                     single<SavedPlayRepository> { saved }
                     single<GameCalendar> { FakeGameCalendar(today) }
                     single<GamePlayRegistry> { GamePlayRegistry(emptyList()) }
+                    // Resume also checks for an update: no release known, so no pill.
+                    single<AppReleaseRepository> { FakeAppReleaseRepository() }
+                    single { AppBuild(versionName = "1.0.0", checksForUpdates = true) }
                 },
                 domainModule,
                 homeModule,
