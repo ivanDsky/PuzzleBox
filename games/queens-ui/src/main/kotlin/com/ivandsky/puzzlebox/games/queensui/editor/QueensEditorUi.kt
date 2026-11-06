@@ -1,11 +1,7 @@
 package com.ivandsky.puzzlebox.games.queensui.editor
 
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextOverflow
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -15,7 +11,7 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.model.GameId
 
-/** Queens' editor UI: the paint-a-cell board over a [QueensEditorController]. */
+/** Queens' editor UI: the crown-and-paint board over a [QueensEditorController]. */
 object QueensEditorUi : GameEditorUi {
 
     override val gameId: GameId = QueensDefinition.id
@@ -35,16 +31,9 @@ object QueensEditorUi : GameEditorUi {
         QueensEditorBoard(controller as QueensEditorController, verdict, modifier)
     }
 
-    /** The paint gesture, in one line (prototype 02 "normal" hint row). */
+    /** The Crown | Paint mode toggle (flow C), riding the tool strip's hint slot. */
     @Composable
     override fun ToolHint(controller: GameEditorController, modifier: Modifier) {
-        Text(
-            text = "Tap a cell to cycle its region colour",
-            modifier = modifier.testTag("queens.editor.hint"),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        QueensModeToggle(controller as QueensEditorController, modifier)
     }
 }

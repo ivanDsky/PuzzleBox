@@ -1,19 +1,26 @@
 package com.ivandsky.puzzlebox.games.queensui.editor
 
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.games.queens.editor.QueensCrowns
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.games.queens.editor.paint
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * The Queens editor screen's live draft and selection (spec S3, select then colour). A tap
- * toggles a cell in the [selection] ([QueensSelection]); [selectAllOf] and [selectArea] grow
- * it; a ring [pick] paints every selected cell as one undoable step, sends the new draft out
- * through [onEdit], and clears the selection. The VM hands replacement drafts back through [adopt].
+ * The Queens editor screen's live draft, [mode] and selection. In [QueensEditorMode.Crown] a
+ * tap places or removes an answer crown ([QueensCrowns.toggle]) as one undoable step, and a
+ * refused tap (a crossed cell) is announced on [rejected] instead. In [QueensEditorMode.Paint]
+ * (spec S3, select then colour) a tap toggles a cell in the [selection] ([QueensSelection]);
+ * [selectAllOf] and [selectArea] grow it; a ring [pick] paints every selected cell as one
+ * undoable step and clears the selection. Every edit goes out through [onEdit]; the VM hands
+ * replacement drafts back through [adopt].
  */
 class QueensEditorController(
     initial: EditorDraft<*>,
@@ -22,11 +29,19 @@ class QueensEditorController(
 
     private val current = MutableStateFlow(typed(initial))
     private val selected = MutableStateFlow<Set<Int>>(emptySet())
+    private val currentMode = MutableStateFlow(openingMode(current.value.state.draft))
+    private val refused = MutableSharedFlow<Int>(extraBufferCapacity = 1)
 
     override val draft: StateFlow<EditorDraft<*>> = current.asStateFlow()
 
     /** The selected cells, row-major indices; the ring is open while it is non-empty. */
     val selection: StateFlow<Set<Int>> = selected.asStateFlow()
+
+    /** What a [tap] does; not persisted. */
+    val mode: StateFlow<QueensEditorMode> = currentMode.asStateFlow()
+
+    /** The cell of each refused crown tap; the board plays the Reject jolt on it. */
+    val rejected: SharedFlow<Int> = refused.asSharedFlow()
 
     override fun adopt(draft: EditorDraft<*>) {
         val next = typed(draft)
@@ -35,9 +50,18 @@ class QueensEditorController(
         current.value = next
     }
 
-    /** Toggles [cell] in the selection. Not an edit. */
+    /** Switches what a [tap] does and clears the selection. Not an edit. */
+    fun setMode(mode: QueensEditorMode) {
+        cancel()
+        currentMode.value = mode
+    }
+
+    /** Crown: toggles an answer crown on [cell] (an edit) or emits it on [rejected]. Paint: toggles [cell] in the selection. */
     fun tap(cell: Int) {
-        selected.value = QueensSelection(selected.value).tap(cell).cells
+        when (currentMode.value) {
+            QueensEditorMode.Crown -> crown(cell)
+            QueensEditorMode.Paint -> selected.value = QueensSelection(selected.value).tap(cell).cells
+        }
     }
 
     /** Grows the selection by every cell painted [region] (`QueensDraft.UNPAINTED` too). Not an edit. */
@@ -70,12 +94,29 @@ class QueensEditorController(
         selected.value = emptySet()
     }
 
+    private fun crown(cell: Int) {
+        val command = QueensCrowns.toggle(current.value.state.draft, cell)
+        if (command == null) {
+            refused.tryEmit(cell)
+            return
+        }
+        val next = current.value.apply(command)
+        current.value = next
+        onEdit(next)
+    }
+
     private companion object {
         /** The registry hands this controller Queens drafts only; anything else is a wiring bug. */
         fun typed(draft: EditorDraft<*>): EditorDraft<QueensDraft> {
             require(draft.editor === QueensEditor) { "not a Queens draft: ${draft.gameId.value}" }
             // Safe: the editor is QueensEditor, so the draft and its history are Queens values.
             return draft as EditorDraft<QueensDraft>
+        }
+
+        /** Crown for a new draft (nothing painted outside the crowns), else Paint. */
+        fun openingMode(board: QueensDraft): QueensEditorMode {
+            val painted = board.regions.indices.any { it !in board.crowns && board.regions[it] != QueensDraft.UNPAINTED }
+            return if (painted) QueensEditorMode.Paint else QueensEditorMode.Crown
         }
     }
 }

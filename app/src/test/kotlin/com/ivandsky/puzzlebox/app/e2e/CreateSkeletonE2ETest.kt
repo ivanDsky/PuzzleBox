@@ -20,7 +20,7 @@ import org.robolectric.annotation.Config
 /**
  * Ticket 01's walking skeleton over the real shell: on the first-time Create root, one tap on
  * Queens in the empty state's game list opens a blank Queens at its default size (8×8) in the
- * Studio (verdict Incomplete), a tap selects a cell and a ring pick paints it, the draft is
+ * Studio (verdict Incomplete), in Paint mode a tap selects a cell and a ring pick paints it, the draft is
  * listed on the Create root, and after a relaunch the draft reopens with the same regions.
  * The drafts store is the fake "disk" that outlives the relaunch.
  */
@@ -51,6 +51,7 @@ class CreateSkeletonE2ETest {
             val blank = regionOf(CELL_0)
             assertEquals("a new draft starts unpainted", "unpainted", blank)
 
+            tap(PAINT_MODE) // a new draft opens in Crown (36)
             tap(CELL_0)
             tap(RING_NEXT)
             val painted = regionOf(CELL_0)
@@ -81,5 +82,6 @@ class CreateSkeletonE2ETest {
         const val CELL_0 = "queens.editor.cell.0"
         const val TIMEOUT_MS = 5_000L
         const val RING_NEXT = "queens.editor.ring.slot.1"
+        const val PAINT_MODE = "queens.editor.mode.paint"
     }
 }
