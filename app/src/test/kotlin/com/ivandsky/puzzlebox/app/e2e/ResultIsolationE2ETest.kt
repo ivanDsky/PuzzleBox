@@ -101,7 +101,7 @@ class ResultIsolationE2ETest {
         profile: List<NavKey> = listOf(ProfileKey),
     ) = NavigationState(tab = tab, stacks = listOf(home, play, profile))
 
-    private val todaySlot = PlaySlot(ZipDefinition.id, E2E_TODAY)
+    private val todaySlot = PlaySlot.Daily(ZipDefinition.id, E2E_TODAY)
 
     private companion object {
         const val GAME = "route.game"

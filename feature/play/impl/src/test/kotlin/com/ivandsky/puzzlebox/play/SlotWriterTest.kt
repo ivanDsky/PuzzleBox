@@ -38,7 +38,7 @@ class SlotWriterTest {
 
     private val alpha = TestGames.alpha
     private val today = LocalDate.parse("2026-11-04")
-    private val slot = PlaySlot(alpha, today)
+    private val slot = PlaySlot.Daily(alpha, today)
     private val lane = WriteLane()
 
     private fun blob(n: Int) = SessionBlob.encode(alpha, byteArrayOf(n.toByte()))

@@ -54,7 +54,7 @@ class ObserveArchiveMonth(
             (0..ChronoUnit.DAYS.between(first, last)).map { offset ->
                 val day = first.plusDays(offset)
                 val record = solved[day]?.first()
-                val elapsed = slots[PlaySlot(game, day)]
+                val elapsed = slots[PlaySlot.Daily(game, day)]
                 val entry = captured[day]
                 val status = when {
                     record != null -> PastDayStatus.Solved(record.time)

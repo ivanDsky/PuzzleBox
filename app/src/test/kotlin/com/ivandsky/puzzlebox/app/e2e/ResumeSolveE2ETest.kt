@@ -153,7 +153,7 @@ class ResumeSolveE2ETest {
     ) = NavigationState(tab = tab, stacks = listOf(home, play, profile))
 
     private val playHub = stacks(tab = PlayKey)
-    private val todaySlot = PlaySlot(ZipDefinition.id, E2E_TODAY)
+    private val todaySlot = PlaySlot.Daily(ZipDefinition.id, E2E_TODAY)
 
     private companion object {
         const val ROOM = "room"

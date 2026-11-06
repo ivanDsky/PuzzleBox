@@ -157,7 +157,7 @@ class RealGamesPlayRouteTest {
     }
 
     private fun play(game: GameId): ActivePlay? =
-        koin!!.koin.get<PlaySessionStore>().peek(PlaySlot(game, cadenceToday))
+        koin!!.koin.get<PlaySessionStore>().peek(PlaySlot.Daily(game, cadenceToday))
 
     private fun pick(game: GameId) {
         composeRule.onNodeWithTag("library.row.${game.value}").performScrollTo().performClick()

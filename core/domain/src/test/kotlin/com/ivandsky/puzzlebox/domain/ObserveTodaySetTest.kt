@@ -72,8 +72,8 @@ class ObserveTodaySetTest {
 
     @Test
     fun `today's saved play reads InProgress at its saved elapsed`() = runTest {
-        saved.save(PlaySlot(alpha, today), byteArrayOf(1), elapsedMs = 83_000L)
-        saved.save(PlaySlot(beta, yesterday), byteArrayOf(1), elapsedMs = 5_000L)
+        saved.save(PlaySlot.Daily(alpha, today), byteArrayOf(1), elapsedMs = 83_000L)
+        saved.save(PlaySlot.Daily(beta, yesterday), byteArrayOf(1), elapsedMs = 5_000L)
 
         val status = statuses(todaySet().first())
 
@@ -99,7 +99,7 @@ class ObserveTodaySetTest {
     @Test
     fun `today is each game's own calendar day`() = runTest {
         calendar.set(beta, yesterday)
-        saved.save(PlaySlot(beta, yesterday), byteArrayOf(1), elapsedMs = 2_000L)
+        saved.save(PlaySlot.Daily(beta, yesterday), byteArrayOf(1), elapsedMs = 2_000L)
         completions.setRecords(listOf(record(alpha, yesterday)))
 
         val status = statuses(todaySet().first())
@@ -113,21 +113,21 @@ class ObserveTodaySetTest {
         todaySet(listOf(alpha)).test {
             assertEquals(TodayStatus.NotStarted, awaitItem().single().status)
 
-            saved.save(PlaySlot(alpha, today), byteArrayOf(1), elapsedMs = 9_000L)
+            saved.save(PlaySlot.Daily(alpha, today), byteArrayOf(1), elapsedMs = 9_000L)
             assertEquals(TodayStatus.InProgress(9_000L), awaitItem().single().status)
 
             completions.onCompleted(record(alpha, today, time = 12_000L))
             assertEquals(TodayStatus.Solved(12_000L), awaitItem().single().status)
 
             // The solve's save delete lands after the record: nothing observable changes.
-            saved.delete(PlaySlot(alpha, today))
+            saved.delete(PlaySlot.Daily(alpha, today))
             expectNoEvents()
         }
     }
 
     @Test
     fun `a calendar day change re-emits`() = runTest {
-        saved.save(PlaySlot(alpha, today), byteArrayOf(1), elapsedMs = 1_000L)
+        saved.save(PlaySlot.Daily(alpha, today), byteArrayOf(1), elapsedMs = 1_000L)
         completions.setRecords(listOf(record(beta, today)))
 
         todaySet().test {
@@ -167,7 +167,7 @@ class ObserveTodaySetTest {
         failFetch(alpha)
         failFetch(beta)
         sync()
-        saved.save(PlaySlot(alpha, today), byteArrayOf(1), elapsedMs = 4_000L)
+        saved.save(PlaySlot.Daily(alpha, today), byteArrayOf(1), elapsedMs = 4_000L)
         completions.setRecords(listOf(record(beta, today, time = 7_000L)))
 
         val status = statuses(todaySet().first())

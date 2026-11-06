@@ -51,7 +51,7 @@ class ObserveTodaySet(
                     it.puzzleRef.gameId == definition.id &&
                         (it.puzzleRef.key as? PuzzleKey.Daily)?.date == day
                 }
-                val elapsed = slots[PlaySlot(definition.id, day)]
+                val elapsed = slots[PlaySlot.Daily(definition.id, day)]
                 val status = when {
                     solved != null -> TodayStatus.Solved(solved.time)
                     elapsed != null -> TodayStatus.InProgress(elapsed)

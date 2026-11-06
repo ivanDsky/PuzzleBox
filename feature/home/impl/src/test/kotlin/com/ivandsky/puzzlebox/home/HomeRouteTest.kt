@@ -170,7 +170,7 @@ class HomeRouteTest {
     @Test
     fun `a saved play keeps the CTA on that game - SC11`() = kotlinx.coroutines.test.runTest {
         val saved = FakeSavedPlayRepository()
-        saved.save(PlaySlot(GameId("zip"), today), byteArrayOf(1), elapsedMs = 0L)
+        saved.save(PlaySlot.Daily(GameId("zip"), today), byteArrayOf(1), elapsedMs = 0L)
         val played = mutableListOf<GameId>()
         setContent(FakeDailyRepository(), FakeCompletionRepository(), saved, onOpenGame = { played += it })
 

@@ -78,7 +78,7 @@ class PlaySessionStoreTest {
 
         val noUi = store(GamePlayRegistry(emptyList()))
         assertNull(noUi.open(key))
-        assertNull(noUi.peek(PlaySlot(alpha, day)))
+        assertNull(noUi.peek(PlaySlot.Daily(alpha, day)))
         assertEquals(0, daily.todayCalls(alpha))
     }
 

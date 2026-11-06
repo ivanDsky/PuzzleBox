@@ -15,6 +15,3 @@ sealed interface PlaySlot {
     /** One friend's puzzle ([puzzleId], the A11 identity) played in [gameId]. */
     data class Custom(override val gameId: GameId, val puzzleId: String) : PlaySlot
 }
-
-/** Expand-only factory so the existing callers keep compiling (P10). Deleted in P13. */
-fun PlaySlot(gameId: GameId, day: LocalDate): PlaySlot.Daily = PlaySlot.Daily(gameId, day)

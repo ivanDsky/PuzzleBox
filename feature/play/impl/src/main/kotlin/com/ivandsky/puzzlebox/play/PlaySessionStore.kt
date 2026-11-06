@@ -109,9 +109,9 @@ class PlaySessionStore internal constructor(
         val gameKeys = keys.filterIsInstance<GameKey>().toSet()
         pinned.keys.retainAll(gameKeys)
         val named = gameKeys.mapNotNullTo(HashSet()) { key ->
-            if (key.day == null) pinned[key] else PlaySlot(GameId(key.gameId), LocalDate.parse(key.day))
+            if (key.day == null) pinned[key] else PlaySlot.Daily(GameId(key.gameId), LocalDate.parse(key.day))
         }
-        keys.filterIsInstance<ResultKey>().mapTo(named) { PlaySlot(GameId(it.gameId), LocalDate.parse(it.day)) }
+        keys.filterIsInstance<ResultKey>().mapTo(named) { PlaySlot.Daily(GameId(it.gameId), LocalDate.parse(it.day)) }
         val released = slots.filterKeys { it !in named }.values.toList()
         released.forEach { play ->
             slots.remove(play.slot)
@@ -126,10 +126,10 @@ class PlaySessionStore internal constructor(
     }
 
     private fun slotOf(key: GameKey, game: GameId): PlaySlot? {
-        key.day?.let { return PlaySlot(game, LocalDate.parse(it)) }
+        key.day?.let { return PlaySlot.Daily(game, LocalDate.parse(it)) }
         pinned[key]?.let { return it }
         val today = calendar.today(game) ?: return null
-        return PlaySlot(game, today).also { pinned[key] = it }
+        return PlaySlot.Daily(game, today).also { pinned[key] = it }
     }
 
     private fun playScope(): CoroutineScope = CoroutineScope(scope.coroutineContext + Job(scope.coroutineContext[Job]))

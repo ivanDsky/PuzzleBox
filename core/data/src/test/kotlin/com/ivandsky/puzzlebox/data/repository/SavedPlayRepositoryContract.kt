@@ -18,7 +18,7 @@ abstract class SavedPlayRepositoryContract {
 
     protected abstract val repository: SavedPlayRepository
 
-    protected fun slot(gameId: String, day: Int) = PlaySlot(GameId(gameId), LocalDate.of(2026, 11, day))
+    protected fun slot(gameId: String, day: Int) = PlaySlot.Daily(GameId(gameId), LocalDate.of(2026, 11, day))
 
     protected fun custom(puzzleId: String, gameId: String = "queens") = PlaySlot.Custom(GameId(gameId), puzzleId)
 
