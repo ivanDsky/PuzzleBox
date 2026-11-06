@@ -66,6 +66,7 @@ class HistoryScreenTest {
         records: List<CompletionRecord> = emptyList(),
         cached: Map<Pair<GameId, LocalDate>, Puzzle> = emptyMap(),
         key: HistoryKey = HistoryKey(),
+        archives: Map<GameId, ClosedRange<LocalDate>> = emptyMap(),
     ) {
         handedToShell = null
         shellBacks = 0
@@ -73,6 +74,7 @@ class HistoryScreenTest {
             setHistory(ZIP, zips)
             setHistory(TANGO, tangos)
             cached.forEach { (slot, puzzle) -> setCached(slot.first, slot.second, puzzle) }
+            archives.forEach { (game, range) -> setArchiveRange(game, range) }
         }
         val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository(records), key)
         composeRule.setContent {
@@ -337,7 +339,46 @@ class HistoryScreenTest {
         openRow(ZIP)
     }
 
+    @Test
+    fun `older puzzles opens one archive game's picker and replays the picked day`() {
+        val range = day.minusDays(30)..day
+        setContent(listOf(HistoryTestSupport.entry(day)), archives = mapOf(TANGO to range))
+
+        awaitTag(OLDER)
+        composeRule.onNodeWithTag(OLDER).performClick()
+        awaitTag("history.older.picker")
+        composeRule.onNodeWithTag("history.older.open").performClick()
+
+        composeRule.waitUntil(5_000) { handedToShell != null }
+        assertEquals(TANGO to day, handedToShell)
+    }
+
+    @Test
+    fun `older puzzles asks for the game first when several have an archive`() {
+        val range = day.minusDays(30)..day
+        setContent(archives = mapOf(ZIP to range, TANGO to range))
+
+        awaitTag(OLDER)
+        composeRule.onNodeWithTag(OLDER).performClick()
+        awaitTag("history.older.game.${TANGO.value}")
+        composeRule.onNodeWithTag("history.older.game.${TANGO.value}").performClick()
+        awaitTag("history.older.picker")
+        composeRule.onNodeWithTag("history.older.open").performClick()
+
+        composeRule.waitUntil(5_000) { handedToShell != null }
+        assertEquals(TANGO to day, handedToShell)
+    }
+
+    @Test
+    fun `no older puzzles entry when no game has an archive`() {
+        setContent(listOf(HistoryTestSupport.entry(day)))
+
+        awaitRow(ZIP)
+        assertNoTag(OLDER)
+    }
+
     private companion object {
         const val LIST = "history.list"
+        const val OLDER = "history.older"
     }
 }

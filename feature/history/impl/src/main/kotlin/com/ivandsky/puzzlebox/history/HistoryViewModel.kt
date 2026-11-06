@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
@@ -52,6 +53,7 @@ data class HistoryUiState(
     val daysWithRows: Set<LocalDate> = emptySet(),
     val gamesPerDay: Int = 0,
     val today: LocalDate? = null,
+    val archiveGames: List<ArchiveGame> = emptyList(),
 )
 
 /**
@@ -72,6 +74,10 @@ data class HistoryUiState(
  * filter. Both live here beside the tab, so a rotation keeps the calendar, the filter
  * and the rows they are clamped to together.
  *
+ * Older puzzles (A12): [HistoryUiState.archiveGames] are the registered games whose
+ * source has an archive ([DailyRepository.archiveRange]), re-read on every emission so
+ * the range's end moves with the day.
+ *
  * Replay is navigation only (ticket 11): the route reports the (game, day) and the play
  * store opens that day's slot — History never builds a session blob.
  */
@@ -83,6 +89,7 @@ class HistoryViewModel(
     private val registry: GameRegistry,
     private val playRegistry: GamePlayRegistry,
     private val puzzleDay: GetPuzzleDay,
+    private val daily: DailyRepository,
 ) : ViewModel() {
 
     private val tabs: List<HistoryTab> = registry.all.map { plugin ->
@@ -135,8 +142,13 @@ class HistoryViewModel(
             daysWithRows = rows.mapTo(HashSet()) { it.day },
             gamesPerDay = order.size,
             today = today,
+            archiveGames = archiveGames(),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState(tabs = tabs))
+
+    private fun archiveGames(): List<ArchiveGame> = tabs.mapNotNull { tab ->
+        daily.archiveRange(tab.gameId)?.let { ArchiveGame(tab.gameId, tab.name, tab.brand, it) }
+    }
 
     // Rows only: a stats-only emission must not start a new paging generation.
     val pagedDays: Flow<PagingData<HistoryDayRow>> = tabRows.map { it.rows }.distinctUntilChanged()

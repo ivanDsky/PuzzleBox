@@ -1,0 +1,78 @@
+package com.ivandsky.puzzlebox.history
+
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DatePickerState
+import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import com.ivandsky.puzzlebox.designsystem.AppTextButton
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+
+/**
+ * "Older puzzles" for one game (A12): the M3 date picker over [range] only — days outside
+ * it are disabled, the year menu spans the range's years, and it opens on the range's end
+ * (the game's today). Open reports the picked day to [onOpen]; picking fetches nothing,
+ * the day loads when its slot opens. Cancel or a tap outside is [onDismiss]. The dialog's
+ * enter/exit is the platform window's own.
+ */
+@Composable
+internal fun OlderPuzzlesPicker(
+    range: ClosedRange<LocalDate>,
+    onOpen: (LocalDate) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val state = rememberOlderPuzzlesState(range)
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            AppTextButton(
+                text = "Open",
+                onClick = { state.selectedDateMillis?.let { onOpen(it.toUtcDay()) } },
+                enabled = state.selectedDateMillis != null,
+                modifier = Modifier.testTag("history.older.open"),
+            )
+        },
+        dismissButton = { AppTextButton(text = "Cancel", onClick = onDismiss) },
+    ) {
+        DatePicker(state = state, modifier = Modifier.testTag("history.older.picker"))
+    }
+}
+
+/** M3 dates are UTC midnights; [range] is in the game's calendar days, so compare as UTC days. */
+@Composable
+private fun rememberOlderPuzzlesState(range: ClosedRange<LocalDate>): DatePickerState {
+    val selectable = remember(range) {
+        object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean = utcTimeMillis.toUtcDay() in range
+
+            override fun isSelectableYear(year: Int): Boolean = year in range.start.year..range.endInclusive.year
+        }
+    }
+    return rememberDatePickerState(
+        initialSelectedDateMillis = range.endInclusive.toUtcMillis(),
+        yearRange = range.start.year..range.endInclusive.year,
+        selectableDates = selectable,
+    )
+}
+
+private fun Long.toUtcDay(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
+
+private fun LocalDate.toUtcMillis(): Long = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+
+// The platform dialog window does not render on the Studio canvas (see designsystem's
+// Dialogs.kt), so the preview composes the picker the dialog hosts.
+@PuzzleBoxPreviews
+@Composable
+private fun OlderPuzzlesPickerPreview() {
+    PuzzleBoxTheme {
+        DatePicker(state = rememberOlderPuzzlesState(LocalDate.of(2026, 10, 20)..LocalDate.of(2026, 11, 4)))
+    }
+}
