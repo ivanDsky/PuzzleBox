@@ -10,13 +10,17 @@ on:
 permissions:
   contents: write
 
-# Two quick merges release in order; a running publish is never cancelled halfway.
+# One queue for push and dispatch runs, so releases publish in order; a running publish is never
+# cancelled halfway. GitHub keeps one pending run per group: a third quick merge replaces the
+# second's pending run, and the next run releases HEAD.
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 jobs:
   release:
+    # A dispatch from another branch would publish unmerged code as the latest release.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +80,11 @@ jobs:
       - name: Read version
         id: version
         run: |
-          version=$(jq -r '.elements[0].versionName' app/build/outputs/apk/release/output-metadata.json)
+          version=$(jq -r '.elements[0].versionName // empty' app/build/outputs/apk/release/output-metadata.json)
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::versionName '$version' is not MAJOR.MINOR.PATCH"
+            exit 1
+          fi
           echo "name=$version" >> "$GITHUB_OUTPUT"
           if [ -n "$(git ls-remote --tags origin "refs/tags/v$version")" ]; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
@@ -93,10 +101,15 @@ jobs:
         run: |
           apk="PuzzleBox-$VERSION.apk"
           cp app/build/outputs/apk/release/app-release.apk "$apk"
+          notes="Download $apk under Assets and open it; allow installs from your browser if Android asks."
+          # Only the first release replaces debug-key builds, which cannot update in place.
+          if [ "$(gh release list --limit 1 --json tagName --jq length)" = 0 ]; then
+            notes="$notes Uninstall any earlier PuzzleBox build first."
+          fi
           gh release create "v$VERSION" "$apk" \
             --target "$GITHUB_SHA" \
             --title "PuzzleBox $VERSION" \
             --latest \
             --generate-notes \
-            --notes "Download $apk under Assets and open it; allow installs from your browser if Android asks. Uninstall any earlier PuzzleBox build first."
+            --notes "$notes"
           echo "Published [v$VERSION]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/v$VERSION)." >> "$GITHUB_STEP_SUMMARY"
