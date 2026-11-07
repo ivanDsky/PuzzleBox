@@ -200,7 +200,10 @@ fun ZipPipes(
     val path = remember(model.path, model.n) { model.path.map { GridCell(it / model.n, it % model.n) } }
     Canvas(Modifier.fillMaxSize()) {
         with(motion) {
-            drawTrace(path, finger(), hooks, model.n, board.pathTrace, ZipBoardSpec.pathTraceWidthFraction, animate)
+            drawTrace(
+                path, finger(), hooks, model.n, board.pathTrace, board.pathTraceLip,
+                ZipBoardSpec.pathTraceWidthFraction, ZipBoardSpec.pathTraceLipFraction, animate,
+            )
         }
     }
 }

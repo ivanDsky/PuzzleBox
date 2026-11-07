@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.gameui.DragTraceHooks
 import com.ivandsky.puzzlebox.gameui.GridCell
@@ -50,7 +51,9 @@ internal class ZipLineMotion(private val scope: CoroutineScope) {
         hooks: DragTraceHooks?,
         n: Int,
         color: Color,
+        lip: Color,
         widthFraction: Float,
+        lipFraction: Float,
         animate: Boolean,
     ) {
         val pitchX = size.width / n
@@ -66,15 +69,22 @@ internal class ZipLineMotion(private val scope: CoroutineScope) {
         } else {
             centre(line[last])
         }
+        val style = Stroke(width, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val headRadius = width * MotionTokens.Trace.HeadScale / 2 * head.value
         if (end > 0f) {
             stroke.reset()
             val start = centre(line[0])
             stroke.moveTo(start.x, start.y)
             for (i in 1..last) centre(line[i]).let { stroke.lineTo(it.x, it.y) }
             stroke.lineTo(endPoint.x, endPoint.y)
-            drawPath(stroke, color, style = Stroke(width, cap = StrokeCap.Round, join = StrokeJoin.Round))
         }
-        drawCircle(color, radius = width * MotionTokens.Trace.HeadScale / 2 * head.value, center = endPoint)
+        // The lip (spec A14): the same line and head, a fraction of the pitch lower, in the darker hue.
+        translate(top = minOf(pitchX, pitchY) * lipFraction) {
+            if (end > 0f) drawPath(stroke, lip, style = style)
+            drawCircle(lip, radius = headRadius, center = endPoint)
+        }
+        if (end > 0f) drawPath(stroke, color, style = style)
+        drawCircle(color, radius = headRadius, center = endPoint)
     }
 
     /** The line to draw (path + tip cell) and how far along it the visible end sits. */
