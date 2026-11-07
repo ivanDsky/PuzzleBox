@@ -152,6 +152,25 @@ class QueensCoachLineTest {
     }
 
     @Test
+    @Config(qualifiers = "w600dp-h470dp-420dpi")
+    fun `in a wide slot the rows under the grid start and end at its edges`() {
+        val controller = QueensEditorController(crowned()) {}
+        rule.setContent {
+            PuzzleBoxTheme {
+                Box(Modifier.width(SLOT_HEIGHT).height(SLOT_WIDTH)) {
+                    QueensEditorBoard(controller, Verdict.Unique(Solution(CROWNS)), Modifier.fillMaxSize())
+                }
+            }
+        }
+
+        val grid = rule.onNodeWithTag(BOARD).getUnclippedBoundsInRoot()
+        val coach = rule.onNodeWithTag("queens.editor.coach.unique").getUnclippedBoundsInRoot()
+        assertTrue("grid ${grid.right - grid.left} fills the slot", grid.right - grid.left < SLOT_HEIGHT)
+        assertEquals(grid.left, coach.left)
+        assertEquals(grid.right, coach.right)
+    }
+
+    @Test
     fun `the board keeps its height from Incomplete through Multiple to Unique with crowns`() {
         val controller = QueensEditorController(crowned()) {}
         var verdict: Verdict by mutableStateOf(INCOMPLETE)

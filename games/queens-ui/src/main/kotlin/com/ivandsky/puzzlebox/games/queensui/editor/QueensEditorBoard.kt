@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -77,9 +79,10 @@ internal const val UNPAINTED_DESCRIPTION = "unpainted"
  * other answer's ghost crowns; the verdict card's witness choice ([QueensEditorController.overlay])
  * picks the ghosts' witness, or, without crowns, draws that witness's queens. Under the grid,
  * [QueensCoachLine] reserves two lines, [QueensProbeStrip] one, and the context bar one touch
- * target (left empty in Crown mode), so none of them moves the grid. The grid is the largest
- * square that fits the [modifier]'s width and the height left over by those rows: the slot
- * hands in its whole area, not a pre-sized square.
+ * target (left empty in Crown mode), so none of them moves the grid; they span the grid's
+ * width, so their text starts at its left edge. The grid is the largest square that fits
+ * the [modifier]'s width and the height left over by those rows: the slot hands in its
+ * whole area, not a pre-sized square.
  */
 @Composable
 internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verdict, modifier: Modifier = Modifier) {
@@ -158,13 +161,19 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
                     onPick = controller::pick,
                 )
             }
-            QueensCoachLine(QueensCoachState.shown(board, verdict, held, mode), reducedMotion, Modifier.padding(top = Spacing.xs))
-            QueensProbeStrip(fit, board.crowns.size)
-            if (mode == QueensEditorMode.Paint) {
-                QueensSelectionChips(controller, onGrown = { touch.lift = centroid(it, n, frame.size) })
-            } else {
-                // Crown mode never selects: no Paint hint, but the context bar's height stays so the board never jumps.
-                Spacer(Modifier.height(LocalMinimumInteractiveComponentSize.current))
+            // Once the grid is measured, the rows take its width rather than the slot's.
+            val rowsWidth = with(LocalDensity.current) {
+                if (frame.size.width > 0) Modifier.width(frame.size.width.toDp()) else Modifier
+            }
+            Column(rowsWidth) {
+                QueensCoachLine(QueensCoachState.shown(board, verdict, held, mode), reducedMotion, Modifier.padding(top = Spacing.xs))
+                QueensProbeStrip(fit, board.crowns.size)
+                if (mode == QueensEditorMode.Paint) {
+                    QueensSelectionChips(controller, onGrown = { touch.lift = centroid(it, n, frame.size) })
+                } else {
+                    // Crown mode never selects: no Paint hint, but the context bar's height stays so the board never jumps.
+                    Spacer(Modifier.height(LocalMinimumInteractiveComponentSize.current))
+                }
             }
         }
     }
