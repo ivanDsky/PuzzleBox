@@ -6,6 +6,7 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -116,7 +117,7 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
             onDuplicate = {},
             onDelete = {},
             board = { boardModifier ->
-                Box(boardModifier.background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))
+                Box(boardModifier.aspectRatio(1f).background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))
             },
             toolStrip = { stripModifier ->
                 ToolStrip(
