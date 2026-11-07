@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,27 +21,36 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
-import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.pressScale
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
+// Chunky depth (spec A14, prototype 03-game-colors ?v=e): every hub card shares one 24dp
+// face on a 5dp lip of its own hue, so the shape belongs to the card, not its caller.
+val GameCardCornerRadius: Dp = 24.dp
+internal val GameCardLipDepth: Dp = 5.dp
+private val GameCardShape = RoundedCornerShape(GameCardCornerRadius)
+
 /**
  * The one clickable hub card shell (hub card handoff §Up-next card, §Tile): [colors]'
- * fill clipped to [shape], [motif] behind [content], both filling the card, and the
- * whole card one click target that scales to [MotionTokens.PressScale] while pressed.
- * Always enabled: an offline card's tap is its retry. Content defaults to [colors]' fg.
+ * fill on a [GameCardCornerRadius] face sitting on its [GameCardColors.lip], [motif]
+ * behind [content], both filling the face, and the whole card one click target that
+ * scales to [MotionTokens.PressScale] while pressed. The lip sits inside [modifier]'s
+ * bounds. Always enabled: an offline card's tap is its retry. Content defaults to [colors]' fg.
  */
 @Composable
 fun GameCardSurface(
     colors: GameCardColors,
-    shape: Shape,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     motif: @Composable BoxScope.() -> Unit,
@@ -50,7 +60,13 @@ fun GameCardSurface(
     Box(
         modifier = modifier
             .pressScale(interactionSource, reduced = false)
-            .clip(shape)
+            .drawBehind {
+                val depth = GameCardLipDepth.toPx()
+                val face = Size(size.width, size.height - depth)
+                translate(top = depth) { drawOutline(GameCardShape.createOutline(face, layoutDirection, this), colors.lip) }
+            }
+            .padding(bottom = GameCardLipDepth)
+            .clip(GameCardShape)
             .background(colors.fill)
             .clickable(interactionSource = interactionSource, indication = LocalIndication.current, onClick = onClick),
     ) {
@@ -74,7 +90,6 @@ internal fun GameCardSurfacePreview() {
             val hero = gameCardColors(brand, offline = false)
             GameCardSurface(
                 colors = hero,
-                shape = AppShapes.extraLarge,
                 onClick = {},
                 modifier = Modifier.size(380.dp, 152.dp),
                 motif = {
@@ -88,7 +103,6 @@ internal fun GameCardSurfacePreview() {
                     val tile = gameCardColors(brand, offline)
                     GameCardSurface(
                         colors = tile,
-                        shape = AppShapes.large,
                         onClick = {},
                         modifier = Modifier.size(184.dp, 156.dp),
                         motif = {

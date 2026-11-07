@@ -28,7 +28,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.LocalOnFill
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -40,6 +39,7 @@ import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.gameui.CardSlot
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GameCardColors
+import com.ivandsky.puzzlebox.gameui.GameCardCornerRadius
 import com.ivandsky.puzzlebox.gameui.GameCardSurface
 import com.ivandsky.puzzlebox.gameui.GameMotif
 import com.ivandsky.puzzlebox.gameui.SkeletonLine
@@ -75,6 +75,7 @@ internal fun libraryCardColors(brand: GameBrand): GameCardColors {
         fg2 = onFill.copy(alpha = SECONDARY_ALPHA),
         motif = onFill,
         motifAlpha = MOTIF_ALPHA,
+        lip = brand.accent.colors().lip,
     )
 }
 
@@ -97,13 +98,12 @@ internal fun LibraryRow(
     val outline = MaterialTheme.colorScheme.onSurface
     GameCardSurface(
         colors = colors,
-        shape = AppShapes.large,
         onClick = onClick,
         modifier = modifier
             .drawBehind {
                 if (!selected) return@drawBehind
                 val inset = OutlineGap.toPx() + OutlineWidth.toPx() / 2
-                val radius = 20.dp.toPx() + inset
+                val radius = GameCardCornerRadius.toPx() + inset
                 drawRoundRect(
                     color = outline,
                     topLeft = Offset(-inset, -inset),

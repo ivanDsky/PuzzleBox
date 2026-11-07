@@ -25,10 +25,12 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.navLiftSource
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.SkeletonLine
 import com.ivandsky.puzzlebox.gameui.todayStatusLine
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.play.api.GameKey
 
 private val Inset = Spacing.sm
 private val BadgeColumnGap = 4.dp
@@ -75,7 +77,9 @@ internal fun HomeTodaySummary(
                             next = row.game == next?.game,
                             size = badgeSize,
                             onClick = { onOpenGame(row.game) },
-                            modifier = Modifier.weight(1f).testTag("$badgeTagPrefix${row.game.value}"),
+                            // Keyed like Home's push, so the board lifts out of this badge (tablet).
+                            modifier = Modifier.weight(1f).testTag("$badgeTagPrefix${row.game.value}")
+                                .navLiftSource(GameKey(row.game.value)),
                         )
                     }
                 }

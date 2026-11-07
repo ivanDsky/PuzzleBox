@@ -1,13 +1,8 @@
 package com.ivandsky.puzzlebox.app.nav
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavEntryDecorator
@@ -24,13 +19,14 @@ internal const val OWNER_TAB = "puzzlebox.ownerTab"
 
 /**
  * Metadata key carrying the entry's own [NavKey] (NavEntry does not expose it). Published
- * contract: shell motion reads it for the Result entrance (NavTransitions.kt).
+ * contract: shell motion reads it to pick a board's motion, and the scene canvas to tell an
+ * immersive scene (NavTransitions.kt, NavSceneCanvas.kt).
  */
 internal const val ENTRY_KEY = "puzzlebox.entryKey"
 
 /**
  * The app's only Navigation3 adapter: decorates EVERY tab's stack (saveable state, a
- * per-entry ViewModel store, then the opaque scene canvas), so an off-screen tab keeps its
+ * per-entry ViewModel store, then the [SceneCanvas]), so an off-screen tab keeps its
  * screens' state and a popped entry releases its own. Content keys are namespaced by tab
  * (the same key on two stacks is two entries) and each entry carries [OWNER_TAB] and [ENTRY_KEY].
  *
@@ -43,7 +39,9 @@ internal fun rememberTabEntries(
 ): List<NavEntry<NavKey>> {
     val saveableState = rememberSaveableStateHolderNavEntryDecorator<NavKey>()
     val viewModelStore = rememberViewModelStoreNavEntryDecorator<NavKey>()
-    val sceneCanvas = remember { NavEntryDecorator<NavKey> { entry -> SceneCanvas { entry.Content() } } }
+    val sceneCanvas = remember {
+        NavEntryDecorator<NavKey> { entry -> SceneCanvas(entry.metadata[ENTRY_KEY]) { entry.Content() } }
+    }
     val decorators = remember(saveableState, viewModelStore, sceneCanvas) {
         listOf(saveableState, viewModelStore, sceneCanvas)
     }
@@ -66,17 +64,4 @@ private fun ownedBy(tab: NavKey, entry: NavEntry<NavKey>, navKey: NavKey): NavEn
         put(ENTRY_KEY, navKey)
     }
     return NavEntry(navKey, "$tab/${entry.contentKey}", metadata) { entry.Content() }
-}
-
-// Opaque canvas behind every nav scene: without it the AnimatedContent layers blend and
-// screens read as ghosts of each other during the transition.
-@Composable
-private fun SceneCanvas(content: @Composable () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-    ) {
-        content()
-    }
 }

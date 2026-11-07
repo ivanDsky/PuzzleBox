@@ -12,11 +12,12 @@ chrome. The Play tab opened Queens directly, skipping the game picker.
    `CommandHistory` (immutable done/undone lists) provides undo/redo. Counters, the clock and
    the hint count are not part of the board state, so undo never rewinds them. A no-op move
    records nothing and keeps redo intact. History is persisted in the session codec.
-2. Core owns the game-agnostic chrome: `PlayChrome` (degrade banner, the fixed caption slot,
-   and the bottom `PlayActionBar`: Undo · Redo · Hint · Clear) and `ResultScreen` (time,
-   hints, record badge, optional game label + `gameSection`). Games plug in through the
-   `PlayClock`/`PlayHints`/`PlayUndo` seams implemented by their `PlayState`, and own what a
-   hint, a move and a timer mean.
+2. Core owns the game-agnostic chrome: `PlayChrome` (degrade banner and the fixed caption
+   slot), `PlayActionBar` (Undo · Redo · Hint · Clear, placed by `AdaptivePlayScaffold`:
+   at the bottom in a single pane, as a toolbar over the board in two panes, A15) and
+   `ResultScreen` (time, hints, record badge, optional game label + `gameSection`). Games
+   plug in through the `PlayClock`/`PlayHints`/`PlayUndo` seams implemented by their
+   `PlayState`, and own what a hint, a move and a timer mean.
 3. All games share one stack: Play tab → picker → `PlayFlow` → `ResultRoute`.
 4. All three games share one play layout (A14). The route's top bar (`GameRoute`, through
    `CompactTopBar`) carries Back, the game's `GameGlyph` badge, its name and number, the
@@ -35,6 +36,9 @@ chrome. The Play tab opened Queens directly, skipping the game picker.
      at once.
    - The per-game control rows (`HintButton`, `UndoRedoRow`, `QueensPlayControls`, the
      game-controls slot) are gone.
+   - In two-pane the route hands its stats panel to the game through `GamePlayUi.Screen`'s
+     explicit `sidePanel` slot into `AdaptivePlayScaffold`, which gives the board its pane
+     cap as a `paneCap` value; the live timer then moves off the top bar into that panel.
 
 ## Consequences
 - A new game gets timer/hint/undo/result chrome by implementing three small interfaces.

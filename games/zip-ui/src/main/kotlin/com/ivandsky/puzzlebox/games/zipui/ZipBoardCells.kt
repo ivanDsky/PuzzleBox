@@ -16,7 +16,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -32,7 +35,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.designsystem.tracePop
 import com.ivandsky.puzzlebox.gameui.BoardGrid
+import com.ivandsky.puzzlebox.gameui.DragTraceHooks
+import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -46,8 +52,9 @@ private val cellCorner = RoundedCornerShape(10.dp)
  * lives in the board-level [ZipPipes] layer (ticket 28) under every cell's content, so
  * each dot's surface hole punches the pipe globally instead of per-cell caps clipping
  * into neighbor dots. Sizes come from [ZipBoardSpec] fractions of the cell. Resting by
- * contract (A8): the next-target flash animates only in the live game — the play screen
- * passes [animateFlash]; previews and read-only boards keep the static ring.
+ * contract (A8): the next-target flash and the waypoint pop when the trace reaches a dot
+ * animate only in the live game — the play screen passes [animated] (false under reduced
+ * motion); previews and read-only boards stay static.
  */
 @Composable
 fun ZipCellDecor(
@@ -55,7 +62,7 @@ fun ZipCellDecor(
     row: Int,
     col: Int,
     modifier: Modifier = Modifier,
-    animateFlash: Boolean = false,
+    animated: Boolean = false,
 ) {
     val idx = row * model.n + col
     val dotFraction = ZipBoardSpec.dotSizeFraction(model.n)
@@ -74,14 +81,27 @@ fun ZipCellDecor(
         ),
         label = "zipRejectionPulse",
     )
+    // Same pop as the line head (MotionTokens.Trace), so a dot the trace reaches reads as
+    // one beat with it; never on first composition, so restoring a board stays still.
+    val pop = remember { Animatable(1f) }
+    var wasInPath by remember { mutableStateOf(inPath) }
+    LaunchedEffect(inPath) {
+        val entered = inPath && !wasInPath
+        wasInPath = inPath
+        if (animated && entered && cell.isWaypoint) {
+            pop.tracePop()
+        } else {
+            pop.snapTo(1f)
+        }
+    }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .testTag(if (isHint) "play.hint_cell" else "play.cell_$idx")
             .graphicsLayer {
-                scaleX = pulse
-                scaleY = pulse
+                scaleX = pulse * pop.value
+                scaleY = pulse * pop.value
             },
         contentAlignment = Alignment.Center,
     ) {
@@ -89,17 +109,17 @@ fun ZipCellDecor(
             Box(Modifier.fillMaxSize().background(scheme.errorContainer.copy(alpha = 0.7f), cellCorner))
         }
         // Ticket 28 r5, hollow EVERYWHERE: one ring renderer for all three states —
-        // unvisited and start in the waypointDot role, a traced dot in the powder on-path
+        // unvisited and start in the waypointDot role, a traced dot in the blue on-path
         // role (D2, round 3). The label always rides the ring's state color on the
-        // surface hole (green 9.70:1 / powder 9.89:1 on boardSurface, both ≥4.5); filled
+        // surface hole (both roles ≥4.5 on boardSurface in each theme); filled
         // disks are gone. The next-target ring HOLDS the trace-role color while it is the
         // target (persistent step-point cue, user round 6) and plays ONE flash from the
         // state color on transition (MotionTokens.FlashDuration, single event, never a loop); reduced motion
         // settles instantly. Previews render the static state.
         val ringColor = if (inPath) board.waypointDotOnPath else board.waypointDot
         val flash = remember { Animatable(1f) }
-        LaunchedEffect(animateFlash, cell.isNextTarget) {
-            if (animateFlash && cell.isNextTarget) {
+        LaunchedEffect(animated, cell.isNextTarget) {
+            if (animated && cell.isNextTarget) {
                 flash.snapTo(0f)
                 flash.animateTo(1f, tween(MotionTokens.FlashDuration))
             } else {
@@ -148,7 +168,7 @@ fun ZipCellDecor(
                 Text(
                     text = label.toString(),
                     style = TextStyle(fontWeight = FontWeight.Bold, fontSize = fontSize),
-                    color = ringPaint, // label rides the ring (state color, or powder while next target)
+                    color = ringPaint, // label rides the ring (state color, or the trace blue while next target)
                     maxLines = 1,
                 )
             }
@@ -160,29 +180,28 @@ fun ZipCellDecor(
 
 /**
  * The trace, hoisted to ONE board-level layer (ticket 28, the user's layer-level
- * subtraction): one fat rounded stroke per step, drawn UNDER all cell content as the
- * [BoardGrid] underlay. Each dot's surface hole then punches the pipe globally — no
- * per-cell cap can clip into a neighbor dot hole, and the old per-cell double-draw seams
- * at cell boundaries are gone. ZipBoard and the play screen hang this identically.
+ * subtraction): one fat rounded stroke along the path, drawn UNDER all cell content as
+ * the [BoardGrid] underlay, so each dot's surface hole punches the pipe globally. A head
+ * disc sits on the line end. In the live game [finger] (board px, read in the draw phase)
+ * drives the tip toward cells [hooks] accepts, and [animate] turns on grow-in, retract,
+ * tip-home and the head pop ([MotionTokens.Trace]); reduced motion keeps only the tip.
  */
 @Composable
-fun ZipPipes(model: ZipRendererModel) {
+fun ZipPipes(
+    model: ZipRendererModel,
+    finger: () -> Offset? = { null },
+    hooks: DragTraceHooks? = null,
+    animate: Boolean = false,
+) {
     val board = LocalBoardColors.current
-    if (model.path.size < 2) return
+    val scope = rememberCoroutineScope()
+    val motion = remember { ZipLineMotion(scope) }
+    val path = remember(model.path, model.n) { model.path.map { GridCell(it / model.n, it % model.n) } }
     Canvas(Modifier.fillMaxSize()) {
-        val pitchX = size.width / model.n
-        val pitchY = size.height / model.n
-        val stroke = minOf(pitchX, pitchY) * ZipBoardSpec.pathTraceWidthFraction
-        val centers = model.path.map { idx ->
-            Offset((idx % model.n + 0.5f) * pitchX, (idx / model.n + 0.5f) * pitchY)
-        }
-        for (i in 1 until centers.size) {
-            drawLine(
-                color = board.pathTrace,
-                start = centers[i - 1],
-                end = centers[i],
-                strokeWidth = stroke,
-                cap = StrokeCap.Round,
+        with(motion) {
+            drawTrace(
+                path, finger(), hooks, model.n, board.pathTrace, board.pathTraceLip,
+                ZipBoardSpec.pathTraceWidthFraction, ZipBoardSpec.pathTraceLipFraction, animate,
             )
         }
     }
@@ -201,7 +220,7 @@ fun ZipPipes(model: ZipRendererModel) {
 fun HintArrowHead(arrow: HintArrow, model: ZipRendererModel, alpha: Float, modifier: Modifier = Modifier) {
     val n = model.n
     // A labeled head already announces itself — its dot ring plays the one-shot
-    // next-target flash, and a powder glyph over the powder ring/number reads as mush
+    // next-target flash, and a blue glyph over the blue ring/number reads as mush
     // (user finding, board-review round 2). Plain heads get the arrow.
     if (model.cells[arrow.headIdx].label != null) return
     val board = LocalBoardColors.current

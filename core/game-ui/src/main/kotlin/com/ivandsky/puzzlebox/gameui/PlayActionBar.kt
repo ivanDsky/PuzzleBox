@@ -4,39 +4,31 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.GameButton
+import com.ivandsky.puzzlebox.designsystem.GameButtonSize
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-/** Leading icon size of every action (identity §2.5). */
-private val ActionIconSize = 20.dp
-
 /**
- * The bottom action bar every game shares (A14): Undo · Redo · Hint · Clear, each a 20dp
- * PuzzleIcons glyph over a label. The hint half is CORE only as far as the button and the
- * running count ([hintsUsed], the session's A3 count); what a press does is the game's.
+ * The action bar every game shares (A14, A15): Undo · Redo · Hint · Clear, each a tall
+ * chunky [GameButton] sharing the row equally. Hint fills with the game's [accent]; the
+ * rest stay neutral. The hint half is CORE only as far as the button and the running
+ * count ([hintsUsed], the session's A3 count); what a press does is the game's.
  * [onClear] null hides Clear (Tango has none); the rest are always shown, disabled when
- * they cannot act. Buttons keep the 48dp touch floor (§9).
+ * they cannot act. Games pass it as [AdaptivePlayScaffold]'s actions: under the caption on
+ * a phone, a toolbar above the board on a landscape tablet.
  */
 @Composable
-fun PlayActionBar(
+internal fun PlayActionBar(
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onHint: () -> Unit,
@@ -44,31 +36,37 @@ fun PlayActionBar(
     canUndo: Boolean,
     canRedo: Boolean,
     hintEnabled: Boolean,
+    accent: AccentSlot,
     modifier: Modifier = Modifier,
     hintsUsed: Int = 0,
     canClear: Boolean = true,
 ) {
     Row(
         modifier.fillMaxWidth().testTag("play.action_bar"),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ActionButton("Undo", PuzzleIcons.Undo, onUndo, canUndo, "play.undo")
-        ActionButton("Redo", PuzzleIcons.Redo, onRedo, canRedo, "play.redo")
-        ActionButton(
-            label = if (hintsUsed == 0) "Hint" else "Hint · $hintsUsed",
-            icon = PuzzleIcons.Hint,
+        val action = Modifier.weight(1f)
+        GameButton(onUndo, PuzzleIcons.Undo, "Undo", action.testTag("play.undo"), canUndo, size = GameButtonSize.Tall)
+        GameButton(onRedo, PuzzleIcons.Redo, "Redo", action.testTag("play.redo"), canRedo, size = GameButtonSize.Tall)
+        GameButton(
             onClick = onHint,
+            icon = PuzzleIcons.Hint,
+            label = if (hintsUsed == 0) "Hint" else "Hint · $hintsUsed",
+            modifier = action.testTag("play.hint"),
             enabled = hintEnabled,
-            tag = "play.hint",
+            accent = accent,
+            size = GameButtonSize.Tall,
         )
-        if (onClear != null) ActionButton("Clear", PuzzleIcons.Clear, onClear, canClear, "play.clear")
+        if (onClear != null) {
+            GameButton(onClear, PuzzleIcons.Clear, "Clear", action.testTag("play.clear"), canClear, size = GameButtonSize.Tall)
+        }
     }
 }
 
 /** [PlayActionBar] over the play seams: each control reads its game's state. */
 @Composable
-internal fun PlayActionBar(undo: PlayUndo, hints: PlayHints, clear: PlayClear?, modifier: Modifier = Modifier) {
+fun PlayActionBar(undo: PlayUndo, hints: PlayHints, clear: PlayClear?, accent: AccentSlot, modifier: Modifier = Modifier) {
     PlayActionBar(
         onUndo = undo::undo,
         onRedo = undo::redo,
@@ -77,26 +75,15 @@ internal fun PlayActionBar(undo: PlayUndo, hints: PlayHints, clear: PlayClear?, 
         canUndo = undo.canUndo,
         canRedo = undo.canRedo,
         hintEnabled = hints.hintEnabled,
+        accent = accent,
         modifier = modifier,
         hintsUsed = hints.hintsUsed,
         canClear = clear?.canClear ?: false,
     )
 }
 
-@Composable
-private fun ActionButton(label: String, icon: ImageVector, onClick: () -> Unit, enabled: Boolean, tag: String) {
-    TextButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.heightIn(min = 48.dp).testTag(tag),
-    ) {
-        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(ActionIconSize))
-        Spacer(Modifier.width(Spacing.xs))
-        Text(text = label, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
-
-// Preview: mid-play with one hint used, then a game with no Clear and nothing to undo.
+// Preview: mid-play with one hint used, then a game with no Clear and nothing to undo
+// (its accent differs to show Hint follows the game).
 @PuzzleBoxPreviews
 @Composable
 internal fun PlayActionBarPreview() {
@@ -110,6 +97,7 @@ internal fun PlayActionBarPreview() {
                 canUndo = true,
                 canRedo = false,
                 hintEnabled = true,
+                accent = AccentSlot.Teal,
                 hintsUsed = 1,
             )
             PlayActionBar(
@@ -120,6 +108,7 @@ internal fun PlayActionBarPreview() {
                 canUndo = false,
                 canRedo = false,
                 hintEnabled = true,
+                accent = AccentSlot.Orange,
             )
         }
     }

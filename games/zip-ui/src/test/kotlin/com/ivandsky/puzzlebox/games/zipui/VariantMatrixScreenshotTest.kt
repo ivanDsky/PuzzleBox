@@ -27,6 +27,8 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.github.takahirom.roborazzi.RoborazziOptions
+import com.github.takahirom.roborazzi.RoborazziTaskType
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -237,7 +239,12 @@ class VariantMatrixScreenshotTest {
                 }
             }
         }
-        composeRule.onRoot().captureRoboImage(File(MATRIX_DIR, name).absolutePath)
+        // Gate evidence, not goldens: always record, even under -Proborazzi.verify=true,
+        // since the matrix dir is a gitignored scratch output with nothing to verify against.
+        composeRule.onRoot().captureRoboImage(
+            File(MATRIX_DIR, name).absolutePath,
+            roborazziOptions = RoborazziOptions(taskType = RoborazziTaskType.Record),
+        )
     }
 
     /** Boustrophedon (snake) Hamiltonian path — the `won` panes' full-coverage trace. */

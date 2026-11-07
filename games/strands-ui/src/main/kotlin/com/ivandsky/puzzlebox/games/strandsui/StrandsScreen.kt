@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -55,6 +56,7 @@ internal fun StrandsPlayScreen(
     controller: StrandsPlayController,
     status: PlayBoardStatus,
     layout: PlayLayout,
+    sidePanel: (@Composable ColumnScope.() -> Unit)?,
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -82,8 +84,10 @@ internal fun StrandsPlayScreen(
             AdaptivePlayScaffold(
                 layout = layout,
                 modifier = Modifier.fillMaxSize(),
+                // Strands sizes its board by its own cell policy, so the pane cap goes unused.
                 board = { BoardPane(controller, status, reduceMotion, onRetry) },
                 side = { SidePanel(controller, status, reduceMotion, withChrome = true) },
+                sidePanel = sidePanel,
             )
         }
     }
@@ -137,7 +141,7 @@ private fun BoardColumn(
     withChrome: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val model = controller.model
+    val model = controller.baseModel
     Layout(
         contents = listOf(
             { if (withChrome) PuzzleChrome(controller, header, reduceMotion) },
@@ -193,7 +197,7 @@ private fun BoardColumn(
 /** The puzzle's own chrome: the theme card, the header line and the word slot. */
 @Composable
 private fun PuzzleChrome(controller: StrandsPlayController, header: StrandsHeader, reduceMotion: Boolean) {
-    val model = controller.model
+    val model = controller.baseModel
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ThemeCard(header.clue, controller.solvedHints?.let(StrandsRating::of), Modifier.fillMaxWidth())
         StrandsHeaderLine(header)
@@ -219,14 +223,12 @@ private fun SidePanel(
         PlayChrome(
             clock = controller,
             hints = null,
-            undo = null,
-            clear = null,
             banner = ready?.banner,
         )
         if (header != null) {
             Column(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
                 PuzzleChrome(controller, header, reduceMotion)
-                FoundWordsList(controller.foundWords, controller.model.totalCount, Modifier.padding(top = Spacing.sm))
+                FoundWordsList(controller.foundWords, controller.baseModel.totalCount, Modifier.padding(top = Spacing.sm))
             }
         }
     }

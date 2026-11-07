@@ -5,13 +5,17 @@ import androidx.compose.ui.graphics.Color
 import com.ivandsky.puzzlebox.designsystem.BoardColors
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
+import com.ivandsky.puzzlebox.games.strands.Coord
+import com.ivandsky.puzzlebox.games.strands.render.LinkKind
+import com.ivandsky.puzzlebox.games.strands.render.StrandsLink
 import com.ivandsky.puzzlebox.games.strandsui.FoundEvent
 import com.ivandsky.puzzlebox.games.strandsui.StrandsCopy
 import com.ivandsky.puzzlebox.games.strandsui.StrandsMotion
 
 /**
- * A found theme word: the green token, and the settle as it is found. Letter n waits
- * n × [StrandsMotion.SettleStaggerMs], turns from the trace blue to green, and runs NYT's
+ * A found theme word: the pink token (magenta for every second word, [altThemeLinks]), and
+ * the settle as it is found. Letter n waits n × [StrandsMotion.SettleStaggerMs], turns from
+ * the trace colour to its own, and runs NYT's
  * `Pulser bounce`, both per [StrandsMotion.FoundSettle].
  */
 internal object FoundThemeSpec : StrandsCellSpec {
@@ -26,6 +30,8 @@ internal object FoundThemeSpec : StrandsCellSpec {
     )
 
     override fun fill(colors: BoardColors): Color = colors.strandsThemeFill
+
+    override fun lip(colors: BoardColors): Color = colors.strandsThemeLip
 
     override fun letter(colors: BoardColors): Color = colors.strandsTileText
 
@@ -59,3 +65,9 @@ internal object FoundThemeSpec : StrandsCellSpec {
 
     private fun delayMs(cue: StrandsMotionCue): Int = cue.order * StrandsMotion.SettleStaggerMs
 }
+
+/** Found theme words alternate pink and magenta (A14): every second theme link, in found order, takes the alt fill. */
+internal fun altThemeLinks(links: List<StrandsLink>): Set<StrandsLink> =
+    links.filter { it.kind == LinkKind.Theme }.filterIndexedTo(HashSet()) { index, _ -> index % 2 == 1 }
+
+internal fun Set<StrandsLink>.altThemeCells(): Set<Coord> = flatMapTo(HashSet()) { it.cells }

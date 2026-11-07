@@ -134,12 +134,14 @@ class SudokuKeypadTest {
     }
 
     @Test
-    fun `notes, erase and clear share one row in three equal widths and clear calls back`() {
+    fun `notes, erase and clear share one row under the digits in three equal widths and clear calls back`() {
         var cleared = 0
         setKeypad(SudokuKeypadModel(6, List(6) { 6 }, notesMode = false, canClear = true, solved = false), onClear = { cleared++ })
         val actions = listOf("Notes", "Erase", "Clear").map { composeRule.onNodeWithText(it).getUnclippedBoundsInRoot() }
+        val lastDigit = composeRule.onNodeWithContentDescription("6, 6 left").getUnclippedBoundsInRoot()
 
         assertEquals(1, actions.map { it.top }.distinct().size)
+        assertTrue("actions $actions not under the digits $lastDigit", actions.first().top > lastDigit.bottom)
         val widths = actions.map { it.width }
         assertTrue("action widths $widths", widths.max() - widths.min() < 1.dp)
         composeRule.onNodeWithTag("sudoku.clear").assertIsEnabled().performClick()
@@ -189,7 +191,7 @@ class SudokuKeypadTest {
     }
 
     @Test
-    fun `inline notes drops the button row for a notes switch key after the digits`() {
+    fun `the notes column drops the button row for a notes switch key beside the digits`() {
         var notesMode by mutableStateOf(false)
         var solved by mutableStateOf(false)
         composeRule.setContent {
@@ -200,7 +202,7 @@ class SudokuKeypadTest {
                     onErase = {},
                     onClear = {},
                     onToggleNotes = { notesMode = !notesMode },
-                    inlineNotes = true,
+                    actions = SudokuKeypadActions.NotesColumn,
                 )
             }
         }
@@ -208,11 +210,12 @@ class SudokuKeypadTest {
         composeRule.onNodeWithTag("sudoku.clear").assertDoesNotExist()
         val toggle = composeRule.onNodeWithContentDescription("Notes")
         toggle.assert(hasRole(Role.Switch)).assert(hasStateDescription("Off"))
+        val three = composeRule.onNodeWithContentDescription("3, 6 left").getUnclippedBoundsInRoot()
         val six = composeRule.onNodeWithContentDescription("6, 6 left").getUnclippedBoundsInRoot()
         val key = toggle.getUnclippedBoundsInRoot()
-        assertEquals(six.top, key.top)
-        assertTrue("toggle $key not after 6 $six", key.left > six.right)
-        assertTrue("toggle $key under 48dp", key.width >= 48.dp && key.height >= 48.dp)
+        assertEquals(three.top, key.top)
+        assertEquals(six.bottom, key.bottom)
+        assertTrue("toggle $key not beside 3 $three", key.left > three.right)
 
         toggle.performClick()
 
@@ -224,28 +227,74 @@ class SudokuKeypadTest {
     }
 
     @Test
-    fun `two rows split nine digits five over four with every key at least 48dp`() {
+    fun `digits sit in three columns - nine in three rows, six in two`() {
+        var size by mutableStateOf(9)
         composeRule.setContent {
             PuzzleBoxTheme {
                 SudokuKeypad(
-                    model = SudokuKeypadModel(9, List(9) { 9 }, notesMode = false, canClear = true, solved = false),
+                    model = SudokuKeypadModel(size, List(size) { size }, notesMode = false, canClear = true, solved = false),
                     onDigit = {},
                     onErase = {},
                     onClear = {},
                     onToggleNotes = {},
                     modifier = Modifier.width(320.dp),
-                    rows = 2,
                 )
             }
         }
-        val keys = (1..9).map { composeRule.onNodeWithContentDescription("$it, 9 left").getUnclippedBoundsInRoot() }
+        for (n in listOf(9, 6)) {
+            size = n
+            val keys = (1..n).map { composeRule.onNodeWithContentDescription("$it, $n left").getUnclippedBoundsInRoot() }
+            val rows = keys.chunked(3)
+            assertEquals(n / 3, keys.map { it.top }.distinct().size)
+            rows.forEach { row -> assertEquals(1, row.map { it.top }.distinct().size) }
+            assertEquals(List(n / 3) { keys[0].left }, rows.map { it.first().left })
+            keys.forEach { assertTrue("key $it is under 48dp", it.width >= 48.dp && it.height >= 48.dp) }
+        }
+    }
 
-        assertEquals(1, keys.take(5).map { it.top }.distinct().size)
-        assertEquals(1, keys.drop(5).map { it.top }.distinct().size)
-        assertTrue(keys[5].top > keys[0].bottom)
-        keys.forEach { assertTrue("key $it is under 48dp", it.width >= 48.dp && it.height >= 48.dp) }
-        // The short row is centred under the full one: half a key in from either edge.
-        assertTrue(keys[5].left > keys[0].left && keys[8].right < keys[4].right)
+    @Test
+    fun `a cramped 9x9 keypad puts notes, erase and clear in a fourth column, one per digit row`() {
+        setColumnKeypad(size = 9)
+        val rowTops = listOf(1, 4, 7).map { composeRule.onNodeWithContentDescription("$it, 9 left").getUnclippedBoundsInRoot().top }
+        val three = composeRule.onNodeWithContentDescription("3, 9 left").getUnclippedBoundsInRoot()
+        val actions = listOf("Notes", "Erase", "Clear").map { composeRule.onNodeWithContentDescription(it).getUnclippedBoundsInRoot() }
+
+        actions.zip(rowTops).forEach { (action, top) -> assertEquals(top.value, action.top.value, 1f) }
+        actions.forEach { assertTrue("$it not beside the digits $three", it.left > three.right) }
+        actions.forEach { assertEquals(30f, it.height.value, 0.5f) }
+    }
+
+    @Test
+    fun `a cramped 6x6 keypad puts notes over erase and clear side by side in the fourth column`() {
+        setColumnKeypad(size = 6)
+        val one = composeRule.onNodeWithContentDescription("1, 6 left").getUnclippedBoundsInRoot()
+        val four = composeRule.onNodeWithContentDescription("4, 6 left").getUnclippedBoundsInRoot()
+        val notes = composeRule.onNodeWithContentDescription("Notes").getUnclippedBoundsInRoot()
+        val erase = composeRule.onNodeWithContentDescription("Erase").getUnclippedBoundsInRoot()
+        val clear = composeRule.onNodeWithTag("sudoku.clear").getUnclippedBoundsInRoot()
+
+        assertEquals(one.top.value, notes.top.value, 1f)
+        assertEquals(four.top.value, erase.top.value, 1f)
+        assertEquals(erase.top, clear.top)
+        assertTrue("erase $erase not left of clear $clear", erase.right < clear.left)
+        assertTrue("halves under 48dp: $erase $clear", erase.width >= 47.5.dp && clear.width >= 47.5.dp)
+    }
+
+    private fun setColumnKeypad(size: Int) {
+        composeRule.setContent {
+            PuzzleBoxTheme {
+                SudokuKeypad(
+                    model = SudokuKeypadModel(size, List(size) { size }, notesMode = false, canClear = true, solved = false),
+                    onDigit = {},
+                    onErase = {},
+                    onClear = {},
+                    onToggleNotes = {},
+                    modifier = Modifier.width(336.dp),
+                    keyHeight = 30.dp,
+                    actions = SudokuKeypadActions.Column,
+                )
+            }
+        }
     }
 
     private fun setKeypad(

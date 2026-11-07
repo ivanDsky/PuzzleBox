@@ -17,69 +17,49 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.airbnb.android.showkase.annotation.ShowkaseComposable
 
-// Game accent slots (spec A1, identity §2.2): hand-picked light and dark rows per hue,
-// unnamed so the design system never names a game — a game's brand picks a slot.
-// Blue = the Zip row (light accent = light pathTrace, BoardTokens.kt), Orange = Tango
-// (sunFill family), Violet = Queens, Teal = MiniSudoku, Pink = Strands. `onAccent` is
-// white in light and the slot's onContainer in dark. Neutral is no hue: it derives from
+// Game accent slots (spec A1, A14, identity §2.2): the Splash set, unnamed so the design
+// system never names a game — a game's brand picks a slot. Blue = Zip, Orange = Tango,
+// Violet = Queens, Teal = MiniSudoku, Pink = Strands. Each hue sits at sRGB gamut-edge
+// chroma at its peak lightness (prototype 03-game-colors ?v=d); `onAccent` is the hue's
+// own deep shade because white clears 4.5:1 on none of them; `lip` is the chunky-depth
+// bottom edge, same hue at OKLCH L −0.13 light / −0.20 dark. Light `onContainer` is the
+// brightest same-hue step holding 4.5:1 on the tint. Neutral is no hue: it derives from
 // the ink (onSurface) and well (surfaceContainerHigh) roles so a brandless game reads
 // as plain ink on every surface.
 
 internal val LightAccentTokens: Map<AccentSlot, GameAccent> = mapOf(
-    AccentSlot.Blue to GameAccent(Color(0xFF1899D6), Color(0xFFFFFFFF), Color(0xFFD6EEFA), Color(0xFF0A3A55)),
-    AccentSlot.Orange to GameAccent(Color(0xFFE8740C), Color(0xFFFFFFFF), Color(0xFFFFE6CC), Color(0xFF5A2A00)),
-    AccentSlot.Violet to GameAccent(Color(0xFF7B5CF0), Color(0xFFFFFFFF), Color(0xFFE7E1FF), Color(0xFF2C1A73)),
-    AccentSlot.Teal to GameAccent(Color(0xFF0FA39A), Color(0xFFFFFFFF), Color(0xFFCFF3EF), Color(0xFF00403C)),
-    AccentSlot.Pink to GameAccent(Color(0xFFE0407A), Color(0xFFFFFFFF), Color(0xFFFFD9E6), Color(0xFF5C0F2C)),
+    AccentSlot.Blue to GameAccent(Color(0xFF00B4FE), Color(0xFF002A3F), Color(0xFFCAEAFF), Color(0xFF006C9B), Color(0xFF008AC4)),
+    AccentSlot.Orange to GameAccent(Color(0xFFFF7F02), Color(0xFF401A00), Color(0xFFFFDDC9), Color(0xFFA04D00), Color(0xFFC56000)),
+    AccentSlot.Violet to GameAccent(Color(0xFF9582FF), Color(0xFF27145C), Color(0xFFE2E1FF), Color(0xFF722FFF), Color(0xFF7059D2)),
+    AccentSlot.Teal to GameAccent(Color(0xFF00C8BD), Color(0xFF002E2B), Color(0xFFB7F2EC), Color(0xFF00736D), Color(0xFF009B92)),
+    AccentSlot.Pink to GameAccent(Color(0xFFFF478A), Color(0xFF4D0021), Color(0xFFFFD9E2), Color(0xFFC4005F), Color(0xFFCF0064)),
     AccentSlot.Neutral to GameAccent(
         accent = LightColorScheme.onSurface,
         onAccent = LightColorScheme.surface,
         container = LightColorScheme.surfaceContainerHigh,
         onContainer = LightColorScheme.onSurface,
+        lip = Color(0xFF14171D),
     ),
 )
 
 internal val DarkAccentTokens: Map<AccentSlot, GameAccent> = mapOf(
-    AccentSlot.Blue to GameAccent(Color(0xFF5CC2F2), Color(0xFFCDEBFB), Color(0xFF0E3A52), Color(0xFFCDEBFB)),
-    AccentSlot.Orange to GameAccent(Color(0xFFFF9B45), Color(0xFFFFE1C4), Color(0xFF4D2A0A), Color(0xFFFFE1C4)),
-    AccentSlot.Violet to GameAccent(Color(0xFFA994FF), Color(0xFFE5DEFF), Color(0xFF34296B), Color(0xFFE5DEFF)),
-    AccentSlot.Teal to GameAccent(Color(0xFF4DD3C8), Color(0xFFC9F5F0), Color(0xFF0C3F3B), Color(0xFFC9F5F0)),
-    AccentSlot.Pink to GameAccent(Color(0xFFFF7FA8), Color(0xFFFFD9E6), Color(0xFF57182F), Color(0xFFFFD9E6)),
+    AccentSlot.Blue to GameAccent(Color(0xFF21B7FF), Color(0xFF002A40), Color(0xFF003752), Color(0xFF21B7FF), Color(0xFF0077AA)),
+    AccentSlot.Orange to GameAccent(Color(0xFFFF8524), Color(0xFF401A00), Color(0xFF4E270B), Color(0xFFFF8524), Color(0xFFAB5300)),
+    AccentSlot.Violet to GameAccent(Color(0xFFA69BFF), Color(0xFF27145C), Color(0xFF312C54), Color(0xFFA69BFF), Color(0xFF6C5EBC)),
+    AccentSlot.Teal to GameAccent(Color(0xFF00E8DC), Color(0xFF002E2B), Color(0xFF003C38), Color(0xFF00E8DC), Color(0xFF00A198)),
+    AccentSlot.Pink to GameAccent(Color(0xFFFF77A0), Color(0xFF4D0021), Color(0xFF4F222F), Color(0xFFFF77A0), Color(0xFFB93665)),
     AccentSlot.Neutral to GameAccent(
         accent = DarkColorScheme.onSurface,
         onAccent = DarkColorScheme.surface,
         container = DarkColorScheme.surfaceContainerHigh,
         onContainer = DarkColorScheme.onSurface,
+        lip = Color(0xFF9C9EA2),
     ),
 )
 
-// The Soft trial set (spec A7, AccentSet.Soft): each Vivid colour at ~55% of its
-// saturation with its lightness kept, so contrast with the on-colours stays close to Vivid.
-// Neutral is shared with Vivid.
-
-internal val SoftLightAccentTokens: Map<AccentSlot, GameAccent> = mapOf(
-    AccentSlot.Blue to GameAccent(Color(0xFF438AAB), Color(0xFFFFFFFF), Color(0xFFDEEBF2), Color(0xFF1B3544)),
-    AccentSlot.Orange to GameAccent(Color(0xFFB6773D), Color(0xFFFFFFFF), Color(0xFFF4E6D7), Color(0xFF462B14)),
-    AccentSlot.Violet to GameAccent(Color(0xFF8E7DCF), Color(0xFFFFFFFF), Color(0xFFEBE8F8), Color(0xFF382E5F)),
-    AccentSlot.Teal to GameAccent(Color(0xFF30827D), Color(0xFFFFFFFF), Color(0xFFD7EBE9), Color(0xFF0E322F)),
-    AccentSlot.Pink to GameAccent(Color(0xFFBC6484), Color(0xFFFFFFFF), Color(0xFFF6E2E9), Color(0xFF4B2030)),
-    AccentSlot.Neutral to LightAccentTokens.getValue(AccentSlot.Neutral),
-)
-
-internal val SoftDarkAccentTokens: Map<AccentSlot, GameAccent> = mapOf(
-    AccentSlot.Blue to GameAccent(Color(0xFF7EB6D0), Color(0xFFD7E8F1), Color(0xFF1D3643), Color(0xFFD7E8F1)),
-    AccentSlot.Orange to GameAccent(Color(0xFFD59E6F), Color(0xFFF2E1D1), Color(0xFF3E2B19), Color(0xFFF2E1D1)),
-    AccentSlot.Violet to GameAccent(Color(0xFFB8ACE7), Color(0xFFE9E5F8), Color(0xFF3E385C), Color(0xFFE9E5F8)),
-    AccentSlot.Teal to GameAccent(Color(0xFF6BB5AF), Color(0xFFD3EBE8), Color(0xFF173431), Color(0xFFD3EBE8)),
-    AccentSlot.Pink to GameAccent(Color(0xFFE29CB2), Color(0xFFF6E2E9), Color(0xFF492633), Color(0xFFF6E2E9)),
-    AccentSlot.Neutral to DarkAccentTokens.getValue(AccentSlot.Neutral),
-)
-
-/** The accent palette for [set] in the light or dark scheme; [PuzzleBoxTheme] provides it. */
-internal fun accentPalette(set: AccentSet, darkTheme: Boolean): Map<AccentSlot, GameAccent> = when (set) {
-    AccentSet.Vivid -> if (darkTheme) DarkAccentTokens else LightAccentTokens
-    AccentSet.Soft -> if (darkTheme) SoftDarkAccentTokens else SoftLightAccentTokens
-}
+/** The accent palette for the light or dark scheme; [PuzzleBoxTheme] provides it. */
+internal fun accentPalette(darkTheme: Boolean): Map<AccentSlot, GameAccent> =
+    if (darkTheme) DarkAccentTokens else LightAccentTokens
 
 /**
  * This slot's colours in the RESOLVED theme ([LocalAccentPalette], provided by
@@ -105,6 +85,7 @@ internal fun AccentSlotsPreview() {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     AccentSwatch(slot.name, accent.accent, accent.onAccent)
                     AccentSwatch("container", accent.container, accent.onContainer)
+                    AccentSwatch("lip", accent.lip, accent.onAccent)
                 }
             }
         }

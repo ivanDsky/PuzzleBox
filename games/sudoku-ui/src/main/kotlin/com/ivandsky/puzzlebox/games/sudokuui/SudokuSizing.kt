@@ -5,78 +5,88 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import kotlin.math.floor
+import kotlin.math.roundToInt
 
 /**
- * A15 sizing policy — pure, computed, never eyeballed. The caller passes the space its
+ * A15/A6 sizing policy — pure, computed, never eyeballed. The caller passes the space its
  * board pane gives it (chrome and gutters already excluded, as Queens' board does).
  *
- * Keys are at least 48dp in both width and height. The digits take one row when `size`
- * keys of 48dp plus gaps fit the keypad width, otherwise they wrap into two rows.
+ * The grid sits above a 3-column numpad (size / 3 digit rows). One balanced rule sizes both
+ * (prototype 01 D, user pick): the digit key is as tall as a board cell, and grows to at
+ * most 1.25 x the cell only into height left over, so neither the board nor the keys win at
+ * the other's cost; a pane too small for 48dp of both shrinks them together. The board
+ * takes the width (capped at [boardMax]: [PlayBoardMaxWidth], or a two-pane board pane's
+ * side; a whole multiple of a whole-dp cell) whenever the height allows.
  *
- * The grid sits above the keypad in every layout, so the board gets the height left after
- * the keypad at 48dp keys; keys grow toward [keyMax] only into height the board does not
- * use — the board shrinks, never the keys. The keypad is the Notes/Erase/Clear row over
- * the digit rows, or, with [inlineNotes] (TwoPane, where Erase and Clear sit in the side
- * pane), the digit rows alone with the notes toggle as one more key after the digits.
- * Those keys are narrow (ten across the capped column), so their height stays within
- * [INLINE_KEY_ASPECT] of their width. The board is capped at [PlayBoardMaxWidth] and is
- * a whole multiple of a whole-dp cell.
+ * Notes, Erase and Clear sit in a row under the digits, [actionKeyFor] tall. When that row
+ * would force the width-bound board smaller (a cramped pane: the key would have to drop
+ * under the cell), they move into a fourth column beside the digits at key height instead
+ * ([SudokuKeypadActions.Column]). With inlineNotes (TwoPane, where Erase and Clear sit in
+ * the toolbar) only the notes toggle takes that column.
  */
 object SudokuSizing {
 
-    /** The touch-target floor (§9): every key is at least this wide and tall. */
+    /** The touch-target floor (§9) the action row holds, and the width of each 6x6 Erase | Clear half. */
     internal val keyMin: Dp = 48.dp
 
-    /** Roomy panes grow keys to this, so a tablet keypad does not read as a phone's. */
-    internal val keyMax: Dp = 64.dp
+    /** Prototype 01 D's ceiling, so a roomy 6x6 pane does not turn keys into slabs. */
+    internal val keyMax: Dp = 96.dp
 
     internal val keyGap: Dp = Spacing.sm
 
-    /** Between digit keys in a row, tighter than [keyGap] so nine keys keep their width. */
-    internal val digitGap: Dp = Spacing.xs
+    private const val COLUMNS = 3
+    private const val KEY_GROWTH = 1.25f
+    private const val ACTION_ROW_SHARE = 0.75f
 
-    /** Between the last digit and the inline notes toggle, so the toggle reads as its own key. */
-    internal val toggleBreak: Dp = Spacing.sm
-
-    fun layout(maxWidth: Dp, maxHeight: Dp, size: Int, inlineNotes: Boolean = false): SudokuLayout {
-        require(size > 0) { "size must be positive, was $size" }
-        val keys = if (inlineNotes) size + 1 else size
-        val keyRows = if (rowWidthAtKeyMin(keys, inlineNotes) <= maxWidth) 1 else 2
-        val keysPerRow = (keys + keyRows - 1) / keyRows
-        val keyWidthShare = if (inlineNotes) {
-            wholeDp(inlineKeyWidth(minOf(maxWidth, PlayBoardMaxWidth), keysPerRow) * INLINE_KEY_ASPECT)
-        } else {
-            wholeDp((maxWidth - keyGap * (keysPerRow - 1)) / keysPerRow)
+    fun layout(
+        maxWidth: Dp,
+        maxHeight: Dp,
+        size: Int,
+        inlineNotes: Boolean = false,
+        boardMax: Dp = PlayBoardMaxWidth,
+    ): SudokuLayout {
+        require(size > 0 && size % COLUMNS == 0) { "size must be a positive multiple of $COLUMNS, was $size" }
+        val rows = size / COLUMNS
+        val widthCell = floor(minOf(maxWidth, boardMax).value / size).toInt().coerceAtLeast(0)
+        val actions = when {
+            inlineNotes -> SudokuKeypadActions.NotesColumn
+            heightFor(size, rows, SudokuKeypadActions.Row, widthCell, widthCell) <= maxHeight -> SudokuKeypadActions.Row
+            else -> SudokuKeypadActions.Column
         }
-
-        val keypadRows = keyRows + actionRows(inlineNotes)
-        val keypadAtKeyMin = keypadHeight(keyMin, keypadRows)
-        val cell = cellFor(minOf(maxWidth, maxHeight - keypadAtKeyMin), size)
-        val board = cell * size
-        val spareHeight = (maxHeight - keypadAtKeyMin - board).coerceAtLeast(0.dp)
-        val key = minOf(keyWidthShare, keyMax, keyMin + wholeDp(spareHeight / keypadRows)).coerceAtLeast(keyMin)
-        return SudokuLayout(cell, board, key, keyGap, keyRows, inlineNotes)
+        var cell = widthCell
+        while (cell > 0 && heightFor(size, rows, actions, cell, cell) > maxHeight) cell--
+        var key = cell
+        val keyCap = minOf(floor(cell * KEY_GROWTH).toInt(), keyMax.value.toInt())
+        while (key < keyCap && heightFor(size, rows, actions, cell, key + 1) <= maxHeight) key++
+        val actionKey = if (actions == SudokuKeypadActions.Row) actionKeyFor(key.dp) else key.dp
+        return SudokuLayout(cell.dp, (cell * size).dp, key.dp, actionKey, keyGap, rows, actions)
     }
 
-    /** Height a stacked keypad takes below the grid: per row (action row, if any, plus digit rows) one key and the gap above it. */
-    internal fun stackedKeypadHeight(layout: SudokuLayout): Dp =
-        keypadHeight(layout.key, layout.keyRows + actionRows(layout.inlineNotes))
+    /** The keypad's height under the grid's gap: the digit rows, plus the action row when it sits below. */
+    internal fun keypadHeight(layout: SudokuLayout): Dp =
+        keypadHeight(layout.keyRows, layout.actions, layout.key, layout.actionKey)
 
-    /** One key's width in a [keysPerRow] row of [width] that ends in the inline notes toggle. */
-    internal fun inlineKeyWidth(width: Dp, keysPerRow: Int): Dp =
-        (width - digitGap * (keysPerRow - 2) - toggleBreak) / keysPerRow
+    /** The fourth column's width in a keypad [width] wide; a 6x6 Column splits its second row Erase | Clear, two 48dp halves. */
+    internal fun actionColumnWidth(width: Dp, keyRows: Int, actions: SudokuKeypadActions): Dp {
+        val quarter = (width - keyGap * COLUMNS) / (COLUMNS + 1)
+        val splitsRow = actions == SudokuKeypadActions.Column && keyRows < COLUMNS
+        return if (splitsRow) maxOf(quarter, keyMin * 2 + keyGap) else quarter
+    }
 
-    private fun actionRows(inlineNotes: Boolean): Int = if (inlineNotes) 0 else 1
+    /** One digit key's width in a keypad [width] wide: a third of it, or of what the fourth column leaves. */
+    internal fun digitKeyWidth(width: Dp, keyRows: Int, actions: SudokuKeypadActions): Dp {
+        val digits = if (actions == SudokuKeypadActions.Row) width else width - keyGap - actionColumnWidth(width, keyRows, actions)
+        return (digits - keyGap * (COLUMNS - 1)) / COLUMNS
+    }
 
-    private fun keypadHeight(key: Dp, rows: Int): Dp = (key + keyGap) * rows
+    /** The action row trails the key at three quarters of its height, never under the touch floor. */
+    private fun actionKeyFor(key: Dp): Dp = maxOf(keyMin, (key.value * ACTION_ROW_SHARE).roundToInt().dp)
 
-    private fun rowWidthAtKeyMin(keys: Int, inlineNotes: Boolean): Dp =
-        if (inlineNotes) keyMin * keys + digitGap * (keys - 2) + toggleBreak else keyMin * keys + keyGap * (keys - 1)
+    private fun keypadHeight(rows: Int, actions: SudokuKeypadActions, key: Dp, actionKey: Dp): Dp {
+        val digits = key * rows + keyGap * (rows - 1)
+        return if (actions == SudokuKeypadActions.Row) digits + keyGap + actionKey else digits
+    }
 
-    private fun cellFor(bound: Dp, size: Int): Dp = wholeDp(minOf(bound, PlayBoardMaxWidth) / size).coerceAtLeast(0.dp)
-
-    private fun wholeDp(dp: Dp): Dp = floor(dp.value).dp
-
-    /** Inline keys are at most this much taller than wide (UX notes-key design: 50x56 at 9x9). */
-    private const val INLINE_KEY_ASPECT = 1.1f
+    private fun heightFor(size: Int, rows: Int, actions: SudokuKeypadActions, cell: Int, key: Int): Dp =
+        (cell * size).dp + keyGap + keypadHeight(rows, actions, key.dp, actionKeyFor(key.dp))
 }

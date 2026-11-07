@@ -1,9 +1,12 @@
 package com.ivandsky.puzzlebox.designsystem
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -18,7 +21,7 @@ object MotionTokens {
     val DurationLong = 300
     val DurationExpressive = 400
 
-    // Screen-to-screen nav transitions (Nav3 default is 700ms — sluggish for tab switches).
+    // In-pane transitions (library pages, game feedback); screens move on the Nav* set below.
     // Fade-through: exit fades out fast, enter starts after a delay — content from the two
     // screens never superimposes (emil-design-eng "two distinct objects" overlap fix;
     // tab switches aren't hierarchical, so the slide stays a residual 1/24).
@@ -32,6 +35,38 @@ object MotionTokens {
     const val NavPopEnter = 120
     const val NavPopEnterDelay = 60
     const val NavPopExit = 60
+
+    // Phone navigation (polish 04, variant B): a push slides the whole window in from the
+    // end edge on top; the outgoing page, its bar with it, parallaxes a fraction of the
+    // width under a scrim. Back mirrors it on the shorter standard clock. A tab switch is a
+    // fade-through on the tab clock.
+    const val NavFullSlideEnter = 380
+    const val NavFullSlidePop = 280
+    const val NavParallaxFraction = 0.28f
+    const val NavScrimAlpha = 0.32f
+    const val NavTabExit = 120
+    const val NavTabEnter = 240
+    const val NavTabEnterDelay = 100
+
+    // Tablet navigation (polish 04, variant D): a game lifts out of its tapped card (container
+    // transform); the screen is opaque throughout and the card's content fades off it over
+    // the first MixLiftCardFade (pop: back on over 25–70%). The rail fades and shifts out by
+    // LiftNavShift over the first LiftNavFraction, under LiftScrimAlpha over the list.
+    val LiftEnter = DurationExpressive
+    val LiftExit = DurationLong
+    const val LiftNavFraction = 0.4f
+    val LiftNavShift: Dp = 24.dp
+    const val LiftScrimAlpha = 0.2f
+    const val MixLiftCardFade = 0.45f
+
+    // Game ⇄ result on tablet: both pages travel the full width together, opaque.
+    const val MixAxisPush = 360
+    const val MixAxisPop = 300
+
+    // Tablet tab and list→detail: the incoming page fades in (and a tab rises) over the
+    // outgoing one, which stays opaque — two pages never fade at once.
+    const val MixTabIn = 220
+    val MixTabRise: Dp = 16.dp
 
     // Material 3 emphasized curves: decelerate on the way in, accelerate on the way out.
     val EasingStandard = CubicBezierEasing(0.2f, 0f, 0f, 1f)
@@ -51,6 +86,9 @@ object MotionTokens {
 
     // Press: scale 0.97 on the default spring. Reduced: none.
     const val PressScale = 0.97f
+
+    // Press, chunky game buttons (GameButton): sink — the face translates down into its
+    // lip on the default spring instead of scaling. Reduced: instant.
 
     // Select: icon crossfade + nav indicator 32→56dp on EasingStandard. Reduced: instant.
     const val SelectDuration = 120
@@ -119,6 +157,68 @@ object MotionTokens {
 
     // Settle: newly introduced rule violations wait this long before they show.
     const val SettleMillis = 500L
+
+    // Trace (Zip + Strands, spec A1/A4): the line end follows the finger along one grid
+    // direction, but only toward a cell the game would accept; anywhere else it gives a
+    // short nudge and rubber-bands back. A head disc rides the line end and pops on every
+    // entered cell. Reduced: the tip still follows; no grow, retract, home or pop.
+    object Trace {
+        // Closer than this to the tail centre there is no tip, so a resting finger never jitters.
+        const val TipDeadCells = 0.06f
+
+        // Toward a legal cell the tip tracks the finger 1:1 up to TipFollowCells, then eases
+        // toward TipReachCells: the cell walk commits the cell long before the cap.
+        const val TipFollowCells = 0.5f
+        const val TipReachCells = 0.9f
+
+        // Toward a wall, the edge, a used cell or an out-of-order target: at most this far,
+        // reaching ~63% of it after TipNudgeRiseCells of push.
+        const val TipNudgeCells = 0.1f
+        const val TipNudgeRiseCells = 0.25f
+
+        // Angular hysteresis past a sector edge before the tip switches direction, so a
+        // finger near the diagonal doesn't flicker (4-way Zip, 8-way Strands).
+        const val TipLatchDegrees4Way = 10f
+        const val TipLatchDegrees8Way = 8f
+
+        // Head Ø as a multiple of the line width.
+        const val HeadScale = 1.2f
+
+        // Pop: 1 → PopScale → 1 over PopDuration; the rise takes PopRiseFraction on EasingOut,
+        // the settle EasingStandard.
+        const val PopScale = 1.08f
+        const val PopDuration = 200
+        const val PopRiseFraction = 0.4f
+
+        // Cells added in one event grow in along the path; a backtrack retracts faster than it
+        // grew (exit < enter); on lift the tip returns to the tail centre. Length changes under
+        // BlendMinCells (the finger dragging the tip) follow instantly.
+        const val GrowDuration = 100
+        const val RetractDuration = 60
+        const val HomeDuration = 60
+        const val BlendMinCells = 0.3f
+        val EasingOut = CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
+        val EasingRetract = EasingEmphasizedAccelerate
+    }
+}
+
+/** Plays the trace pop ([MotionTokens.Trace]) from the current value: up to PopScale, then back to 1. */
+suspend fun Animatable<Float, AnimationVector1D>.tracePop() {
+    val rise = (MotionTokens.Trace.PopDuration * MotionTokens.Trace.PopRiseFraction).toInt()
+    animateTo(MotionTokens.Trace.PopScale, tween(rise, easing = MotionTokens.Trace.EasingOut))
+    animateTo(1f, tween(MotionTokens.Trace.PopDuration - rise, easing = MotionTokens.EasingStandard))
+}
+
+/** The trace pop's scale at [t] (0..1, clamped) through PopDuration, for frame-driven cells. */
+fun tracePopScale(t: Float): Float {
+    val p = t.coerceIn(0f, 1f)
+    val rise = MotionTokens.Trace.PopRiseFraction
+    val peak = MotionTokens.Trace.PopScale
+    return if (p < rise) {
+        1f + (peak - 1f) * MotionTokens.Trace.EasingOut.transform(p / rise)
+    } else {
+        peak + (1f - peak) * MotionTokens.EasingStandard.transform((p - rise) / (1f - rise))
+    }
 }
 
 // A named screen-level pattern. Exit is faster than enter: leaving feels snappy,

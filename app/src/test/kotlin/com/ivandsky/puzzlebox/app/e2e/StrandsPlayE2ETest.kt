@@ -1,11 +1,14 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.TouchInjectionScope
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -38,18 +41,21 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * SC1 / SC5 over the real shell: today's Strands, parsed by the real NYT source and trust
  * gate from a committed fixture, played the way a player would — a dragged theme word, a
  * tapped non-theme word (double-tap on the tail), a hint earned by three of them, both hint
  * stages, a kill mid-puzzle that restores everything (A30), the solve, its Result (hints and
- * time, never a share line) and its History row.
+ * time, never a share line) and its History row. A touch-down while a found word still
+ * settles rests its letters on the next frame (A12).
  */
 @RunWith(RobolectricTestRunner::class)
 // A phone-sized window: the default Robolectric screen would push the 8-row board off it.
@@ -128,6 +134,40 @@ class StrandsPlayE2ETest {
                 .assertExists()
         }
 
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `a touch-down mid-settle rests the word just found on the next frame`() =
+        shellRobot(playHub, today = TODAY, graph = strandsGraph()) {
+            openGame(STRANDS)
+            awaitStrands()
+            // ACORN's first letter bounces first and longest: the settle's clearest frame.
+            val watched = ACORN.first()
+            rule.mainClock.autoAdvance = false
+            drag(ACORN)
+            assertCells(ACORN, CellState.FoundTheme)
+            rule.mainClock.advanceTimeBy(MID_SETTLE_MS)
+            val settling = pixels(watched)
+
+            rule.onNodeWithTag(BOARD).performTouchInput { down(centreOf(FREE)) }
+            rule.mainClock.advanceTimeByFrame()
+            rule.mainClock.advanceTimeByFrame()
+            val touched = pixels(watched)
+
+            rule.onNodeWithTag(BOARD).performTouchInput { up() }
+            rule.mainClock.advanceTimeBy(SETTLED_MS)
+            val rest = pixels(watched)
+            rule.mainClock.autoAdvance = true
+
+            assertFalse("before the touch the letter is mid-bounce", settling.contentEquals(rest))
+            assertTrue("the touch-down rests it at once", touched.contentEquals(rest))
+        }
+
+    private fun ShellRobot.pixels(at: Coord): IntArray =
+        rule.onNodeWithTag(cellTag(at)).captureToImage().toPixelMap().buffer
+
+    private fun TouchInjectionScope.centreOf(at: Coord) =
+        Offset(width * (at.col + 0.5f) / COLS, height * (at.row + 0.5f) / ROWS)
+
     private fun ShellRobot.savedSession(): StrandsSession? =
         runBlocking { graph.saved.load(SLOT) }
             ?.let(SessionBlob::decode)
@@ -152,9 +192,8 @@ class StrandsPlayE2ETest {
     /** One finger across [path]: a single move per cell, so no neighbour is grazed on a diagonal. */
     private fun ShellRobot.drag(path: List<Coord>) {
         rule.onNodeWithTag(BOARD).performScrollTo().performTouchInput {
-            fun centre(at: Coord) = Offset(width * (at.col + 0.5f) / COLS, height * (at.row + 0.5f) / ROWS)
-            down(centre(path.first()))
-            path.drop(1).forEach { moveTo(centre(it)) }
+            down(centreOf(path.first()))
+            path.drop(1).forEach { moveTo(centreOf(it)) }
             up()
         }
         rule.waitForIdle()
@@ -215,6 +254,13 @@ class StrandsPlayE2ETest {
         const val COLS = 6
         const val TIMEOUT_MS = 5_000L
         const val BOARD = "strands.board"
+        const val SETTLED_MS = 3_000L
+
+        /** A fifth into the first letter's 1 s bounce: deep in its dip. */
+        const val MID_SETTLE_MS = 200L
+
+        /** A free letter far from ACORN: the touch-down lands on it. */
+        val FREE = Coord(7, 0)
         const val HINT = "strands.hint"
         const val HINT_DIALOG = "strands.hint_dialog"
         const val HINT_DIALOG_DISMISS = "strands.hint_dialog_dismiss"
