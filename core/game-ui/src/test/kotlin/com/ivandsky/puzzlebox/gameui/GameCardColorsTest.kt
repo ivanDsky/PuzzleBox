@@ -29,6 +29,7 @@ class GameCardColorsTest {
         val accent: Color,
         val onFill: Color,
         val container: Color,
+        val lip: Color,
         val onVariant: Color,
     )
 
@@ -41,6 +42,7 @@ class GameCardColorsTest {
                     resolved[i] = Resolved(
                         colors = gameCardColors(brand, offline),
                         accent = brand.accent.colors().accent,
+                        lip = brand.accent.colors().lip,
                         onFill = LocalOnFill.current,
                         container = MaterialTheme.colorScheme.surfaceContainerHigh,
                         onVariant = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -56,6 +58,7 @@ class GameCardColorsTest {
     fun `online card fills with the accent and draws in on-fill`() {
         resolve(false to false, false to true).forEach { r ->
             assertEquals(r.accent, r.colors.fill)
+            assertEquals(r.lip, r.colors.lip)
             assertEquals(r.onFill, r.colors.fg)
             assertEquals(r.onFill, r.colors.motif)
             assertEquals(r.onFill.copy(alpha = r.colors.fg2.alpha), r.colors.fg2)
@@ -64,9 +67,10 @@ class GameCardColorsTest {
     }
 
     @Test
-    fun `offline card is neutral with a fainter motif`() {
+    fun `offline card is neutral and flat with a fainter motif`() {
         val (online, r) = resolve(false to false, true to false)
         assertEquals(r.container, r.colors.fill)
+        assertEquals(Color.Transparent, r.colors.lip)
         assertEquals(listOf(r.onVariant, r.onVariant, r.onVariant), listOf(r.colors.fg, r.colors.fg2, r.colors.motif))
         assertTrue(r.colors.motifAlpha < online.colors.motifAlpha)
     }

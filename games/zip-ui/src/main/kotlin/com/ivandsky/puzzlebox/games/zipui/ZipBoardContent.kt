@@ -73,13 +73,16 @@ internal object ZipBoardSpec {
     /** U1 web desktop: trace stroke as a fraction of the pitch (mobile promo measured 0.89). */
     const val pathTraceWidthFraction = 0.54f
 
+    /** Spec A14: the trace's lip drops this fraction of the pitch below the line. */
+    const val pathTraceLipFraction = 0.1f
+
     /** U1 mobile halo ≈ 3.5px on a 62px pitch: separation ring under dots sitting on the trace. */
 
     /** Start waypoint's hollow-variant ring thickness, as a fraction of the pitch. */
     const val startRingFraction = 0.05f
 
     /** Round-5 arrow (user: → not >, black/subtracted, never wider than the pipe):
-     *  shaft + head glyph drawn in boardSurface over the powder pipe — a knockout in the
+     *  shaft + head glyph drawn in boardSurface over the blue pipe — a knockout in the
      *  trace, same visual language as the dot holes. Anchors along the direction
      *  (fractions of pitch, signed from the head-cell center): the visible pipe ends at
      *  the segment cap +0.27, so the glyph stays within ±0.24 — nothing hangs past the

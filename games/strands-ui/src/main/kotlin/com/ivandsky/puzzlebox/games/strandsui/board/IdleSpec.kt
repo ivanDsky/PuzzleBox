@@ -7,6 +7,8 @@ import com.ivandsky.puzzlebox.designsystem.BoardColors
 internal object IdleSpec : StrandsCellSpec {
     override fun fill(colors: BoardColors): Color? = null
 
+    override fun lip(colors: BoardColors): Color? = null
+
     override fun letter(colors: BoardColors): Color = colors.strandsIdleLetter
 
     override val stateWord: String? = null

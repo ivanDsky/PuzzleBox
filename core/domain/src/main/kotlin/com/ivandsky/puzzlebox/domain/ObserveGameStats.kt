@@ -25,12 +25,10 @@ class ObserveGameStats(
     operator fun invoke(game: GameId? = null): Flow<GameStats> {
         val rankOrder = game?.let { registry[it]?.score?.rankOrder } ?: RankOrder.TimeThenHints
         return observeGameHistory().map { days ->
-            val solved = days.filter {
-                it.record != null && it.puzzleNumber != null && (game == null || it.gameId == game)
-            }
+            val solved = days.filter { it.isSolvedDaily() && (game == null || it.gameId == game) }
             val records = solved.mapNotNull { it.record }
             val solvedDays = solved.map { it.day }
-            val streakDays = solved.filterNot { it.archived }.map { it.day }
+            val streakDays = solved.filter { it.isStreakDay() }.map { it.day }
             GameStats(
                 currentStreak = computeStreak(streakDays),
                 bestStreak = computeStreak.best(streakDays),
@@ -44,3 +42,9 @@ class ObserveGameStats(
         }.distinctUntilChanged()
     }
 }
+
+/** A day that counts as a solve: its record row, on a numbered daily (practice never counts). */
+internal fun GameHistoryDay.isSolvedDaily(): Boolean = record != null && puzzleNumber != null
+
+/** A solve that moves a streak: archived days (A23) count as solves but never as streak days. */
+internal fun GameHistoryDay.isStreakDay(): Boolean = isSolvedDaily() && !archived

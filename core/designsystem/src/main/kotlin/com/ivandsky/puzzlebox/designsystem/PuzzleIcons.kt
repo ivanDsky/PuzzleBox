@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Person
@@ -83,6 +84,16 @@ object PuzzleIcons {
     val Clear: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ic_ink_eraser)
 
+    /** Erase one cell: `backspace`. */
+    val Erase: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_backspace)
+
+    /** Notes mode, off: the pencil outline. */
+    val Notes: ImageVector = Icons.Outlined.Edit
+
+    /** Notes mode, on: the filled pencil. */
+    val NotesOn: ImageVector = Icons.Rounded.Edit
+
     /** Streak: `local_fire_department`. */
     val Flame: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ic_local_fire_department)
@@ -129,6 +140,9 @@ internal fun PuzzleIconsPreview() {
             "Undo" to PuzzleIcons.Undo,
             "Redo" to PuzzleIcons.Redo,
             "Clear" to PuzzleIcons.Clear,
+            "Erase" to PuzzleIcons.Erase,
+            "Notes" to PuzzleIcons.Notes,
+            "NotesOn" to PuzzleIcons.NotesOn,
             "Chevron" to PuzzleIcons.Chevron,
             "Back" to PuzzleIcons.Back,
             "Check" to PuzzleIcons.Check,

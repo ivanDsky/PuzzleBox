@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.queensui
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.BoardTokens
@@ -11,11 +12,10 @@ import com.ivandsky.puzzlebox.designsystem.BoardTokens
  */
 object QueensBoardDefaults {
 
-    // §3.2 X-MANUAL: two 3.5dp strokes (F-2 recalibration, fix round 3 — was 3dp/50%,
-    // which read as a different family from AUTO on device), length 55% of the cell,
-    // round caps, full-opacity on-ink.
-    val xManualWeight: Dp = 3.5.dp
-    const val xManualLengthFraction: Float = 0.55f
+    // Crosses (spec A13): manual and auto share one small × — 30% of the cell at 2.5dp,
+    // round caps, full-opacity on-ink — so the queen stays the glyph the eye finds first.
+    val crossWeight: Dp = 2.5.dp
+    const val crossLengthFraction: Float = 0.30f
 
     // §3.4 Queen crown: 55% of the cell — the dominant glyph.
     const val queenHeightFraction: Float = 0.55f
@@ -31,13 +31,17 @@ object QueensBoardDefaults {
     val regionBorderWeight: Dp = BoardTokens.boardGridLineWeight
     val hintBorderWeight: Dp = 2.dp
 
-    // §3.5 Violation stripes: 45°, 6dp pitch — F-5 recalibration (fix round 3) so
-    // ERROR dominates: a 4dp error band on a 5dp black under-band (1dp under-margin
-    // total; the old 3dp/2dp let the black band cover 5 of every 6dp and the cue read
-    // as a murky dark rectangle over the fill instead of red stripes).
-    val violationStripePitch: Dp = 6.dp
-    val violationStripeWidth: Dp = 4.dp
+    // §3.5 Violation stripes: 45°, 10dp pitch along the edge (≈7dp across the stripes),
+    // a 3dp error band on a 4dp black under-band. The old 6dp pitch put 5dp of stroke
+    // in every ≈4.2dp period, so the bands merged into a solid red block; this leaves a
+    // ≈3dp gap of fill between stripes, so the cue reads as stripes.
+    val violationStripePitch: Dp = 10.dp
+    val violationStripeWidth: Dp = 3.dp
     val violationScrimWidth: Dp = 1.dp
+
+    // Region Pulse and the solve's queen Pulse wash the fill toward white, the way a
+    // highlight catches a tile; QueensMotion scales its peak per theme.
+    val pulseWash: Color = Color.White
 
     // §5.5 hint: boardSelection overlay at 25%, two pulse cycles of DurationExpressive.
     // Stage 2 (fix round 6): the repeat tap points at the forced cell — the overlay
@@ -54,6 +58,8 @@ object QueensBoardDefaults {
     // Guided lesson (spec A12): a queen off the answer carries a faint × in its corner
     // (Tango's guide badge size), so a lesson with every answer placed never looks stuck.
     const val strayBadgeFraction: Float = 0.4f
+    val strayBadgeWeight: Dp = 1.75.dp
+    const val strayBadgeLengthFraction: Float = 0.55f
 
     // §6 upper bound: cell visual size caps at 64dp; larger panes pad instead. The cap
     // holds from 5 cells per side (every daily, A9); a smaller lesson board fills its

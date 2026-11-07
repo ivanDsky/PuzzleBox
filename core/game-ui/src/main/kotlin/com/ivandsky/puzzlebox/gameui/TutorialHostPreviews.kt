@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.gameui
 
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -57,6 +58,7 @@ private object PreviewGame : GamePlayUi {
         controller: GamePlayController,
         status: PlayBoardStatus,
         layout: PlayLayout,
+        sidePanel: (@Composable ColumnScope.() -> Unit)?,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
         modifier: Modifier,

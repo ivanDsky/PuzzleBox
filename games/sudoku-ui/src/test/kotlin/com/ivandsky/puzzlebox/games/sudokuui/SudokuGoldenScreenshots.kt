@@ -182,6 +182,7 @@ abstract class SudokuGoldenScenes(private val widthLabel: String) {
                             controller = controller,
                             status = PlayBoardStatus.Ready(banner = null),
                             layout = layout,
+                            sidePanel = null,
                             onRetry = {},
                             onSolved = { _, _ -> },
                             modifier = Modifier,

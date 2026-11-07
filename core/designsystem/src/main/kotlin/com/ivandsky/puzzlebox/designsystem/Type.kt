@@ -58,6 +58,9 @@ internal val PrimaryButtonTextStyle: TextStyle = Label.copy(
     lineHeight = 20.sp,
 )
 
+/** GameButton label (prototype 07 C): Label at 12/16 weight 800. */
+internal val GameButtonTextStyle: TextStyle = Label.copy(fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+
 /**
  * Tabular digits (Baloo 2 `tnum`, spec A4): every time from [formatDuration] renders
  * through this so a ticking clock doesn't jitter as digit widths change.

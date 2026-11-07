@@ -2,9 +2,11 @@ package com.ivandsky.puzzlebox.play.di
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.GameViewModel
 import com.ivandsky.puzzlebox.play.LibraryViewModel
 import com.ivandsky.puzzlebox.play.PlaySessionStore
+import com.ivandsky.puzzlebox.play.PlayStatsViewModel
 import com.ivandsky.puzzlebox.play.ResultViewModel
 import com.ivandsky.puzzlebox.play.SlotOpening
 import com.ivandsky.puzzlebox.play.SlotWriter
@@ -21,7 +23,8 @@ import org.koin.dsl.module
  * [com.ivandsky.puzzlebox.gameui.GamePlayRegistry] come from the app's aggregation
  * (ADR-0001: one registration per game); the repositories (the tutorial-seen preferences
  * included) and the calendar from :core:data's dataModule, and the use cases (today's
- * set, history, stats, the rollover) from :core:domain's domainModule. This module names no game.
+ * set, history, stats, the rollover) from :core:domain's domainModule. The tablet stats
+ * panel's identity and leaderboard come from the backend module. This module names no game.
  *
  * [PlaySessionStore] is a single so live plays outlive their entries' compositions. Its
  * slot opening and every slot's writer share ONE [WriteLane], so a released slot's final
@@ -53,5 +56,6 @@ val playModule = module {
     }
     viewModel { LibraryViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
+    viewModel { (slot: PlaySlot) -> PlayStatsViewModel(slot, get(), get(), get(), get()) }
     viewModel { (key: ResultKey) -> ResultViewModel(key, get(), get(), get(), get(), get(), get(), get(), get()) }
 }

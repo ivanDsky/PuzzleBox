@@ -24,6 +24,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.GridGeometry
 
@@ -33,8 +34,9 @@ import com.ivandsky.puzzlebox.gameui.GridGeometry
 val LocalQueensReducedMotion = staticCompositionLocalOf { false }
 
 /**
- * The full Queens board UI (queens-08): provenance-distinct X marks (§3.2/§3.3),
- * pop-in queens (§3.4), the ALWAYS-ON A14 violation stripes (fix round 6), the §5
+ * The full Queens board UI (queens-08): provenance-distinct X marks (§3.2/§3.3), spec
+ * A13's satisfaction motion ([rememberQueensMotion] — Pop, Stagger, Pulse, Shake, the
+ * solve orchestration), the ALWAYS-ON A14 violation stripes (fix round 6), the §5
  * interaction set on [QueensBoardState], and the §5.5 staged hint (region pulse +
  * deduction, crown ghost on the repeat). The win presentation is NOT here: the solved
  * session hands off to the opaque result ROUTE at screen level (fix round 6 — Zip's
@@ -48,9 +50,20 @@ fun QueensPlayBoard(
     modifier: Modifier = Modifier,
 ) {
     val reducedMotion = rememberReducedMotion()
-    CompositionLocalProvider(LocalQueensReducedMotion provides reducedMotion) {
+    CompositionLocalProvider(
+        LocalQueensReducedMotion provides reducedMotion,
+        LocalQueensMotion provides rememberQueensMotion(state),
+    ) {
         QueensPlayBoardContent(state, modifier)
     }
+}
+
+/** A tap's haptic against the session [before] it: a queen placed or removed buzzes
+ *  heavy (§5.2), a × placed ticks light, a tap that changed nothing stays silent. */
+internal fun QueensBoardState.tapHaptic(before: QueensSession): HapticFeedbackType? = when {
+    session === before -> null
+    lastPlacedQueen != null || lastRemovedQueen != null -> HapticFeedbackType.LongPress
+    else -> HapticFeedbackType.TextHandleMove
 }
 
 @Composable
@@ -86,11 +99,9 @@ private fun QueensPlayBoardContent(
                     onTap = { offset ->
                         val (row, col) = cellOf(offset.x, offset.y, size.width.toFloat())
                         pressedCell = null
+                        val before = state.session
                         state.onTap(row * model.n + col)
-                        // §5.2: queen placement and removal carry the heavier haptic.
-                        if (state.lastPlacedQueen != null || state.lastRemovedQueen != null) {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        }
+                        state.tapHaptic(before)?.let(haptics::performHapticFeedback)
                     },
                 )
             }
@@ -138,6 +149,7 @@ private fun QueensPlayBoardContent(
                 QueensCell(
                     model = model,
                     idx = row * model.n + col,
+                    staggerFrom = state.lastPlacedQueen,
                 )
             },
         )

@@ -32,7 +32,6 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.games.sudoku.digit
 import com.ivandsky.puzzlebox.gameui.Adopt
-import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -81,6 +80,7 @@ class SudokuPlayUiTest {
                     controller = controller,
                     status = PlayBoardStatus.Ready(banner = null),
                     layout = layout,
+                    sidePanel = null,
                     onRetry = {},
                     onSolved = { time, hints -> solved += time to hints },
                     modifier = Modifier,
@@ -113,7 +113,7 @@ class SudokuPlayUiTest {
         assertFitsSinglePane(classic, adopted(classic, SudokuSamples.classic, SudokuPuzzleRef(SudokuGames.CLASSIC.id, PuzzleKey.Daily((ref.key as PuzzleKey.Daily).date, null))), size = 9)
     }
 
-    /** Grid, keypad and chrome stack apart on screen, and one more dp of cell would not fit the board area (R1). */
+    /** Grid, keypad and chrome stack apart on screen, sized by the balanced rule for the board pane (R1). */
     private fun assertFitsSinglePane(game: SudokuPlayUi, controller: SudokuPlayController, size: Int) {
         setScreen(controller, PlayLayout.SinglePane, game)
         val grid = composeRule.onNodeWithTag("sudoku.grid").getUnclippedBoundsInRoot()
@@ -125,14 +125,10 @@ class SudokuPlayUiTest {
         assertTrue("chrome under keypad ($keypad, $chrome)", chrome.top >= keypad.bottom)
         assertTrue("chrome on screen ($chrome, $root)", chrome.bottom <= root.bottom)
 
-        val cell = grid.width / size
-        val grownGrid = grid.width + size.dp
-        val stackedAtGrownGrid = grownGrid + SudokuSizing.keyGap + keypad.height
-        println("R1 ${size}x$size: cell=$cell grid=${grid.width} keypad=${keypad.height} area=${area.width}x${area.height} chrome=${chrome.height}")
-        assertTrue(
-            "a ${cell + 1.dp} cell would still fit $area under a ${keypad.height} keypad",
-            grownGrid > area.width || grownGrid > PlayBoardMaxWidth || stackedAtGrownGrid > area.height,
-        )
+        val layout = SudokuSizing.layout(area.width, area.height, size)
+        println("R1 ${size}x$size: grid=${grid.width} keypad=${keypad.height} area=${area.width}x${area.height} chrome=${chrome.height} $layout")
+        assertEquals(layout.board.value, grid.width.value, 0.5f)
+        assertEquals(SudokuSizing.keypadHeight(layout).value, keypad.height.value, 1f) // per-row px rounding at 420dpi
     }
 
     private fun session(controller: SudokuPlayController): SudokuSession = composeRule.runOnIdle { controller.board!!.session }
@@ -203,32 +199,40 @@ class SudokuPlayUiTest {
 
     @Test
     @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
-    fun `two pane - board with one digit row and the notes key left, chrome with erase and clear right`() {
+    fun `two pane - board with the digit pad and its notes column under a toolbar with erase and clear`() {
         val controller = adopted()
         setScreen(controller, PlayLayout.TwoPane)
 
         val inBoard = hasAnyAncestor(hasTestTag("sudoku.board_area"))
-        val inSide = hasAnyAncestor(hasTestTag("sudoku.side"))
+        val inToolbar = hasAnyAncestor(hasTestTag("play.toolbar"))
         composeRule.onNode(hasTestTag("sudoku.keypad") and inBoard).assertExists()
         composeRule.onNode(hasTestTag("sudoku.notes_key") and inBoard).assertExists()
         composeRule.onNode(hasText("Notes") and hasClickAction()).assertDoesNotExist()
-        for (tag in listOf("play.undo", "play.redo", "sudoku.clear")) composeRule.onNode(hasTestTag(tag) and inSide).assertExists()
-        composeRule.onNode(hasText("Erase") and inSide).assertExists()
-        composeRule.onNode(hasClickAction() and hasText("Hint", substring = true) and inSide).assertExists()
+        for (tag in listOf("play.undo", "play.redo", "sudoku.clear")) composeRule.onNode(hasTestTag(tag) and inToolbar).assertExists()
+        composeRule.onNode(hasText("Erase") and inToolbar).assertExists()
+        composeRule.onNode(hasClickAction() and hasText("Hint", substring = true) and inToolbar).assertExists()
+        composeRule.onNode(hasTestTag("play.undo") and hasAnyAncestor(hasTestTag("play.side_pane"))).assertDoesNotExist()
 
-        // One row: the six digits and the notes key share a top, the key last; the grid
-        // takes the 552dp cap the dropped button rows free.
+        // Two rows of three digits, the notes key a fourth column as tall as both; the
+        // toolbar sits over the grid (A15).
         val keys = (1..6).map { key(it).getUnclippedBoundsInRoot() }
         val notes = composeRule.onNodeWithTag("sudoku.notes_key").getUnclippedBoundsInRoot()
-        assertEquals(listOf(notes.top), keys.map { it.top }.distinct())
-        assertTrue("$notes after ${keys.last()}", notes.left > keys.last().right)
-        assertEquals(PlayBoardMaxWidth, composeRule.onNodeWithTag("sudoku.grid").getUnclippedBoundsInRoot().width)
+        assertEquals(listOf(keys[0].top, keys[3].top), keys.map { it.top }.distinct())
+        assertEquals(keys[0].top, notes.top)
+        assertEquals(keys[3].bottom, notes.bottom)
+        assertTrue("$notes after ${keys[2]}", notes.left > keys[2].right)
+        val grid = composeRule.onNodeWithTag("sudoku.grid").getUnclippedBoundsInRoot()
+        val toolbar = composeRule.onNodeWithTag("play.toolbar").getUnclippedBoundsInRoot()
+        assertTrue("$toolbar above $grid", toolbar.bottom <= grid.top)
+        val buttons = listOf("play.undo", "sudoku.clear").map { composeRule.onNodeWithTag(it).getUnclippedBoundsInRoot() }
+        assertEquals(grid.left.value, buttons[0].left.value, 1f)
+        assertEquals(grid.right.value, buttons[1].right.value, 1f)
 
         composeRule.onNodeWithTag("sudoku.notes_key").performClick()
         cell(1).performClick()
         key(1).performClick()
         assertEquals(SudokuCell.Notes(1), session(controller).board.cells[1])
-        composeRule.onNode(hasText("Erase") and inSide).performClick()
+        composeRule.onNode(hasText("Erase") and inToolbar).performClick()
         assertEquals(SudokuCell.Empty, session(controller).board.cells[1])
         composeRule.onNodeWithTag("play.undo").performClick()
         assertEquals(SudokuCell.Notes(1), session(controller).board.cells[1])

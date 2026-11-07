@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.gameui
 
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -54,15 +55,18 @@ interface GamePlayUi {
      * The game's play screen under the route's top bar: the board, its caption and the
      * [PlayChrome] action bar, whose Clear is [clearFor]. [controller] is one this UI
      * created; [status] is the
-     * shared fetch state (Loading / Unavailable / Ready + degrade banner). [onSolved]
-     * carries the frozen result facts once per completion, after the [PlaySolveFrame]
-     * moment, including a restored completed session, which hands off at once.
+     * shared fetch state (Loading / Unavailable / Ready + degrade banner). [sidePanel] is
+     * the route's two-pane side content (A15), handed unchanged to [AdaptivePlayScaffold]
+     * so no game can drop it. [onSolved] carries the frozen result facts once per
+     * completion, after the [PlaySolveFrame] moment, including a restored completed
+     * session, which hands off at once.
      */
     @Composable
     fun Screen(
         controller: GamePlayController,
         status: PlayBoardStatus,
         layout: PlayLayout,
+        sidePanel: (@Composable ColumnScope.() -> Unit)?,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
         modifier: Modifier,

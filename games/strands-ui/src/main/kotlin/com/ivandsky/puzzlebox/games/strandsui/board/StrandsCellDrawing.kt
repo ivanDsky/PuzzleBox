@@ -1,8 +1,14 @@
 package com.ivandsky.puzzlebox.games.strandsui.board
 
 import androidx.compose.animation.core.Easing
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.DrawStyle
+import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.lerp
 import com.ivandsky.puzzlebox.designsystem.BoardColors
 import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
@@ -18,6 +24,9 @@ internal interface StrandsCellSpec {
 
     /** The token's fill; null leaves the bare board showing through. */
     fun fill(colors: BoardColors): Color?
+
+    /** The darker same-hue edge under a filled token; null exactly when [fill] is. */
+    fun lip(colors: BoardColors): Color?
 
     fun letter(colors: BoardColors): Color
 
@@ -36,13 +45,14 @@ internal interface StrandsCellSpec {
      */
     fun trigger(cell: StrandsCell, found: FoundEvent?): StrandsMotionTrigger? = null
 
-    /** Rings or dashes around the token of [tokenRadius], centred in the draw area. */
+    /** Rings or dashes around the token of half-side [tokenRadius], centred in the draw area. */
     fun DrawScope.decorate(colors: BoardColors, tokenRadius: Float, frame: StrandsCellFrame) = Unit
 }
 
 /**
  * One instant of a token's motion: its [scale], its ring's [ringScale], and [lit], how far
- * the fill has turned from the selection colour it had while traced into its own colour.
+ * its fill has come in: a found letter's from the selection colour it had while traced into
+ * its own, a letter joining the trace's from its own look into the selection colour.
  */
 internal data class StrandsCellFrame(val scale: Float = 1f, val ringScale: Float = 1f, val lit: Float = 1f) {
     companion object {
@@ -65,6 +75,48 @@ internal object StrandsCellDrawing {
         CellState.HintOutlined -> HintOutlinedSpec
         is CellState.HintOrderRevealed -> HintOrderRevealedSpec
     }
+}
+
+/**
+ * The token's rounded square of half-side [half], centred in the draw area and moved down
+ * by [drop] (a lip under its face), its corner keeping the token's proportion as it grows
+ * or shrinks.
+ */
+internal fun DrawScope.drawTokenSquare(
+    color: Color,
+    half: Float,
+    drop: Float = 0f,
+    alpha: Float = 1f,
+    style: DrawStyle = Fill,
+) {
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(center.x - half, center.y - half + drop),
+        size = Size(half * 2, half * 2),
+        cornerRadius = CornerRadius(half * 2 * StrandsBoardSpec.TokenCornerFraction),
+        alpha = alpha,
+        style = style,
+    )
+}
+
+/**
+ * One role of the token (its fill or its lip): the live trace's [selection] overlays the
+ * letter's own [base], filling in over it as the letter joins ([join]); a found letter
+ * turns from the trace colour to its own as it lights ([frame]).
+ */
+internal fun tokenColor(
+    base: Color?,
+    selection: Color,
+    traced: Boolean,
+    frame: StrandsCellFrame,
+    join: StrandsCellFrame,
+): Color? {
+    if (traced) {
+        if (join.lit >= 1f) return selection
+        return if (base == null) selection.copy(alpha = selection.alpha * join.lit) else lerp(base, selection, join.lit)
+    }
+    if (base == null) return null
+    return if (frame.lit >= 1f) base else lerp(selection, base, frame.lit)
 }
 
 /**

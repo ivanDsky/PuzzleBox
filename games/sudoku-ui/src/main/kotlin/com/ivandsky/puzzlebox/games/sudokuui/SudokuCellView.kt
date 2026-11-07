@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -31,6 +32,8 @@ import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.BoardColors
+import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
 
 /**
@@ -49,6 +52,7 @@ internal fun SudokuCellView(
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
+    val board = LocalBoardColors.current
     val entryInk = LocalPrimaryText.current
     val label = sudokuCellLabel(cell, model.size)
     val error = colors.error
@@ -56,8 +60,9 @@ internal fun SudokuCellView(
     val motion = LocalSudokuMotion.current
     Box(
         modifier
-            .background(cellTint(cell, colors))
+            .background(cellTint(cell, colors, board))
             .waveTint(motion, cell.idx, colors.primary)
+            .selectionTile(cell.selected, board)
             // The selection tint is the tap feedback; a ripple would animate a highlight.
             .clickable(interactionSource = null, indication = null) { onSelect(cell.idx) }
             .clearAndSetSemantics {
@@ -98,12 +103,19 @@ internal fun SudokuCellView(
                 fontWeight = if (cell.given) FontWeight.Bold else FontWeight.Normal,
                 color = when {
                     cell.conflict -> colors.error
+                    // The full teal fill needs the hue's deep ink; green entries and grey givens fail on it.
+                    cell.selected -> board.sudokuSelectionInk
                     cell.given -> colors.onSurface
                     else -> entryInk
                 },
                 modifier = Modifier.popScale(motion, cell.idx),
             )
-            cell.notes != 0 -> NotesGrid(cell.notes, model, noteStyle, colors.onSurfaceVariant)
+            cell.notes != 0 -> NotesGrid(
+                cell.notes,
+                model,
+                noteStyle,
+                if (cell.selected) board.sudokuSelectionInk else colors.onSurfaceVariant,
+            )
         }
         val ghost = motion?.ghostDigitOf(cell.idx) ?: 0
         if (cell.digit == 0 && ghost != 0) {
@@ -116,6 +128,24 @@ internal fun SudokuCellView(
         }
     }
 }
+
+/**
+ * The selection as an inset tile sitting on a lip of its own hue (spec A14): the face drawn
+ * above the lip, both inside the cell, so no neighbour paints over it.
+ */
+private fun Modifier.selectionTile(selected: Boolean, board: BoardColors): Modifier =
+    if (!selected) {
+        this
+    } else {
+        drawBehind {
+            val inset = SELECTION_TILE_INSET.toPx()
+            val depth = SELECTION_LIP_DEPTH.toPx()
+            val corner = CornerRadius(SELECTION_TILE_RADIUS.toPx())
+            val face = Size(size.width - inset * 2, size.height - inset * 2 - depth)
+            drawRoundRect(board.sudokuSelectionLip, Offset(inset, inset + depth), face, corner)
+            drawRoundRect(board.sudokuSelection, Offset(inset, inset), face, corner)
+        }
+    }
 
 private fun Modifier.waveTint(motion: SudokuMotionState?, idx: Int, color: Color): Modifier =
     if (motion == null) {
@@ -155,15 +185,15 @@ private fun NotesGrid(mask: Int, model: SudokuBoardModel, style: TextStyle, colo
     }
 }
 
-/** Selection wins, then the hint target, same digit, struck cells, hint unit and peers. */
-private fun cellTint(cell: SudokuCellModel, colors: ColorScheme): Color = when {
-    cell.selected -> colors.primaryContainer
+/** Selection sits on the bare board (its tile draws over it), then the hint target, same digit, struck cells, hint unit and peers. */
+private fun cellTint(cell: SudokuCellModel, colors: ColorScheme, board: BoardColors): Color = when {
+    cell.selected -> colors.surface
     cell.hintTarget -> colors.tertiaryContainer
     // The selection's family, lighter: never the keypad's secondaryContainer fill (V7).
-    cell.sameDigit -> colors.primaryContainer.copy(alpha = SAME_DIGIT_ALPHA)
+    cell.sameDigit -> board.sudokuSelection.copy(alpha = SAME_DIGIT_ALPHA)
     cell.hintStruck -> colors.onSurfaceVariant.copy(alpha = HINT_STRUCK_ALPHA)
     cell.hintUnit -> colors.tertiaryContainer.copy(alpha = HINT_UNIT_ALPHA)
-    cell.peer -> colors.surfaceVariant
+    cell.peer -> board.sudokuPeer
     else -> colors.surface
 }
 
@@ -186,3 +216,6 @@ private const val HINT_STRUCK_ALPHA = 0.22f
 private const val SAME_DIGIT_ALPHA = 0.5f
 private val HINT_RING_WIDTH = 2.dp
 private val HINT_RING_INSET = 1.dp
+private val SELECTION_TILE_INSET = 2.dp
+private val SELECTION_TILE_RADIUS = 6.dp
+private val SELECTION_LIP_DEPTH = 3.dp

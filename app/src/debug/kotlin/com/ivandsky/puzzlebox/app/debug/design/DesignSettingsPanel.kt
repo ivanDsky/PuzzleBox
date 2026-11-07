@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.app.debug.RadioOption
-import com.ivandsky.puzzlebox.designsystem.AccentSet
 import com.ivandsky.puzzlebox.designsystem.DesignVariants
 import com.ivandsky.puzzlebox.designsystem.DesignVariantsStore
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -47,13 +46,6 @@ internal fun DesignSettingsPanel(openGame: (String) -> Unit, modifier: Modifier 
             .padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        VariantRow(
-            title = "Accent colours",
-            options = AccentSet.entries,
-            selected = variants.accentSet,
-            label = { it.name },
-            onSelect = { choose(variants.copy(accentSet = it)) },
-        )
         VariantRow(
             title = "Game glyphs",
             options = listOf(false, true),

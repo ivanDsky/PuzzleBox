@@ -2,10 +2,12 @@ package com.ivandsky.puzzlebox.games.tangoui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.unit.Dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -16,6 +18,7 @@ import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
+import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
@@ -40,7 +43,8 @@ class TangoPlayUi : GamePlayUi {
 
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
-        TangoBoard(controller as TangoPlayController, modifier)
+        // The tutorial host draws no toolbar pane, so the board keeps Tango's own cap.
+        TangoBoard(controller as TangoPlayController, paneCap = null, modifier)
     }
 
     @Composable
@@ -48,26 +52,28 @@ class TangoPlayUi : GamePlayUi {
         controller: GamePlayController,
         status: PlayBoardStatus,
         layout: PlayLayout,
+        sidePanel: (@Composable ColumnScope.() -> Unit)?,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
         modifier: Modifier,
     ) {
-        TangoPlayScreen(controller as TangoPlayController, status, layout, onRetry, onSolved, modifier)
+        TangoPlayScreen(controller as TangoPlayController, status, layout, sidePanel, onRetry, onSolved, modifier)
     }
 }
 
 /**
  * The Tango play screen (tango-05, A14): the Zip play shell (ticket 13/23 semantics) with
  * 04's board renderer. Tap placements land through [TangoBoardRenderer]'s placement
- * callback; the caption and action bar are the shared [PlayChrome], with no Clear (Tango
- * has none). Design §6: the win moment is the same [PlaySolveFrame] then route handoff;
- * this screen never renders win content.
+ * callback; the caption is the shared [PlayChrome] and the controls the shared
+ * [PlayActionBar], with no Clear (Tango has none). Design §6: the win moment is the same
+ * [PlaySolveFrame] then route handoff; this screen never renders win content.
  */
 @Composable
 fun TangoPlayScreen(
     controller: TangoPlayController,
     status: PlayBoardStatus,
     layout: PlayLayout,
+    sidePanel: (@Composable ColumnScope.() -> Unit)?,
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -77,17 +83,17 @@ fun TangoPlayScreen(
         AdaptivePlayScaffold(
             layout = layout,
             modifier = Modifier.fillMaxSize(),
-            board = { TangoBoardArea(controller, status, onRetry, onSolved) },
+            board = { paneCap -> TangoBoardArea(controller, status, paneCap, onRetry, onSolved) },
             side = {
                 PlayChrome(
                     clock = controller,
                     hints = controller,
-                    undo = controller,
-                    clear = null,
                     banner = ready?.banner,
                     feedback = controller,
                 )
             },
+            actions = { PlayActionBar(controller, controller, clear = null, accent = TangoBrand.accent) },
+            sidePanel = sidePanel,
         )
     }
 }
@@ -97,6 +103,7 @@ fun TangoPlayScreen(
 private fun BoxScope.TangoBoardArea(
     controller: TangoPlayController,
     status: PlayBoardStatus,
+    paneCap: Dp?,
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
 ) {
@@ -119,7 +126,7 @@ private fun BoxScope.TangoBoardArea(
                     controller.session?.takeIf { it.isComplete }?.let { onSolved(it.elapsedMs, it.hintsUsed) }
                 },
             ) {
-                TangoBoard(controller, Modifier)
+                TangoBoard(controller, paneCap, Modifier)
             }
         } else {
             PlayBoardFallback(status, onRetry, tagPrefix = "play")
@@ -129,11 +136,12 @@ private fun BoxScope.TangoBoardArea(
 
 /**
  * Tango's one board, chrome-free ([GamePlayUi.Board]): the daily pane and the tutorial
- * host both draw it, so a lesson's taps are the daily ones. Draws nothing until
- * [controller] holds a session.
+ * host both draw it, so a lesson's taps are the daily ones. Capped at [paneCap] in a
+ * two-pane toolbar pane, [PlayBoardMaxWidth] otherwise. Draws nothing until [controller]
+ * holds a session.
  */
 @Composable
-private fun TangoBoard(controller: TangoPlayController, modifier: Modifier) {
+private fun TangoBoard(controller: TangoPlayController, paneCap: Dp?, modifier: Modifier) {
     // suppressedSets is a key: the settle debounce clears it 0.5 s after the last touch,
     // and the model must rebuild then or newly introduced violations stay hidden forever.
     val model = remember(
@@ -150,11 +158,12 @@ private fun TangoBoard(controller: TangoPlayController, modifier: Modifier) {
     // play shell only wires placements into the controller. The outline
     // rides the board modifier (§2 — the Zip outline pattern).
     val renderer = remember(controller) { TangoBoardRenderer(onPlacement = controller::onPlacement) }
+    val cap = paneCap ?: PlayBoardMaxWidth
     renderer.Content(
         model = model,
         modifier = modifier
-            .widthIn(max = PlayBoardMaxWidth)
-            .heightIn(max = PlayBoardMaxWidth)
+            .widthIn(max = cap)
+            .heightIn(max = cap)
             // No zipBoardOutline here: that's Zip's ROUNDED outline. Tango's
             // squared mesh closes itself with a square border (renderer).
             .testTag("play.board"),

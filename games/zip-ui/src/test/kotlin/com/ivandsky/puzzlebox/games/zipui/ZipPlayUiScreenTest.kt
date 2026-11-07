@@ -9,9 +9,11 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.FetchError
@@ -80,6 +82,7 @@ class ZipPlayUiScreenTest {
                     controller = controller,
                     status = status,
                     layout = layout,
+                    sidePanel = null,
                     onRetry = onRetry,
                     onSolved = { timeMs, hintsUsed -> solvedFacts = timeMs to hintsUsed },
                 )
@@ -245,6 +248,22 @@ class ZipPlayUiScreenTest {
         composeRule.onNodeWithTag("play.side_panel").assertExists()
     }
 
+    /** A15: on a Tab S9 Ultra the board fills its 70% pane under the action toolbar. */
+    @Config(sdk = [34], qualifiers = "w1848dp-h1000dp-land")
+    @Test
+    fun `landscape tablet grows the board past the phone cap under the action toolbar`() {
+        readyController(layout = PlayLayout.TwoPane)
+        composeRule.waitForIdle()
+
+        val board = composeRule.onNodeWithTag("play.board").getUnclippedBoundsInRoot()
+        val bar = composeRule.onNodeWithTag("play.action_bar").getUnclippedBoundsInRoot()
+        check(board.width > 700.dp) { "board not lifted: ${board.width}" }
+        check(bar.bottom <= board.top) { "toolbar $bar not above board $board" }
+        check(abs((bar.left - board.left).value) <= 1f && abs((bar.right - board.right).value) <= 1f) {
+            "toolbar $bar not aligned to board $board"
+        }
+    }
+
     /** A4: the board is capped at [PlayBoardMaxWidth], centered in its pane, aspect exact. */
     @Test
     fun `wide pane caps the board at the max width and centers it`() {
@@ -254,7 +273,7 @@ class ZipPlayUiScreenTest {
             PuzzleBoxTheme {
                 density = LocalDensity.current
                 Box(Modifier.requiredSize(width = 1200.dp, height = 800.dp)) {
-                    ZipPlayScreen(controller, PlayBoardStatus.Ready(null), PlayLayout.SinglePane, onRetry = {}, onSolved = { _, _ -> })
+                    ZipPlayScreen(controller, PlayBoardStatus.Ready(null), PlayLayout.SinglePane, sidePanel = null, onRetry = {}, onSolved = { _, _ -> })
                 }
             }
         }
@@ -281,7 +300,7 @@ class ZipPlayUiScreenTest {
             PuzzleBoxTheme {
                 density = LocalDensity.current
                 Box(Modifier.requiredSize(width = 411.dp, height = 900.dp)) {
-                    ZipPlayScreen(controller, PlayBoardStatus.Ready(null), PlayLayout.SinglePane, onRetry = {}, onSolved = { _, _ -> })
+                    ZipPlayScreen(controller, PlayBoardStatus.Ready(null), PlayLayout.SinglePane, sidePanel = null, onRetry = {}, onSolved = { _, _ -> })
                 }
             }
         }

@@ -7,16 +7,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.IntState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +38,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import com.ivandsky.puzzlebox.designsystem.BoardColors
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
+import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSemantics.letterButton
@@ -44,8 +51,13 @@ import com.ivandsky.puzzlebox.games.strandsui.board.StrandsGestureLayer
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsHaptics
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsMotionCue
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsMotionTrigger
+import com.ivandsky.puzzlebox.games.strandsui.board.TraceFinger
 import com.ivandsky.puzzlebox.games.strandsui.board.TraceOverlaySpec
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
+import com.ivandsky.puzzlebox.games.strandsui.board.altThemeCells
+import com.ivandsky.puzzlebox.games.strandsui.board.altThemeLinks
+import com.ivandsky.puzzlebox.games.strandsui.board.drawTokenSquare
+import com.ivandsky.puzzlebox.games.strandsui.board.tokenColor
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
@@ -58,7 +70,7 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
  */
 @Composable
 internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier = Modifier) {
-    val model = controller.model
+    val model = controller.baseModel
     if (model.rows == 0) return
     val haptics = LocalHapticFeedback.current
     var playing by remember { mutableStateOf<FoundEvent?>(null) }
@@ -84,10 +96,11 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
 }
 
 /**
- * The stateless board: [model] as round letter tokens over their connectors, sized to the
- * space it is given ([strandsCellSizeFor]) and centred in it, the whole width being its
- * touch area. [found] is the word just found, whose letters settle or sweep; [trace] is read
- * at each input, so a gesture always builds on the live trace.
+ * The stateless board: [model] (the board at rest) as letter tokens, rounded squares on
+ * their lips, over their connectors, sized to the space it is given ([strandsCellSizeFor]) and centred in it, the
+ * whole width being its touch area. [found] is the word just found, whose letters settle or
+ * sweep. [trace] is never read here: each letter derives its own place in it and the trace
+ * connector reads it while drawing, so a trace step recomposes only the letters it changes.
  */
 @Composable
 internal fun StrandsBoardContent(
@@ -97,10 +110,28 @@ internal fun StrandsBoardContent(
     trace: () -> Trace,
     onTrace: (TraceStep) -> Unit,
     modifier: Modifier = Modifier,
+) = StrandsBoardLayout(model, found, reduceMotion, trace, onTrace, remember { mutableStateOf<TraceFinger?>(null) }, modifier)
+
+/**
+ * [StrandsBoardContent] with the drag's [finger] handed in: the drag writes it and only the
+ * connector's draw reads it, so a moving finger redraws the tip and recomposes nothing. A
+ * preview holds a drag still by handing in the finger its session ended on.
+ */
+@Composable
+internal fun StrandsBoardLayout(
+    model: StrandsRendererModel,
+    found: FoundEvent?,
+    reduceMotion: Boolean,
+    trace: () -> Trace,
+    onTrace: (TraceStep) -> Unit,
+    finger: MutableState<TraceFinger?>,
+    modifier: Modifier = Modifier,
 ) {
     val colors = LocalBoardColors.current
+    val altCells = remember(model.links) { altThemeLinks(model.links).altThemeCells() }
     // Bumped by every touch-down: a running settle, sweep or hint pulse rests at once (A12).
-    var touchSeq by remember { mutableIntStateOf(0) }
+    // Read only by the motion effects, so a touch-down recomposes nothing.
+    val touchSeq = remember { mutableIntStateOf(0) }
     BoxWithConstraints(modifier.fillMaxWidth()) {
         val cell = strandsCellSizeFor(maxWidth, maxHeight, model.rows, model.cols)
         val boardSize = DpSize(cell * model.cols, cell * model.rows)
@@ -111,17 +142,20 @@ internal fun StrandsBoardContent(
                 modifier = Modifier.requiredSize(boardSize).testTag("strands.board"),
                 // Strands has no grid: the letters float on the bare board.
                 colors = colors.copy(boardGridLine = Color.Transparent),
-                underlay = { StrandsConnectors(model.rows, model.cols, model.links, colors) },
+                underlay = {
+                    StrandsConnectors(model.rows, model.cols, model.links, trace, colors, { finger.value }, animate = !reduceMotion)
+                },
                 cellContent = { row, col ->
-                    val letter = model.cells[row * model.cols + col]
                     LetterToken(
-                        cell = letter,
+                        cell = model.cells[row * model.cols + col],
+                        altTheme = Coord(row, col) in altCells,
                         pitch = cell,
                         found = found,
                         reduceMotion = reduceMotion,
                         touchSeq = touchSeq,
                         colors = colors,
-                        onTap = { onTrace(TraceInput.tap(trace(), letter.coord)) },
+                        trace = trace,
+                        onTrace = onTrace,
                     )
                 },
             )
@@ -131,11 +165,15 @@ internal fun StrandsBoardContent(
                 boardSize = boardSize,
                 trace = trace,
                 onTrace = onTrace,
-                onTouch = { touchSeq++ },
+                onTouch = { touchSeq.intValue++ },
+                onFinger = { finger.value = it },
             )
         }
     }
 }
+
+/** Called with a letter's cell each time its token composes; a no-op outside tests, which count recompositions with it. */
+internal val LocalTokenComposed = staticCompositionLocalOf<(Coord) -> Unit> { {} }
 
 @Composable
 private fun LetterToken(
@@ -143,14 +181,26 @@ private fun LetterToken(
     pitch: Dp,
     found: FoundEvent?,
     reduceMotion: Boolean,
-    touchSeq: Int,
+    touchSeq: IntState,
     colors: BoardColors,
-    onTap: () -> Unit,
+    altTheme: Boolean,
+    trace: () -> Trace,
+    onTrace: (TraceStep) -> Unit,
 ) {
+    LocalTokenComposed.current(cell.coord)
+    val traceIndex by remember(cell.coord, trace) {
+        derivedStateOf { trace().path.indexOf(cell.coord).takeIf { it >= 0 } }
+    }
+    val traced = traceIndex != null
+    val onTap = remember(cell.coord, trace, onTrace) { { onTrace(TraceInput.tap(trace(), cell.coord)) } }
     val spec = StrandsCellDrawing.specOf(cell.state)
-    val traced = cell.traceIndex != null
     val base = rememberCellFrame(spec, spec.trigger(cell, found), reduceMotion, touchSeq)
-    val press = rememberCellFrame(TraceOverlaySpec, PressTrigger.takeIf { traced }, reduceMotion, touchSeq)
+    // A letter already traced when the token first composes (a restored board, a preview)
+    // rests; only one joining afterwards fills and pops.
+    val composed = remember { ComposedOnce() }
+    SideEffect { composed.done = true }
+    val joinTrigger = remember(traced) { JoinTrigger.takeIf { traced && composed.done } }
+    val join = rememberCellFrame(TraceOverlaySpec, joinTrigger, reduceMotion, touchSeq)
     val tokenSize = pitch * StrandsBoardSpec.TokenFraction
     // Pitch-proportional and immune to font scale, like the token it sits in.
     val letterSize = with(LocalDensity.current) { (pitch * StrandsBoardSpec.LetterFraction).toSp() }
@@ -158,45 +208,53 @@ private fun LetterToken(
         Modifier
             .fillMaxSize()
             .testTag("strands.cell.${cell.coord.row}.${cell.coord.col}")
-            .letterButton(cell, onTap),
+            .letterButton(cell.copy(traceIndex = traceIndex), onTap),
         contentAlignment = Alignment.Center,
     ) {
         Box(
             Modifier
                 .size(tokenSize)
                 .graphicsLayer {
-                    val scale = base.value.scale * press.value.scale
+                    val scale = base.value.scale * join.value.scale
                     scaleX = scale
                     scaleY = scale
                 }
                 .drawBehind {
                     val frame = base.value
-                    val radius = size.minDimension / 2
-                    tokenFill(spec, traced, frame, colors)?.let { drawCircle(it, radius) }
-                    with(spec) { decorate(colors, radius, frame) }
+                    val half = size.minDimension / 2
+                    val lip = if (altTheme) colors.strandsThemeAltLip else spec.lip(colors)
+                    val fill = if (altTheme) colors.strandsThemeAltFill else spec.fill(colors)
+                    tokenColor(lip, TraceOverlaySpec.lip(colors), traced, frame, join.value)?.let {
+                        drawTokenSquare(it, half, drop = size.minDimension * StrandsBoardSpec.TokenLipFraction)
+                    }
+                    tokenColor(fill, TraceOverlaySpec.fill(colors), traced, frame, join.value)?.let { drawTokenSquare(it, half) }
+                    with(spec) { decorate(colors, half, frame) }
                 },
             contentAlignment = Alignment.Center,
         ) {
-            Text(
+            BasicText(
                 text = cell.letter.toString(),
-                style = MaterialTheme.typography.titleLarge,
-                fontSize = letterSize,
-                fontWeight = FontWeight.Medium,
-                color = if (traced) TraceOverlaySpec.letter(colors) else spec.letter(colors),
+                style = MaterialTheme.typography.titleLarge.merge(fontSize = letterSize, fontWeight = FontWeight.Medium),
+                color = {
+                    val lit = join.value.lit
+                    when {
+                        !traced -> spec.letter(colors)
+                        lit >= 1f -> TraceOverlaySpec.letter(colors)
+                        else -> lerp(spec.letter(colors), TraceOverlaySpec.letter(colors), lit)
+                    }
+                },
             )
         }
     }
 }
 
-/** The live trace overlays any base look; a found letter turns from the trace colour to its own as it lights. */
-private fun tokenFill(spec: StrandsCellSpec, traced: Boolean, frame: StrandsCellFrame, colors: BoardColors): Color? {
-    if (traced) return TraceOverlaySpec.fill(colors)
-    val fill = spec.fill(colors) ?: return null
-    return if (frame.lit >= 1f) fill else lerp(TraceOverlaySpec.fill(colors), fill, frame.lit)
-}
+/** A letter joining the trace fills and pops once; the key is constant because leaving the trace resets it. */
+private val JoinTrigger = StrandsMotionTrigger(key = "join", cue = StrandsMotionCue())
 
-/** A letter joining the trace pulses once; the key is constant because leaving the trace resets it. */
-private val PressTrigger = StrandsMotionTrigger(key = "press", cue = StrandsMotionCue())
+/** Set after a token's first composition; deliberately not state, so setting it recomposes nothing. */
+private class ComposedOnce {
+    var done = false
+}
 
 /**
  * Plays [spec]'s timeline from each new [trigger] on the frame clock and holds
@@ -208,15 +266,15 @@ private fun rememberCellFrame(
     spec: StrandsCellSpec,
     trigger: StrandsMotionTrigger?,
     reduceMotion: Boolean,
-    touchSeq: Int,
+    touchSeq: IntState,
 ): State<StrandsCellFrame> {
     val frame = remember(spec, trigger) {
         mutableStateOf(if (trigger == null) StrandsCellFrame.Rest else spec.frame(0, trigger.cue, reduceMotion))
     }
-    val bornTouch = remember(spec, trigger) { touchSeq }
-    val retired = touchSeq != bornTouch
-    LaunchedEffect(spec, trigger, reduceMotion, retired) {
-        if (trigger == null || reduceMotion || retired) {
+    // Unobserved: a touch-down must not recompose the token, only stop its motion below.
+    val bornTouch = remember(spec, trigger) { Snapshot.withoutReadObservation { touchSeq.intValue } }
+    LaunchedEffect(spec, trigger, reduceMotion) {
+        if (trigger == null || reduceMotion || touchSeq.intValue != bornTouch) {
             frame.value = StrandsCellFrame.Rest
             return@LaunchedEffect
         }
@@ -225,6 +283,7 @@ private fun rememberCellFrame(
         var elapsed = 0L
         while (elapsed < total) {
             elapsed = withFrameMillis { it } - start
+            if (touchSeq.intValue != bornTouch) break
             frame.value = spec.frame(elapsed.toInt(), trigger.cue, reduceMotion = false)
         }
         frame.value = StrandsCellFrame.Rest

@@ -11,6 +11,8 @@ import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
+import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
@@ -50,9 +52,9 @@ val domainModule = module {
             sync = get(),
         )
     }
+    factory { ObserveLeaderboard(identity = get(), leaderboard = get()) }
     factory {
         ObserveTodayLeaderboard(
-            identity = get(),
             leaderboard = get(),
             featured = get(),
             today = { LocalDate.now() },
@@ -68,4 +70,13 @@ val domainModule = module {
     }
     factory { CreateDraftCopy(drafts = get(), newId = { UUID.randomUUID().toString() }, clock = { Instant.now() }) }
     factory { ValidatePublish() }
+    factory {
+        ObservePlayStats(
+            todaySet = get(),
+            stats = get(),
+            history = get(),
+            calendar = get(),
+            leaderboard = get(),
+        )
+    }
 }

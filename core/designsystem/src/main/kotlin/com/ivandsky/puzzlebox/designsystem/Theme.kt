@@ -30,6 +30,12 @@ val LocalTimerFill = staticCompositionLocalOf { LightTimerFill }
 val LocalOnFill = staticCompositionLocalOf { LightOnFill }
 
 /**
+ * The neutral GameButton's lip (ColorTokens.kt). Provided by [PuzzleBoxTheme] like
+ * [LocalOnFill].
+ */
+internal val LocalNeutralLip = staticCompositionLocalOf { LightNeutralLip }
+
+/**
  * Board color roles (BoardTokens.kt, spec UIUX-01 A5): the board renders from these named
  * roles, never raw colors. Provided by [PuzzleBoxTheme] so board rendering always follows
  * the RESOLVED theme — same contract as [LocalPrimaryText], including a forced appearance
@@ -47,8 +53,9 @@ val LocalAccentPalette = staticCompositionLocalOf { LightAccentTokens }
 /**
  * Theme composition root (ticket 10): the promoted style IS the token set — Baloo 2
  * typography, C3 light scheme, C6 dark scheme. The [darkTheme] request picks the
- * scheme. The debug design settings' [DesignVariantsStore] picks the accent set and is
- * provided as [LocalDesignVariants]; release always reads [DesignVariants.Default].
+ * scheme. The debug design settings' [DesignVariantsStore] switches the open variants
+ * (glyphs, sweep length) and is provided as [LocalDesignVariants]; release always reads
+ * [DesignVariants.Default].
  */
 @Composable
 fun PuzzleBoxTheme(
@@ -61,8 +68,9 @@ fun PuzzleBoxTheme(
         LocalPrimaryText provides if (darkTheme) DarkPrimaryText else LightPrimaryText,
         LocalTimerFill provides if (darkTheme) DarkTimerFill else LightTimerFill,
         LocalOnFill provides if (darkTheme) DarkOnFill else LightOnFill,
+        LocalNeutralLip provides if (darkTheme) DarkNeutralLip else LightNeutralLip,
         LocalBoardColors provides if (darkTheme) DarkBoardTokens else LightBoardTokens,
-        LocalAccentPalette provides accentPalette(variants.accentSet, darkTheme),
+        LocalAccentPalette provides accentPalette(darkTheme),
     ) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,

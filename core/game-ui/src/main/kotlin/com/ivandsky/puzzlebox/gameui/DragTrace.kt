@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 
 /**
@@ -65,6 +66,10 @@ fun interface DragTraceHooks {
  *
  * Hooks are pure predicates — committed state changes happen only after the screen
  * validates the emitted events against the game's rules.
+ *
+ * [onPointer] reports the live finger in board px for every drag sample past the slop,
+ * and null once the drag ends (lift or cancel); taps never report. Hold it in snapshot
+ * state and read it in the draw phase so the tip redraws without recomposing the board.
  */
 @Composable
 fun DragTraceBoard(
@@ -77,10 +82,12 @@ fun DragTraceBoard(
     edgeOverlays: List<EdgeOverlay> = emptyList(),
     underlay: @Composable BoxScope.() -> Unit = {},
     cellContent: @Composable BoxScope.(row: Int, col: Int) -> Unit = { _, _ -> },
+    onPointer: (Offset?) -> Unit = {},
 ) {
     val latestPath by rememberUpdatedState(path)
     val latestHooks by rememberUpdatedState(hooks)
     val latestOnEvent by rememberUpdatedState(onEvent)
+    val latestOnPointer by rememberUpdatedState(onPointer)
 
     Box(modifier) {
         // Plain modifier: BoardGrid's aspectRatio self-sizes the board under the caller's
@@ -105,12 +112,12 @@ fun DragTraceBoard(
                         var workingPath = latestPath.toList()
                         val downCell = geometry.cellAt(down.position)
                         var dragged = false
-                        var currentCell = downCell
+                        var lastPosition = down.position
 
                         /** One drag step: previous-cell draw-back retracts by one, hook-approved
                          *  cells extend, hook-refused cells report Refused (no state change),
-                         *  earlier traced cells are ignored. */
-                        fun dragStep(cell: GridCell) {
+                         *  earlier traced cells are ignored. Returns false only on a refusal. */
+                        fun dragStep(cell: GridCell): Boolean {
                             val trimmed = workingPath.dropLast(1)
                             when {
                                 cell == workingPath.lastOrNull() -> Unit // tail re-entry
@@ -123,51 +130,80 @@ fun DragTraceBoard(
                                     workingPath = workingPath + cell
                                     latestOnEvent(DragEvent.Extend(cell))
                                 }
-                                // The trace stays put; the game decides whether to explain (A7).
-                                else -> latestOnEvent(DragEvent.Refused(cell))
+                                else -> {
+                                    // The trace stays put; the game decides whether to explain (A7).
+                                    latestOnEvent(DragEvent.Refused(cell))
+                                    return false
+                                }
                             }
+                            return true
                         }
 
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            val change = event.changes.firstOrNull() ?: break
-                            if (change.pressed) {
-                                if (!dragged) {
-                                    if ((change.position - down.position).getDistance() <= slop) {
-                                        change.consume()
-                                        continue // still a candidate tap
-                                    }
-                                    // Drag confirmed: the stroke starts where the finger landed
-                                    // (empty path + start cell, or the tail), then follows it.
-                                    dragged = true
-                                    dragStep(downCell)
-                                    val cell = geometry.cellAt(change.position)
-                                    if (cell != currentCell) {
-                                        currentCell = cell
-                                        dragStep(cell)
-                                    }
-                                } else {
-                                    val cell = geometry.cellAt(change.position)
-                                    if (cell != currentCell) {
-                                        currentCell = cell
-                                        dragStep(cell)
+                        fun movesTrace(cell: GridCell): Boolean =
+                            cell == workingPath.dropLast(1).lastOrNull() ||
+                                (cell !in workingPath && latestHooks.canExtend(workingPath, cell))
+
+                        /** Steps through every cell the finger crossed since the last sample, so a
+                         *  fast swipe never leaves gaps; stops at the first refusal. */
+                        fun walkTo(position: Offset): Boolean {
+                            val steps = geometry.walkCells(lastPosition, position)
+                            lastPosition = position
+                            for (step in steps) {
+                                val accepted = when (step) {
+                                    is WalkStep.Enter -> dragStep(step.cell)
+                                    is WalkStep.Corner -> {
+                                        val side = listOf(step.first, step.second).firstOrNull(::movesTrace)
+                                        // No side cell fits: an 8-way trace may still take the diagonal.
+                                        (side == null || dragStep(side)) && dragStep(step.diagonal)
                                     }
                                 }
-                            } else {
-                                if (!dragged) {
-                                    // Tap: deliberate retraction only — traced cell trims back
-                                    // through it, the first traced cell empties, elsewhere and
-                                    // on the tail it is a no-op. Release itself emits nothing:
-                                    // the trace stays exactly as drawn (R1).
-                                    when (val index = workingPath.indexOf(downCell)) {
-                                        -1, workingPath.lastIndex -> Unit
-                                        0 -> latestOnEvent(DragEvent.Clear)
-                                        else -> latestOnEvent(DragEvent.Retract(index))
-                                    }
-                                }
-                                break
+                                if (!accepted) return false
                             }
-                            change.consume()
+                            return true
+                        }
+
+                        try {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull() ?: break
+                                if (change.pressed) {
+                                    if (!dragged) {
+                                        if ((change.position - down.position).getDistance() <= slop) {
+                                            change.consume()
+                                            continue // still a candidate tap
+                                        }
+                                        // Drag confirmed: the stroke starts where the finger landed
+                                        // (empty path + start cell, or the tail), then follows it.
+                                        dragged = true
+                                        dragStep(downCell)
+                                    }
+                                    val samples = change.historical.map { it.position } + change.position
+                                    for (sample in samples) {
+                                        if (!walkTo(sample)) {
+                                            lastPosition = change.position
+                                            break
+                                        }
+                                    }
+                                    latestOnPointer(change.position)
+                                } else {
+                                    if (!dragged) {
+                                        // Tap: deliberate retraction only — traced cell trims back
+                                        // through it, the first traced cell empties, elsewhere and
+                                        // on the tail it is a no-op. Release itself emits nothing:
+                                        // the trace stays exactly as drawn (R1).
+                                        when (val index = workingPath.indexOf(downCell)) {
+                                            -1, workingPath.lastIndex -> Unit
+                                            0 -> latestOnEvent(DragEvent.Clear)
+                                            else -> latestOnEvent(DragEvent.Retract(index))
+                                        }
+                                    }
+                                    break
+                                }
+                                change.consume()
+                            }
+                        } finally {
+                            // Also on cancellation, so a tip never outlives its gesture.
+                            if (dragged) latestOnPointer(null)
                         }
                     }
                 },
