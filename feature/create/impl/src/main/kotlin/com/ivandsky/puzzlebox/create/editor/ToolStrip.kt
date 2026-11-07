@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.AppShapes
@@ -83,7 +84,7 @@ fun ToolStrip(
         color = MaterialTheme.colorScheme.surface,
     ) {
         Column(Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 IconTool("Undo", PuzzleIcons.Undo, canUndo, onUndo, "create.tool.undo")
                 IconTool("Redo", PuzzleIcons.Redo, canRedo, onRedo, "create.tool.redo")
                 Tool("Size", enabled = true, active = picking, onClick = { picking = !picking }, tag = "create.tool.size") { ink ->
@@ -165,7 +166,13 @@ private fun Tool(
         verticalArrangement = Arrangement.Center,
     ) {
         Box(Modifier.height(ToolIconSize), contentAlignment = Alignment.Center) { glyph(ink) }
-        Text(text = label, style = MaterialTheme.typography.labelMedium, color = ink, maxLines = 1)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = ink,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

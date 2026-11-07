@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.airbnb.android.showkase.annotation.ShowkaseComposable
 
@@ -175,7 +176,12 @@ internal fun PuzzleIconsPreview() {
                                 modifier = Modifier.size(PreviewIconSize),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            Text(name, style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                text = name,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                     }
                 }
