@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.navigation.createEntry
@@ -20,17 +21,19 @@ import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
 import com.ivandsky.puzzlebox.game.GameRegistry
-import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.games.queens.queensPlugin
 import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorUi
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
+import java.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -44,7 +47,6 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.time.Instant
 
 /**
  * The New puzzle sheet over the real Queens editor and its UI: picking Queens lists exactly
@@ -69,6 +71,7 @@ class NewPuzzleSheetQueensTest {
         // One stored draft keeps the draft list, and its New puzzle button, on screen.
         runBlocking { createDraft(queens, QueensEditor.variants.first()) }
         startKoin {
+            modules(module { single<ReleaseFlags> { FakeReleaseFlags() } })
             modules(
                 module {
                     viewModel {

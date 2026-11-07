@@ -48,7 +48,9 @@ private const val DELETED_TITLE_MAX = 28
 /**
  * The Create root: the author's drafts, newest edit first, under the large "Create" title,
  * and the New puzzle button over the list's end corner. The Drafts / Published switch
- * ([onTab]) swaps in the published puzzles, newest first; a row opens its page ([onOpenPublished]). Past 8 drafts a search field
+ * ([onTab]) swaps in the published puzzles, newest first; a row opens its page ([onOpenPublished]).
+ * Without [showPublished] the switch and the published count stay away: Drafts alone, as
+ * before sharing. Past 8 drafts a search field
  * ([onQuery]) and game filter chips ([onFilter]) sit above the list. With no drafts at all
  * the [CreateEmptyState] lists the games inline instead, and the button hides. The button
  * opens the [NewPuzzleSheet] over [CreateUiState.games]; [onNew] starts a draft of the picked
@@ -76,6 +78,7 @@ fun CreateScreen(
     onDelete: (draftId: String) -> Unit,
     onUndoDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    showPublished: Boolean = true,
 ) {
     var sheetOpen by rememberSaveable { mutableStateOf(false) }
     var actionsId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -94,12 +97,12 @@ fun CreateScreen(
     )
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            LargeTopBar(title = "Create", subtitle = headerCounts(state), modifier = Modifier.testTag("create.header"))
+            LargeTopBar(title = "Create", subtitle = headerCounts(state, showPublished), modifier = Modifier.testTag("create.header"))
             when {
                 state.loading -> Unit
                 state.isEmpty -> CreateEmptyState(games = state.games, onStart = onNew)
                 else -> {
-                    CreateTabs(state, onTab)
+                    if (showPublished) CreateTabs(state, onTab)
                     CreateTabContent(state, onOpen, onOpenPublished, onActions = { actionsId = it }, onQuery, onFilter)
                 }
             }
@@ -146,12 +149,16 @@ private fun NewPuzzleButton(onClick: () -> Unit, modifier: Modifier) {
     )
 }
 
-/** "n drafts · m published" under the title, matching the tab counts; none while loading or before anything is made. */
-private fun headerCounts(state: CreateUiState): String? {
+/**
+ * "n drafts · m published" under the title, matching the tab counts ("n drafts" alone without
+ * [showPublished]); none while loading or before anything is made.
+ */
+private fun headerCounts(state: CreateUiState, showPublished: Boolean): String? {
     val drafts = state.draftCount
     val published = state.published.size
     if (state.loading || drafts + published == 0) return null
-    return "$drafts ${if (drafts == 1) "draft" else "drafts"} · $published published"
+    val draftsLine = "$drafts ${if (drafts == 1) "draft" else "drafts"}"
+    return if (showPublished) "$draftsLine · $published published" else draftsLine
 }
 
 private fun previewRows(count: Int): List<CreateUiState.DraftRow> = (0 until count).map { index ->

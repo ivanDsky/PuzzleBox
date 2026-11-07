@@ -8,12 +8,15 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
@@ -56,6 +59,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.navigation.navKeySavedStateConfiguration
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
@@ -114,6 +118,9 @@ class CreatePublishedTabTest {
     private val identity = FakeIdentityService(initial = AUTHOR)
     private val copyDraft = CreateDraftCopy(drafts, newId = { COPY_ID }, clock = { NOW })
     private lateinit var create: CreateViewModel
+
+    /** Every Published-tab test runs with friend sharing on (ADR-0022) unless it says otherwise. */
+    private var flags = FakeReleaseFlags(ReleaseFlag.FriendSharing)
 
     @After
     fun tearDown() {
@@ -178,6 +185,19 @@ class CreatePublishedTabTest {
 
         awaitCount(PUBLISHED_EMPTY, 1)
         awaitCount(PUBLISHED_ROW, 0)
+    }
+
+    @Test
+    fun `with friend sharing off Create shows Drafts alone, with no switch and no published count`() {
+        flags = FakeReleaseFlags()
+        storePublished(NEWER, "newer", minutesAgo = 5)
+        store(draftRow("plain", marks = 1, code = null))
+        show(CreateKey)
+
+        awaitCount(DRAFT_ROW, 1)
+        awaitCount(TAB_PUBLISHED, 0)
+        awaitCount(PUBLISHED_ROW, 0)
+        composeRule.onNodeWithText("1 draft", useUnmergedTree = true).assertExists()
     }
 
     @Test
@@ -383,6 +403,7 @@ class CreatePublishedTabTest {
         val navigator = Navigator(state)
         val saves = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         startKoin {
+            modules(module { single<ReleaseFlags> { flags } })
             modules(
                 module {
                     viewModel {
