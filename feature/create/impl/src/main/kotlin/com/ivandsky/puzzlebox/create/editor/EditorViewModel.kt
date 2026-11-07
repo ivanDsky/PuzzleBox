@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
+import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
 import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.VariantId
@@ -28,9 +29,9 @@ import kotlinx.coroutines.launch
 /**
  * The Studio's thin composition root: opens the stored draft named by [key], holds its
  * [EditorDraft], hands every edit to its holders and autosaves it with its undo history
- * ([saving]; stored at once on [flush], before [duplicate] and [delete] and on leaving the
- * Studio). [saves] must outlive this ViewModel: [viewModelScope] is already cancelled when
- * [onCleared] queues the last save.
+ * ([saving]; stored at once on [flush], before [duplicate], [delete] and [publish] and on
+ * leaving the Studio). [saves] must outlive this ViewModel: [viewModelScope] is already
+ * cancelled when [onCleared] queues the last save.
  */
 class EditorViewModel(
     private val key: EditorKey,
@@ -42,6 +43,7 @@ class EditorViewModel(
     dispatchers: DispatcherProvider,
     private val saves: CoroutineScope,
     private val clock: () -> Instant,
+    createShared: CreateSharedPuzzle,
     private val validatePublish: ValidatePublish = ValidatePublish(),
 ) : ViewModel() {
 
@@ -75,6 +77,16 @@ class EditorViewModel(
 
     /** "Saving…" while an edit waits to be stored, "✓ Saved" once it is. */
     val saving: StateFlow<Boolean> = autosave.saving
+
+    /** Publish: the pending edit is stored first; the reserved code comes back onto the row this writes. */
+    val publish = PublishSession(
+        draftId = key.draftId,
+        createShared = createShared,
+        drafts = drafts,
+        scope = viewModelScope,
+        flush = { autosave.flush() },
+        reserved = { code -> lastStored = lastStored?.copy(reservedCode = code) },
+    )
 
     init {
         viewModelScope.launch {

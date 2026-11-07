@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntries
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -25,6 +26,7 @@ import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
@@ -62,6 +64,7 @@ class TangoCompeteLoopTest {
         val fakes = module {
             single<DailyRepository> { daily }
             single<CompletionRepository> { completions }
+            single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
             single<SavedPlayRepository> { FakeSavedPlayRepository() }
             single<GameCalendar> { FakeGameCalendar(TangoDefinition.cadence.today()) }
             single<DispatcherProvider> {

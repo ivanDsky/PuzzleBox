@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.LocalDate
 import kotlin.time.Duration
@@ -133,7 +134,7 @@ class SlotWriterTest {
         val saved = recording(latency = 50.milliseconds)
         val daily = FakeDailyRepository()
         val games = TestGames.registry(listOf(alpha))
-        val opening = SlotOpening(daily, LoadPastDay(daily, games), saved, FakeGameCalendar(today), games, lane)
+        val opening = SlotOpening(daily, LoadPastDay(daily, games), saved, FakeGameCalendar(today), games, lane, FakeReceivedPuzzleRepository())
         val released = writer(saved)
         released.offer(blob(1), 0L)
 
