@@ -14,12 +14,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 
 /**
  * The draft's required test solve (spec A10, 00 §3): [start] opens the board as a sandbox on the
@@ -29,9 +26,10 @@ import kotlinx.coroutines.flow.receiveAsFlow
  * session persistence, so [close] discards its progress.
  *
  * The stored test is never deleted by an edit. It is [passed] while its layout key matches the
- * board's: a board edit silently invalidates it and sends [cleared] (the toast with Undo), and
- * undoing back to the tested layout makes it valid again. A title edit never reaches here, and an
- * aid-only edit (Queens answer crowns) keeps the layout key, so both keep the test.
+ * board's, so any way back to the tested layout ([isTested]) makes it valid again. The board
+ * change that invalidates it raises [cleared] (the toast with Undo); the next board change of any
+ * kind lowers it, so the toast never outlives the edit it names. A title edit never reaches here,
+ * and an aid-only edit (Queens answer crowns) keeps the layout key, so both keep the test.
  *
  * Confined to the main thread, like the Studio's other holders.
  */
@@ -62,10 +60,10 @@ class TestSolveSession(
     /** The sandbox while the author is test solving; null in the editor. */
     val sandbox: StateFlow<Sandbox?> = mutableSandbox.asStateFlow()
 
-    private val clears = Channel<Unit>(Channel.BUFFERED)
+    private val mutableCleared = MutableStateFlow(false)
 
-    /** One event per board edit that invalidates a passed test (`create.toast.testCleared`). */
-    val cleared: Flow<Unit> = clears.receiveAsFlow()
+    /** True from the board change that invalidated the passed test until the next one or [dismissCleared]. */
+    val cleared: StateFlow<Boolean> = mutableCleared.asStateFlow()
 
     /** The sandbox's own scope, a child of [scope]; cancelled when the sandbox closes. */
     private var sandboxScope: CoroutineScope? = null
@@ -82,8 +80,16 @@ class TestSolveSession(
         val wasPassed = mutablePassed.value != null
         layoutKey = draft.layoutKey
         mutablePassed.value = validFor(layoutKey)
-        if (wasPassed && mutablePassed.value == null) clears.trySend(Unit)
+        mutableCleared.value = wasPassed && mutablePassed.value == null
     }
+
+    /** The toast timed out, was swiped away or its Undo ran. */
+    fun dismissCleared() {
+        mutableCleared.value = false
+    }
+
+    /** Whether [draft] has the layout the stored test was solved on. */
+    fun isTested(draft: EditorDraft<*>): Boolean = tested?.layoutKey == draft.layoutKey
 
     /**
      * Opens [draft] as a sandbox when the [verdict] is Unique and the game exports puzzles: the

@@ -22,7 +22,11 @@ import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -70,9 +74,9 @@ class EditorAutosaveTest {
     }
     private val copyDraft = CreateDraftCopy(drafts, newId = { COPY_ID }, clock = { NOW })
 
-    private suspend fun TestScope.open(): EditorViewModel {
+    private suspend fun TestScope.open(saves: CoroutineScope = backgroundScope): EditorViewModel {
         drafts.upsert(storedRow(editor.draft(marks = 1).encode()))
-        val vm = EditorViewModel(EditorKey(DRAFT_ID), store, games, editors, GamePlayRegistry(emptyList()), copyDraft, lanes, clock = { NOW })
+        val vm = EditorViewModel(EditorKey(DRAFT_ID), store, games, editors, GamePlayRegistry(emptyList()), copyDraft, lanes, saves, clock = { NOW })
         runCurrent()
         return vm
     }
@@ -123,8 +127,9 @@ class EditorAutosaveTest {
     }
 
     @Test
-    fun `leaving the Studio stores the pending edit`() = runTest(mainRule.testDispatcher) {
-        val vm = open()
+    fun `leaving the Studio stores the pending edit and leaves the shared saves scope running`() = runTest(mainRule.testDispatcher) {
+        val saves = CoroutineScope(backgroundScope.coroutineContext + SupervisorJob(backgroundScope.coroutineContext[Job]))
+        val vm = open(saves)
         val owner = ViewModelStore()
         ViewModelProvider(owner, factoryOf(vm))[EditorViewModel::class.java]
         controller.edit(edited)
@@ -133,6 +138,7 @@ class EditorAutosaveTest {
         runCurrent()
 
         assertArrayEquals(edited.encode(), drafts.rows.getValue(DRAFT_ID).blob)
+        assertTrue("the next Studio saves through the same scope", saves.isActive)
     }
 
     @Test

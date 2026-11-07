@@ -29,7 +29,8 @@ import org.koin.core.parameter.parametersOf
  * The verdict card hosts the game's fix list over the draft's board blocks (`publishBlocks`);
  * a fix's Select closes the card so the selection shows. Test solve (Unique boards of games that
  * export puzzles) replaces the Studio with the [TestSolveScreen] sandbox on the game's real play
- * board until its Back; a board edit that invalidates the test shows the toast whose Undo reverts it.
+ * board until its Back; a board edit that invalidates the test shows the toast whose Undo brings
+ * the board back to the tested layout. The holders stay here: the screen gets their state and events.
  */
 @Composable
 internal fun EditorRoute(
@@ -48,6 +49,9 @@ internal fun EditorRoute(
     val saving by viewModel.saving.collectAsStateWithLifecycle()
     val sandbox by viewModel.testSolve.sandbox.collectAsStateWithLifecycle()
     val passed by viewModel.testSolve.passed.collectAsStateWithLifecycle()
+    val testCleared by viewModel.testSolve.cleared.collectAsStateWithLifecycle()
+    val cardOpen by viewModel.verdictCard.open.collectAsStateWithLifecycle()
+    val overlay by viewModel.verdictCard.overlay.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flush() }
     val routeModifier = modifier.testTag("route.editor")
     when (val ready = state) {
@@ -73,7 +77,12 @@ internal fun EditorRoute(
             subtitle = ready.subtitle,
             saving = saving,
             verdict = ready.verdict,
-            verdictCard = viewModel.verdictCard,
+            cardOpen = cardOpen,
+            overlay = overlay,
+            onShowCard = viewModel.verdictCard::show,
+            onDismissCard = viewModel.verdictCard::dismiss,
+            onCheckAgain = viewModel.verdictCard::checkAgain,
+            onOverlay = viewModel.verdictCard::choose,
             layout = layout,
             onBack = onBack,
             onRename = viewModel.meta::rename,
@@ -113,8 +122,9 @@ internal fun EditorRoute(
                     modifier = areaModifier,
                 )
             },
-            testCleared = viewModel.testSolve.cleared,
-            onUndo = viewModel::undo,
+            testCleared = testCleared,
+            onUndoTestClear = viewModel::restoreTest,
+            onTestClearedGone = viewModel.testSolve::dismissCleared,
         )
     }
 }

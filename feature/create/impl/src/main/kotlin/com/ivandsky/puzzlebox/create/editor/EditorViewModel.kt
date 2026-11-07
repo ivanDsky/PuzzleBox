@@ -20,8 +20,6 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,9 +29,8 @@ import kotlinx.coroutines.launch
  * The Studio's thin composition root: opens the stored draft named by [key], holds its
  * [EditorDraft], hands every edit to its holders and autosaves it with its undo history
  * ([saving]; stored at once on [flush], before [duplicate] and [delete] and on leaving the
- * Studio). Each concern moves into its own holder, wired here: VerdictPipeline (13),
- * EditHistory (14/15), DraftMeta (16), DraftAutosave (17), VerdictCardState (24),
- * TestSolveSession (27).
+ * Studio). [saves] must outlive this ViewModel: [viewModelScope] is already cancelled when
+ * [onCleared] queues the last save.
  */
 class EditorViewModel(
     private val key: EditorKey,
@@ -43,6 +40,7 @@ class EditorViewModel(
     plays: GamePlayRegistry,
     copyDraft: CreateDraftCopy,
     dispatchers: DispatcherProvider,
+    private val saves: CoroutineScope,
     private val clock: () -> Instant,
     private val validatePublish: ValidatePublish = ValidatePublish(),
 ) : ViewModel() {
@@ -72,11 +70,6 @@ class EditorViewModel(
     /** The stored row as last written; null until the draft has loaded. */
     private var lastStored: Draft? = null
 
-    /**
-     * The saves' own scope: it outlives [viewModelScope], which is cancelled before [onCleared],
-     * so leaving the Studio still stores the last edit. It ends once that final save is stored.
-     */
-    private val saves = CoroutineScope(SupervisorJob() + dispatchers.main)
     private val autosave = DraftAutosave(saves, drafts::upsert)
 
     /** "Saving…" while an edit waits to be stored, "✓ Saved" once it is. */
@@ -113,6 +106,15 @@ class EditorViewModel(
             editor = ui,
             controller = ui.createController(draft, ::onEdit),
         )
+    }
+
+    /**
+     * The test-cleared toast's Undo: back to the nearest earlier board with the tested layout, so
+     * the test passes again even when aid-only steps followed the edit that cleared it.
+     */
+    fun restoreTest() {
+        testSolve.dismissCleared()
+        history.undoTo(testSolve::isTested)?.let(::adopt)
     }
 
     /** One step back: the board adopts it, then it is checked and stored like any edit. */
@@ -159,9 +161,9 @@ class EditorViewModel(
         }
     }
 
-    /** Back, a tab's stack dropping the Studio, Duplicate's replace: the last edit is stored, then the saves end. */
+    /** Back, a tab's stack dropping the Studio, Duplicate's replace: the last edit is stored. */
     override fun onCleared() {
-        saves.launch { autosave.flush() }.invokeOnCompletion { saves.cancel() }
+        saves.launch { autosave.flush() }
     }
 
     /** Undo, redo, resize and clear replace the board; only these can change its size, so the subtitle follows here. */

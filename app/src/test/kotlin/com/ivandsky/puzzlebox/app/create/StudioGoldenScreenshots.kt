@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -33,9 +34,6 @@ import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorController
 import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorMode
 import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorUi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -49,8 +47,8 @@ import java.io.File
  * 29: the real Queens editor inside the Studio chrome (spec S15), the one place both meet:
  * on a 320 dp and a 411 dp phone and the two-pane tablet, light and dark. Four scenes on a
  * 6×6 draft whose verdict comes from [QueensDraftAnalyzer]: Crown mode while Incomplete; 2+
- * solutions with witness A on the board and the fix list (the phone's card open over the
- * bar); No solution with a crowned clash cell; Unique with its difficulty, the readiness
+ * solutions with witness A on the board and the fix list (the phone's card open in its
+ * bottom sheet); No solution with a crowned clash cell; Unique with its difficulty, the readiness
  * line and the "test solve cleared" toast. Readiness is the domain's [ValidatePublish].
  * Recorded by default, verified with `-Proborazzi.verify=true`; goldens in `snapshots/studio/`.
  */
@@ -105,7 +103,7 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
 
     private fun unique(dark: Boolean) {
         val draft = QueensDraft(SIZE, UNIQUE, crowns = UNIQUE_SOLUTION)
-        capture("unique-toast", dark, draft, analyzed<Verdict.Unique>(draft), testCleared = flowOf(Unit))
+        capture("unique-toast", dark, draft, analyzed<Verdict.Unique>(draft), testCleared = true)
     }
 
     private inline fun <reified V : Verdict> analyzed(draft: QueensDraft): V {
@@ -122,7 +120,7 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
         verdict: Verdict,
         mode: QueensEditorMode? = null,
         openCard: Boolean = false,
-        testCleared: Flow<Unit> = emptyFlow(),
+        testCleared: Boolean = false,
     ) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
@@ -162,14 +160,18 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
         verdict: Verdict,
         card: VerdictCardState,
         readiness: List<PublishBlock>,
-        testCleared: Flow<Unit>,
+        testCleared: Boolean,
     ) {
         StudioScreen(
             title = TITLE,
             subtitle = "Queens ${QueensEditorUi.sizeLabel(editorDraft.variant)}",
             saving = false,
             verdict = verdict,
-            verdictCard = card,
+            cardOpen = card.open.collectAsState().value,
+            overlay = card.overlay.collectAsState().value,
+            onShowCard = card::show,
+            onDismissCard = card::dismiss,
+            onOverlay = card::choose,
             layout = layout,
             onBack = {},
             onRename = {},
@@ -204,7 +206,6 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
                 )
             },
             testCleared = testCleared,
-            onUndo = {},
         )
     }
 
