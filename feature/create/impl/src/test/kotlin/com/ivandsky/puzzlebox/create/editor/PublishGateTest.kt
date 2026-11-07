@@ -89,7 +89,7 @@ class PublishGateTest {
                     single { flags }
                     viewModel { (key: EditorKey) ->
                         val copyDraft = CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW })
-                        EditorViewModel(key, drafts, games, editors, GamePlayRegistry(emptyList()), copyDraft, DefaultDispatcherProvider(), saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW }, createShared = signedOutPublishing(drafts))
+                        EditorViewModel(key, drafts, games, editors, GamePlayRegistry(emptyList()), copyDraft, DefaultDispatcherProvider(), saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW }, createShared = signedOutPublishing(drafts), identity = nobodySignedIn(), idTokens = noGoogleAccount)
                     }
                 },
             )

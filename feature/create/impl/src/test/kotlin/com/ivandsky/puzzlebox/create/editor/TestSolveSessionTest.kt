@@ -301,7 +301,7 @@ class TestSolveSessionTest {
             modules(
                 module {
                     viewModel { (key: EditorKey) ->
-                        EditorViewModel(key, drafts, games, editors, plays, copyDraft, DefaultDispatcherProvider(), saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW }, createShared = signedOutPublishing(drafts))
+                        EditorViewModel(key, drafts, games, editors, plays, copyDraft, DefaultDispatcherProvider(), saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW }, createShared = signedOutPublishing(drafts), identity = nobodySignedIn(), idTokens = noGoogleAccount)
                             .also { vm = it }
                     }
                 },

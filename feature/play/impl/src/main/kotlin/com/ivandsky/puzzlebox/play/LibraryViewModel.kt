@@ -7,9 +7,11 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.domain.ArchiveDay
 import com.ivandsky.puzzlebox.domain.ArchiveProgress
+import com.ivandsky.puzzlebox.domain.FriendPuzzleRow
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
+import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -17,6 +19,7 @@ import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GameCardModel
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.TutorialSession
@@ -75,6 +78,9 @@ internal data class ArchivePageState(
 /** An open lesson: [game]'s tutorial running in [session]. */
 internal data class OpenLesson(val game: GameId, val session: TutorialSession)
 
+/** A friend's puzzle in From friends: its [row], and its game's name and brand ([GameBrand.Neutral] for a game this build lacks). */
+internal data class FriendCardModel(val row: FriendPuzzleRow, val gameName: String, val brand: GameBrand)
+
 /**
  * The games library's state holder (A25–A29): the [PlaySessionStore]'s playable games,
  * each with its [ObserveTodaySet] status, today's puzzle number, its [ObserveArchiveProgress]
@@ -84,7 +90,8 @@ internal data class OpenLesson(val game: GameId, val session: TutorialSession)
  * The sources are collected only while the library is observed (plus a 5 s grace), so a
  * library left in a back stack across a deep sleep re-reads the day when it shows again.
  * Each start prefetches today's uncached puzzles ([syncToday], A12), so a game that can't
- * load reads Offline. The lesson lives here, so a rotation keeps its step.
+ * load reads Offline. The lesson lives here, so a rotation keeps its step. [friends] is
+ * From friends ([ObserveFriendPuzzles]), each puzzle under its game's name and brand.
  *
  * The selected game's [page] is its calendar month ([ObserveArchiveMonth], today's until
  * [showMonth]) and the past day [pick]ed for the day card; a month change keeps the picked
@@ -103,6 +110,7 @@ class LibraryViewModel(
     private val registry: GamePlayRegistry,
     private val daily: DailyRepository,
     private val prefs: UserPreferencesRepository,
+    friendPuzzles: ObserveFriendPuzzles,
 ) : ViewModel() {
 
     private val seed: List<LibraryRowModel> = store.playable.map { (game, name) ->
@@ -145,6 +153,10 @@ class LibraryViewModel(
             }.toMap()
         }
         .onStart { emit(emptyMap()) }
+
+    internal val friends: StateFlow<List<FriendCardModel>> = friendPuzzles()
+        .map { rows -> rows.map { FriendCardModel(it, games.displayName(it.gameId), registry.brandOf(it.gameId)) } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
 
     internal val uiState: StateFlow<LibraryUiState> =
         combine(

@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
+import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -104,6 +105,7 @@ class LibraryViewModelTest {
             registry = fakes.registry,
             daily = daily,
             prefs = prefs,
+            friendPuzzles = ObserveFriendPuzzles(FakeReceivedPuzzleRepository(), saved, completions, fakes.games),
         ).also { vm ->
             screen.launch { vm.uiState.collect {} }
             screen.launch { vm.page.collect {} }

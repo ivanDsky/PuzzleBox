@@ -73,6 +73,7 @@ class PublishReservedCodeTest {
     @Test
     fun `an edit after a publish keeps the reserved code on the stored draft`() = runTest(mainRule.testDispatcher) {
         val board = editor.draft(marks = 1)
+        val author = FakeIdentityService(Identity(uid = AUTHOR, displayName = "Ivan", photoUrl = null))
         drafts.upsert(storedRow(board))
         val vm = EditorViewModel(
             EditorKey(DRAFT_ID), drafts, games, GameEditorRegistry(listOf(ui)), GamePlayRegistry(emptyList()),
@@ -82,11 +83,13 @@ class PublishReservedCodeTest {
                 drafts = drafts,
                 shared = shared,
                 published = FakePublishedPuzzleRepository(),
-                identity = FakeIdentityService(Identity(uid = AUTHOR, displayName = "Ivan", photoUrl = null)),
+                identity = author,
                 validate = ValidatePublish(),
                 random = Random(0),
                 clock = { NOW },
             ),
+            identity = author,
+            idTokens = noGoogleAccount,
         )
         runCurrent()
 

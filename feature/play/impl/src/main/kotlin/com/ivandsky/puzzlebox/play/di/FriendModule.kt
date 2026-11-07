@@ -23,7 +23,7 @@ val friendModule = module {
             clock = { Instant.now() },
         )
     }
-    viewModel { (key: FriendPuzzleKey) -> FriendPuzzleViewModel(key, get(), get(), get()) }
+    viewModel { (key: FriendPuzzleKey) -> FriendPuzzleViewModel(key, get(), get(), get(), get(), get(), get(), get()) }
 }
 
 private const val OPEN_BUDGET_MS = 5_000L
