@@ -92,7 +92,8 @@ class NewPuzzleSheetTest {
             ),
         )
         val editors = GameEditorRegistry(listOf(FakeGameEditorUi(queens), FakeGameEditorUi(alpha)))
-        val createDraft = CreateDraft(games, drafts, newId = { "draft-1" }, clock = { NOW })
+        var next = 0
+        val createDraft = CreateDraft(games, drafts, newId = { "draft-${++next}" }, clock = { NOW })
         runBlocking { drafts.upsert(seed()) }
         startKoin {
             modules(
@@ -158,6 +159,23 @@ class NewPuzzleSheetTest {
         composeRule.waitForIdle()
         assertEquals(listOf(CreateKey, EditorKey("draft-1")), navigator.state.currentStack)
         composeRule.onAllNodesWithTag(SHEET).fetchSemanticsNodes().let { assertEquals(0, it.size) }
+    }
+
+    @Test
+    fun `two quick size taps store one draft and open one Studio`() {
+        composeRule.onNodeWithTag(NEW).performClick()
+        composeRule.onNodeWithTag("$GAME${queens.value}").performClick()
+        composeRule.onNodeWithTag("${SIZE}queens/9").performScrollTo()
+        // Both taps land while the sheet is still sliding away.
+        composeRule.mainClock.autoAdvance = false
+        composeRule.onNodeWithTag("${SIZE}queens/8").performClick()
+        composeRule.onNodeWithTag("${SIZE}queens/9").performClick()
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+
+        assertEquals(setOf("seed", "draft-1"), drafts.rows.keys)
+        assertEquals(VariantId("queens/8"), drafts.rows.getValue("draft-1").variant)
+        assertEquals(listOf(CreateKey, EditorKey("draft-1")), navigator.state.currentStack)
     }
 
     private fun seed(): Draft = Draft(
