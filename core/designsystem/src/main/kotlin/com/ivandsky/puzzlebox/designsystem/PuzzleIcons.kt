@@ -113,6 +113,9 @@ object PuzzleIcons {
 
     /** Past day status, and the offline pill: the puzzle needs a connection, a cloud. */
     val NeedsConnection: ImageVector = NeedsConnectionMark
+
+    /** Copy to the clipboard: two outlined sheets, the back one tucked under the front. */
+    val Copy: ImageVector = CopyMark
 }
 
 private const val PREVIEW_COLUMNS = 4
@@ -157,6 +160,7 @@ internal fun PuzzleIconsPreview() {
             "SavedOnDevice" to PuzzleIcons.SavedOnDevice,
             "NeedsConnection" to PuzzleIcons.NeedsConnection,
             "Add" to PuzzleIcons.Add,
+            "Copy" to PuzzleIcons.Copy,
         )
         Column(
             modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.md),
