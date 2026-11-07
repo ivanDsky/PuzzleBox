@@ -71,7 +71,9 @@ fun VerdictCard(
         contentColor = MaterialTheme.colorScheme.onSurface,
         shadowElevation = 6.dp,
     ) {
-        Column {
+        // The card's own bottom half-gap joins the face's or the fix list's, so every verdict ends
+        // 16dp under its last line, whether or not there is anything to fix.
+        Column(Modifier.padding(bottom = Spacing.sm)) {
             AnimatedContent(
                 targetState = verdict,
                 transitionSpec = {
@@ -86,7 +88,7 @@ fun VerdictCard(
                 contentKey = ::faceKey,
             ) { shown -> CardFace(shown, onCheckAgain, overlay, onOverlay) }
             // Outside the crossfade: the fix list follows the live draft, so it is never drawn twice.
-            issues(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg))
+            issues(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm))
         }
     }
 }
