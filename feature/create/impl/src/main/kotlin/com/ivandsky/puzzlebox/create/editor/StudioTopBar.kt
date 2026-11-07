@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +29,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.AppDropdownMenu
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -55,7 +55,7 @@ private val TagHorizontalPadding = 6.dp
  * colour; null once unpublished).
  *
  * Motion: the title block's press is **Press feedback** at MotionTokens.PressScale; the menu's
- * origin-aware **Scale in + Fade in** from the ⋮ is DropdownMenu's own.
+ * origin-aware **Scale in + Fade in** from the ⋮ is AppDropdownMenu's own.
  */
 @Composable
 fun StudioTopBar(
@@ -168,7 +168,7 @@ private fun OverflowMenu(onRename: (() -> Unit)?, onDuplicate: () -> Unit, onDel
         IconButton(onClick = { open = true }, modifier = Modifier.testTag("create.studio.more")) {
             Icon(PuzzleIcons.More, contentDescription = "More options")
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }, shape = AppShapes.medium) {
+        AppDropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             onRename?.let {
                 DropdownMenuItem(
                     text = { Text("Rename") },
