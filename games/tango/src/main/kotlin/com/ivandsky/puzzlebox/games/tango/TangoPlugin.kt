@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
+import com.ivandsky.puzzlebox.games.tango.editor.TangoEditor
 import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
@@ -94,6 +95,7 @@ val tangoPlugin: GamePlugin<TangoState, TangoSession, TangoRendererModel> =
             }
         },
         rendererModel = { state, hint, verdict -> TangoRendererModel.of(state, hint, verdict) },
+        editor = TangoEditor,
     )
 
 /**
