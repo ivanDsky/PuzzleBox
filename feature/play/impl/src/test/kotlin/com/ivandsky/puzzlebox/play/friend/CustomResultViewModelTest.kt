@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.play.friend
 
-import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -14,8 +13,6 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
-import com.ivandsky.puzzlebox.auth.GoogleIdToken
-import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -134,7 +131,7 @@ class CustomResultViewModelTest {
                     single { GameEditorRegistry(emptyList()) }
                     single<CustomBoardRepository> { FakeCustomBoardRepository() }
                     single<IdentityService> { FakeIdentityService() }
-                    single<GoogleIdTokenProvider> { CancelledGoogleIdTokenProvider }
+                    single { dismissedGoogleSignIn }
                     factory { LoadPastDay(get(), get()) }
                 },
                 playModule,
@@ -167,11 +164,6 @@ class CustomResultViewModelTest {
         difficulty = null,
     )
 
-    /** The board's sign-in is not under test here: Google's account picker is always dismissed. */
-    private object CancelledGoogleIdTokenProvider : GoogleIdTokenProvider {
-        override suspend fun idToken(activityContext: Context): GoogleIdToken =
-            GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.CANCELLED)
-    }
 
     private fun key(timeMs: Long, hints: Int = 0) = CustomResultKey(alpha.value, code.value, timeMs, hints)
 
@@ -181,8 +173,7 @@ class CustomResultViewModelTest {
     private fun observed(key: CustomResultKey): CustomResultViewModel {
         val koin = checkNotNull(koin).koin
         val viewModel = CustomResultViewModel(
-            key, completions, received, fakes.games, fakes.registry, koin.get(), koin.get(),
-            koin.get(), koin.get(), koin.get(), koin.get(),
+            key, completions, received, fakes.games, fakes.registry, koin.get(), koin.get(), koin.get(),
         )
         screen.launch { viewModel.state.collect {} }
         main.testDispatcher.scheduler.runCurrent()

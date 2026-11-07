@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
@@ -20,9 +19,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.formatDuration
-import com.ivandsky.puzzlebox.domain.AuthorPin
 import com.ivandsky.puzzlebox.domain.CustomBoardView
-import com.ivandsky.puzzlebox.domain.RankedEntry
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.VariantId
@@ -137,25 +134,17 @@ private fun shareTextOf(state: CustomResultState, puzzleId: String): String {
     return "I solved $name in ${formatDuration(state.timeMs)}. Can you beat it? $link"
 }
 
-private val PreviewAuthor = AuthorPin(uid = "uid-jonas", name = "Jonas Lind", timeMs = 102_000L, hints = 0)
-
-private fun previewRow(rank: Int, name: String, timeMs: Long, hints: Int = 0, isMe: Boolean = false) = RankedEntry(
-    rank = rank,
-    entry = LeaderboardEntry(uid = "uid-$rank", displayName = name, puzzleRef = "custom/queens/K7Q2MX", timeMs = timeMs, hints = hints, completedAtMs = 0L),
-    isMe = isMe,
-)
-
 /** Five friends ahead and this solve ranked seventh, below the cut. */
 private val PreviewRanked = CustomBoardView.Ranked(
     top = listOf(
-        previewRow(1, "Maja", 74_000L),
-        previewRow(2, "Oskar Bergström-Nilsson", 81_000L),
-        previewRow(3, "Lea", 95_000L, hints = 1),
-        previewRow(4, "Ines", 103_000L),
-        previewRow(5, "Tom", 110_000L, hints = 2),
+        previewBoardRow(1, "Maja", 74_000L),
+        previewBoardRow(2, "Oskar Bergström-Nilsson", 81_000L),
+        previewBoardRow(3, "Lea", 95_000L, hints = 1),
+        previewBoardRow(4, "Ines", 103_000L),
+        previewBoardRow(5, "Tom", 110_000L, hints = 2),
     ),
-    mine = previewRow(7, "Me", 118_000L, isMe = true),
-    author = PreviewAuthor,
+    mine = previewBoardRow(7, "Me", 118_000L, isMe = true),
+    author = PreviewBoardAuthor,
 )
 
 private fun previewState(
@@ -177,7 +166,7 @@ private fun previewState(
         sharedFormatVersion = 1,
         puzzleBytes = ByteArray(0),
         title = "Crown the castle",
-        authorName = PreviewAuthor.name,
+        authorName = PreviewBoardAuthor.name,
         note = "",
         authorTimeMs = 102_000L,
         authorHints = 0,
@@ -217,7 +206,7 @@ internal fun CustomResultReplayPreview() {
             CustomStanding.Replay(BestScore(118_000L, 0)),
             timeMs = 131_000L,
             hints = 2,
-            board = CustomBoardView.SignedOut(PreviewAuthor),
+            board = CustomBoardView.SignedOut(PreviewBoardAuthor),
         ),
     )
 }
@@ -233,7 +222,7 @@ internal fun CustomResultPendingPreview() {
 @PuzzleBoxPreviews
 @Composable
 internal fun CustomResultBoardUnavailablePreview() {
-    PreviewScreen(previewState(CustomStanding.Record, board = CustomBoardView.Unavailable(PreviewAuthor)))
+    PreviewScreen(previewState(CustomStanding.Record, board = CustomBoardView.Unavailable(PreviewBoardAuthor)))
 }
 
 // Preview: a result that will never post; "You" stands in, marked Not posted.

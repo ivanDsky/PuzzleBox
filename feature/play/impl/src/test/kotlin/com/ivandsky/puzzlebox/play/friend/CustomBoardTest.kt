@@ -1,13 +1,11 @@
 package com.ivandsky.puzzlebox.play.friend
 
-import android.content.Context
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
@@ -199,7 +197,7 @@ class CustomBoardTest {
         runBlocking { (players(6) + entry(FAKE_UID, 200_000L)).forEach { boards.submit(code, it) } }
         // The board's rules deny signed-out reads; the fake follows the signed-in user.
         screen.launch { identity.current.collect { boards.signedIn = it != null } }
-        startGraph(identity, boards, OneAccountGoogleIdTokenProvider)
+        startGraph(identity, boards, oneGoogleAccount(TOKEN))
 
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
@@ -264,11 +262,6 @@ class CustomBoardTest {
         postAttempts = 0,
         difficulty = null,
     )
-
-    /** Google with one account: every call hands out its ID token. */
-    private object OneAccountGoogleIdTokenProvider : GoogleIdTokenProvider {
-        override suspend fun idToken(activityContext: Context): GoogleIdToken = GoogleIdToken.Available(TOKEN)
-    }
 
     private fun node(tag: String) = composeRule.onNodeWithTag(tag, useUnmergedTree = true)
 
