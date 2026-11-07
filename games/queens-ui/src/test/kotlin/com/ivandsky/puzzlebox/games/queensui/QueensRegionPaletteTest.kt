@@ -65,6 +65,16 @@ class QueensRegionPaletteTest {
     }
 
     @Test
+    fun `any two fills stay apart by a visible colour difference in both modes`() {
+        for (dark in listOf(false, true)) for (i in 0 until 10) for (j in i + 1 until 10) {
+            val a = QueensRegionPalette.fill(i, dark)
+            val b = QueensRegionPalette.fill(j, dark)
+            val delta = deltaE(a, b)
+            assertTrue("dark=$dark $i/$j ΔE=$delta", delta >= MIN_DELTA_E)
+        }
+    }
+
+    @Test
     fun `fills cycle deterministically by region id`() {
         assertEquals(lightFill(3), lightFill(13))
         assertEquals(lightFill(3), QueensRegionPalette.fill(3, dark = false))
@@ -80,9 +90,30 @@ class QueensRegionPaletteTest {
         assertEquals(expected, picked)
     }
 
+    /** CIE76 ΔE: the straight-line distance in CIELAB (D65). */
+    private fun deltaE(a: Color, b: Color): Double {
+        val (l1, a1, b1) = lab(a)
+        val (l2, a2, b2) = lab(b)
+        return Math.sqrt((l1 - l2) * (l1 - l2) + (a1 - a2) * (a1 - a2) + (b1 - b2) * (b1 - b2))
+    }
+
+    private fun lab(c: Color): Triple<Double, Double, Double> {
+        fun linear(channel: Float): Double =
+            if (channel <= 0.04045f) channel / 12.92 else Math.pow((channel + 0.055) / 1.055, 2.4)
+        val (r, g, b) = Triple(linear(c.red), linear(c.green), linear(c.blue))
+        val x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047
+        val y = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        val z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883
+        fun f(t: Double) = if (t > 0.008856) Math.cbrt(t) else 7.787 * t + 16.0 / 116.0
+        return Triple(116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z)))
+    }
+
     private companion object {
         // Candy's narrowest cross-parity gap (light teal 78.5 vs magenta 84.9) — the
         // saturated mid-tones trade the old 8-point floor for hue separation.
         const val MIN_PARITY_DELTA_L = 6f
+
+        /** Same-band neighbours must part by hue and chroma, not only by lightness. */
+        const val MIN_DELTA_E = 10.0
     }
 }

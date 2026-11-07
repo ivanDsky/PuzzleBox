@@ -12,10 +12,10 @@ import kotlinx.coroutines.flow.asStateFlow
  * [checkAgain], which hands the open draft back to the verdict pipeline through [recheck].
  * The pill opens it; an outside tap, Back or any board edit closes it.
  *
- * On a 2+ solutions verdict it also holds the A/B witness choice, [overlay] (spec A7, 31):
- * each new settled Multiple [read] resets it to the open [controller]'s
- * `openingOverlay`, and every change goes to that controller's `adoptOverlay` so the board
- * draws it. Checking keeps the choice, as the board holds its last settled reading.
+ * On a 2+ solutions verdict it drives the A/B witness choice, which the open [controller]
+ * owns as its `overlay`: each new settled Multiple [read] resets it to that controller's
+ * `openingOverlay`, and every [choose] goes to its `adoptOverlay`, so the card and the board
+ * read one value. Checking keeps the choice, as the board holds its last settled reading.
  */
 class VerdictCardState(
     private val recheck: () -> Unit,
@@ -25,10 +25,14 @@ class VerdictCardState(
     private val mutableOpen = MutableStateFlow(false)
     val open: StateFlow<Boolean> = mutableOpen.asStateFlow()
 
-    private val mutableOverlay = MutableStateFlow(EditorOverlay())
-    val overlay: StateFlow<EditorOverlay> = mutableOverlay.asStateFlow()
-
     private var lastMultiple: Verdict.Multiple? = null
+
+    /**
+     * The open controller's overlay, read through, never copied: each read follows the
+     * controller open now, so a fresh board never shows the last board's choice.
+     */
+    val overlay: StateFlow<EditorOverlay>
+        get() = controller()?.overlay ?: NO_OVERLAY
 
     fun show() {
         mutableOpen.value = true
@@ -47,12 +51,16 @@ class VerdictCardState(
     fun read(verdict: Verdict) {
         if (verdict !is Verdict.Multiple || verdict == lastMultiple) return
         lastMultiple = verdict
-        choose(controller()?.openingOverlay(verdict) ?: EditorOverlay())
+        val controller = controller() ?: return
+        controller.adoptOverlay(controller.openingOverlay(verdict))
     }
 
     /** The author's A/B or Show on board change; the board draws it at once. */
     fun choose(overlay: EditorOverlay) {
-        mutableOverlay.value = overlay
         controller()?.adoptOverlay(overlay)
+    }
+
+    private companion object {
+        val NO_OVERLAY: StateFlow<EditorOverlay> = MutableStateFlow(EditorOverlay()).asStateFlow()
     }
 }

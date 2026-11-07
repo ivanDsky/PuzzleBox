@@ -49,8 +49,7 @@ class QueensEditorController(
     /** The cell of each refused crown tap; the board plays the Reject jolt on it. */
     val rejected: SharedFlow<Int> = refused.asSharedFlow()
 
-    /** The verdict card's witness choice; not persisted. */
-    val overlay: StateFlow<EditorOverlay> = shownOverlay.asStateFlow()
+    override val overlay: StateFlow<EditorOverlay> = shownOverlay.asStateFlow()
 
     override fun adopt(draft: EditorDraft<*>) {
         val next = typed(draft)

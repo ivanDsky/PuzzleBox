@@ -168,7 +168,7 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
             saving = false,
             verdict = verdict,
             cardOpen = card.open.collectAsState().value,
-            overlay = card.overlay.collectAsState().value,
+            overlay = controller.overlay.collectAsState().value,
             onShowCard = card::show,
             onDismissCard = card::dismiss,
             onOverlay = card::choose,

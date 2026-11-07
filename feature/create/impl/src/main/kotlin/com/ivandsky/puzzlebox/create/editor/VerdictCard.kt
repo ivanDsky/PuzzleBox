@@ -71,19 +71,23 @@ fun VerdictCard(
         contentColor = MaterialTheme.colorScheme.onSurface,
         shadowElevation = 6.dp,
     ) {
-        AnimatedContent(
-            targetState = verdict,
-            transitionSpec = {
-                val fade = if (reducedMotion) {
-                    tween<Float>(MotionTokens.ReducedFadeDuration, easing = MotionTokens.EasingStandard)
-                } else {
-                    tween<Float>(MotionTokens.DurationMedium, easing = MotionTokens.EasingEmphasizedDecelerate)
-                }
-                fadeIn(fade) togetherWith fadeOut(fade)
-            },
-            label = "create-verdict-card",
-            contentKey = ::faceKey,
-        ) { shown -> CardFace(shown, onCheckAgain, overlay, onOverlay, issues) }
+        Column {
+            AnimatedContent(
+                targetState = verdict,
+                transitionSpec = {
+                    val fade = if (reducedMotion) {
+                        tween<Float>(MotionTokens.ReducedFadeDuration, easing = MotionTokens.EasingStandard)
+                    } else {
+                        tween<Float>(MotionTokens.DurationMedium, easing = MotionTokens.EasingEmphasizedDecelerate)
+                    }
+                    fadeIn(fade) togetherWith fadeOut(fade)
+                },
+                label = "create-verdict-card",
+                contentKey = ::faceKey,
+            ) { shown -> CardFace(shown, onCheckAgain, overlay, onOverlay) }
+            // Outside the crossfade: the fix list follows the live draft, so it is never drawn twice.
+            issues(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg))
+        }
     }
 }
 
@@ -93,10 +97,9 @@ private fun CardFace(
     onCheckAgain: () -> Unit,
     overlay: EditorOverlay,
     onOverlay: (EditorOverlay) -> Unit,
-    issues: @Composable (Modifier) -> Unit,
 ) {
     Column(
-        modifier = Modifier.padding(Spacing.lg),
+        modifier = Modifier.padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Text(titleOf(verdict), style = MaterialTheme.typography.titleMedium)
@@ -122,7 +125,6 @@ private fun CardFace(
             )
         }
         if (verdict is Verdict.Multiple) VerdictWitness(overlay, onOverlay)
-        issues(Modifier.fillMaxWidth())
     }
 }
 

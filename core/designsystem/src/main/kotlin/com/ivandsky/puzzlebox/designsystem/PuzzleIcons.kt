@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.airbnb.android.showkase.annotation.ShowkaseComposable
 
@@ -112,6 +113,9 @@ object PuzzleIcons {
 
     /** Past day status, and the offline pill: the puzzle needs a connection, a cloud. */
     val NeedsConnection: ImageVector = NeedsConnectionMark
+
+    /** Copy to the clipboard: two outlined sheets, the back one tucked under the front. */
+    val Copy: ImageVector = CopyMark
 }
 
 private const val PREVIEW_COLUMNS = 4
@@ -156,6 +160,7 @@ internal fun PuzzleIconsPreview() {
             "SavedOnDevice" to PuzzleIcons.SavedOnDevice,
             "NeedsConnection" to PuzzleIcons.NeedsConnection,
             "Add" to PuzzleIcons.Add,
+            "Copy" to PuzzleIcons.Copy,
         )
         Column(
             modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.md),
@@ -175,7 +180,12 @@ internal fun PuzzleIconsPreview() {
                                 modifier = Modifier.size(PreviewIconSize),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            Text(name, style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                text = name,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                     }
                 }

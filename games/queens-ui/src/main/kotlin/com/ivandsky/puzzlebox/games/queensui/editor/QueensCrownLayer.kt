@@ -55,7 +55,9 @@ internal fun rememberQueensRejection(controller: QueensEditorController): Queens
 /**
  * Cell [idx]'s answer-crown layer over its fill: the play board's crown when [crowned]
  * (tag `queens.editor.cell.<idx>.crown`), else its automatic × when [crossed] (tag
- * `.autoX`), both in the region's on-ink ([crownInk]; over the clash wash when [clash]).
+ * `.autoX`; dimmed to [QueensEditorDefaults.ghostedXAlpha] and tagged `.autoX.dim` when
+ * [ghosted], so the other answer's ghost crown reads over it), both in the region's on-ink
+ * ([crownInk]; over the clash wash when [clash]).
  * While [rejection] points here the cell wears the error wash and plays the Reject jolt
  * (a medium-bouncy spring dip and back); reduced motion keeps the wash without the jolt.
  * Draws nothing on a plain cell.
@@ -66,6 +68,7 @@ internal fun QueensCrownLayer(
     region: Int,
     crowned: Boolean,
     crossed: Boolean,
+    ghosted: Boolean,
     clash: Boolean,
     rejection: QueensRejection?,
     reducedMotion: Boolean,
@@ -90,7 +93,13 @@ internal fun QueensCrownLayer(
     Canvas(
         Modifier
             .fillMaxSize()
-            .testTag(if (crowned) "queens.editor.cell.$idx.crown" else "queens.editor.cell.$idx.autoX")
+            .testTag(
+                when {
+                    crowned -> "queens.editor.cell.$idx.crown"
+                    ghosted -> "queens.editor.cell.$idx.autoX.dim"
+                    else -> "queens.editor.cell.$idx.autoX"
+                },
+            )
             .graphicsLayer {
                 scaleX = jolt.value
                 scaleY = jolt.value
@@ -100,7 +109,8 @@ internal fun QueensCrownLayer(
         if (crowned) {
             drawQueen(ink, QueensBoardDefaults.queenHeightFraction, alpha = 1f)
         } else {
-            drawX(ink, QueensBoardDefaults.crossWeight.toPx(), QueensBoardDefaults.crossLengthFraction)
+            val alpha = if (ghosted) QueensEditorDefaults.ghostedXAlpha else 1f
+            drawX(ink, QueensBoardDefaults.crossWeight.toPx(), QueensBoardDefaults.crossLengthFraction, alpha = alpha)
         }
     }
 }

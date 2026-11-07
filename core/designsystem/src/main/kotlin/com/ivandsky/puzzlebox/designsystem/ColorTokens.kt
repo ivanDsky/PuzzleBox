@@ -42,6 +42,10 @@ val DarkOnFill = Color(0xFF101418)
 val LightNeutralLip = Color(0xFFC2C5C8)
 val DarkNeutralLip = Color(0xFF07090B)
 
+// A state that is over rather than live (MutedStatusColors.kt): a cool slate step off the
+// neutral ramp, so the chip reads as its own role. Light 6.1:1, dark 6.2:1.
+val LightMutedStatus = MutedStatusColors(container = Color(0xFFDCE0E7), content = Color(0xFF4A505B))
+val DarkMutedStatus = MutedStatusColors(container = Color(0xFF303740), content = Color(0xFFB4BBC5))
 
 val LightColorScheme = lightColorScheme(
     primary = Color(0xFF58CC02),

@@ -5,30 +5,25 @@ import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Test
 
-/** Ticket 31: the card's witness choice opens afresh on each new settled Multiple and reaches the controller. */
+/** The card's witness choice opens afresh on each new settled Multiple and lives in the open controller. */
 class VerdictCardStateTest {
 
-    private val adopted = ArrayList<EditorOverlay>()
-    private val controller = object : GameEditorController {
-        override val draft: StateFlow<EditorDraft<*>> get() = error("unused")
-        override fun adopt(draft: EditorDraft<*>) = Unit
-        override fun adoptOverlay(overlay: EditorOverlay) {
-            adopted += overlay
-        }
-        override fun openingOverlay(verdict: Verdict): EditorOverlay = OPENING
-    }
+    private var controller = OverlayController()
     private val state = VerdictCardState(recheck = {}, controller = { controller })
 
     @Test
     fun `a new Multiple opens on the controller's opening overlay and hands it to the board`() {
         state.read(MULTIPLE)
 
-        assertEquals(OPENING, state.overlay.value)
-        assertEquals(listOf(OPENING), adopted)
+        assertEquals(OPENING, controller.overlay.value)
+        assertEquals(listOf(OPENING), controller.adopted)
     }
 
     @Test
@@ -40,8 +35,8 @@ class VerdictCardStateTest {
         state.read(Verdict.Checking)
         state.read(MULTIPLE)
 
-        assertEquals(flipped, state.overlay.value)
-        assertEquals(listOf(OPENING, flipped), adopted)
+        assertEquals(flipped, controller.overlay.value)
+        assertEquals(listOf(OPENING, flipped), controller.adopted)
     }
 
     @Test
@@ -51,7 +46,32 @@ class VerdictCardStateTest {
 
         state.read(MULTIPLE.copy(differingCells = setOf(1, 2)))
 
-        assertEquals(OPENING, state.overlay.value)
+        assertEquals(OPENING, controller.overlay.value)
+    }
+
+    @Test
+    fun `the card reads the open controller's overlay, so a fresh board never shows the last choice`() {
+        state.read(MULTIPLE)
+        state.choose(OPENING.copy(witness = EditorOverlay.Witness.A))
+        assertSame(controller.overlay, state.overlay)
+
+        controller = OverlayController()
+
+        assertSame(controller.overlay, state.overlay)
+        assertEquals(EditorOverlay(), state.overlay.value)
+    }
+
+    private class OverlayController : GameEditorController {
+        private val shown = MutableStateFlow(EditorOverlay())
+        val adopted = ArrayList<EditorOverlay>()
+        override val draft: StateFlow<EditorDraft<*>> get() = error("unused")
+        override val overlay: StateFlow<EditorOverlay> = shown.asStateFlow()
+        override fun adopt(draft: EditorDraft<*>) = Unit
+        override fun adoptOverlay(overlay: EditorOverlay) {
+            adopted += overlay
+            shown.value = overlay
+        }
+        override fun openingOverlay(verdict: Verdict): EditorOverlay = OPENING
     }
 
     private companion object {
