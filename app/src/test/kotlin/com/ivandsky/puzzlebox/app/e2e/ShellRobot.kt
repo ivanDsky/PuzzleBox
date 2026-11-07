@@ -117,7 +117,8 @@ class ShellRobot internal constructor(
             // The system's stand-in: registered before the shell, so it only sees a back
             // the shell leaves unhandled — the press that would leave the app.
             BackHandler { exits++ }
-            if (shown) key(generation) { Shell() }
+            // Keyed outside the `if`, so relaunch()'s bump recomposes even while hidden.
+            key(generation) { if (shown) Shell() }
         }
         rule.waitForIdle()
     }
@@ -245,18 +246,25 @@ class ShellRobot internal constructor(
     /**
      * Process death without saved state: the composition, every ViewModel and the Koin graph
      * are discarded; the fakes (the "disk") survive; the shell relaunches at the seed.
+     *
+     * The generation bump rides with the ViewModel clear so a recomposer frame follows it.
+     * After a background/foreground, Compose 1.12.1's LifecycleRetainedValuesStoreOwner
+     * cancels its spent frame-end handle in onCleared; when that lands a multiple of 16
+     * frames later (AwaiterQueue's 4-bit version wraps), it underflows the Recomposer's
+     * frame-end awaiter count, hasPendingWork stays true and Compose never idles. Only a
+     * frame's end resets the count (cf. issuetracker.google.com/issues/544987094).
      */
     fun relaunch() {
         rule.runOnIdle { shown = false }
         rule.waitForIdle()
-        rule.runOnIdle { rule.activity.viewModelStore.clear() }
+        rule.runOnIdle {
+            rule.activity.viewModelStore.clear()
+            generation++
+        }
         graph.stop()
         graph.start()
         ignoreRestored = true
-        rule.runOnIdle {
-            generation++
-            shown = true
-        }
+        rule.runOnIdle { shown = true }
         rule.waitForIdle()
     }
 
