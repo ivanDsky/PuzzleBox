@@ -15,6 +15,7 @@ import java.io.ByteArrayOutputStream
  * v1: [u8 VERSION] board  [u16 n][n × step] done (oldest first)  [u16 m][m × step] undone
  *     board = [u8 size][size² × u8 digit]   (size 6 or 9, digit 0..size, 0 = empty)
  *     step  = [u8 TAG_REPLACE] board before, board after
+ *           | [u8 TAG_SET_GIVEN][u8 cell][u8 digit][u8 previous]   (cell < size², digits 0..size)
  * ```
  *
  * Each stack keeps its newest [MAX_HISTORY] steps; older ones drop on encode. Decode walks the
@@ -28,6 +29,7 @@ object SudokuDraftCodec {
     const val MAX_HISTORY: Int = 10_000
 
     private const val TAG_REPLACE = 0x02
+    private const val TAG_SET_GIVEN = 0x03
 
     fun encode(state: DraftState<SudokuDraft>): ByteArray {
         val out = ByteArrayOutputStream()
@@ -61,10 +63,20 @@ object SudokuDraftCodec {
         out.write(kept.size shr 8)
         out.write(kept.size and 0xFF)
         kept.forEach { step ->
-            require(step is ReplaceDraft<*>) { "no draft codec tag for ${step::class.simpleName}" }
-            out.write(TAG_REPLACE)
-            writeBoard(out, step.before as SudokuDraft)
-            writeBoard(out, step.after as SudokuDraft)
+            when (step) {
+                is ReplaceDraft<*> -> {
+                    out.write(TAG_REPLACE)
+                    writeBoard(out, step.before as SudokuDraft)
+                    writeBoard(out, step.after as SudokuDraft)
+                }
+                is SudokuDraftCommand.SetGiven -> {
+                    out.write(TAG_SET_GIVEN)
+                    out.write(step.cell)
+                    out.write(step.digit)
+                    out.write(step.previous)
+                }
+                else -> throw IllegalArgumentException("no draft codec tag for ${step::class.simpleName}")
+            }
         }
     }
 
@@ -80,23 +92,48 @@ object SudokuDraftCodec {
         val count = cursor.u16() ?: return null
         if (count > MAX_HISTORY) return null // before allocating anything proportional to it
         return List(count) {
-            if (cursor.u8() != TAG_REPLACE) return null
-            val before = readBoard(cursor) ?: return null
-            ReplaceDraft(before, readBoard(cursor) ?: return null)
+            when (cursor.u8()) {
+                TAG_REPLACE -> {
+                    val before = readBoard(cursor) ?: return null
+                    ReplaceDraft(before, readBoard(cursor) ?: return null)
+                }
+                TAG_SET_GIVEN -> readSetGiven(cursor) ?: return null
+                else -> return null
+            }
         }
+    }
+
+    /** Null when truncated; cell and digit ranges are checked as the steps chain. */
+    private fun readSetGiven(cursor: Cursor): SudokuDraftCommand.SetGiven? {
+        val cell = cursor.u8() ?: return null
+        val digit = cursor.u8() ?: return null
+        return SudokuDraftCommand.SetGiven(cell, digit, cursor.u8() ?: return null)
     }
 
     /** Each step, nearest the board first, must start from the board the previous one left. */
     private fun chains(steps: List<Command<SudokuDraft>>, board: SudokuDraft, undo: Boolean): Boolean {
         var current = board
         for (step in steps) {
-            val replace = step as ReplaceDraft<*>
-            val (from, to) = if (undo) replace.after to replace.before else replace.before to replace.after
-            if (from != current) return false
-            current = to as SudokuDraft
+            current = when (step) {
+                is ReplaceDraft<*> -> {
+                    val (from, to) = if (undo) step.after to step.before else step.before to step.after
+                    if (from != current) return false
+                    to as SudokuDraft
+                }
+                is SudokuDraftCommand.SetGiven -> {
+                    if (!step.fits(current, undo)) return false
+                    if (undo) step.revert(current) else step.apply(current)
+                }
+                else -> return false
+            }
         }
         return true
     }
+
+    /** In range, and standing on the digit it sets (undo) or replaces (redo) at that cell. */
+    private fun SudokuDraftCommand.SetGiven.fits(board: SudokuDraft, undo: Boolean): Boolean =
+        cell in board.givens.indices && digit <= board.size && previous <= board.size &&
+            board.givens[cell] == if (undo) digit else previous
 
     private fun malformed(detail: String): DecodeResult.Err = DecodeResult.Err(DecodeError.Malformed(detail))
 
