@@ -5,6 +5,7 @@ import org.gradle.api.Project
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.dependencies
@@ -49,6 +50,12 @@ class AndroidRoborazziConventionPlugin : Plugin<Project> {
 
             tasks.withType<Test>().configureEach {
                 jvmArgumentProviders.add(modeArgs)
+                // The golden tests read `<module>/snapshots/` through `user.dir`, which Gradle cannot
+                // see; undeclared, a changed golden PNG is served FROM-CACHE as a stale green.
+                // fileTree, not dir: a module without a snapshots/ dir (tango-ui) adds nothing.
+                inputs.files(fileTree(layout.projectDirectory.dir("snapshots")))
+                    .withPropertyName("goldenSnapshots")
+                    .withPathSensitivity(PathSensitivity.RELATIVE)
             }
 
             dependencies {
