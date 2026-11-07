@@ -33,7 +33,7 @@ import org.robolectric.annotation.GraphicsMode
  * TwoPane list pane on a 1280 dp tablet and at the narrowest TwoPane window (840 dp
  * landscape, a ~353 dp list pane). Each header scene also asserts the S7 fit: "PuzzleBox"
  * and the pill label stay on one line with no overflow, and the pill ends inside its pane.
- * Recorded by default, verified with `-Proborazzi.verify=true`; goldens live in
+ * Recorded with `-Proborazzi.record=true`, verified by default; goldens live in
  * `feature/home/impl/snapshots/`.
  */
 @RunWith(RobolectricTestRunner::class)

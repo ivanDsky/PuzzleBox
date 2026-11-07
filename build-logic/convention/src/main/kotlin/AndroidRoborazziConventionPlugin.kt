@@ -20,10 +20,11 @@ import org.gradle.process.CommandLineArgumentProvider
  * unit-test task captures, and this plugin selects the mode through system properties.
  *
  * Golden policy — one flag for every module:
- * - default (no flag, or `-Proborazzi.verify=false`): RECORD — captures (re)write the
- *   goldens.
- * - `-Proborazzi.verify=true` (bare `-Proborazzi.verify` counts as true): VERIFY —
- *   re-capture and fail on any pixel drift against the committed goldens.
+ * - default (no flag): VERIFY — re-capture and fail on any pixel drift against the committed
+ *   goldens. A plain `test` run never writes a tracked file, so the merge gate leaves the
+ *   worktree clean. `-Proborazzi.verify=true` says the same thing explicitly.
+ * - `-Proborazzi.record=true` (bare `-Proborazzi.record` counts as true): RECORD — captures
+ *   (re)write the goldens. Only this flag writes into a tracked golden directory.
  *
  * Golden locations are owned by each test (e.g. `app/snapshots`, `games/<id>-ui/snapshots`,
  * `games/tango-ui/src/test/resources/goldens`), never by this plugin.
@@ -40,7 +41,7 @@ class AndroidRoborazziConventionPlugin : Plugin<Project> {
             val goldens = extensions.create<RoborazziGoldensExtension>("roborazziGoldens")
             val modeArgs = objects.newInstance<RoborazziModeArguments>().apply {
                 verify.set(
-                    providers.gradleProperty("roborazzi.verify").map { it != "false" }.orElse(false),
+                    providers.gradleProperty("roborazzi.record").map { it == "false" }.orElse(true),
                 )
                 harnessVerifyProperty.set(goldens.harnessVerifyProperty)
                 pixelCompare.set(

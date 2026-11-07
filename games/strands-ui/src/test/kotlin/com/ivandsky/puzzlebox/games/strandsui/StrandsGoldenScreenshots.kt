@@ -41,7 +41,7 @@ import org.json.JSONObject
  * through the production source and trust gate): idle, mid-trace, a found theme word beside
  * the spangram, both hint stages and the solved board with its rating word, each light and
  * dark, on a phone (single pane) and a tablet (two panes). Robolectric capture, no emulator;
- * recorded by default, verified with `-Proborazzi.verify=true`. Goldens live in
+ * recorded with `-Proborazzi.record=true`, verified by default. Goldens live in
  * `games/strands-ui/snapshots/`.
  *
  * One state per test method, so each window capture is exactly one screen.

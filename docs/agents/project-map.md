@@ -391,7 +391,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   forbidden edge; `feature:create:impl` reaches games only through the registries.
 - **Structure rules** — `:konsist` S0–S6 / P1–P8 (see Layout); allowlists only shrink.
 - **Roborazzi** — plugin `puzzlebox.android.roborazzi` (app, designsystem, zip-ui, tango-ui,
-  queens-ui, strands-ui, sudoku-ui) unifies the switch: `-Proborazzi.verify=true` verifies, default records.
+  queens-ui, strands-ui, sudoku-ui) unifies the switch: default verifies (never writes), `-Proborazzi.record=true` records.
   Committed goldens: `app/snapshots/` (14 pngs, `ShowkaseBrowserScreenshotTest`),
   `games/queens-ui/snapshots/` (36, `QueensGoldenScreenshots`),
   `games/strands-ui/snapshots/` (24, `StrandsGoldenScreenshots`, the real 2026-11-06 NYT day

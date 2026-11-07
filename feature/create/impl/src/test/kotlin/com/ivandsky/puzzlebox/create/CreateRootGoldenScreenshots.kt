@@ -30,7 +30,7 @@ import java.io.File
  * 29: the Create root's states (spec S15, A3), phone and tablet, light and dark: a few
  * drafts with each background verdict, the first-time empty state, long titles, and more
  * than 8 drafts with the search field and game filters. Rendered from fake [CreateUiState].
- * Recorded by default, verified with `-Proborazzi.verify=true`; goldens in `snapshots/create/`.
+ * Recorded with `-Proborazzi.record=true`, verified by default; goldens in `snapshots/create/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

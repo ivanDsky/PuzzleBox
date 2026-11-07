@@ -35,10 +35,10 @@ import org.robolectric.annotation.GraphicsMode
  *
  * Committed goldens live in `src/test/resources/goldens/`. This class is a REAL
  * floor (review I6): every run captures to a scratch file and pixel-compares against
- * the committed golden — drift fails the test. A missing golden is recorded in
- * place; `-Proborazzi.verify` (the module build wires `tango.golden.verify`) makes a
- * missing golden a FAILURE instead of a record. To regenerate a drifted golden,
- * delete it and rerun (record is the default for absent files only). CI on Linux passes
+ * the committed golden — drift fails the test. The default run verifies (the module
+ * build wires `tango.golden.verify`), so a missing golden is a FAILURE; with
+ * `-Proborazzi.record=true` a missing golden is recorded in place. To regenerate a drifted
+ * golden, delete it and rerun with that flag. CI on Linux passes
  * `-Pgoldens.pixelCompare=false` (the goldens are macOS-rendered): size is still checked,
  * the pixel diff is skipped.
  */
@@ -79,8 +79,8 @@ class TangoBoardGoldenTest {
             // Record path: first run (or golden intentionally deleted to regenerate).
             if (strictVerify) {
                 throw AssertionError(
-                    "Golden $name is missing and -Proborazzi.verify forbids recording; " +
-                        "run without -Proborazzi.verify once to record it, then re-verify.",
+                    "Golden $name is missing and verify mode forbids recording; " +
+                        "run with -Proborazzi.record=true once to record it, then re-verify.",
                 )
             }
             scratch.copyTo(golden)
