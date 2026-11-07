@@ -48,6 +48,7 @@ class EditorViewModel(
     private val mutableState = MutableStateFlow<EditorUiState>(EditorUiState.Loading)
     val state: StateFlow<EditorUiState> = mutableState.asStateFlow()
 
+    private val loadDraft = LoadDraft(drafts, games, editors)
     private val verdicts = VerdictPipeline(viewModelScope, dispatchers)
     private val history = EditHistory()
 
@@ -90,10 +91,7 @@ class EditorViewModel(
     }
 
     private suspend fun load(): EditorUiState {
-        val stored = drafts.get(key.draftId) ?: return EditorUiState.Missing
-        val editor = games[stored.gameId]?.editor ?: return EditorUiState.Missing
-        val ui = editors[stored.gameId] ?: return EditorUiState.Missing
-        val draft = EditorDraft.open(editor, stored.blob).getOrNull() ?: return EditorUiState.Missing
+        val (stored, draft, ui) = loadDraft(key.draftId) ?: return EditorUiState.Missing
         lastStored = stored
         meta.open(stored.title)
         history.open(draft)
@@ -192,7 +190,7 @@ class EditorViewModel(
         verdicts.submit(draft)
         testSolve.follow(draft)
         val base = lastStored ?: return
-        write(base.copy(variant = draft.variant, blob = draft.encode()))
+        write(base.copy(variant = draft.variant, draftFormatVersion = draft.editor.draftFormatVersion, blob = draft.encode()))
     }
 
     /** Stamps [next] and hands it to the autosave. */

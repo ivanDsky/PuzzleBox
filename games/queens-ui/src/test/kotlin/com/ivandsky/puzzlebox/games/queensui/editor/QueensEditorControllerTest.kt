@@ -149,6 +149,44 @@ class QueensEditorControllerTest {
     }
 
     @Test
+    fun `tapping the mode already on keeps the selection`() {
+        val controller = controller()
+        listOf(0, 7).forEach(controller::tap)
+
+        controller.setMode(QueensEditorMode.Paint)
+
+        assertEquals(setOf(0, 7), controller.selection.value)
+    }
+
+    @Test
+    fun `select replaces the selection with exactly its cells in Paint, in one emission`() = runTest {
+        val controller = QueensEditorController(fresh()) { edits += it }
+        controller.setMode(QueensEditorMode.Paint)
+        controller.tap(3)
+        controller.setMode(QueensEditorMode.Crown)
+        val seen = ArrayList<Set<Int>>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { controller.selection.collect { seen += it } }
+
+        controller.select(linkedSetOf(9, 2, 5))
+
+        assertEquals(QueensEditorMode.Paint, controller.mode.value)
+        assertEquals(listOf(9, 2, 5), controller.selection.value.toList())
+        assertEquals(listOf(emptySet(), setOf(9, 2, 5)), seen)
+        assertEquals(0, edits.size)
+    }
+
+    @Test
+    fun `extend adds the crossed cells and keeps the selected ones`() {
+        val controller = controller()
+        controller.tap(4)
+
+        controller.extend(listOf(4, 5, 6))
+
+        assertEquals(listOf(4, 5, 6), controller.selection.value.toList())
+        assertEquals(0, edits.size)
+    }
+
+    @Test
     fun `three selected cells and one pick give exactly one Paint step and an empty selection`() {
         val controller = controller()
         listOf(0, 7, 14).forEach(controller::tap)

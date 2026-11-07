@@ -3,14 +3,12 @@ package com.ivandsky.puzzlebox.games.queensui.editor
 import android.content.Context
 import android.content.res.Configuration
 import android.provider.Settings
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -160,8 +158,8 @@ abstract class QueensEditorGoldenScreenshots(private val device: String) {
             }
             CompositionLocalProvider(LocalConfiguration provides config) {
                 PuzzleBoxTheme(darkTheme = dark) {
-                    Box(Modifier.background(MaterialTheme.colorScheme.surface).padding(Spacing.md).testTag(GOLDEN)) {
-                        Column(if (device == "tablet") Modifier.size(TabletPaneWidth, TabletPaneHeight) else Modifier.width(PhoneWidth)) {
+                    Surface(Modifier.testTag(GOLDEN)) {
+                        Column(Modifier.padding(Spacing.md).then(if (device == "tablet") Modifier.size(TabletPaneWidth, TabletPaneHeight) else Modifier.width(PhoneWidth))) {
                             QueensEditorBoard(controller, verdict, if (fixList) Modifier.fillMaxWidth().weight(1f, fill = false) else Modifier.fillMaxWidth())
                             if (fixList) QueensFixList(controller, verdict, blocks, onSelect = {}, Modifier.fillMaxWidth())
                         }

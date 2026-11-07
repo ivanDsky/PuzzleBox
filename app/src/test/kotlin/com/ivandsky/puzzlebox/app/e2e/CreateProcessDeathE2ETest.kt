@@ -24,6 +24,14 @@ import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import com.ivandsky.puzzlebox.data.model.Draft
+import com.ivandsky.puzzlebox.data.model.TestSolve
+import com.ivandsky.puzzlebox.game.editor.DraftState
+import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
+import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
+import com.ivandsky.puzzlebox.games.queens.QueensVariants
+import java.time.Instant
 
 /**
  * Ticket 17 over the real shell and a file-backed Room drafts store: a Queens draft painted
@@ -110,6 +118,42 @@ class CreateProcessDeathE2ETest {
             rule.onNodeWithTag(REDO).assertIsEnabled()
         }
 
+    @Test
+    fun `a passed test solve survives process death, so the first board edit clears it`() =
+        shellRobot(graph = roomGraph()) {
+            // Seeded, not played: the Queens play board has no per-cell tags to solve through.
+            val editor = checkNotNull(graph.koin.get<GameRegistry>()[GameId(QUEENS)]?.editor)
+            val solved = EditorDraft(QueensEditor, DraftState(QueensDraft(SIZE, regions(UNIQUE))))
+            runBlocking {
+                graph.koin.get<DraftRepository>().upsert(
+                    Draft(
+                        id = "passed",
+                        gameId = GameId(QUEENS),
+                        variant = QueensVariants.variant(SIZE).id,
+                        draftFormatVersion = editor.draftFormatVersion,
+                        blob = solved.encode(),
+                        title = "",
+                        updatedAt = Instant.parse("2026-01-01T00:00:00Z"),
+                        testSolve = TestSolve(solved.layoutKey, timeMs = 102_000, hints = 0),
+                        reservedCode = null,
+                        imported = false,
+                        authorName = "",
+                        note = "",
+                    ),
+                )
+            }
+
+            background()
+            foreground()
+            relaunch()
+            reopen()
+            tap(cell(0))
+            tap("queens.editor.ring.slot.0")
+
+            awaitTag("create.toast.testCleared")
+        }
+
+
     /** The Studio shows [board] on cells 0..2, and both Undo and Redo have a step. */
     private fun ShellRobot.assertKept(board: List<String>, moment: String) {
         assertEquals("the board $moment", board, (0..2).map { regionOf(cell(it)) })
@@ -140,8 +184,15 @@ class CreateProcessDeathE2ETest {
 
     private fun cell(index: Int) = "queens.editor.cell.$index"
 
+    /** Row-major region ids from letter rows ('A' = 0), space-separated. */
+    private fun regions(rows: String): List<Int> = rows.filter { it != ' ' }.map { it - 'A' }
+
     private companion object {
         const val QUEENS = "queens"
+        const val SIZE = 6
+
+        /** One solution on a 6×6 board. */
+        const val UNIQUE = "BBBBAA BBBBCA EBBDCA EEDDDD EEFFDF EEFFFF"
         const val ROW = "create.draft.row"
         const val UNDO = "create.tool.undo"
         const val REDO = "create.tool.redo"

@@ -1,14 +1,16 @@
 package com.ivandsky.puzzlebox.create
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * The Create root's entry point over the activity-scoped [viewModel] (CreateEntries); [onOpen]
- * opens a draft's Studio, new ones included.
+ * opens a draft's Studio, new ones included once the view model has stored them.
  */
 @Composable
 internal fun CreateRoute(
@@ -17,9 +19,11 @@ internal fun CreateRoute(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val open by rememberUpdatedState(onOpen)
+    LaunchedEffect(viewModel) { viewModel.created.collect { open(it) } }
     CreateScreen(
         state = state,
-        onNew = { gameId, variant -> viewModel.newPuzzle(gameId, variant, onCreated = onOpen) },
+        onNew = viewModel::newPuzzle,
         onOpen = onOpen,
         onQuery = viewModel::onQuery,
         onFilter = viewModel::onFilter,

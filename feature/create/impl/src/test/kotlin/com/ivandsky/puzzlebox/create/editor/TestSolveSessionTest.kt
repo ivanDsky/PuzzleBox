@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
@@ -243,6 +244,20 @@ class TestSolveSessionTest {
         composeRule.onNodeWithTag(ACTION_TEST_SOLVE).assertIsNotEnabled()
     }
 
+    @Test
+    fun `while an edit is checked, test solve and the readiness line keep the settled verdict`() {
+        open(opened)
+        awaitTrue { composeRule.onAllNodes(hasTestTag(ACTION_TEST_SOLVE) and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+
+        composeRule.runOnIdle { controller.edit(opened.apply(ReplaceDraft(opened.state.draft, AidDraft(marks = 3, aid = 7)))) }
+        awaitTrue { (vm.state.value as? EditorUiState.Ready)?.verdict == Verdict.Checking }
+        composeRule.mainClock.advanceTimeByFrame()
+
+        assertEquals("still Checking", Verdict.Checking, (vm.state.value as? EditorUiState.Ready)?.verdict)
+        composeRule.onNodeWithTag(ACTION_TEST_SOLVE).assertIsEnabled()
+        composeRule.onNodeWithTag(NOT_UNIQUE_ENTRY).assertDoesNotExist()
+    }
+
     private val controller: FakeEditorController get() = ui.controllers.single()
 
     /** Opens [draft], test solves it and returns the stored test. */
@@ -316,6 +331,7 @@ class TestSolveSessionTest {
         const val DONE = "create.testSolve.done"
         const val TOAST = "create.toast.testCleared"
         const val PLAY_BOARD = "sandbox.play.board"
+        const val NOT_UNIQUE_ENTRY = "create.readiness.not-unique"
 
         /** Past SnackbarDuration.Long. */
         const val TOAST_TIMEOUT_MS = 11_000L

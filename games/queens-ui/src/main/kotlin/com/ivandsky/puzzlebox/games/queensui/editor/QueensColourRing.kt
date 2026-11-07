@@ -52,7 +52,7 @@ import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queensui.LocalQueensReducedMotion
 import com.ivandsky.puzzlebox.games.queensui.QueensBrand
 import com.ivandsky.puzzlebox.games.queensui.QueensRegionPalette
-import com.ivandsky.puzzlebox.games.queensui.textured
+import com.ivandsky.puzzlebox.games.queensui.drawTextureDots
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.roundToInt
@@ -213,11 +213,7 @@ private fun DrawScope.drawDashedOutline(outline: Color) {
 /** The board's K/L dot texture (ticket 20), so a repeated hue still reads apart on the ring. */
 private fun DrawScope.drawPetalTexture(ink: Color) {
     val radius = maxOf(QueensRegionPalette.textureDotMinRadius.toPx(), size.minDimension * QueensRegionPalette.textureDotRadiusFraction)
-    val near = QueensRegionPalette.textureDotOffset
-    val dot = ink.copy(alpha = QueensRegionPalette.textureDotAlpha)
-    for (fx in floatArrayOf(near, 1f - near)) for (fy in floatArrayOf(near, 1f - near)) {
-        drawCircle(dot, radius, Offset(size.width * fx, size.height * fy))
-    }
+    drawTextureDots(ink.copy(alpha = QueensRegionPalette.textureDotAlpha), radius, 0f, 0f, size.width, size.height)
 }
 
 @PuzzleBoxPreviews

@@ -88,7 +88,7 @@ internal fun Modifier.queensBoardGestures(controller: QueensEditorController, n:
                 selecting = !stroke && controller.mode.value == QueensEditorMode.Paint
                 touch.start(cell, stroke)
                 val slop = crossed(down.position, slopCrossed.position, size.toSize(), n)
-                if (stroke) touch.extend(slop) else if (selecting) controller.add(slop)
+                if (stroke) touch.extend(slop) else if (selecting) controller.extend(slop)
                 last = slopCrossed.position
             },
             onDragEnd = {
@@ -103,15 +103,10 @@ internal fun Modifier.queensBoardGestures(controller: QueensEditorController, n:
             last = change.position
             when {
                 touch.strokeFrom != null -> touch.extend(cells)
-                selecting -> controller.add(cells)
+                selecting -> controller.extend(cells)
             }
         }
     }
-
-/** Adds the [cells] a drag crossed; a cell already selected stays selected. */
-private fun QueensEditorController.add(cells: List<Int>) {
-    cells.forEach { if (it !in selection.value) tap(it) }
-}
 
 private fun cellAt(offset: Offset, size: Size, n: Int): Int {
     val col = (offset.x / size.width * n).toInt().coerceIn(0, n - 1)

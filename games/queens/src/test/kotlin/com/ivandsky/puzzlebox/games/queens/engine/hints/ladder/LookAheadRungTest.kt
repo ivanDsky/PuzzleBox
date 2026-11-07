@@ -46,8 +46,9 @@ class LookAheadRungTest {
 
         val step = lookAhead.step(puzzle, start(puzzle))
 
-        assertEquals(QueensDeduction.Exclude(lookAhead, HintReason(HintReason.Kind.REGION, 5), setOf(1)), step)
-        assertSame(lookAhead, step!!.rung)
+        assertEquals(QueensDeduction.Exclude(lookAhead, HintReason(HintReason.Kind.REGION, 5, lookAhead), setOf(1)), step)
+        assertSame(lookAhead, step!!.unit.rung)
+        assertSame(lookAhead, step.rung)
         assertEquals("look-ahead", step.rung.id)
         assertEquals(Difficulty.Level.Expert, step.rung.level)
         assertEquals("queens.hint.rung.look-ahead", step.rung.captionKey)
@@ -60,7 +61,7 @@ class LookAheadRungTest {
         repeat(3) { assertEquals(first, lookAhead.step(puzzle, start(puzzle))) }
         val fresh = LookAheadRung(listOf(SinglesRung)).step(puzzle, start(puzzle)) as QueensDeduction.Exclude
         assertEquals((first as QueensDeduction.Exclude).cells, fresh.cells)
-        assertEquals(first.unit, fresh.unit)
+        assertEquals(first.unit.kind to first.unit.unit, fresh.unit.kind to fresh.unit.unit)
     }
 
     @Test
@@ -68,7 +69,7 @@ class LookAheadRungTest {
         val puzzle = needsLookAhead()
         val bare = LookAheadRung(emptyList())
         assertEquals(
-            QueensDeduction.Exclude(bare, HintReason(HintReason.Kind.REGION, 2), setOf(22)),
+            QueensDeduction.Exclude(bare, HintReason(HintReason.Kind.REGION, 2, bare), setOf(22)),
             bare.step(puzzle, start(puzzle)),
         )
     }

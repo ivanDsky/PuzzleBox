@@ -86,10 +86,10 @@ internal fun QueensFixRow.text(size: Int): String? = when (id) {
     QueensDraftAnalyzer.UNPAINTED -> if (count == 1) "1 cell unpainted" else "$count cells unpainted"
     QueensDraftAnalyzer.REGIONS ->
         if (count < size) "$count of $size regions — ${size - count} more needed" else "$count regions — only $size allowed"
-    PublishBlock.SPLIT_REGION -> "Colour ${letterOf(region)} is in $count pieces"
+    PublishBlock.SPLIT_REGION -> "Region ${letterOf(region)} is in $count pieces"
     PublishBlock.NEEDS_GUESSING -> "Logic alone can't finish it — players would have to guess"
-    QueensCrownIssue.DOUBLE -> "Colour ${letterOf(region)} has $count crowns"
-    QueensCrownIssue.MISSING -> "Colour ${letterOf(region)} has no crown"
+    QueensCrownIssue.DOUBLE -> "Region ${letterOf(region)} has $count crowns"
+    QueensCrownIssue.MISSING -> "Region ${letterOf(region)} has no crown"
     else -> null
 }
 
@@ -113,15 +113,9 @@ internal fun QueensFixList(
     val draft = editorDraft.state.draft as QueensDraft
     val rows = remember(draft, verdict, blocks) { QueensFixRow.of(draft, verdict, blocks) }
     QueensFixRows(rows, draft.size, onSelect = { cells ->
-        controller.selectFix(cells)
+        controller.select(cells)
         onSelect()
     }, modifier = modifier)
-}
-
-/** Paint mode with exactly [cells] selected; not an edit. */
-private fun QueensEditorController.selectFix(cells: Set<Int>) {
-    setMode(QueensEditorMode.Paint)
-    cells.forEach(::tap)
 }
 
 /**
