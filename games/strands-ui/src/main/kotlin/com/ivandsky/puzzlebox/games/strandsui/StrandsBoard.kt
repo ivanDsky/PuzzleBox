@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.IntState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -49,6 +51,7 @@ import com.ivandsky.puzzlebox.games.strandsui.board.StrandsGestureLayer
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsHaptics
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsMotionCue
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsMotionTrigger
+import com.ivandsky.puzzlebox.games.strandsui.board.TraceFinger
 import com.ivandsky.puzzlebox.games.strandsui.board.TraceOverlaySpec
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 import com.ivandsky.puzzlebox.gameui.BoardGrid
@@ -94,6 +97,8 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
  * whole width being its touch area. [found] is the word just found, whose letters settle or
  * sweep. [trace] is never read here: each letter derives its own place in it and the trace
  * connector reads it while drawing, so a trace step recomposes only the letters it changes.
+ * [finger] is the dragging finger the live tip reaches for: written by the drag, read only
+ * in the connector's draw, so a moving finger redraws and never recomposes.
  */
 @Composable
 internal fun StrandsBoardContent(
@@ -103,6 +108,7 @@ internal fun StrandsBoardContent(
     trace: () -> Trace,
     onTrace: (TraceStep) -> Unit,
     modifier: Modifier = Modifier,
+    finger: MutableState<TraceFinger?> = remember { mutableStateOf(null) },
 ) {
     val colors = LocalBoardColors.current
     // Bumped by every touch-down: a running settle, sweep or hint pulse rests at once (A12).
@@ -118,7 +124,9 @@ internal fun StrandsBoardContent(
                 modifier = Modifier.requiredSize(boardSize).testTag("strands.board"),
                 // Strands has no grid: the letters float on the bare board.
                 colors = colors.copy(boardGridLine = Color.Transparent),
-                underlay = { StrandsConnectors(model.rows, model.cols, model.links, trace, colors) },
+                underlay = {
+                    StrandsConnectors(model.rows, model.cols, model.links, trace, colors, { finger.value }, animate = !reduceMotion)
+                },
                 cellContent = { row, col ->
                     LetterToken(
                         cell = model.cells[row * model.cols + col],
@@ -139,6 +147,7 @@ internal fun StrandsBoardContent(
                 trace = trace,
                 onTrace = onTrace,
                 onTouch = { touchSeq.intValue++ },
+                onFinger = { finger.value = it },
             )
         }
     }
@@ -166,7 +175,12 @@ private fun LetterToken(
     val onTap = remember(cell.coord, trace, onTrace) { { onTrace(TraceInput.tap(trace(), cell.coord)) } }
     val spec = StrandsCellDrawing.specOf(cell.state)
     val base = rememberCellFrame(spec, spec.trigger(cell, found), reduceMotion, touchSeq)
-    val press = rememberCellFrame(TraceOverlaySpec, PressTrigger.takeIf { traced }, reduceMotion, touchSeq)
+    // A letter already traced when the token first composes (a restored board, a preview)
+    // rests; only one joining afterwards fills and pops.
+    val composed = remember { ComposedOnce() }
+    SideEffect { composed.done = true }
+    val joinTrigger = remember(traced) { JoinTrigger.takeIf { traced && composed.done } }
+    val join = rememberCellFrame(TraceOverlaySpec, joinTrigger, reduceMotion, touchSeq)
     val tokenSize = pitch * StrandsBoardSpec.TokenFraction
     // Pitch-proportional and immune to font scale, like the token it sits in.
     val letterSize = with(LocalDensity.current) { (pitch * StrandsBoardSpec.LetterFraction).toSp() }
@@ -181,38 +195,56 @@ private fun LetterToken(
             Modifier
                 .size(tokenSize)
                 .graphicsLayer {
-                    val scale = base.value.scale * press.value.scale
+                    val scale = base.value.scale * join.value.scale
                     scaleX = scale
                     scaleY = scale
                 }
                 .drawBehind {
                     val frame = base.value
                     val radius = size.minDimension / 2
-                    tokenFill(spec, traced, frame, colors)?.let { drawCircle(it, radius) }
+                    tokenFill(spec, traced, frame, join.value, colors)?.let { drawCircle(it, radius) }
                     with(spec) { decorate(colors, radius, frame) }
                 },
             contentAlignment = Alignment.Center,
         ) {
-            Text(
+            BasicText(
                 text = cell.letter.toString(),
-                style = MaterialTheme.typography.titleLarge,
-                fontSize = letterSize,
-                fontWeight = FontWeight.Medium,
-                color = if (traced) TraceOverlaySpec.letter(colors) else spec.letter(colors),
+                style = MaterialTheme.typography.titleLarge.merge(fontSize = letterSize, fontWeight = FontWeight.Medium),
+                color = {
+                    val lit = join.value.lit
+                    when {
+                        !traced -> spec.letter(colors)
+                        lit >= 1f -> TraceOverlaySpec.letter(colors)
+                        else -> lerp(spec.letter(colors), TraceOverlaySpec.letter(colors), lit)
+                    }
+                },
             )
         }
     }
 }
 
-/** The live trace overlays any base look; a found letter turns from the trace colour to its own as it lights. */
-private fun tokenFill(spec: StrandsCellSpec, traced: Boolean, frame: StrandsCellFrame, colors: BoardColors): Color? {
-    if (traced) return TraceOverlaySpec.fill(colors)
-    val fill = spec.fill(colors) ?: return null
-    return if (frame.lit >= 1f) fill else lerp(TraceOverlaySpec.fill(colors), fill, frame.lit)
+/**
+ * The live trace overlays any base look, filling in over it as the letter joins ([join]);
+ * a found letter turns from the trace colour to its own as it lights ([frame]).
+ */
+private fun tokenFill(spec: StrandsCellSpec, traced: Boolean, frame: StrandsCellFrame, join: StrandsCellFrame, colors: BoardColors): Color? {
+    val fill = spec.fill(colors)
+    val selection = TraceOverlaySpec.fill(colors)
+    if (traced) {
+        if (join.lit >= 1f) return selection
+        return if (fill == null) selection.copy(alpha = selection.alpha * join.lit) else lerp(fill, selection, join.lit)
+    }
+    if (fill == null) return null
+    return if (frame.lit >= 1f) fill else lerp(selection, fill, frame.lit)
 }
 
-/** A letter joining the trace pulses once; the key is constant because leaving the trace resets it. */
-private val PressTrigger = StrandsMotionTrigger(key = "press", cue = StrandsMotionCue())
+/** A letter joining the trace fills and pops once; the key is constant because leaving the trace resets it. */
+private val JoinTrigger = StrandsMotionTrigger(key = "join", cue = StrandsMotionCue())
+
+/** Set after a token's first composition; deliberately not state, so setting it recomposes nothing. */
+private class ComposedOnce {
+    var done = false
+}
 
 /**
  * Plays [spec]'s timeline from each new [trigger] on the frame clock and holds

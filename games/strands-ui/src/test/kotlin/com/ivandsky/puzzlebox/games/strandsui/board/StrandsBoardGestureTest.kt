@@ -37,6 +37,9 @@ import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayController
 import com.ivandsky.puzzlebox.games.strandsui.StrandsUiFixtures
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
@@ -143,6 +146,26 @@ class StrandsBoardGestureTest {
             (1..10).forEach { moveTo(corner + (b - corner) * (it / 10f)) }
         }
         assertEquals(listOf(Coord(0, 0), Coord(1, 1)), controller.trace.path)
+        board().performTouchInput { up() }
+    }
+
+    @Test
+    fun `a wobbly diagonal drawn beside the centre line takes only the diagonal letters`() {
+        show()
+        board().performTouchInput {
+            val pitch = width / 4f
+            // 0.25 pitch off the centre line, swinging ±20° about the diagonal's heading.
+            val beside = Offset(0.25f, -0.25f) * (pitch / sqrt(2f))
+            val start = centreOf(Coord(0, 0)) + beside
+            down(start)
+            var at = start
+            for (i in 0 until 80) {
+                val heading = Math.toRadians(45.0 + 20.0 * sin(i * 0.7))
+                at += Offset(cos(heading).toFloat(), sin(heading).toFloat()) * (pitch * 0.05f)
+                moveTo(at)
+            }
+        }
+        assertEquals(listOf(Coord(0, 0), Coord(1, 1), Coord(2, 2), Coord(3, 3)), controller.trace.path)
         board().performTouchInput { up() }
     }
 

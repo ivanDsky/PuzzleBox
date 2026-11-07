@@ -2,7 +2,10 @@ package com.ivandsky.puzzlebox.games.strandsui
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.tooling.preview.Preview
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -13,6 +16,8 @@ import com.ivandsky.puzzlebox.games.strands.StrandsPuzzle
 import com.ivandsky.puzzlebox.games.strands.StrandsState
 import com.ivandsky.puzzlebox.games.strands.StrandsWord
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
+import com.ivandsky.puzzlebox.games.strandsui.board.TraceFinger
+import com.ivandsky.puzzlebox.games.strandsui.board.centreOf
 
 /**
  * One pane per board state, light and dark (@PuzzleBoxPreviews), built from real
@@ -35,9 +40,13 @@ private val previewPuzzle: StrandsPuzzle by lazy {
     )
 }
 
-/** [trace] reaches the board as its live trace, as the play screen's does, not through the model. */
+/** [trace] reaches the board as its live trace, as the play screen's does, not through the model; [finger] is a held drag. */
 @Composable
-private fun BoardPane(state: StrandsState = StrandsState(previewPuzzle), trace: List<Coord> = emptyList()) {
+private fun BoardPane(
+    state: StrandsState = StrandsState(previewPuzzle),
+    trace: List<Coord> = emptyList(),
+    finger: TraceFinger? = null,
+) {
     PuzzleBoxTheme {
         StrandsBoardContent(
             model = StrandsRendererModel.of(state),
@@ -46,6 +55,7 @@ private fun BoardPane(state: StrandsState = StrandsState(previewPuzzle), trace: 
             trace = { Trace(trace) },
             onTrace = {},
             modifier = Modifier.fillMaxWidth(),
+            finger = remember { mutableStateOf(finger) },
         )
     }
 }
@@ -60,6 +70,26 @@ internal fun StrandsBoardIdlePreview() = BoardPane()
 @Composable
 internal fun StrandsBoardTracingPreview() =
     BoardPane(trace = listOf(Coord(2, 0), Coord(2, 1), Coord(3, 2)))
+
+/** A4: mid-drag toward the free T at (2,3): the line end follows the finger past the tail. */
+@PuzzleBoxPreviews
+@Preview(name = "Compact width", widthDp = 360, heightDp = 400, showBackground = true)
+@Composable
+internal fun StrandsBoardTipForwardPreview() =
+    BoardPane(
+        trace = listOf(Coord(2, 0), Coord(2, 1), Coord(2, 2)),
+        finger = TraceFinger(at = centreOf(Coord(2, 2)) + Offset(0.45f, 0.02f), travel = Offset(0.25f, 0f)),
+    )
+
+/** A4: dragging into the used B at (1,0): the tip only nudges, it never stretches into a used letter. */
+@PuzzleBoxPreviews
+@Preview(name = "Compact width", widthDp = 360, heightDp = 400, showBackground = true)
+@Composable
+internal fun StrandsBoardTipNudgedPreview() =
+    BoardPane(
+        trace = listOf(Coord(1, 0), Coord(1, 1), Coord(2, 1), Coord(2, 0)),
+        finger = TraceFinger(at = centreOf(Coord(2, 0)) + Offset(0f, -0.6f), travel = Offset(0f, -0.25f)),
+    )
 
 @PuzzleBoxPreviews
 @Preview(name = "Compact width", widthDp = 360, heightDp = 400, showBackground = true)

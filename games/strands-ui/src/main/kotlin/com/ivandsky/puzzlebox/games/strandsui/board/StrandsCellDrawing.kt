@@ -42,7 +42,8 @@ internal interface StrandsCellSpec {
 
 /**
  * One instant of a token's motion: its [scale], its ring's [ringScale], and [lit], how far
- * the fill has turned from the selection colour it had while traced into its own colour.
+ * its fill has come in: a found letter's from the selection colour it had while traced into
+ * its own, a letter joining the trace's from its own look into the selection colour.
  */
 internal data class StrandsCellFrame(val scale: Float = 1f, val ringScale: Float = 1f, val lit: Float = 1f) {
     companion object {

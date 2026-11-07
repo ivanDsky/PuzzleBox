@@ -9,9 +9,8 @@ import com.ivandsky.puzzlebox.designsystem.MotionTokens
  * chrome animate with these, and each motion's reduced form is an instant state change.
  */
 internal object StrandsMotion {
-    /** A letter joining the trace dips to this scale and back (NYT `Pulse`). */
+    /** The hint pulse's dip (NYT `Pulse`). A letter joining the trace pops instead, on [MotionTokens.Trace]. */
     const val PressScale = 0.85f
-    val PressMs: Int = MotionTokens.DurationShort
 
     /** A rejected word shakes sideways (NYT `shake`, ease-in): amplitude, one cycle, cycles. */
     const val ShakePx = 5f
@@ -32,15 +31,6 @@ internal object StrandsMotion {
     const val HintSwellScale = 1.1f
     const val HintDipAt = 0.15f
     const val HintSwellAt = 0.38f
-
-    val PressPulse = MotionPattern(
-        name = "PressPulse",
-        description = "A letter added to the trace dips to $PressScale and springs back.",
-        enterDurationMillis = PressMs,
-        enterEasing = MotionTokens.EasingStandard,
-        exitDurationMillis = PressMs,
-        exitEasing = MotionTokens.EasingStandard,
-    )
 
     val RejectShake = MotionPattern(
         name = "RejectShake",
