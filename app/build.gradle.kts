@@ -85,6 +85,7 @@ androidComponents {
 tasks.withType<Test>().matching { it.name == "testReleaseUnitTest" }.configureEach {
     filter.includeTestsMatching("com.ivandsky.puzzlebox.app.ReleaseGameModulesTest")
     filter.includeTestsMatching("com.ivandsky.puzzlebox.app.ReleaseUpdateChecksTest")
+    filter.includeTestsMatching("com.ivandsky.puzzlebox.app.ReleaseFlagsBindingTest")
 }
 
 dependencies {
