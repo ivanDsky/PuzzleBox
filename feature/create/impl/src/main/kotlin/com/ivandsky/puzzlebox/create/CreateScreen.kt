@@ -94,7 +94,7 @@ fun CreateScreen(
     )
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            LargeTopBar(title = "Create")
+            LargeTopBar(title = "Create", subtitle = headerCounts(state), modifier = Modifier.testTag("create.header"))
             when {
                 state.loading -> Unit
                 state.isEmpty -> CreateEmptyState(games = state.games, onStart = onNew)
@@ -144,6 +144,14 @@ private fun NewPuzzleButton(onClick: () -> Unit, modifier: Modifier) {
         icon = { Icon(PuzzleIcons.Add, contentDescription = null) },
         text = { Text("New puzzle") },
     )
+}
+
+/** "n drafts · m published" under the title, matching the tab counts; none while loading or before anything is made. */
+private fun headerCounts(state: CreateUiState): String? {
+    val drafts = state.draftCount
+    val published = state.published.size
+    if (state.loading || drafts + published == 0) return null
+    return "$drafts ${if (drafts == 1) "draft" else "drafts"} · $published published"
 }
 
 private fun previewRows(count: Int): List<CreateUiState.DraftRow> = (0 until count).map { index ->
