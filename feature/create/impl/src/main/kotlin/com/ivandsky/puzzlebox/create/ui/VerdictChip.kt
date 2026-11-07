@@ -18,7 +18,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -29,7 +28,9 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
+import com.ivandsky.puzzlebox.game.editor.LadderRung
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 
@@ -38,30 +39,30 @@ private val ChipIconSize = 14.dp
 
 /**
  * A draft row's verdict at a glance (01 handoff, "Draft row"): a small one-line chip in the
- * verdict's tone, a check mark on Unique. Its state description is the verdict's machine name
+ * verdict's tone, with a Unique's grade; a check mark on a publishable Unique, the hint flag
+ * on one that needs guessing. Its state description is the verdict's machine name
  * ("Unique", "Checking", …) for tests and accessibility services alike. Motion: a change of
- * verdict kind is a **Crossfade** on MotionTokens short, already the reduced-motion fade.
+ * verdict kind or grade is a **Crossfade** on MotionTokens short, already the reduced-motion fade.
  */
 @Composable
 fun VerdictChip(verdict: Verdict, modifier: Modifier = Modifier) {
-    // A crossfade keyed on the verdict's kind: only a change of kind fades, not a new solution.
     AnimatedContent(
         targetState = verdict,
         modifier = modifier
             .testTag("create.draft.chip")
-            .semantics { stateDescription = stateOf(verdict) },
+            .semantics { stateDescription = verdict.stateName() },
         transitionSpec = {
             val fade = tween<Float>(MotionTokens.DurationShort, easing = MotionTokens.EasingStandard)
             fadeIn(fade) togetherWith fadeOut(fade)
         },
         label = "create-verdict-chip",
-        contentKey = ::stateOf,
+        contentKey = Verdict::glanceKey,
     ) { shown -> ChipFace(shown) }
 }
 
 @Composable
 private fun ChipFace(verdict: Verdict) {
-    val (container, content) = toneOf(verdict)
+    val (container, content) = verdict.tone().colors(neutralContent = MaterialTheme.colorScheme.onSurfaceVariant)
     Surface(
         modifier = Modifier.height(ChipHeight),
         shape = AppShapes.extraSmall,
@@ -74,40 +75,11 @@ private fun ChipFace(verdict: Verdict) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (verdict is Verdict.Unique) {
-                Icon(PuzzleIcons.Check, contentDescription = null, modifier = Modifier.size(ChipIconSize))
+                val glyph = if (verdict.needsGuessing) PuzzleIcons.Hint else PuzzleIcons.Check
+                Icon(glyph, contentDescription = null, modifier = Modifier.size(ChipIconSize))
             }
-            Text(text = labelOf(verdict), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            Text(text = verdict.glanceLabel(), style = MaterialTheme.typography.labelSmall, maxLines = 1)
         }
-    }
-}
-
-private fun stateOf(verdict: Verdict): String = when (verdict) {
-    is Verdict.Incomplete -> "Incomplete"
-    Verdict.Checking -> "Checking"
-    is Verdict.Unique -> "Unique"
-    is Verdict.Multiple -> "Multiple"
-    is Verdict.None -> "None"
-    Verdict.Undetermined -> "Undetermined"
-}
-
-private fun labelOf(verdict: Verdict): String = when (verdict) {
-    is Verdict.Incomplete -> "Not checked"
-    Verdict.Checking -> "Checking…"
-    is Verdict.Unique -> "Unique"
-    is Verdict.Multiple -> "2+ solutions"
-    is Verdict.None -> "No solution"
-    Verdict.Undetermined -> "Couldn't decide"
-}
-
-@Composable
-private fun toneOf(verdict: Verdict): Pair<Color, Color> {
-    val scheme = MaterialTheme.colorScheme
-    return when (verdict) {
-        is Verdict.Unique -> scheme.primaryContainer to scheme.onPrimaryContainer
-        is Verdict.Multiple -> scheme.tertiaryContainer to scheme.onTertiaryContainer
-        is Verdict.None -> scheme.errorContainer to scheme.onErrorContainer
-        is Verdict.Incomplete, Verdict.Checking, Verdict.Undetermined ->
-            scheme.surfaceContainerHighest to scheme.onSurfaceVariant
     }
 }
 
@@ -123,10 +95,18 @@ private fun VerdictChipPreview() {
                 VerdictChip(Verdict.Incomplete(IncompleteReason("queens.unpainted", 16)))
                 VerdictChip(Verdict.Checking)
                 VerdictChip(Verdict.Unique(Solution(listOf(1, 7, 8, 14))))
+                VerdictChip(Verdict.Unique(Solution(listOf(1, 7, 8, 14)), Difficulty(ChipPreviewRung)))
+                VerdictChip(Verdict.Unique(Solution(listOf(1, 7, 8, 14)), needsGuessing = true))
                 VerdictChip(Verdict.Multiple(Solution(emptyList()), Solution(emptyList()), emptySet()))
                 VerdictChip(Verdict.None(emptySet()))
                 VerdictChip(Verdict.Undetermined)
             }
         }
     }
+}
+
+private object ChipPreviewRung : LadderRung {
+    override val id: String = "preview.lineLock"
+    override val level: Difficulty.Level = Difficulty.Level.Medium
+    override val captionKey: String = "preview.lineLock"
 }

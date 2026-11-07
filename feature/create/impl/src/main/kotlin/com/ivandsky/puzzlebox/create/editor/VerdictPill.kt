@@ -24,7 +24,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -34,6 +33,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.create.ui.colors
+import com.ivandsky.puzzlebox.create.ui.glanceKey
+import com.ivandsky.puzzlebox.create.ui.glanceLabel
+import com.ivandsky.puzzlebox.create.ui.gradeState
+import com.ivandsky.puzzlebox.create.ui.stateName
+import com.ivandsky.puzzlebox.create.ui.tone
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -85,7 +90,7 @@ fun VerdictPill(verdict: Verdict, onClick: () -> Unit, modifier: Modifier = Modi
             .pressScale(interactionSource, reducedMotion)
             .clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClick = onClick)
             .testTag("create.editor.pill")
-            .semantics { stateDescription = stateOf(verdict) },
+            .semantics { stateDescription = verdict.stateName() },
         contentAlignment = Alignment.Center,
     ) {
         // A crossfade keyed on the verdict's kind and grade: a new solution alone doesn't fade.
@@ -101,14 +106,14 @@ fun VerdictPill(verdict: Verdict, onClick: () -> Unit, modifier: Modifier = Modi
             },
             contentAlignment = Alignment.Center,
             label = "create-verdict-pill",
-            contentKey = { shown -> stateOf(shown) + (shown as? Verdict.Unique)?.gradeState().orEmpty() },
+            contentKey = Verdict::glanceKey,
         ) { shown -> PillFace(shown) }
     }
 }
 
 @Composable
 private fun PillFace(verdict: Verdict) {
-    val (container, content) = toneOf(verdict)
+    val (container, content) = verdict.tone().colors()
     Surface(
         modifier = Modifier.height(PillHeight).widthIn(max = PillMaxWidth),
         shape = PillShape,
@@ -118,7 +123,7 @@ private fun PillFace(verdict: Verdict) {
         Box(Modifier.padding(horizontal = Spacing.md), contentAlignment = Alignment.Center) {
             val grade = (verdict as? Verdict.Unique)?.gradeState()
             Text(
-                text = labelOf(verdict),
+                text = verdict.glanceLabel(),
                 modifier = if (grade == null) {
                     Modifier
                 } else {
@@ -144,36 +149,6 @@ private fun UniqueHaptic(verdict: Verdict) {
         if (verdict is Verdict.Unique && before != null && before !is Verdict.Unique) {
             haptics.performHapticFeedback(HapticFeedbackType.Confirm)
         }
-    }
-}
-
-private fun stateOf(verdict: Verdict): String = when (verdict) {
-    is Verdict.Incomplete -> "Incomplete"
-    Verdict.Checking -> "Checking"
-    is Verdict.Unique -> "Unique"
-    is Verdict.Multiple -> "Multiple"
-    is Verdict.None -> "None"
-    Verdict.Undetermined -> "Undetermined"
-}
-
-private fun labelOf(verdict: Verdict): String = when (verdict) {
-    is Verdict.Incomplete -> "Not checked"
-    Verdict.Checking -> "Checking…"
-    is Verdict.Unique -> verdict.gradeLabel()?.let { "Unique · $it" } ?: "Unique"
-    is Verdict.Multiple -> "2+ solutions"
-    is Verdict.None -> "No solution"
-    Verdict.Undetermined -> "Couldn't decide"
-}
-
-@Composable
-private fun toneOf(verdict: Verdict): Pair<Color, Color> {
-    val scheme = MaterialTheme.colorScheme
-    return when (verdict) {
-        is Verdict.Unique -> scheme.primaryContainer to scheme.onPrimaryContainer
-        is Verdict.Multiple -> scheme.tertiaryContainer to scheme.onTertiaryContainer
-        is Verdict.None -> scheme.errorContainer to scheme.onErrorContainer
-        is Verdict.Incomplete, Verdict.Checking, Verdict.Undetermined ->
-            scheme.surfaceContainerHighest to scheme.onSurface
     }
 }
 
