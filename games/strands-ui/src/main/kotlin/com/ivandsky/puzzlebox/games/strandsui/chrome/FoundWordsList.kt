@@ -59,14 +59,16 @@ internal fun FoundWordsList(words: List<FoundWord>, total: Int, modifier: Modifi
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            for (word in words) FoundChip(word)
+            // Theme words alternate pink and magenta in found order, like their tokens on the board.
+            var themes = 0
+            for (word in words) FoundChip(word, alt = !word.spangram && themes++ % 2 == 1)
             repeat((total - words.size).coerceAtLeast(0)) { MissingSlot() }
         }
     }
 }
 
 @Composable
-private fun FoundChip(word: FoundWord) {
+private fun FoundChip(word: FoundWord, alt: Boolean) {
     val board = LocalBoardColors.current
     val ring = board.strandsTileText
     Box(
@@ -74,7 +76,13 @@ private fun FoundChip(word: FoundWord) {
         modifier = Modifier
             .height(ChipHeight)
             .clip(CircleShape)
-            .background(if (word.spangram) board.strandsSpangramFill else board.strandsThemeFill)
+            .background(
+                when {
+                    word.spangram -> board.strandsSpangramFill
+                    alt -> board.strandsThemeAltFill
+                    else -> board.strandsThemeFill
+                },
+            )
             .then(if (word.spangram) Modifier.drawBehind { insetRing(ring) } else Modifier)
             .padding(horizontal = ChipPadding)
             .testTag(if (word.spangram) "strands.found_spangram" else "strands.found_word")

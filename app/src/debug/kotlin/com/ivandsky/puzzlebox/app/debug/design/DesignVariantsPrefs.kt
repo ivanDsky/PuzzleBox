@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.app.debug.design
 
 import android.content.Context
-import com.ivandsky.puzzlebox.designsystem.AccentSet
 import com.ivandsky.puzzlebox.designsystem.DesignVariants
 
 /**
@@ -16,9 +15,7 @@ internal class DesignVariantsPrefs(context: Context) {
 
     fun load(): DesignVariants {
         val default = DesignVariants.Default
-        val accentName = prefs.getString(KEY_ACCENT_SET, null)
         return DesignVariants(
-            accentSet = AccentSet.entries.firstOrNull { it.name == accentName } ?: default.accentSet,
             glyphSolid = prefs.getBoolean(KEY_GLYPH_SOLID, default.glyphSolid),
             sweepMs = prefs.getInt(KEY_SWEEP_MS, default.sweepMs),
         )
@@ -26,7 +23,6 @@ internal class DesignVariantsPrefs(context: Context) {
 
     fun save(variants: DesignVariants) {
         prefs.edit()
-            .putString(KEY_ACCENT_SET, variants.accentSet.name)
             .putBoolean(KEY_GLYPH_SOLID, variants.glyphSolid)
             .putInt(KEY_SWEEP_MS, variants.sweepMs)
             .apply()
@@ -34,7 +30,6 @@ internal class DesignVariantsPrefs(context: Context) {
 
     private companion object {
         const val PREFERENCES_FILE = "design_variants"
-        const val KEY_ACCENT_SET = "accent_set"
         const val KEY_GLYPH_SOLID = "glyph_solid"
         const val KEY_SWEEP_MS = "sweep_ms"
     }

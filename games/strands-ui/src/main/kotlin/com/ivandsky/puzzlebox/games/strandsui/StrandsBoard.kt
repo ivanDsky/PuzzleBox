@@ -54,6 +54,8 @@ import com.ivandsky.puzzlebox.games.strandsui.board.StrandsMotionTrigger
 import com.ivandsky.puzzlebox.games.strandsui.board.TraceFinger
 import com.ivandsky.puzzlebox.games.strandsui.board.TraceOverlaySpec
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
+import com.ivandsky.puzzlebox.games.strandsui.board.altThemeCells
+import com.ivandsky.puzzlebox.games.strandsui.board.altThemeLinks
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
@@ -111,6 +113,7 @@ internal fun StrandsBoardContent(
     finger: MutableState<TraceFinger?> = remember { mutableStateOf(null) },
 ) {
     val colors = LocalBoardColors.current
+    val altCells = remember(model.links) { altThemeLinks(model.links).altThemeCells() }
     // Bumped by every touch-down: a running settle, sweep or hint pulse rests at once (A12).
     // Read only by the motion effects, so a touch-down recomposes nothing.
     val touchSeq = remember { mutableIntStateOf(0) }
@@ -130,6 +133,7 @@ internal fun StrandsBoardContent(
                 cellContent = { row, col ->
                     LetterToken(
                         cell = model.cells[row * model.cols + col],
+                        altTheme = Coord(row, col) in altCells,
                         pitch = cell,
                         found = found,
                         reduceMotion = reduceMotion,
@@ -164,6 +168,7 @@ private fun LetterToken(
     reduceMotion: Boolean,
     touchSeq: IntState,
     colors: BoardColors,
+    altTheme: Boolean,
     trace: () -> Trace,
     onTrace: (TraceStep) -> Unit,
 ) {
@@ -202,7 +207,7 @@ private fun LetterToken(
                 .drawBehind {
                     val frame = base.value
                     val radius = size.minDimension / 2
-                    tokenFill(spec, traced, frame, join.value, colors)?.let { drawCircle(it, radius) }
+                    tokenFill(spec, altTheme, traced, frame, join.value, colors)?.let { drawCircle(it, radius) }
                     with(spec) { decorate(colors, radius, frame) }
                 },
             contentAlignment = Alignment.Center,
@@ -227,8 +232,15 @@ private fun LetterToken(
  * The live trace overlays any base look, filling in over it as the letter joins ([join]);
  * a found letter turns from the trace colour to its own as it lights ([frame]).
  */
-private fun tokenFill(spec: StrandsCellSpec, traced: Boolean, frame: StrandsCellFrame, join: StrandsCellFrame, colors: BoardColors): Color? {
-    val fill = spec.fill(colors)
+private fun tokenFill(
+    spec: StrandsCellSpec,
+    altTheme: Boolean,
+    traced: Boolean,
+    frame: StrandsCellFrame,
+    join: StrandsCellFrame,
+    colors: BoardColors,
+): Color? {
+    val fill = if (altTheme) colors.strandsThemeAltFill else spec.fill(colors)
     val selection = TraceOverlaySpec.fill(colors)
     if (traced) {
         if (join.lit >= 1f) return selection

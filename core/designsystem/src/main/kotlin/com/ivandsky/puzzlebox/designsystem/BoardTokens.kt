@@ -11,20 +11,18 @@ import androidx.compose.ui.unit.dp
 // colors. Dark is the first-class look (the primary user plays a dark-mode
 // tablet); light sits alongside with the same role names.
 //
-// VALUES are research U2's primary table (`.scratch/puzzlebox/research/
-// uiux-01-board-palette.md`), adopted by ticket 20: reuse roles alias the live
-// ColorTokens.kt values so scheme re-tunes propagate; light's three new values
-// (#0F78B4 on-path dot, #1899D6 trace, #D07C00 selection — darkest-hue-family
-// steps chosen as the brightest that clears the bar) and dark's trace pair are
-// literals — ticket 27 softened the dark trace off the scheme's neon secondary.
-// Bars: labels & dot fills
-// >= 4.5:1 vs boardSurface and label-on-its-fill (WCAG 1.4.3); trace/wall/
-// selection >= 3:1 (1.4.11 non-text); gridline >= 2:1 self-imposed "clearly
-// visible" floor. BoardTokensTest pins all of them.
+// Surfaces, gridline, wall and the unvisited waypoint are research U2's table
+// (`.scratch/puzzlebox/research/uiux-01-board-palette.md`) aliasing the scheme.
+// Every game highlight takes its own game's Splash accent (spec A14, prototype
+// 03-game-colors ?v=d): dark uses the accent itself; light uses the brightest
+// gamut-edge step of the same hue that clears its bar on white. `*Lip` roles are
+// the chunky-depth bottom edge: same hue, OKLCH L −0.13 light / −0.20 dark.
+// Bars: labels & dot fills >= 4.5:1 vs boardSurface and label-on-its-fill
+// (WCAG 1.4.3); trace/wall/selection >= 3:1 (1.4.11 non-text); gridline >= 2:1
+// self-imposed "clearly visible" floor. BoardTokensTest pins all of them.
 //
-// Labels ride the ring color: hollow waypoints (gate r3/r4) put every label on
-// boardSurface in its ring's own color — green 9.70:1 / powder 9.89:1, no
-// per-fill on-color needed.
+// Labels ride the ring color: hollow waypoints put every label on boardSurface in
+// its ring's own color, so the light on-path ring is the text-grade blue, not the trace.
 
 data class BoardColors(
     val boardSurface: Color,
@@ -34,26 +32,30 @@ data class BoardColors(
     val waypointLabel: Color,
     val waypointDotOnPath: Color,
     val pathTrace: Color,
+    val pathTraceLip: Color,
+    // Queens' hint edge and overlay: the Queens violet.
     val boardSelection: Color,
     val boardRegion: Color,
 
-    // Tango glyph fills (design-direction §3): sun/moon must clear the 3:1 non-text
-    // bar vs boardSurface in BOTH modes; identity rides the silhouette (disc+rays vs
-    // crescent), so the fill only has to be unmistakably present. Rejected on purpose
-    // (§3): light tertiary #FF9600 (2.18 ✗), light secondary #1CB0F6 (2.44 ✗), light
-    // #D07C00 sun (passes but collides with boardSelection light — selected sun cell
-    // would read as one orange blob), dark secondary #1CB0F6 moon (passes but is the
-    // value ticket 27 retired as neon glare).
+    // Tango glyph fills: sun/moon clear the 3:1 non-text bar vs boardSurface in both
+    // modes; identity rides the silhouette (disc+rays vs crescent).
     val sunFill: Color,
     val moonFill: Color,
 
-    // Strands (spec A32): the app's brand hues on round letter tokens, read the way the
-    // rest of the app reads them — blue while you trace (Zip's live path), green for a found
-    // theme word (correct), gold for the spangram (special). The letter on a filled token is
-    // always black (>= 4.5:1 on each fill). The hint ring previews its word's green and is
-    // non-text (>= 3:1 vs boardSurface); an idle letter sits on the bare board (>= 4.5:1).
-    // Connectors take their word's fill.
+    // Mini Sudoku: the selected cell is the full teal fill with the hue's deep ink on
+    // it; its row/column/box peers sit on the teal tint.
+    val sudokuSelection: Color,
+    val sudokuSelectionInk: Color,
+    val sudokuSelectionLip: Color,
+    val sudokuPeer: Color,
+
+    // Strands (spec A32, A14): found theme words alternate pink and magenta, the
+    // spangram is gold, the live trace hot pink. The letter on a filled token is
+    // always black (>= 4.5:1 on each fill). The hint ring previews the pink and is
+    // non-text (>= 3:1 vs boardSurface); an idle letter sits on the bare board
+    // (>= 4.5:1). Connectors take their word's fill.
     val strandsThemeFill: Color,
+    val strandsThemeAltFill: Color,
     val strandsSpangramFill: Color,
     val strandsSelectionFill: Color,
     val strandsHintRing: Color,
@@ -61,6 +63,7 @@ data class BoardColors(
     val strandsIdleLetter: Color,
     val strandsTraceConnector: Color,
     val strandsThemeConnector: Color,
+    val strandsThemeAltConnector: Color,
     val strandsSpangramConnector: Color,
     val strandsHintConnector: Color,
 
@@ -77,70 +80,77 @@ data class BoardColors(
     val editorSplitHatch: Color,
 )
 
-// Dark mode keeps the softened blue step Zip's trace settled on (T27: scheme #1CB0F6 read
-// as neon glare on dark); green and gold are the dark scheme's own primary and tertiary.
-private val DarkTracePowder = Color(0xFFB3CBD6) // = DarkBoardTokens.pathTrace, black text 12.3:1
+private val SplashGold = Color(0xFFFECF00) // spangram in both modes, black text 14.1:1
+private val StrandsHotPink = Color(0xFFE40070) // live trace in both modes, black text 4.53:1
 
-// Dark values alias the dark scheme (provenance per U2's table; ratios vs
-// boardSurface): gridline 4.59, wall 8.01, dot 9.70, label-on-dot 8.28,
-// selection 10.76. Ticket 27 retuned the shared trace/on-path dot blue off the
-// scheme: on-path dot / trace 9.89 — same hue as
-// #1CB0F6, lighter + desaturated (user: "some lighter shade of blue") after it
-// read as neon glare.
+// Dark: every highlight is its game's Splash accent; ratios vs boardSurface #1A1E25:
+// trace/on-path 7.39, Queens violet 6.9, Strands pink 6.68.
 val DarkBoardTokens = BoardColors(
     boardSurface = DarkColorScheme.surfaceContainer,
     boardGridLine = DarkColorScheme.outline,
     boardWall = DarkColorScheme.onSurfaceVariant,
     waypointDot = DarkColorScheme.primary,
     waypointLabel = DarkColorScheme.onPrimary,
-    waypointDotOnPath = Color(0xFFB3CBD6), // T27 gate R1/D1: scheme secondary #1CB0F6 read as neon glare — powder step of the SAME hue (HSL 199°, S 92→30%, L 54→77%; oklch C 0.151→0.030), literal no longer aliases
-    pathTrace = Color(0xFFB3CBD6), // = waypointDotOnPath by design: continuity of the passed path
-    boardSelection = DarkColorScheme.tertiary,
+    waypointDotOnPath = Color(0xFF21B7FF),
+    pathTrace = Color(0xFF21B7FF), // = waypointDotOnPath by design: continuity of the passed path
+    pathTraceLip = Color(0xFF0077AA),
+    boardSelection = Color(0xFFA69BFF),
     boardRegion = DarkColorScheme.surfaceContainerHigh, // future fill tint; stroke its boundary with wall/gridline when built
-    sunFill = DarkColorScheme.tertiary, // #FFC800, 10.76:1 — dark scheme tertiary already cleared the bar; no new literal
-    moonFill = Color(0xFFB3CBD6), // T27 "powder" literal, 9.89:1 — same hue as secondary, proven non-glaring
-    strandsThemeFill = DarkColorScheme.primary, // #6BDF17, black text 12.4:1
-    strandsSpangramFill = DarkColorScheme.tertiary, // #FFC800, black text 13.4:1
-    strandsSelectionFill = DarkTracePowder,
-    strandsHintRing = DarkColorScheme.primary,
+    sunFill = Color(0xFFFF8524),
+    moonFill = Color(0xFF21B7FF),
+    sudokuSelection = Color(0xFF00E8DC),
+    sudokuSelectionInk = Color(0xFF002E2B),
+    sudokuSelectionLip = Color(0xFF00A198),
+    sudokuPeer = Color(0xFF003C38),
+    strandsThemeFill = Color(0xFFFF77A0),
+    strandsThemeAltFill = Color(0xFFFF63E4),
+    strandsSpangramFill = SplashGold,
+    strandsSelectionFill = StrandsHotPink,
+    strandsHintRing = Color(0xFFFF77A0),
     strandsTileText = Color.Black,
     strandsIdleLetter = DarkColorScheme.onSurface,
-    strandsTraceConnector = DarkTracePowder,
-    strandsThemeConnector = DarkColorScheme.primary,
-    strandsSpangramConnector = DarkColorScheme.tertiary,
-    strandsHintConnector = DarkColorScheme.primary,
+    strandsTraceConnector = StrandsHotPink,
+    strandsThemeConnector = Color(0xFFFF77A0),
+    strandsThemeAltConnector = Color(0xFFFF63E4),
+    strandsSpangramConnector = SplashGold,
+    strandsHintConnector = Color(0xFFFF77A0),
     editorDiffRing = Color(0xFF7FE3F0), // new: light teal, >= 7:1 over every dark region fill (L* 18–26)
     editorClashFill = DarkColorScheme.error.copy(alpha = 0.75f),
     editorSplitHatch = DarkColorScheme.error,
 )
 
-// Light mirrors dark role-for-role: reuses plus the three new darker steps (dot
-// fill #58CC02 fails 4.5 on white at 2.09 — the dot is #377000, the existing
-// derived green step). Ratios vs boardSurface: gridline 3.33, wall 8.90, dot 6.03,
-// label-on-dot 6.03, on-path dot 4.81, trace 3.20,
-// selection 3.20.
+// Light: the accent fills are too pale for strokes on white, so strokes step down the
+// same hue — trace 3.05, sun 3.92, moon 3.91, Queens hint 4.00, Strands hint 3.06 —
+// and the on-path ring/label is the text-grade blue (4.65).
 val LightBoardTokens = BoardColors(
     boardSurface = LightColorScheme.surface,
     boardGridLine = LightColorScheme.outline,
     boardWall = LightColorScheme.onSurfaceVariant,
     waypointDot = LightPrimaryText,
     waypointLabel = LightColorScheme.onError, // white
-    waypointDotOnPath = Color(0xFF0F78B4), // new: brightest same-hue step of secondary #1CB0F6 clearing 4.5 on white
-    pathTrace = Color(0xFF1899D6), // new: #1CB0F6 itself is 2.44 on white; this clears the 3:1 non-text bar
-    boardSelection = Color(0xFFD07C00), // new: tertiary #FF9600 is 2.18 on white; this clears 3:1
+    waypointDotOnPath = Color(0xFF007CB1),
+    pathTrace = Color(0xFF009DDE),
+    pathTraceLip = Color(0xFF0074A5),
+    boardSelection = Color(0xFF8464FF),
     boardRegion = LightColorScheme.surfaceContainerHigh, // future fill tint
-    sunFill = Color(0xFFC25A00), // new: orange family, darkest step clearing 3:1 with selection headroom — 4.42:1 on white
-    moonFill = Color(0xFF0F78B4), // existing waypointDotOnPath light literal, blue family — 4.81:1
-    strandsThemeFill = LightColorScheme.primary, // #58CC02, black text 10.2:1
-    strandsSpangramFill = DarkColorScheme.tertiary, // #FFC800 gold in both modes; light tertiary #FF9600 reads as Tango's sun
-    strandsSelectionFill = LightColorScheme.secondary, // #1CB0F6, black text 8.4:1
-    strandsHintRing = LightTimerFill, // #3A8200, the green step that clears 3:1 on white (4.8:1)
+    sunFill = Color(0xFFCB6400),
+    moonFill = Color(0xFF0089C3),
+    sudokuSelection = Color(0xFF00C8BD),
+    sudokuSelectionInk = Color(0xFF002E2B),
+    sudokuSelectionLip = Color(0xFF009B92),
+    sudokuPeer = Color(0xFFB7F2EC),
+    strandsThemeFill = Color(0xFFFF478A),
+    strandsThemeAltFill = Color(0xFFFD00DF),
+    strandsSpangramFill = SplashGold,
+    strandsSelectionFill = StrandsHotPink,
+    strandsHintRing = Color(0xFFFF528F),
     strandsTileText = Color.Black,
     strandsIdleLetter = LightColorScheme.onSurface,
-    strandsTraceConnector = LightColorScheme.secondary,
-    strandsThemeConnector = LightColorScheme.primary,
-    strandsSpangramConnector = DarkColorScheme.tertiary,
-    strandsHintConnector = LightTimerFill,
+    strandsTraceConnector = StrandsHotPink,
+    strandsThemeConnector = Color(0xFFFF478A),
+    strandsThemeAltConnector = Color(0xFFFD00DF),
+    strandsSpangramConnector = SplashGold,
+    strandsHintConnector = Color(0xFFFF528F),
     editorDiffRing = Color(0xFF004F58), // deep teal, >= 4.7:1 over every light Candy fill; >= 3.8:1 as the 85% ghost
     editorClashFill = Color(0xFF93000A).copy(alpha = 0.75f), // error tone 30: >= 3.4:1 washed over every light fill
     editorSplitHatch = LightColorScheme.error,

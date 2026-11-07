@@ -50,6 +50,34 @@ class BoardTokensTest {
     }
 
     @Test
+    fun `board highlights pin the Splash game colours`() {
+        val light = LightBoardTokens
+        val dark = DarkBoardTokens
+        assertEquals(Color(0xFF009DDE), light.pathTrace)
+        assertEquals(Color(0xFF0074A5), light.pathTraceLip)
+        assertEquals(Color(0xFF21B7FF), dark.pathTrace)
+        assertEquals(Color(0xFF0077AA), dark.pathTraceLip)
+        assertEquals(Color(0xFFCB6400), light.sunFill)
+        assertEquals(Color(0xFFA69BFF), dark.boardSelection)
+        assertEquals(Color(0xFF00C8BD), light.sudokuSelection)
+        assertEquals(Color(0xFF009B92), light.sudokuSelectionLip)
+        assertEquals(Color(0xFF003C38), dark.sudokuPeer)
+        assertEquals(Color(0xFFFF478A), light.strandsThemeFill)
+        assertEquals(Color(0xFFFF63E4), dark.strandsThemeAltFill)
+        assertEquals(Color(0xFFFECF00), dark.strandsSpangramFill)
+        assertEquals(Color(0xFFE40070), light.strandsSelectionFill)
+    }
+
+    @Test
+    fun `sudoku digit holds AA on the selection and lips sit darker than their fills in both themes`() {
+        for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
+            assertTrue(contrast(tokens.sudokuSelectionInk, tokens.sudokuSelection) >= 4.5f)
+            assertTrue(tokens.sudokuSelectionLip.luminance() < tokens.sudokuSelection.luminance())
+            assertTrue(tokens.pathTraceLip.luminance() < tokens.pathTrace.luminance())
+        }
+    }
+
+    @Test
     fun `labels meet AA on their own dot fills in both themes`() {
         for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
             assertTrue(contrast(tokens.waypointLabel, tokens.waypointDot) >= 4.5f)
@@ -139,7 +167,7 @@ class BoardTokensTest {
     @Test
     fun `strands tile text meets AA on every tinted fill in both themes`() {
         for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
-            for (fill in listOf(tokens.strandsThemeFill, tokens.strandsSpangramFill, tokens.strandsSelectionFill)) {
+            for (fill in listOf(tokens.strandsThemeFill, tokens.strandsThemeAltFill, tokens.strandsSpangramFill, tokens.strandsSelectionFill)) {
                 assertTrue(contrast(tokens.strandsTileText, fill) >= 4.5f)
             }
         }
