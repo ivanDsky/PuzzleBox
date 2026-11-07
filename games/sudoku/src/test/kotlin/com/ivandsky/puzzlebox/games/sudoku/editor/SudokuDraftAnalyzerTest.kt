@@ -59,10 +59,10 @@ class SudokuDraftAnalyzerTest {
     }
 
     @Test
-    fun `clashing givens have no solution and no cells yet at both sizes`() {
+    fun `clashing givens have no solution and name the clashing cells at both sizes`() {
         for (size in SudokuDraft.SIZES) {
             val clashInRow = List(size * size) { if (it == 0 || it == size - 1) 3 else 0 }
-            assertEquals(Verdict.None(emptySet()), analyze(SudokuDraft(size, clashInRow)))
+            assertEquals(Verdict.None(setOf(0, size - 1)), analyze(SudokuDraft(size, clashInRow)))
         }
     }
 
