@@ -77,6 +77,21 @@ class StrandsTraceWalkTest {
     }
 
     @Test
+    fun `a wrong diagonal holds there until the finger reaches it`() {
+        // An east drag dipping 29° takes the diagonal (4, 2) while the finger is still in (3, 2);
+        // pulling up-right to correct heads north-east from (4, 2) at (3, 3), but the finger never
+        // came to (4, 2), so nothing grows from it.
+        val finger = polyline(listOf(centre(Coord(3, 1)), SLIP, Offset(2.6f, 3.3f), centre(Coord(3, 3))), FINE)
+        assertEquals(listOf(Coord(3, 1), Coord(4, 2)), drag(finger))
+    }
+
+    @Test
+    fun `backing out of a wrong diagonal recovers the side letter`() {
+        val finger = polyline(listOf(centre(Coord(3, 1)), SLIP, centre(Coord(3, 3)), centre(Coord(3, 1)), centre(Coord(3, 2))), FINE)
+        assertEquals(listOf(Coord(3, 1), Coord(3, 2)), drag(finger))
+    }
+
+    @Test
     fun `nothing joins close to the last centre`() {
         val start = centre(Coord(4, 2))
         val finger = polyline(listOf(start, start + Offset(0.28f, 0f), start + Offset(0f, 0.28f), start + Offset(-0.2f, -0.2f)), FINE)
@@ -163,5 +178,8 @@ class StrandsTraceWalkTest {
 
         /** A fast swipe: events 0.6 cell apart, which the walk fills with its own sub-steps. */
         const val SPARSE = 0.6f
+
+        /** Where an east drag from (3, 1)'s centre, dipping south, first takes the diagonal. */
+        val SLIP = Offset(2.05f, 3.8f)
     }
 }

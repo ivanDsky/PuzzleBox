@@ -45,6 +45,9 @@ internal object StrandsBoardSpec {
     /** Of the diagonal step (√2 pitches): the diagonal letter joins this far along it. */
     const val DiagonalJoinFraction: Float = 0.40f
 
+    /** A joined letter grows the trace only once the finger comes this close to its centre. */
+    const val ArriveCells: Float = 0.55f
+
     /** Within this of the previous letter's centre the drag backs up onto it. */
     const val BackJoinCells: Float = 0.30f
 
