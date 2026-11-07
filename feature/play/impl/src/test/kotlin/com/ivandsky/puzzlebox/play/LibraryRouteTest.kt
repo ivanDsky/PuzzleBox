@@ -124,7 +124,7 @@ class LibraryRouteTest {
     private fun setContent(layout: PlayLayout) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                LibraryRoute(layout = layout, onPlay = { game, day -> played.add(game to day) })
+                LibraryRoute(layout = layout, onPlay = { game, day -> played.add(game to day) }, onOpenCode = {})
             }
         }
     }

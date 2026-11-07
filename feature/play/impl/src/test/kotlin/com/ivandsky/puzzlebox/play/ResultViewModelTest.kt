@@ -26,6 +26,7 @@ import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Clock
@@ -95,7 +96,7 @@ class ResultViewModelTest {
     private fun store(games: GameRegistry, ui: GamePlayRegistry) = PlaySessionStore(
         games = games,
         ui = ui,
-        opening = SlotOpening(daily, LoadPastDay(daily, games), saved, calendar, games, lane),
+        opening = SlotOpening(daily, LoadPastDay(daily, games), saved, calendar, games, lane, FakeReceivedPuzzleRepository()),
         writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
         completions = completions,
         calendar = calendar,

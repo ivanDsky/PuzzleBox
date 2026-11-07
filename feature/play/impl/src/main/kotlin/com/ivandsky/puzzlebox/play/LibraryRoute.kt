@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.TodayStatus
@@ -32,6 +33,8 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.TutorialHost
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.play.friend.EnterCodeSheet
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.launch
@@ -46,12 +49,14 @@ import org.koin.compose.koinInject
  * game's key, so back from the board returns here, N3). The page's calendar picks the
  * day card's day and pages months ([LibraryViewModel.page]). A row whose today can't load also retries; each start prefetches
  * today's uncached puzzles ([LibraryViewModel.syncToday], A12). "Open the lesson" runs
- * the game's tutorial over the library.
+ * the game's tutorial over the library. The header's Enter code opens the code sheet, whose
+ * Open is [onOpenCode].
  */
 @Composable
 internal fun LibraryRoute(
     layout: PlayLayout,
     onPlay: (GameId, LocalDate?) -> Unit,
+    onOpenCode: (ShareCode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: LibraryViewModel = koinViewModel()
@@ -60,6 +65,7 @@ internal fun LibraryRoute(
     val lesson by viewModel.lesson.collectAsStateWithLifecycle()
     val page by viewModel.page.collectAsStateWithLifecycle()
     val month by viewModel.shownMonth.collectAsStateWithLifecycle()
+    var enteringCode by rememberSaveable { mutableStateOf(false) }
     LifecycleStartEffect(viewModel) {
         viewModel.syncToday()
         onStopOrDispose { }
@@ -80,7 +86,17 @@ internal fun LibraryRoute(
                 onPick = viewModel::pick,
                 onBackToToday = viewModel::backToToday,
             ),
+            onEnterCode = { enteringCode = true },
         )
+        if (enteringCode) {
+            EnterCodeSheet(
+                onOpen = { code ->
+                    enteringCode = false
+                    onOpenCode(code)
+                },
+                onDismiss = { enteringCode = false },
+            )
+        }
         val open = lesson
         val ui = open?.let { registry[it.game] }
         if (open != null && ui != null) {
@@ -120,8 +136,12 @@ internal fun LibraryScreen(
     onOpenLesson: (GameId) -> Unit,
     calendar: CalendarActions,
     modifier: Modifier = Modifier,
+    onEnterCode: () -> Unit = {},
 ) {
     val listScroll = rememberScrollState()
+    val enterCode: @Composable () -> Unit = {
+        SecondaryButton(text = "Enter code", onClick = onEnterCode, modifier = Modifier.testTag("library.enterCode"))
+    }
     val onRow: (GameId) -> Unit = { game ->
         onSelect(game)
         if (state.rows.firstOrNull { it.card.game == game }?.card?.status == TodayStatus.Offline) {
@@ -186,7 +206,7 @@ internal fun LibraryScreen(
     val selected = state.rows.firstOrNull { it.card.game == state.selected } ?: state.rows.firstOrNull()
     if (layout == PlayLayout.TwoPane) {
         Row(modifier.fillMaxSize().padding(start = Spacing.xl, top = Spacing.lg, end = Spacing.xxl, bottom = Spacing.xl)) {
-            LibraryList(state, layout, listScroll, onRow, Modifier.width(400.dp))
+            LibraryList(state, layout, listScroll, onRow, Modifier.width(400.dp), headerAction = enterCode)
             Spacer(Modifier.width(Spacing.xl))
             if (selected != null) {
                 key(selected.card.game) {
@@ -207,10 +227,16 @@ internal fun LibraryScreen(
             if (open && selected != null) {
                 Page(selected, onBack = { pageOpen = false })
             } else {
-                LibraryList(state, layout, listScroll, { game ->
-                    onRow(game)
-                    pageOpen = true
-                })
+                LibraryList(
+                    state = state,
+                    layout = layout,
+                    scroll = listScroll,
+                    onRow = { game ->
+                        onRow(game)
+                        pageOpen = true
+                    },
+                    headerAction = enterCode,
+                )
             }
         }
     }
