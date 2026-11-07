@@ -21,18 +21,6 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Share links (ShareCode.LINK_PREFIX), verified against the host's
-                 /.well-known/assetlinks.json. -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data android:scheme="https" />
-                <data android:host="puzzlebox-f3356.web.app" />
-                <data android:pathPrefix="/p/" />
-            </intent-filter>
         </activity>
     </application>
 

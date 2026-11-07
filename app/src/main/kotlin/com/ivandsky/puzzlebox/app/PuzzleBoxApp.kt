@@ -45,6 +45,8 @@ import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
 import com.ivandsky.puzzlebox.app.nav.applyFriendLink
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -58,9 +60,9 @@ import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.map
 import org.koin.compose.koinInject
-import kotlin.math.roundToInt
 
 /**
  * The app shell: tab bar (or rail) beneath [PuzzleBoxNavShell]. The highlight is the
@@ -78,6 +80,7 @@ import kotlin.math.roundToInt
  * A [pendingLink] (a tapped share link's URI) lands on the back stack in the composition
  * that first sees it, so a cold start draws the friend's card on its first frame; then
  * [onLinkApplied]. A link whose code doesn't parse opens Play's code sheet holding its text.
+ * While [ReleaseFlag.FriendSharing] is off a link is taken and dropped (ADR-0022).
  */
 @Composable
 fun PuzzleBoxApp(
@@ -87,11 +90,14 @@ fun PuzzleBoxApp(
     pendingLink: String? = null,
     onLinkApplied: () -> Unit = {},
     todaySet: ObserveTodaySet = koinInject(),
+    releaseFlags: ReleaseFlags = koinInject(),
 ) {
     var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
+    val flags by releaseFlags.enabled.collectAsStateWithLifecycle()
     if (pendingLink != null) {
         remember(pendingLink) {
-            FriendLink.of(pendingLink)?.let { link ->
+            // Friend sharing off (ADR-0022): the link is taken and dropped, the app stays put.
+            FriendLink.of(pendingLink)?.takeIf { ReleaseFlag.FriendSharing in flags }?.let { link ->
                 navigator.applyFriendLink(link)
                 if (link is FriendLink.Invalid) codeDraft = link.text
             }
