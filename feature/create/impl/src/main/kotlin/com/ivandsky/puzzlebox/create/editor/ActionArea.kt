@@ -135,11 +135,15 @@ private fun DetailsReveal(visible: Boolean, content: @Composable () -> Unit) {
     }
 }
 
-/** One phrase per readiness entry, dot-separated; Ready in the accent colour when nothing blocks. */
+/**
+ * One phrase per readiness entry, an evenly spaced "·" between; Ready in the accent colour when
+ * nothing blocks. Not tested is left to the status line above, so it alone shows no line.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ReadinessLine(blocks: List<PublishBlock>, modifier: Modifier) {
     val entries = remember(blocks) { readinessOf(blocks) }
+    if (entries.isEmpty() && blocks.isNotEmpty()) return
     FlowRow(modifier.testTag("create.readiness"), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         if (entries.isEmpty()) {
             Text(
@@ -150,8 +154,9 @@ private fun ReadinessLine(blocks: List<PublishBlock>, modifier: Modifier) {
             )
         }
         entries.forEachIndexed { index, (tag, phrase) ->
+            if (index > 0) Text("·", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
-                text = if (index == 0) phrase else "· $phrase",
+                text = phrase,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.testTag("create.readiness.$tag"),
@@ -160,11 +165,12 @@ private fun ReadinessLine(blocks: List<PublishBlock>, modifier: Modifier) {
     }
 }
 
-/** Board blocks first, collapsed into one entry; then each domain block once, in order. */
+/** Board blocks first, collapsed into one entry; then each domain block once, in order, but Not tested. */
 private fun readinessOf(blocks: List<PublishBlock>): List<Pair<String, String>> {
     val (domain, board) = blocks.partition { it.id in DOMAIN_COPY }
     val boardEntry = if (board.isEmpty()) emptyList() else listOf(BOARD_TAG to "Fix the board")
-    return boardEntry + domain.map { it.id }.distinct().map { it to DOMAIN_COPY.getValue(it) }
+    val listed = domain.map { it.id }.distinct() - PublishBlock.NOT_TESTED
+    return boardEntry + listed.map { it to DOMAIN_COPY.getValue(it) }
 }
 
 private const val BOARD_TAG = "board"
