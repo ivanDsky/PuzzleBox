@@ -63,9 +63,13 @@ internal fun UnpublishDialog(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 AppTextButton(text = "Cancel", onClick = onCancel, enabled = !state.busy, modifier = Modifier.testTag("create.unpublish.cancel"))
-                DestructiveFill {
-                    PrimaryButton(text = "Unpublish", onClick = onConfirm, loading = state.busy, modifier = Modifier.testTag("create.unpublish.confirm"))
-                }
+                PrimaryButton(
+                    text = "Unpublish",
+                    onClick = onConfirm,
+                    loading = state.busy,
+                    destructive = true,
+                    modifier = Modifier.testTag("create.unpublish.confirm"),
+                )
             }
         },
     )
@@ -89,11 +93,4 @@ private fun FailureLine(failure: UnpublishSession.Failure?) {
             modifier = Modifier.testTag(if (offline) "create.unpublish.offline" else "create.unpublish.rejected"),
         )
     }
-}
-
-/** [content]'s primary fill in the error colour: the filled pill for a destructive action. */
-@Composable
-private fun DestructiveFill(content: @Composable () -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    MaterialTheme(colorScheme = scheme.copy(primary = scheme.error, onPrimary = scheme.onError), content = content)
 }

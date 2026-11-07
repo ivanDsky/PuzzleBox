@@ -6,6 +6,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -42,7 +44,8 @@ internal val ButtonMinHeight: Dp = 48.dp
 internal val PrimaryButtonMinHeight: Dp = 52.dp
 
 /**
- * The one filled action on a screen: a 52 dp pill in the primary fill.
+ * The one filled action on a screen: a 52 dp pill in the primary fill, or in the error fill
+ * with its onError label when [destructive] (a confirm that removes something for good).
  *
  * While [loading] the work it started is running: the pill morphs into a circle as tall as
  * itself, centred where it stood, with a spinner that announces [text]; it keeps its fill and
@@ -57,6 +60,7 @@ fun PrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     loading: Boolean = false,
+    destructive: Boolean = false,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val reduced = rememberReducedMotion()
@@ -85,6 +89,14 @@ fun PrimaryButton(
         shape = PillShape,
         contentPadding = if (loading) PaddingValues() else ButtonDefaults.ContentPadding,
         interactionSource = interactionSource,
+        colors = if (destructive) {
+            ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError,
+            )
+        } else {
+            ButtonDefaults.buttonColors()
+        },
     ) {
         if (loading) Spinner(reduced) else Text(text, style = PrimaryButtonTextStyle)
     }
@@ -179,6 +191,19 @@ internal fun PrimaryButtonPreview() {
 internal fun PrimaryButtonLoadingPreview() {
     PuzzleBoxTheme {
         PrimaryButton(text = "Publishing", onClick = {}, modifier = Modifier.fillMaxWidth(), loading = true)
+    }
+}
+
+/** Destructive: the error fill, resting and loading. */
+@ShowkaseComposable(name = "PrimaryButton destructive", group = "Buttons")
+@PuzzleBoxPreviews
+@Composable
+internal fun PrimaryButtonDestructivePreview() {
+    PuzzleBoxTheme {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            PrimaryButton(text = "Unpublish", onClick = {}, destructive = true)
+            PrimaryButton(text = "Unpublish", onClick = {}, destructive = true, loading = true)
+        }
     }
 }
 
