@@ -17,6 +17,8 @@ dependencies {
     // GameEditorUi through the registries, never a games:* edge.
     implementation(projects.core.game)
     implementation(projects.core.gameUi)
+    // Publishing signs in first: the Google ID token comes from GoogleIdTokenProvider.
+    implementation(projects.core.auth)
 
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.core)
