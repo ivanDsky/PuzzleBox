@@ -1,25 +1,18 @@
 package com.ivandsky.puzzlebox.profile.di
 
-import androidx.annotation.StringRes
-import com.ivandsky.puzzlebox.app.auth.CredentialManagerGoogleIdTokenProvider
-import com.ivandsky.puzzlebox.app.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
+import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.IdentityService
-import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
 /**
- * Profile feature wiring: the Credential Manager sign-in seam and ProfileRoute's
- * koinViewModel(). The use cases come from domainModule; the GameRegistry, the per-game
- * brands (GamePlayRegistry) and UserPreferencesRepository from the app graph. [serverClientIdRes] is the app's google-services
- * `default_web_client_id` — that resource is generated into the app module only.
+ * Profile feature wiring: ProfileRoute's koinViewModel(). The sign-in seam comes from
+ * authModule, the use cases from domainModule; the GameRegistry, the per-game brands
+ * (GamePlayRegistry) and UserPreferencesRepository from the app graph.
  */
-fun profileModule(@StringRes serverClientIdRes: Int): Module = module {
-    single<GoogleIdTokenProvider> {
-        CredentialManagerGoogleIdTokenProvider(androidContext(), serverClientIdRes)
-    }
+val profileModule: Module = module {
     viewModel {
         ProfileViewModel(
             identityService = get<IdentityService>(),

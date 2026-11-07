@@ -2,14 +2,14 @@ package com.ivandsky.puzzlebox.app.screens
 
 import android.content.Context
 
-import com.ivandsky.puzzlebox.app.auth.GoogleIdToken
-import com.ivandsky.puzzlebox.app.auth.GoogleIdToken.Unavailable.Reason.CANCELLED
-import com.ivandsky.puzzlebox.app.auth.GoogleIdToken.Unavailable.Reason.MALFORMED
-import com.ivandsky.puzzlebox.app.auth.GoogleIdToken.Unavailable.Reason.NETWORK
-import com.ivandsky.puzzlebox.app.auth.GoogleIdToken.Unavailable.Reason.NO_CREDENTIAL
-import com.ivandsky.puzzlebox.app.auth.GoogleIdToken.Unavailable.Reason.OTHER
-import com.ivandsky.puzzlebox.app.auth.GoogleIdToken.Unavailable.Reason.PROVIDER_UNAVAILABLE
-import com.ivandsky.puzzlebox.app.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.auth.GoogleIdToken
+import com.ivandsky.puzzlebox.auth.GoogleIdToken.Unavailable.Reason.CANCELLED
+import com.ivandsky.puzzlebox.auth.GoogleIdToken.Unavailable.Reason.MALFORMED
+import com.ivandsky.puzzlebox.auth.GoogleIdToken.Unavailable.Reason.NETWORK
+import com.ivandsky.puzzlebox.auth.GoogleIdToken.Unavailable.Reason.NO_CREDENTIAL
+import com.ivandsky.puzzlebox.auth.GoogleIdToken.Unavailable.Reason.OTHER
+import com.ivandsky.puzzlebox.auth.GoogleIdToken.Unavailable.Reason.PROVIDER_UNAVAILABLE
+import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.Identity
