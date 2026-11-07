@@ -36,8 +36,8 @@ fun GameToggleButton(
         colors = gameButtonColors(if (checked) accent.colors() else null, MaterialTheme.colorScheme, LocalNeutralLip.current),
         enabled = enabled,
         interactionSource = interactionSource,
-        icon = icon,
         label = label,
+        describe = !size.showsLabel,
         size = size,
         modifier = modifier
             .semantics { stateDescription = if (checked) "On" else "Off" }
@@ -49,7 +49,7 @@ fun GameToggleButton(
                 role = Role.Switch,
                 onValueChange = onCheckedChange,
             ),
-    )
+    ) { ink -> GameButtonContent(icon, label.takeIf { size.showsLabel }, ink) }
 }
 
 // Previews — light + dark in PuzzleBoxTheme: off, on (accent fill), disabled.
