@@ -190,6 +190,19 @@ class ToolSlotSwapTest {
         awaitTag(SUMMARY)
     }
 
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp-land")
+    fun `on a tablet with friend sharing off a passed test keeps the tools in the side pane`() {
+        open(PlayLayout.TwoPane, flags = FakeReleaseFlags())
+        awaitTrue { vm.testSolve.passed.value != null }
+        composeRule.waitForIdle()
+
+        awaitTag(STRIP)
+        awaitGone(DETAILS)
+        awaitGone(EDIT_BOARD)
+        awaitGone(SUMMARY)
+    }
+
     private fun assertBoardKeepsItsSize() {
         open(PlayLayout.SinglePane)
         awaitTag(EDIT_BOARD)
