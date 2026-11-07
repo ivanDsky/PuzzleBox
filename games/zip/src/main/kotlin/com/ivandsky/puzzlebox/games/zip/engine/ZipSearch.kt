@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.games.zip.engine
 
+import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.games.zip.Cell
+import com.ivandsky.puzzlebox.games.zip.ZipBoard
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
 
 /**
@@ -10,14 +12,46 @@ import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
  * allocates): the pipeline predicates appear here as their primitive forms — the
  * completion gate is [EndAtLastWaypointRule] (`path.last() == last waypoint`), waypoint
  * monotonicity is [WaypointOrderRule] over the [ZipVerifier.waypointIndexTable].
+ *
+ * [bounded] polls its [Budget] once up front and then every [POLL_INTERVAL] DFS nodes;
+ * once spent it unwinds and answers [ZipSearchOutcome.Exhausted]. [search] runs the same
+ * walk with [Budget.Unlimited], so the solver, hints and generator see unchanged results.
  */
 object ZipSearch {
 
     fun search(puzzle: ZipPuzzle, prefix: List<Cell>, limit: Int): ZipSolver.Result {
+        var found = 0
+        var first: List<Cell>? = null
+        walk(puzzle, prefix, limit, Budget.Unlimited) { path ->
+            found++
+            if (first == null) first = path.toList()
+        }
+        return ZipSolver.Result(found, first)
+    }
+
+    /** Up to [limit] distinct full paths in search order, or Exhausted once [budget] is spent. */
+    fun bounded(puzzle: ZipPuzzle, limit: Int, budget: Budget): ZipSearchOutcome {
+        if (budget.exhausted()) return ZipSearchOutcome.Exhausted
+        val solutions = ArrayList<List<Cell>>()
+        val settled = walk(puzzle, emptyList(), limit, budget) { path -> solutions.add(path.toList()) }
+        return if (settled) ZipSearchOutcome.Done(solutions) else ZipSearchOutcome.Exhausted
+    }
+
+    /**
+     * Hands each full path, live, to [onSolution] until [limit] are found. Returns false
+     * when [budget] ran out before the search settled.
+     */
+    private fun walk(
+        puzzle: ZipPuzzle,
+        prefix: List<Cell>,
+        limit: Int,
+        budget: Budget,
+        onSolution: (List<Cell>) -> Unit,
+    ): Boolean {
         val board = puzzle.board
         val total = board.cellCount
-        if (board.waypoints.isEmpty() || limit <= 0) return ZipSolver.Result(0, null)
-        if (prefix.isNotEmpty() && !ZipVerifier.verifyPath(puzzle, prefix)) return ZipSolver.Result(0, null)
+        if (board.waypoints.isEmpty() || limit <= 0 || !parityAllows(board)) return true
+        if (prefix.isNotEmpty() && !ZipVerifier.verifyPath(puzzle, prefix)) return true
 
         val waypointIndex = ZipVerifier.waypointIndexTable(board)
 
@@ -39,7 +73,8 @@ object ZipSearch {
         }
 
         var found = 0
-        var first: List<Cell>? = null
+        var nodes = 0
+        var exhausted = false
 
         fun neighborsOf(cell: Cell): List<Cell> = board.neighbors(cell)
 
@@ -55,9 +90,13 @@ object ZipSearch {
                 // (ZipRules.isComplete agrees).
                 if (path.last() == board.waypoints.last()) {
                     found++
-                    if (first == null) first = path.toList()
+                    onSolution(path)
                 }
                 return found >= limit
+            }
+            if (++nodes % POLL_INTERVAL == 0 && budget.exhausted()) {
+                exhausted = true
+                return true
             }
             // Prune: unvisited cells reachable only as dead ends. Every unvisited cell with
             // <= 1 available neighbor must be the single FINAL cell of the path.
@@ -93,6 +132,21 @@ object ZipSearch {
         }
 
         dfs()
-        return ZipSolver.Result(found, first)
+        return !exhausted
     }
+
+    /**
+     * A full path visits every cell (walls only cut edges) and alternates checkerboard
+     * colours. On an even board its ends differ in colour; on an odd board both sit on the
+     * majority colour, the colour of cell 0. The dead-end prune cannot see this.
+     */
+    private fun parityAllows(board: ZipBoard): Boolean {
+        fun colour(cell: Cell): Int = (board.rowOf(cell) + board.colOf(cell)) % 2
+        val start = colour(board.waypoints.first())
+        val end = colour(board.waypoints.last())
+        return if (board.cellCount % 2 == 0) start != end else start == 0 && end == 0
+    }
+
+    /** DFS nodes between budget polls: each node scans the board, so well under 1 ms apart. */
+    private const val POLL_INTERVAL = 256
 }
