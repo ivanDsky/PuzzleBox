@@ -127,7 +127,7 @@ internal fun ClosedNote() {
             .testTag("custom_board.closed"),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Icon(PuzzleIcons.SavedOnDevice, contentDescription = null, modifier = Modifier.size(BoardIconSize), tint = muted.content)
+        Icon(PuzzleIcons.Lock, contentDescription = null, modifier = Modifier.size(BoardIconSize), tint = muted.content)
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text("Leaderboard closed", style = MaterialTheme.typography.titleSmall, color = muted.content)
             Text(

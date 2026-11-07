@@ -99,6 +99,10 @@ object PuzzleIcons {
     val Flame: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ic_local_fire_department)
 
+    /** Closed to new entries: `lock`. */
+    val Lock: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_lock)
+
     /** Hub status: not started, a ring (StatusMarkIcons.kt). */
     val StatusRing: ImageVector = StatusRingMark
 
@@ -151,6 +155,7 @@ internal fun PuzzleIconsPreview() {
             "Back" to PuzzleIcons.Back,
             "Check" to PuzzleIcons.Check,
             "Flame" to PuzzleIcons.Flame,
+            "Lock" to PuzzleIcons.Lock,
             "Close" to PuzzleIcons.Close,
             "Search" to PuzzleIcons.Search,
             "ExpandMore" to PuzzleIcons.ExpandMore,
