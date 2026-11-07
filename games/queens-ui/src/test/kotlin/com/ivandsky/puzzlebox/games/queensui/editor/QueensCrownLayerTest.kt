@@ -95,6 +95,24 @@ class QueensCrownLayerTest {
         rule.onAllNodesWithTag("queens.editor.cell.2.autoX", useUnmergedTree = true).assertCountEquals(1)
     }
 
+    @Test
+    fun `an auto x under the other answer's ghost crown is drawn dimmed`() {
+        rule.setContent {
+            PuzzleBoxTheme {
+                Column {
+                    listOf(false, true).forEachIndexed { idx, ghosted ->
+                        QueensCrownLayer(idx, region = 0, crowned = false, crossed = true, ghosted = ghosted, clash = false, rejection = null, reducedMotion = true)
+                    }
+                }
+            }
+        }
+
+        rule.onAllNodesWithTag("queens.editor.cell.0.autoX", useUnmergedTree = true).assertCountEquals(1)
+        rule.onAllNodesWithTag("queens.editor.cell.0.autoX.dim", useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithTag("queens.editor.cell.1.autoX", useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithTag("queens.editor.cell.1.autoX.dim", useUnmergedTree = true).assertCountEquals(1)
+    }
+
     private companion object {
         const val SIZE = 6
         const val CROWN = 14 // row 2, column 2: an inner cell with all 8 neighbours

@@ -134,7 +134,8 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
                                 QueensCell(model = model, idx = idx)
                             }
                             QueensClashWash(idx, diagnostics, reducedMotion)
-                            QueensCrownLayer(idx, region, idx in board.crowns, idx in autoX, idx in diagnostics.clash, rejection, reducedMotion)
+                            val ghosted = idx in diagnostics.ghosts
+                            QueensCrownLayer(idx, region, idx in board.crowns, idx in autoX, ghosted, idx in diagnostics.clash, rejection, reducedMotion)
                             QueensCellDiagnostics(idx, diagnostics, reducedMotion)
                             if (idx in stroked) Box(Modifier.matchParentSize().testTag("queens.editor.cell.$idx.stroke"))
                         }
