@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.game.map
 import com.ivandsky.puzzlebox.games.strands.codec.StrandsCodec
 import com.ivandsky.puzzlebox.games.strands.codec.StrandsSessionCodec
+import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
 import com.ivandsky.puzzlebox.games.strands.engine.StrandsRules
 import com.ivandsky.puzzlebox.games.strands.feed.NytStrandsDailySource
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
@@ -43,6 +44,7 @@ val strandsPlugin: GamePlugin<StrandsState, StrandsSession, StrandsRendererModel
             }
         },
         rendererModel = { state, _, _ -> StrandsRendererModel.of(state) },
+        editor = StrandsEditor,
     )
 
 /**
