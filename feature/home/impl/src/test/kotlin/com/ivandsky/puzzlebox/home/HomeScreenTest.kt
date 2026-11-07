@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.home
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
@@ -14,8 +15,10 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.TodayStatus
@@ -27,6 +30,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -112,6 +116,32 @@ class HomeScreenTest {
         composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo().performClick()
 
         composeRule.onNodeWithTag("home.day_detail").assertExists()
+        composeRule.onNodeWithTag("home.streak_pane").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a picked day rises over the stats pane, which holds still beneath it - polish 04`() {
+        setContent(
+            HomeLayout.TwoPane,
+            history = listOf(HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))),
+        )
+        composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo()
+        composeRule.waitForIdle()
+        val rest = composeRule.onNodeWithTag("home.streak_pane").getUnclippedBoundsInRoot().top
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.onNodeWithTag("home.history_row_2026-11-03").performClick()
+        // A paused clock never idles the looper, so the platform's deferred snapshot apply
+        // would not run; apply the pick ourselves or the swap is never seen.
+        composeRule.runOnIdle { Snapshot.sendApplyNotifications() }
+        composeRule.mainClock.advanceTimeBy(MotionTokens.MixTabIn / 3L)
+
+        assertEquals("the stats hold still", rest, composeRule.onNodeWithTag("home.streak_pane").getUnclippedBoundsInRoot().top)
+        val paneTop = composeRule.onNodeWithTag("home.detail_pane").getUnclippedBoundsInRoot().top
+        val risen = composeRule.onNodeWithTag("home.day_detail").getUnclippedBoundsInRoot().top
+        assertTrue("the day is still rising: $risen vs $paneTop", risen > paneTop)
+
+        composeRule.mainClock.advanceTimeBy(MotionTokens.MixTabIn.toLong() * 4)
         composeRule.onNodeWithTag("home.streak_pane").assertDoesNotExist()
     }
 

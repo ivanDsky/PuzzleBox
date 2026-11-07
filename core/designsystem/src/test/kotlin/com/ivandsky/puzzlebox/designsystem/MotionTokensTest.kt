@@ -47,6 +47,27 @@ class MotionTokensTest {
     }
 
     @Test
+    fun `navigation backs are quicker than their pushes`() {
+        assertTrue(MotionTokens.NavFullSlidePop < MotionTokens.NavFullSlideEnter)
+        assertTrue(MotionTokens.MixAxisPop < MotionTokens.MixAxisPush)
+        assertTrue(MotionTokens.LiftExit < MotionTokens.LiftEnter)
+        assertTrue(MotionTokens.NavTabExit < MotionTokens.NavTabEnter)
+    }
+
+    @Test
+    fun `navigation fractions and scrims are partial`() {
+        for (fraction in listOf(
+            MotionTokens.NavParallaxFraction,
+            MotionTokens.NavScrimAlpha,
+            MotionTokens.LiftNavFraction,
+            MotionTokens.LiftScrimAlpha,
+            MotionTokens.MixLiftCardFade,
+        )) {
+            assertTrue("$fraction in (0, 1)", fraction > 0f && fraction < 1f)
+        }
+    }
+
+    @Test
     fun `trace retract and home are faster than grow-in`() {
         assertTrue(MotionTokens.Trace.RetractDuration < MotionTokens.Trace.GrowDuration)
         assertTrue(MotionTokens.Trace.HomeDuration < MotionTokens.Trace.GrowDuration)

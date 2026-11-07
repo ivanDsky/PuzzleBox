@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.formatDuration
+import com.ivandsky.puzzlebox.designsystem.navLiftSource
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.ArchiveDay
 import com.ivandsky.puzzlebox.domain.PastDayStatus
@@ -41,6 +42,7 @@ import com.ivandsky.puzzlebox.gameui.SkeletonLine
 import com.ivandsky.puzzlebox.gameui.StatusMark
 import com.ivandsky.puzzlebox.gameui.pastDayAction
 import com.ivandsky.puzzlebox.gameui.pastDayStatusLine
+import com.ivandsky.puzzlebox.play.api.GameKey
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -89,7 +91,9 @@ internal fun ArchiveDayCard(
     GameCardSurface(
         colors = colors,
         onClick = action,
-        modifier = modifier.fillMaxWidth().heightIn(min = 196.dp).testTag("library.day_card"),
+        // Keyed like the push onPlay makes, so the board lifts out of this card (tablet).
+        modifier = modifier.fillMaxWidth().heightIn(min = 196.dp).testTag("library.day_card")
+            .navLiftSource(GameKey(card.game.value, past?.date?.toString())),
         motif = {
             GameMotif(card.brand, 300.dp, 1.4f, Alignment.BottomEnd, DpOffset(46.dp, 80.dp), colors.motif, colors.motifAlpha)
         },
