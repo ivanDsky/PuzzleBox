@@ -1,0 +1,1671 @@
+{
+  "project": "puzzlebox-f3356",
+  "time": "2026-11-07T12:00:00Z",
+  "fixtures": {
+    "puzzle": {
+      "formatVersion": 1,
+      "gameId": "queens",
+      "variant": "classic",
+      "shareCodecVersion": 1,
+      "payload": "AQIDBA==",
+      "title": "Morning crown",
+      "authorName": "Alice",
+      "note": "",
+      "authorUid": "alice",
+      "authorTimeMs": 102000,
+      "authorHints": 0,
+      "createdAt": "2026-11-07T12:00:00Z",
+      "unpublished": false
+    },
+    "puzzleUnpublished": {
+      "$fixture": "puzzle",
+      "unpublished": true
+    },
+    "entry": {
+      "formatVersion": 1,
+      "uid": "bob",
+      "displayName": "Bob",
+      "puzzleRef": "custom/queens/K7Q2MX",
+      "timeMs": 95000,
+      "hints": 1,
+      "completedAtMs": 1794052800000
+    },
+    "dailyEntry": {
+      "formatVersion": 1,
+      "uid": "bob",
+      "displayName": "Bob",
+      "puzzleRef": "zip/2026-11-07/1",
+      "timeMs": 61000,
+      "hints": 0,
+      "completedAtMs": 1794052800000
+    }
+  },
+  "cases": [
+    {
+      "group": "puzzles",
+      "name": "anonymous get of a puzzle",
+      "expect": "allow",
+      "method": "get",
+      "path": "puzzles/K7Q2MX",
+      "auth": null,
+      "resource": {
+        "$fixture": "puzzle"
+      }
+    },
+    {
+      "group": "puzzles",
+      "name": "signed-in get of a puzzle",
+      "expect": "allow",
+      "method": "get",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "puzzle"
+      }
+    },
+    {
+      "group": "puzzles",
+      "name": "anonymous list of puzzles",
+      "expect": "deny",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": null
+    },
+    {
+      "group": "puzzles",
+      "name": "signed-in list of puzzles",
+      "expect": "deny",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob"
+    },
+    {
+      "group": "puzzles",
+      "name": "create as author with the authors bump (4 -> 5)",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "first-ever create starts the authors doc at 1",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": false
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 1
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "first create of a new UTC day restarts at 1",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-06",
+            "count": 20
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 1
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "20th create in a day (19 -> 20)",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 19
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 20
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "21st create in a day (20 -> 21)",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 20
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 21
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "create without bumping the authors doc",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "create bumping the authors doc by two",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 6
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "create whose authors doc is stamped with another day",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": false
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-06",
+            "count": 1
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "signed-out create",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": null,
+      "data": {
+        "$fixture": "puzzle"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": false
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 1
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "create as another uid",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "puzzle"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/bob",
+          "value": false
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/bob",
+          "data": {
+            "day": "2026-11-07",
+            "count": 1
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "60-char title",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "title": {
+          "$repeat": [
+            "t",
+            60
+          ]
+        }
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "61-char title",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "title": {
+          "$repeat": [
+            "t",
+            61
+          ]
+        }
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "empty title",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "title": ""
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "40-char author name",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "authorName": {
+          "$repeat": [
+            "a",
+            40
+          ]
+        }
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "41-char author name",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "authorName": {
+          "$repeat": [
+            "a",
+            41
+          ]
+        }
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "140-char note",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "note": {
+          "$repeat": [
+            "n",
+            140
+          ]
+        }
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "141-char note",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "note": {
+          "$repeat": [
+            "n",
+            141
+          ]
+        }
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "8192-char payload",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "payload": {
+          "$repeat": [
+            "A",
+            8192
+          ]
+        }
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "8193-char payload",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "payload": {
+          "$repeat": [
+            "A",
+            8193
+          ]
+        }
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "create already unpublished",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "unpublished": true
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "createdAt other than the server time",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "createdAt": "2026-11-07T11:59:59Z"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "formatVersion 2",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "formatVersion": 2
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "an extra field",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "solution": "AQID"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "a code outside the share alphabet",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MI",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "author flips unpublished false -> true",
+      "expect": "allow",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "unpublished": true
+      }
+    },
+    {
+      "group": "puzzles",
+      "name": "another user flips unpublished",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "unpublished": true
+      }
+    },
+    {
+      "group": "puzzles",
+      "name": "author flips unpublished true -> false",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "puzzleUnpublished"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "unpublished": false
+      }
+    },
+    {
+      "group": "puzzles",
+      "name": "author edits the title",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "title": "Evening crown"
+      }
+    },
+    {
+      "group": "puzzles",
+      "name": "author edits the payload",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "payload": "BQYHCA=="
+      }
+    },
+    {
+      "group": "puzzles",
+      "name": "author flips unpublished and edits the note",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "unpublished": true,
+        "note": "fixed"
+      }
+    },
+    {
+      "group": "puzzles",
+      "name": "author deletes a puzzle",
+      "expect": "deny",
+      "method": "delete",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "puzzle"
+      }
+    },
+    {
+      "group": "authors",
+      "name": "author reads own authors doc",
+      "expect": "allow",
+      "method": "get",
+      "path": "authors/alice",
+      "auth": "alice",
+      "resource": {
+        "day": "2026-11-07",
+        "count": 4
+      }
+    },
+    {
+      "group": "authors",
+      "name": "another user reads an authors doc",
+      "expect": "deny",
+      "method": "get",
+      "path": "authors/alice",
+      "auth": "bob",
+      "resource": {
+        "day": "2026-11-07",
+        "count": 4
+      }
+    },
+    {
+      "group": "authors",
+      "name": "signed-out read of an authors doc",
+      "expect": "deny",
+      "method": "get",
+      "path": "authors/alice",
+      "auth": null,
+      "resource": {
+        "day": "2026-11-07",
+        "count": 4
+      }
+    },
+    {
+      "group": "authors",
+      "name": "list of authors",
+      "expect": "deny",
+      "method": "list",
+      "path": "authors/alice",
+      "auth": "alice"
+    },
+    {
+      "group": "authors",
+      "name": "author writes the bump (4 -> 5)",
+      "expect": "allow",
+      "method": "update",
+      "path": "authors/alice",
+      "auth": "alice",
+      "resource": {
+        "day": "2026-11-07",
+        "count": 4
+      },
+      "data": {
+        "day": "2026-11-07",
+        "count": 5
+      }
+    },
+    {
+      "group": "authors",
+      "name": "author starts the authors doc at 1",
+      "expect": "allow",
+      "method": "create",
+      "path": "authors/alice",
+      "auth": "alice",
+      "data": {
+        "day": "2026-11-07",
+        "count": 1
+      }
+    },
+    {
+      "group": "authors",
+      "name": "author restarts at 1 on a new day",
+      "expect": "allow",
+      "method": "update",
+      "path": "authors/alice",
+      "auth": "alice",
+      "resource": {
+        "day": "2026-11-06",
+        "count": 20
+      },
+      "data": {
+        "day": "2026-11-07",
+        "count": 1
+      }
+    },
+    {
+      "group": "authors",
+      "name": "author writes the 20th bump (19 -> 20)",
+      "expect": "allow",
+      "method": "update",
+      "path": "authors/alice",
+      "auth": "alice",
+      "resource": {
+        "day": "2026-11-07",
+        "count": 19
+      },
+      "data": {
+        "day": "2026-11-07",
+        "count": 20
+      }
+    },
+    {
+      "group": "authors",
+      "name": "author writes the 21st bump (20 -> 21)",
+      "expect": "deny",
+      "method": "update",
+      "path": "authors/alice",
+      "auth": "alice",
+      "resource": {
+        "day": "2026-11-07",
+        "count": 20
+      },
+      "data": {
+        "day": "2026-11-07",
+        "count": 21
+      }
+    },
+    {
+      "group": "authors",
+      "name": "author resets the count the same day",
+      "expect": "deny",
+      "method": "update",
+      "path": "authors/alice",
+      "auth": "alice",
+      "resource": {
+        "day": "2026-11-07",
+        "count": 20
+      },
+      "data": {
+        "day": "2026-11-07",
+        "count": 1
+      }
+    },
+    {
+      "group": "authors",
+      "name": "author stamps another day",
+      "expect": "deny",
+      "method": "update",
+      "path": "authors/alice",
+      "auth": "alice",
+      "resource": {
+        "day": "2026-11-07",
+        "count": 4
+      },
+      "data": {
+        "day": "2026-11-08",
+        "count": 1
+      }
+    },
+    {
+      "group": "authors",
+      "name": "author starts the authors doc above 1",
+      "expect": "deny",
+      "method": "create",
+      "path": "authors/alice",
+      "auth": "alice",
+      "data": {
+        "day": "2026-11-07",
+        "count": 5
+      }
+    },
+    {
+      "group": "authors",
+      "name": "another user writes an authors doc",
+      "expect": "deny",
+      "method": "update",
+      "path": "authors/alice",
+      "auth": "bob",
+      "resource": {
+        "day": "2026-11-07",
+        "count": 4
+      },
+      "data": {
+        "day": "2026-11-07",
+        "count": 5
+      }
+    },
+    {
+      "group": "authors",
+      "name": "author deletes the authors doc",
+      "expect": "deny",
+      "method": "delete",
+      "path": "authors/alice",
+      "auth": "alice",
+      "resource": {
+        "day": "2026-11-07",
+        "count": 4
+      }
+    },
+    {
+      "group": "puzzle entries",
+      "name": "signed-in friend writes a first entry",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "entry"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle entries",
+      "name": "signed-in get of an entry",
+      "expect": "allow",
+      "method": "get",
+      "path": "puzzles/K7Q2MX/entries/bob",
+      "auth": "carol",
+      "resource": {
+        "$fixture": "entry"
+      }
+    },
+    {
+      "group": "puzzle entries",
+      "name": "signed-in list of a board",
+      "expect": "allow",
+      "method": "list",
+      "path": "puzzles/K7Q2MX/entries/bob",
+      "auth": "carol"
+    },
+    {
+      "group": "puzzle entries",
+      "name": "signed-out get of an entry",
+      "expect": "deny",
+      "method": "get",
+      "path": "puzzles/K7Q2MX/entries/bob",
+      "auth": null,
+      "resource": {
+        "$fixture": "entry"
+      }
+    },
+    {
+      "group": "puzzle entries",
+      "name": "signed-out list of a board",
+      "expect": "deny",
+      "method": "list",
+      "path": "puzzles/K7Q2MX/entries/bob",
+      "auth": null
+    },
+    {
+      "group": "puzzle entries",
+      "name": "second entry write (update of an existing entry)",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX/entries/bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "entry"
+      },
+      "data": {
+        "$fixture": "entry",
+        "timeMs": 90000
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle entries",
+      "name": "entry on an unpublished puzzle",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "entry"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzleUnpublished"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle entries",
+      "name": "author entry on their own puzzle",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/entries/alice",
+      "auth": "alice",
+      "data": {
+        "$fixture": "entry",
+        "uid": "alice"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle entries",
+      "name": "entry under another uid",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/entries/bob",
+      "auth": "carol",
+      "data": {
+        "$fixture": "entry"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle entries",
+      "name": "entry whose puzzleRef names another game",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "entry",
+        "puzzleRef": "custom/zip/K7Q2MX"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle entries",
+      "name": "entry whose puzzleRef names another code",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "entry",
+        "puzzleRef": "custom/queens/AAAAAA"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle entries",
+      "name": "entry with timeMs 0",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "entry",
+        "timeMs": 0
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle entries",
+      "name": "entry with negative hints",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "entry",
+        "hints": -1
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle entries",
+      "name": "entry with formatVersion 2",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "entry",
+        "formatVersion": 2
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle entries",
+      "name": "entry with an extra field",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "entry",
+        "rank": 1
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle entries",
+      "name": "entry on a missing puzzle",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "entry"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "missing": true
+        }
+      ]
+    },
+    {
+      "group": "puzzle entries",
+      "name": "owner deletes an entry",
+      "expect": "deny",
+      "method": "delete",
+      "path": "puzzles/K7Q2MX/entries/bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "entry"
+      }
+    },
+    {
+      "group": "daily leaderboards (unchanged)",
+      "name": "signed-in read of a daily entry",
+      "expect": "allow",
+      "method": "get",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "carol",
+      "resource": {
+        "$fixture": "dailyEntry"
+      }
+    },
+    {
+      "group": "daily leaderboards (unchanged)",
+      "name": "signed-in list of a daily board",
+      "expect": "allow",
+      "method": "list",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "carol"
+    },
+    {
+      "group": "daily leaderboards (unchanged)",
+      "name": "signed-out read of a daily entry",
+      "expect": "deny",
+      "method": "get",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": null,
+      "resource": {
+        "$fixture": "dailyEntry"
+      }
+    },
+    {
+      "group": "daily leaderboards (unchanged)",
+      "name": "owner creates a valid daily entry",
+      "expect": "allow",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry"
+      }
+    },
+    {
+      "group": "daily leaderboards (unchanged)",
+      "name": "daily entry under another uid",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "carol",
+      "data": {
+        "$fixture": "dailyEntry"
+      }
+    },
+    {
+      "group": "daily leaderboards (unchanged)",
+      "name": "daily entry whose ref names another board",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "zip/2026-11-06/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (unchanged)",
+      "name": "daily entry with a custom ref",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "custom/zip/K7Q2MX"
+      }
+    },
+    {
+      "group": "daily leaderboards (unchanged)",
+      "name": "daily entry with timeMs 0",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "timeMs": 0
+      }
+    },
+    {
+      "group": "daily leaderboards (unchanged)",
+      "name": "daily entry with formatVersion 2",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "formatVersion": 2
+      }
+    },
+    {
+      "group": "daily leaderboards (unchanged)",
+      "name": "second daily entry write",
+      "expect": "deny",
+      "method": "update",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "dailyEntry"
+      },
+      "data": {
+        "$fixture": "dailyEntry",
+        "timeMs": 1000
+      }
+    },
+    {
+      "group": "daily leaderboards (unchanged)",
+      "name": "owner deletes a daily entry",
+      "expect": "deny",
+      "method": "delete",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "dailyEntry"
+      }
+    },
+    {
+      "group": "deny-all",
+      "name": "signed-in read of an unmatched path",
+      "expect": "deny",
+      "method": "get",
+      "path": "users/bob",
+      "auth": "bob",
+      "resource": {
+        "x": 1
+      }
+    },
+    {
+      "group": "deny-all",
+      "name": "signed-in write of an unmatched path",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/bob",
+      "auth": "bob",
+      "data": {
+        "x": 1
+      }
+    },
+    {
+      "group": "deny-all",
+      "name": "signed-in read of a puzzle's unknown subcollection",
+      "expect": "deny",
+      "method": "get",
+      "path": "puzzles/K7Q2MX/comments/c1",
+      "auth": "bob",
+      "resource": {
+        "x": 1
+      }
+    }
+  ]
+}
