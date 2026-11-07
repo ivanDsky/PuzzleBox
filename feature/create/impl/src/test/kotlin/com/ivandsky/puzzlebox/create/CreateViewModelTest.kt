@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.create
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
+import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.game.GamePlugin
@@ -20,9 +21,11 @@ import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
@@ -154,6 +157,34 @@ class CreateViewModelTest {
     }
 
     @Test
+    fun `a second pick while the first draft is still being stored creates nothing`() = runTest(mainRule.testDispatcher) {
+        // Room's insert suspends; a pick that lands meanwhile must not start a second draft.
+        val slowDrafts = object : DraftRepository by drafts {
+            override suspend fun upsert(draft: Draft) {
+                delay(INSERT_MS)
+                drafts.upsert(draft)
+            }
+        }
+        var next = 0
+        val createDraft = CreateDraft(games, slowDrafts, newId = { "new-${++next}" }, clock = { NOW })
+        val copyDraft = CreateDraftCopy(drafts, newId = { "copy" }, clock = { NOW })
+        val vm = CreateViewModel(games, editors, GamePlayRegistry(emptyList()), drafts, createDraft, copyDraft, lanes, clock = { NOW })
+        val opened = mutableListOf<String>()
+
+        vm.newPuzzle(wideId, wideSizes[1], onCreated = opened::add)
+        vm.newPuzzle(wideId, wideSizes[2], onCreated = opened::add)
+        advanceUntilIdle()
+
+        assertEquals(listOf("new-1"), opened)
+        assertEquals(setOf("new-1"), drafts.rows.keys)
+        assertEquals(wideSizes[1], drafts.rows.getValue("new-1").variant)
+
+        vm.newPuzzle(wideId, wideSizes[3], onCreated = opened::add)
+        advanceUntilIdle()
+        assertEquals(listOf("new-1", "new-2"), opened)
+    }
+
+    @Test
     fun `duplicate stores the board under the next title without the test solve or code`() = runTest(mainRule.testDispatcher) {
         store("a", minutesAgo = 5, marks = 2, title = "Castle", tested = true)
         val source = drafts.rows.getValue("a")
@@ -234,6 +265,7 @@ class CreateViewModelTest {
     private companion object {
         val NOW: Instant = Instant.parse("2026-11-06T10:00:00Z")
         const val UNDO_WINDOW_MS = 5_000L
+        const val INSERT_MS = 50L
 
         fun withEditor(game: GameId, editor: GameEditor<*>): GamePlugin<*, *, *> {
             val base = TestGames.plugin(game)

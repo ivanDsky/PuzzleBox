@@ -80,6 +80,7 @@ class CreateViewModel(
     /** The last deleted draft while its Undo is offered. */
     private val deleted = MutableStateFlow<Draft?>(null)
     private var undoWindow: Job? = null
+    private var creating: Job? = null
 
     /** Stamps already analysed or in flight; touched on the main thread only. */
     private val requested = mutableSetOf<DraftStamp>()
@@ -97,9 +98,13 @@ class CreateViewModel(
         filter.value = game
     }
 
-    /** Stores a blank [variant] draft of [gameId] (a choice the sheet offered) and reports its id. */
+    /**
+     * Stores a blank [variant] draft of [gameId] (a choice the sheet offered) and reports its id.
+     * A pick while the previous draft is still being stored is dropped, so a double tap makes one draft.
+     */
     fun newPuzzle(gameId: GameId, variant: VariantId, onCreated: (draftId: String) -> Unit) {
-        viewModelScope.launch {
+        if (creating?.isActive == true) return
+        creating = viewModelScope.launch {
             onCreated(createDraft(gameId, variant).id)
         }
     }

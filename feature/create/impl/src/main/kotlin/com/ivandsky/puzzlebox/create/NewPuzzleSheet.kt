@@ -24,6 +24,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -46,13 +47,9 @@ private val SizeRowMinHeight = 56.dp
 /**
  * The New puzzle sheet (spec A1, A5; 01 handoff "New puzzle sheet"): one [GameStartRow] per
  * game in [games] (glyph tile, one-line rule, default size), then the picked game's sizes,
- * exactly its editor's variants in order. Picking a
- * size slides the sheet away, then reports it through [onPick]; back on the sizes step
- * returns to the games. [initialGame] opens straight on that game's sizes.
- *
- * Motion: the sheet's **Slide in / Slide out** and the scrim's **Fade** are
- * ModalBottomSheet's own; the games ↔ sizes step is a **Crossfade** (DurationMedium in,
- * DurationShort out, EasingStandard), a plain ReducedFadeDuration fade under reduced motion.
+ * exactly its editor's variants in order. Picking a size slides the sheet away, then reports
+ * it through [onPick], once per sheet; back on the sizes step returns to the games.
+ * [initialGame] opens straight on that game's sizes.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,6 +64,8 @@ fun NewPuzzleSheet(
     val scope = rememberCoroutineScope()
     var pickedId by rememberSaveable { mutableStateOf(initialGame?.value) }
     val picked = games.firstOrNull { it.id.value == pickedId }
+    // A second size tap mid-hide would cancel the first hide, and both picks would report.
+    var picking by remember { mutableStateOf(false) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         modifier = modifier.testTag("create.new.sheet"),
@@ -79,7 +78,12 @@ fun NewPuzzleSheet(
             onBack = { pickedId = null },
             onSize = { variant ->
                 val game = picked ?: return@NewPuzzleSheetContent
-                scope.launch { sheetState.hide() }.invokeOnCompletion { onPick(game.id, variant) }
+                if (picking) return@NewPuzzleSheetContent
+                picking = true
+                scope.launch {
+                    sheetState.hide()
+                    onPick(game.id, variant)
+                }
             },
         )
     }
