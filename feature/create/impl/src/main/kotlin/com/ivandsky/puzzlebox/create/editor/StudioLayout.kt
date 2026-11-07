@@ -67,7 +67,7 @@ internal fun StudioLayout(
             actionArea(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg))
         }
         PlayLayout.TwoPane -> Row(modifier.fillMaxSize()) {
-            BoardSlot(
+            SquareBoardSlot(
                 alignment = Alignment.Center,
                 board = board,
                 modifier = Modifier.weight(1f).fillMaxHeight().padding(Spacing.lg),
@@ -124,9 +124,9 @@ private fun PhoneBoardSlot(
     }
 }
 
-/** The square the game's board fills: the smaller of the slot's width and height. */
+/** The square the game's board fills: the smaller of the slot's width and height, at [alignment]. */
 @Composable
-private fun BoardSlot(
+internal fun SquareBoardSlot(
     alignment: Alignment,
     board: @Composable (Modifier) -> Unit,
     modifier: Modifier,

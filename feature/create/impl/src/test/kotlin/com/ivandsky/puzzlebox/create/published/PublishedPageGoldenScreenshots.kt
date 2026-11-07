@@ -33,6 +33,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
@@ -58,22 +59,22 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowLooper
 
 /**
- * A published puzzle's page, phone and tablet, light and dark: live with its ticket and
- * Unpublish…, the unpublish confirm dialog, the dialog's offline line after a failed confirm,
- * and the unpublished record with its code struck. The page runs on its real view model over
- * fake stores; the board is a placeholder square. Goldens in `snapshots/published/`.
+ * A published puzzle's page, phone (single pane) and tablet (two panes), light and dark: live
+ * with its ticket and Unpublish…, the unpublish confirm dialog, the dialog's offline line after a
+ * failed confirm, and the unpublished record with its code struck. The page runs on its real
+ * view model over fake stores; the board is a placeholder square. Goldens in `snapshots/published/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = GOLDEN_PHONE)
-class PublishedPageGoldenScreenshotsPhone : PublishedPageGoldenScreenshots("phone")
+class PublishedPageGoldenScreenshotsPhone : PublishedPageGoldenScreenshots(PlayLayout.SinglePane, "phone")
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = GOLDEN_TABLET)
-class PublishedPageGoldenScreenshotsTablet : PublishedPageGoldenScreenshots("tablet")
+class PublishedPageGoldenScreenshotsTablet : PublishedPageGoldenScreenshots(PlayLayout.TwoPane, "tablet")
 
-abstract class PublishedPageGoldenScreenshots(private val device: String) {
+abstract class PublishedPageGoldenScreenshots(private val layout: PlayLayout, private val device: String) {
 
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
@@ -116,7 +117,7 @@ abstract class PublishedPageGoldenScreenshots(private val device: String) {
                 },
             )
         }
-        rule.showGolden(dark, frozen = false) { PublishedPuzzleRoute(PublishedPuzzleKey(CODE.value), onBack = {}, onOpen = {}) }
+        rule.showGolden(dark, frozen = false) { PublishedPuzzleRoute(PublishedPuzzleKey(CODE.value), layout, onBack = {}, onOpen = {}) }
         awaitTag("create.published.ticket")
         then()
         rule.settleAndCapture("published", name, device, dark)
