@@ -6,6 +6,8 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.common.di.commonModule
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
@@ -36,6 +38,7 @@ import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -61,7 +64,8 @@ import org.robolectric.annotation.Config
 /**
  * From friends in the Play library (spec A19): the section lists every received puzzle with
  * its status and is hidden while there is none; a friend puzzle's saved play shows on its
- * card, never in a daily's status; a card opens the puzzle's card by its code.
+ * card, never in a daily's status; a card opens the puzzle's card by its code. With friend
+ * sharing off (ADR-0022) the section never shows.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp")
@@ -84,6 +88,9 @@ class LibraryFromFriendsTest {
 
     private var koin: KoinApplication? = null
 
+    /** Friend sharing on unless a test turns it off before setContent. */
+    private var flags = FakeReleaseFlags(ReleaseFlag.FriendSharing)
+
     @Before
     fun setUp() {
         stopKoin() // tests share the JVM-global Koin context
@@ -93,6 +100,7 @@ class LibraryFromFriendsTest {
             modules(
                 commonModule,
                 module {
+                    single<ReleaseFlags> { flags }
                     single<DailyRepository> { daily }
                     single<CompletionRepository> { completions }
                     single<GameRegistry> { fakes.games }
@@ -159,6 +167,17 @@ class LibraryFromFriendsTest {
         awaitTag("library.friends.${B.value}.status.solved")
         composeRule.onNodeWithTag("library.friends.row.${A.value}").assertExists()
         composeRule.onNodeWithTag("library.friends.row.${B.value}").assertExists()
+    }
+
+    @Test
+    fun `with friend sharing off the section stays hidden though puzzles came from friends`() {
+        runBlocking { received.upsert(puzzle(A, openedAt = 1)) }
+        flags = FakeReleaseFlags()
+        setContent()
+        awaitTag("card.status_mark.not_started")
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("library.friends").assertDoesNotExist()
     }
 
     @Test

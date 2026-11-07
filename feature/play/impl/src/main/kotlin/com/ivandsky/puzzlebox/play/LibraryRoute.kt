@@ -52,7 +52,8 @@ import org.koin.compose.koinInject
  * day card's day and pages months ([LibraryViewModel.page]). A row whose today can't load also retries; each start prefetches
  * today's uncached puzzles ([LibraryViewModel.syncToday], A12). "Open the lesson" runs
  * the game's tutorial over the library. The header's Enter code opens the code sheet, whose
- * Open is [onOpenCode]; it shows only while [ReleaseFlag.FriendSharing] is on (ADR-0022).
+ * Open is [onOpenCode]. Enter code and From friends show only while [ReleaseFlag.FriendSharing]
+ * is on (ADR-0022).
  */
 @Composable
 internal fun LibraryRoute(
@@ -91,7 +92,7 @@ internal fun LibraryRoute(
                 onBackToToday = viewModel::backToToday,
             ),
             onEnterCode = { enteringCode = true }.takeIf { ReleaseFlag.FriendSharing in flags },
-            friends = friends,
+            friends = friends.takeIf { ReleaseFlag.FriendSharing in flags }.orEmpty(),
             onOpenFriend = onOpenCode,
         )
         if (enteringCode) {

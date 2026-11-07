@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.app.e2e
 
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
@@ -23,6 +24,7 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import kotlinx.coroutines.flow.first
@@ -79,6 +81,7 @@ class FriendResumeE2ETest {
                 }.also(processes::add).koin.get()
             }
         },
+        releaseFlags = FakeReleaseFlags(ReleaseFlag.FriendSharing),
     )
 
     @Test

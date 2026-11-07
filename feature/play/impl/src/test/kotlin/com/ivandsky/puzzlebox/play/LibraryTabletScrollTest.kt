@@ -7,6 +7,8 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.common.di.commonModule
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
@@ -33,6 +35,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -76,6 +79,9 @@ class LibraryTabletScrollTest {
 
     private var koin: KoinApplication? = null
 
+    /** Friend sharing on unless a test turns it off before setContent. */
+    private var flags = FakeReleaseFlags(ReleaseFlag.FriendSharing)
+
     @Before
     fun setUp() {
         stopKoin() // tests share the JVM-global Koin context
@@ -84,6 +90,7 @@ class LibraryTabletScrollTest {
             modules(
                 commonModule,
                 module {
+                    single<ReleaseFlags> { flags }
                     single<DailyRepository> { daily }
                     single<CompletionRepository> { completions }
                     single<GameRegistry> { fakes.games }
