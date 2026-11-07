@@ -42,8 +42,10 @@ private const val MINE_POP_FROM_SCALE = 0.9f
  * and, when this user ranks below them, a gap and their row; until this user's own row is on
  * the board their best ([yours]) stands in as a "You" row saying where its post is ([postState]).
  * Signed out, it offers [onSignIn] ([signIn] says how the last try went); unreadable, it says
- * so. Null [board] is the first read in flight. States crossfade and the card's height follows
- * its rows as a layout animation; under reduced motion both are instant.
+ * so. Null [board] is the first read in flight. Once the author takes the puzzle down the board
+ * is [closed]: its rows still show, it says it is closed, offers no sign-in and promises no
+ * post. States crossfade and the card's height follows its rows as a layout animation; under
+ * reduced motion both are instant.
  */
 @Composable
 internal fun CustomBoard(
@@ -54,9 +56,11 @@ internal fun CustomBoard(
     rankOrder: RankOrder,
     signIn: BoardSignIn,
     onSignIn: () -> Unit,
+    closed: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val reduced = rememberReducedMotion()
+    val post = postOn(postState, closed)
     val resize = if (reduced) {
         Modifier
     } else {
@@ -87,18 +91,19 @@ internal fun CustomBoard(
                     null -> Box(Modifier.fillMaxWidth().padding(Spacing.md), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(Modifier.testTag("custom_board.loading"))
                     }
-                    is CustomBoardView.Ranked -> RankedLines(shown, yours, postState, reduced)
+                    is CustomBoardView.Ranked -> RankedLines(shown, yours, post, reduced)
                     is CustomBoardView.SignedOut -> {
-                        YouLine(yours, statusOf(postState, shown))
-                        SignInPrompt(yours.timeMs, signIn, onSignIn)
+                        YouLine(yours, statusOf(post, shown))
+                        if (!closed) SignInPrompt(yours.timeMs, signIn, onSignIn)
                     }
                     is CustomBoardView.Unavailable -> {
-                        YouLine(yours, statusOf(postState, shown))
-                        UnavailableNote()
+                        YouLine(yours, statusOf(post, shown))
+                        if (!closed) UnavailableNote()
                     }
                 }
             }
         }
+        if (closed) ClosedNote()
     }
 }
 

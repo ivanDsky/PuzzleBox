@@ -45,7 +45,10 @@ internal data class CustomResultState(
     /** The puzzle's board; null until its first read lands. */
     val board: CustomBoardView? = null,
     val signIn: BoardSignIn = BoardSignIn.Idle,
-)
+) {
+    /** The author took the puzzle down: it still plays here, but its board takes no new entries. */
+    val boardClosed: Boolean get() = puzzle?.unpublished == true
+}
 
 /** Whether a solve set this device's record of a friend's puzzle. */
 internal sealed interface CustomStanding {

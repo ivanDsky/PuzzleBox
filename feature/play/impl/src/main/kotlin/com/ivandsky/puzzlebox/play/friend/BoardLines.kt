@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.model.PostState
+import com.ivandsky.puzzlebox.designsystem.LocalMutedStatus
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -104,6 +105,37 @@ internal fun statusOf(postState: PostState?, board: CustomBoardView): YouStatus?
         is CustomBoardView.SignedOut -> YouStatus.AwaitsSignIn
         is CustomBoardView.Unavailable -> YouStatus.AwaitsConnection
         is CustomBoardView.Ranked -> YouStatus.Posting
+    }
+}
+
+/** Where a best whose post is [postState] stands on a board that is [closed] to new entries: one still waiting never posts. */
+internal fun postOn(postState: PostState?, closed: Boolean): PostState? =
+    if (closed && postState == PostState.Pending) PostState.LocalOnly else postState
+
+/**
+ * A board its author took down: closed to new entries, in the muted status role every
+ * taken-down state wears. The puzzle still plays, and times stay on this phone.
+ */
+@Composable
+internal fun ClosedNote() {
+    val muted = LocalMutedStatus.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(muted.container, MaterialTheme.shapes.small)
+            .padding(Spacing.md)
+            .testTag("custom_board.closed"),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Icon(PuzzleIcons.SavedOnDevice, contentDescription = null, modifier = Modifier.size(BoardIconSize), tint = muted.content)
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text("Leaderboard closed", style = MaterialTheme.typography.titleSmall, color = muted.content)
+            Text(
+                "The author took this puzzle down. It still plays, and your times stay on this phone.",
+                style = MaterialTheme.typography.bodySmall,
+                color = muted.content,
+            )
+        }
     }
 }
 

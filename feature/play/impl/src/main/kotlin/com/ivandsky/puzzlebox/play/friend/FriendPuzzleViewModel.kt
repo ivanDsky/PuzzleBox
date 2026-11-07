@@ -6,10 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.CustomBoardView
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.OpenOutcome
+import com.ivandsky.puzzlebox.domain.SyncReceivedStatus
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -49,7 +51,7 @@ internal sealed interface FriendCardState {
 
 /**
  * What a friend's puzzle card shows: the stored [puzzle] in its game's [brand], named [gameName],
- * sized [size], and a preview of its [board].
+ * sized [size], and a preview of its [board], closed once the author takes the puzzle down.
  */
 internal data class FriendCard(
     val puzzle: ReceivedPuzzle,
@@ -65,6 +67,9 @@ internal data class FriendCard(
 ) {
     /** The board the card's primary action opens. */
     val play: CustomGameKey get() = CustomGameKey(puzzle.gameId.value, puzzle.code.value)
+
+    /** The author took the puzzle down: it still plays here, but its board takes no new entries. */
+    val takenDown: Boolean get() = puzzle.unpublished
 }
 
 /** The card's one primary action. */
@@ -81,9 +86,10 @@ internal sealed interface FriendCardAction {
 
 /**
  * One [FriendPuzzleKey]'s card: opens the code with [LoadSharedPuzzle] (a puzzle already
- * on this device opens without the network), then follows the puzzle's saved play and its
- * completions, so the primary action reads Resume while a play is saved and Replay once a
- * solve is recorded. The card previews the puzzle's board through [FriendPuzzleBoard]: its top
+ * on this device opens without the network, then [SyncReceivedStatus] rechecks its doc, so a
+ * puzzle its author took down reads taken down; offline it keeps its last known state), then
+ * follows the stored row, the puzzle's saved play and its completions, so the primary action
+ * reads Resume while a play is saved and Replay once a solve is recorded. The card previews the puzzle's board through [FriendPuzzleBoard]: its top
  * rows when signed in, and signing in from the card ([signIn]) fills them in place. The game's
  * name, brand, size label and rank order come from the registries; the feature names no game.
  */
@@ -91,6 +97,8 @@ internal sealed interface FriendCardAction {
 internal class FriendPuzzleViewModel(
     key: FriendPuzzleKey,
     private val load: LoadSharedPuzzle,
+    private val sync: SyncReceivedStatus,
+    private val received: ReceivedPuzzleRepository,
     private val completions: CompletionRepository,
     private val saved: SavedPlayRepository,
     private val games: GameRegistry,
@@ -133,7 +141,14 @@ internal class FriendPuzzleViewModel(
     private fun open() {
         opening?.cancel()
         opening = viewModelScope.launch {
-            opened.value = if (code == null) OpenOutcome.NotFound else withContext(dispatchers.default) { load(code) }
+            if (code == null) {
+                opened.value = OpenOutcome.NotFound
+                return@launch
+            }
+            // A fresh open has just read the doc; a stored one opened offline-first, so recheck it.
+            val stored = received.get(code)
+            opened.value = withContext(dispatchers.default) { load(code) }
+            if (stored != null && !stored.unpublished) sync(code)
         }
     }
 
@@ -141,15 +156,17 @@ internal class FriendPuzzleViewModel(
         val slot = PlaySlot.Custom(puzzle.gameId, puzzle.code.value)
         val savedElapsed = saved.observeInProgress().map { it[slot] }.distinctUntilChanged()
         val order = games[puzzle.gameId]?.score?.rankOrder ?: RankOrder.TimeThenHints
+        val current = received.observe(puzzle.code).map { it ?: puzzle }.distinctUntilChanged()
         return combine(
+            current,
             completions.observeCustom(puzzle.gameId, puzzle.code.value),
             savedElapsed,
             board.observe(puzzle, order, PREVIEW_TOP, PREVIEW_READ),
             board.signInStatus,
-        ) { records, elapsed, preview, signIn ->
+        ) { row, records, elapsed, preview, signIn ->
             val first = firstSolve(records)
             FriendCard(
-                puzzle = puzzle,
+                puzzle = row,
                 gameName = games.displayName(puzzle.gameId),
                 brand = plays.brandOf(puzzle.gameId),
                 size = editors[puzzle.gameId]?.sizeLabel(puzzle.variant) ?: puzzle.variant.value,

@@ -26,6 +26,7 @@ import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.domain.CustomBoardView
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -212,6 +213,47 @@ class CustomResultViewModelTest {
         main.testDispatcher.scheduler.runCurrent()
 
         assertEquals(CustomStanding.Record, viewModel.state.value.standing)
+    }
+
+    @Test
+    fun `taking the puzzle down closes the result's board`() {
+        val viewModel = observed(key(42_000L))
+        assertFalse(viewModel.state.value.boardClosed)
+
+        runBlocking { received.markUnpublished(code) }
+        main.testDispatcher.scheduler.runCurrent()
+
+        assertTrue(viewModel.state.value.boardClosed)
+    }
+
+    @Test
+    fun `a taken-down puzzle's result reads Leaderboard closed and posts nothing`() {
+        val takenDown = puzzle().copy(unpublished = true)
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                CustomResultScreen(
+                    state = CustomResultState(
+                        timeMs = 130_000L,
+                        hintsUsed = 0,
+                        title = "Alpha",
+                        brand = fakes.registry.brandOf(alpha),
+                        rankOrder = RankOrder.TimeThenHints,
+                        puzzle = takenDown,
+                        standing = CustomStanding.Record,
+                        board = CustomBoardView.Ranked(top = emptyList(), mine = null, author = takenDown.authorPin()),
+                    ),
+                    onDone = {},
+                    onShare = {},
+                    onPlayAgain = {},
+                    onSignIn = {},
+                )
+            }
+        }
+        composeRule.waitForIdle()
+
+        node("custom_board.closed").assertExists()
+        node("custom_board.you.local_only").assertExists()
+        assertEquals("a closed board never says it is posting", 0, count("custom_board.you.pending"))
     }
 
     @Test

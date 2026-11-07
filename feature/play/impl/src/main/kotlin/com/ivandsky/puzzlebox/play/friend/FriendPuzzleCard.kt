@@ -1,9 +1,12 @@
 package com.ivandsky.puzzlebox.play.friend
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LocalMutedStatus
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
@@ -41,7 +45,8 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 /**
  * A friend's puzzle before it is played: the game's glyph, the title, "by" the author and
  * the note, the size and difficulty chips (difficulty only when the local re-check graded
- * it), the author's time and hints beside yours once solved, the code with Copy, the one
+ * it, "Taken down · still plays" once the author took it down, popping in on the stamp's
+ * spring when the card's recheck finds it), the author's time and hints beside yours once solved, the code with Copy, the one
  * primary action, [onAction], and under it the [BoardPreview], whose sign-in is [onSignIn].
  * Sections rise in with the Enter stagger the first time the code's card is shown; under
  * reduced motion they only fade.
@@ -66,7 +71,7 @@ internal fun FriendPuzzleCard(card: FriendCard, onAction: () -> Unit, onSignIn: 
             }
         }
         if (puzzle.note.isNotBlank()) Enter(entrance, 2, reduced) { Note(puzzle.note, accent.accent) }
-        Enter(entrance, 3, reduced) { Chips(card, accent.container, accent.onContainer) }
+        Enter(entrance, 3, reduced) { Chips(card, accent.container, accent.onContainer, reduced) }
         Enter(entrance, 4, reduced) { Stats(card) }
         Enter(entrance, 5, reduced) { Action(card.action, reduced, onAction) }
         Enter(entrance, 6, reduced) {
@@ -77,6 +82,7 @@ internal fun FriendPuzzleCard(card: FriendCard, onAction: () -> Unit, onSignIn: 
                 postState = puzzle.postState,
                 signIn = card.signIn,
                 onSignIn = onSignIn,
+                closed = card.takenDown,
             )
         }
     }
@@ -115,13 +121,27 @@ private fun Note(note: String, rule: Color) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Chips(card: FriendCard, container: Color, onContainer: Color) {
+private fun Chips(card: FriendCard, container: Color, onContainer: Color, reduced: Boolean) {
     val neutral = MaterialTheme.colorScheme.surfaceContainerHigh
     val ink = MaterialTheme.colorScheme.onSurfaceVariant
+    val muted = LocalMutedStatus.current
     FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Chip(card.gameName, container, onContainer, "friend.card.game")
         Chip(card.size, neutral, ink, "friend.card.size")
         card.puzzle.difficulty?.let { Chip(it.name, neutral, ink, "friend.card.difficulty") }
+        AnimatedVisibility(
+            visible = card.takenDown,
+            enter = if (reduced) {
+                fadeIn(tween(MotionTokens.ReducedFadeDuration))
+            } else {
+                fadeIn(tween(MotionTokens.StampFadeDuration)) +
+                    scaleIn(spring(MotionTokens.StampSpringDamping, MotionTokens.StampSpringStiffness), TAKEN_DOWN_POP_FROM_SCALE)
+            },
+            exit = fadeOut(tween(if (reduced) MotionTokens.ReducedFadeDuration else MotionTokens.StampFadeDuration)),
+            label = "friend.card.taken_down",
+        ) {
+            Chip("Taken down · still plays", muted.container, muted.content, "friend.card.taken_down")
+        }
     }
 }
 
@@ -208,6 +228,9 @@ private val FriendCardAction.tag: String
     }
 
 private fun hintsLabel(hints: Int) = if (hints == 1) "1 hint" else "$hints hints"
+
+// The taken-down chip pops in from a little smaller, as the From friends status chip does.
+private const val TAKEN_DOWN_POP_FROM_SCALE = 0.85f
 
 private val Avatar = 28.dp
 private val NoteRule = 4.dp

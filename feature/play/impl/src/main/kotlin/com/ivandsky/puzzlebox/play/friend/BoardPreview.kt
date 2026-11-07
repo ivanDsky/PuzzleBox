@@ -28,9 +28,10 @@ import com.ivandsky.puzzlebox.game.BestScore
  * The card's look at the puzzle's board before playing: the [author] pinned as on the result,
  * then, signed in, the [board]'s top rows. Signed out it shows this device's best ([yours],
  * its post [postState]) and offers [onSignIn] ([signIn] says how the last try went). While the
- * board is read, or when it can't be, only the author shows: no spinner, no error. Rows
- * crossfade in and the card's height follows as a layout animation; under reduced motion both
- * are instant.
+ * board is read, or when it can't be, only the author shows: no spinner, no error. A board the
+ * author took down is [closed]: its rows still show, it says it is closed and offers no sign-in.
+ * Rows crossfade in and the card's height follows as a layout animation; under reduced motion
+ * both are instant.
  */
 @Composable
 internal fun BoardPreview(
@@ -40,6 +41,7 @@ internal fun BoardPreview(
     postState: PostState,
     signIn: BoardSignIn,
     onSignIn: () -> Unit,
+    closed: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val reduced = rememberReducedMotion()
@@ -69,18 +71,24 @@ internal fun BoardPreview(
                 when (shown) {
                     is CustomBoardView.Ranked -> if (shown.top.isEmpty()) EmptyBoardLine() else shown.top.forEach { RankedLine(it) }
                     is CustomBoardView.SignedOut -> {
-                        yours?.let { YouLine(it, statusOf(postState, shown)) }
-                        SignInPrompt(yours?.timeMs, signIn, onSignIn)
+                        yours?.let { YouLine(it, statusOf(postOn(postState, closed), shown)) }
+                        if (!closed) SignInPrompt(yours?.timeMs, signIn, onSignIn)
                     }
                     is CustomBoardView.Unavailable, null -> Unit
                 }
             }
         }
+        if (closed) ClosedNote()
     }
 }
 
 @Composable
-private fun PreviewBoard(board: CustomBoardView?, yours: BestScore? = null, signIn: BoardSignIn = BoardSignIn.Idle) {
+private fun PreviewBoard(
+    board: CustomBoardView?,
+    yours: BestScore? = null,
+    signIn: BoardSignIn = BoardSignIn.Idle,
+    closed: Boolean = false,
+) {
     PuzzleBoxTheme {
         Surface(color = MaterialTheme.colorScheme.surface) {
             BoardPreview(
@@ -90,6 +98,7 @@ private fun PreviewBoard(board: CustomBoardView?, yours: BestScore? = null, sign
                 postState = PostState.Pending,
                 signIn = signIn,
                 onSignIn = {},
+                closed = closed,
                 modifier = Modifier.padding(Spacing.lg),
             )
         }
@@ -123,4 +132,11 @@ internal fun BoardPreviewSignInFailedPreview() {
 @Composable
 internal fun BoardPreviewAuthorOnlyPreview() {
     PreviewBoard(CustomBoardView.Unavailable(author = PreviewBoardAuthor))
+}
+
+// Preview: the author took the puzzle down; signed out, your time stays on this phone and the board reads closed.
+@PuzzleBoxPreviews
+@Composable
+internal fun BoardPreviewClosedPreview() {
+    PreviewBoard(CustomBoardView.SignedOut(author = PreviewBoardAuthor), yours = BestScore(125_000L, 1), closed = true)
 }

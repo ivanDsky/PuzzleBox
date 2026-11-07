@@ -103,7 +103,12 @@ class CustomBoardTest {
 
     private fun players(count: Int) = List(count) { entry("uid-${it + 1}", 60_000L + it * 1_000L) }
 
-    private fun show(board: CustomBoardView?, postState: PostState? = PostState.Pending, signIn: BoardSignIn = BoardSignIn.Idle) {
+    private fun show(
+        board: CustomBoardView?,
+        postState: PostState? = PostState.Pending,
+        signIn: BoardSignIn = BoardSignIn.Idle,
+        closed: Boolean = false,
+    ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 CustomBoard(
@@ -114,6 +119,7 @@ class CustomBoardTest {
                     rankOrder = RankOrder.TimeThenHints,
                     signIn = signIn,
                     onSignIn = {},
+                    closed = closed,
                 )
             }
         }
@@ -188,6 +194,43 @@ class CustomBoardTest {
 
         node("custom_board.you").assertExists()
         node("custom_board.you.local_only").assertExists()
+    }
+
+    @Test
+    fun `a closed board still lists its players, reads closed and leaves my time unposted`() {
+        show(ComputeCustomBoard()(players(3), myUid = "uid-me", author = author, limit = 5), closed = true)
+
+        assertEquals(3, count("custom_board.row"))
+        node("custom_board.closed").assertExists()
+        node("custom_board.you.local_only").assertExists()
+        assertEquals(0, count("custom_board.you.pending"))
+    }
+
+    @Test
+    fun `a closed board my best is already on keeps it Posted`() {
+        show(ComputeCustomBoard()(players(3), myUid = "uid-me", author = author, limit = 5), postState = PostState.Posted, closed = true)
+
+        node("custom_board.closed").assertExists()
+        node("custom_board.you.posted").assertExists()
+    }
+
+    @Test
+    fun `signed out, a closed board offers no sign-in`() {
+        show(CustomBoardView.SignedOut(author), closed = true)
+
+        node("custom_board.author").assertExists()
+        node("custom_board.closed").assertExists()
+        node("custom_board.you.local_only").assertExists()
+        assertEquals(0, count("custom_board.sign_in"))
+    }
+
+    @Test
+    fun `offline, a closed board reads closed and promises no later post`() {
+        show(CustomBoardView.Unavailable(author), closed = true)
+
+        node("custom_board.closed").assertExists()
+        assertEquals(0, count("custom_board.unavailable"))
+        assertEquals(0, count("custom_board.you.pending"))
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.play.di
 
 import com.ivandsky.puzzlebox.domain.ComputeCustomBoard
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
+import com.ivandsky.puzzlebox.domain.SyncReceivedStatus
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
@@ -15,8 +16,9 @@ import org.koin.dsl.module
 
 /**
  * Friend puzzles' wiring, included by [playModule]: opening a code ([LoadSharedPuzzle], whose
- * re-check of the board stops after [OPEN_BUDGET_MS]), the Enter code sheet's check, and the
- * card's ViewModel and the result's, each reading the puzzle's board through its own
+ * re-check of the board stops after [OPEN_BUDGET_MS]), the card's recheck of a stored puzzle's
+ * doc ([SyncReceivedStatus]), the Enter code sheet's check, and the card's ViewModel and the
+ * result's, each reading the puzzle's board through its own
  * [FriendPuzzleBoard], which ranks it with [ComputeCustomBoard].
  * The games are reached only through the app's [com.ivandsky.puzzlebox.game.GameRegistry];
  * this module names none.
@@ -34,7 +36,8 @@ val friendModule = module {
     viewModel { EnterCodeViewModel(get(), get()) }
     factory { ComputeCustomBoard() }
     factory { FriendPuzzleBoard(get(), get(), get(), get()) }
-    viewModel { (key: FriendPuzzleKey) -> FriendPuzzleViewModel(key, get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { SyncReceivedStatus(get(), get()) }
+    viewModel { (key: FriendPuzzleKey) -> FriendPuzzleViewModel(key, get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: CustomResultKey) -> CustomResultViewModel(key, get(), get(), get(), get(), get(), get(), get()) }
 }
 

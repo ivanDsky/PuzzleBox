@@ -116,6 +116,7 @@ internal fun CustomResultScreen(
                 rankOrder = state.rankOrder,
                 signIn = state.signIn,
                 onSignIn = onSignIn,
+                closed = state.boardClosed,
             )
         },
     )
@@ -153,6 +154,7 @@ private fun previewState(
     hints: Int = 0,
     board: CustomBoardView? = PreviewRanked,
     postState: PostState = PostState.Pending,
+    unpublished: Boolean = false,
 ) = CustomResultState(
     timeMs = timeMs,
     hintsUsed = hints,
@@ -172,7 +174,7 @@ private fun previewState(
         authorHints = 0,
         authorUid = "uid-jonas",
         openedAt = Instant.EPOCH,
-        unpublished = false,
+        unpublished = unpublished,
         postState = postState,
         postAttempts = 0,
         difficulty = null,
@@ -234,6 +236,19 @@ internal fun CustomResultNotPostedPreview() {
             CustomStanding.Record,
             board = PreviewRanked.copy(top = PreviewRanked.top.take(3), mine = null),
             postState = PostState.LocalOnly,
+        ),
+    )
+}
+
+// Preview: the author took the puzzle down; the board still lists its players, reads closed, and nothing posts.
+@PuzzleBoxPreviews
+@Composable
+internal fun CustomResultClosedPreview() {
+    PreviewScreen(
+        previewState(
+            CustomStanding.Record,
+            board = PreviewRanked.copy(top = PreviewRanked.top.take(3), mine = null),
+            unpublished = true,
         ),
     )
 }
