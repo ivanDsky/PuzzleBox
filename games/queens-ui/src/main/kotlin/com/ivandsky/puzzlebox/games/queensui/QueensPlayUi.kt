@@ -7,11 +7,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
@@ -28,6 +33,7 @@ import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.playBoardPane
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.model.GameId
+import kotlinx.coroutines.delay
 
 /** Queens' one play registration (ADR-0001): its controller, its board and its play screen. */
 class QueensPlayUi : GamePlayUi {
@@ -136,11 +142,23 @@ private fun BoxScope.BoardArea(
         contentAlignment = Alignment.TopCenter,
     ) {
         if (status is PlayBoardStatus.Ready && board != null) {
+            // The live solve's orchestration (A13) owns the board first: the frame sees the
+            // completion once the queens have started their Pulse. A board restored solved
+            // was never live, so it hands off at once.
+            val completedAt = board.session.completedAt
+            val reducedMotion = rememberReducedMotion()
+            var framed by remember(board) { mutableStateOf(completedAt) }
+            LaunchedEffect(completedAt) {
+                if (completedAt != null && framed != completedAt) {
+                    delay(QueensMotion.solveLeadMs(board.session.queens.size, reducedMotion))
+                }
+                framed = completedAt
+            }
             // Win → result route (Zip's handoff): ONE hand-off per completion, after the
             // solve frame, keyed on the completedAt instance so a replay hands off again.
             PlaySolveFrame(
                 brand = QueensBrand,
-                solved = board.session.completedAt,
+                solved = framed,
                 onHandOff = {
                     controller.board?.session?.takeIf { it.isComplete }?.let { onSolved(it.elapsedMs, it.hintsUsed) }
                 },

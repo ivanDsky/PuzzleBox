@@ -19,22 +19,28 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 
 /**
  * One cell: region fill, the state glyph with its §3 entrance/exit motion, the §5.5
  * hint overlay + pulse + stage-2 crown ghost, the guided lesson's answer ghost and stray
- * badge (spec A12), and the A14 violation cue. All animation runs through one presence Animatable
- * per cell — reduced motion collapses every transition to an instant state change.
+ * badge (spec A12), and the A14 violation cue. Per-cell entrances run through one
+ * presence Animatable; the board-wide A13 effects (Pop, Pulse, Shake, the solve
+ * orchestration) are read from [LocalQueensMotion] while drawing. Auto crosses that a
+ * placement at [staggerFrom] adds grow in ring by ring outward from it. Reduced motion
+ * collapses every transition to an instant state change.
  */
 @Composable
 internal fun QueensCell(
     model: QueensBoardModel,
     idx: Int,
+    staggerFrom: Int? = null,
 ) {
     val n = model.n
     val dark = currentIsDarkTheme()
@@ -47,11 +53,16 @@ internal fun QueensCell(
     val boardTokens = LocalBoardColors.current
     val error = MaterialTheme.colorScheme.error
     val reducedMotion = LocalQueensReducedMotion.current
+    val motion = LocalQueensMotion.current
+    val washPeak = if (dark) QueensMotion.WASH_PEAK_DARK else QueensMotion.WASH_PEAK_LIGHT
     val visual = model.visuals[idx]
     var shown by remember { mutableStateOf(visual) }
+    // An auto cross that Staggers in grows as it fades; any other auto cross only fades.
+    var grows by remember { mutableStateOf(false) }
 
     // Presence drives glyph alpha; scale is derived per-visual (§3.2 manual scale-in,
-    // §3.3 auto fade-only, queen pop §3.4). Exits animate OUT then swap `shown`.
+    // §3.3 auto fade, A13 auto Stagger). A tapped queen's entrance is its Pop, drawn from
+    // [motion]. Exits animate OUT then swap `shown`.
     val presence = remember { Animatable(1f) }
     LaunchedEffect(visual) {
         when {
@@ -76,8 +87,23 @@ internal fun QueensCell(
                 )
                 shown = visual
             }
+            visual == QueensCellVisual.QUEEN && idx == staggerFrom && motion != null -> {
+                shown = visual
+                presence.snapTo(1f)
+            }
+            visual == QueensCellVisual.X_AUTO && staggerFrom != null -> {
+                shown = visual
+                grows = true
+                presence.snapTo(0f)
+                kotlinx.coroutines.delay(QueensMotion.staggerDelayMs(idx, staggerFrom, n))
+                presence.animateTo(
+                    1f,
+                    tween(QueensMotion.STAGGER_ENTER_MS, easing = MotionTokens.EasingEmphasizedDecelerate),
+                )
+            }
             else -> {
                 shown = visual
+                grows = false
                 presence.snapTo(0f)
                 presence.animateTo(
                     1f,
@@ -128,18 +154,32 @@ internal fun QueensCell(
                     )
                 }
             }
+            val wash = motion?.washOf(idx) ?: 0f
+            if (wash > 0f) drawRect(QueensBoardDefaults.pulseWash, alpha = wash * washPeak)
+            val cross = motion?.crossOf(idx) ?: 1f
             when (shown) {
                 QueensCellVisual.X_MANUAL -> drawX(
-                    ink, QueensBoardDefaults.xManualWeight.toPx(),
-                    QueensBoardDefaults.xManualLengthFraction,
-                    scale = 0.7f + 0.3f * p, alpha = p,
+                    ink, QueensBoardDefaults.crossWeight.toPx(),
+                    QueensBoardDefaults.crossLengthFraction,
+                    scale = (0.7f + 0.3f * p) * QueensMotion.solveCrossScale(cross), alpha = p * cross,
                 )
                 QueensCellVisual.X_AUTO -> drawX(
-                    ink, QueensBoardDefaults.xManualWeight.toPx(),
-                    QueensBoardDefaults.xManualLengthFraction,
-                    alpha = p,
+                    ink, QueensBoardDefaults.crossWeight.toPx(),
+                    QueensBoardDefaults.crossLengthFraction,
+                    scale = (if (grows) QueensMotion.STAGGER_FROM + (1f - QueensMotion.STAGGER_FROM) * p else 1f) *
+                        QueensMotion.solveCrossScale(cross),
+                    alpha = p * cross,
                 )
-                QueensCellVisual.QUEEN -> drawQueen(ink, QueensBoardDefaults.queenHeightFraction, alpha = p)
+                QueensCellVisual.QUEEN -> {
+                    val scale = motion?.scaleOf(idx) ?: 1f
+                    val shake = (motion?.shakeOf(idx) ?: 0f).dp.toPx()
+                    withTransform({
+                        translate(left = shake)
+                        scale(scale, scale)
+                    }) {
+                        drawQueen(ink, QueensBoardDefaults.queenHeightFraction, alpha = p * (motion?.alphaOf(idx) ?: 1f))
+                    }
+                }
                 QueensCellVisual.EMPTY -> Unit
             }
         }
@@ -195,8 +235,8 @@ internal fun QueensCell(
                     .testTag("queens.stray.$idx"),
             ) {
                 drawX(
-                    ink, QueensBoardDefaults.xManualWeight.toPx() / 2,
-                    QueensBoardDefaults.xManualLengthFraction,
+                    ink, QueensBoardDefaults.strayBadgeWeight.toPx(),
+                    QueensBoardDefaults.strayBadgeLengthFraction,
                     alpha = QueensBoardDefaults.hintGhostAlpha,
                 )
             }

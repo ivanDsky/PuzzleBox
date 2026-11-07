@@ -13,14 +13,12 @@ import androidx.compose.ui.unit.dp
  * 1. Fixed hue set of 10 (red/orange/amber/green/teal/cyan/blue/indigo/violet/magenta),
  *    cycled by region id (`palette[region % 10]`) — deterministic across sessions, so
  *    spatial memory (region 3 is the same color tomorrow) holds.
- * 2. Fixed CIE L* bands per mode with parity alternation (rule 3): LIGHT fills sit at
- *    L* 84 (even ids) / 92 (odd ids), DARK fills at L* 18 / 26. Odd ids take the upper
- *    half of the band, even ids the lower, so ANY even/odd neighbor pair clears the
- *    ΔL* >= 8 adjacency floor by lightness alone — hue rotation stacks on top for the
- *    same-parity pairs. NOTE: the direction doc's nominal bands (light 86–92, dark
- *    18–26) cannot span 8 L* points inside themselves; the doc's own §9 hard floor
- *    (ΔL* >= 8) wins, so light's even step sits at 84 — the smallest reconciling move,
- *    flagged in the ticket report for the queens-09 walk.
+ * 2. Candy ramps (spec A13, page 06 variant D): saturated mid-tones generated in OKLCH
+ *    with parity alternation — LIGHT even ids at L 0.80 / C 0.13, odd ids at L 0.88 /
+ *    C 0.105; DARK even ids at L 0.36 / C 0.095, odd ids at L 0.44 / C 0.085 — each
+ *    chroma clipped to the sRGB gamut. Odd ids always sit lighter than even ids, so any
+ *    even/odd neighbour pair differs in lightness as well as hue; same-parity
+ *    neighbours differ by hue alone.
  * 3. On-ink computation (`onInkFor`): evaluated once per board render at fill-resolution
  *    time against the ACTIVE scheme's candidates — the scheme `onSurface` ink vs the
  *    `scrim`/`surface` constant — picking the HIGHER-contrast candidate. Floors (§9):
@@ -47,32 +45,32 @@ object QueensRegionPalette {
     /** Dot centre inset from the cell's top/left edge, as a fraction of the cell side. */
     const val textureDotOffset: Float = 0.22f
 
-    // Light: pastel fills on the pale canvas; even ids L* 84, odd ids L* 92.
+    // Light: even ids OKLCH L 0.80 (CIE L* 75–79), odd ids L 0.88 (L* 85–87).
     private val light = listOf(
-        Color(0xFFE3CDC6), // 0 red
-        Color(0xFFF0E8DF), // 1 orange
-        Color(0xFFD8D2B6), // 2 amber
-        Color(0xFFDBEFDB), // 3 green
-        Color(0xFFC1D6D2), // 4 teal
-        Color(0xFFDAEDF1), // 5 cyan
-        Color(0xFFC2D3EB), // 6 blue
-        Color(0xFFEAE9F0), // 7 indigo
-        Color(0xFFD8CEDF), // 8 violet
-        Color(0xFFF1E7EF), // 9 magenta
+        Color(0xFFFFA196), // 0 red
+        Color(0xFFFECCAA), // 1 orange
+        Color(0xFFDEBA50), // 2 amber
+        Color(0xFFACEAAD), // 3 green
+        Color(0xFF37D8C9), // 4 teal
+        Color(0xFF89E8FF), // 5 cyan
+        Color(0xFF91C1FF), // 6 blue
+        Color(0xFFCFD4FF), // 7 indigo
+        Color(0xFFD1A9FF), // 8 violet
+        Color(0xFFFFC3E3), // 9 magenta
     )
 
-    // Dark: low-lightness fills on the near-black slate; even ids L* 18, odd ids L* 26.
+    // Dark: even ids OKLCH L 0.36 (CIE L* 25–27), odd ids L 0.44 (L* 34–36).
     private val dark = listOf(
-        Color(0xFF482115), // 0 red
-        Color(0xFF493D2C), // 1 orange
-        Color(0xFF312C17), // 2 amber
-        Color(0xFF1F471F), // 3 green
-        Color(0xFF13312C), // 4 teal
-        Color(0xFF334145), // 5 cyan
-        Color(0xFF142C4F), // 6 blue
-        Color(0xFF413868), // 7 indigo
-        Color(0xFF3F1A59), // 8 violet
-        Color(0xFF662757), // 9 magenta
+        Color(0xFF662520), // 0 red
+        Color(0xFF76441F), // 1 orange
+        Color(0xFF4C3B01), // 2 amber
+        Color(0xFF325F34), // 3 green
+        Color(0xFF014841), // 4 teal
+        Color(0xFF025D6D), // 5 cyan
+        Color(0xFF153D6D), // 6 blue
+        Color(0xFF4A4C80), // 7 indigo
+        Color(0xFF492E64), // 8 violet
+        Color(0xFF733E5D), // 9 magenta
     )
 
     /** Region fill for [region] id in [dark] mode. */
