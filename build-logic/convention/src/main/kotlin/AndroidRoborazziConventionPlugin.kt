@@ -29,7 +29,9 @@ import org.gradle.process.CommandLineArgumentProvider
  *
  * Modules whose test harness owns the compare set [RoborazziGoldensExtension.harnessVerifyProperty]:
  * Roborazzi then always records (to the harness's scratch file) and the unified flag is
- * forwarded to the harness as that system property instead.
+ * forwarded to the harness as that system property instead. `-Pgoldens.pixelCompare=false`
+ * (CI on Linux, where the macOS-recorded goldens cannot match) reaches those harnesses as
+ * the `goldens.pixelCompare` system property: they skip the pixel diff, nothing else.
  */
 class AndroidRoborazziConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -40,6 +42,9 @@ class AndroidRoborazziConventionPlugin : Plugin<Project> {
                     providers.gradleProperty("roborazzi.verify").map { it != "false" }.orElse(false),
                 )
                 harnessVerifyProperty.set(goldens.harnessVerifyProperty)
+                pixelCompare.set(
+                    providers.gradleProperty("goldens.pixelCompare").map { it != "false" }.orElse(true),
+                )
             }
 
             tasks.withType<Test>().configureEach {
@@ -70,13 +75,20 @@ abstract class RoborazziModeArguments : CommandLineArgumentProvider {
     @get:Optional
     abstract val harnessVerifyProperty: Property<String>
 
+    @get:Input
+    abstract val pixelCompare: Property<Boolean>
+
     override fun asArguments(): Iterable<String> {
         val verify = verify.get()
         val harnessProperty = harnessVerifyProperty.orNull
         return if (harnessProperty == null) {
             listOf("-Droborazzi.test.record=${!verify}", "-Droborazzi.test.verify=$verify")
         } else {
-            listOf("-Droborazzi.test.record=true", "-D$harnessProperty=$verify")
+            listOf(
+                "-Droborazzi.test.record=true",
+                "-D$harnessProperty=$verify",
+                "-Dgoldens.pixelCompare=${pixelCompare.get()}",
+            )
         }
     }
 }

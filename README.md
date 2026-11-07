@@ -137,3 +137,18 @@ Tests:
 ```
 
 Without `-Proborazzi.verify=true` the screenshot tests re-record their goldens.
+
+## Contributing
+
+Trunk-based: each change is a small PR into `main` that merges within hours. A PR can merge
+only when the required `pr-check` workflow ([`.github/workflows/pr-check.yml`](.github/workflows/pr-check.yml))
+is green. It runs the same command locally (CI adds `-Pgoldens.pixelCompare=false`):
+
+```bash
+./gradlew assembleDebug test           # module-graph guard, every module's unit tests, :konsist
+```
+
+CI does not compare screenshot pixels (the goldens are recorded on macOS; on Linux,
+`-Pgoldens.pixelCompare=false` also turns off the Tango harness's always-on pixel diff), so
+run the `-Proborazzi.verify=true` command above before you push UI changes. `main` must stay
+releasable: every push that carries a new `versionName` publishes a GitHub release.

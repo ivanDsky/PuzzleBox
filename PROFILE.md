@@ -44,7 +44,11 @@
 off  # user ruling 2026-11-05 (replaces 2026-10-31 `always`): publish the review site ONLY when the user explicitly asks. Explicit user no — also overrides the thorough-effort default. REVIEW.md is still written every review; deliver gives its file path only.
 
 ## Delivery
-- changes: pr   # user ruling 2026-11-05 (strands run): runs land as a PR from the run branch into main
+- changes: trunk   # user ruling 2026-11-07 (replaces 2026-11-05 `pr`): ship-to-trunk — one small PR per ticket off fresh origin/main, unfinished behavior merges dark behind a release flag, the flip PR (flag on + version bump) is the release
+- pr-check: .github/workflows/pr-check.yml   # job `pr-check` = main's required status check (assembleDebug + every module's unit tests + konsist; ubuntu, goldens not pixel-verified — user ruling 2026-11-07)
+
+## Consent ledger
+- pre-approved: merge dark slices on green   # user ruling 2026-11-07: agent merges dark/non-behavioral slice PRs on green pr-check + clean fast review; flip PRs, live changes (migrations, persisted formats, manifest/permissions, dependency/SDK bumps) still wait for the user
 
 ## Testing style
 - runner: ./gradlew :app:testDebugUnitTest   # JVM unit tests against fakes
