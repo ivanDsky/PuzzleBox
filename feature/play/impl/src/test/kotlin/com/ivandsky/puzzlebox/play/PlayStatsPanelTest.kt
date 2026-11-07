@@ -19,6 +19,8 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
+import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -72,21 +74,27 @@ class PlayStatsPanelTest {
         mapOf(board to (1..8).map { entry(if (it == 7) "me" else "p$it", "Player $it", it * 10_000L) }),
     )
 
-    private fun viewModel(identity: Identity? = me): PlayStatsViewModel {
+    private fun viewModel(
+        identity: Identity? = me,
+        completions: FakeCompletionRepository = this.completions,
+        leaderboard: FakeLeaderboardRepository = this.leaderboard,
+    ): PlayStatsViewModel {
         val history = ObserveGameHistory(fakes.games, daily, completions)
         return PlayStatsViewModel(
             slot = PlaySlot.Daily(alpha, day),
             registry = fakes.games,
             brands = fakes.registry,
             calendar = calendar,
-            todaySet = ObserveTodaySet(
-                fakes.games, FakeSavedPlayRepository(), completions, calendar, daily,
-                SyncTodayPuzzles(fakes.games, daily, calendar),
+            observePlayStats = ObservePlayStats(
+                todaySet = ObserveTodaySet(
+                    fakes.games, FakeSavedPlayRepository(), completions, calendar, daily,
+                    SyncTodayPuzzles(fakes.games, daily, calendar),
+                ),
+                stats = ObserveGameStats(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games))),
+                history = history,
+                calendar = calendar,
+                leaderboard = ObserveLeaderboard(FakeIdentityService(identity), leaderboard),
             ),
-            stats = ObserveGameStats(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games))),
-            history = history,
-            identity = FakeIdentityService(identity),
-            leaderboard = leaderboard,
         )
     }
 
@@ -100,6 +108,46 @@ class PlayStatsPanelTest {
             }
         }
         composeRule.waitForIdle()
+    }
+
+    /** The panel over [state] as given, frozen: what it draws before any source has emitted. */
+    private fun showFrozen(state: PlayStatsState) {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                Column { PlayStatsPanel(state = state, elapsedMs = { null }) }
+            }
+        }
+        composeRule.waitForIdle()
+    }
+
+    @Test
+    fun `while the stats load the streak shows a dash, not a zero streak`() {
+        showFrozen(viewModel().state.value)
+
+        composeRule.onNodeWithTag("play.stats.streak").assertTextEquals("—-day streak")
+    }
+
+    @Test
+    fun `solved before the own time reaches the board, near you says the time is posting`() {
+        val solvedToday = FakeCompletionRepository().apply { setRecords(listOf(record(alpha, day, 40_000L))) }
+        val othersOnly = FakeLeaderboardRepository(mapOf(board to (1..3).map { entry("p$it", "Player $it", it * 10_000L) }))
+        show(viewModel(completions = solvedToday, leaderboard = othersOnly))
+
+        composeRule.onNodeWithTag("play.stats.tab.near").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Posting your time…")
+    }
+
+    @Test
+    fun `unsolved, near you asks to finish first`() {
+        val othersOnly = FakeLeaderboardRepository(mapOf(board to (1..3).map { entry("p$it", "Player $it", it * 10_000L) }))
+        show(viewModel(leaderboard = othersOnly))
+
+        composeRule.onNodeWithTag("play.stats.tab.near").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Finish to see who's near you")
     }
 
     @Test

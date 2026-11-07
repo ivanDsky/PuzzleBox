@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -55,6 +56,7 @@ internal fun StrandsPlayScreen(
     controller: StrandsPlayController,
     status: PlayBoardStatus,
     layout: PlayLayout,
+    sidePanel: (@Composable ColumnScope.() -> Unit)?,
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -82,8 +84,10 @@ internal fun StrandsPlayScreen(
             AdaptivePlayScaffold(
                 layout = layout,
                 modifier = Modifier.fillMaxSize(),
+                // Strands sizes its board by its own cell policy, so the pane cap goes unused.
                 board = { BoardPane(controller, status, reduceMotion, onRetry) },
                 side = { SidePanel(controller, status, reduceMotion, withChrome = true) },
+                sidePanel = sidePanel,
             )
         }
     }

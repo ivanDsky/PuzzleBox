@@ -36,6 +36,9 @@ chrome. The Play tab opened Queens directly, skipping the game picker.
      at once.
    - The per-game control rows (`HintButton`, `UndoRedoRow`, `QueensPlayControls`, the
      game-controls slot) are gone.
+   - In two-pane the route hands its stats panel to the game through `GamePlayUi.Screen`'s
+     explicit `sidePanel` slot into `AdaptivePlayScaffold`, which gives the board its pane
+     cap as a `paneCap` value; the live timer then moves off the top bar into that panel.
 
 ## Consequences
 - A new game gets timer/hint/undo/result chrome by implementing three small interfaces.

@@ -7,14 +7,14 @@ import com.ivandsky.puzzlebox.gameui.WeekDay
 /**
  * What the tablet play side panel shows beside the board (A15), besides the live clock
  * the route reads off the controller: today's set progress ([solvedToday] of [gamesToday],
- * null until the set loads), this game's streak with its [week], [best] and [averageMs],
- * and today's [times] on this game's board.
+ * null until the set loads), this game's [streak] (null until its stats load) with its
+ * [week], [best] and [averageMs], and today's [times] on this game's board.
  */
 internal data class PlayStatsState(
     val gameName: String,
     val solvedToday: Int?,
     val gamesToday: Int,
-    val streak: Int,
+    val streak: Int?,
     val week: List<WeekDay>,
     val best: BestScore?,
     val rankOrder: RankOrder,
@@ -32,8 +32,11 @@ internal sealed interface PlayTimes {
     /** The backend can't serve the board right now (A7): a soft state, never an error. */
     data object Unavailable : PlayTimes
 
-    /** Every posted time in board order; [rows] is empty before anyone has posted. */
-    data class Board(val rows: List<PlayTimeRow>) : PlayTimes {
+    /**
+     * Every posted time in board order; [rows] is empty before anyone has posted. [solved]
+     * is the player's own solve of the slot, whose time can trail it onto the board.
+     */
+    data class Board(val rows: List<PlayTimeRow>, val solved: Boolean) : PlayTimes {
 
         private val you: Int = rows.indexOfFirst { it.you }
 

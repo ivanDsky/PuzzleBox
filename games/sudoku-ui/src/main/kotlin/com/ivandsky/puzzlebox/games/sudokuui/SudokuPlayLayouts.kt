@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,7 +26,6 @@ import com.ivandsky.puzzlebox.designsystem.GameButtonSize
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
-import com.ivandsky.puzzlebox.gameui.LocalPlayBoardPaneCap
 import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
@@ -52,6 +52,7 @@ internal fun SudokuPlayScreen(
     controller: SudokuPlayController,
     status: PlayBoardStatus,
     layout: PlayLayout,
+    sidePanel: (@Composable ColumnScope.() -> Unit)?,
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -66,9 +67,11 @@ internal fun SudokuPlayScreen(
         AdaptivePlayScaffold(
             layout = layout,
             modifier = modifier.fillMaxSize(),
-            board = {
+            board = { paneCap ->
                 SudokuBoardPane(status, onRetry) {
-                    if (state != null) SudokuStackedBoard(state, inlineNotes = twoPane, onGridWidth = { gridWidth = it })
+                    if (state != null) {
+                        SudokuStackedBoard(state, inlineNotes = twoPane, paneCap = paneCap, onGridWidth = { gridWidth = it })
+                    }
                 }
             },
             side = {
@@ -92,6 +95,7 @@ internal fun SudokuPlayScreen(
                     PlayActionBar(controller, controller, clear = null, MiniSudokuBrand.accent)
                 }
             },
+            sidePanel = sidePanel,
         )
     }
 }
@@ -100,16 +104,17 @@ internal fun SudokuPlayScreen(
  * Grid over keypad, sized by [SudokuSizing] for the space given. The tutorial draws only
  * this, so its lessons play on the same keypad as the daily. [inlineNotes] puts the notes
  * toggle beside the digits and leaves Erase and Clear to the caller (TwoPane), told the
- * grid's width through [onGridWidth].
+ * grid's width through [onGridWidth]. [paneCap] is the two-pane board cap; null keeps
+ * [PlayBoardMaxWidth].
  */
 @Composable
 internal fun SudokuStackedBoard(
     state: SudokuBoardState,
     modifier: Modifier = Modifier,
     inlineNotes: Boolean = false,
+    paneCap: Dp? = null,
     onGridWidth: (Dp) -> Unit = {},
 ) {
-    val paneCap = LocalPlayBoardPaneCap.current
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
         val size = state.session.board.geometry.size
         val layout = SudokuSizing.layout(maxWidth, maxHeight, size, inlineNotes, boardMax = paneCap ?: PlayBoardMaxWidth)

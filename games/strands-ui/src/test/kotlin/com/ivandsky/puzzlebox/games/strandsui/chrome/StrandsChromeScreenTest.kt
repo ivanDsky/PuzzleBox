@@ -75,6 +75,7 @@ class StrandsChromeScreenTest {
                 controller = controller,
                 status = PlayBoardStatus.Ready(banner = null),
                 layout = layout,
+                sidePanel = null,
                 onRetry = {},
                 onSolved = { _, hints -> solved += hints },
             )

@@ -40,12 +40,13 @@ private val Loaded = PlayStatsState(
     times = PlayTimes.Board(
         listOf("Mia", "Jonas", "Priya", "Alexandria-Charlotte Whitfield", "Tom", "Sam", "Ivan", "Lee")
             .mapIndexed { index, name -> PlayTimeRow(index + 1, name, 30_000L + index * 9_000L, you = name == "Ivan") },
+        solved = true,
     ),
 )
 
 private val Loading = Loaded.copy(
     solvedToday = null,
-    streak = 0,
+    streak = null,
     week = previewWeek(emptySet()),
     best = null,
     averageMs = null,
@@ -73,13 +74,24 @@ internal fun PlayStatsPanelLoadingPreview() = PanelPreview(Loading, elapsedMs = 
 @Composable
 internal fun PlayStatsPanelSignedOutPreview() = PanelPreview(Loaded.copy(streak = 0, times = PlayTimes.SignedOut), elapsedMs = 31_000L)
 
+private val OthersOnly = (Loaded.times as PlayTimes.Board).rows.map { it.copy(you = false) }
+
 @PuzzleBoxPreviews
 @Composable
 internal fun PlayStatsPanelNotPostedPreview() = PanelPreview(
-    Loaded.copy(times = PlayTimes.Board(Loaded.times.let { it as PlayTimes.Board }.rows.map { it.copy(you = false) })),
+    Loaded.copy(times = PlayTimes.Board(OthersOnly, solved = false)),
+    elapsedMs = 95_000L,
+)
+
+/** Solved, own time not on the board yet: Near you (interactive mode) reads "Posting your time…". */
+@PuzzleBoxPreviews
+@Composable
+internal fun PlayStatsPanelPostingPreview() = PanelPreview(
+    Loaded.copy(times = PlayTimes.Board(OthersOnly, solved = true)),
     elapsedMs = 95_000L,
 )
 
 @PuzzleBoxPreviews
 @Composable
-internal fun PlayStatsPanelEmptyBoardPreview() = PanelPreview(Loaded.copy(times = PlayTimes.Board(emptyList())), elapsedMs = 4_000L)
+internal fun PlayStatsPanelEmptyBoardPreview() =
+    PanelPreview(Loaded.copy(times = PlayTimes.Board(emptyList(), solved = false)), elapsedMs = 4_000L)

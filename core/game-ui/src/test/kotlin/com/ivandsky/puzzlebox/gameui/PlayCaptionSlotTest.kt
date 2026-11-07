@@ -76,6 +76,7 @@ class PlayCaptionSlotTest {
                                 feedback = feedback,
                             )
                         },
+                        sidePanel = null,
                     )
                 }
             }
