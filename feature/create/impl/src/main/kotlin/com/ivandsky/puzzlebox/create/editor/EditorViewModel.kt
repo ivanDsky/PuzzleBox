@@ -38,7 +38,8 @@ import kotlinx.coroutines.launch
  * ([saving]; stored at once on [flush], before [duplicate], [delete] and [publish] and on
  * leaving the Studio). [saves] must outlive this ViewModel: [viewModelScope] is already
  * cancelled when [onCleared] queues the last save. Once a publish lands the draft is
- * read-only: its [ticket] shows, and edits, undo, redo, resize and clear change nothing.
+ * read-only: its [ticket] shows, and edits, undo, redo, resize, clear, rename and the publish
+ * details change nothing.
  */
 class EditorViewModel(
     private val key: EditorKey,
@@ -70,7 +71,7 @@ class EditorViewModel(
     )
 
     /** The draft's title, rename, duplicate and delete. */
-    val meta = DraftMeta(key.draftId, copyDraft, viewModelScope) { title -> lastStored?.let { write(it.copy(title = title)) } }
+    val meta = DraftMeta(key.draftId, copyDraft, viewModelScope, locked = { published }) { title -> lastStored?.let { write(it.copy(title = title)) } }
 
     /** The required test solve: its sandbox, the test valid for the board, and the clear toast. */
     val testSolve = TestSolveSession(key.draftId, plays, games, viewModelScope) { test -> lastStored?.let { write(it.copy(testSolve = test)) } }

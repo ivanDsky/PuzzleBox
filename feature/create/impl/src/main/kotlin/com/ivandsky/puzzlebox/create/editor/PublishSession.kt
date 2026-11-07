@@ -135,23 +135,25 @@ class PublishSession(
         prefillAuthor(identity.current.value)
     }
 
-    /** The author typed [authorName]: it is theirs from now on, and stored. */
+    /** The author typed [authorName]: it is theirs from now on, and stored. Published, it is refused. */
     fun editAuthorName(authorName: String) {
+        if (published) return
         authorTyped = true
         setDetails(authorName, mutableState.value.details.note)
         store()
     }
 
-    /** The author typed [note]; it is stored. */
+    /** The author typed [note]; it is stored. Published, it is refused. */
     fun editNote(note: String) {
+        if (published) return
         setDetails(mutableState.value.details.authorName, note)
         store()
     }
 
-    /** Publishes [draft] as checked by [verdict], signing in first; a no-op while one runs or the sheet is open. */
+    /** Publishes [draft] as checked by [verdict], signing in first; a no-op while one runs, the sheet is open or it is published. */
     fun publish(draft: EditorDraft<*>, verdict: Verdict) {
         val now = mutableState.value
-        if (now.busy || now.signIn != null) return
+        if (now.busy || now.signIn != null || published) return
         val request = Request(draft, verdict)
         if (identity.current.value == null) askToSignIn(request) else run(request, afterSignIn = false)
     }
@@ -191,6 +193,9 @@ class PublishSession(
     fun dismissSignInFailure() {
         mutableState.update { it.copy(signInFailure = null) }
     }
+
+    /** A published puzzle is immutable: no new details, no second publish. */
+    private val published: Boolean get() = mutableState.value.outcome is PublishOutcome.Published
 
     private fun askToSignIn(request: Request) {
         held = request

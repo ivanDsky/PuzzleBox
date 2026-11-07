@@ -11,6 +11,7 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
@@ -168,6 +169,38 @@ class PublishedStudioTest {
 
         assertEquals("the board is as published", board, controller.draft.value)
         assertArrayEquals("nothing was stored", blob, drafts.rows.getValue(DRAFT_ID).blob)
+    }
+
+    @Test
+    fun `a published draft takes no rename, no details and no second publish`() {
+        val code = openPublished()
+        val stored = drafts.rows.getValue(DRAFT_ID)
+
+        composeRule.runOnIdle {
+            vm.meta.rename("Renamed")
+            vm.publish.editAuthorName("Someone else")
+            vm.publish.editNote("A new note")
+            vm.publish.publish(ui.controllers.single().draft.value, Verdict.Unique(Solution(listOf(1))))
+        }
+        idle(SETTLE_MS)
+
+        assertEquals("the title is as published", TITLE, vm.meta.title.value)
+        assertEquals("the details are as published", "Ivan", vm.publish.state.value.details.authorName)
+        assertEquals("nothing was stored", stored, drafts.rows.getValue(DRAFT_ID))
+        assertEquals("still the one publish", PublishOutcome.Published(code), vm.publish.state.value.outcome)
+        assertEquals("one doc", setOf(code), shared.docs.keys)
+    }
+
+    @Test
+    fun `the published Studio's menu offers neither Rename nor Delete, and its title opens nothing`() {
+        openPublished()
+
+        composeRule.onNodeWithTag(TITLE_BLOCK).assertHasNoClickAction()
+        composeRule.onNodeWithTag(MORE).performClick()
+
+        awaitTag(MENU_DUPLICATE)
+        awaitGone(MENU_RENAME)
+        awaitGone(MENU_DELETE)
     }
 
     @Test
@@ -360,6 +393,11 @@ class PublishedStudioTest {
         const val READ_ONLY = "create.published.readOnly"
         const val READ_ONLY_BOARD = "create.studio.board.readOnly"
         const val DUPLICATE = "create.published.duplicate"
+        const val TITLE_BLOCK = "create.studio.title"
+        const val MORE = "create.studio.more"
+        const val MENU_RENAME = "create.studio.rename"
+        const val MENU_DUPLICATE = "create.studio.duplicate"
+        const val MENU_DELETE = "create.studio.delete"
 
         val SAMPLE = ShareTicket(
             code = checkNotNull(ShareCode.parse("K7Q2MX")),
