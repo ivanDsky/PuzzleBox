@@ -28,6 +28,7 @@ import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorUi
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -74,6 +75,7 @@ class NewPuzzleSheetQueensTest {
                             GameEditorRegistry(listOf(QueensEditorUi)),
                             GamePlayRegistry(emptyList()),
                             drafts,
+                            FakePublishedPuzzleRepository(),
                             createDraft,
                             CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW }),
                             DefaultDispatcherProvider(),

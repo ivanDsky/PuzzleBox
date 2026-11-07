@@ -3,7 +3,9 @@ package com.ivandsky.puzzlebox.create.di
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.EditorKey
+import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.create.editor.EditorViewModel
+import com.ivandsky.puzzlebox.create.published.PublishedPuzzleViewModel
 import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
 import java.time.Instant
 import kotlin.random.Random
@@ -26,7 +28,7 @@ private val DraftSaves = named("create.draftSaves")
 val createModule: Module = module {
     // Process lifetime on main, like Play's slot writes: leaving the Studio never cancels its last save.
     single(DraftSaves) { CoroutineScope(SupervisorJob() + get<DispatcherProvider>().main) }
-    viewModel { CreateViewModel(get(), get(), get(), get(), get(), get(), get(), clock = { Instant.now() }) }
+    viewModel { CreateViewModel(get(), get(), get(), get(), get(), get(), get(), get(), clock = { Instant.now() }) }
     factory {
         CreateSharedPuzzle(
             drafts = get(),
@@ -44,9 +46,11 @@ val createModule: Module = module {
             saves = get(DraftSaves),
             clock = { Instant.now() },
             createShared = get(),
+            publishedPuzzles = get(),
             identity = get(),
             idTokens = get(),
             validatePublish = get(),
         )
     }
+    viewModel { (key: PublishedPuzzleKey) -> PublishedPuzzleViewModel(key, get(), get(), get(), get(), get(), get(), get()) }
 }

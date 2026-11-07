@@ -240,6 +240,7 @@ class PublishSignInTest {
                             saves = CoroutineScope(SupervisorJob() + Dispatchers.Main),
                             clock = { NOW },
                             createShared = createShared,
+                            publishedPuzzles = FakePublishedPuzzleRepository(),
                             identity = identity,
                             idTokens = idTokens,
                         ).also { vm = it }

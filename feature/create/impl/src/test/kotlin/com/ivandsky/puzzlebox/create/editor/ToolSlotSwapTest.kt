@@ -212,6 +212,7 @@ class ToolSlotSwapTest {
             random = Random(0),
             clock = { NOW },
         ),
+        publishedPuzzles = FakePublishedPuzzleRepository(),
         identity = identity,
         idTokens = OneAccountGoogleIdTokenProvider,
     )

@@ -295,6 +295,7 @@ class PublishedStudioTest {
                             saves = CoroutineScope(SupervisorJob() + Dispatchers.Main),
                             clock = { NOW },
                             createShared = createShared,
+                            publishedPuzzles = published,
                             identity = identity,
                             idTokens = noGoogleAccount,
                         ).also { vm = it }

@@ -10,12 +10,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * The Create root's entry point over the activity-scoped [viewModel] (CreateEntries); [onOpen]
- * opens a draft's Studio, new ones included once the view model has stored them.
+ * opens a draft's Studio, new ones included once the view model has stored them;
+ * [onOpenPublished] opens a published puzzle's page by its share code.
  */
 @Composable
 internal fun CreateRoute(
     viewModel: CreateViewModel,
     onOpen: (draftId: String) -> Unit,
+    onOpenPublished: (code: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -27,6 +29,8 @@ internal fun CreateRoute(
         onOpen = onOpen,
         onQuery = viewModel::onQuery,
         onFilter = viewModel::onFilter,
+        onTab = viewModel::onTab,
+        onOpenPublished = onOpenPublished,
         onDuplicate = viewModel::duplicate,
         onDelete = viewModel::delete,
         onUndoDelete = viewModel::undoDelete,

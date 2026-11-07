@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
+import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
 import com.ivandsky.puzzlebox.domain.PublishOutcome
@@ -21,6 +22,7 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
+import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -29,6 +31,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -38,7 +41,7 @@ import kotlinx.coroutines.launch
  * ([saving]; stored at once on [flush], before [duplicate], [delete] and [publish] and on
  * leaving the Studio). [saves] must outlive this ViewModel: [viewModelScope] is already
  * cancelled when [onCleared] queues the last save. Once a publish lands the draft is
- * read-only: its [ticket] shows, and edits, undo, redo, resize, clear, rename and the publish
+ * read-only (reopened too, while [publishedPuzzles] holds its reserved code): its [ticket] shows, and edits, undo, redo, resize, clear, rename and the publish
  * details change nothing.
  */
 class EditorViewModel(
@@ -52,6 +55,7 @@ class EditorViewModel(
     private val saves: CoroutineScope,
     private val clock: () -> Instant,
     createShared: CreateSharedPuzzle,
+    private val publishedPuzzles: PublishedPuzzleRepository,
     identity: IdentityService,
     idTokens: GoogleIdTokenProvider,
     private val validatePublish: ValidatePublish = ValidatePublish(),
@@ -136,11 +140,15 @@ class EditorViewModel(
         }
     }
 
+    /** The code [stored] was published under: its reserved code, once a published row holds it. */
+    private suspend fun publishedCode(stored: Draft): ShareCode? =
+        stored.reservedCode?.let(ShareCode::parse)?.takeIf { publishedPuzzles.observe(it).first() != null }
+
     private suspend fun load(): EditorUiState {
         val (stored, draft, ui) = loadDraft(key.draftId) ?: return EditorUiState.Missing
         lastStored = stored
         meta.open(stored.title)
-        publish.open(stored.authorName, stored.note)
+        publish.open(stored.authorName, stored.note, published = publishedCode(stored))
         history.open(draft)
         board = draft
         testSolve.open(stored.testSolve, draft)

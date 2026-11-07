@@ -84,6 +84,7 @@ class PublishReservedCodeTest {
                 random = Random(0),
                 clock = { NOW },
             ),
+            publishedPuzzles = FakePublishedPuzzleRepository(),
             identity = author,
             idTokens = noGoogleAccount,
         )

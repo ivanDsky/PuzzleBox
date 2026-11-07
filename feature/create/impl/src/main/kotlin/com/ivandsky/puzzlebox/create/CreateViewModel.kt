@@ -4,7 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.model.Draft
+import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
+import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
+import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -46,12 +49,17 @@ import kotlinx.coroutines.withContext
  * A row's actions (01 handoff "Draft actions sheet"): [duplicate] stores a copy without the
  * test solve; [delete] removes the draft at once and offers [undoDelete] for [UNDO_WINDOW_MS],
  * which stores the very same draft again, so it returns to its place in the list.
+ *
+ * The [CreateUiState.Tab.Published] tab lists [published]'s rows, newest first; a draft kept
+ * under a published code is that puzzle's board, so it leaves the Drafts tab, its counts, its
+ * search and its verdict chips.
  */
 class CreateViewModel(
     private val games: GameRegistry,
     private val editors: GameEditorRegistry,
     private val plays: GamePlayRegistry,
     private val drafts: DraftRepository,
+    private val published: PublishedPuzzleRepository,
     private val createDraft: CreateDraft,
     private val copyDraft: CreateDraftCopy,
     private val dispatchers: DispatcherProvider,
@@ -76,6 +84,7 @@ class CreateViewModel(
 
     private val query = MutableStateFlow("")
     private val filter = MutableStateFlow<GameId?>(null)
+    private val tab = MutableStateFlow(CreateUiState.Tab.Drafts)
 
     /** Settled chips by (id, updatedAt); a null verdict is a draft this build cannot open. */
     private val verdicts = MutableStateFlow<Map<DraftStamp, Verdict?>>(emptyMap())
@@ -89,11 +98,19 @@ class CreateViewModel(
     private val requested = mutableSetOf<DraftStamp>()
 
     val uiState: StateFlow<CreateUiState> =
-        combine(drafts.observeAll().onEach(::analyzeNew), verdicts, query, filter, deleted, ::stateOf)
+        combine(listed(), verdicts, combine(query, filter, tab, ::View), deleted, ::stateOf)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CreateUiState(games = newGames))
 
     fun onQuery(text: String) {
         query.value = text
+    }
+
+    /** Shows [shown]'s list; a switch starts it unsearched and unfiltered. */
+    fun onTab(shown: CreateUiState.Tab) {
+        if (tab.value == shown) return
+        tab.value = shown
+        query.value = ""
+        filter.value = null
     }
 
     /** Shows only [game]'s drafts; null shows every game. */
@@ -148,6 +165,13 @@ class CreateViewModel(
         viewModelScope.launch { drafts.upsert(draft) }
     }
 
+    /** The drafts still being made (none kept under a published code) beside the published rows. */
+    private fun listed(): Flow<Listed> =
+        combine(drafts.observeAll(), published.observeAll()) { stored, rows ->
+            val codes = rows.mapTo(HashSet()) { it.code.value }
+            Listed(stored.filterNot { it.reservedCode in codes }, rows)
+        }.onEach { analyzeNew(it.drafts) }
+
     private fun analyzeNew(stored: List<Draft>) {
         val current = stored.mapTo(HashSet()) { DraftStamp(it.id, it.updatedAt) }
         requested.retainAll(current)
@@ -173,13 +197,10 @@ class CreateViewModel(
         }
     }
 
-    private fun stateOf(
-        stored: List<Draft>,
-        settled: Map<DraftStamp, Verdict?>,
-        text: String,
-        game: GameId?,
-        removed: Draft?,
-    ): CreateUiState {
+    private fun stateOf(listed: Listed, settled: Map<DraftStamp, Verdict?>, view: View, removed: Draft?): CreateUiState {
+        val stored = listed.drafts
+        val text = view.query
+        val game = view.filter
         val searchVisible = stored.size > SEARCH_THRESHOLD
         val needle = text.trim()
         val shownGame = game?.takeIf { searchVisible && stored.any { it.gameId == game } }
@@ -202,6 +223,8 @@ class CreateViewModel(
             filters = if (searchVisible) filtersOf(stored) else emptyList(),
             filter = shownGame,
             deleted = removed?.let { CreateUiState.Deleted(it.id, it.title) },
+            tab = view.tab,
+            published = listed.published.map { publishedRowOf(it, now) },
         )
     }
 
@@ -215,10 +238,19 @@ class CreateViewModel(
             brand = plays.brandOf(draft.gameId),
             title = draft.title,
             meta = "${games.displayName(draft.gameId)} · $size$imported",
-            edited = editedLabel(draft.updatedAt, now),
+            edited = ageLabel("edited", draft.updatedAt, now),
             verdict = if (stamp in settled) settled[stamp] else Verdict.Checking,
         )
     }
+
+    private fun publishedRowOf(row: PublishedPuzzle, now: Instant) = CreateUiState.PublishedRow(
+        code = row.code,
+        gameId = row.gameId,
+        brand = plays.brandOf(row.gameId),
+        title = row.title,
+        meta = "${games.displayName(row.gameId)} · your time ${formatDuration(row.authorTimeMs)}",
+        published = ageLabel("published", row.createdAt, now),
+    )
 
     private fun filtersOf(stored: List<Draft>): List<CreateUiState.GameFilter> =
         stored.groupingBy { it.gameId }.eachCount().map { (id, count) ->
@@ -226,6 +258,10 @@ class CreateViewModel(
         }
 
     private data class DraftStamp(val id: String, val updatedAt: Instant)
+
+    private data class Listed(val drafts: List<Draft>, val published: List<PublishedPuzzle>)
+
+    private data class View(val query: String, val filter: GameId?, val tab: CreateUiState.Tab)
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
@@ -235,13 +271,13 @@ class CreateViewModel(
     }
 }
 
-/** "edited just now", "edited 5 min ago", "edited 2 h ago", "edited 3 d ago". */
-private fun editedLabel(updatedAt: Instant, now: Instant): String {
-    val age = Duration.between(updatedAt, now).coerceAtLeast(Duration.ZERO)
+/** "[verb] just now", "[verb] 5 min ago", "[verb] 2 h ago", "[verb] 3 d ago", aged from [at]. */
+private fun ageLabel(verb: String, at: Instant, now: Instant): String {
+    val age = Duration.between(at, now).coerceAtLeast(Duration.ZERO)
     return when {
-        age.toMinutes() < 1 -> "edited just now"
-        age.toHours() < 1 -> "edited ${age.toMinutes()} min ago"
-        age.toDays() < 1 -> "edited ${age.toHours()} h ago"
-        else -> "edited ${age.toDays()} d ago"
+        age.toMinutes() < 1 -> "$verb just now"
+        age.toHours() < 1 -> "$verb ${age.toMinutes()} min ago"
+        age.toDays() < 1 -> "$verb ${age.toHours()} h ago"
+        else -> "$verb ${age.toDays()} d ago"
     }
 }

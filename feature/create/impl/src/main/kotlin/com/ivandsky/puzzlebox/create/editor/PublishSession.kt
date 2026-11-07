@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.domain.ValidatePublishDetails
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -127,8 +128,13 @@ class PublishSession(
         }
     }
 
-    /** The stored draft's [authorName] and [note], once it has loaded. */
-    fun open(authorName: String, note: String) {
+    /**
+     * The stored draft's [authorName] and [note], once it has loaded, and the code it was already
+     * [published] under (null when it never was): a published draft reopens published, so it
+     * stays read-only and shows its ticket.
+     */
+    fun open(authorName: String, note: String, published: ShareCode?) {
+        if (published != null) mutableState.update { it.copy(outcome = PublishOutcome.Published(published)) }
         authorTyped = authorName.isNotEmpty()
         stored = authorName to note
         setDetails(authorName, note)
@@ -222,7 +228,7 @@ class PublishSession(
     /** Shows [who]'s display name, clamped to the cap, while the author has none of their own. */
     private fun prefillAuthor(who: Identity?) {
         val details = mutableState.value.details
-        if (who == null || authorTyped || details.authorName.isNotEmpty()) return
+        if (who == null || authorTyped || published || details.authorName.isNotEmpty()) return
         setDetails(who.displayName.clampedTo(Draft.AUTHOR_MAX), details.note)
     }
 
