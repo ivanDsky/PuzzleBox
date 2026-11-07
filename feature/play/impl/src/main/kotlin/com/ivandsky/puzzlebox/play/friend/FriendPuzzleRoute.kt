@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -28,9 +29,9 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * A friend's puzzle on the Play stack: a spinner while the code opens, then the scrolling
- * [FriendPuzzleCard], whose Play, Resume or Replay opens the puzzle's board ([onPlay]), or
- * [FriendOpenError] saying why the code did not open, with Try again or the store listing
- * when either helps. Up is [onBack], the navigator's pop.
+ * [FriendPuzzleCard], whose Play, Resume or Replay opens the puzzle's board ([onPlay]) and
+ * whose board preview signs in with Google in place, or [FriendOpenError] saying why the code
+ * did not open, with Try again or the store listing when either helps. Up is [onBack], the navigator's pop.
  */
 @Composable
 internal fun FriendPuzzleRoute(
@@ -42,6 +43,7 @@ internal fun FriendPuzzleRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
     Column(modifier.fillMaxSize().testTag("route.friend")) {
         CompactTopBar(
             title = "",
@@ -62,6 +64,7 @@ internal fun FriendPuzzleRoute(
             is FriendCardState.Ready -> FriendPuzzleCard(
                 card = card.card,
                 onAction = { onPlay(card.card.play) },
+                onSignIn = { viewModel.signIn(context) },
                 modifier = Modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.xl),
             )
             is FriendCardState.Failed -> card.outcome.errorCopy(ShareCode.parse(key.code))?.let { copy ->

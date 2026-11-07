@@ -9,6 +9,8 @@ import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.domain.CustomBoardView
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.gameui.GameBrand
@@ -18,8 +20,9 @@ import java.time.Instant
 
 private fun previewCard(
     action: FriendCardAction,
-    yourTimeMs: Long? = null,
+    yours: BestScore? = null,
     difficulty: Difficulty.Level? = Difficulty.Level.Medium,
+    board: CustomBoardView? = CustomBoardView.SignedOut(PreviewBoardAuthor),
 ) = FriendCard(
     puzzle = ReceivedPuzzle(
         code = requireNotNull(ShareCode.parse("K7Q2MX")),
@@ -43,13 +46,15 @@ private fun previewCard(
     brand = GameBrand(AccentSlot.Violet, GameGlyphs.Queens),
     size = "8×8",
     action = action,
-    yourTimeMs = yourTimeMs,
+    yours = yours,
+    board = board,
+    signIn = BoardSignIn.Idle,
 )
 
 @Composable
 private fun PreviewCard(card: FriendCard) {
     PuzzleBoxTheme {
-        Surface(color = MaterialTheme.colorScheme.surface) { FriendPuzzleCard(card, onAction = {}) }
+        Surface(color = MaterialTheme.colorScheme.surface) { FriendPuzzleCard(card, onAction = {}, onSignIn = {}) }
     }
 }
 
@@ -67,11 +72,12 @@ internal fun FriendPuzzleCardResumePreview() {
     PreviewCard(previewCard(FriendCardAction.Resume(elapsedMs = 42_000L)))
 }
 
-// Preview: solved here, Replay beside your time.
+// Preview: solved here and signed in, Replay beside your time over the board's top three.
 @PuzzleBoxPreviews
 @Composable
 internal fun FriendPuzzleCardReplayPreview() {
-    PreviewCard(previewCard(FriendCardAction.Replay, yourTimeMs = 125_000L))
+    val top = listOf(previewBoardRow(1, "Maja", 74_000L), previewBoardRow(2, "Me", 125_000L, isMe = true), previewBoardRow(3, "Lea", 131_000L, hints = 1))
+    PreviewCard(previewCard(FriendCardAction.Replay, yours = BestScore(125_000L, 0), board = CustomBoardView.Ranked(top, mine = null, author = PreviewBoardAuthor)))
 }
 
 // Preview: a game without a difficulty ladder, no difficulty chip.

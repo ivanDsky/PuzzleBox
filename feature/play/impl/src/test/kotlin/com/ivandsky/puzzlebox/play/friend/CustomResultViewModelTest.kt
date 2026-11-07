@@ -15,15 +15,18 @@ import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.domain.CustomBoardView
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -50,7 +53,9 @@ import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
@@ -125,6 +130,9 @@ class CustomResultViewModelTest {
                     single<GameCalendar> { FakeGameCalendar(LocalDate.parse("2026-11-04")) }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
                     single { GameEditorRegistry(emptyList()) }
+                    single<CustomBoardRepository> { FakeCustomBoardRepository() }
+                    single<IdentityService> { FakeIdentityService() }
+                    single { dismissedGoogleSignIn }
                     factory { LoadPastDay(get(), get()) }
                 },
                 playModule,
@@ -157,6 +165,7 @@ class CustomResultViewModelTest {
         difficulty = null,
     )
 
+
     private fun key(timeMs: Long, hints: Int = 0) = CustomResultKey(alpha.value, code.value, timeMs, hints)
 
     private fun row(timeMs: Long, hints: Int = 0, isRecord: Boolean = false) =
@@ -164,7 +173,9 @@ class CustomResultViewModelTest {
 
     private fun observed(key: CustomResultKey): CustomResultViewModel {
         val koin = checkNotNull(koin).koin
-        val viewModel = CustomResultViewModel(key, completions, received, fakes.games, fakes.registry, koin.get(), koin.get())
+        val viewModel = CustomResultViewModel(
+            key, completions, received, fakes.games, fakes.registry, koin.get(), koin.get(), koin.get(),
+        )
         screen.launch { viewModel.state.collect {} }
         main.testDispatcher.scheduler.runCurrent()
         return viewModel
@@ -205,6 +216,47 @@ class CustomResultViewModelTest {
     }
 
     @Test
+    fun `taking the puzzle down closes the result's board`() {
+        val viewModel = observed(key(42_000L))
+        assertFalse(viewModel.state.value.boardClosed)
+
+        runBlocking { received.markUnpublished(code) }
+        main.testDispatcher.scheduler.runCurrent()
+
+        assertTrue(viewModel.state.value.boardClosed)
+    }
+
+    @Test
+    fun `a taken-down puzzle's result reads Leaderboard closed and posts nothing`() {
+        val takenDown = puzzle().copy(unpublished = true)
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                CustomResultScreen(
+                    state = CustomResultState(
+                        timeMs = 130_000L,
+                        hintsUsed = 0,
+                        title = "Alpha",
+                        brand = fakes.registry.brandOf(alpha),
+                        rankOrder = RankOrder.TimeThenHints,
+                        puzzle = takenDown,
+                        standing = CustomStanding.Record,
+                        board = CustomBoardView.Ranked(top = emptyList(), mine = null, author = takenDown.authorPin()),
+                    ),
+                    onDone = {},
+                    onShare = {},
+                    onPlayAgain = {},
+                    onSignIn = {},
+                )
+            }
+        }
+        composeRule.waitForIdle()
+
+        node("custom_board.closed").assertExists()
+        node("custom_board.you.local_only").assertExists()
+        assertEquals("a closed board never says it is posting", 0, count("custom_board.you.pending"))
+    }
+
+    @Test
     fun `the state carries no streak`() {
         val fields = CustomResultState::class.java.declaredFields.map { it.name.lowercase() }
 
@@ -230,6 +282,7 @@ class CustomResultViewModelTest {
                     onDone = {},
                     onShare = {},
                     onPlayAgain = {},
+                    onSignIn = {},
                 )
             }
         }

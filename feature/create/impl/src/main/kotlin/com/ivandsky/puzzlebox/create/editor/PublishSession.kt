@@ -28,6 +28,12 @@ import kotlinx.coroutines.launch
  * reserved code onto the stored row; [reserved] hands it back to the Studio's one writer, so a
  * later autosave keeps it. One publish at a time.
  *
+ * A publish that falls short (spec A15, A16) stays the outcome until the next one: offline or
+ * refused, [State.retry] turns Publish into Retry, which goes out under the reserved code, so a
+ * lost answer never doubles the puzzle. Nothing is queued: the session never publishes on its
+ * own. At the store's daily cap (a server, UTC, day) the cap block keeps Publish off for as long
+ * as the Studio is open; test solving stays on.
+ *
  * The details (spec A15, A25): the author name and note as typed, checked by [validateDetails]
  * and handed to [storeDetails], the Studio's one writer. A draft with no author name shows the
  * account's display name, which is stored once published or edited; the name the author typed,
@@ -69,7 +75,15 @@ class PublishSession(
         val signIn: SignIn? = null,
         val signInFailure: SignInFailure? = null,
         val details: Details = Details(),
-    )
+    ) {
+        /** What keeps the draft from publishing here: the details' blocks, then the day's cap once the store answered it. */
+        val blocks: List<PublishBlock>
+            get() = if (outcome == PublishOutcome.DailyCapReached) details.blocks + DailyCapBlock else details.blocks
+
+        /** The last publish fell short in a way another try may fix: offline, or refused. */
+        val retry: Boolean
+            get() = outcome == PublishOutcome.Offline || outcome is PublishOutcome.Rejected
+    }
 
     /** The author name and note as typed; [blocks] are what keeps them from publishing. */
     data class Details(
@@ -220,6 +234,8 @@ class PublishSession(
         storeDetails(next.first, next.second)
     }
 }
+
+private val DailyCapBlock = PublishBlock(PublishBlock.DAILY_CAP)
 
 /** This string trimmed and cut to at most [max] code points, never splitting a character. */
 private fun String.clampedTo(max: Int): String {

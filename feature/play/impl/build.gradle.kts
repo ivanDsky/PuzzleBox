@@ -18,6 +18,8 @@ dependencies {
     // ADR-0001/ADR-0007: play is game-agnostic — every game reaches it through the
     // core:game-ui play seam (GamePlayUi/GamePlayController), never a games:* edge.
     implementation(projects.core.gameUi)
+    // A friend puzzle's board needs sign-in: the Google ID token comes from GoogleIdTokenProvider.
+    implementation(projects.core.auth)
 
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.core)

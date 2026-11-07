@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.AppShapes
+import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.LocalMutedStatus
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
@@ -210,19 +211,22 @@ private val FriendStatus.tag: String
         FriendStatus.NeedsUpdate -> "needs_update"
     }
 
-private fun previewCard(code: String, game: String, accent: AccentSlot, title: String, author: String, status: FriendStatus) =
+private fun previewCard(code: String, game: String, brand: GameBrand, title: String, author: String, status: FriendStatus) =
     FriendCardModel(
         row = FriendPuzzleRow(checkNotNull(ShareCode.parse(code)), GameId(game.lowercase()), title, author, status),
         gameName = game,
-        brand = GameBrand.Neutral.copy(accent = accent),
+        brand = brand,
     )
 
 internal val FriendPreviewCards = listOf(
-    previewCard("K7Q2MX", "Tango", AccentSlot.Orange, "Sunday sun and moons", "Jonas", FriendStatus.InProgress(70_000)),
-    previewCard("B4R9TZ", "Queens", AccentSlot.Violet, "Crown of the castle, a long title that wraps past two lines", "Mia", FriendStatus.Solved(228_000)),
-    previewCard("M3N8PQ", "Zip", AccentSlot.Teal, "One line", "Ari", FriendStatus.TakenDown),
-    previewCard("H2J5WX", "Queens", AccentSlot.Violet, "Fresh one", "Bo", FriendStatus.New),
-    previewCard("Z9Y8XW", "Gone", AccentSlot.Neutral, "From a newer build", "Lee", FriendStatus.NeedsUpdate),
+    previewCard("K7Q2MX", "Tango", GameBrand(AccentSlot.Orange, GameGlyphs.Tango), "Sunday sun and moons", "Jonas", FriendStatus.InProgress(70_000)),
+    previewCard(
+        "B4R9TZ", "Queens", GameBrand(AccentSlot.Violet, GameGlyphs.Queens),
+        "Crown of the castle, a long title that wraps past two lines", "Mia", FriendStatus.Solved(228_000),
+    ),
+    previewCard("M3N8PQ", "Zip", GameBrand(AccentSlot.Blue, GameGlyphs.Zip), "One line", "Ari", FriendStatus.TakenDown),
+    previewCard("H2J5WX", "Queens", GameBrand(AccentSlot.Violet, GameGlyphs.Queens), "Fresh one", "Bo", FriendStatus.New),
+    previewCard("Z9Y8XW", "Gone", GameBrand.Neutral, "From a newer build", "Lee", FriendStatus.NeedsUpdate),
 )
 
 @PuzzleBoxPreviews
