@@ -44,6 +44,9 @@ import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
+import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
+import com.ivandsky.puzzlebox.data.repository.PublishResult
+import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
@@ -56,6 +59,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -93,6 +97,7 @@ class PublishSessionTest {
     private val drafts = FakeDraftRepository()
     private val shared = FakeSharedPuzzleRepository().apply { signedInUid = AUTHOR.uid }
     private val published = FakePublishedPuzzleRepository()
+    private val gated = GatedSharedPuzzleRepository(shared)
     private val identity = FakeIdentityService(initial = AUTHOR)
     private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey, EditorKey(DRAFT_ID)))))
     private lateinit var vm: EditorViewModel
@@ -147,6 +152,49 @@ class PublishSessionTest {
         awaitTag(PUBLISHED_CODE)
         assertEquals(PublishOutcome.Published(committed), vm.publish.state.value.outcome)
         assertEquals("exactly one doc", setOf(committed), shared.docs.keys)
+    }
+
+    @Test
+    fun `an autosave while createShared is in flight keeps the reserved code on the stored row`() {
+        gated.gate = CompletableDeferred()
+        open()
+
+        tapPublish()
+        awaitTrue { gated.entered }
+        val reserved = checkNotNull(drafts.rows.getValue(DRAFT_ID).reservedCode)
+        assertTrue("nothing committed while held", shared.docs.isEmpty())
+
+        ui.controllers.single().edit(editor.draft(marks = 2))
+        idle(QUEUE_WAIT_MS)
+
+        val row = drafts.rows.getValue(DRAFT_ID)
+        assertEquals("the edit was stored", 2, row.blob.last().toInt())
+        assertEquals("the autosave kept the reserved code", reserved, row.reservedCode)
+
+        gated.gate?.complete(Unit)
+        awaitTag(PUBLISHED_CODE)
+        assertEquals(setOf(ShareCode.parse(reserved)), shared.docs.keys)
+        assertEquals(reserved, drafts.rows.getValue(DRAFT_ID).reservedCode)
+    }
+
+    @Test
+    fun `a failed createShared then a retry reuses the same code, with no second reservation`() {
+        shared.online = false
+        open()
+
+        tapPublish()
+        awaitTag(OFFLINE)
+        val first = checkNotNull(drafts.rows.getValue(DRAFT_ID).reservedCode)
+        ui.controllers.single().edit(editor.draft(marks = 1))
+        idle(QUEUE_WAIT_MS)
+        assertEquals("kept across the failure and an autosave", first, drafts.rows.getValue(DRAFT_ID).reservedCode)
+
+        shared.online = true
+        tapPublish()
+
+        awaitTag(PUBLISHED_CODE)
+        assertEquals(setOf(ShareCode.parse(first)), shared.docs.keys)
+        assertEquals(first, drafts.rows.getValue(DRAFT_ID).reservedCode)
     }
 
     @Test
@@ -207,7 +255,7 @@ class PublishSessionTest {
         val copyDraft = CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW })
         val createShared = CreateSharedPuzzle(
             drafts = drafts,
-            shared = shared,
+            shared = gated,
             published = published,
             identity = identity,
             validate = ValidatePublish(),
@@ -261,6 +309,18 @@ class PublishSessionTest {
         ShadowLooper.idleMainLooper(millis, TimeUnit.MILLISECONDS)
         composeRule.mainClock.advanceTimeBy(millis)
         composeRule.waitForIdle()
+    }
+
+    /** The fake store, holding [publish] at [gate] when one is set: the call is in flight until the gate opens. */
+    private class GatedSharedPuzzleRepository(private val delegate: SharedPuzzleRepository) : SharedPuzzleRepository by delegate {
+        @Volatile var gate: CompletableDeferred<Unit>? = null
+        @Volatile var entered = false
+
+        override suspend fun publish(doc: SharedPuzzleDoc): PublishResult {
+            entered = true
+            gate?.await()
+            return delegate.publish(doc)
+        }
     }
 
     /** The stand-in board with sharing: a mark count travels as its one byte. */
