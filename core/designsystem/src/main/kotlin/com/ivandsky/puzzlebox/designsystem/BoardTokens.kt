@@ -67,9 +67,10 @@ data class BoardColors(
     // Editor diagnostics (editor spec S19, prototype 03 b): editor-only shading the play
     // board never draws. The "2+ solutions" ring deliberately avoids boardSelection (the
     // play hint tint): a saturated teal, light over dark fills and deep over pastel ones,
-    // so the ring reads on any region. The clash fill is the scheme error at 75%, the
-    // lightest wash that still clears 3:1 over every region fill (29: 45% read 2.0:1 on
-    // light pastels); a crown on it takes its ink against the washed fill. Split stripes are
+    // so the ring reads on any region. The clash fill is a 75% red wash: the scheme error in
+    // dark, one tone deeper in light, where the scheme error over the Candy red fill reads
+    // 2.5:1 (29: 45% read 2.0:1 on light pastels); a crown on it takes its ink against the
+    // washed fill. Split stripes are
     // the play UI's violation stripes, so they take the scheme error as is.
     val editorDiffRing: Color,
     val editorClashFill: Color,
@@ -140,8 +141,8 @@ val LightBoardTokens = BoardColors(
     strandsThemeConnector = LightColorScheme.primary,
     strandsSpangramConnector = DarkColorScheme.tertiary,
     strandsHintConnector = LightTimerFill,
-    editorDiffRing = Color(0xFF006874), // new: deep teal, >= 4:1 over every light region fill (L* 84–92)
-    editorClashFill = LightColorScheme.error.copy(alpha = 0.75f),
+    editorDiffRing = Color(0xFF004F58), // deep teal, >= 4.7:1 over every light Candy fill; >= 3.8:1 as the 85% ghost
+    editorClashFill = Color(0xFF93000A).copy(alpha = 0.75f), // error tone 30: >= 3.4:1 washed over every light fill
     editorSplitHatch = LightColorScheme.error,
 )
 
