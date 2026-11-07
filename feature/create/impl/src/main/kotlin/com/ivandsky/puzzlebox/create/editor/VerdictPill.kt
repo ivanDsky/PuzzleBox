@@ -159,11 +159,12 @@ private fun UniqueHaptic(verdict: Verdict) {
 private fun glyphOf(verdict: Verdict): String = when (verdict) {
     is Verdict.Incomplete -> "–"
     Verdict.Checking -> "…"
-    is Verdict.Unique -> "✓"
+    is Verdict.Unique -> if (verdict.needsGuessing) "!" else "✓"
     is Verdict.Multiple -> "2+"
     is Verdict.None -> "✕"
     Verdict.Undetermined -> "?"
 }
+
 @PuzzleBoxPreviews
 @Composable
 private fun VerdictPillPreview() {
