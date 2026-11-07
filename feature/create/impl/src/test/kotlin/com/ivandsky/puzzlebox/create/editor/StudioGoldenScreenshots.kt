@@ -129,7 +129,7 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
                     sizeLabel = { variant -> variant.value.substringAfter('/').let { "$it×$it" } },
                     onResize = {},
                     onClear = {},
-                    hint = { Text("Mode", it, style = MaterialTheme.typography.bodySmall) },
+                    hint = { Text("Drag across cells, then pick a colour", it, style = MaterialTheme.typography.bodySmall) },
                     modifier = stripModifier,
                 )
             },
