@@ -4,14 +4,18 @@ import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
+import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGeometry
+import com.ivandsky.puzzlebox.games.sudoku.engine.rules.SudokuConflicts
 import com.ivandsky.puzzlebox.games.sudoku.engine.solve.SudokuSearchOutcome
 import com.ivandsky.puzzlebox.games.sudoku.engine.solve.SudokuSolver
 
 /**
  * A Sudoku draft → its [Verdict]. A board with no givens is Incomplete; otherwise the solver
  * looks for up to two solutions, so Unique, Multiple and None are exact. Multiple carries both
- * witnesses and the cells they differ on; None carries no cells. A spent or cancelled [Budget]
+ * witnesses and the cells they differ on. Givens that share a row, column or box are None with
+ * the clashing cells, named before any search; a plain no-solution None carries no cells. A spent or cancelled [Budget]
  * reads as [Verdict.Undetermined].
  */
 object SudokuDraftAnalyzer {
@@ -22,6 +26,9 @@ object SudokuDraftAnalyzer {
 
     fun analyze(draft: SudokuDraft, geometry: SudokuGeometry, budget: Budget): Verdict {
         if (draft.givens.all { it == 0 }) return Verdict.Incomplete(IncompleteReason(EMPTY, 0))
+        val board = SudokuBoard(geometry, draft.givens.map { if (it == 0) SudokuCell.Empty else SudokuCell.Given(it) })
+        val clashes = SudokuConflicts.find(board)
+        if (clashes.isNotEmpty()) return Verdict.None(SudokuConflicts.cellsIn(clashes))
         val outcome = SudokuSolver.bounded(geometry, draft.givens, limit = 2, budget = budget)
         if (outcome !is SudokuSearchOutcome.Done) return Verdict.Undetermined
         val found = outcome.solutions
