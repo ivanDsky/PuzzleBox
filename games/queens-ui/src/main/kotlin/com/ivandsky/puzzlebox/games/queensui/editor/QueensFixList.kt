@@ -113,15 +113,9 @@ internal fun QueensFixList(
     val draft = editorDraft.state.draft as QueensDraft
     val rows = remember(draft, verdict, blocks) { QueensFixRow.of(draft, verdict, blocks) }
     QueensFixRows(rows, draft.size, onSelect = { cells ->
-        controller.selectFix(cells)
+        controller.select(cells)
         onSelect()
     }, modifier = modifier)
-}
-
-/** Paint mode with exactly [cells] selected; not an edit. */
-private fun QueensEditorController.selectFix(cells: Set<Int>) {
-    setMode(QueensEditorMode.Paint)
-    cells.forEach(::tap)
 }
 
 /**
