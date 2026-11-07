@@ -140,18 +140,20 @@ Without `-Proborazzi.verify=true` the screenshot tests re-record their goldens.
 
 ## Contributing
 
-Trunk-based: each change is a small PR into `main` that merges within hours. A PR can merge
-only when the required `pr-check` workflow ([`.github/workflows/pr-check.yml`](.github/workflows/pr-check.yml))
-is green. It runs the same command locally (CI adds `-Pgoldens.pixelCompare=false`):
+Trunk-based: each change is a small PR into `main` that merges within hours. PRs run no CI
+([ADR-0023](docs/adr/0023-ci-on-main-only.md)): before merging, run the full suite on the branch
+rebased onto the latest `main`:
 
 ```bash
 ./gradlew assembleDebug test           # module-graph guard, every module's unit tests, :konsist
 ```
 
-CI does not compare screenshot pixels (the goldens are recorded on macOS; on Linux,
-`-Pgoldens.pixelCompare=false` also turns off the Tango harness's always-on pixel diff), so
-run the `-Proborazzi.verify=true` command above before you push UI changes. `main` must stay
-releasable: every push that carries a new `versionName` publishes a GitHub release.
+Every push to `main` runs the same suite in [`.github/workflows/release.yml`](.github/workflows/release.yml)
+(with `-Pgoldens.pixelCompare=false`), then builds the signed release. It publishes a GitHub
+release only if the tests pass and the `versionName` is new. A red `main` stops merges until a
+revert or fix lands. CI does not compare screenshot pixels (the goldens are recorded on macOS;
+on Linux, `-Pgoldens.pixelCompare=false` also turns off the Tango harness's always-on pixel
+diff), so run the `-Proborazzi.verify=true` command above before you push UI changes.
 
 Unfinished features merge dark behind a `ReleaseFlag` and ship by a flip PR
 ([ADR-0022](docs/adr/0022-trunk-delivery-release-flags.md)). To force a flag on in a debug
