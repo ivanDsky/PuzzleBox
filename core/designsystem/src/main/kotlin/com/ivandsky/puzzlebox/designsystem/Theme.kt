@@ -36,6 +36,12 @@ val LocalOnFill = staticCompositionLocalOf { LightOnFill }
 internal val LocalNeutralLip = staticCompositionLocalOf { LightNeutralLip }
 
 /**
+ * Muted-status chip role (MutedStatusColors.kt): a state that is over, like a puzzle taken
+ * down. Provided by [PuzzleBoxTheme] like [LocalOnFill].
+ */
+val LocalMutedStatus = staticCompositionLocalOf { LightMutedStatus }
+
+/**
  * Board color roles (BoardTokens.kt, spec UIUX-01 A5): the board renders from these named
  * roles, never raw colors. Provided by [PuzzleBoxTheme] so board rendering always follows
  * the RESOLVED theme — same contract as [LocalPrimaryText], including a forced appearance
@@ -69,6 +75,7 @@ fun PuzzleBoxTheme(
         LocalTimerFill provides if (darkTheme) DarkTimerFill else LightTimerFill,
         LocalOnFill provides if (darkTheme) DarkOnFill else LightOnFill,
         LocalNeutralLip provides if (darkTheme) DarkNeutralLip else LightNeutralLip,
+        LocalMutedStatus provides if (darkTheme) DarkMutedStatus else LightMutedStatus,
         LocalBoardColors provides if (darkTheme) DarkBoardTokens else LightBoardTokens,
         LocalAccentPalette provides accentPalette(darkTheme),
     ) {
