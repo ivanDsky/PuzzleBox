@@ -13,12 +13,16 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
+import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.navigation.createEntry
+import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
+import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -29,18 +33,19 @@ import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import java.time.Instant
-import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.data.model.Draft
-import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -97,6 +102,7 @@ class NewPuzzleSheetTest {
         val createDraft = CreateDraft(games, drafts, newId = { "draft-${++next}" }, clock = { NOW })
         runBlocking { drafts.upsert(seed()) }
         startKoin {
+            modules(module { single<ReleaseFlags> { FakeReleaseFlags() } })
             modules(
                 module {
                     viewModel {
@@ -105,9 +111,11 @@ class NewPuzzleSheetTest {
                             editors,
                             GamePlayRegistry(emptyList()),
                             drafts,
+                            FakePublishedPuzzleRepository(),
                             createDraft,
                             CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW }),
                             DefaultDispatcherProvider(),
+                            syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
                             clock = { NOW },
                         )
                     }

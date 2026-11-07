@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
+import com.ivandsky.puzzlebox.domain.UpdatePublishState
 import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
@@ -23,6 +24,10 @@ internal fun signedOutPublishing(drafts: DraftRepository): CreateSharedPuzzle = 
     random = Random(0),
     clock = { Instant.EPOCH },
 )
+
+/** Unpublishing for Studio tests that never unpublish: real use case over empty fakes. */
+internal fun signedOutUnpublishing(): UpdatePublishState =
+    UpdatePublishState(shared = FakeSharedPuzzleRepository(), published = FakePublishedPuzzleRepository())
 
 /** The Studio's account for tests that never publish: nobody signed in. */
 internal fun nobodySignedIn(): IdentityService = FakeIdentityService(initial = null)

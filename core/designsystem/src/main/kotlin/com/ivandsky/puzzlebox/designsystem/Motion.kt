@@ -6,6 +6,8 @@ import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -135,6 +137,13 @@ object MotionTokens {
     const val RejectSpringDamping = Spring.DampingRatioMediumBouncy
     const val RejectSpringStiffness = Spring.StiffnessMediumLow
     const val RejectHoldMillis = 600L
+
+    // Shake: a refused entry (an unknown code, a publish that ends in a retry) is kicked
+    // sideways from rest on the reject spring, launched at ShakeVelocityPerPx (1/s) times
+    // its ShakeKick in px so the first swing peaks near the kick. Reduced: none.
+    val ShakeKick: Dp = 6.dp
+    const val ShakeVelocityPerPx = 36f
+    val ShakeSpring: SpringSpec<Float> = spring(RejectSpringDamping, RejectSpringStiffness)
 
     // Flash: a one-shot colour switch (Zip's next-target ring) that settles back; 300ms
     // read as instant (user round 6c). Reduced: settles instantly.

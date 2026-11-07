@@ -49,7 +49,10 @@ private val TagHorizontalPadding = 6.dp
  * Rename ([onRename]), the [title] on one line over a `STUDIO` tag, the [subtitle]
  * ("Queens 7×7") and the autosave indicator ("Saving…" while [saving], then "✓ Saved") — then
  * the [pill] slot and the overflow ⋮ with Rename, Duplicate as new draft ([onDuplicate]) and
- * Delete draft ([onDelete], in the error colour).
+ * Delete draft ([onDelete], in the error colour). A published puzzle is immutable and its
+ * draft is the record its published page shows, so [readOnly] the title opens nothing and the
+ * menu holds Duplicate and, while the code is live, Unpublish… ([onUnpublish], in the error
+ * colour; null once unpublished).
  *
  * Motion: the title block's press is **Press feedback** at MotionTokens.PressScale; the menu's
  * origin-aware **Scale in + Fade in** from the ⋮ is DropdownMenu's own.
@@ -65,6 +68,8 @@ fun StudioTopBar(
     onDelete: () -> Unit,
     pill: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    readOnly: Boolean = false,
+    onUnpublish: (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -77,21 +82,32 @@ fun StudioTopBar(
         IconButton(onClick = onBack, modifier = Modifier.testTag("create.editor.back")) {
             Icon(PuzzleIcons.Back, contentDescription = "Back")
         }
-        TitleBlock(title = title, subtitle = subtitle, saving = saving, onClick = onRename, modifier = Modifier.weight(1f))
+        TitleBlock(title = title, subtitle = subtitle, saving = saving, onClick = onRename.takeUnless { readOnly }, modifier = Modifier.weight(1f))
         pill()
-        OverflowMenu(onRename = onRename, onDuplicate = onDuplicate, onDelete = onDelete)
+        OverflowMenu(
+            onRename = onRename.takeUnless { readOnly },
+            onDuplicate = onDuplicate,
+            onDelete = onDelete.takeUnless { readOnly },
+            onUnpublish = onUnpublish.takeIf { readOnly },
+        )
     }
 }
 
 @Composable
-private fun TitleBlock(title: String, subtitle: String, saving: Boolean, onClick: () -> Unit, modifier: Modifier) {
+private fun TitleBlock(title: String, subtitle: String, saving: Boolean, onClick: (() -> Unit)?, modifier: Modifier) {
     val interactionSource = remember { MutableInteractionSource() }
-    Column(
-        modifier = modifier
-            .fillMaxHeight()
+    val press = if (onClick == null) {
+        Modifier
+    } else {
+        Modifier
             .pressScale(interactionSource, rememberReducedMotion())
             .clip(AppShapes.small)
             .clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClick = onClick)
+    }
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+            .then(press)
             .testTag("create.studio.title")
             .padding(horizontal = Spacing.xs),
         verticalArrangement = Arrangement.Center,
@@ -145,7 +161,7 @@ private fun StudioTag() {
 }
 
 @Composable
-private fun OverflowMenu(onRename: () -> Unit, onDuplicate: () -> Unit, onDelete: () -> Unit) {
+private fun OverflowMenu(onRename: (() -> Unit)?, onDuplicate: () -> Unit, onDelete: (() -> Unit)?, onUnpublish: (() -> Unit)?) {
     var open by remember { mutableStateOf(false) }
     val pick: (() -> Unit) -> () -> Unit = { action -> { open = false; action() } }
     Box {
@@ -153,21 +169,32 @@ private fun OverflowMenu(onRename: () -> Unit, onDuplicate: () -> Unit, onDelete
             Icon(PuzzleIcons.More, contentDescription = "More options")
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }, shape = AppShapes.medium) {
-            DropdownMenuItem(
-                text = { Text("Rename") },
-                onClick = pick(onRename),
-                modifier = Modifier.testTag("create.studio.rename"),
-            )
+            onRename?.let {
+                DropdownMenuItem(
+                    text = { Text("Rename") },
+                    onClick = pick(it),
+                    modifier = Modifier.testTag("create.studio.rename"),
+                )
+            }
             DropdownMenuItem(
                 text = { Text("Duplicate as new draft") },
                 onClick = pick(onDuplicate),
                 modifier = Modifier.testTag("create.studio.duplicate"),
             )
-            DropdownMenuItem(
-                text = { Text("Delete draft", color = MaterialTheme.colorScheme.error) },
-                onClick = pick(onDelete),
-                modifier = Modifier.testTag("create.studio.delete"),
-            )
+            onUnpublish?.let {
+                DropdownMenuItem(
+                    text = { Text("Unpublish…", color = MaterialTheme.colorScheme.error) },
+                    onClick = pick(it),
+                    modifier = Modifier.testTag("create.studio.unpublish"),
+                )
+            }
+            onDelete?.let {
+                DropdownMenuItem(
+                    text = { Text("Delete draft", color = MaterialTheme.colorScheme.error) },
+                    onClick = pick(it),
+                    modifier = Modifier.testTag("create.studio.delete"),
+                )
+            }
         }
     }
 }

@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
@@ -65,8 +66,10 @@ class MissingDraftTest {
                             GamePlayRegistry(emptyList()), copyDraft, DefaultDispatcherProvider(),
                             saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW },
                             createShared = signedOutPublishing(drafts),
+                            publishedPuzzles = FakePublishedPuzzleRepository(),
                             identity = nobodySignedIn(),
                             idTokens = noGoogleAccount,
+                            updatePublishState = signedOutUnpublishing(),
                         )
                     }
                 },

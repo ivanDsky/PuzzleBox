@@ -206,8 +206,10 @@ class PublishDetailsTest {
             random = Random(0),
             clock = { NOW },
         ),
+        publishedPuzzles = FakePublishedPuzzleRepository(),
         identity = identity,
         idTokens = OneAccountGoogleIdTokenProvider,
+        updatePublishState = signedOutUnpublishing(),
     )
 
     private fun open(signedIn: Boolean) {

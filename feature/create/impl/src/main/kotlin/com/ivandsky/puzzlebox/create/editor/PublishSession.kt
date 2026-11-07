@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.domain.ValidatePublishDetails
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -66,7 +67,8 @@ class PublishSession(
      * [busy] while a publish runs; [outcome] is the last one's, null before the first.
      * [signedIn] names the Publish action; [signIn] is the open sign-in sheet, null when closed;
      * [signInFailure] is the last sign-in's failure until it is shown ([dismissSignInFailure]).
-     * [details] are the inline author name and note.
+     * [details] are the inline author name and note. [reopened] when the Published outcome came
+     * from opening an already published draft rather than from a publish here.
      */
     data class State(
         val busy: Boolean = false,
@@ -75,6 +77,7 @@ class PublishSession(
         val signIn: SignIn? = null,
         val signInFailure: SignInFailure? = null,
         val details: Details = Details(),
+        val reopened: Boolean = false,
     ) {
         /** What keeps the draft from publishing here: the details' blocks, then the day's cap once the store answered it. */
         val blocks: List<PublishBlock>
@@ -127,31 +130,38 @@ class PublishSession(
         }
     }
 
-    /** The stored draft's [authorName] and [note], once it has loaded. */
-    fun open(authorName: String, note: String) {
+    /**
+     * The stored draft's [authorName] and [note], once it has loaded, and the code it was already
+     * [published] under (null when it never was): a published draft reopens published, so it
+     * stays read-only and shows its ticket.
+     */
+    fun open(authorName: String, note: String, published: ShareCode?) {
+        if (published != null) mutableState.update { it.copy(outcome = PublishOutcome.Published(published), reopened = true) }
         authorTyped = authorName.isNotEmpty()
         stored = authorName to note
         setDetails(authorName, note)
         prefillAuthor(identity.current.value)
     }
 
-    /** The author typed [authorName]: it is theirs from now on, and stored. */
+    /** The author typed [authorName]: it is theirs from now on, and stored. Published, it is refused. */
     fun editAuthorName(authorName: String) {
+        if (published) return
         authorTyped = true
         setDetails(authorName, mutableState.value.details.note)
         store()
     }
 
-    /** The author typed [note]; it is stored. */
+    /** The author typed [note]; it is stored. Published, it is refused. */
     fun editNote(note: String) {
+        if (published) return
         setDetails(mutableState.value.details.authorName, note)
         store()
     }
 
-    /** Publishes [draft] as checked by [verdict], signing in first; a no-op while one runs or the sheet is open. */
+    /** Publishes [draft] as checked by [verdict], signing in first; a no-op while one runs, the sheet is open or it is published. */
     fun publish(draft: EditorDraft<*>, verdict: Verdict) {
         val now = mutableState.value
-        if (now.busy || now.signIn != null) return
+        if (now.busy || now.signIn != null || published) return
         val request = Request(draft, verdict)
         if (identity.current.value == null) askToSignIn(request) else run(request, afterSignIn = false)
     }
@@ -192,6 +202,9 @@ class PublishSession(
         mutableState.update { it.copy(signInFailure = null) }
     }
 
+    /** A published puzzle is immutable: no new details, no second publish. */
+    private val published: Boolean get() = mutableState.value.outcome is PublishOutcome.Published
+
     private fun askToSignIn(request: Request) {
         held = request
         mutableState.update { it.copy(signIn = SignIn(), signInFailure = null) }
@@ -217,7 +230,7 @@ class PublishSession(
     /** Shows [who]'s display name, clamped to the cap, while the author has none of their own. */
     private fun prefillAuthor(who: Identity?) {
         val details = mutableState.value.details
-        if (who == null || authorTyped || details.authorName.isNotEmpty()) return
+        if (who == null || authorTyped || published || details.authorName.isNotEmpty()) return
         setDetails(who.displayName.clampedTo(Draft.AUTHOR_MAX), details.note)
     }
 

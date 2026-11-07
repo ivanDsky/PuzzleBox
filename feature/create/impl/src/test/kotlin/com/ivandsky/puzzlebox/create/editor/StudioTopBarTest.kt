@@ -27,6 +27,7 @@ import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
+import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -36,7 +37,9 @@ import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
@@ -163,7 +166,7 @@ class StudioTopBarTest {
             modules(
                 module {
                     viewModel { (key: EditorKey) ->
-                        EditorViewModel(key, drafts, games, editors, GamePlayRegistry(emptyList()), copyDraft, DefaultDispatcherProvider(), saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW }, createShared = signedOutPublishing(drafts), identity = nobodySignedIn(), idTokens = noGoogleAccount)
+                        EditorViewModel(key, drafts, games, editors, GamePlayRegistry(emptyList()), copyDraft, DefaultDispatcherProvider(), saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW }, createShared = signedOutPublishing(drafts), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(), idTokens = noGoogleAccount, updatePublishState = signedOutUnpublishing())
                     }
                     viewModel {
                         CreateViewModel(
@@ -171,9 +174,11 @@ class StudioTopBarTest {
                             editors,
                             GamePlayRegistry(emptyList()),
                             drafts,
+                            FakePublishedPuzzleRepository(),
                             CreateDraft(games, drafts, newId = { "new-1" }, clock = { NOW }),
                             copyDraft,
                             DefaultDispatcherProvider(),
+                            syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
                             clock = { NOW },
                         )
                     }
