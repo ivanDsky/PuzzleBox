@@ -1,23 +1,33 @@
 package com.ivandsky.puzzlebox.games.sudoku.engine.solve
 
+import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGeometry
 
 /**
- * Counts solutions of a board by backtracking over row, column and box digit masks.
+ * Finds solutions of a board by backtracking over row, column and box digit masks.
  * Each step fills the open cell with the fewest candidates (MRV); the search stops once
- * [solve]'s limit is reached. Givens that already clash count as zero solutions.
+ * the limit is reached. Givens that already clash count as zero solutions.
  */
 object SudokuSolver {
 
     fun solve(geometry: SudokuGeometry, givens: List<Int>, limit: Int = 2): SolveResult {
+        val solutions = (bounded(geometry, givens, limit, Budget.Unlimited) as SudokuSearchOutcome.Done).solutions
+        return SolveResult(solutions.size, solutions.firstOrNull())
+    }
+
+    /**
+     * Up to [limit] distinct solutions in search order, or [SudokuSearchOutcome.Exhausted]
+     * once [budget] is spent. The budget is polled at every search node.
+     */
+    fun bounded(geometry: SudokuGeometry, givens: List<Int>, limit: Int, budget: Budget): SudokuSearchOutcome {
         require(givens.size == geometry.cellCount) { "expected ${geometry.cellCount} givens, got ${givens.size}" }
         require(limit >= 1) { "limit must be at least 1, got $limit" }
-        return MaskSearch(geometry, limit).run(givens)
+        return MaskSearch(geometry, limit, budget).run(givens)
     }
 }
 
-/** One solve's mutable state; every array is sized up front so the recursion allocates nothing. */
-private class MaskSearch(geometry: SudokuGeometry, private val limit: Int) {
+/** One solve's mutable state; arrays are sized up front so the recursion allocates only solutions. */
+private class MaskSearch(geometry: SudokuGeometry, private val limit: Int, private val budget: Budget) {
 
     private val size = geometry.size
     private val allDigits = (1 shl size) - 1
@@ -33,10 +43,10 @@ private class MaskSearch(geometry: SudokuGeometry, private val limit: Int) {
     private val open = IntArray(geometry.cellCount)
     private var openCount = 0
 
-    private var count = 0
-    private var firstSolution: IntArray? = null
+    private val solutions = ArrayList<List<Int>>()
+    private var exhausted = false
 
-    fun run(givens: List<Int>): SolveResult {
+    fun run(givens: List<Int>): SudokuSearchOutcome {
         for (idx in givens.indices) {
             val digit = givens[idx]
             require(digit in 0..size) { "digit $digit at $idx outside 0..$size" }
@@ -44,18 +54,21 @@ private class MaskSearch(geometry: SudokuGeometry, private val limit: Int) {
                 open[openCount++] = idx
             } else {
                 val bit = 1 shl (digit - 1)
-                if (usedAt(idx) and bit != 0) return SolveResult(0, null)
+                if (usedAt(idx) and bit != 0) return SudokuSearchOutcome.Done(emptyList())
                 place(idx, bit)
             }
         }
         search(0)
-        return SolveResult(count, firstSolution?.toList())
+        return if (exhausted) SudokuSearchOutcome.Exhausted else SudokuSearchOutcome.Done(solutions)
     }
 
     private fun search(depth: Int) {
+        if (budget.exhausted()) {
+            exhausted = true
+            return
+        }
         if (depth == openCount) {
-            count++
-            if (firstSolution == null) firstSolution = grid.copyOf()
+            solutions.add(grid.toList())
             return
         }
         var bestSlot = -1
@@ -76,7 +89,7 @@ private class MaskSearch(geometry: SudokuGeometry, private val limit: Int) {
         open[bestSlot] = open[depth]
         open[depth] = idx
         var remaining = bestCandidates
-        while (remaining != 0 && count < limit) {
+        while (remaining != 0 && !exhausted && solutions.size < limit) {
             val bit = remaining and -remaining
             remaining = remaining xor bit
             place(idx, bit)
