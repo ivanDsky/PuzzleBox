@@ -12,11 +12,14 @@ import kotlinx.coroutines.flow.StateFlow
 interface GameEditorController {
     val draft: StateFlow<EditorDraft<*>>
 
+    /** The verdict card's A/B witness choice; the controller is its one owner; not persisted. */
+    val overlay: StateFlow<EditorOverlay>
+
     /** The VM replaces the draft after undo/redo/resize/clear; this clears the transient selection. */
     fun adopt(draft: EditorDraft<*>)
 
-    /** Verdict-card witness choice; the default ignores it. */
-    fun adoptOverlay(overlay: EditorOverlay) {}
+    /** The author's witness choice from the verdict card; [overlay] shows it at once. */
+    fun adoptOverlay(overlay: EditorOverlay)
 
     /**
      * The overlay the verdict card opens on for a new settled [verdict] (a 2+ solutions one);
