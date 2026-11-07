@@ -131,6 +131,8 @@ class FriendOpenErrorTest {
         showRoute()
 
         node(tag).assertIsDisplayed()
+        composeRule.onNode(hasTestTag("friend.error.icon") and hasAnyAncestor(hasTestTag(tag)), useUnmergedTree = true)
+            .assertIsDisplayed()
         assertEquals(0, count("friend.card.loading"))
     }
 
@@ -156,6 +158,8 @@ class FriendOpenErrorTest {
         assertEquals(failures.size, copies.map { it.tag }.toSet().size)
         assertEquals(failures.size, copies.map { it.title }.toSet().size)
         assertEquals(failures.size, copies.map { it.body }.toSet().size)
+        assertEquals(failures.size, copies.map { it.glyph }.toSet().size)
+        assertEquals(OpenErrorGlyph.Offline, OpenOutcome.Offline.errorCopy(code)?.glyph)
         assertEquals(OpenErrorAction.Update, OpenOutcome.NeedsUpdate(found = 2).errorCopy(code)?.action)
         assertEquals(OpenErrorAction.Retry, OpenOutcome.Offline.errorCopy(code)?.action)
         assertTrue(copies.count { it.action != null } == 2)
