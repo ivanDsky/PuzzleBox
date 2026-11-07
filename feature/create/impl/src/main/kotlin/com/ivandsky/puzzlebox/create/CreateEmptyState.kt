@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.maxContentWidth
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GameGlyph
@@ -48,7 +49,7 @@ fun CreateEmptyState(
 ) {
     Column(
         modifier = modifier
-            .fillMaxWidth()
+            .maxContentWidth()
             .verticalScroll(rememberScrollState())
             .testTag("create.empty"),
     ) {
