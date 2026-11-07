@@ -49,7 +49,6 @@ private val SizeRowMinHeight = 56.dp
  * game in [games] (glyph tile, one-line rule, default size), then the picked game's sizes,
  * exactly its editor's variants in order. Picking a size slides the sheet away, then reports
  * it through [onPick], once per sheet; back on the sizes step returns to the games.
- * [initialGame] opens straight on that game's sizes.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,11 +57,10 @@ fun NewPuzzleSheet(
     onPick: (gameId: GameId, variant: VariantId) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    initialGame: GameId? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
-    var pickedId by rememberSaveable { mutableStateOf(initialGame?.value) }
+    var pickedId by rememberSaveable { mutableStateOf<String?>(null) }
     val picked = games.firstOrNull { it.id.value == pickedId }
     // A second size tap mid-hide would cancel the first hide, and both picks would report.
     var picking by remember { mutableStateOf(false) }
@@ -81,7 +79,12 @@ fun NewPuzzleSheet(
                 if (picking) return@NewPuzzleSheetContent
                 picking = true
                 scope.launch {
-                    sheetState.hide()
+                    // A drag that stops the slide cancels hide(): the sheet stays, so its sizes take taps again.
+                    try {
+                        sheetState.hide()
+                    } finally {
+                        picking = false
+                    }
                     onPick(game.id, variant)
                 }
             },
@@ -197,7 +200,7 @@ private fun NewPuzzleSheetGamesPreview() {
 @Composable
 private fun NewPuzzleSheetSizesPreview() {
     PuzzleBoxTheme {
-        NewPuzzleSheet(games = PreviewGames, onPick = { _, _ -> }, onDismiss = {}, initialGame = GameId("queens"))
+        NewPuzzleSheetContent(games = PreviewGames, picked = PreviewGames.first(), onGame = {}, onBack = {}, onSize = {})
     }
 }
 

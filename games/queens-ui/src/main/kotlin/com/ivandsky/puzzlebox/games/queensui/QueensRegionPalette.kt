@@ -88,6 +88,9 @@ object QueensRegionPalette {
     /** The spoken color of [region] (palette hue names, cycled by id like the fills). */
     fun hueName(region: Int): String = hueNames[((region % hueNames.size) + hueNames.size) % hueNames.size]
 
+    /** Whether [region]'s cells carry the dot texture: ids past the hue cycle repeat a fill. */
+    internal fun textured(region: Int): Boolean = region >= light.size
+
     /**
      * The computed on-ink for [fill] (§4 rule 4): the higher-contrast of the active
      * scheme's `onSurface` vs its `scrim`/`surface` constant. Call once per board
@@ -118,6 +121,3 @@ object QueensRegionPalette {
         return 0.2126f * linear(red) + 0.7152f * linear(green) + 0.0722f * linear(blue)
     }
 }
-
-/** Whether [region]'s cells carry the dot texture (ids past the 10-hue cycle). */
-fun QueensRegionPalette.textured(region: Int): Boolean = region >= 10

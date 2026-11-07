@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.games.queens.editor
 
 /**
- * Fix-list rows for answer crowns (round 6), one per region in region order; empty when the
+ * Fix-list rows for answer crowns, one per region in region order; empty when the
  * draft has no crowns. [cells] = the region's cells, for Select. Crown rows never block publishing.
  */
 data class QueensCrownIssue(val id: String, val region: Int, val cells: Set<Int>) {
@@ -10,7 +10,7 @@ data class QueensCrownIssue(val id: String, val region: Int, val cells: Set<Int>
         const val DOUBLE: String = "queens.crowns.double"
         /** A painted region with no crown; unpainted cells never form a region. */
         const val MISSING: String = "queens.crowns.missing"
-        /** Every id issuesOf can emit (QueensCopyCoverageTest, 25). */
+        /** Every id issuesOf can emit. */
         val ids: Set<String> = setOf(DOUBLE, MISSING)
 
         fun issuesOf(draft: QueensDraft): List<QueensCrownIssue> {

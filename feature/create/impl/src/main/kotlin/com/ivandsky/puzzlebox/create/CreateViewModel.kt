@@ -18,12 +18,15 @@ import com.ivandsky.puzzlebox.model.GameId
 import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -98,14 +101,20 @@ class CreateViewModel(
         filter.value = game
     }
 
+    private val createdIds = Channel<String>(Channel.BUFFERED)
+
+    /** The id of each draft [newPuzzle] stored, once each, for the route to open. */
+    val created: Flow<String> = createdIds.receiveAsFlow()
+
     /**
-     * Stores a blank [variant] draft of [gameId] (a choice the sheet offered) and reports its id.
-     * A pick while the previous draft is still being stored is dropped, so a double tap makes one draft.
+     * Stores a blank [variant] draft of [gameId] (a choice the sheet offered) and sends its id on
+     * [created]. A pick while the previous draft is still being stored is dropped, so a double
+     * tap makes one draft.
      */
-    fun newPuzzle(gameId: GameId, variant: VariantId, onCreated: (draftId: String) -> Unit) {
+    fun newPuzzle(gameId: GameId, variant: VariantId) {
         if (creating?.isActive == true) return
         creating = viewModelScope.launch {
-            onCreated(createDraft(gameId, variant).id)
+            createdIds.send(createDraft(gameId, variant).id)
         }
     }
 
@@ -114,15 +123,20 @@ class CreateViewModel(
         viewModelScope.launch { copyDraft(draftId) }
     }
 
-    /** Removes [draftId] now; [undoDelete] puts it back until [UNDO_WINDOW_MS] pass. */
+    /**
+     * Removes [draftId] now; [undoDelete] puts it back until [UNDO_WINDOW_MS] pass. An id with no
+     * stored draft (a repeat tap) leaves the open Undo window and its timer as they are.
+     */
     fun delete(draftId: String) {
-        undoWindow?.cancel()
-        undoWindow = viewModelScope.launch {
+        viewModelScope.launch {
             val draft = drafts.get(draftId) ?: return@launch
+            undoWindow?.cancel()
             drafts.delete(draftId)
             deleted.value = draft
-            delay(UNDO_WINDOW_MS)
-            deleted.value = null
+            undoWindow = viewModelScope.launch {
+                delay(UNDO_WINDOW_MS)
+                deleted.value = null
+            }
         }
     }
 

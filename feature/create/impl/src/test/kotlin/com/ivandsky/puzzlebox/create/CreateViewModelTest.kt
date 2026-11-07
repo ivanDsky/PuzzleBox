@@ -170,18 +170,32 @@ class CreateViewModelTest {
         val copyDraft = CreateDraftCopy(drafts, newId = { "copy" }, clock = { NOW })
         val vm = CreateViewModel(games, editors, GamePlayRegistry(emptyList()), drafts, createDraft, copyDraft, lanes, clock = { NOW })
         val opened = mutableListOf<String>()
+        backgroundScope.launch(mainRule.testDispatcher) { vm.created.collect(opened::add) }
 
-        vm.newPuzzle(wideId, wideSizes[1], onCreated = opened::add)
-        vm.newPuzzle(wideId, wideSizes[2], onCreated = opened::add)
+        vm.newPuzzle(wideId, wideSizes[1])
+        vm.newPuzzle(wideId, wideSizes[2])
         advanceUntilIdle()
 
         assertEquals(listOf("new-1"), opened)
         assertEquals(setOf("new-1"), drafts.rows.keys)
         assertEquals(wideSizes[1], drafts.rows.getValue("new-1").variant)
 
-        vm.newPuzzle(wideId, wideSizes[3], onCreated = opened::add)
+        vm.newPuzzle(wideId, wideSizes[3])
         advanceUntilIdle()
         assertEquals(listOf("new-1", "new-2"), opened)
+    }
+
+    @Test
+    fun `a created draft's id waits for the route when nobody is listening yet`() = runTest(mainRule.testDispatcher) {
+        val vm = viewModel()
+
+        vm.newPuzzle(wideId, wideSizes[0])
+        advanceUntilIdle()
+
+        val opened = mutableListOf<String>()
+        backgroundScope.launch(mainRule.testDispatcher) { vm.created.collect(opened::add) }
+        runCurrent()
+        assertEquals(listOf("new"), opened)
     }
 
     @Test
@@ -234,6 +248,19 @@ class CreateViewModelTest {
 
         vm.undoDelete()
         assertNull(drafts.rows["a"])
+    }
+
+    @Test
+    fun `a repeat delete of the same draft keeps the Undo window's timer`() = runTest(mainRule.testDispatcher) {
+        store("a", minutesAgo = 5)
+        val vm = viewModel()
+
+        vm.delete("a")
+        vm.delete("a")
+        advanceTimeBy(UNDO_WINDOW_MS)
+        runCurrent()
+
+        assertNull(vm.uiState.value.deleted)
     }
 
     private suspend fun store(

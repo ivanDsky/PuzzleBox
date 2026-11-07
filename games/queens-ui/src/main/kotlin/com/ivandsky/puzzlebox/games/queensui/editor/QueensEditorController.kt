@@ -74,10 +74,22 @@ class QueensEditorController(
         return EditorOverlay(other, showOnBoard = true)
     }
 
-    /** Switches what a [tap] does and clears the selection. Not an edit. */
+    /** Switches what a [tap] does and clears the selection; the mode already on changes nothing. Not an edit. */
     fun setMode(mode: QueensEditorMode) {
+        if (mode == currentMode.value) return
         cancel()
         currentMode.value = mode
+    }
+
+    /** Paint mode with exactly [cells] selected, in their order (a fix's Select). Not an edit. */
+    internal fun select(cells: Set<Int>) {
+        currentMode.value = QueensEditorMode.Paint
+        selected.value = cells
+    }
+
+    /** Grows the selection by [cells] (a selecting drag); a cell already selected stays. Not an edit. */
+    internal fun extend(cells: Collection<Int>) {
+        selected.value = selected.value + cells
     }
 
     /** Crown: toggles an answer crown on [cell] (an edit) or emits it on [rejected]. Paint: toggles [cell] in the selection. */

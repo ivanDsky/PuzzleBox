@@ -61,7 +61,7 @@ object PigeonholeRung : QueensRung {
             val lines = inside.filter(candidates::isOpen).map(targetOf).toSortedSet()
             if (lines.sumOf { missing(targets[it]) } != need) continue
             val cells = lines.flatMap { targets[it] }.filter { candidates.isOpen(it) && it !in inside }.toSet()
-            if (cells.isNotEmpty()) found += QueensDeduction.Exclude(this, HintReason(kind, lines.first()), cells)
+            if (cells.isNotEmpty()) found += QueensDeduction.Exclude(this, HintReason(kind, lines.first(), this), cells)
         }
         return found
     }

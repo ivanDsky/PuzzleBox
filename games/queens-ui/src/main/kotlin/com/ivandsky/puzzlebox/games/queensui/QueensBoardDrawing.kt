@@ -79,17 +79,21 @@ internal fun DrawScope.drawRegionTexture(model: QueensBoardModel, ink: Color) {
     val g = GridGeometry(n, n, size.width, size.height)
     val cell = minOf(g.cellWidth, g.cellHeight)
     val radius = maxOf(QueensRegionPalette.textureDotMinRadius.toPx(), cell * QueensRegionPalette.textureDotRadiusFraction)
-    val near = QueensRegionPalette.textureDotOffset
-    val far = 1f - near
     val dot = ink.copy(alpha = QueensRegionPalette.textureDotAlpha)
     for (idx in 0 until n * n) {
         if (!QueensRegionPalette.textured(model.regions[idx])) continue
-        val left = (idx % n) * g.cellWidth
-        val top = (idx / n) * g.cellHeight
-        for (fx in floatArrayOf(near, far)) for (fy in floatArrayOf(near, far)) {
-            drawCircle(dot, radius, Offset(left + g.cellWidth * fx, top + g.cellHeight * fy))
-        }
+        drawTextureDots(dot, radius, (idx % n) * g.cellWidth, (idx / n) * g.cellHeight, g.cellWidth, g.cellHeight)
     }
+}
+
+/** The texture's four [color] dots of [radius] in the [width]×[height] box at [left], [top]. */
+internal fun DrawScope.drawTextureDots(color: Color, radius: Float, left: Float, top: Float, width: Float, height: Float) {
+    val near = QueensRegionPalette.textureDotOffset
+    val far = 1f - near
+    drawCircle(color, radius, Offset(left + width * near, top + height * near))
+    drawCircle(color, radius, Offset(left + width * near, top + height * far))
+    drawCircle(color, radius, Offset(left + width * far, top + height * near))
+    drawCircle(color, radius, Offset(left + width * far, top + height * far))
 }
 
 internal fun DrawScope.drawX(color: Color, weightPx: Float, lengthFraction: Float, scale: Float = 1f, alpha: Float = 1f) {
