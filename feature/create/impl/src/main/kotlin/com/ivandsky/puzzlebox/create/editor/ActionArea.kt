@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -43,9 +44,11 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
  * the quiet style; it is enabled only when [canTestSolve] (a Unique board of a game that exports
  * puzzles). When the Studio can publish ([publish] is its state), a passed test opens the
  * [PublishDetails] rows — [title], author name and note — until the puzzle is published; their
- * blocks join the readiness line. Publish follows, enabled once nothing blocks and no publish is
- * running, over the last publish's outcome. Signed out it reads "Sign in & publish": the tap
- * signs in first, then publishes.
+ * blocks join the readiness line. Unless [detailsInline] the rows live in the phone's
+ * [ToolSlot] instead; while the author edits the board ([onShowDetails] set) the readiness line
+ * leads with a one-line summary of them whose tap brings them back. Publish follows, enabled
+ * once nothing blocks and no publish is running, over the last publish's outcome. Signed out it
+ * reads "Sign in & publish": the tap signs in first, then publishes.
  *
  * Motion: the details **Expand** in with a **Fade** (EnterDuration on the emphasized decelerate
  * curve) and collapse the same way once published; under reduced motion they only fade.
@@ -63,6 +66,8 @@ fun ActionArea(
     onRename: (String) -> Unit = {},
     onAuthorName: (String) -> Unit = {},
     onNote: (String) -> Unit = {},
+    detailsInline: Boolean = true,
+    onShowDetails: (() -> Unit)? = null,
 ) {
     val detailBlocks = publish?.details?.blocks.orEmpty()
     val shown = remember(blocks, detailBlocks) { blocks + detailBlocks }
@@ -81,7 +86,7 @@ fun ActionArea(
         } else {
             SecondaryButton(text = "Test again", onClick = onTestSolve, enabled = canTestSolve, modifier = buttonModifier)
         }
-        if (publish != null) {
+        if (publish != null && detailsInline) {
             DetailsReveal(visible = passed != null && publish.outcome !is PublishOutcome.Published) {
                 PublishDetails(
                     title = title,
@@ -95,7 +100,14 @@ fun ActionArea(
                 )
             }
         }
-        ReadinessLine(shown)
+        if (publish != null && !detailsInline && onShowDetails != null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                PublishDetailsSummary(title, publish.details.authorName, onShowDetails, Modifier.weight(1f, fill = false))
+                ReadinessLine(shown, Modifier.weight(1f, fill = false))
+            }
+        } else {
+            ReadinessLine(shown, Modifier.fillMaxWidth())
+        }
         if (publish != null) {
             PrimaryButton(
                 text = if (publish.signedIn) "Publish" else "Sign in & publish",
@@ -123,12 +135,16 @@ private fun DetailsReveal(visible: Boolean, content: @Composable () -> Unit) {
     }
 }
 
-/** One phrase per readiness entry, dot-separated; Ready in the accent colour when nothing blocks. */
+/**
+ * One phrase per readiness entry, an evenly spaced "·" between; Ready in the accent colour when
+ * nothing blocks. Not tested is left to the status line above, so it alone shows no line.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ReadinessLine(blocks: List<PublishBlock>) {
+private fun ReadinessLine(blocks: List<PublishBlock>, modifier: Modifier) {
     val entries = remember(blocks) { readinessOf(blocks) }
-    FlowRow(Modifier.fillMaxWidth().testTag("create.readiness"), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    if (entries.isEmpty() && blocks.isNotEmpty()) return
+    FlowRow(modifier.testTag("create.readiness"), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         if (entries.isEmpty()) {
             Text(
                 text = "Ready",
@@ -138,8 +154,9 @@ private fun ReadinessLine(blocks: List<PublishBlock>) {
             )
         }
         entries.forEachIndexed { index, (tag, phrase) ->
+            if (index > 0) Text("·", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
-                text = if (index == 0) phrase else "· $phrase",
+                text = phrase,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.testTag("create.readiness.$tag"),
@@ -148,11 +165,12 @@ private fun ReadinessLine(blocks: List<PublishBlock>) {
     }
 }
 
-/** Board blocks first, collapsed into one entry; then each domain block once, in order. */
+/** Board blocks first, collapsed into one entry; then each domain block once, in order, but Not tested. */
 private fun readinessOf(blocks: List<PublishBlock>): List<Pair<String, String>> {
     val (domain, board) = blocks.partition { it.id in DOMAIN_COPY }
     val boardEntry = if (board.isEmpty()) emptyList() else listOf(BOARD_TAG to "Fix the board")
-    return boardEntry + domain.map { it.id }.distinct().map { it to DOMAIN_COPY.getValue(it) }
+    val listed = domain.map { it.id }.distinct() - PublishBlock.NOT_TESTED
+    return boardEntry + listed.map { it to DOMAIN_COPY.getValue(it) }
 }
 
 private const val BOARD_TAG = "board"
@@ -233,6 +251,25 @@ private fun ActionAreaDetailsPreview() {
             modifier = Modifier.fillMaxWidth(),
             publish = PublishSession.State(details = PublishSession.Details(authorName = "Ivan")),
             title = "Castle",
+        )
+    }
+}
+
+/** A phone's Edit board: the details folded into their summary over Publish. */
+@PuzzleBoxPreviews
+@Composable
+private fun ActionAreaEditingBoardPreview() {
+    PuzzleBoxTheme {
+        ActionArea(
+            passed = TestSolve(layoutKey = "preview", timeMs = 102_000, hints = 0),
+            canTestSolve = true,
+            onTestSolve = {},
+            blocks = emptyList(),
+            modifier = Modifier.fillMaxWidth(),
+            publish = PublishSession.State(details = PublishSession.Details(authorName = "Ivan")),
+            title = "Castle",
+            detailsInline = false,
+            onShowDetails = {},
         )
     }
 }

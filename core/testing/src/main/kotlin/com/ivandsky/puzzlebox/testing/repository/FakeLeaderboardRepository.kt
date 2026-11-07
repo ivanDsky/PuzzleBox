@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import com.ivandsky.puzzlebox.data.leaderboard.leaderboardOrder
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +25,8 @@ class FakeLeaderboardRepository(
 
     private val flows = mutableMapOf<LeaderboardRef, MutableStateFlow<LeaderboardSnapshot?>>()
 
-    val submitted = mutableListOf<LeaderboardEntry>()
+    /** Thread-safe: submitters launch each submit on the default dispatcher, so submits can overlap. */
+    val submitted: MutableList<LeaderboardEntry> = CopyOnWriteArrayList()
 
     val observedBoards = mutableListOf<LeaderboardRef>()
 

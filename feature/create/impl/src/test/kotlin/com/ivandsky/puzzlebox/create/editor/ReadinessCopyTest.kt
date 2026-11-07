@@ -44,8 +44,9 @@ class ReadinessCopyTest {
 
     @Test
     fun everyDomainBlockIdHasItsOwnPhrase() {
+        val listed = ValidatePublish.blockIds - PublishBlock.NOT_TESTED
         show(ValidatePublish.blockIds.map(::PublishBlock))
-        ValidatePublish.blockIds.forEach { id -> compose.onNodeWithTag("create.readiness.$id").assert(nonEmptyText) }
+        listed.forEach { id -> compose.onNodeWithTag("create.readiness.$id").assert(nonEmptyText) }
         compose.onAllNodesWithTag("create.readiness.ready").assertCountEquals(0)
     }
 
@@ -71,10 +72,17 @@ class ReadinessCopyTest {
     }
 
     @Test
+    fun notTestedIsLeftToTheStatusLine() {
+        show(listOf(PublishBlock(PublishBlock.NOT_TESTED)))
+        compose.onAllNodesWithTag("create.readiness.${PublishBlock.NOT_TESTED}").assertCountEquals(0)
+        compose.onAllNodesWithTag("create.readiness.ready").assertCountEquals(0)
+    }
+
+    @Test
     fun aFakeEditorsBlankDraftListsItsDomainBlocks() {
         val draft = FakeGameEditor().draft(0)
         val blocks = ValidatePublish()(draft, FakeGameEditor.defaultVerdict(draft.state.draft), title = "", testSolve = null)
         show(blocks)
-        blocks.forEach { compose.onNodeWithTag("create.readiness.${it.id}").assert(nonEmptyText) }
+        blocks.filter { it.id != PublishBlock.NOT_TESTED }.forEach { compose.onNodeWithTag("create.readiness.${it.id}").assert(nonEmptyText) }
     }
 }

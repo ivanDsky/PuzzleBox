@@ -46,6 +46,8 @@ import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.CustomGameKey
+import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import java.time.LocalDate
@@ -371,9 +373,9 @@ class ShellRobot internal constructor(
         }
     }
 
-    /** Immersive play (N2): the selected tab's top is a board or a result. */
+    /** Immersive play (N2), as the shell decides it: the selected tab's top is a board or a result, a daily's or a friend's. */
     private val NavigationState.immersive: Boolean
-        get() = currentStack.last().let { it is GameKey || it is ResultKey }
+        get() = currentStack.last().let { it is GameKey || it is CustomGameKey || it is ResultKey || it is CustomResultKey }
 
     private companion object {
         const val TIMEOUT_MS = 5_000L

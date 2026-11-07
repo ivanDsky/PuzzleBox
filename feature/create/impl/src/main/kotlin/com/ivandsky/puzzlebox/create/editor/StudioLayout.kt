@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +17,7 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import com.ivandsky.puzzlebox.designsystem.AppShapes
@@ -29,15 +31,15 @@ import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 
 /**
  * The Studio under its top bar, split by the play policy ([PlayLayout], `playLayoutFor`:
- * Expanded width and landscape). [PlayLayout.SinglePane]: the [board] slot hangs from the bar
- * with the [toolStrip] and the [actionArea] under it; the verdict card is the pill's. The slot is
+ * Expanded width and landscape). [PlayLayout.SinglePane]: the [board] slot spans the bar to
+ * the [toolStrip], with the [actionArea] under it; the verdict card is the pill's. The slot is
  * the full content width and all the height above the strip, not a square: the game sizes its
- * grid square in it and keeps its own rows (Queens' coach line and probe strip) under the grid.
+ * grid square in it and keeps its own rows (Queens' coach line and probe strip) under the grid,
+ * and the group sits on the strip, so a width-bound grid leaves its spare height under the bar.
  * [PlayLayout.TwoPane] (02 handoff "Tablet"): a square centred in the left pane, and the
  * [StudioSidePane] on the right with the card inline ([verdict], [overlay], [issues]), the
- * strip and the actions. The [toast] covers no control: on the phone it sits at the bottom of
- * the board slot, in the room the game leaves under its grid and rows, above the strip; on the
- * tablet inside the side pane, above the action area.
+ * strip and the actions. The [toast] covers no control: on the phone it sits in the board slot,
+ * above the strip; on the tablet inside the side pane, above the action area.
  */
 @Composable
 internal fun StudioLayout(
@@ -55,14 +57,12 @@ internal fun StudioLayout(
 ) {
     when (layout) {
         PlayLayout.SinglePane -> Column(modifier.fillMaxSize()) {
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                // No bottom padding: the game's reserved rows already part the grid from the strip.
-                Box(Modifier.fillMaxSize().padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg).testTag(BoardSlotTag)) {
-                    board(Modifier.fillMaxSize())
-                }
-                // Into the room under the game's rows, which is often one toast high.
-                toast(Modifier.align(Alignment.BottomCenter).padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm))
-            }
+            // No bottom padding: the game's reserved rows already part the grid from the strip.
+            PhoneBoardSlot(
+                board = board,
+                toast = toast,
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg),
+            )
             toolStrip(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md))
             actionArea(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg))
         }
@@ -89,6 +89,40 @@ internal fun StudioLayout(
 }
 
 private const val BoardSlotTag = "create.editor.board"
+
+/**
+ * The phone's board slot: the game's group (grid and rows, [board]) measured to its own height
+ * and set on the slot's bottom, so it meets the strip. The [toast] sits in the spare height above
+ * the group when it fits there, clear of the rows; when the grid takes the height, at the bottom.
+ */
+@Composable
+private fun PhoneBoardSlot(
+    board: @Composable (Modifier) -> Unit,
+    toast: @Composable (Modifier) -> Unit,
+    modifier: Modifier,
+) {
+    Layout(
+        content = {
+            Box { board(Modifier.fillMaxWidth()) }
+            Box { toast(Modifier) }
+        },
+        modifier = modifier.testTag(BoardSlotTag),
+    ) { measurables, constraints ->
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val group = measurables[0].measure(loose)
+        val note = measurables[1].measure(loose)
+        val width = constraints.maxWidth
+        val height = constraints.maxHeight
+        layout(width, height) {
+            val groupTop = height - group.height
+            group.placeRelative((width - group.width) / 2, groupTop)
+            // The toast's own margin parts it from the grid; at the bottom it keeps the strip's gap too.
+            val above = groupTop - note.height
+            val noteTop = if (above >= 0) above else height - Spacing.sm.roundToPx() - note.height
+            note.placeRelative((width - note.width) / 2, noteTop)
+        }
+    }
+}
 
 /** The square the game's board fills: the smaller of the slot's width and height. */
 @Composable
@@ -128,7 +162,9 @@ private fun PreviewLayout(layout: PlayLayout) {
         onCheckAgain = {},
         onOverlay = {},
         board = { boardModifier ->
-            Box(boardModifier.background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))
+            Box(boardModifier, contentAlignment = Alignment.Center) {
+                Box(Modifier.aspectRatio(1f, matchHeightConstraintsFirst = true).background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))
+            }
         },
         toolStrip = { stripModifier ->
             ToolStrip(
