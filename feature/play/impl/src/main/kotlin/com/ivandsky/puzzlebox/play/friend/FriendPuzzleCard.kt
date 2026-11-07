@@ -160,14 +160,14 @@ private fun Stats(card: FriendCard) {
     Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Tile("Author", Modifier.weight(1f)) {
             Value(formatDuration(card.puzzle.authorTimeMs), "friend.card.author.time")
-            Text(
-                text = hintsLabel(card.puzzle.authorHints),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag("friend.card.author.hints"),
-            )
+            Hints(card.puzzle.authorHints, "friend.card.author.hints")
         }
-        card.yours?.let { Tile("Your time", Modifier.weight(1f)) { Value(formatDuration(it.timeMs), "friend.card.solved") } }
+        card.yours?.let {
+            Tile("Your time", Modifier.weight(1f)) {
+                Value(formatDuration(it.timeMs), "friend.card.solved")
+                Hints(it.hints, "friend.card.solved.hints")
+            }
+        }
     }
 }
 
@@ -188,6 +188,16 @@ private fun Value(text: String, tag: String) {
         text = text,
         style = MaterialTheme.typography.titleLarge.tabular().copy(fontWeight = FontWeight.Bold),
         color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.testTag(tag),
+    )
+}
+
+@Composable
+private fun Hints(hints: Int, tag: String) {
+    Text(
+        text = hintsLabel(hints),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.testTag(tag),
     )
 }
