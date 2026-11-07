@@ -15,13 +15,15 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.app.debug.design.DesignSettingsPanel
+import com.ivandsky.puzzlebox.app.debug.flags.ReleaseFlagsPanel
 
-private val CatalogTabs = listOf("Components", "Design settings")
+private val CatalogTabs = listOf("Components", "Design settings", "Release flags")
 
 /**
- * The debug Catalog route's root (spec A7): a two-tab row over the Showkase browser and
- * the developer design settings, so the settings need no navigation change. Each tab
- * keeps its saveable state (the browser's query, open component) while the other shows.
+ * The debug Catalog route's root (spec A7): a tab row over the Showkase browser, the
+ * developer design settings and the release-flag overrides (ADR-0022), so none of them
+ * needs a navigation change. Each tab keeps its saveable state (the browser's query, open
+ * component) while another shows.
  */
 @Composable
 internal fun DesignCatalogHost(openGame: (String) -> Unit) {
@@ -39,7 +41,11 @@ internal fun DesignCatalogHost(openGame: (String) -> Unit) {
         }
         Box(Modifier.weight(1f)) {
             tabStates.SaveableStateProvider(selectedTab) {
-                if (selectedTab == 0) ShowkaseBrowserScreen() else DesignSettingsPanel(openGame)
+                when (selectedTab) {
+                    0 -> ShowkaseBrowserScreen()
+                    1 -> DesignSettingsPanel(openGame)
+                    else -> ReleaseFlagsPanel()
+                }
             }
         }
     }

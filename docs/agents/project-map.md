@@ -30,7 +30,9 @@ ADR-0015 one `games:sudoku` pair hosting two GameIds (`minisudoku` 6x6, `sudoku`
 unregistered in release), ADR-0016 the persisted-query GraphQL GET rung in `FeedTransport`,
 ADR-0017 LinkedIn by-number archive, ADR-0018 custom-puzzle identity, ADR-0019 the editor
 seam (`GameEditor` in `core:game`, `GameEditorUi` in `core:game-ui`, one game-agnostic
-`feature:create`), ADR-0020 shared puzzles in Firestore, ADR-0021 the tools module family.
+`feature:create`), ADR-0020 shared puzzles in Firestore, ADR-0021 the tools module family,
+ADR-0022 trunk delivery (required `pr-check` CI; unfinished work merges dark behind a
+`ReleaseFlag`, bound per build type; the flip PR releases).
 
 ## Layout
 
@@ -76,8 +78,11 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `leaderboard/LeaderboardSubmitWatcher` (auto-submits records when signed in),
   `di/AppModule` (app scope; `GameRegistry` over `getAll<GamePlugin>()` sorted by the app-side
   `GAME_ORDER`, unlisted set from `buildTypeUnlistedGames`; zip → tango → queens → strands → minisudoku → sudoku; `GamePlayRegistry(getAll())` over every game's
-  `GamePlayUi`), debug-only Showkase browser (`CatalogDebugBinding`, `ShowkaseBrowserScreen`,
-  `PreviewBackdrop`, `BrowserRadioControls`; goldens in `app/snapshots/`). Tests:
+  `GamePlayUi`), `di/BuildTypeReleaseFlagsModule` (`src/debug` `DebugReleaseFlags` with local
+  overrides, `src/release` `ShippedReleaseFlags`; ADR-0022), debug-only Catalog: Showkase
+  browser (`CatalogDebugBinding`, `ShowkaseBrowserScreen`, `PreviewBackdrop`,
+  `BrowserRadioControls`; goldens in `app/snapshots/`), Design settings, Release flags
+  (`ReleaseFlagsPanel`). Tests:
   `src/test/.../e2e/` the E2E robot (`shellRobot`/`ShellRobot`: gestures, back and
   predictive back, background/restore/relaunch, spec-notation row assertions; `E2eKoinGraph`:
   production `appModules` with core:testing fakes on the edges; `TabNavigationE2ETest`,
@@ -105,7 +110,8 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `NAVIGATION_STATE_KEY` (ADR-0011).
 - `core/common/` (`:core:common`) — `DispatcherProvider` seam (+ `DefaultDispatcherProvider`),
   `AppResult`/`AppError` and `resultOf` convention (typed errors, never thrown surprises),
-  Koin `commonModule`.
+  `flags/` `ReleaseFlag` enum + `ReleaseFlags` reader + `ShippedReleaseFlags` (ADR-0022), Koin
+  `commonModule`.
 - `core/data/` (`:core:data`) — game-agnostic repositories: `DailyRepository` →
   `OfflineFirstDailyRepository` (`today(game)`/`cached(game, day)`/`observeHistory(game)`,
   by-date `day(game, day)` → `DailyDay` (cache first; on a miss fetches and persists only for an
@@ -292,7 +298,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `LeaderboardDocCodec`, `BackendModule` (`firebaseBackendModule`). Rules and indexes live
   alongside (`firebase.json`, `firestore.rules`, `firestore.indexes.json`).
 - `PROFILE.md` — product frame, ranked care-axes, deploy targets, testing style.
-- `docs/adr/` — ADR-0001…0021, summarized under Purpose.
+- `docs/adr/` — ADR-0001…0022, summarized under Purpose.
 
 ## Entry points
 
