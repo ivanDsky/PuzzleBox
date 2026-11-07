@@ -55,7 +55,7 @@ internal fun puzzleBoxEntryProvider(
     resultEntry(navigator)
     createEntry(navigator)
     editorEntry(navigator, playLayout)
-    publishedPuzzleEntry(navigator)
+    publishedPuzzleEntry(navigator, playLayout)
     profileEntry(
         onOpenHistory = { game -> navigator.pushOnce(HistoryKey(game.value)) },
         onOpenCatalog = { navigator.push(CatalogKey) },

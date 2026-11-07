@@ -424,7 +424,7 @@ class CreatePublishedTabTest {
         }
         val entries = entryProvider<NavKey> {
             createEntry(navigator)
-            publishedPuzzleEntry(navigator)
+            publishedPuzzleEntry(navigator, PlayLayout.SinglePane)
             editorEntry(navigator, PlayLayout.SinglePane)
         }
         composeRule.setContent {

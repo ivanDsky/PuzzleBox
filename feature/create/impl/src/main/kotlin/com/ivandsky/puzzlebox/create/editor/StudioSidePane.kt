@@ -27,8 +27,8 @@ import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 
-/** The tablet side pane's width (02 handoff "Tablet"). */
-private val SidePaneWidth = 372.dp
+/** The tablet side pane's width (02 handoff "Tablet"), shared by every Create two-pane page. */
+internal val SidePaneWidth = 372.dp
 
 /**
  * The tablet Studio's right pane, 372 dp on the surface: the [VerdictCard] always open inline

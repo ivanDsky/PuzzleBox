@@ -80,8 +80,8 @@ fun AppDialog(
         DialogCard(
             modifier = modifier
                 .padding(horizontal = Spacing.xxl)
-                .fillMaxWidth()
                 .widthIn(max = 380.dp)
+                .fillMaxWidth()
                 .graphicsLayer {
                     val scale = 0.95f + 0.05f * appear.value
                     scaleX = scale
@@ -144,8 +144,8 @@ internal fun AppDialogPreview() {
         DialogCard(
             modifier = Modifier
                 .padding(horizontal = Spacing.xxl)
-                .fillMaxWidth()
-                .widthIn(max = 380.dp),
+                .widthIn(max = 380.dp)
+                .fillMaxWidth(),
         ) {
             Text(
                 text = "Delete board?",

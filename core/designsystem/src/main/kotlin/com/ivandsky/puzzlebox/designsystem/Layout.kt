@@ -11,6 +11,9 @@ import androidx.compose.ui.unit.dp
 /** The widest a root list or form grows on a large window; past it the content centres. */
 val MaxContentWidth: Dp = 720.dp
 
+/** The widest a centred block of prose grows (a state's title and message): one readable column. */
+val MaxTextWidth: Dp = 420.dp
+
 /** Fills the available width up to [MaxContentWidth], centred in whatever room is left. */
 fun Modifier.maxContentWidth(): Modifier =
     fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = MaxContentWidth).fillMaxWidth()

@@ -23,8 +23,8 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.designsystem.LocalMutedStatus
-import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
@@ -127,7 +127,7 @@ internal fun ClosedNote() {
             .testTag("custom_board.closed"),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Icon(PuzzleIcons.SavedOnDevice, contentDescription = null, modifier = Modifier.size(BoardIconSize), tint = muted.content)
+        Icon(PuzzleIcons.Lock, contentDescription = null, modifier = Modifier.size(BoardIconSize), tint = muted.content)
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text("Leaderboard closed", style = MaterialTheme.typography.titleSmall, color = muted.content)
             Text(
@@ -174,11 +174,11 @@ internal fun SignInPrompt(yourTimeMs: Long?, signIn: BoardSignIn, onSignIn: () -
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
         val busy = signIn == BoardSignIn.SigningIn
-        PrimaryButton(
+        SecondaryButton(
             text = if (busy) "Signing in…" else "Sign in with Google",
             onClick = onSignIn,
             enabled = !busy,
-            modifier = Modifier.fillMaxWidth().testTag("custom_board.sign_in"),
+            modifier = Modifier.testTag("custom_board.sign_in"),
         )
         val failure = when (signIn) {
             BoardSignIn.Failed -> "custom_board.sign_in.failed" to "Couldn't sign in. Try again."
