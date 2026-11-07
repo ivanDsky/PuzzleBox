@@ -26,8 +26,8 @@ import java.io.File
 
 /**
  * Ticket 20: on 11×11 and 12×12 boards region ids 10 and 11 (K/L) reuse the hues of
- * A/B, so they carry a four-dot texture. Golden of the densest board (the 03 prototype's
- * 12×12 layout) on a compact phone, light theme; recorded by default, verified with
+ * A/B, so they carry a four-dot texture. Goldens of the densest board (the 03 prototype's
+ * 12×12 layout) on a compact phone, light and dark; recorded by default, verified with
  * `-Proborazzi.verify=true`. Same `snapshots/` directory as QueensGoldenScreenshots.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -47,7 +47,12 @@ class QueensDotTextureGoldenTest {
     }
 
     @Test
-    fun `12x12 board draws K and L with the dot texture`() {
+    fun `12x12 board draws K and L with the dot texture`() = capture(dark = false, "QueensDotTexture_12x12.png")
+
+    @Test
+    fun `12x12 board draws K and L with the dot texture in the dark theme`() = capture(dark = true, "QueensDotTexture_12x12_dark.png")
+
+    private fun capture(dark: Boolean, file: String) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         val n = 12
@@ -64,10 +69,11 @@ class QueensDotTextureGoldenTest {
         )
         composeRule.setContent {
             val config = Configuration(LocalConfiguration.current).apply {
-                uiMode = (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or Configuration.UI_MODE_NIGHT_NO
+                uiMode = (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
+                    if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
             }
             CompositionLocalProvider(LocalConfiguration provides config) {
-                PuzzleBoxTheme(darkTheme = false) {
+                PuzzleBoxTheme(darkTheme = dark) {
                     QueensPlayBoard(state, Modifier.size(side))
                 }
             }
@@ -75,7 +81,7 @@ class QueensDotTextureGoldenTest {
         composeRule.waitForIdle()
         composeRule.onRoot().captureRoboImage(
             File(checkNotNull(System.getProperty("user.dir")))
-                .resolve("snapshots/QueensDotTexture_12x12.png")
+                .resolve("snapshots/$file")
                 .canonicalFile
                 .absolutePath,
         )
