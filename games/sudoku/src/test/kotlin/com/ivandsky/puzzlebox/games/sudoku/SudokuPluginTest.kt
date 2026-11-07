@@ -171,4 +171,11 @@ class SudokuPluginTest {
         assertSame(SudokuGames.MINI, registered.definition)
         assertEquals(listOf(SudokuGames.MINI.id), koin.getAll<GamePlugin<*, *, *>>().map { it.definition.id })
     }
+
+    @Test
+    fun `both games' plugins carry an editor of their own game`() {
+        listOf(SudokuGames.MINI, SudokuGames.CLASSIC).forEach { definition ->
+            assertEquals(definition.id, sudokuPlugin(definition).editor?.gameId)
+        }
+    }
 }

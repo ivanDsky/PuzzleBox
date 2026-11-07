@@ -12,9 +12,7 @@ import com.ivandsky.puzzlebox.games.sudoku.KnownSolutions
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuVariants
-import com.ivandsky.puzzlebox.games.sudoku.sudokuPlugin
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -92,10 +90,5 @@ class SudokuDraftAnalyzerTest {
         val decoded = SudokuEditor(SudokuGames.MINI).decodeDraft(bytes) as DecodeResult.Err
         assertEquals(DecodeError.VariantSizeMismatch(SudokuVariants.MINI.id.value, 6, 9), decoded.error)
         assertTrue(classic.decodeDraft(bytes) is DecodeResult.Ok<*>)
-    }
-
-    @Test
-    fun `the plugin still has no editor`() {
-        assertNull(sudokuPlugin(SudokuGames.MINI).editor)
     }
 }

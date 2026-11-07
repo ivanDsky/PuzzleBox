@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuSessionCodec
+import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuEditor
 import com.ivandsky.puzzlebox.games.sudoku.render.SudokuRendererModel
 
 /** The plugin for one Sudoku game; both games share the engine and differ only in [definition]. */
@@ -36,4 +37,5 @@ fun sudokuPlugin(definition: SudokuDefinition): GamePlugin<SudokuState, SudokuSe
             }
         },
         rendererModel = { state, hint, _ -> SudokuRendererModel.of(state, hint) },
+        editor = SudokuEditor(definition),
     )
