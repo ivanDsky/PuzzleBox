@@ -40,14 +40,13 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Rule
 import org.junit.Test
 
 /**
  * Publish reserves the share code on the stored draft; the Studio's autosave, which writes
- * whole rows, must carry that code on every later save instead of writing the row it held
- * before the publish.
+ * whole rows, must carry that code on a save made while the publish is still unsettled (its
+ * answer lost), so the retry reuses it instead of committing a second doc.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class PublishReservedCodeTest {
@@ -68,7 +67,7 @@ class PublishReservedCodeTest {
     }
 
     @Test
-    fun `a save after a publish keeps the reserved code on the stored draft`() = runTest(mainRule.testDispatcher) {
+    fun `a save between a lost answer and the retry keeps the reserved code, so the retry leaves one doc`() = runTest(mainRule.testDispatcher) {
         val board = editor.draft(marks = 1)
         val author = FakeIdentityService(Identity(uid = AUTHOR, displayName = "Ivan", photoUrl = null))
         drafts.upsert(storedRow(board))
@@ -89,20 +88,23 @@ class PublishReservedCodeTest {
             idTokens = noGoogleAccount,
         )
         runCurrent()
+        val verdict = Verdict.Unique(Solution(listOf(1)))
+        shared.commitThenOffline = true
 
-        vm.publish.publish(board, Verdict.Unique(Solution(listOf(1))))
+        vm.publish.publish(board, verdict)
         runCurrent()
-        val outcome = vm.publish.state.value.outcome
-        val code = (outcome as? PublishOutcome.Published)?.code
-        assertNotNull("published, got $outcome", code)
+        assertEquals(PublishOutcome.Offline, vm.publish.state.value.outcome)
+        val committed = shared.docs.keys.single()
 
-        // A published board is read-only; a rename is the save that still runs.
+        // Not published as far as the Studio knows, so a rename still saves the whole row.
         vm.meta.rename("Renamed")
         advanceTimeBy(WINDOW_MS + 1)
+        assertEquals("the reserved code survives the autosave", committed.value, drafts.rows.getValue(DRAFT_ID).reservedCode)
 
-        val stored = drafts.rows.getValue(DRAFT_ID)
-        assertEquals("the rename was stored", "Renamed", stored.title)
-        assertEquals("the reserved code survives the autosave", code?.value, stored.reservedCode)
+        vm.publish.publish(board, verdict)
+        runCurrent()
+        assertEquals(PublishOutcome.Published(committed), vm.publish.state.value.outcome)
+        assertEquals("exactly one doc", setOf(committed), shared.docs.keys)
     }
 
     /** The stand-in board with sharing: a mark count travels as its one byte. */
