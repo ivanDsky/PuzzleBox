@@ -4,6 +4,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.TransactionOptions
+import com.ivandsky.puzzlebox.data.repository.DAILY_PUBLISH_CAP
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -33,7 +34,6 @@ internal sealed interface StoreWrite {
     data object CapReached : StoreWrite
 }
 
-internal const val DAILY_PUBLISH_CAP = 20L
 internal const val FIELD_AUTHOR_DAY = "day"
 internal const val FIELD_AUTHOR_COUNT = "count"
 
