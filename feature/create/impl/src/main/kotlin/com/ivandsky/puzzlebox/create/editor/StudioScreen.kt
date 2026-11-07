@@ -3,7 +3,9 @@ package com.ivandsky.puzzlebox.create.editor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -11,8 +13,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -27,6 +31,9 @@ private const val SheetBelowDp = 600
 
 /** Below this screen width the pill shows its glyph alone, so the title keeps the bar's width. */
 private const val GlyphPillBelowDp = 360
+
+/** The single pane's widest content: past it, the Studio centres. */
+private val MaxContentWidth = 720.dp
 
 /**
  * The Studio: the [StudioTopBar] (Back, the draft's [title] over its [subtitle] and the
@@ -71,48 +78,52 @@ fun StudioScreen(
 ) {
     var renaming by rememberSaveable { mutableStateOf(false) }
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
-    Column(modifier.fillMaxSize()) {
-        StudioTopBar(
-            title = title,
-            subtitle = subtitle,
-            saving = saving,
-            onBack = onBack,
-            onRename = { renaming = true },
-            onDuplicate = onDuplicate,
-            onDelete = onDelete,
-            pill = {
-                if (layout == PlayLayout.SinglePane) {
-                    PillWithCard(
-                        verdict = verdict,
-                        compactPill = screenWidthDp < GlyphPillBelowDp,
-                        asSheet = screenWidthDp < SheetBelowDp,
-                        cardOpen = cardOpen,
-                        overlay = overlay,
-                        onShow = onShowCard,
-                        onDismiss = onDismissCard,
-                        onCheckAgain = onCheckAgain,
-                        onOverlay = onOverlay,
-                        issues = issues,
-                    )
-                }
-            },
-        )
-        StudioLayout(
-            layout = layout,
-            verdict = verdict,
-            overlay = overlay,
-            onCheckAgain = onCheckAgain,
-            onOverlay = onOverlay,
-            board = board,
-            toolStrip = toolStrip,
-            issues = issues,
-            actionArea = actionArea,
-            toast = { toastModifier ->
-                TestClearedToast(shown = testCleared, onUndo = onUndoTestClear, onGone = onTestClearedGone, modifier = toastModifier)
-                toast(toastModifier)
-            },
-            modifier = Modifier.weight(1f),
-        )
+    // A wide single pane keeps a readable width, centred; the two panes use the whole width.
+    val width = if (layout == PlayLayout.SinglePane) Modifier.widthIn(max = MaxContentWidth) else Modifier
+    Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        Column(width.fillMaxSize()) {
+            StudioTopBar(
+                title = title,
+                subtitle = subtitle,
+                saving = saving,
+                onBack = onBack,
+                onRename = { renaming = true },
+                onDuplicate = onDuplicate,
+                onDelete = onDelete,
+                pill = {
+                    if (layout == PlayLayout.SinglePane) {
+                        PillWithCard(
+                            verdict = verdict,
+                            compactPill = screenWidthDp < GlyphPillBelowDp,
+                            asSheet = screenWidthDp < SheetBelowDp,
+                            cardOpen = cardOpen,
+                            overlay = overlay,
+                            onShow = onShowCard,
+                            onDismiss = onDismissCard,
+                            onCheckAgain = onCheckAgain,
+                            onOverlay = onOverlay,
+                            issues = issues,
+                        )
+                    }
+                },
+            )
+            StudioLayout(
+                layout = layout,
+                verdict = verdict,
+                overlay = overlay,
+                onCheckAgain = onCheckAgain,
+                onOverlay = onOverlay,
+                board = board,
+                toolStrip = toolStrip,
+                issues = issues,
+                actionArea = actionArea,
+                toast = { toastModifier ->
+                    TestClearedToast(shown = testCleared, onUndo = onUndoTestClear, onGone = onTestClearedGone, modifier = toastModifier)
+                    toast(toastModifier)
+                },
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
     if (renaming) {
         RenameSheet(
@@ -141,7 +152,7 @@ private fun StudioScreenPreview() {
             onDuplicate = {},
             onDelete = {},
             board = { boardModifier ->
-                Box(boardModifier.background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))
+                Box(boardModifier.aspectRatio(1f).background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))
             },
             toolStrip = { stripModifier ->
                 ToolStrip(

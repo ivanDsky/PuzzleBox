@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import kotlin.math.abs
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -27,7 +28,8 @@ import org.robolectric.annotation.Config
 /**
  * Where the Studio's chrome lands by window: the test-cleared toast never covers Test solve and
  * stays in the tablet's side pane; a phone's verdict card is a sheet, its pill a glyph under
- * 360 dp; the phone's board slot spans the content width.
+ * 360 dp; the phone's board slot spans the content width, and a wide single pane caps it,
+ * centred, while the tablet's two panes keep the whole width.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w320dp-h640dp")
@@ -65,7 +67,7 @@ class StudioChromePlacementTest {
 
     @Test
     @Config(qualifiers = "w411dp-h891dp")
-    fun `on a phone the toast sits at the bottom of the board slot, above the tool strip`() {
+    fun `on a phone the toast sits in the board slot, above the tool strip`() {
         studio(PlayLayout.SinglePane, testCleared = true)
         composeRule.waitUntil { composeRule.onAllNodes(hasTestTag(TOAST)).fetchSemanticsNodes().isNotEmpty() }
 
@@ -126,6 +128,26 @@ class StudioChromePlacementTest {
         val slot = composeRule.onNodeWithTag(BOARD_SLOT).getBoundsInRoot()
         val width = slot.right - slot.left
         assertTrue("slot width $width", width >= 320.dp - 32.dp)
+    }
+
+    @Test
+    @Config(qualifiers = "w800dp-h1280dp")
+    fun `on a wide single pane the Studio keeps a readable width, centred`() {
+        studio(PlayLayout.SinglePane)
+
+        val cta = composeRule.onNodeWithTag(TEST_SOLVE).getBoundsInRoot()
+        assertTrue("Test solve width ${cta.right - cta.left}", cta.right - cta.left <= 720.dp)
+        assertTrue("Test solve centred at ${(cta.left + cta.right) / 2}", abs(((cta.left + cta.right) / 2 - 400.dp).value) < 1f)
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp-land")
+    fun `the tablet's two panes keep the whole width`() {
+        studio(PlayLayout.TwoPane)
+
+        val pane = composeRule.onNodeWithTag(SIDE_PANE).getBoundsInRoot()
+        // A centred 720 dp column would end at 1000 dp.
+        assertTrue("side pane ends at ${pane.right}", pane.right > 1000.dp)
     }
 
     private companion object {
