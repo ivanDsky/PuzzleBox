@@ -9,14 +9,12 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppDialog
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
@@ -44,7 +42,7 @@ internal fun UnpublishDialog(
     AppDialog(
         title = "Unpublish “$title”?",
         onDismissRequest = onCancel,
-        modifier = Modifier.widthIn(max = DialogMaxWidth).testTag("create.unpublish.dialog"),
+        modifier = Modifier.testTag("create.unpublish.dialog"),
         content = {
             Text(
                 text = "Code ${code.display} stops working for people who haven’t opened it. Anyone who already opened it can still play their copy.",
@@ -76,9 +74,6 @@ internal fun UnpublishDialog(
         },
     )
 }
-
-/** Material's dialog width cap; set ahead of AppDialog's fill so wide windows keep a dialog-sized card. */
-private val DialogMaxWidth = 560.dp
 
 /** "You're offline — try again", or the refusal's retry line, in the error colour. */
 @Composable
