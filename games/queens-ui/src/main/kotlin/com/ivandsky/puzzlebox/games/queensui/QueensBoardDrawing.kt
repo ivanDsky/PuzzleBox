@@ -123,7 +123,7 @@ internal fun DrawScope.drawQueen(color: Color, heightFraction: Float, alpha: Flo
     drawPath(path, color.copy(alpha = alpha), style = style)
 }
 
-/** §3.5: 45° diagonal bands — a 2dp scrim band under each 3dp error band, 6dp pitch.
+/** §3.5: 45° diagonal bands — a [scrimBand]-wide scrim margin around each [band]-wide error band, one every [pitch].
  *  Black under red guarantees the composite clears 3:1 against any fill lightness. */
 internal fun DrawScope.drawViolationStripes(error: Color, scrim: Color, pitch: Float, band: Float, scrimBand: Float) {
     val diagonal = size.width + size.height
