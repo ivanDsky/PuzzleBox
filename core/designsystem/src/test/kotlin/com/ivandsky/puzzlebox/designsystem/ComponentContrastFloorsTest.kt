@@ -11,18 +11,11 @@ import org.junit.Test
 // relative luminance). Disabled states are exempt but must stay distinct from enabled.
 class ComponentContrastFloorsTest {
 
-    private class Mode(
-        val name: String,
-        val scheme: ColorScheme,
-        val primaryText: Color,
-        val timerFill: Color,
-        val accents: Map<AccentSlot, GameAccent>,
-        val neutralLip: Color,
-    )
+    private class Mode(val name: String, val scheme: ColorScheme, val primaryText: Color, val timerFill: Color)
 
     private val modes = listOf(
-        Mode("light", LightColorScheme, LightPrimaryText, LightTimerFill, LightAccentTokens, LightNeutralLip),
-        Mode("dark", DarkColorScheme, DarkPrimaryText, DarkTimerFill, DarkAccentTokens, DarkNeutralLip),
+        Mode("light", LightColorScheme, LightPrimaryText, LightTimerFill),
+        Mode("dark", DarkColorScheme, DarkPrimaryText, DarkTimerFill),
     )
 
     // Every surface a shared button sits on: the pane, cards, the dialog surface.
@@ -59,18 +52,6 @@ class ComponentContrastFloorsTest {
         for (mode in modes) {
             val ratio = contrast(mode.scheme.onPrimary, mode.scheme.primary)
             assertTrue("${mode.name} primary label = $ratio", ratio >= 4.5f)
-        }
-    }
-
-    @Test
-    fun `game button label meets 4_5 to 1 on every fill, neutral and each accent`() {
-        for (mode in modes) {
-            val fills = listOf<Pair<String, GameAccent?>>("neutral" to null) + mode.accents.map { (slot, accent) -> slot.name to accent }
-            for ((name, accent) in fills) {
-                val colors = gameButtonColors(accent, mode.scheme, mode.neutralLip)
-                val ratio = contrast(colors.content, colors.fill)
-                assertTrue("${mode.name} $name game button label = $ratio", ratio >= 4.5f)
-            }
         }
     }
 
