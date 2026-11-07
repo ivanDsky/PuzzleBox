@@ -11,7 +11,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,6 +51,10 @@ private val NOTES_BORDER = 1.dp
 private const val FIGURE_HEIGHT_EM = 0.68f
 private val LINE_GAP = 5.sp
 
+// A cramped pane's balanced key (~30dp) cannot fit digit and count legibly; the key keeps
+// the digit alone and the greyed exhausted look, and TalkBack still reads the count.
+private val COUNT_MIN_KEY_HEIGHT = 40.dp
+
 // The notes morph (user pick 2026-11-05, prototype H "Ink wave", sped up): each digit
 // crossfades into the slot its pencil mark takes in a board cell through a 2dp blur dip,
 // key by key from the notes toggle. In 200ms + 15ms a key, back in 140ms + 6ms a key.
@@ -70,7 +73,7 @@ private const val SLOT_FILL = 0.92f
 private const val SLOT_SCALE_MAX = 0.62f
 
 /**
- * One digit key: the digit over its remaining count. A fully placed digit greys out
+ * One digit key: the digit over its remaining count (the digit alone in a key under 40dp). A fully placed digit greys out
  * but stays clickable (A10), so a player can still overwrite a wrong cell with it. In notes
  * mode the key turns outlined and the digit shrinks into the slot its pencil mark takes in
  * a cell (slot `d - 1` of the box-shaped notes grid), a look no board tint shares (V7).
@@ -121,7 +124,6 @@ internal fun SudokuDigitKey(
 
     Box(
         modifier = modifier
-            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
             .clip(shape)
             .background(container)
             .border(NOTES_BORDER, border, shape)
@@ -170,9 +172,10 @@ private fun DigitOverCount(
         val fontPx = digitStyle.fontSize.toPx()
         val digitFigure = fontPx * FIGURE_HEIGHT_EM
         val countFigure = countStyle.fontSize.toPx() * FIGURE_HEIGHT_EM
-        val block = digitFigure + LINE_GAP.toPx() + countFigure
         val width = if (constraints.hasBoundedWidth) constraints.maxWidth else maxOf(digitText.width, countText.width)
         val height = if (constraints.hasBoundedHeight) constraints.maxHeight else maxOf(constraints.minHeight, 48.dp.roundToPx())
+        val showCount = height >= COUNT_MIN_KEY_HEIGHT.toPx()
+        val block = if (showCount) digitFigure + LINE_GAP.toPx() + countFigure else digitFigure
         val digitBaseline = (height - block) / 2 + digitFigure
         val countBaseline = digitBaseline + LINE_GAP.toPx() + countFigure
         val digitX = (width - digitText.width) / 2
@@ -203,8 +206,10 @@ private fun DigitOverCount(
                 alpha = 1f - MORPH_ALPHA_DIP * dip
                 renderEffect = if (dip > 0.01f) BlurEffect(blurPx * dip, blurPx * dip) else null
             }
-            countText.placeWithLayer((width - countText.width) / 2, (countBaseline - countText[FirstBaseline]).roundToInt()) {
-                alpha = (1f - 2f * morph()).coerceAtLeast(0f)
+            if (showCount) {
+                countText.placeWithLayer((width - countText.width) / 2, (countBaseline - countText[FirstBaseline]).roundToInt()) {
+                    alpha = (1f - 2f * morph()).coerceAtLeast(0f)
+                }
             }
         }
     }

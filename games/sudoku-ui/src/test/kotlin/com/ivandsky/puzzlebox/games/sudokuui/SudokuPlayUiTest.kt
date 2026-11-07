@@ -113,7 +113,7 @@ class SudokuPlayUiTest {
         assertFitsSinglePane(classic, adopted(classic, SudokuSamples.classic, SudokuPuzzleRef(SudokuGames.CLASSIC.id, PuzzleKey.Daily((ref.key as PuzzleKey.Daily).date, null))), size = 9)
     }
 
-    /** Grid, keypad and chrome stack apart on screen, and one more dp of cell would not fit the board area (R1). */
+    /** Grid, keypad and chrome stack apart on screen, sized by the balanced rule for the board pane (R1). */
     private fun assertFitsSinglePane(game: SudokuPlayUi, controller: SudokuPlayController, size: Int) {
         setScreen(controller, PlayLayout.SinglePane, game)
         val grid = composeRule.onNodeWithTag("sudoku.grid").getUnclippedBoundsInRoot()
@@ -125,14 +125,10 @@ class SudokuPlayUiTest {
         assertTrue("chrome under keypad ($keypad, $chrome)", chrome.top >= keypad.bottom)
         assertTrue("chrome on screen ($chrome, $root)", chrome.bottom <= root.bottom)
 
-        val cell = grid.width / size
-        val grownGrid = grid.width + size.dp
-        val stackedAtGrownGrid = grownGrid + SudokuSizing.keyGap + keypad.height
-        println("R1 ${size}x$size: cell=$cell grid=${grid.width} keypad=${keypad.height} area=${area.width}x${area.height} chrome=${chrome.height}")
-        assertTrue(
-            "a ${cell + 1.dp} cell would still fit $area under a ${keypad.height} keypad",
-            grownGrid > area.width || grownGrid > PlayBoardMaxWidth || stackedAtGrownGrid > area.height,
-        )
+        val layout = SudokuSizing.layout(area.width, area.height, size)
+        println("R1 ${size}x$size: grid=${grid.width} keypad=${keypad.height} area=${area.width}x${area.height} chrome=${chrome.height} $layout")
+        assertEquals(layout.board.value, grid.width.value, 0.5f)
+        assertEquals(SudokuSizing.keypadHeight(layout).value, keypad.height.value, 1f) // per-row px rounding at 420dpi
     }
 
     private fun session(controller: SudokuPlayController): SudokuSession = composeRule.runOnIdle { controller.board!!.session }
@@ -203,7 +199,7 @@ class SudokuPlayUiTest {
 
     @Test
     @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
-    fun `two pane - board with one digit row and the notes key left, chrome with erase and clear right`() {
+    fun `two pane - board with the digit pad and its notes column left, chrome with erase and clear right`() {
         val controller = adopted()
         setScreen(controller, PlayLayout.TwoPane)
 
@@ -216,12 +212,14 @@ class SudokuPlayUiTest {
         composeRule.onNode(hasText("Erase") and inSide).assertExists()
         composeRule.onNode(hasClickAction() and hasText("Hint", substring = true) and inSide).assertExists()
 
-        // One row: the six digits and the notes key share a top, the key last; the grid
-        // takes the 552dp cap the dropped button rows free.
+        // Two rows of three digits, the notes key a fourth column as tall as both; the grid
+        // takes the 552dp cap the dropped button row frees.
         val keys = (1..6).map { key(it).getUnclippedBoundsInRoot() }
         val notes = composeRule.onNodeWithTag("sudoku.notes_key").getUnclippedBoundsInRoot()
-        assertEquals(listOf(notes.top), keys.map { it.top }.distinct())
-        assertTrue("$notes after ${keys.last()}", notes.left > keys.last().right)
+        assertEquals(listOf(keys[0].top, keys[3].top), keys.map { it.top }.distinct())
+        assertEquals(keys[0].top, notes.top)
+        assertEquals(keys[3].bottom, notes.bottom)
+        assertTrue("$notes after ${keys[2]}", notes.left > keys[2].right)
         assertEquals(PlayBoardMaxWidth, composeRule.onNodeWithTag("sudoku.grid").getUnclippedBoundsInRoot().width)
 
         composeRule.onNodeWithTag("sudoku.notes_key").performClick()
