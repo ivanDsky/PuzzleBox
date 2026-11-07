@@ -78,6 +78,8 @@ abstract class CreateRootGoldenScreenshots(private val device: String) {
                             onOpen = {},
                             onQuery = {},
                             onFilter = {},
+                            onTab = {},
+                            onOpenPublished = {},
                             onDuplicate = {},
                             onDelete = {},
                             onUndoDelete = {},

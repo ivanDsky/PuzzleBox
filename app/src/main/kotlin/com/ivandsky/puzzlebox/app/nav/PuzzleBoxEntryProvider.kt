@@ -6,6 +6,7 @@ import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.app.CatalogScreen
 import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
+import com.ivandsky.puzzlebox.create.navigation.publishedPuzzleEntry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.api.HistoryKey
@@ -30,7 +31,7 @@ import com.ivandsky.puzzlebox.profile.navigation.profileEntry
  * selects the Profile tab, leaving Home's stack as it was; a Profile game row pushes that
  * game's [HistoryKey] and Profile's (debug-only) catalog link pushes [CatalogKey], both on
  * Profile's stack. The Create tab's New puzzle and its draft rows push that draft's
- * Studio on Create's stack. Back pops the current tab's stack ([Navigator.pop]),
+ * Studio on Create's stack, and its published rows that puzzle's page. Back pops the current tab's stack ([Navigator.pop]),
  * including after process-death restore. A [codeDraft] (a tapped link's text that isn't a
  * code) opens the Play library's code sheet holding it.
  */
@@ -54,6 +55,7 @@ internal fun puzzleBoxEntryProvider(
     resultEntry(navigator)
     createEntry(navigator)
     editorEntry(navigator, playLayout)
+    publishedPuzzleEntry(navigator)
     profileEntry(
         onOpenHistory = { game -> navigator.pushOnce(HistoryKey(game.value)) },
         onOpenCatalog = { navigator.push(CatalogKey) },

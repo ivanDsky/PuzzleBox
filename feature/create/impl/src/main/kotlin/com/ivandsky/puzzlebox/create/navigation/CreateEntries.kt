@@ -10,17 +10,26 @@ import com.ivandsky.puzzlebox.create.CreateRoute
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
+import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.create.editor.EditorRoute
+import com.ivandsky.puzzlebox.create.published.PublishedPuzzleRoute
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.navigation.Navigator
 import org.koin.androidx.viewmodel.ext.android.getViewModel
 
-/** The Create tab's root: opening a draft (a new one included) pushes its [EditorKey] once. */
+/**
+ * The Create tab's root: opening a draft (a new one included) pushes its [EditorKey] once, and
+ * opening a published puzzle its [PublishedPuzzleKey].
+ */
 fun EntryProviderScope<NavKey>.createEntry(navigator: Navigator) {
     entry<CreateKey> {
         val activity = createOwner()
         val viewModel = remember(activity) { activity.createViewModel() }
-        CreateRoute(onOpen = { draftId -> navigator.pushOnce(EditorKey(draftId)) }, viewModel = viewModel)
+        CreateRoute(
+            viewModel = viewModel,
+            onOpen = { draftId -> navigator.pushOnce(EditorKey(draftId)) },
+            onOpenPublished = { code -> navigator.pushOnce(PublishedPuzzleKey(code)) },
+        )
     }
 }
 
@@ -40,6 +49,17 @@ fun EntryProviderScope<NavKey>.editorEntry(navigator: Navigator, layout: PlayLay
                 navigator.pop()
                 activity.createViewModel().delete(draftId)
             },
+        )
+    }
+}
+
+/** A published puzzle's page; back pops to the Create root, Duplicate opens the copy in its place. */
+fun EntryProviderScope<NavKey>.publishedPuzzleEntry(navigator: Navigator) {
+    entry<PublishedPuzzleKey> { key ->
+        PublishedPuzzleRoute(
+            key = key,
+            onBack = { navigator.pop() },
+            onOpen = { draftId -> navigator.replaceTop(EditorKey(draftId)) },
         )
     }
 }

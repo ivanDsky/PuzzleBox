@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.play.friend
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,7 +30,6 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
@@ -105,8 +103,8 @@ internal fun codePrefill(raw: String): String {
 /**
  * The field, its help or error line, an [OpenNotice] for a code that can't open, and Open.
  *
- * Motion: a code nobody shared **shakes** the field (a decaying spring kick of [ShakeKick] on
- * the reject spring); reduced motion skips the shake.
+ * Motion: a code nobody shared **shakes** the field (MotionTokens' Shake); reduced motion
+ * skips the shake.
  */
 @Composable
 private fun EnterCodeContent(
@@ -189,27 +187,21 @@ private fun EnterCodeContent(
 @Composable
 private fun rememberShake(trigger: Any?): () -> Float {
     val reduced = rememberReducedMotion()
-    val kick = with(LocalDensity.current) { ShakeKick.toPx() }
+    val kick = with(LocalDensity.current) { MotionTokens.ShakeKick.toPx() }
     val offset = remember { Animatable(0f) }
     LaunchedEffect(trigger) {
         if (trigger == null || reduced) return@LaunchedEffect
         offset.snapTo(0f)
         offset.animateTo(
             targetValue = 0f,
-            animationSpec = spring(MotionTokens.RejectSpringDamping, MotionTokens.RejectSpringStiffness),
-            initialVelocity = kick * SHAKE_VELOCITY_PER_PX,
+            animationSpec = MotionTokens.ShakeSpring,
+            initialVelocity = kick * MotionTokens.ShakeVelocityPerPx,
         )
     }
     return { offset.value }
 }
 
 private const val PREFILL_CAP = 32
-
-/** How far the unknown-code wiggle first swings. */
-private val ShakeKick = 6.dp
-
-/** Launch velocity per px of [ShakeKick] (1/s), so the reject spring's first swing peaks near it. */
-private const val SHAKE_VELOCITY_PER_PX = 36f
 
 private val PreviewCode = checkNotNull(ShareCode.parse("K7Q2MX"))
 

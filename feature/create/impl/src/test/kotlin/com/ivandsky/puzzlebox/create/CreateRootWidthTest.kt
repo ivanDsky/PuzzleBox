@@ -43,7 +43,7 @@ class CreateRootWidthTest {
     private fun show(state: CreateUiState) {
         rule.setContent {
             PuzzleBoxTheme {
-                CreateScreen(state, onNew = { _, _ -> }, onOpen = {}, onQuery = {}, onFilter = {}, onDuplicate = {}, onDelete = {}, onUndoDelete = {})
+                CreateScreen(state, onNew = { _, _ -> }, onOpen = {}, onQuery = {}, onFilter = {}, onTab = {}, onOpenPublished = {}, onDuplicate = {}, onDelete = {}, onUndoDelete = {})
             }
         }
     }
