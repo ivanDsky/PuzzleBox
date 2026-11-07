@@ -73,8 +73,9 @@ private const val GlyphPillBelowDp = 360
  * through [onRename]. While [testCleared] (a board edit invalidated the passed test) a toast
  * above the action area offers Undo ([onUndoTestClear]); it reports its timeout to [onTestClearedGone].
  * The [toast] slot shows the route's other notices in the same place. Once published
- * ([readOnly]) the board takes no touch or accessibility action, Rename stays shut, and the
- * tools give way to the "Published · read-only" chip with Duplicate ([onDuplicate]).
+ * ([readOnly]) the board takes no touch or accessibility action, the bar offers no Rename or
+ * Delete, and the tools give way to the "Published · read-only" chip with Duplicate
+ * ([onDuplicate]).
  */
 @Composable
 fun StudioScreen(
@@ -115,9 +116,10 @@ fun StudioScreen(
                 subtitle = subtitle,
                 saving = saving,
                 onBack = onBack,
-                onRename = { if (!readOnly) renaming = true },
+                onRename = { renaming = true },
                 onDuplicate = onDuplicate,
                 onDelete = onDelete,
+                readOnly = readOnly,
                 pill = {
                     if (layout == PlayLayout.SinglePane) {
                         PillWithCard(
