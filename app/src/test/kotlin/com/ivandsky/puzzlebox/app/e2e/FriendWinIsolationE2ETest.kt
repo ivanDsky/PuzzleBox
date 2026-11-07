@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
@@ -47,6 +48,7 @@ import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.PlaySessionStore
+import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
@@ -136,7 +138,7 @@ class FriendWinIsolationE2ETest {
             graph.koin.get<LeaderboardSubmitWatcher>().start()
             graph.koin.get<CustomBoardSubmitter>().start()
             rule.waitUntil(TIMEOUT_MS) { graph.leaderboard.submitted.size >= dailies.size }
-            awaitWallClock(SETTLE_MS)
+            // A duplicate daily submit would land during the friend play and fail the final check.
             val dailySubmits = graph.leaderboard.submitted.toList()
             assertEquals("each daily record reached its daily board once", dailies.size, dailySubmits.size)
 
@@ -146,11 +148,11 @@ class FriendWinIsolationE2ETest {
             awaitTag(GAME)
             solveFriendPuzzle()
             assertRoute(CUSTOM_RESULT)
+            assertEquals("the solve leaves one friend card under its result", 1, state.currentStack.count { it is FriendPuzzleKey })
 
-            rule.waitUntil(TIMEOUT_MS) { boards.entries[code]?.isNotEmpty() == true }
-            awaitWallClock(SETTLE_MS) // a stray daily submit or a second post would be launched by now
+            // The submitter's last step: the row is marked Posted, so it never posts this win again.
+            rule.waitUntil(TIMEOUT_MS) { received.rows[code]?.postState == PostState.Posted }
             assertEquals("the friend's board got the one first win", listOf(FRIEND), boards.entries.getValue(code).map { it.uid })
-            assertEquals("the daily board got no submit", dailySubmits, graph.leaderboard.submitted.toList())
 
             tap(RESULT_DONE)
             assertRoute(FRIEND_CARD)
@@ -169,6 +171,9 @@ class FriendWinIsolationE2ETest {
                 TodayStatus.NotStarted,
                 readsAfter.today.single { it.game == QueensDefinition.id }.status,
             )
+            // Checked last, after the whole walk back: a leaked daily submit or a second post has had every chance to land.
+            assertEquals("the daily board got no submit", dailySubmits, graph.leaderboard.submitted.toList())
+            assertEquals("the friend's board still holds one entry", listOf(FRIEND), boards.entries.getValue(code).map { it.uid })
         }
 
     /**
@@ -264,12 +269,6 @@ class FriendWinIsolationE2ETest {
         val stats: Map<GameId?, GameStats>,
     )
 
-    /** Lets [ms] of wall clock pass while the UI keeps idling. */
-    private fun ShellRobot.awaitWallClock(ms: Long) {
-        val since = System.currentTimeMillis()
-        rule.waitUntil(ms + TIMEOUT_MS) { System.currentTimeMillis() - since >= ms }
-    }
-
     private fun record(ref: PuzzleRef, time: Long) = CompletionRecord(
         puzzleRef = ref,
         time = time,
@@ -315,7 +314,6 @@ class FriendWinIsolationE2ETest {
         const val CODE_OPEN = "friend.code.open"
         const val CARD_TITLE = "friend.card.title"
         const val CARD_PLAY = "friend.card.play"
-        const val SETTLE_MS = 300L
         const val TIMEOUT_MS = 10_000L
     }
 }
