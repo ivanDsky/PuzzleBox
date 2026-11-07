@@ -48,7 +48,7 @@ object StrandsDraftAnalyzer {
     private fun incomplete(draft: StrandsDraft): IncompleteReason? {
         val blank = draft.letters.count { it == StrandsDraft.BLANK }
         if (blank > 0) return IncompleteReason(BLANK_CELLS, blank)
-        val unnamed = draft.paths.count { it.word == null }
+        val unnamed = draft.paths.count { it.word.isNullOrBlank() }
         if (unnamed > 0) return IncompleteReason(UNNAMED, unnamed)
         if (draft.spangram !in draft.paths.indices) return IncompleteReason(NO_SPANGRAM, 0)
         return null

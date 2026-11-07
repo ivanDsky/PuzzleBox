@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft.Companion.BLANK
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft.Companion.COLS
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft.Companion.NO_SPANGRAM
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft.Companion.ROWS
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -41,6 +42,25 @@ class StrandsDraftCodecTest {
         )
 
         assertEquals(state, roundTrip(state))
+    }
+
+    private fun fixture(name: String): ByteArray =
+        StrandsDraftCodecTest::class.java.getResourceAsStream("/fixtures/$name")!!.use { it.readBytes() }
+
+    /** What `strands-draft-v1.bin` holds: a blank → traced replace in the undo stack, the reverse in the redo stack. */
+    private fun fixtureState() = DraftState(
+        traced,
+        CommandHistory(listOf(ReplaceDraft(blank, traced)), listOf(ReplaceDraft(traced, blank))),
+    )
+
+    @Test
+    fun `frozen v1 fixture decodes to the expected draft and both stacks`() {
+        assertEquals(fixtureState(), (StrandsDraftCodec.decode(fixture("strands-draft-v1.bin")) as DecodeResult.Ok).value)
+    }
+
+    @Test
+    fun `encoding the fixture state reproduces the frozen bytes`() {
+        assertArrayEquals(fixture("strands-draft-v1.bin"), StrandsDraftCodec.encode(fixtureState()))
     }
 
     @Test
