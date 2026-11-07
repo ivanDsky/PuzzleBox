@@ -82,7 +82,7 @@ class EditorViewModel(
     /** "Saving…" while an edit waits to be stored, "✓ Saved" once it is. */
     val saving: StateFlow<Boolean> = autosave.saving
 
-    /** Publish: the pending edit is stored first; the reserved code comes back onto the row this writes. */
+    /** Publish and its details: the pending edit is stored first; the reserved code comes back onto the row this writes. */
     val publish = PublishSession(
         draftId = key.draftId,
         createShared = createShared,
@@ -92,6 +92,7 @@ class EditorViewModel(
         scope = viewModelScope,
         flush = { autosave.flush() },
         reserved = { code -> lastStored = lastStored?.copy(reservedCode = code) },
+        storeDetails = { authorName, note -> lastStored?.let { write(it.copy(authorName = authorName, note = note)) } },
     )
 
     init {
@@ -112,6 +113,7 @@ class EditorViewModel(
         val (stored, draft, ui) = loadDraft(key.draftId) ?: return EditorUiState.Missing
         lastStored = stored
         meta.open(stored.title)
+        publish.open(stored.authorName, stored.note)
         history.open(draft)
         testSolve.open(stored.testSolve, draft)
         // The verdict lands after the debounce; it is only published once this state is Ready.
