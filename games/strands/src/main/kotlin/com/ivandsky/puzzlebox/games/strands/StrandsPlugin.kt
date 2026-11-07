@@ -31,13 +31,13 @@ val strandsPlugin: GamePlugin<StrandsState, StrandsSession, StrandsRendererModel
                 StrandsCodec.decode(puzzle.payload).map { StrandsSession(ref = null, state = StrandsState(it)) }
             }
         },
-        refOf = { date, puzzleNumber -> StrandsPuzzleRef(date, puzzleNumber) },
-        replaySession = { cached, day, puzzleNumber ->
+        refOf = { key -> StrandsPuzzleRef(key) },
+        replaySession = { cached, key ->
             StrandsCodec.decode(cached.payload).map { puzzle ->
                 SessionBlob.encode(
                     StrandsDefinition.id,
                     StrandsSessionCodec.serialize(
-                        StrandsSession(ref = StrandsPuzzleRef(day, puzzleNumber), state = StrandsState(puzzle)),
+                        StrandsSession(ref = StrandsPuzzleRef(key), state = StrandsState(puzzle)),
                     ),
                 )
             }

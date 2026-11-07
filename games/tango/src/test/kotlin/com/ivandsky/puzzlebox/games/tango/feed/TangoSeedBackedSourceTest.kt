@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.games.tango.TangoMarker
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 import com.ivandsky.puzzlebox.games.tango.codec.LotkaWireParser
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
@@ -68,7 +69,7 @@ class TangoSeedBackedSourceTest {
         val result = seedBacked(FetchError.Unavailable("test: no session")).fetchDaily(day)
         assertTrue(result is FetchResult.Ok)
         assertEquals("tango/n6", (result as FetchResult.Ok).value.puzzle.variant.value)
-        assertEquals(day, result.value.ref.date)
+        assertEquals(day, (result.value.ref.key as PuzzleKey.Daily).date)
     }
 
     @Test
@@ -97,7 +98,7 @@ class TangoSeedBackedSourceTest {
 
         val daily = (source.fetchPast(LocalDate.of(2026, 11, 4)) as FetchResult.Ok).value
 
-        assertEquals(758, daily.ref.puzzleNumber)
+        assertEquals(758, (daily.ref.key as PuzzleKey.Daily).puzzleNumber)
     }
 
     @Test

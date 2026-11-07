@@ -18,7 +18,9 @@ abstract class SavedPlayRepositoryContract {
 
     protected abstract val repository: SavedPlayRepository
 
-    protected fun slot(gameId: String, day: Int) = PlaySlot(GameId(gameId), LocalDate.of(2026, 11, day))
+    protected fun slot(gameId: String, day: Int) = PlaySlot.Daily(GameId(gameId), LocalDate.of(2026, 11, day))
+
+    protected fun custom(puzzleId: String, gameId: String = "queens") = PlaySlot.Custom(GameId(gameId), puzzleId)
 
     @Test
     fun `saved blob loads back`() = runTest {
@@ -69,5 +71,41 @@ abstract class SavedPlayRepositoryContract {
 
         repository.delete(slot("zip", 1))
         assertEquals(mapOf(slot("tango", 1) to 20L), slots.first())
+    }
+
+    @Test
+    fun `custom slot round-trips and is observed`() = runTest {
+        repository.save(custom("p1"), byteArrayOf(4, 5), elapsedMs = 30L)
+
+        assertArrayEquals(byteArrayOf(4, 5), repository.load(custom("p1")))
+        assertNull(repository.load(custom("p2")))
+        assertEquals(mapOf<PlaySlot, Long>(custom("p1") to 30L), repository.observeInProgress().first())
+
+        repository.delete(custom("p1"))
+        assertNull(repository.load(custom("p1")))
+        assertEquals(emptyMap<PlaySlot, Long>(), repository.observeInProgress().first())
+    }
+
+    @Test
+    fun `ninth custom save prunes the oldest custom slot`() = runTest {
+        for (n in 1..9) repository.save(custom("p$n", gameId = if (n % 2 == 0) "zip" else "queens"), byteArrayOf(n.toByte()), 0L)
+
+        assertNull(repository.load(custom("p1", gameId = "queens")))
+        assertEquals(
+            (2..9).map { custom("p$it", gameId = if (it % 2 == 0) "zip" else "queens") }.toSet(),
+            repository.observeInProgress().first().keys,
+        )
+    }
+
+    @Test
+    fun `custom saves never evict a daily`() = runTest {
+        repository.save(slot("zip", 1), byteArrayOf(7), elapsedMs = 0L)
+        for (n in 1..9) repository.save(custom("p$n", gameId = "zip"), byteArrayOf(n.toByte()), 0L)
+
+        assertArrayEquals(byteArrayOf(7), repository.load(slot("zip", 1)))
+        assertEquals(
+            (2..9).map { custom("p$it", gameId = "zip") }.toSet() + slot("zip", 1),
+            repository.observeInProgress().first().keys,
+        )
     }
 }

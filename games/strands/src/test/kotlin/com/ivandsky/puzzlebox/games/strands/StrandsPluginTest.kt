@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.games.strands.codec.StrandsCodec
 import com.ivandsky.puzzlebox.games.strands.codec.StrandsSessionCodec
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -34,11 +35,20 @@ class StrandsPluginTest {
 
     @Test
     fun `replay hands off a fresh session carrying the day`() {
-        val blob = SessionBlob.decode(strandsPlugin.replaySession(envelope, day, 977).getOrNull()!!)!!
+        val key = PuzzleKey.Daily(day, 977)
+        val blob = SessionBlob.decode(strandsPlugin.replaySession(envelope, key).getOrNull()!!)!!
         assertEquals(StrandsDefinition.id, blob.game)
         assertEquals(
-            StrandsSession(ref = StrandsPuzzleRef(day, 977), state = StrandsState(tinyPuzzle)),
+            StrandsSession(ref = StrandsPuzzleRef(PuzzleKey.Daily(day, 977)), state = StrandsState(tinyPuzzle)),
             StrandsSessionCodec.deserialize(blob.session).getOrNull(),
         )
+    }
+
+    @Test
+    fun `a custom key replays carrying the friend's puzzle identity`() {
+        val custom = PuzzleKey.Custom("K7Q2MX")
+        val blob = SessionBlob.decode(strandsPlugin.replaySession(envelope, custom).getOrNull()!!)!!
+        assertEquals(StrandsPuzzleRef(custom), StrandsSessionCodec.deserialize(blob.session).getOrNull()?.ref)
+        assertEquals(StrandsPuzzleRef(custom), strandsPlugin.refOf(custom))
     }
 }

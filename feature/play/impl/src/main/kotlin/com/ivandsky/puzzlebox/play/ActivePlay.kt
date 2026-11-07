@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -128,7 +129,8 @@ class ActivePlay internal constructor(
     /** Record identity = game id + day/puzzleNumber (ADR-0004): the slot's day and the
      *  number the opening read from the cache's history rows. */
     private fun adopt(controller: GamePlayController, fetched: SlotOpening.Origin.Fetched): PlayBoardStatus {
-        val resolved = plugin.refOf(slot.day, fetched.puzzleNumber)
+        val day = checkNotNull((slot as? PlaySlot.Daily)?.day) { "only a daily slot is fetched" }
+        val resolved = plugin.refOf(PuzzleKey.Daily(day, fetched.puzzleNumber))
         if (controller !== this.controller) return PlayBoardStatus.Loading // superseded; never shown
         return when (val adopted = controller.adoptToday(fetched.puzzle, resolved)) {
             is Adopt.Rejected -> PlayBoardStatus.Unavailable(adopted.message)
@@ -230,7 +232,7 @@ class ActivePlay internal constructor(
                 // baseline (the write raced the baseline read) stays null. A practice
                 // puzzle (no edition number) never ranks: its verdict stays null.
                 is AppResult.Ok -> _record.update {
-                    if (!baselineKnown || record.puzzleRef.puzzleNumber == null) {
+                    if (!baselineKnown || record.puzzleRef.edition == null) {
                         it
                     } else {
                         it.copy(
@@ -270,8 +272,10 @@ class ActivePlay internal constructor(
         }
     }
 
-    private fun PuzzleRef.sameIdentity(other: PuzzleRef) =
-        gameId == other.gameId && date == other.date && puzzleNumber == other.puzzleNumber
+    private fun PuzzleRef.sameIdentity(other: PuzzleRef) = gameId == other.gameId && key == other.key
+
+    /** The daily's edition number; null for an unnumbered daily or a custom puzzle. */
+    private val PuzzleRef.edition: Int? get() = (key as? PuzzleKey.Daily)?.puzzleNumber
 
     private fun blankRecord(label: String) =
         Record(verdict = null, previousBest = null, writeFailed = false, label = label, rankOrder = rankOrder)
@@ -282,7 +286,7 @@ class ActivePlay internal constructor(
     private fun labelFor(ref: PuzzleRef?): String {
         val name = plugin.definition.displayName
         if (ref == null) return name
-        return ref.puzzleNumber?.let { "$name · #$it" } ?: "$name · Practice"
+        return ref.edition?.let { "$name · #$it" } ?: "$name · Practice"
     }
 
     private companion object {

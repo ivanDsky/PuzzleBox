@@ -1,0 +1,12 @@
+{
+  "note": "5x5 contiguous unique board; the hardest rung QueensLadder.Default needs is look-ahead (Expert).",
+  "size": 5,
+  "regions": [
+    0, 1, 1, 1, 1,
+    2, 2, 1, 1, 1,
+    2, 2, 2, 1, 1,
+    2, 2, 2, 3, 3,
+    2, 4, 4, 4, 3
+  ],
+  "solution": [0, 8, 11, 19, 22]
+}

@@ -67,11 +67,11 @@ val tangoPlugin: GamePlugin<TangoState, TangoSession, TangoRendererModel> =
                 is DecodeResult.Err -> DecodeResult.Err(decoded.error)
             }
         },
-        refOf = { date, puzzleNumber -> TangoPuzzleRef(date, puzzleNumber) },
+        refOf = { key -> TangoPuzzleRef(key) },
         // Replay hand-off: zip's shape plus the A15 gate — an archived puzzle that decodes
         // but is not uniquely solvable is never playable (payload untrusted), exactly as
         // the play state refuses it on a fresh load.
-        replaySession = { cached, day, puzzleNumber ->
+        replaySession = { cached, key ->
             when (val decoded = TangoCodec.decode(cached.payload)) {
                 is DecodeResult.Ok ->
                     if (!TangoUniqueness.isUniquelySolvable(decoded.value)) {
@@ -82,7 +82,7 @@ val tangoPlugin: GamePlugin<TangoState, TangoSession, TangoRendererModel> =
                                 TangoDefinition.id,
                                 TangoSessionCodec.serialize(
                                     TangoSession(
-                                        ref = TangoPuzzleRef(date = day, puzzleNumber = puzzleNumber),
+                                        ref = TangoPuzzleRef(key),
                                         puzzle = decoded.value,
                                     ),
                                 ),

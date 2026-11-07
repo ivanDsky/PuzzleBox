@@ -1,0 +1,116 @@
+queens-daily-ambiguous.json|0|Region region=0 cell=1 reason=none
+queens-daily-ambiguous.json|1|Region region=2 cell=14 reason=REGION:2
+queens-daily-ambiguous.json|2|Region region=3 cell=59 reason=REGION:3
+queens-daily-ambiguous.json|3|Region region=4 cell=40 reason=ROW:5
+queens-daily-ambiguous.json|4|Region region=3 cell=59 reason=REGION:3
+queens-daily-ambiguous.json|5|Region region=3 cell=59 reason=ROW:7
+queens-daily-ambiguous.json|6|Region region=3 cell=59 reason=ROW:7
+queens-daily-ambiguous.json|7|Region region=3 cell=59 reason=ROW:7
+queens-daily-ambiguous.json|8|None
+queens-daily-graphql.json|0|Region region=5 cell=43 reason=COLUMN:3
+queens-daily-graphql.json|1|Region region=2 cell=16 reason=REGION:2
+queens-daily-graphql.json|2|Region region=2 cell=16 reason=REGION:2
+queens-daily-graphql.json|3|Region region=3 cell=28 reason=REGION:3
+queens-daily-graphql.json|4|Region region=4 cell=39 reason=ROW:4
+queens-daily-graphql.json|5|Region region=5 cell=43 reason=ROW:5
+queens-daily-graphql.json|6|Region region=6 cell=49 reason=COLUMN:1
+queens-daily-graphql.json|7|Region region=7 cell=62 reason=ROW:7
+queens-daily-graphql.json|8|None
+queens-daily-real-916.json|0|Region region=0 cell=6 reason=REGION:0
+queens-daily-real-916.json|1|Region region=3 cell=8 reason=REGION:3
+queens-daily-real-916.json|2|Region region=4 cell=17 reason=REGION:4
+queens-daily-real-916.json|3|Region region=5 cell=26 reason=REGION:5
+queens-daily-real-916.json|4|Region region=2 cell=39 reason=REGION:2
+queens-daily-real-916.json|5|Region region=1 cell=42 reason=ROW:6
+queens-daily-real-916.json|6|Region region=1 cell=42 reason=ROW:6
+queens-daily-real-916.json|7|None
+queens-daily-sample.json|0|Region region=0 cell=0 reason=none
+queens-daily-sample.json|1|Region region=1 cell=11 reason=none
+queens-daily-sample.json|2|Incorrect cells=0,12
+queens-daily-sample.json|3|Incorrect cells=0,12,23
+queens-daily-sample.json|4|Incorrect cells=0,12,23,29
+queens-daily-sample.json|5|Incorrect cells=0,12,23,29,34
+queens-daily-sample.json|6|Incorrect cells=0,12,23,29,34,46
+queens-daily-sample.json|7|Incorrect cells=0,12,23,29,34,46,49
+queens-daily-sample.json|8|Incorrect cells=0,12,23,29,34,46,49,59
+queens-daily-unique.json|0|Region region=5 cell=43 reason=COLUMN:3
+queens-daily-unique.json|1|Region region=2 cell=16 reason=REGION:2
+queens-daily-unique.json|2|Region region=2 cell=16 reason=REGION:2
+queens-daily-unique.json|3|Region region=3 cell=28 reason=REGION:3
+queens-daily-unique.json|4|Region region=4 cell=39 reason=ROW:4
+queens-daily-unique.json|5|Region region=5 cell=43 reason=ROW:5
+queens-daily-unique.json|6|Region region=6 cell=49 reason=COLUMN:1
+queens-daily-unique.json|7|Region region=7 cell=62 reason=ROW:7
+queens-daily-unique.json|8|None
+02-byid-gt3-1.json|0|Region region=1 cell=13 reason=REGION:1
+02-byid-gt3-1.json|1|Region region=1 cell=13 reason=REGION:1
+02-byid-gt3-1.json|2|Region region=3 cell=54 reason=REGION:3
+02-byid-gt3-1.json|3|Region region=3 cell=54 reason=REGION:3
+02-byid-gt3-1.json|4|Region region=2 cell=32 reason=ROW:4
+02-byid-gt3-1.json|5|Region region=3 cell=54 reason=REGION:3
+02-byid-gt3-1.json|6|Region region=3 cell=54 reason=ROW:6
+02-byid-gt3-1.json|7|Region region=5 cell=60 reason=ROW:7
+02-byid-gt3-1.json|8|None
+02-byid-gt3-916.json|0|Region region=0 cell=6 reason=REGION:0
+02-byid-gt3-916.json|1|Region region=3 cell=8 reason=REGION:3
+02-byid-gt3-916.json|2|Region region=4 cell=17 reason=REGION:4
+02-byid-gt3-916.json|3|Region region=5 cell=26 reason=REGION:5
+02-byid-gt3-916.json|4|Region region=2 cell=39 reason=REGION:2
+02-byid-gt3-916.json|5|Region region=1 cell=42 reason=ROW:6
+02-byid-gt3-916.json|6|Region region=1 cell=42 reason=ROW:6
+02-byid-gt3-916.json|7|None
+02-byid-gt3-918.json|0|Region region=2 cell=25 reason=COLUMN:4
+02-byid-gt3-918.json|1|Region region=1 cell=13 reason=REGION:1
+02-byid-gt3-918.json|2|Region region=2 cell=25 reason=REGION:2
+02-byid-gt3-918.json|3|Region region=2 cell=25 reason=REGION:2
+02-byid-gt3-918.json|4|Region region=5 cell=29 reason=COLUMN:1
+02-byid-gt3-918.json|5|Region region=3 cell=40 reason=ROW:5
+02-byid-gt3-918.json|6|Region region=6 cell=42 reason=ROW:6
+02-byid-gt3-918.json|7|None
+queens-solver-golden.json#gen-n8-q1|0|Region region=5 cell=43 reason=COLUMN:3
+queens-solver-golden.json#gen-n8-q1|1|Region region=2 cell=16 reason=REGION:2
+queens-solver-golden.json#gen-n8-q1|2|Region region=2 cell=16 reason=REGION:2
+queens-solver-golden.json#gen-n8-q1|3|Region region=3 cell=28 reason=REGION:3
+queens-solver-golden.json#gen-n8-q1|4|Region region=4 cell=39 reason=ROW:4
+queens-solver-golden.json#gen-n8-q1|5|Region region=5 cell=43 reason=ROW:5
+queens-solver-golden.json#gen-n8-q1|6|Region region=6 cell=49 reason=COLUMN:1
+queens-solver-golden.json#gen-n8-q1|7|Region region=7 cell=62 reason=ROW:7
+queens-solver-golden.json#gen-n8-q1|8|None
+queens-solver-golden.json#gen-n9-q1|0|Region region=7 cell=65 reason=REGION:7
+queens-solver-golden.json#gen-n9-q1|1|Region region=7 cell=65 reason=REGION:7
+queens-solver-golden.json#gen-n9-q1|2|Region region=7 cell=65 reason=REGION:7
+queens-solver-golden.json#gen-n9-q1|3|Region region=7 cell=65 reason=REGION:7
+queens-solver-golden.json#gen-n9-q1|4|Region region=6 cell=59 reason=COLUMN:5
+queens-solver-golden.json#gen-n9-q1|5|Region region=6 cell=59 reason=COLUMN:5
+queens-solver-golden.json#gen-n9-q1|6|Region region=6 cell=59 reason=ROW:6
+queens-solver-golden.json#gen-n9-q1|7|Region region=7 cell=65 reason=ROW:7
+queens-solver-golden.json#gen-n9-q1|8|Region region=8 cell=78 reason=ROW:8
+queens-solver-golden.json#gen-n9-q1|9|None
+queens-solver-golden.json#gen-n10-q1|0|Region region=0 cell=3 reason=REGION:0
+queens-solver-golden.json#gen-n10-q1|1|Region region=1 cell=18 reason=REGION:1
+queens-solver-golden.json#gen-n10-q1|2|Region region=3 cell=39 reason=ROW:3
+queens-solver-golden.json#gen-n10-q1|3|Region region=9 cell=95 reason=REGION:9
+queens-solver-golden.json#gen-n10-q1|4|Region region=9 cell=95 reason=REGION:9
+queens-solver-golden.json#gen-n10-q1|5|Region region=9 cell=95 reason=REGION:9
+queens-solver-golden.json#gen-n10-q1|6|Region region=8 cell=80 reason=REGION:8
+queens-solver-golden.json#gen-n10-q1|7|Region region=7 cell=77 reason=ROW:7
+queens-solver-golden.json#gen-n10-q1|8|Region region=8 cell=80 reason=ROW:8
+queens-solver-golden.json#gen-n10-q1|9|Region region=9 cell=95 reason=ROW:9
+queens-solver-golden.json#gen-n10-q1|10|None
+queens-solver-golden.json#gen-n8-q2|0|Region region=0 cell=1 reason=none
+queens-solver-golden.json#gen-n8-q2|1|Region region=0 cell=3 reason=ROW:0
+queens-solver-golden.json#gen-n8-q2|2|Region region=1 cell=13 reason=none
+queens-solver-golden.json#gen-n8-q2|3|Region region=1 cell=15 reason=ROW:1
+queens-solver-golden.json#gen-n8-q2|4|Region region=2 cell=17 reason=COLUMN:1
+queens-solver-golden.json#gen-n8-q2|5|Region region=2 cell=19 reason=ROW:2
+queens-solver-golden.json#gen-n8-q2|6|Region region=3 cell=29 reason=COLUMN:5
+queens-solver-golden.json#gen-n8-q2|7|Region region=3 cell=31 reason=ROW:3
+queens-solver-golden.json#gen-n8-q2|8|Region region=4 cell=32 reason=none
+queens-solver-golden.json#gen-n8-q2|9|Region region=4 cell=34 reason=ROW:4
+queens-solver-golden.json#gen-n8-q2|10|Region region=5 cell=44 reason=none
+queens-solver-golden.json#gen-n8-q2|11|Region region=5 cell=46 reason=ROW:5
+queens-solver-golden.json#gen-n8-q2|12|Region region=6 cell=48 reason=ROW:6
+queens-solver-golden.json#gen-n8-q2|13|Region region=6 cell=50 reason=ROW:6
+queens-solver-golden.json#gen-n8-q2|14|Region region=7 cell=60 reason=ROW:7
+queens-solver-golden.json#gen-n8-q2|15|Region region=7 cell=62 reason=ROW:7
+queens-solver-golden.json#gen-n8-q2|16|None

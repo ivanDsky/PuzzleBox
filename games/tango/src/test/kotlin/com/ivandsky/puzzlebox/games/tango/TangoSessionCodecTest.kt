@@ -4,18 +4,20 @@ import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TangoSessionCodecTest {
 
     private val session = TangoSession(
-        ref = TangoPuzzleRef(LocalDate.of(2026, 11, 2), 42),
+        ref = TangoPuzzleRef(PuzzleKey.Daily(LocalDate.of(2026, 11, 2), 42)),
         puzzle = TangoTestSupport.sample,
         placements = mapOf(2 to TangoCell.MOON, 15 to TangoCell.SUN),
         hintsUsed = 1,
@@ -46,11 +48,108 @@ class TangoSessionCodecTest {
 
     @Test
     fun `a newer session version is dropped as unsupported`() {
-        val bytes = TangoSessionCodec.serialize(session).clone().also { it[0] = 9 }
+        val bytes = TangoSessionCodec.serialize(session).clone().also { it[0] = 4 }
         assertEquals(
-            DecodeError.UnsupportedVersion(found = 9, maxKnown = 2),
+            DecodeError.UnsupportedVersion(found = 4, maxKnown = 3),
             (TangoSessionCodec.deserialize(bytes) as DecodeResult.Err).error,
         )
+    }
+
+    // ---- v3: the ref carries a PuzzleKey ----
+
+    private val fixtureHistory = CommandHistory<TangoPlacements, TangoPlace>(
+        done = listOf(TangoPlace(2, TangoCell.MOON, null), TangoPlace(15, TangoCell.SUN, null)),
+        undone = listOf(TangoPlace(9, TangoCell.MOON, null)),
+    )
+
+    /** The session both frozen fixtures were cut from; they differ only in the ref. */
+    private val fixtureSession = session.copy(history = fixtureHistory)
+
+    private val customRef = TangoPuzzleRef(PuzzleKey.Custom("7K3QPX"))
+
+    private fun fixtureBytes(name: String): ByteArray =
+        requireNotNull(javaClass.getResourceAsStream("/fixtures/$name")) { name }.readBytes()
+
+    @Test
+    fun `a frozen v2 session decodes as a daily`() {
+        val restored = (decode(fixtureBytes("tango-session-v2.bin")) as DecodeResult.Ok).value
+
+        assertEquals(PuzzleKey.Daily(LocalDate.of(2026, 11, 2), 42), restored.ref?.key)
+        assertEquals(fixtureSession, restored)
+    }
+
+    @Test
+    fun `a frozen v3 custom session decodes as a custom key`() {
+        val restored = (decode(fixtureBytes("tango-session-v3-custom.bin")) as DecodeResult.Ok).value
+
+        assertEquals(customRef, restored.ref)
+        assertEquals(fixtureSession.copy(ref = customRef), restored)
+    }
+
+    @Test
+    fun `v3 encodes the custom fixture byte for byte`() {
+        val bytes = TangoSessionCodec.serialize(fixtureSession.copy(ref = customRef))
+
+        assertEquals(fixtureBytes("tango-session-v3-custom.bin").toList(), bytes.toList())
+    }
+
+    @Test
+    fun `both key kinds round-trip`() {
+        val refs = listOf(
+            TangoPuzzleRef(PuzzleKey.Daily(LocalDate.of(2026, 11, 2), 42)),
+            TangoPuzzleRef(PuzzleKey.Daily(LocalDate.of(2026, 11, 3), null)),
+            customRef,
+        )
+        for (ref in refs) {
+            val restored = (decode(TangoSessionCodec.serialize(fixtureSession.copy(ref = ref))) as DecodeResult.Ok).value
+            assertEquals(ref.key, restored.ref?.key)
+            assertEquals(fixtureSession.copy(ref = ref), restored)
+        }
+    }
+
+    @Test
+    fun `an unknown key tag is malformed`() {
+        val bytes = TangoSessionCodec.serialize(session)
+        val tagAt = 3 + ((bytes[1].toInt() and 0xFF) shl 8) + (bytes[2].toInt() and 0xFF) + 1
+
+        assertTrue(decode(bytes.clone().also { it[tagAt] = 2 }) is DecodeResult.Err)
+    }
+
+    @Test
+    fun `a truncated custom id is malformed`() {
+        val bytes = fixtureBytes("tango-session-v3-custom.bin")
+        val tagAt = 3 + ((bytes[1].toInt() and 0xFF) shl 8) + (bytes[2].toInt() and 0xFF) + 1
+
+        assertTrue(decode(bytes.copyOf(tagAt + 4)) is DecodeResult.Err)
+    }
+
+    @Test
+    fun `a zero-length custom id is rejected on write and malformed on read`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            TangoSessionCodec.serialize(fixtureSession.copy(ref = TangoPuzzleRef(PuzzleKey.Custom(""))))
+        }
+
+        val bytes = fixtureBytes("tango-session-v3-custom.bin")
+        val tagAt = 3 + ((bytes[1].toInt() and 0xFF) shl 8) + (bytes[2].toInt() and 0xFF) + 1
+        val idLen = bytes[tagAt + 1].toInt()
+        val empty = bytes.copyOfRange(0, tagAt + 1) + byteArrayOf(0) + bytes.copyOfRange(tagAt + 2 + idLen, bytes.size)
+
+        assertTrue(decode(empty) is DecodeResult.Err)
+    }
+
+    @Test
+    fun `a custom id that is not UTF-8 is malformed`() {
+        val bytes = fixtureBytes("tango-session-v3-custom.bin")
+        val tagAt = 3 + ((bytes[1].toInt() and 0xFF) shl 8) + (bytes[2].toInt() and 0xFF) + 1
+
+        assertTrue(decode(bytes.clone().also { it[tagAt + 2] = 0xFF.toByte() }) is DecodeResult.Err)
+    }
+
+    /** [session]'s daily bytes at a pre-v3 [version]: the v3 layout minus the key tag. */
+    private fun legacyBytes(version: Int): ByteArray {
+        val v3 = TangoSessionCodec.serialize(session)
+        val tagAt = 3 + ((v3[1].toInt() and 0xFF) shl 8) + (v3[2].toInt() and 0xFF) + 1
+        return (v3.copyOfRange(0, tagAt) + v3.copyOfRange(tagAt + 1, v3.size)).also { it[0] = version.toByte() }
     }
 
     // ---- v2: undo/redo history ----
@@ -98,7 +197,7 @@ class TangoSessionCodecTest {
     @Test
     fun `a v1 blob still decodes with an empty history`() {
         // v1 = v2 minus the two u16 history counts (no tail here, so they are the last 4 bytes).
-        val v2 = TangoSessionCodec.serialize(session)
+        val v2 = legacyBytes(2)
         val v1 = v2.copyOfRange(0, v2.size - 4).also { it[0] = 1 }
 
         val restored = (decode(v1) as DecodeResult.Ok).value
@@ -109,7 +208,7 @@ class TangoSessionCodecTest {
 
     @Test
     fun `a v1 unknown tail survives and is not mistaken for history`() {
-        val v2 = TangoSessionCodec.serialize(session)
+        val v2 = legacyBytes(2)
         val v1 = v2.copyOfRange(0, v2.size - 4).also { it[0] = 1 } + byteArrayOf(7, 8, 9)
 
         val restored = (decode(v1) as DecodeResult.Ok).value

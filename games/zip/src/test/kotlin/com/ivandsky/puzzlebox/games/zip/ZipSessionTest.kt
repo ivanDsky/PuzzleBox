@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.zip
 
 import com.ivandsky.puzzlebox.games.zip.engine.ZipMove
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -15,7 +16,7 @@ class ZipSessionTest {
     private val puzzle = ZipTestSupport.n5Puzzle()
 
     private fun session(path: List<Cell> = emptyList()) = ZipSession(
-        ref = ZipPuzzleRef(java.time.LocalDate.of(2026, 10, 30), 592),
+        ref = ZipPuzzleRef(PuzzleKey.Daily(java.time.LocalDate.of(2026, 10, 30), 592)),
         puzzle = puzzle,
         path = path,
     )

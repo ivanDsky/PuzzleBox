@@ -40,6 +40,14 @@ class TopLevelNavBarTest {
     val composeRule = createComposeRule()
 
     @Test
+    fun `tabs are home, play, create, profile in that order`() {
+        assertEquals(
+            listOf("nav.tab.home", "nav.tab.play", "nav.tab.create", "nav.tab.profile"),
+            topLevelDestinations.map { it.tag },
+        )
+    }
+
+    @Test
     fun `bar highlights exactly the selected destination`() {
         assertHighlight { selected, onSelect -> TopLevelNavBar(selected = selected, onSelect = onSelect) }
     }

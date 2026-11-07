@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.solve.SudokuSolver
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -95,7 +96,7 @@ class SudokuTutorialTest {
             assertEquals(game.definition.variant.id, step.puzzle.variant)
             assertTrue(game.definition.decode(step.puzzle.payload) is DecodeResult.Ok)
             assertEquals(game.definition.variant, puzzle.variant)
-            assertEquals(SudokuPuzzleRef(game.definition.id, LocalDate.of(2026, 1, 1), null), step.ref)
+            assertEquals(SudokuPuzzleRef(game.definition.id, PuzzleKey.Daily(LocalDate.of(2026, 1, 1), null)), step.ref)
             assertFalse(step.guided)
         }
     }

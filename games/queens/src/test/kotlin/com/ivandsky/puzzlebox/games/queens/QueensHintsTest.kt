@@ -20,11 +20,14 @@ class QueensHintsTest {
 
     private val hints = QueensHints()
 
-    /** Empty board: the lowest-region forced queen — region 0's queen at (0,1) = cell 1.
-     *  No placed premises → no human-checkable elimination → the neutral fallback (null). */
+    /** Empty board: the ladder's first placement wins over the lowest region — region 3 is
+     *  the lone cell 14, a REGION single (ticket 11: a reasoned hint beats an unreasoned one). */
     @Test
-    fun `empty board hints region 0's forced cell`() {
-        assertEquals(QueensHint.Region(0, Cell(1), null), hints.hint(QueensTestSupport.n4Puzzle(), emptyList()))
+    fun `empty board hints the ladder's first placement`() {
+        assertEquals(
+            QueensHint.Region(3, Cell(14), HintReason(HintReason.Kind.REGION, 3)),
+            hints.hint(QueensTestSupport.n4Puzzle(), emptyList()),
+        )
     }
 
     /** A live correct prefix: the next forced queen is region 1's cell 7, proven by its

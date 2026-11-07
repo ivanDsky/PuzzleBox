@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 
 object TangoPlayFixture {
@@ -74,5 +75,5 @@ object TangoPlayFixture {
         markers = emptyList(),
     )
 
-    fun ref(day: LocalDate, puzzleNumber: Int? = 301) = TangoPuzzleRef(day, puzzleNumber)
+    fun ref(day: LocalDate, puzzleNumber: Int? = 301) = TangoPuzzleRef(PuzzleKey.Daily(day, puzzleNumber))
 }

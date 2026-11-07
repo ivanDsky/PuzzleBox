@@ -16,8 +16,8 @@ import org.junit.Test
 private data class FakeRef(
     val id: String,
     override val gameId: com.ivandsky.puzzlebox.model.GameId = com.ivandsky.puzzlebox.model.GameId(id),
-    override val date: java.time.LocalDate = java.time.LocalDate.of(2026, 11, 2),
-    override val puzzleNumber: Int? = null,
+    override val key: com.ivandsky.puzzlebox.model.PuzzleKey =
+        com.ivandsky.puzzlebox.model.PuzzleKey.Daily(java.time.LocalDate.of(2026, 11, 2), null),
 ) : PuzzleRef
 
 private fun record(id: String) = CompletionRecord(

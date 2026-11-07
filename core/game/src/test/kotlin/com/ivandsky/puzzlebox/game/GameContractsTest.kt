@@ -1,9 +1,11 @@
 package com.ivandsky.puzzlebox.game
 
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.ZoneId
@@ -87,10 +89,40 @@ class GameContractsTest {
         assertSame(plugin, registry[TestGame.id])
         assertNull(registry[GameId("unregistered")])
 
-        val ref = plugin.refOf(TestGame.date, 7)
-        assertEquals(TestGame.id, ref.gameId)
-        assertEquals(TestGame.date, ref.date)
-        assertEquals(7, ref.puzzleNumber)
+        val daily = plugin.refOf(PuzzleKey.Daily(TestGame.date, 7))
+        assertEquals(TestGame.id, daily.gameId)
+        assertEquals(PuzzleKey.Daily(TestGame.date, 7), daily.key)
+
+        val custom = plugin.refOf(PuzzleKey.Custom("K7Q2MX"))
+        assertEquals(TestGame.id, custom.gameId)
+        assertEquals(PuzzleKey.Custom("K7Q2MX"), custom.key)
+    }
+
+    @Test
+    fun `registry refuses a plugin that claims the reserved custom game id`() {
+        val reserved = GameId(PuzzleKey.Custom.NAMESPACE)
+        val base = TestGame.plugin()
+        val custom = GamePlugin(
+            object : GameDefinition by TestGame.Definition {
+                override val id = reserved
+            },
+            base.rules,
+            base.session,
+            base.score,
+            base.stateOf,
+            base.initialSession,
+            base.refOf,
+            base.replaySession,
+            base.rendererModel,
+        )
+
+        val listed = assertThrows(IllegalArgumentException::class.java) {
+            GameRegistry(listOf(base, custom))
+        }
+        assertEquals("GameId 'custom' is reserved", listed.message)
+        assertThrows(IllegalArgumentException::class.java) {
+            GameRegistry(listOf(base, custom), unlisted = setOf(reserved))
+        }
     }
 
     @Test

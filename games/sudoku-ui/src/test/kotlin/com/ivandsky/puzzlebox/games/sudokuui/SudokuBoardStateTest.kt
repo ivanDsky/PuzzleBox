@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuUnit
 import com.ivandsky.puzzlebox.games.sudoku.UnitKind
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHint
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuTechnique
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -25,7 +26,7 @@ class SudokuBoardStateTest {
     private val givens = grid("..3.5. .2.4.6 1..... .....2 2.4.1. .1.3..")
     private val solution = grid("463251 521436 142563 356142 234615 615324")
     private val peanut450 = SudokuPuzzle(SudokuGames.MINI.variant, givens, solution)
-    private val ref = SudokuPuzzleRef(SudokuGames.MINI.id, LocalDate.of(2026, 11, 4), 450)
+    private val ref = SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(LocalDate.of(2026, 11, 4), 450))
 
     private val published = ArrayList<SudokuSession>()
     private var settled = 0

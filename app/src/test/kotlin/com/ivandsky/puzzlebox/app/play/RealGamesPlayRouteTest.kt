@@ -24,6 +24,7 @@ import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.di.domainModule
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
@@ -156,7 +157,7 @@ class RealGamesPlayRouteTest {
     }
 
     private fun play(game: GameId): ActivePlay? =
-        koin!!.koin.get<PlaySessionStore>().peek(PlaySlot(game, cadenceToday))
+        koin!!.koin.get<PlaySessionStore>().peek(PlaySlot.Daily(game, cadenceToday))
 
     private fun pick(game: GameId) {
         composeRule.onNodeWithTag("library.row.${game.value}").performScrollTo().performClick()
@@ -199,7 +200,7 @@ class RealGamesPlayRouteTest {
         composeRule.runOnIdle {
             assertEquals(listOf<NavKey>(PlayKey, GameKey(TangoDefinition.id.value)), navigator.state.currentStack)
             val tango = play(TangoDefinition.id)!!.controller as TangoPlayController
-            assertEquals(TangoPuzzleRef(cadenceToday, 301), tango.session?.ref)
+            assertEquals(TangoPuzzleRef(PuzzleKey.Daily(cadenceToday, 301)), tango.session?.ref)
         }
         composeRule.onNodeWithTag("play.side_panel").assertExists()
         composeRule.onNodeWithTag("play.action_bar").assertExists()

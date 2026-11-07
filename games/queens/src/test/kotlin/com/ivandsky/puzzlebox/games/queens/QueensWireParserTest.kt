@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.games.queens
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.games.queens.codec.QueensWireParser
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -47,15 +48,15 @@ class QueensWireParserTest {
         assertEquals(List(8) { r -> List(8) { c -> (r + c) % 8 } }.flatten(), daily.puzzle.regions)
         assertEquals(1, daily.puzzle.queensPerUnit)
         assertEquals(listOf(Cell(0), Cell(10), Cell(20), Cell(30), Cell(33), Cell(43), Cell(53), Cell(63)), daily.puzzle.solution)
-        assertEquals(date, daily.ref.date)
-        assertNull(daily.ref.puzzleNumber)
+        assertEquals(date, (daily.ref.key as PuzzleKey.Daily).date)
+        assertNull((daily.ref.key as PuzzleKey.Daily).puzzleNumber)
     }
 
     @Test
     fun `edition text lands on the ref`() {
         val regions = List(8) { r -> List(8) { c -> (r + c) % 8 } }
         val daily = ok(wire(8, regions, (0 until 8).map { it to (it * 3 + 1) % 8 }), "887")
-        assertEquals(887, daily.ref.puzzleNumber)
+        assertEquals(887, (daily.ref.key as PuzzleKey.Daily).puzzleNumber)
     }
 
     /** User ruling 2026-11-02: any board size in 4..12 decodes — no pinned-size table. */

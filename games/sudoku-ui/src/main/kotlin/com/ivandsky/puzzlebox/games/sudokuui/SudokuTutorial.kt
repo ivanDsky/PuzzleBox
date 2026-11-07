@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 
 /** Tutorial refs are custom boards: a fixed day and no puzzle number (A11). */
@@ -85,6 +86,6 @@ private fun lesson(definition: SudokuDefinition, instruction: String, solution: 
     return TutorialStep(
         instruction = instruction,
         puzzle = Puzzle(definition.id, definition.variant.id, SudokuCodec.VERSION, SudokuCodec.encode(puzzle)),
-        ref = SudokuPuzzleRef(definition.id, TUTORIAL_DAY, null),
+        ref = SudokuPuzzleRef(definition.id, PuzzleKey.Daily(TUTORIAL_DAY, null)),
     )
 }

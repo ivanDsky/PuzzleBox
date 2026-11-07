@@ -4,6 +4,8 @@ import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
@@ -25,6 +27,9 @@ import org.junit.Test
 
 /** Today's set (A12–A14, SC10, SC11) over the core:testing fakes; Offline comes from [SyncTodayPuzzles]. */
 class ObserveTodaySetTest {
+
+    /** A friend-puzzle ref (ADR-0018): its key is custom, so it has no date. */
+    private data class CustomRef(override val gameId: GameId, override val key: PuzzleKey) : PuzzleRef
 
     private val gamma = GameId("gamma")
     private val today = LocalDate.of(2026, 11, 4)
@@ -49,7 +54,7 @@ class ObserveTodaySetTest {
     private fun statuses(entries: List<TodayEntry>) = entries.associate { it.game to it.status }
 
     private fun record(game: GameId, day: LocalDate, time: Long = 1_000L) = CompletionRecord(
-        puzzleRef = Ref(game, day),
+        puzzleRef = Ref(game, PuzzleKey.Daily(day, null)),
         time = time,
         hints = 0,
         stats = RecordStats(schemaVersion = 1, blob = "{}"),
@@ -67,8 +72,8 @@ class ObserveTodaySetTest {
 
     @Test
     fun `today's saved play reads InProgress at its saved elapsed`() = runTest {
-        saved.save(PlaySlot(alpha, today), byteArrayOf(1), elapsedMs = 83_000L)
-        saved.save(PlaySlot(beta, yesterday), byteArrayOf(1), elapsedMs = 5_000L)
+        saved.save(PlaySlot.Daily(alpha, today), byteArrayOf(1), elapsedMs = 83_000L)
+        saved.save(PlaySlot.Daily(beta, yesterday), byteArrayOf(1), elapsedMs = 5_000L)
 
         val status = statuses(todaySet().first())
 
@@ -94,7 +99,7 @@ class ObserveTodaySetTest {
     @Test
     fun `today is each game's own calendar day`() = runTest {
         calendar.set(beta, yesterday)
-        saved.save(PlaySlot(beta, yesterday), byteArrayOf(1), elapsedMs = 2_000L)
+        saved.save(PlaySlot.Daily(beta, yesterday), byteArrayOf(1), elapsedMs = 2_000L)
         completions.setRecords(listOf(record(alpha, yesterday)))
 
         val status = statuses(todaySet().first())
@@ -108,21 +113,21 @@ class ObserveTodaySetTest {
         todaySet(listOf(alpha)).test {
             assertEquals(TodayStatus.NotStarted, awaitItem().single().status)
 
-            saved.save(PlaySlot(alpha, today), byteArrayOf(1), elapsedMs = 9_000L)
+            saved.save(PlaySlot.Daily(alpha, today), byteArrayOf(1), elapsedMs = 9_000L)
             assertEquals(TodayStatus.InProgress(9_000L), awaitItem().single().status)
 
             completions.onCompleted(record(alpha, today, time = 12_000L))
             assertEquals(TodayStatus.Solved(12_000L), awaitItem().single().status)
 
             // The solve's save delete lands after the record: nothing observable changes.
-            saved.delete(PlaySlot(alpha, today))
+            saved.delete(PlaySlot.Daily(alpha, today))
             expectNoEvents()
         }
     }
 
     @Test
     fun `a calendar day change re-emits`() = runTest {
-        saved.save(PlaySlot(alpha, today), byteArrayOf(1), elapsedMs = 1_000L)
+        saved.save(PlaySlot.Daily(alpha, today), byteArrayOf(1), elapsedMs = 1_000L)
         completions.setRecords(listOf(record(beta, today)))
 
         todaySet().test {
@@ -162,7 +167,7 @@ class ObserveTodaySetTest {
         failFetch(alpha)
         failFetch(beta)
         sync()
-        saved.save(PlaySlot(alpha, today), byteArrayOf(1), elapsedMs = 4_000L)
+        saved.save(PlaySlot.Daily(alpha, today), byteArrayOf(1), elapsedMs = 4_000L)
         completions.setRecords(listOf(record(beta, today, time = 7_000L)))
 
         val status = statuses(todaySet().first())
@@ -222,5 +227,21 @@ class ObserveTodaySetTest {
 
         assertNull(set.nextUnsolved(after = gamma))
         assertNull(set.map { it.copy(status = TodayStatus.Solved(1L)) }.nextUnsolved(after = alpha))
+    }
+
+    @Test
+    fun `a custom record beside the dailies never marks today solved`() = runTest {
+        completions.setRecords(
+            listOf(
+                record(beta, today, time = 61_000L).copy(puzzleRef = CustomRef(alpha, PuzzleKey.Custom("ABC123"))),
+                record(beta, today, time = 61_000L),
+            ),
+        )
+
+        val status = statuses(todaySet().first())
+
+        assertEquals(TodayStatus.NotStarted, status[alpha])
+        assertEquals(TodayStatus.Solved(61_000L), status[beta])
+        assertEquals(TodayStatus.NotStarted, status[gamma])
     }
 }

@@ -22,6 +22,7 @@ import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.io.File
 import java.time.Instant
 import java.time.LocalDate
@@ -103,7 +104,7 @@ abstract class SudokuGoldenScenes(private val widthLabel: String) {
         val env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {})
         val controller = SudokuPlayController(definition, env, now = { clock })
         val envelope = Puzzle(definition.id, puzzle.variant.id, SudokuCodec.VERSION, SudokuCodec.encode(puzzle))
-        assertEquals(Adopt.Adopted, controller.adoptToday(envelope, SudokuPuzzleRef(definition.id, date, number)))
+        assertEquals(Adopt.Adopted, controller.adoptToday(envelope, SudokuPuzzleRef(definition.id, PuzzleKey.Daily(date, number))))
         return controller
     }
 

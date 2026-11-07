@@ -1,0 +1,15 @@
+{
+  "note": "6x6 board with exactly two solutions (exhaustive search order: A then B); they differ in rows 0 and 2 only.",
+  "size": 6,
+  "regions": [
+    3, 3, 3, 0, 0, 0,
+    3, 3, 3, 0, 4, 4,
+    3, 3, 3, 4, 4, 4,
+    3, 3, 2, 4, 4, 4,
+    5, 5, 2, 4, 4, 4,
+    5, 5, 2, 1, 4, 4
+  ],
+  "solutionA": [4, 7, 17, 20, 24, 33],
+  "solutionB": [5, 7, 16, 20, 24, 33],
+  "differingCells": [4, 5, 16, 17]
+}

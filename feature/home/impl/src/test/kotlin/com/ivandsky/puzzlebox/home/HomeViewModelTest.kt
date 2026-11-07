@@ -30,6 +30,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.WeekDay
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeAppReleaseRepository
@@ -138,7 +139,7 @@ class HomeViewModelTest {
     )
 
     private fun record(game: GameId, on: LocalDate, timeMs: Long) = CompletionRecord(
-        puzzleRef = TestGames.Ref(game, on, 916),
+        puzzleRef = TestGames.Ref(game, PuzzleKey.Daily(on, 916)),
         time = timeMs,
         hints = 0,
         stats = RecordStats(schemaVersion = 1, blob = "{}"),
@@ -199,7 +200,7 @@ class HomeViewModelTest {
     @Test
     fun `today set shows every game's status in registry order`() = runTest {
         val deps = viewModel()
-        deps.saved.save(PlaySlot(tango, day), byteArrayOf(1), elapsedMs = 42_000L)
+        deps.saved.save(PlaySlot.Daily(tango, day), byteArrayOf(1), elapsedMs = 42_000L)
 
         assertEquals(
             listOf(
@@ -215,9 +216,9 @@ class HomeViewModelTest {
         val deps = viewModel(hintsRanked = setOf(tango))
         deps.completions.setRecords(
             listOf(
-                CompletionRecord(TestGames.Ref(tango, day.minusDays(1), 6), 10_000L, 2, RecordStats(1, "{}"), isRecord = true),
-                CompletionRecord(TestGames.Ref(tango, day.minusDays(2), 5), 90_000L, 0, RecordStats(1, "{}"), isRecord = true),
-                CompletionRecord(TestGames.Ref(zip, day, 916), 36_000L, 1, RecordStats(1, "{}"), isRecord = true),
+                CompletionRecord(TestGames.Ref(tango, PuzzleKey.Daily(day.minusDays(1), 6)), 10_000L, 2, RecordStats(1, "{}"), isRecord = true),
+                CompletionRecord(TestGames.Ref(tango, PuzzleKey.Daily(day.minusDays(2), 5)), 90_000L, 0, RecordStats(1, "{}"), isRecord = true),
+                CompletionRecord(TestGames.Ref(zip, PuzzleKey.Daily(day, 916)), 36_000L, 1, RecordStats(1, "{}"), isRecord = true),
             ),
         )
 
@@ -246,12 +247,12 @@ class HomeViewModelTest {
         assertFalse(deps.vm.uiState.value.continues)
 
         // Leaving Tango mid-game writes today's slot: the CTA offers to continue it.
-        deps.saved.save(PlaySlot(tango, day), byteArrayOf(1), elapsedMs = 5_000L)
+        deps.saved.save(PlaySlot.Daily(tango, day), byteArrayOf(1), elapsedMs = 5_000L)
         assertEquals(tango, deps.vm.uiState.value.playTarget)
         assertTrue(deps.vm.uiState.value.continues)
 
         // The save goes away (finished or abandoned): back to playing the first game.
-        deps.saved.delete(PlaySlot(tango, day))
+        deps.saved.delete(PlaySlot.Daily(tango, day))
         assertEquals(zip, deps.vm.uiState.value.playTarget)
         assertFalse(deps.vm.uiState.value.continues)
     }
@@ -261,11 +262,11 @@ class HomeViewModelTest {
         val deps = viewModel()
 
         // Yesterday's unsolved save resumes through History, not Home (A9).
-        deps.saved.save(PlaySlot(zip, day.minusDays(1)), byteArrayOf(1), elapsedMs = 0L)
+        deps.saved.save(PlaySlot.Daily(zip, day.minusDays(1)), byteArrayOf(1), elapsedMs = 0L)
         assertFalse(deps.vm.uiState.value.continues)
 
         // A completion for today wins over a lingering save (A13: solved wins).
-        deps.saved.save(PlaySlot(zip, day), byteArrayOf(1), elapsedMs = 0L)
+        deps.saved.save(PlaySlot.Daily(zip, day), byteArrayOf(1), elapsedMs = 0L)
         assertTrue(deps.vm.uiState.value.continues)
         deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
         assertFalse(deps.vm.uiState.value.continues)

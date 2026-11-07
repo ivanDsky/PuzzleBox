@@ -4,9 +4,11 @@ import com.ivandsky.puzzlebox.data.calendar.CadenceGameCalendar
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstDailyRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineUserPreferencesRepository
 import com.ivandsky.puzzlebox.data.repository.RoomCompletionRepository
+import com.ivandsky.puzzlebox.data.repository.RoomDraftRepository
 import com.ivandsky.puzzlebox.data.repository.RoomSavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
@@ -42,7 +44,9 @@ val dataModule = module {
     single<CompletionRepository> { RoomCompletionRepository(get(), get(), get()) }
     single<UserPreferencesRepository> { OfflineUserPreferencesRepository(get()) }
     // Saved in-progress plays (A10); the slot cap is private to the Room adapter.
-    single<SavedPlayRepository> { RoomSavedPlayRepository(get()) }
+    single<SavedPlayRepository> { RoomSavedPlayRepository(get(), get()) }
+    // Editor drafts (A5): features read and write through the port, never Room.
+    single<DraftRepository> { RoomDraftRepository(get()) }
     // Process-wide so the 15-minute update-check throttle survives screen changes.
     single<AppReleaseRepository> { NetworkAppReleaseRepository(get()) }
 }

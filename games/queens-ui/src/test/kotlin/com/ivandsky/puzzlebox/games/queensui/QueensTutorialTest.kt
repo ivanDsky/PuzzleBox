@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.gameui.TutorialSession
 import com.ivandsky.puzzlebox.gameui.TutorialState
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.playCaption
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -107,7 +108,7 @@ class QueensTutorialTest {
     @Test
     fun `every lesson plays as a custom board, never a daily`() {
         for (step in steps) {
-            assertEquals(QueensPuzzleRef(LocalDate.of(2026, 1, 1), puzzleNumber = null), step.ref)
+            assertEquals(QueensPuzzleRef(PuzzleKey.Daily(LocalDate.of(2026, 1, 1), puzzleNumber = null)), step.ref)
         }
     }
 

@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.queens.engine.solve
 
+import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 
@@ -16,20 +17,32 @@ import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
  *
  * Parameterized (A9): each row contributes exactly [QueensPuzzle.queensPerUnit] queens —
  * N=1 is the single-queen special case of the same loop, never a separate code path.
+ *
+ * Budgeted (ticket 04, spec A7): [bounded] polls its [Budget] once before the search and
+ * then every [POLL_INTERVAL] column candidates; once exhausted it unwinds and answers
+ * [QueensSearchOutcome.Exhausted]. [solutions] and [search] run it with [Budget.Unlimited],
+ * so daily play keeps its unbounded, bit-identical search.
  */
 object QueensSearch {
 
     /** Up to [limit] distinct solutions in deterministic search order (repair loops, tests). */
-    fun solutions(puzzle: QueensPuzzle, limit: Int): List<List<Cell>> {
+    fun solutions(puzzle: QueensPuzzle, limit: Int): List<List<Cell>> =
+        (bounded(puzzle, limit, Budget.Unlimited) as QueensSearchOutcome.Done).solutions
+
+    /** [solutions], stopped with [QueensSearchOutcome.Exhausted] once [budget] is spent. */
+    fun bounded(puzzle: QueensPuzzle, limit: Int, budget: Budget): QueensSearchOutcome {
         val n = puzzle.size
         val q = puzzle.queensPerUnit
-        if (limit <= 0) return emptyList()
+        if (budget.exhausted()) return QueensSearchOutcome.Exhausted
+        if (limit <= 0) return QueensSearchOutcome.Done(emptyList())
 
         val regionOf = puzzle.regions.toIntArray()
         val colCount = IntArray(n)
         val regionCount = IntArray(n)
         val queens = ArrayList<Int>(n * q)
         val found = ArrayList<List<Int>>(limit)
+        var candidates = 0
+        var exhausted = false
 
         fun dfs(row: Int): Boolean {
             if (row == n) {
@@ -45,6 +58,10 @@ object QueensSearch {
                 }
                 val colsLeftInRow = q - chosenInRow
                 for (c in startCol..n - colsLeftInRow) {
+                    if (++candidates % POLL_INTERVAL == 0 && budget.exhausted()) {
+                        exhausted = true
+                        return true
+                    }
                     if (colCount[c] >= q) continue
                     if (colCount[c] + remainingRows < q) continue // cannot reach N anymore
                     val region = regionOf[row * n + c]
@@ -71,11 +88,15 @@ object QueensSearch {
         }
 
         dfs(0)
-        return found.map { list -> list.map { Cell(it) } }
+        if (exhausted) return QueensSearchOutcome.Exhausted
+        return QueensSearchOutcome.Done(found.map { list -> list.map { Cell(it) } })
     }
 
     fun search(puzzle: QueensPuzzle, limit: Int): QueensSolver.Result {
         val solutions = solutions(puzzle, limit)
         return QueensSolver.Result(solutions.size, solutions.firstOrNull())
     }
+
+    /** Column candidates between budget polls: cheap for daily play, well under 1 ms apart. */
+    private const val POLL_INTERVAL = 1024
 }

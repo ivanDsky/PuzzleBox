@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.gameui.playCaption
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -63,7 +64,7 @@ class TangoPlayControllerTest {
         val s = loaded()
 
         assertEquals(TangoPlayFixture.puzzle, s.session?.puzzle)
-        assertEquals(TangoPuzzleRef(today, 301), s.session?.ref)
+        assertEquals(TangoPuzzleRef(PuzzleKey.Daily(today, 301)), s.session?.ref)
         assertEquals(0L, s.session?.elapsedMs)
         assertFalse(s.session?.isComplete ?: true)
         assertFalse(s.isComplete)
@@ -163,7 +164,7 @@ class TangoPlayControllerTest {
         playAll(s)
 
         assertEquals(1, won.size)
-        assertEquals(TangoPuzzleRef(today, 301), won[0].puzzleRef)
+        assertEquals(TangoPuzzleRef(PuzzleKey.Daily(today, 301)), won[0].puzzleRef)
         assertEquals(0, won[0].hints)
     }
 
@@ -179,7 +180,7 @@ class TangoPlayControllerTest {
         playAll(s)
 
         assertEquals(2, won.size)
-        assertEquals(TangoPuzzleRef(today, 301), won[1].puzzleRef)
+        assertEquals(TangoPuzzleRef(PuzzleKey.Daily(today, 301)), won[1].puzzleRef)
     }
 
     @Test
@@ -191,9 +192,9 @@ class TangoPlayControllerTest {
         val restored = controller()
         val result = restored.adoptRestored(s.persist()!!)
 
-        assertEquals(Restored(TangoPuzzleRef(today, 301)), result)
+        assertEquals(Restored(TangoPuzzleRef(PuzzleKey.Daily(today, 301))), result)
         assertEquals(s.session, restored.session)
-        assertEquals(TangoPuzzleRef(today, 301), restored.session?.ref)
+        assertEquals(TangoPuzzleRef(PuzzleKey.Daily(today, 301)), restored.session?.ref)
         assertEquals(s.persist()!!.toList(), saved.last().toList())
     }
 

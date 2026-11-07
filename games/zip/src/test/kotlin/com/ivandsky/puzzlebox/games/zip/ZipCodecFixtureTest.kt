@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.codec.ZipWireParser
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
 import com.ivandsky.puzzlebox.games.zip.engine.ZipSolver
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertArrayEquals
@@ -47,8 +48,8 @@ class ZipCodecFixtureTest {
     @Test
     fun `fixture identity lands on the ref`() {
         val daily = parsed()
-        assertEquals(date, daily.ref.date)
-        assertEquals(592, daily.ref.puzzleNumber)
+        assertEquals(date, (daily.ref.key as PuzzleKey.Daily).date)
+        assertEquals(592, (daily.ref.key as PuzzleKey.Daily).puzzleNumber)
         assertEquals(ZipTestSupport.variantOf(6).id, daily.puzzle.variant)
         assertEquals(4, daily.puzzle.board.walls.size)
         assertEquals(listOf(Cell(10), Cell(19), Cell(18), Cell(11), Cell(25), Cell(16)), daily.puzzle.board.waypoints)

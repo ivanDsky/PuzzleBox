@@ -72,17 +72,17 @@ val zipPlugin: GamePlugin<ZipState, ZipSession, ZipRendererModel> =
                 is DecodeResult.Err -> DecodeResult.Err(decoded.error)
             }
         },
-        refOf = { date, puzzleNumber -> ZipPuzzleRef(date, puzzleNumber) },
+        refOf = { key -> ZipPuzzleRef(key) },
         // Replay hand-off (ticket-14 semantics): the game-named envelope (ADR-0005) carries
-        // a fresh session whose ref is the replayed day's identity (ADR-0004).
-        replaySession = { cached, day, puzzleNumber ->
+        // a fresh session whose ref is the replayed puzzle's key (ADR-0004, ADR-0018).
+        replaySession = { cached, key ->
             when (val decoded = ZipCodec.decode(cached.payload)) {
                 is DecodeResult.Ok -> DecodeResult.Ok(
                     SessionBlob.encode(
                         ZipDefinition.id,
                         ZipSessionCodec.serialize(
                             ZipSession(
-                                ref = ZipPuzzleRef(date = day, puzzleNumber = puzzleNumber),
+                                ref = ZipPuzzleRef(key),
                                 puzzle = decoded.value,
                             ),
                         ),

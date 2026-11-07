@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.data.model.toEntity
 import com.ivandsky.puzzlebox.data.model.toPuzzle
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.FakeDailySource
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -176,8 +177,8 @@ class OfflineFirstDailyRepositoryTest {
     @Test
     fun `history lists captured days newest first, cache-only`() = runTest {
         val dao = db.puzzleDailyDao()
-        dao.upsert(TestGames.puzzle(alpha).toEntity(Ref(alpha, LocalDate.of(2026, 10, 30), 591), 1L))
-        dao.upsert(TestGames.puzzle(alpha).toEntity(Ref(alpha, LocalDate.of(2026, 10, 29), 590), 2L))
+        dao.upsert(TestGames.puzzle(alpha).toEntity(Ref(alpha, PuzzleKey.Daily(LocalDate.of(2026, 10, 30), 591)), 1L))
+        dao.upsert(TestGames.puzzle(alpha).toEntity(Ref(alpha, PuzzleKey.Daily(LocalDate.of(2026, 10, 29), 590)), 2L))
 
         repository.observeHistory(alpha).test {
             val history = awaitItem()
@@ -240,7 +241,7 @@ class OfflineFirstDailyRepositoryTest {
 
     @Test
     fun `a cached past day is Ready for a game without an archive, never fetched`() = runTest {
-        db.puzzleDailyDao().upsert(TestGames.puzzle(alpha).toEntity(Ref(alpha, pastDay, 584), noonOf(pastDay)))
+        db.puzzleDailyDao().upsert(TestGames.puzzle(alpha).toEntity(Ref(alpha, PuzzleKey.Daily(pastDay, 584)), noonOf(pastDay)))
 
         val result = repository.day(alpha, pastDay)
 
@@ -356,7 +357,7 @@ class OfflineFirstDailyRepositoryTest {
     fun `a stored placeholder is a miss - refetched by date and replaced by the real puzzle`() = runTest {
         val stand = TestGames.puzzle(alpha, tag = 9)
         alphaSource.placeholder = stand
-        db.puzzleDailyDao().upsert(stand.toEntity(Ref(alpha, pastDay, 584), noonOf(pastDay)))
+        db.puzzleDailyDao().upsert(stand.toEntity(Ref(alpha, PuzzleKey.Daily(pastDay, 584)), noonOf(pastDay)))
         alphaSource.nextPuzzle = TestGames.puzzle(alpha, tag = 7)
         alphaSource.nextPuzzleNumber = 584
         nowMs = 5_000L
@@ -375,7 +376,7 @@ class OfflineFirstDailyRepositoryTest {
     fun `a placeholder whose refetch fails is Failed, never served, and stays stored`() = runTest {
         val stand = TestGames.puzzle(alpha, tag = 9)
         alphaSource.placeholder = stand
-        db.puzzleDailyDao().upsert(stand.toEntity(Ref(alpha, pastDay, 584), noonOf(pastDay)))
+        db.puzzleDailyDao().upsert(stand.toEntity(Ref(alpha, PuzzleKey.Daily(pastDay, 584)), noonOf(pastDay)))
         alphaSource.nextError = FetchError.Unavailable("offline")
 
         val result = archiveRepository().day(alpha, pastDay)
@@ -388,7 +389,7 @@ class OfflineFirstDailyRepositoryTest {
     @Test
     fun `a stored real puzzle never refetches, even for a source that declares placeholders`() = runTest {
         alphaSource.placeholder = TestGames.puzzle(alpha, tag = 9)
-        db.puzzleDailyDao().upsert(TestGames.puzzle(alpha, tag = 7).toEntity(Ref(alpha, pastDay, 584), noonOf(pastDay)))
+        db.puzzleDailyDao().upsert(TestGames.puzzle(alpha, tag = 7).toEntity(Ref(alpha, PuzzleKey.Daily(pastDay, 584)), noonOf(pastDay)))
         alphaSource.nextPuzzle = TestGames.puzzle(alpha, tag = 8)
 
         val result = archiveRepository().day(alpha, pastDay)
@@ -401,7 +402,7 @@ class OfflineFirstDailyRepositoryTest {
     fun `cachedPuzzle reads a past placeholder row as null, never fetching`() = runTest {
         val stand = TestGames.puzzle(alpha, tag = 9)
         alphaSource.placeholder = stand
-        db.puzzleDailyDao().upsert(stand.toEntity(Ref(alpha, pastDay, 584), noonOf(pastDay)))
+        db.puzzleDailyDao().upsert(stand.toEntity(Ref(alpha, PuzzleKey.Daily(pastDay, 584)), noonOf(pastDay)))
         alphaSource.nextPuzzle = TestGames.puzzle(alpha, tag = 7)
 
         assertNull(archiveRepository().cachedPuzzle(alpha, pastDay))
@@ -411,7 +412,7 @@ class OfflineFirstDailyRepositoryTest {
     @Test
     fun `cachedPuzzle serves a past real row, never fetching`() = runTest {
         alphaSource.placeholder = TestGames.puzzle(alpha, tag = 9)
-        db.puzzleDailyDao().upsert(TestGames.puzzle(alpha, tag = 7).toEntity(Ref(alpha, pastDay, 584), noonOf(pastDay)))
+        db.puzzleDailyDao().upsert(TestGames.puzzle(alpha, tag = 7).toEntity(Ref(alpha, PuzzleKey.Daily(pastDay, 584)), noonOf(pastDay)))
 
         assertEquals(7.toByte(), archiveRepository().cachedPuzzle(alpha, pastDay)!!.payload[1])
         assertTrue(alphaSource.requestedDates.isEmpty())
@@ -429,7 +430,7 @@ class OfflineFirstDailyRepositoryTest {
     fun `cachedPuzzle serves today's row, even a placeholder, never fetching`() = runTest {
         val stand = TestGames.puzzle(alpha, tag = 9)
         alphaSource.placeholder = stand
-        db.puzzleDailyDao().upsert(stand.toEntity(Ref(alpha, today, 600), noonOf(today)))
+        db.puzzleDailyDao().upsert(stand.toEntity(Ref(alpha, PuzzleKey.Daily(today, 600)), noonOf(today)))
         alphaSource.nextPuzzle = TestGames.puzzle(alpha, tag = 7)
 
         assertEquals(9.toByte(), archiveRepository().cachedPuzzle(alpha, today)!!.payload[1])
@@ -452,8 +453,8 @@ class OfflineFirstDailyRepositoryTest {
     fun `history marks archived only rows fetched after their own day`() = runTest {
         val dao = db.puzzleDailyDao()
         val live = LocalDate.of(2026, 10, 30)
-        dao.upsert(TestGames.puzzle(alpha).toEntity(Ref(alpha, live, 591), noonOf(live)))
-        dao.upsert(TestGames.puzzle(alpha).toEntity(Ref(alpha, pastDay, 584), noonOf(today)))
+        dao.upsert(TestGames.puzzle(alpha).toEntity(Ref(alpha, PuzzleKey.Daily(live, 591)), noonOf(live)))
+        dao.upsert(TestGames.puzzle(alpha).toEntity(Ref(alpha, PuzzleKey.Daily(pastDay, 584)), noonOf(today)))
 
         val history = repository.observeHistory(alpha).first()
 

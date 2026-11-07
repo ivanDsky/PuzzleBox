@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play.navigation
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.GameRoute
 import com.ivandsky.puzzlebox.play.LibraryRoute
@@ -37,7 +38,8 @@ fun EntryProviderScope<NavKey>.playEntry(
             layout = layout,
             onBack = { navigator.pop() },
             onSolved = { slot, timeMs, hintsUsed ->
-                navigator.replaceTop(ResultKey(slot.gameId.value, slot.day.toString(), timeMs, hintsUsed))
+                val day = (slot as? PlaySlot.Daily)?.day ?: return@GameRoute
+                navigator.replaceTop(ResultKey(slot.gameId.value, day.toString(), timeMs, hintsUsed))
             },
         )
     }

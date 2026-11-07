@@ -5,6 +5,11 @@ import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRules
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRulesVerdict
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensCandidates
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensDeduction
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensLadder
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensRung
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.SinglesRung
 import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSolver
 
 /**
@@ -32,12 +37,12 @@ sealed interface QueensHint : Hint {
 }
 
 /**
- * The elimination a player can verify BY EYE: every OTHER cell of [unit] is directly
- * blocked by the standing queens — same row/column/region conflict or a diagonal
- * no-touch — so [QueensHint.Region]'s cell must take that unit's queen. Carries a unit
- * kind + index only; no solution data ever leaves the engine (A5).
+ * The deduction a player can verify BY EYE: [rung] is the ladder rung that found it and
+ * [unit] the row/column/region it names — for [SinglesRung], every OTHER cell of that unit
+ * is directly blocked by the standing queens, so [QueensHint.Region]'s cell must take the
+ * unit's queen. Carries a unit kind + index only; no solution data ever leaves the engine (A5).
  */
-data class HintReason(val kind: Kind, val unit: Int) {
+data class HintReason(val kind: Kind, val unit: Int, val rung: QueensRung = SinglesRung) {
     enum class Kind { ROW, COLUMN, REGION }
 }
 
@@ -59,9 +64,21 @@ data class HintReason(val kind: Kind, val unit: Int) {
  * 4. No completion extends the placed crowns and no stored solution isolates the culprits:
  *    all placed cells are reported — at least one must move.
  *
- * Pure; deterministic (the solver search is deterministic).
+ * On one-queen-per-unit boards (every shipped variant) the hint ladder picks the cell first:
+ * its exclusion steps are applied until its first placement, and that placement (always a
+ * forced cell — every rung is sound) is hinted with a [QueensHint.Region.reason] naming the
+ * placing step's unit, tagged with the hardest rung on the way (the exclusion that unlocked
+ * it, else the placing rung). When the ladder stalls, the lowest-region forced cell is hinted
+ * with the exhaustive fallback (reason = null, "needs guessing" for dailies). N≥2 boards
+ * (Star Battle shape) keep the lowest-region cell and the direct-elimination reason
+ * ([directEliminationReason]).
+ *
+ * Pure; deterministic (the solver search and the ladder are deterministic).
  */
-class QueensHints(private val solver: QueensSolver = QueensSolver()) {
+class QueensHints(
+    private val solver: QueensSolver = QueensSolver(),
+    private val ladder: QueensLadder = QueensLadder.Default,
+) {
 
     fun hint(puzzle: QueensPuzzle, placed: List<Cell>): QueensHint {
         // 1. Live rule violations first — attributed independently of any solution.
@@ -107,13 +124,43 @@ class QueensHints(private val solver: QueensSolver = QueensSolver()) {
             if (common.isNotEmpty()) common else remaining
         }
 
+        if (puzzle.queensPerUnit == 1) {
+            ladderPlacement(puzzle, placedIdx)
+                ?.takeIf { (cell, _) -> cell in forced }
+                ?.let { (cell, reason) -> return QueensHint.Region(puzzle.regionOf(cell), cell, reason) }
+        }
+
         // Lowest region id wins: the region highlighted first is stable across calls.
         val cell = forced.minBy { puzzle.regionOf(it) * puzzle.cellCount + it.idx }
-        return QueensHint.Region(puzzle.regionOf(cell), cell, directEliminationReason(puzzle, placed.toSet(), cell))
+        val reason = if (puzzle.queensPerUnit == 1) null else directEliminationReason(puzzle, placed.toSet(), cell)
+        return QueensHint.Region(puzzle.regionOf(cell), cell, reason)
     }
 
     /**
-     * The staged ladder's stage-1 payload (fix round 6): the ROW/COLUMN/REGION unit whose
+     * Applies the ladder's exclusions up to its first placement: that cell, and its placing
+     * unit tagged with the hardest rung the chain used; null when the ladder stalls first.
+     * Terminates: every step changes the candidate state.
+     */
+    private fun ladderPlacement(puzzle: QueensPuzzle, placed: Set<Int>): Pair<Cell, HintReason>? {
+        var candidates = QueensCandidates.start(puzzle, placed)
+        val used = mutableListOf<QueensRung>()
+        while (true) {
+            when (val step = ladder.next(puzzle, candidates) ?: return null) {
+                is QueensDeduction.Exclude -> {
+                    used += step.rung
+                    candidates = candidates.exclude(step.cells)
+                }
+                is QueensDeduction.Place -> {
+                    val hardest = (used + step.rung).maxBy { it.level }
+                    return Cell(step.cell) to step.unit.copy(rung = hardest)
+                }
+            }
+        }
+    }
+
+    /**
+     * The N≥2 reason (the ladder models N=1 boards; for those it equals [SinglesRung]'s
+     * proof of the hinted cell). Fix round 6's payload: the ROW/COLUMN/REGION unit whose
      * every other cell is DIRECTLY blocked by a standing queen — same row/column/region
      * conflict or a diagonal no-touch — so the deduction is verifiable on the board
      * (official-app style: "the {color} region's queen must be in this row — every other

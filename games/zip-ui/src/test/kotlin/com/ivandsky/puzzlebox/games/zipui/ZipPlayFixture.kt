@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.ZipSession
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 
 /**
@@ -56,7 +57,7 @@ object ZipPlayFixture {
 
     fun path(vararg idx: Int): List<Cell> = idx.map(::Cell)
 
-    fun ref(day: LocalDate, puzzleNumber: Int? = 592) = ZipPuzzleRef(day, puzzleNumber)
+    fun ref(day: LocalDate, puzzleNumber: Int? = 592) = ZipPuzzleRef(PuzzleKey.Daily(day, puzzleNumber))
 
     fun session(ref: ZipPuzzleRef? = null) = ZipSession(ref = ref, puzzle = puzzle())
 }

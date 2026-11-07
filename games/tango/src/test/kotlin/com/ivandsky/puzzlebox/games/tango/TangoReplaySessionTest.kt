@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -39,16 +40,22 @@ class TangoReplaySessionTest {
     @Test
     fun `tango blob round-trips through its session codec`() {
         val original = TangoTestSupport.sample
-        val session = tangoPlugin.replaySession(envelope(original), day, 301).session()
+        val session = tangoPlugin.replaySession(envelope(original), PuzzleKey.Daily(day, 301)).session()
 
-        assertEquals(TangoPuzzleRef(day, 301), session.ref)
+        assertEquals(TangoPuzzleRef(PuzzleKey.Daily(day, 301)), session.ref)
         assertEquals(original, session.puzzle)
         assertArrayEquals(original.markers.toTypedArray(), session.puzzle.markers.toTypedArray())
     }
 
     @Test
     fun `missing puzzle number still yields a valid ref`() {
-        assertEquals(TangoPuzzleRef(day, null), tangoPlugin.replaySession(envelope(), day, null).session().ref)
+        assertEquals(TangoPuzzleRef(PuzzleKey.Daily(day, null)), tangoPlugin.replaySession(envelope(), PuzzleKey.Daily(day, null)).session().ref)
+    }
+
+    @Test
+    fun `a custom key replays carrying the friend's puzzle identity`() {
+        val custom = PuzzleKey.Custom("K7Q2MX")
+        assertEquals(TangoPuzzleRef(custom), tangoPlugin.replaySession(envelope(), custom).session().ref)
     }
 
     @Test
@@ -57,7 +64,7 @@ class TangoReplaySessionTest {
 
         assertEquals(
             DecodeResult.Err(DecodeError.Malformed("archived puzzle is not uniquely solvable")),
-            tangoPlugin.replaySession(envelope(ambiguous), day, 301),
+            tangoPlugin.replaySession(envelope(ambiguous), PuzzleKey.Daily(day, 301)),
         )
     }
 }

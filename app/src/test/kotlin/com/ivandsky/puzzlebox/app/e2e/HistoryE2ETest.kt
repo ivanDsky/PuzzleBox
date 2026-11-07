@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -101,7 +102,7 @@ class HistoryE2ETest {
         assertState(stacks(tab = PlayKey, home = replaying.stacks.first(), play = listOf(PlayKey, GameKey(ZIP))))
         assertRoute(GAME)
         val today = awaitZip(E2E_TODAY)
-        assertEquals("today's board is a fresh session of today", E2E_TODAY, today.ref?.date)
+        assertEquals("today's board is a fresh session of today", E2E_TODAY, (today.ref?.key as? PuzzleKey.Daily)?.date)
         assertEquals("today's board starts empty", emptyList<Cell>(), today.path)
         assertEquals("the replay keeps its own trace", MID_GAME, rule.runOnIdle { zip(REPLAY_DAY).session?.path })
     }
@@ -124,11 +125,11 @@ class HistoryE2ETest {
     private val ShellRobot.store: PlaySessionStore get() = graph.koin.get()
 
     private fun ShellRobot.zip(day: LocalDate): ZipPlayController =
-        checkNotNull(store.peek(PlaySlot(ZipDefinition.id, day))) { "no live zip play for $day" }.controller as ZipPlayController
+        checkNotNull(store.peek(PlaySlot.Daily(ZipDefinition.id, day))) { "no live zip play for $day" }.controller as ZipPlayController
 
     /** Waits until [day]'s live Zip has its session, and returns it. */
     private fun ShellRobot.awaitZip(day: LocalDate): ZipSession {
-        rule.waitUntil(TIMEOUT_MS) { rule.runOnIdle { store.peek(PlaySlot(ZipDefinition.id, day)) }?.let { (it.controller as ZipPlayController).session } != null }
+        rule.waitUntil(TIMEOUT_MS) { rule.runOnIdle { store.peek(PlaySlot.Daily(ZipDefinition.id, day)) }?.let { (it.controller as ZipPlayController).session } != null }
         return checkNotNull(rule.runOnIdle { zip(day).session })
     }
 

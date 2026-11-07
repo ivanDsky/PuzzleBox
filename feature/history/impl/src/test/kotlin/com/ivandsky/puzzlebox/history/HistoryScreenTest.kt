@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -291,7 +292,7 @@ class HistoryScreenTest {
                 HistoryTestSupport.record(fastest, timeMs = 80_000),
                 // Fastest of all, but practice: never a best.
                 HistoryTestSupport.record(practice, timeMs = 30_000)
-                    .copy(puzzleRef = TestGames.Ref(ZIP, practice, null)),
+                    .copy(puzzleRef = TestGames.Ref(ZIP, PuzzleKey.Daily(practice, null))),
             ),
         )
 

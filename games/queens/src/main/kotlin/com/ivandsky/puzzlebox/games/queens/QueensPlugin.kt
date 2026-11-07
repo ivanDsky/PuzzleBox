@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensVerifier
 import com.ivandsky.puzzlebox.games.queens.render.QueensRendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.ZoneId
+import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.games.queens.feed.LinkedInQueensDailySource
 import org.koin.core.module.Module
@@ -149,16 +150,16 @@ val queensPlugin: GamePlugin<QueensState, QueensSession, QueensRendererModel> =
                 }
             }
         },
-        refOf = { date, puzzleNumber -> QueensPuzzleRef(date, puzzleNumber) },
+        refOf = { key -> QueensPuzzleRef(key) },
         // Replay hand-off: zip's shape — the play state trusts any payload the codec decodes.
-        replaySession = { cached, day, puzzleNumber ->
+        replaySession = { cached, key ->
             when (val decoded = QueensCodec.decode(cached.payload)) {
                 is DecodeResult.Ok -> DecodeResult.Ok(
                     SessionBlob.encode(
                         QueensDefinition.id,
                         QueensSessionCodec.serialize(
                             QueensSession(
-                                ref = QueensPuzzleRef(date = day, puzzleNumber = puzzleNumber),
+                                ref = QueensPuzzleRef(key),
                                 puzzle = decoded.value,
                             ),
                         ),
@@ -171,6 +172,7 @@ val queensPlugin: GamePlugin<QueensState, QueensSession, QueensRendererModel> =
         rendererModel = { state, hint, _ ->
             QueensRendererModel.of(state.puzzle, state.queens.map { it.idx }.toSet(), hint)
         },
+        editor = QueensEditor,
     )
 
 /**

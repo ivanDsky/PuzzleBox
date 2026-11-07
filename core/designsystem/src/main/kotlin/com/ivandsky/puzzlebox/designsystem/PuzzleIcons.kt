@@ -11,9 +11,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Person
@@ -43,8 +46,12 @@ object PuzzleIcons {
     val HomeFilled: ImageVector = Icons.Rounded.Home
     val Box: ImageVector = BoxMarkOutlined
     val BoxFilled: ImageVector = BoxMarkFilled
+    val Create: ImageVector = Icons.Outlined.Edit
+    val CreateFilled: ImageVector = Icons.Rounded.Edit
     val Profile: ImageVector = Icons.Outlined.Person
     val ProfileFilled: ImageVector = Icons.Rounded.Person
+    /** The "+" of the New puzzle button. */
+    val Add: ImageVector = Icons.Rounded.Add
     val Chevron: ImageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight
     val Back: ImageVector = Icons.AutoMirrored.Rounded.ArrowBack
     val Check: ImageVector = Icons.Rounded.Check
@@ -112,6 +119,8 @@ internal fun PuzzleIconsPreview() {
             "HomeFilled" to PuzzleIcons.HomeFilled,
             "Box" to PuzzleIcons.Box,
             "BoxFilled" to PuzzleIcons.BoxFilled,
+            "Create" to PuzzleIcons.Create,
+            "CreateFilled" to PuzzleIcons.CreateFilled,
             "Profile" to PuzzleIcons.Profile,
             "ProfileFilled" to PuzzleIcons.ProfileFilled,
             "Appearance" to PuzzleIcons.Appearance,
@@ -132,6 +141,7 @@ internal fun PuzzleIconsPreview() {
             "Retry" to PuzzleIcons.Retry,
             "SavedOnDevice" to PuzzleIcons.SavedOnDevice,
             "NeedsConnection" to PuzzleIcons.NeedsConnection,
+            "Add" to PuzzleIcons.Add,
         )
         Column(
             modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.md),

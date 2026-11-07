@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
@@ -80,7 +81,7 @@ class TangoTutorialTest {
     fun `every lesson plays as a custom board, never a daily`() {
         for (step in steps) {
             assertEquals(TangoDefinition.id, step.ref.gameId)
-            assertNull(step.ref.puzzleNumber)
+            assertNull((step.ref.key as PuzzleKey.Daily).puzzleNumber)
         }
     }
 

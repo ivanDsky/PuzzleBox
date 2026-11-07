@@ -104,6 +104,76 @@ object Migrations {
         }
     }
 
+    /**
+     * v7 (editor mode, A6/A13): adds `drafts`, `published_puzzles`, `received_puzzles` and
+     * `custom_saved_plays` in one bump; only CREATE TABLE, v6 rows untouched.
+     */
+    val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `drafts` (" +
+                    "`id` TEXT NOT NULL, " +
+                    "`gameId` TEXT NOT NULL, " +
+                    "`variant` TEXT NOT NULL, " +
+                    "`draftFormatVersion` INTEGER NOT NULL, " +
+                    "`blob` BLOB NOT NULL, " +
+                    "`title` TEXT NOT NULL, " +
+                    "`updatedAt` INTEGER NOT NULL, " +
+                    "`testLayoutKey` TEXT, " +
+                    "`testTimeMs` INTEGER, " +
+                    "`testHints` INTEGER, " +
+                    "`reservedCode` TEXT, " +
+                    "`imported` INTEGER NOT NULL, " +
+                    "`authorName` TEXT NOT NULL DEFAULT '', " +
+                    "`note` TEXT NOT NULL DEFAULT '', " +
+                    "PRIMARY KEY(`id`))",
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `published_puzzles` (" +
+                    "`code` TEXT NOT NULL, " +
+                    "`gameId` TEXT NOT NULL, " +
+                    "`variant` TEXT NOT NULL, " +
+                    "`title` TEXT NOT NULL, " +
+                    "`authorTimeMs` INTEGER NOT NULL, " +
+                    "`createdAt` INTEGER NOT NULL, " +
+                    "`unpublished` INTEGER NOT NULL, " +
+                    "`solvesCount` INTEGER, " +
+                    "`solvesCountAt` INTEGER, " +
+                    "`authorHints` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`code`))",
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `received_puzzles` (" +
+                    "`code` TEXT NOT NULL, " +
+                    "`gameId` TEXT NOT NULL, " +
+                    "`variant` TEXT NOT NULL, " +
+                    "`sharedFormatVersion` INTEGER NOT NULL, " +
+                    "`puzzleBytes` BLOB NOT NULL, " +
+                    "`title` TEXT NOT NULL, " +
+                    "`authorName` TEXT NOT NULL, " +
+                    "`note` TEXT NOT NULL, " +
+                    "`authorTimeMs` INTEGER NOT NULL, " +
+                    "`authorHints` INTEGER NOT NULL, " +
+                    "`authorUid` TEXT NOT NULL, " +
+                    "`openedAt` INTEGER NOT NULL, " +
+                    "`unpublished` INTEGER NOT NULL, " +
+                    "`postState` TEXT NOT NULL, " +
+                    "`postAttempts` INTEGER NOT NULL, " +
+                    "`difficulty` TEXT, " +
+                    "PRIMARY KEY(`code`))",
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `custom_saved_plays` (" +
+                    "`puzzleId` TEXT NOT NULL, " +
+                    "`gameId` TEXT NOT NULL, " +
+                    "`blob` BLOB NOT NULL, " +
+                    "`elapsedMs` INTEGER NOT NULL, " +
+                    "`updatedAt` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`puzzleId`))",
+            )
+        }
+    }
+
     val ALL: Array<Migration> =
-        arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+        arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
 }

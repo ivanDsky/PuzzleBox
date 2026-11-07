@@ -36,6 +36,7 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -60,7 +61,7 @@ class SudokuPlayUiTest {
     private val givens = grid("..3.5. .2.4.6 1..... .....2 2.4.1. .1.3..")
     private val solution = grid("463251 521436 142563 356142 234615 615324")
     private val peanut450 = SudokuPuzzle(SudokuGames.MINI.variant, givens, solution)
-    private val ref = SudokuPuzzleRef(SudokuGames.MINI.id, LocalDate.of(2026, 11, 4), 450)
+    private val ref = SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(LocalDate.of(2026, 11, 4), 450))
     private val ui = SudokuPlayUi(SudokuGames.MINI)
     private val solved = ArrayList<Pair<Long, Int>>()
 
@@ -98,7 +99,7 @@ class SudokuPlayUiTest {
     @Config(qualifiers = "w360dp-h640dp-mdpi")
     fun `the 9x9 fits a 360x640 phone with grid, keypad and chrome apart`() {
         val classic = SudokuPlayUi(SudokuGames.CLASSIC)
-        assertFitsSinglePane(classic, adopted(classic, SudokuSamples.classic, SudokuPuzzleRef(SudokuGames.CLASSIC.id, ref.date, null)), size = 9)
+        assertFitsSinglePane(classic, adopted(classic, SudokuSamples.classic, SudokuPuzzleRef(SudokuGames.CLASSIC.id, PuzzleKey.Daily((ref.key as PuzzleKey.Daily).date, null))), size = 9)
     }
 
     @Test
@@ -109,7 +110,7 @@ class SudokuPlayUiTest {
     @Test
     fun `the 9x9 cell takes all the height the 411x891 chrome leaves`() {
         val classic = SudokuPlayUi(SudokuGames.CLASSIC)
-        assertFitsSinglePane(classic, adopted(classic, SudokuSamples.classic, SudokuPuzzleRef(SudokuGames.CLASSIC.id, ref.date, null)), size = 9)
+        assertFitsSinglePane(classic, adopted(classic, SudokuSamples.classic, SudokuPuzzleRef(SudokuGames.CLASSIC.id, PuzzleKey.Daily((ref.key as PuzzleKey.Daily).date, null))), size = 9)
     }
 
     /** Grid, keypad and chrome stack apart on screen, and one more dp of cell would not fit the board area (R1). */
