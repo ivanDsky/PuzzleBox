@@ -31,17 +31,26 @@ import com.ivandsky.puzzlebox.profile.navigation.profileEntry
  * game's [HistoryKey] and Profile's (debug-only) catalog link pushes [CatalogKey], both on
  * Profile's stack. The Create tab's New puzzle and its draft rows push that draft's
  * Studio on Create's stack. Back pops the current tab's stack ([Navigator.pop]),
- * including after process-death restore.
+ * including after process-death restore. A [codeDraft] (a tapped link's text that isn't a
+ * code) opens the Play library's code sheet holding it.
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
     homeLayout: HomeLayout,
     playLayout: PlayLayout,
     historyLayout: HistoryLayout,
+    codeDraft: () -> String? = { null },
+    onCodeDraftTaken: () -> Unit = {},
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     homeEntry(navigator, homeLayout)
     historyEntry(navigator, historyLayout)
-    playEntry(navigator, playLayout, onOpenHistory = { navigator.pushOnce(HistoryKey()) })
+    playEntry(
+        navigator,
+        playLayout,
+        onOpenHistory = { navigator.pushOnce(HistoryKey()) },
+        codeDraft = codeDraft,
+        onCodeDraftTaken = onCodeDraftTaken,
+    )
     resultEntry(navigator)
     createEntry(navigator)
     editorEntry(navigator, playLayout)
