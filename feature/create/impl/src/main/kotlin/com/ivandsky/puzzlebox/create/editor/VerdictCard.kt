@@ -23,6 +23,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.create.ui.colors
+import com.ivandsky.puzzlebox.create.ui.gradeLabel
+import com.ivandsky.puzzlebox.create.ui.gradeState
+import com.ivandsky.puzzlebox.create.ui.tone
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -39,18 +43,6 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
 
 private val CardMaxWidth = 320.dp
 private val GradeIconSize = 16.dp
-
-/** The grade's machine name on a Unique: its level ("Medium"), "NeedsGuessing", or null for a game without a ladder. */
-internal fun Verdict.Unique.gradeState(): String? = when {
-    needsGuessing -> "NeedsGuessing"
-    else -> difficulty?.level?.name
-}
-
-/** The grade as the author reads it: "Medium", "needs guessing", or null. */
-internal fun Verdict.Unique.gradeLabel(): String? = when {
-    needsGuessing -> "needs guessing"
-    else -> difficulty?.level?.name
-}
 
 /**
  * The verdict in full (02 handoff, "Pill popover"): title, subtitle, the grade of a Unique
@@ -119,12 +111,7 @@ private fun CardFace(verdict: Verdict, onCheckAgain: () -> Unit) {
 /** A difficulty in the Unique tone, or the Needs guessing flag in the warn tone. */
 @Composable
 private fun Grade(verdict: Verdict.Unique) {
-    val scheme = MaterialTheme.colorScheme
-    val (container, content) = if (verdict.needsGuessing) {
-        scheme.tertiaryContainer to scheme.onTertiaryContainer
-    } else {
-        scheme.primaryContainer to scheme.onPrimaryContainer
-    }
+    val (container, content) = verdict.tone().colors()
     Surface(
         modifier = Modifier
             .testTag("create.verdict.grade")
