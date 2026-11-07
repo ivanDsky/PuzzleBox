@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.zip.engine
 
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.games.zip.Cell
+import com.ivandsky.puzzlebox.games.zip.ZipBoard
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
 
 /**
@@ -49,7 +50,7 @@ object ZipSearch {
     ): Boolean {
         val board = puzzle.board
         val total = board.cellCount
-        if (board.waypoints.isEmpty() || limit <= 0) return true
+        if (board.waypoints.isEmpty() || limit <= 0 || !parityAllows(board)) return true
         if (prefix.isNotEmpty() && !ZipVerifier.verifyPath(puzzle, prefix)) return true
 
         val waypointIndex = ZipVerifier.waypointIndexTable(board)
@@ -132,6 +133,18 @@ object ZipSearch {
 
         dfs()
         return !exhausted
+    }
+
+    /**
+     * A full path visits every cell (walls only cut edges) and alternates checkerboard
+     * colours. On an even board its ends differ in colour; on an odd board both sit on the
+     * majority colour, the colour of cell 0. The dead-end prune cannot see this.
+     */
+    private fun parityAllows(board: ZipBoard): Boolean {
+        fun colour(cell: Cell): Int = (board.rowOf(cell) + board.colOf(cell)) % 2
+        val start = colour(board.waypoints.first())
+        val end = colour(board.waypoints.last())
+        return if (board.cellCount % 2 == 0) start != end else start == 0 && end == 0
     }
 
     /** DFS nodes between budget polls: each node scans the board, so well under 1 ms apart. */

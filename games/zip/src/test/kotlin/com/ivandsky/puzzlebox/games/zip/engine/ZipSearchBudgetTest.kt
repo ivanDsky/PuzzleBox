@@ -67,23 +67,57 @@ class ZipSearchBudgetTest {
         var polls = 0
         val spentAfterFirstPoll = Budget { ++polls > 1 }
 
-        val outcome = ZipSearch.bounded(ZipWorstCaseFixtures.oppositeCorners, limit = 2, budget = spentAfterFirstPoll)
+        val outcome = ZipSearch.bounded(ZipWorstCaseFixtures.adjacentCorners, limit = 2, budget = spentAfterFirstPoll)
 
         assertEquals(ZipSearchOutcome.Exhausted, outcome)
         assertEquals(2, polls)
     }
 
     @Test
-    fun `each worst-case board settles within the editor budget`() {
-        ZipWorstCaseFixtures.all.forEach { (name, puzzle) ->
-            val start = System.nanoTime()
+    fun `a board parity rules out answers Done with no paths before the DFS`() {
+        var polls = 0
+        val counting = Budget { polls++; false }
+        val diagonal2x2 = ZipPuzzle(
+            ZipTestSupport.variantOf(3).id,
+            ZipBoard(2, emptySet(), listOf(Cell(0), Cell(3))),
+            null,
+        )
 
-            val outcome = ZipSearch.bounded(puzzle, limit = 2, budget = Budget.within(BUDGET_MS, System::nanoTime))
+        val outcome = ZipSearch.bounded(diagonal2x2, limit = 2, budget = counting)
 
-            val elapsedMs = (System.nanoTime() - start) / NANOS_PER_MILLI
-            assertTrue("$name took $elapsedMs ms", elapsedMs <= BUDGET_MS + SLACK_MS)
-            assertTrue(name, outcome is ZipSearchOutcome.Done || outcome == ZipSearchOutcome.Exhausted)
-        }
+        assertEquals(ZipSearchOutcome.Done(emptyList()), outcome)
+        assertEquals(1, polls)
+    }
+
+    @Test
+    fun `the opposite-corner worst case is ruled out by parity at once`() {
+        val start = System.nanoTime()
+
+        val outcome = ZipSearch.bounded(
+            ZipWorstCaseFixtures.oppositeCorners,
+            limit = 2,
+            budget = Budget.within(BUDGET_MS, System::nanoTime),
+        )
+
+        val elapsedMs = (System.nanoTime() - start) / NANOS_PER_MILLI
+        assertEquals(ZipSearchOutcome.Done(emptyList()), outcome)
+        assertTrue("took $elapsedMs ms", elapsedMs <= SLACK_MS)
+    }
+
+    /** Solvable but wide open: the search may not find two paths in time, so Exhausted is allowed. */
+    @Test
+    fun `the adjacent-corner worst case settles within the editor budget`() {
+        val start = System.nanoTime()
+
+        val outcome = ZipSearch.bounded(
+            ZipWorstCaseFixtures.adjacentCorners,
+            limit = 2,
+            budget = Budget.within(BUDGET_MS, System::nanoTime),
+        )
+
+        val elapsedMs = (System.nanoTime() - start) / NANOS_PER_MILLI
+        assertTrue("took $elapsedMs ms", elapsedMs <= BUDGET_MS + SLACK_MS)
+        assertTrue(outcome is ZipSearchOutcome.Done || outcome == ZipSearchOutcome.Exhausted)
     }
 
     private companion object {

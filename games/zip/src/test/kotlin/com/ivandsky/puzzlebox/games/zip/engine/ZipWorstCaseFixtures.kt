@@ -16,17 +16,12 @@ object ZipWorstCaseFixtures {
     /**
      * Corner to opposite corner. Both corners share a checkerboard colour, and a 64-cell
      * path must end on the other colour, so no path exists. The dead-end prune cannot see
-     * parity, so an unbudgeted search would have to walk the whole tree to say so.
+     * parity; without the parity pre-check the search would walk the whole tree to say so.
      */
     val oppositeCorners: ZipPuzzle = open(Cell(0), Cell(N * N - 1))
 
     /** Corner to the adjacent corner on the same row: solvable, with many paths. */
     val adjacentCorners: ZipPuzzle = open(Cell(0), Cell(N - 1))
-
-    val all: Map<String, ZipPuzzle> = mapOf(
-        "opposite-corners" to oppositeCorners,
-        "adjacent-corners" to adjacentCorners,
-    )
 
     private fun open(start: Cell, end: Cell): ZipPuzzle = ZipPuzzle(
         ZipTestSupport.variantOf(N).id,
