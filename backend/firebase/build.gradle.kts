@@ -24,3 +24,11 @@ dependencies {
     testImplementation(libs.turbine)
     testImplementation(libs.mockito.core)
 }
+
+// HostingFilesTest reads firebase.json and hosting/** through File(path) from the module dir;
+// Gradle cannot see that, so undeclared, an edited file would be served FROM-CACHE as a stale green.
+tasks.withType<Test>().configureEach {
+    inputs.files("firebase.json", fileTree("hosting"))
+        .withPropertyName("hostingFiles")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}
