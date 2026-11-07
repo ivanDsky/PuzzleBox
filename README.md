@@ -152,3 +152,7 @@ CI does not compare screenshot pixels (the goldens are recorded on macOS; on Lin
 `-Pgoldens.pixelCompare=false` also turns off the Tango harness's always-on pixel diff), so
 run the `-Proborazzi.verify=true` command above before you push UI changes. `main` must stay
 releasable: every push that carries a new `versionName` publishes a GitHub release.
+
+Unfinished features merge dark behind a `ReleaseFlag` and ship by a flip PR
+([ADR-0022](docs/adr/0022-trunk-delivery-release-flags.md)). To force a flag on in a debug
+build, go to Profile → Design system catalog → Release flags.

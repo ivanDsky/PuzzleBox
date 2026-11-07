@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import com.ivandsky.puzzlebox.app.di.appModule
+import com.ivandsky.puzzlebox.app.di.buildTypeReleaseFlagsModule
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.backend.firebase.firebaseBackendModule
 import com.ivandsky.puzzlebox.common.di.commonModule
@@ -59,6 +60,6 @@ class PuzzleBoxApplication : Application() {
 
     companion object {
         val appModules =
-            listOf(commonModule, dataModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, createModule, profileModule(R.string.default_web_client_id), zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, strandsModule, strandsUiModule, miniSudokuModule, miniSudokuUiModule, appModule) + buildTypeGameModules
+            listOf(commonModule, dataModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, createModule, profileModule(R.string.default_web_client_id), zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, strandsModule, strandsUiModule, miniSudokuModule, miniSudokuUiModule, appModule, buildTypeReleaseFlagsModule) + buildTypeGameModules
     }
 }
