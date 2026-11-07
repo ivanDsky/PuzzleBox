@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.testing.contract
 
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
-import com.ivandsky.puzzlebox.data.repository.FetchResult
+import com.ivandsky.puzzlebox.data.repository.SharedFetchResult
 import com.ivandsky.puzzlebox.data.repository.PublishResult
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UnpublishResult
@@ -55,7 +55,7 @@ abstract class SharedPuzzleRepositoryContract {
         signInAs(AUTHOR)
 
         assertEquals(PublishResult.Published(code()), repository.publish(doc()))
-        assertEquals(FetchResult.Found(doc()), repository.fetch(code()))
+        assertEquals(SharedFetchResult.Found(doc()), repository.fetch(code()))
     }
 
     @Test
@@ -63,7 +63,7 @@ abstract class SharedPuzzleRepositoryContract {
         signInAs(AUTHOR)
         repository.publish(doc())
 
-        assertEquals(FetchResult.NotFound, repository.fetch(code("ZZZ999")))
+        assertEquals(SharedFetchResult.NotFound, repository.fetch(code("ZZZ999")))
     }
 
     @Test
@@ -72,7 +72,7 @@ abstract class SharedPuzzleRepositoryContract {
         repository.publish(doc())
 
         assertEquals(PublishResult.Published(code()), repository.publish(doc(title = "Retry")))
-        assertEquals(FetchResult.Found(doc()), repository.fetch(code()))
+        assertEquals(SharedFetchResult.Found(doc()), repository.fetch(code()))
     }
 
     @Test
@@ -82,7 +82,7 @@ abstract class SharedPuzzleRepositoryContract {
 
         signInAs(OTHER)
         assertEquals(PublishResult.CodeTaken, repository.publish(doc(authorUid = OTHER, title = "Mine")))
-        assertEquals(FetchResult.Found(doc()), repository.fetch(code()))
+        assertEquals(SharedFetchResult.Found(doc()), repository.fetch(code()))
     }
 
     @Test
@@ -91,14 +91,14 @@ abstract class SharedPuzzleRepositoryContract {
         repository.publish(doc())
 
         assertEquals(UnpublishResult.Done, repository.unpublish(code()))
-        assertEquals(FetchResult.Found(doc(unpublished = true)), repository.fetch(code()))
+        assertEquals(SharedFetchResult.Found(doc(unpublished = true)), repository.fetch(code()))
     }
 
     @Test
     fun aDocAboveFormatVersionOneIsUnsupported() = runTest {
         seed(doc(formatVersion = SharedPuzzleDoc.FORMAT_VERSION + 1))
 
-        assertEquals(FetchResult.UnsupportedVersion(SharedPuzzleDoc.FORMAT_VERSION + 1), repository.fetch(code()))
+        assertEquals(SharedFetchResult.UnsupportedVersion(SharedPuzzleDoc.FORMAT_VERSION + 1), repository.fetch(code()))
     }
 
     protected companion object {

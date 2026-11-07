@@ -14,6 +14,6 @@ interface SharedPuzzleRepository {
     /** Sets the doc's `unpublished` flag and nothing else. */
     suspend fun unpublish(code: ShareCode): UnpublishResult
 
-    /** Reads the doc, unpublished or not; a newer [SharedPuzzleDoc.formatVersion] is [FetchResult.UnsupportedVersion]. */
-    suspend fun fetch(code: ShareCode): FetchResult
+    /** Reads the doc, unpublished or not; a newer [SharedPuzzleDoc.formatVersion] is [SharedFetchResult.UnsupportedVersion]. */
+    suspend fun fetch(code: ShareCode): SharedFetchResult
 }

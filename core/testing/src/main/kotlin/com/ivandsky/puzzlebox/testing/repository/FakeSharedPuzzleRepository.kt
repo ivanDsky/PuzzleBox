@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.testing.repository
 
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
-import com.ivandsky.puzzlebox.data.repository.FetchResult
+import com.ivandsky.puzzlebox.data.repository.SharedFetchResult
 import com.ivandsky.puzzlebox.data.repository.PublishResult
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UnpublishResult
@@ -63,11 +63,11 @@ class FakeSharedPuzzleRepository : SharedPuzzleRepository {
         UnpublishResult.Done
     }
 
-    override suspend fun fetch(code: ShareCode): FetchResult = synchronized(stored) {
-        if (!online) return FetchResult.Offline
-        val doc = stored[code] ?: return FetchResult.NotFound
-        if (doc.formatVersion > SharedPuzzleDoc.FORMAT_VERSION) return FetchResult.UnsupportedVersion(doc.formatVersion)
-        FetchResult.Found(doc.detached())
+    override suspend fun fetch(code: ShareCode): SharedFetchResult = synchronized(stored) {
+        if (!online) return SharedFetchResult.Offline
+        val doc = stored[code] ?: return SharedFetchResult.NotFound
+        if (doc.formatVersion > SharedPuzzleDoc.FORMAT_VERSION) return SharedFetchResult.UnsupportedVersion(doc.formatVersion)
+        SharedFetchResult.Found(doc.detached())
     }
 
     private fun SharedPuzzleDoc.detached() = copy(payload = payload.copyOf())

@@ -11,9 +11,9 @@ import org.junit.Test
 /**
  * Runs [SharedPuzzleRepositoryContract] against [FakeSharedPuzzleRepository], then pins the
  * knobs only the fake can force: offline, signed out, a commit followed by a timeout, and the
- * per-day publish cap. Not named `Fake…`: Konsist P5 reserves that prefix for test doubles.
+ * per-day publish cap.
  */
-class OnFakeSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContract() {
+class SharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContract() {
 
     private val fake = FakeSharedPuzzleRepository()
 
@@ -61,7 +61,7 @@ class OnFakeSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContract(
         codes.take(20).forEach { assertEquals(PublishResult.Published(it), fake.publish(doc(code = it))) }
         assertEquals(PublishResult.DailyCapReached, fake.publish(doc(code = codes.last())))
         assertEquals(codes.take(20).toSet(), fake.docs.keys)
-        assertEquals(FetchResult.NotFound, fake.fetch(codes.last()))
+        assertEquals(SharedFetchResult.NotFound, fake.fetch(codes.last()))
     }
 
     @Test
@@ -72,7 +72,7 @@ class OnFakeSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContract(
 
         assertEquals(PublishResult.Offline, fake.publish(doc(code = code("ZZZ999"))))
         assertEquals(UnpublishResult.Offline, fake.unpublish(code()))
-        assertEquals(FetchResult.Offline, fake.fetch(code()))
+        assertEquals(SharedFetchResult.Offline, fake.fetch(code()))
         assertEquals(mapOf(code() to doc()), fake.docs)
         assertEquals(1, fake.publishesToday)
     }
@@ -85,7 +85,7 @@ class OnFakeSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContract(
 
         assertEquals(PublishResult.SignedOut, fake.publish(doc(code = code("ZZZ999"))))
         assertTrue(fake.unpublish(code()) is UnpublishResult.Rejected)
-        assertEquals(FetchResult.Found(doc()), fake.fetch(code()))
+        assertEquals(SharedFetchResult.Found(doc()), fake.fetch(code()))
         assertEquals(mapOf(code() to doc()), fake.docs)
     }
 
