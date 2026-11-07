@@ -30,6 +30,12 @@ val LocalTimerFill = staticCompositionLocalOf { LightTimerFill }
 val LocalOnFill = staticCompositionLocalOf { LightOnFill }
 
 /**
+ * The neutral GameButton's lip (ColorTokens.kt). Provided by [PuzzleBoxTheme] like
+ * [LocalOnFill].
+ */
+internal val LocalNeutralLip = staticCompositionLocalOf { LightNeutralLip }
+
+/**
  * Board color roles (BoardTokens.kt, spec UIUX-01 A5): the board renders from these named
  * roles, never raw colors. Provided by [PuzzleBoxTheme] so board rendering always follows
  * the RESOLVED theme — same contract as [LocalPrimaryText], including a forced appearance
@@ -61,6 +67,7 @@ fun PuzzleBoxTheme(
         LocalPrimaryText provides if (darkTheme) DarkPrimaryText else LightPrimaryText,
         LocalTimerFill provides if (darkTheme) DarkTimerFill else LightTimerFill,
         LocalOnFill provides if (darkTheme) DarkOnFill else LightOnFill,
+        LocalNeutralLip provides if (darkTheme) DarkNeutralLip else LightNeutralLip,
         LocalBoardColors provides if (darkTheme) DarkBoardTokens else LightBoardTokens,
         LocalAccentPalette provides accentPalette(darkTheme),
     ) {

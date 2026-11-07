@@ -52,6 +52,9 @@ object MotionTokens {
     // Press: scale 0.97 on the default spring. Reduced: none.
     const val PressScale = 0.97f
 
+    // Press, chunky game buttons (GameButton): sink — the face translates down into its
+    // lip on the default spring instead of scaling. Reduced: instant.
+
     // Select: icon crossfade + nav indicator 32→56dp on EasingStandard. Reduced: instant.
     const val SelectDuration = 120
 

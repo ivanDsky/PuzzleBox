@@ -257,7 +257,7 @@ class SudokuKeypadTest {
         setColumnKeypad(size = 9)
         val rowTops = listOf(1, 4, 7).map { composeRule.onNodeWithContentDescription("$it, 9 left").getUnclippedBoundsInRoot().top }
         val three = composeRule.onNodeWithContentDescription("3, 9 left").getUnclippedBoundsInRoot()
-        val actions = listOf("Notes", "Erase", "Clear").map { composeRule.onNodeWithText(it).getUnclippedBoundsInRoot() }
+        val actions = listOf("Notes", "Erase", "Clear").map { composeRule.onNodeWithContentDescription(it).getUnclippedBoundsInRoot() }
 
         actions.zip(rowTops).forEach { (action, top) -> assertEquals(top.value, action.top.value, 1f) }
         actions.forEach { assertTrue("$it not beside the digits $three", it.left > three.right) }
@@ -269,8 +269,8 @@ class SudokuKeypadTest {
         setColumnKeypad(size = 6)
         val one = composeRule.onNodeWithContentDescription("1, 6 left").getUnclippedBoundsInRoot()
         val four = composeRule.onNodeWithContentDescription("4, 6 left").getUnclippedBoundsInRoot()
-        val notes = composeRule.onNodeWithText("Notes").getUnclippedBoundsInRoot()
-        val erase = composeRule.onNodeWithText("Erase").getUnclippedBoundsInRoot()
+        val notes = composeRule.onNodeWithContentDescription("Notes").getUnclippedBoundsInRoot()
+        val erase = composeRule.onNodeWithContentDescription("Erase").getUnclippedBoundsInRoot()
         val clear = composeRule.onNodeWithTag("sudoku.clear").getUnclippedBoundsInRoot()
 
         assertEquals(one.top.value, notes.top.value, 1f)

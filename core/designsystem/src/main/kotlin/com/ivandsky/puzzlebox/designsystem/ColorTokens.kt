@@ -36,6 +36,12 @@ val DarkTimerFill = Color(0xFF6BDF17)
 val LightOnFill = Color(0xFFFFFFFF)
 val DarkOnFill = Color(0xFF101418)
 
+// The lip under a neutral GameButton, whose face is `surfaceContainerHigh`: the face's
+// hue at OKLCH L −0.13 in light; dark takes the prototype's near-black (07 C), as −0.20
+// clips to black.
+val LightNeutralLip = Color(0xFFC2C5C8)
+val DarkNeutralLip = Color(0xFF07090B)
+
 
 val LightColorScheme = lightColorScheme(
     primary = Color(0xFF58CC02),

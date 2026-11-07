@@ -116,6 +116,7 @@ fun QueensPlayScreen(
                     clear = remember(controller) { QueensClear(controller) },
                     banner = ready?.banner,
                     feedback = controller,
+                    accent = QueensBrand.accent,
                 )
             },
         )

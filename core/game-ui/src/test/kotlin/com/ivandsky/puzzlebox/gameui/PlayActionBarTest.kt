@@ -1,14 +1,20 @@
 package com.ivandsky.puzzlebox.gameui
 
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.width
+import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,6 +44,7 @@ class PlayActionBarTest {
                     canUndo = canUndo,
                     canRedo = true,
                     hintEnabled = hintEnabled,
+                    accent = AccentSlot.Teal,
                     hintsUsed = hintsUsed,
                 )
             }
@@ -76,5 +83,13 @@ class PlayActionBarTest {
         setBar(onClear = null, hintsUsed = 2)
         composeRule.onNode(hasTestTag("play.hint") and hasText("2", substring = true), useUnmergedTree = false)
             .assertExists()
+    }
+
+    @Test
+    fun `the four actions share the row equally on a 64dp face`() {
+        setBar(onClear = {})
+        val tags = listOf("play.undo", "play.redo", "play.hint", "play.clear")
+        val widths = tags.map { composeRule.onNodeWithTag(it).assertHeightIsAtLeast(64.dp).getUnclippedBoundsInRoot().width }
+        assertTrue("action widths $widths", widths.max() - widths.min() < 1.dp)
     }
 }

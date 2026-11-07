@@ -15,7 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
-import com.ivandsky.puzzlebox.designsystem.SecondaryButton
+import com.ivandsky.puzzlebox.designsystem.GameButton
+import com.ivandsky.puzzlebox.designsystem.GameButtonSize
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
@@ -68,6 +70,7 @@ internal fun SudokuPlayScreen(
                         clear = null,
                         banner = ready?.banner,
                         feedback = controller,
+                        accent = MiniSudokuBrand.accent,
                     )
                     if (twoPane) {
                         Box(Modifier.padding(horizontal = Spacing.lg)) { SudokuEditControls(state) }
@@ -99,20 +102,29 @@ internal fun SudokuStackedBoard(state: SudokuBoardState, modifier: Modifier = Mo
 }
 
 /**
- * TwoPane's Erase and Clear, under Undo/Redo in the side pane and styled like them; off
- * until a board is ready and once it is solved.
+ * TwoPane's Erase and Clear, under Undo/Redo in the side pane and the same tall chunky
+ * buttons; off until a board is ready and once it is solved.
  */
 @Composable
 private fun SudokuEditControls(state: SudokuBoardState?) {
     val model = state?.session?.let { sudokuKeypadModel(it.board, it.notesMode) }
     val editable = model != null && !model.solved
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        SecondaryButton(text = "Erase", onClick = { state?.erase() }, enabled = editable)
-        SecondaryButton(
-            text = "Clear",
+        GameButton(
+            onClick = { state?.erase() },
+            icon = PuzzleIcons.Erase,
+            label = "Erase",
+            modifier = Modifier.weight(1f),
+            enabled = editable,
+            size = GameButtonSize.Tall,
+        )
+        GameButton(
             onClick = { state?.clear() },
+            icon = PuzzleIcons.Clear,
+            label = "Clear",
+            modifier = Modifier.weight(1f).testTag("sudoku.clear"),
             enabled = editable && model?.canClear == true,
-            modifier = Modifier.testTag("sudoku.clear"),
+            size = GameButtonSize.Tall,
         )
     }
 }
