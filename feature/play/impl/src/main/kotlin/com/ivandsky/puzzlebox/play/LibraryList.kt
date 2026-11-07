@@ -22,7 +22,8 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The games list (06-a §List pane): "Games" over the one-line pitch, with [headerAction]
- * trailing them, then every game's [LibraryRow] in registry order. On the tablet the
+ * trailing them, then [friends] (the From friends section, empty by default), then every
+ * game's [LibraryRow] in registry order. On the tablet the
  * [selected] row is outlined and the list never scrolls; on the phone it scrolls ([scroll],
  * hoisted so back from a page returns to the same offset), shows the offline pill and each
  * row carries a chevron.
@@ -35,6 +36,7 @@ internal fun LibraryList(
     onRow: (GameId) -> Unit,
     modifier: Modifier = Modifier,
     headerAction: @Composable () -> Unit = {},
+    friends: @Composable () -> Unit = {},
 ) {
     val phone = layout == PlayLayout.SinglePane
     val reduced = rememberReducedMotion()
@@ -57,6 +59,7 @@ internal fun LibraryList(
             headerAction()
         }
         if (phone && state.offline) OfflinePill()
+        friends()
         state.rows.forEachIndexed { index, row ->
             EnterFade(index, reduced) {
                 LibraryRow(

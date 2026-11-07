@@ -68,6 +68,7 @@ internal fun LibraryRoute(
     val page by viewModel.page.collectAsStateWithLifecycle()
     val month by viewModel.shownMonth.collectAsStateWithLifecycle()
     val flags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
+    val friends by viewModel.friends.collectAsStateWithLifecycle()
     var enteringCode by rememberSaveable { mutableStateOf(false) }
     LifecycleStartEffect(viewModel) {
         viewModel.syncToday()
@@ -90,6 +91,8 @@ internal fun LibraryRoute(
                 onBackToToday = viewModel::backToToday,
             ),
             onEnterCode = { enteringCode = true }.takeIf { ReleaseFlag.FriendSharing in flags },
+            friends = friends,
+            onOpenFriend = onOpenCode,
         )
         if (enteringCode) {
             EnterCodeSheet(
@@ -125,7 +128,8 @@ internal class CalendarActions(
  * The library for [state]: list and page side by side, or the phone's list → page push.
  * [page] is the selected game's calendar and [month] the one it asked for (null = today's);
  * on the phone a picked day scrolls the page up to the day card. The header's Enter code shows
- * only with an [onEnterCode].
+ * only with an [onEnterCode]. [friends] heads the list as From friends, each card opening its
+ * puzzle through [onOpenFriend].
  */
 @Composable
 internal fun LibraryScreen(
@@ -141,11 +145,14 @@ internal fun LibraryScreen(
     calendar: CalendarActions,
     modifier: Modifier = Modifier,
     onEnterCode: (() -> Unit)? = null,
+    friends: List<FriendCardModel> = emptyList(),
+    onOpenFriend: (ShareCode) -> Unit = {},
 ) {
     val listScroll = rememberScrollState()
     val enterCode: @Composable () -> Unit = {
         onEnterCode?.let { SecondaryButton(text = "Enter code", onClick = it, modifier = Modifier.testTag("library.enterCode")) }
     }
+    val fromFriends: @Composable () -> Unit = { FromFriendsRow(friends, onOpenFriend) }
     val onRow: (GameId) -> Unit = { game ->
         onSelect(game)
         if (state.rows.firstOrNull { it.card.game == game }?.card?.status == TodayStatus.Offline) {
@@ -210,7 +217,7 @@ internal fun LibraryScreen(
     val selected = state.rows.firstOrNull { it.card.game == state.selected } ?: state.rows.firstOrNull()
     if (layout == PlayLayout.TwoPane) {
         Row(modifier.fillMaxSize().padding(start = Spacing.xl, top = Spacing.lg, end = Spacing.xxl, bottom = Spacing.xl)) {
-            LibraryList(state, layout, listScroll, onRow, Modifier.width(400.dp), headerAction = enterCode)
+            LibraryList(state, layout, listScroll, onRow, Modifier.width(400.dp), headerAction = enterCode, friends = fromFriends)
             Spacer(Modifier.width(Spacing.xl))
             if (selected != null) {
                 key(selected.card.game) {
@@ -240,6 +247,7 @@ internal fun LibraryScreen(
                         pageOpen = true
                     },
                     headerAction = enterCode,
+                    friends = fromFriends,
                 )
             }
         }
