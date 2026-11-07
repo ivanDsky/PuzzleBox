@@ -54,7 +54,8 @@ internal fun StrandsConnectors(
             .fillMaxSize()
             .drawWithCache {
                 val geometry = GridGeometry(rows, cols, size.width, size.height)
-                val drawn = links.filter { it.cells.size >= 2 }.map { linkDrawing(it, geometry, colors) }
+                val alt = altThemeLinks(links)
+                val drawn = links.filter { it.cells.size >= 2 }.map { linkDrawing(it, geometry, colors, it in alt) }
                 onDrawBehind { for (i in drawn.indices) drawn[i](this) }
             }
             .drawWithCache {
@@ -68,8 +69,8 @@ internal fun StrandsConnectors(
 }
 
 /** One link's draw call over geometry built once: a stroked polyline, or a hint's trimmed butt-capped pieces. */
-private fun CacheDrawScope.linkDrawing(link: StrandsLink, geometry: GridGeometry, colors: BoardColors): DrawScope.() -> Unit {
-    val color = connectorColor(link.kind, colors)
+private fun CacheDrawScope.linkDrawing(link: StrandsLink, geometry: GridGeometry, colors: BoardColors, alt: Boolean): DrawScope.() -> Unit {
+    val color = if (alt) colors.strandsThemeAltConnector else connectorColor(link.kind, colors)
     if (link.kind != LinkKind.Hint) {
         val path = Path().polylineThrough(link.cells, geometry)
         val stroke = roundStroke(link.kind)

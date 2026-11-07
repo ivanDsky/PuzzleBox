@@ -79,7 +79,7 @@ internal object ZipBoardSpec {
     const val startRingFraction = 0.05f
 
     /** Round-5 arrow (user: → not >, black/subtracted, never wider than the pipe):
-     *  shaft + head glyph drawn in boardSurface over the powder pipe — a knockout in the
+     *  shaft + head glyph drawn in boardSurface over the blue pipe — a knockout in the
      *  trace, same visual language as the dot holes. Anchors along the direction
      *  (fractions of pitch, signed from the head-cell center): the visible pipe ends at
      *  the segment cap +0.27, so the glyph stays within ±0.24 — nothing hangs past the

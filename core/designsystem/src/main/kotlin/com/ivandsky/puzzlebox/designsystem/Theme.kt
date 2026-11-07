@@ -62,7 +62,7 @@ fun PuzzleBoxTheme(
         LocalTimerFill provides if (darkTheme) DarkTimerFill else LightTimerFill,
         LocalOnFill provides if (darkTheme) DarkOnFill else LightOnFill,
         LocalBoardColors provides if (darkTheme) DarkBoardTokens else LightBoardTokens,
-        LocalAccentPalette provides accentPalette(variants.accentSet, darkTheme),
+        LocalAccentPalette provides accentPalette(darkTheme),
     ) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,

@@ -110,9 +110,9 @@ fun ZipCellDecor(
             Box(Modifier.fillMaxSize().background(scheme.errorContainer.copy(alpha = 0.7f), cellCorner))
         }
         // Ticket 28 r5, hollow EVERYWHERE: one ring renderer for all three states —
-        // unvisited and start in the waypointDot role, a traced dot in the powder on-path
+        // unvisited and start in the waypointDot role, a traced dot in the blue on-path
         // role (D2, round 3). The label always rides the ring's state color on the
-        // surface hole (green 9.70:1 / powder 9.89:1 on boardSurface, both ≥4.5); filled
+        // surface hole (both roles ≥4.5 on boardSurface in each theme); filled
         // disks are gone. The next-target ring HOLDS the trace-role color while it is the
         // target (persistent step-point cue, user round 6) and plays ONE flash from the
         // state color on transition (MotionTokens.FlashDuration, single event, never a loop); reduced motion
@@ -169,7 +169,7 @@ fun ZipCellDecor(
                 Text(
                     text = label.toString(),
                     style = TextStyle(fontWeight = FontWeight.Bold, fontSize = fontSize),
-                    color = ringPaint, // label rides the ring (state color, or powder while next target)
+                    color = ringPaint, // label rides the ring (state color, or the trace blue while next target)
                     maxLines = 1,
                 )
             }
@@ -218,7 +218,7 @@ fun ZipPipes(
 fun HintArrowHead(arrow: HintArrow, model: ZipRendererModel, alpha: Float, modifier: Modifier = Modifier) {
     val n = model.n
     // A labeled head already announces itself — its dot ring plays the one-shot
-    // next-target flash, and a powder glyph over the powder ring/number reads as mush
+    // next-target flash, and a blue glyph over the blue ring/number reads as mush
     // (user finding, board-review round 2). Plain heads get the arrow.
     if (model.cells[arrow.headIdx].label != null) return
     val board = LocalBoardColors.current
