@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.play.friend
 
-import android.content.ClipData
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -18,61 +16,44 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.ClipEntry
-import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
-import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.gameui.GameGlyph
-import com.ivandsky.puzzlebox.gameui.GameGlyphSize
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
  * A friend's puzzle before it is played: the game's glyph, the title, "by" the author and
  * the note, the size and difficulty chips (difficulty only when the local re-check graded
  * it), the author's time and hints beside yours once solved, the code with Copy, and the
- * one primary action, [onAction]. Sections rise in with the Enter stagger; under reduced
- * motion they only fade.
+ * one primary action, [onAction]. Sections rise in with the Enter stagger the first time the
+ * code's card is shown; under reduced motion they only fade.
  */
 @Composable
 internal fun FriendPuzzleCard(card: FriendCard, onAction: () -> Unit, modifier: Modifier = Modifier) {
     val reduced = rememberReducedMotion()
+    val entrance = rememberCardEntrance(card.puzzle.code)
     val accent = card.brand.accent.colors()
     val puzzle = card.puzzle
     Column(modifier.fillMaxWidth().padding(horizontal = Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-        Enter(0, reduced) { Head(card, reduced) }
-        Enter(1, reduced) {
+        Enter(entrance, 0, reduced) { FriendCardHead(card, reduced) }
+        Enter(entrance, 1, reduced) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(
                     text = puzzle.title,
@@ -83,66 +64,10 @@ internal fun FriendPuzzleCard(card: FriendCard, onAction: () -> Unit, modifier: 
                 Byline(puzzle.authorName, accent.container, accent.onContainer)
             }
         }
-        if (puzzle.note.isNotBlank()) Enter(2, reduced) { Note(puzzle.note, accent.accent) }
-        Enter(3, reduced) { Chips(card, accent.container, accent.onContainer) }
-        Enter(4, reduced) { Stats(card) }
-        Enter(5, reduced) { Action(card.action, reduced, onAction) }
-    }
-}
-
-@Composable
-private fun Head(card: FriendCard, reduced: Boolean) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        GameGlyph(card.brand, GameGlyphSize.Tile, Modifier.testTag("friend.card.glyph"))
-        Text(
-            text = "${card.gameName} · from a friend",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f),
-        )
-        CodePill(card.puzzle.code.display, reduced)
-    }
-}
-
-@Composable
-private fun CodePill(code: String, reduced: Boolean) {
-    val clipboard = LocalClipboard.current
-    val scope = rememberCoroutineScope()
-    var copied by remember { mutableStateOf(false) }
-    LaunchedEffect(copied) {
-        if (copied) {
-            delay(COPIED_HOLD_MS)
-            copied = false
-        }
-    }
-    Surface(
-        onClick = {
-            scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(CLIP_LABEL, code))) }
-            copied = true
-        },
-        shape = PillShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.heightIn(min = MinTouch).testTag("friend.card.copy"),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Text(
-                text = code,
-                style = MaterialTheme.typography.labelLarge.tabular(),
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.testTag("friend.card.code"),
-            )
-            AnimatedContent(targetState = copied, transitionSpec = { crossfade(reduced) }, label = "copy") { done ->
-                if (done) {
-                    Icon(PuzzleIcons.Check, contentDescription = "Copied", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                } else {
-                    Text("Copy", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                }
-            }
-        }
+        if (puzzle.note.isNotBlank()) Enter(entrance, 2, reduced) { Note(puzzle.note, accent.accent) }
+        Enter(entrance, 3, reduced) { Chips(card, accent.container, accent.onContainer) }
+        Enter(entrance, 4, reduced) { Stats(card) }
+        Enter(entrance, 5, reduced) { Action(card.action, reduced, onAction) }
     }
 }
 
@@ -253,28 +178,8 @@ private fun Action(action: FriendCardAction, reduced: Boolean, onAction: () -> U
     }
 }
 
-/** One Enter step: rises [MotionTokens.EnterRise] and fades in after [index] staggers; reduced, it only fades. */
-@Composable
-private fun Enter(index: Int, reduced: Boolean, content: @Composable () -> Unit) {
-    val shown = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        if (reduced) {
-            shown.animateTo(1f, tween(MotionTokens.ReducedFadeDuration))
-        } else {
-            delay(index.coerceAtMost(MotionTokens.EnterStaggerCap) * MotionTokens.EnterStagger.toLong())
-            shown.animateTo(1f, tween(MotionTokens.EnterDuration, easing = MotionTokens.EasingEmphasizedDecelerate))
-        }
-    }
-    val rise = with(LocalDensity.current) { MotionTokens.EnterRise.toPx() }
-    Box(
-        Modifier.graphicsLayer {
-            alpha = shown.value
-            translationY = if (reduced) 0f else (1f - shown.value) * rise
-        },
-    ) { content() }
-}
-
-private fun crossfade(reduced: Boolean) =
+/** The card's swap between two contents: a short fade, instant under [reduced] motion. */
+internal fun crossfade(reduced: Boolean) =
     fadeIn(tween(if (reduced) 0 else MotionTokens.SelectDuration)) togetherWith fadeOut(tween(if (reduced) 0 else MotionTokens.SelectDuration))
 
 private val FriendCardAction.label: String
@@ -293,8 +198,5 @@ private val FriendCardAction.tag: String
 
 private fun hintsLabel(hints: Int) = if (hints == 1) "1 hint" else "$hints hints"
 
-private val MinTouch = 48.dp
 private val Avatar = 28.dp
 private val NoteRule = 4.dp
-private const val COPIED_HOLD_MS = 1_500L
-private const val CLIP_LABEL = "PuzzleBox code"
