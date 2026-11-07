@@ -15,6 +15,7 @@ data class PlayStats(
     /** This game's days that move its streak: numbered dailies, never archive plays (A23). */
     val streakDays: Set<LocalDate>,
     val today: LocalDate,
-    val board: TodayLeaderboard,
+    /** Null for a custom puzzle, which has no daily board. */
+    val board: TodayLeaderboard?,
     val solved: Boolean,
 )

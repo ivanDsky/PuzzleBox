@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
@@ -50,9 +51,12 @@ class ObservePlayStatsTest {
     private val daily = FakeDailyRepository()
     private val completions = FakeCompletionRepository()
     private val ann = Identity("u1", "Ann", null)
-    private val slot = PlaySlot(alpha, today)
+    private val slot = PlaySlot.Daily(alpha, today)
 
-    private fun observe(leaderboard: LeaderboardRepository = FakeLeaderboardRepository()): Flow<PlayStats> {
+    private fun observe(
+        leaderboard: LeaderboardRepository = FakeLeaderboardRepository(),
+        slot: PlaySlot = this.slot,
+    ): Flow<PlayStats> {
         val history = ObserveGameHistory(registry, daily, completions)
         return ObservePlayStats(
             todaySet = ObserveTodaySet(
@@ -67,7 +71,7 @@ class ObservePlayStatsTest {
     }
 
     private fun solve(game: GameId, daysAgo: Long, puzzleNumber: Int? = 100) = CompletionRecord(
-        puzzleRef = Ref(game, today.minusDays(daysAgo), puzzleNumber),
+        puzzleRef = Ref(game, PuzzleKey.Daily(today.minusDays(daysAgo), puzzleNumber)),
         time = 30_000L,
         hints = 0,
         stats = RecordStats(schemaVersion = 1, blob = "{}"),
@@ -120,5 +124,17 @@ class ObservePlayStatsTest {
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(listOf(LeaderboardRef(alpha.value, today)), leaderboard.observedBoards)
+    }
+
+    @Test
+    fun `a custom puzzle has no board and never reads solved, even when today's daily is`() = runTest {
+        completions.setRecords(listOf(solve(alpha, daysAgo = 0)))
+        val leaderboard = FakeLeaderboardRepository()
+
+        val stats = observe(leaderboard, PlaySlot.Custom(alpha, "ABC123")).first()
+
+        assertEquals(null, stats.board)
+        assertFalse(stats.solved)
+        assertEquals(emptyList<LeaderboardRef>(), leaderboard.observedBoards)
     }
 }

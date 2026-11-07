@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * The tablet play side panel's data for one [PlaySlot] (A15): today's set ([ObserveTodaySet]),
@@ -12,6 +13,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
  * day ([GameCalendar.observeToday]), and the slot's own board through [ObserveLeaderboard]'s
  * identity gate — the slot's game, not the featured one, since every daily is posted.
  * The board emits its loading state at once, so the local parts never wait on the network.
+ * A [PlaySlot.Custom] puzzle has no daily board: its [PlayStats.board] is null and it is
+ * never [PlayStats.solved].
  */
 class ObservePlayStats(
     private val todaySet: ObserveTodaySet,
@@ -26,7 +29,10 @@ class ObservePlayStats(
         stats(slot.gameId),
         history(),
         calendar.observeToday(slot.gameId),
-        leaderboard(slot.gameId, slot.day),
+        when (slot) {
+            is PlaySlot.Daily -> leaderboard(slot.gameId, slot.day)
+            is PlaySlot.Custom -> flowOf(null)
+        },
     ) { set, game, days, today, board ->
         val own = days.filter { it.gameId == slot.gameId }
         PlayStats(
@@ -36,7 +42,7 @@ class ObservePlayStats(
             streakDays = own.filter { it.isStreakDay() }.mapTo(HashSet()) { it.day },
             today = today,
             board = board,
-            solved = own.any { it.day == slot.day && it.isSolvedDaily() },
+            solved = slot is PlaySlot.Daily && own.any { it.day == slot.day && it.isSolvedDaily() },
         )
     }.distinctUntilChanged()
 }

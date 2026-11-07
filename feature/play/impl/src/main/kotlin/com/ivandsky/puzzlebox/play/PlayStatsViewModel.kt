@@ -67,7 +67,8 @@ class PlayStatsViewModel(
         }
     }
 
-    private fun times(board: TodayLeaderboard, solved: Boolean): PlayTimes = when (board) {
+    private fun times(board: TodayLeaderboard?, solved: Boolean): PlayTimes = when (board) {
+        null -> PlayTimes.Unavailable
         TodayLeaderboard.SignedOut -> PlayTimes.SignedOut
         is TodayLeaderboard.SignedIn -> when (val state = board.board) {
             TodayLeaderboard.Board.Loading -> PlayTimes.Loading
