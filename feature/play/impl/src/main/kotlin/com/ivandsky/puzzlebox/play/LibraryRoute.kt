@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -52,8 +53,9 @@ import org.koin.compose.koinInject
  * day card's day and pages months ([LibraryViewModel.page]). A row whose today can't load also retries; each start prefetches
  * today's uncached puzzles ([LibraryViewModel.syncToday], A12). "Open the lesson" runs
  * the game's tutorial over the library. The header's Enter code opens the code sheet, whose
- * Open is [onOpenCode]. Enter code and From friends show only while [ReleaseFlag.FriendSharing]
- * is on (ADR-0022).
+ * Open is [onOpenCode]. Enter code and From friends show only while [ReleaseFlag.FriendSharing] is
+ * on (ADR-0022). A [codeDraft] opens the sheet with that text already in the field, then is taken
+ * ([onCodeDraftTaken]).
  */
 @Composable
 internal fun LibraryRoute(
@@ -61,6 +63,8 @@ internal fun LibraryRoute(
     onPlay: (GameId, LocalDate?) -> Unit,
     onOpenCode: (ShareCode) -> Unit,
     modifier: Modifier = Modifier,
+    codeDraft: String? = null,
+    onCodeDraftTaken: () -> Unit = {},
 ) {
     val viewModel: LibraryViewModel = koinViewModel()
     val registry: GamePlayRegistry = koinInject()
@@ -71,6 +75,16 @@ internal fun LibraryRoute(
     val flags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
     val friends by viewModel.friends.collectAsStateWithLifecycle()
     var enteringCode by rememberSaveable { mutableStateOf(false) }
+    var codePrefill by rememberSaveable { mutableStateOf("") }
+    LaunchedEffect(codeDraft) {
+        if (codeDraft != null) {
+            codePrefill = codeDraft
+            enteringCode = true
+            onCodeDraftTaken()
+        }
+    }
+    // A closed sheet forgets the draft: the next Enter code opens empty.
+    if (!enteringCode && codePrefill.isNotEmpty()) LaunchedEffect(Unit) { codePrefill = "" }
     LifecycleStartEffect(viewModel) {
         viewModel.syncToday()
         onStopOrDispose { }
@@ -102,6 +116,7 @@ internal fun LibraryRoute(
                     onOpenCode(code)
                 },
                 onDismiss = { enteringCode = false },
+                initialText = codePrefill,
             )
         }
         val open = lesson
