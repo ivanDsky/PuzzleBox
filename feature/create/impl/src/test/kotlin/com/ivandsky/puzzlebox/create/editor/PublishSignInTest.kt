@@ -243,6 +243,7 @@ class PublishSignInTest {
                             publishedPuzzles = FakePublishedPuzzleRepository(),
                             identity = identity,
                             idTokens = idTokens,
+                            updatePublishState = signedOutUnpublishing(),
                         ).also { vm = it }
                     }
                 },

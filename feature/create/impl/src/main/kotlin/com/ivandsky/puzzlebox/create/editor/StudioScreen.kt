@@ -69,7 +69,8 @@ private const val GlyphPillBelowDp = 360
  * above the action area offers Undo ([onUndoTestClear]); it reports its timeout to [onTestClearedGone].
  * The [toast] slot shows the route's other notices in the same place. Once published
  * ([readOnly]) the board takes no touch or accessibility action, the bar offers no Rename or
- * Delete, and the tools give way to the "Published · read-only" chip with Duplicate
+ * Delete but Unpublish… ([onUnpublish], null once [unpublished]), and the tools give way to the
+ * "Published · read-only" chip ("Unpublished · read-only" once taken down) with Duplicate
  * ([onDuplicate]).
  */
 @Composable
@@ -99,6 +100,8 @@ fun StudioScreen(
     onTestClearedGone: () -> Unit = {},
     toast: @Composable (Modifier) -> Unit = {},
     readOnly: Boolean = false,
+    unpublished: Boolean = false,
+    onUnpublish: (() -> Unit)? = null,
 ) {
     var renaming by rememberSaveable { mutableStateOf(false) }
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
@@ -115,6 +118,7 @@ fun StudioScreen(
                 onDuplicate = onDuplicate,
                 onDelete = onDelete,
                 readOnly = readOnly,
+                onUnpublish = onUnpublish,
                 pill = {
                     if (layout == PlayLayout.SinglePane) {
                         PillWithCard(
@@ -139,7 +143,7 @@ fun StudioScreen(
                 onCheckAgain = onCheckAgain,
                 onOverlay = onOverlay,
                 board = { boardModifier -> if (readOnly) ReadOnlyBoard(board, boardModifier) else board(boardModifier) },
-                toolStrip = { stripModifier -> ToolsOrPublished(readOnly, toolStrip, onDuplicate, stripModifier) },
+                toolStrip = { stripModifier -> ToolsOrPublished(readOnly, unpublished, toolStrip, onDuplicate, stripModifier) },
                 issues = issues,
                 actionArea = actionArea,
                 toast = { toastModifier ->
@@ -164,10 +168,11 @@ fun StudioScreen(
 
 /**
  * The tools while the draft is editable; once published, the "Published · read-only" chip with
- * Duplicate ([onDuplicate]), the one way on to an editable board. The two cross-fade.
+ * Duplicate ([onDuplicate]), the one way on to an editable board; "Unpublished · read-only"
+ * once [unpublished]. The two cross-fade.
  */
 @Composable
-private fun ToolsOrPublished(readOnly: Boolean, tools: @Composable (Modifier) -> Unit, onDuplicate: () -> Unit, modifier: Modifier) {
+private fun ToolsOrPublished(readOnly: Boolean, unpublished: Boolean, tools: @Composable (Modifier) -> Unit, onDuplicate: () -> Unit, modifier: Modifier) {
     val reduced = rememberReducedMotion()
     val duration = if (reduced) MotionTokens.ReducedFadeDuration else MotionTokens.DurationMedium
     AnimatedContent(
@@ -191,8 +196,8 @@ private fun ToolsOrPublished(readOnly: Boolean, tools: @Composable (Modifier) ->
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 val tint = MaterialTheme.colorScheme.onSurfaceVariant
-                Icon(PuzzleIcons.Check, contentDescription = null, modifier = Modifier.size(ChipMarkSize), tint = tint)
-                Text("Published · read-only", style = MaterialTheme.typography.labelLarge, color = tint, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (!unpublished) Icon(PuzzleIcons.Check, contentDescription = null, modifier = Modifier.size(ChipMarkSize), tint = tint)
+                Text(if (unpublished) "Unpublished · read-only" else "Published · read-only", style = MaterialTheme.typography.labelLarge, color = tint, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             AppTextButton(text = "Duplicate", onClick = onDuplicate, modifier = Modifier.testTag("create.published.duplicate"))
         }

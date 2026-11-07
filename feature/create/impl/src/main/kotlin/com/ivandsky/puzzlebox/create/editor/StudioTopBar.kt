@@ -49,9 +49,10 @@ private val TagHorizontalPadding = 6.dp
  * Rename ([onRename]), the [title] on one line over a `STUDIO` tag, the [subtitle]
  * ("Queens 7×7") and the autosave indicator ("Saving…" while [saving], then "✓ Saved") — then
  * the [pill] slot and the overflow ⋮ with Rename, Duplicate as new draft ([onDuplicate]) and
- * Delete draft ([onDelete], in the error colour). A published puzzle is immutable and Delete
- * would read as taking it down, so [readOnly] the title opens nothing and the menu holds only
- * Duplicate.
+ * Delete draft ([onDelete], in the error colour). A published puzzle is immutable and its
+ * draft is the record its published page shows, so [readOnly] the title opens nothing and the
+ * menu holds Duplicate and, while the code is live, Unpublish… ([onUnpublish], in the error
+ * colour; null once unpublished).
  *
  * Motion: the title block's press is **Press feedback** at MotionTokens.PressScale; the menu's
  * origin-aware **Scale in + Fade in** from the ⋮ is DropdownMenu's own.
@@ -68,6 +69,7 @@ fun StudioTopBar(
     pill: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     readOnly: Boolean = false,
+    onUnpublish: (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -82,7 +84,12 @@ fun StudioTopBar(
         }
         TitleBlock(title = title, subtitle = subtitle, saving = saving, onClick = onRename.takeUnless { readOnly }, modifier = Modifier.weight(1f))
         pill()
-        OverflowMenu(onRename = onRename.takeUnless { readOnly }, onDuplicate = onDuplicate, onDelete = onDelete.takeUnless { readOnly })
+        OverflowMenu(
+            onRename = onRename.takeUnless { readOnly },
+            onDuplicate = onDuplicate,
+            onDelete = onDelete.takeUnless { readOnly },
+            onUnpublish = onUnpublish.takeIf { readOnly },
+        )
     }
 }
 
@@ -154,7 +161,7 @@ private fun StudioTag() {
 }
 
 @Composable
-private fun OverflowMenu(onRename: (() -> Unit)?, onDuplicate: () -> Unit, onDelete: (() -> Unit)?) {
+private fun OverflowMenu(onRename: (() -> Unit)?, onDuplicate: () -> Unit, onDelete: (() -> Unit)?, onUnpublish: (() -> Unit)?) {
     var open by remember { mutableStateOf(false) }
     val pick: (() -> Unit) -> () -> Unit = { action -> { open = false; action() } }
     Box {
@@ -174,6 +181,13 @@ private fun OverflowMenu(onRename: (() -> Unit)?, onDuplicate: () -> Unit, onDel
                 onClick = pick(onDuplicate),
                 modifier = Modifier.testTag("create.studio.duplicate"),
             )
+            onUnpublish?.let {
+                DropdownMenuItem(
+                    text = { Text("Unpublish…", color = MaterialTheme.colorScheme.error) },
+                    onClick = pick(it),
+                    modifier = Modifier.testTag("create.studio.unpublish"),
+                )
+            }
             onDelete?.let {
                 DropdownMenuItem(
                     text = { Text("Delete draft", color = MaterialTheme.colorScheme.error) },

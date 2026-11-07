@@ -215,6 +215,7 @@ class ToolSlotSwapTest {
         publishedPuzzles = FakePublishedPuzzleRepository(),
         identity = identity,
         idTokens = OneAccountGoogleIdTokenProvider,
+        updatePublishState = signedOutUnpublishing(),
     )
 
     /** Opens the stored, test-passed draft; Studio tests run with friend sharing on unless [flags] say otherwise (ADR-0022). */

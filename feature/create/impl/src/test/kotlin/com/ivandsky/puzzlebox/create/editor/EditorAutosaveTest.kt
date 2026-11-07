@@ -77,7 +77,7 @@ class EditorAutosaveTest {
 
     private suspend fun TestScope.open(saves: CoroutineScope = backgroundScope): EditorViewModel {
         drafts.upsert(storedRow(editor.draft(marks = 1).encode()))
-        val vm = EditorViewModel(EditorKey(DRAFT_ID), store, games, editors, GamePlayRegistry(emptyList()), copyDraft, lanes, saves, clock = { NOW }, createShared = signedOutPublishing(store), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(), idTokens = noGoogleAccount)
+        val vm = EditorViewModel(EditorKey(DRAFT_ID), store, games, editors, GamePlayRegistry(emptyList()), copyDraft, lanes, saves, clock = { NOW }, createShared = signedOutPublishing(store), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(), idTokens = noGoogleAccount, updatePublishState = signedOutUnpublishing())
         runCurrent()
         return vm
     }
@@ -118,7 +118,7 @@ class EditorAutosaveTest {
     @Test
     fun `a stored edit carries the editor's draft format version`() = runTest(mainRule.testDispatcher) {
         drafts.upsert(storedRow(editor.draft(marks = 1).encode()).copy(draftFormatVersion = 0))
-        EditorViewModel(EditorKey(DRAFT_ID), store, games, editors, GamePlayRegistry(emptyList()), copyDraft, lanes, backgroundScope, clock = { NOW }, createShared = signedOutPublishing(store), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(), idTokens = noGoogleAccount)
+        EditorViewModel(EditorKey(DRAFT_ID), store, games, editors, GamePlayRegistry(emptyList()), copyDraft, lanes, backgroundScope, clock = { NOW }, createShared = signedOutPublishing(store), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(), idTokens = noGoogleAccount, updatePublishState = signedOutUnpublishing())
         runCurrent()
 
         controller.edit(edited)

@@ -34,6 +34,7 @@ import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
 import com.ivandsky.puzzlebox.domain.PublishOutcome
+import com.ivandsky.puzzlebox.domain.UpdatePublishState
 import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GamePlugin
@@ -68,6 +69,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
@@ -86,6 +88,9 @@ import org.robolectric.shadows.ShadowLooper
  * author's time), whose Duplicate opens an editable, unreserved copy in the Studio; the empty
  * tab has its own state; the page's key survives saved state; and a published draft reopened
  * over the stored rows alone, as after process death, is the read-only Studio with its ticket.
+ * Unpublish, from the page or the Studio's overflow, tombstones the shared doc and marks the
+ * row once confirmed; Cancel and offline change nothing; an unpublished draft reopens as the
+ * read-only record with its ticket struck.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h640dp")
@@ -197,6 +202,102 @@ class CreatePublishedTabTest {
         composeRule.onNodeWithTag(CODE).assertTextEquals(code.display)
     }
 
+    @Test
+    fun `confirming Unpublish on the page tombstones the doc, marks the row and strikes the listed code`() {
+        store(draftRow("castle", marks = 1, code = null))
+        val code = publishHeadless("castle")
+        val navigator = show(PublishedPuzzleKey(code.value))
+
+        askToUnpublishOnPage()
+        composeRule.onNodeWithTag(DIALOG_CONFIRM).performClick()
+
+        awaitTrue { shared.docs.getValue(code).unpublished && published.rows.getValue(code).unpublished }
+        awaitCount(DIALOG, 0)
+        awaitCount(UNPUBLISHED, 1)
+        awaitCount(PAGE_UNPUBLISH, 0)
+        awaitCount(TOAST_UNPUBLISHED, 1)
+        composeRule.onNodeWithTag(PAGE_BACK).performClick()
+        awaitTrue { navigator.top == CreateKey }
+        composeRule.onNodeWithTag(TAB_PUBLISHED).performClick()
+        awaitCount(ROW_CODE_STRUCK, 1)
+    }
+
+    @Test
+    fun `Cancel closes the dialog and changes nothing`() {
+        store(draftRow("castle", marks = 1, code = null))
+        val code = publishHeadless("castle")
+        show(PublishedPuzzleKey(code.value))
+
+        askToUnpublishOnPage()
+        composeRule.onNodeWithTag(DIALOG_CANCEL).performClick()
+
+        awaitCount(DIALOG, 0)
+        assertFalse(shared.docs.getValue(code).unpublished)
+        assertFalse(published.rows.getValue(code).unpublished)
+        awaitCount(UNPUBLISHED, 0)
+        awaitCount(PAGE_UNPUBLISH, 1)
+    }
+
+    @Test
+    fun `offline, confirming keeps the dialog open with the retry line and changes nothing`() {
+        store(draftRow("castle", marks = 1, code = null))
+        val code = publishHeadless("castle")
+        show(PublishedPuzzleKey(code.value))
+        shared.online = false
+
+        askToUnpublishOnPage()
+        composeRule.onNodeWithTag(DIALOG_CONFIRM).performClick()
+
+        awaitCount(DIALOG_OFFLINE, 1)
+        awaitCount(DIALOG, 1)
+        assertFalse(shared.docs.getValue(code).unpublished)
+        assertFalse(published.rows.getValue(code).unpublished)
+        awaitCount(UNPUBLISHED, 0)
+    }
+
+    @Test
+    fun `the published Studio's overflow unpublishes, then offers it no more`() {
+        store(draftRow("castle", marks = 1, code = null))
+        val code = publishHeadless("castle")
+        show(EditorKey("castle"))
+
+        awaitCount(TICKET, 1)
+        composeRule.onNodeWithTag(STUDIO_MORE).performClick()
+        awaitCount(STUDIO_DELETE, 0)
+        awaitCount(STUDIO_UNPUBLISH, 1)
+        composeRule.onNodeWithTag(STUDIO_UNPUBLISH).performClick()
+        awaitCount(DIALOG, 1)
+        composeRule.onNodeWithTag(DIALOG_CONFIRM).performClick()
+
+        awaitTrue { shared.docs.getValue(code).unpublished && published.rows.getValue(code).unpublished }
+        awaitCount(UNPUBLISHED, 1)
+        composeRule.onNodeWithTag(STUDIO_MORE).performClick()
+        awaitCount(STUDIO_DUPLICATE, 1)
+        awaitCount(STUDIO_UNPUBLISH, 0)
+    }
+
+    @Test
+    fun `an unpublished draft reopens as the read-only record with its ticket struck`() {
+        store(draftRow("castle", marks = 1, code = null))
+        val code = publishHeadless("castle")
+        runBlocking { UpdatePublishState(shared, published)(code) }
+        show(EditorKey("castle"))
+
+        awaitCount(STUDIO_READ_ONLY, 1)
+        awaitCount(UNPUBLISHED, 1)
+        awaitCount(SHARE, 0)
+        composeRule.onNodeWithTag(STUDIO_MORE).performClick()
+        awaitCount(STUDIO_DUPLICATE, 1)
+        awaitCount(STUDIO_UNPUBLISH, 0)
+        awaitCount(STUDIO_DELETE, 0)
+    }
+
+    private fun askToUnpublishOnPage() {
+        awaitCount(PAGE_UNPUBLISH, 1)
+        composeRule.onNodeWithTag(PAGE_UNPUBLISH).performClick()
+        awaitCount(DIALOG, 1)
+    }
+
     /** Publishes [draftId] through a Studio view model no screen ever showed, then drops it. */
     private fun publishHeadless(draftId: String): ShareCode {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -225,6 +326,7 @@ class CreatePublishedTabTest {
         publishedPuzzles = published,
         identity = identity,
         idTokens = noGoogleAccount,
+        updatePublishState = UpdatePublishState(shared, published),
     )
 
     private fun show(top: NavKey): Navigator =
@@ -244,7 +346,7 @@ class CreatePublishedTabTest {
                         ).also { create = it }
                     }
                     viewModel { (key: PublishedPuzzleKey) ->
-                        PublishedPuzzleViewModel(key, published, drafts, games, editors, GamePlayRegistry(emptyList()), copyDraft, DefaultDispatcherProvider())
+                        PublishedPuzzleViewModel(key, published, drafts, games, editors, GamePlayRegistry(emptyList()), copyDraft, DefaultDispatcherProvider(), UpdatePublishState(shared, published))
                     }
                     viewModel { (key: EditorKey) -> editorViewModel(key, saves) }
                 },
@@ -353,6 +455,20 @@ class CreatePublishedTabTest {
         const val CODE = "create.published.code"
         const val AUTHOR_TIME = "create.published.authorTime"
         const val PAGE_DUPLICATE = "create.publishedPage.duplicate"
+        const val PAGE_UNPUBLISH = "create.publishedPage.unpublish"
+        const val PAGE_BACK = "create.publishedPage.back"
+        const val SHARE = "create.published.share"
+        const val UNPUBLISHED = "create.published.unpublished"
+        const val ROW_CODE_STRUCK = "create.published.row.code.struck"
+        const val TOAST_UNPUBLISHED = "create.toast.unpublished"
+        const val DIALOG = "create.unpublish.dialog"
+        const val DIALOG_CONFIRM = "create.unpublish.confirm"
+        const val DIALOG_CANCEL = "create.unpublish.cancel"
+        const val DIALOG_OFFLINE = "create.unpublish.offline"
+        const val STUDIO_MORE = "create.studio.more"
+        const val STUDIO_UNPUBLISH = "create.studio.unpublish"
+        const val STUDIO_DUPLICATE = "create.studio.duplicate"
+        const val STUDIO_DELETE = "create.studio.delete"
 
         fun pluginOf(editor: GameEditor<TestDraft>): GamePlugin<*, *, *> {
             val base = TestGames.plugin(editor.gameId)

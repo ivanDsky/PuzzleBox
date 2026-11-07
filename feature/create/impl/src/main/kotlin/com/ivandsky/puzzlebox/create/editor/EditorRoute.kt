@@ -19,6 +19,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.api.EditorKey
+import com.ivandsky.puzzlebox.create.published.UnpublishDialog
+import com.ivandsky.puzzlebox.create.published.UnpublishedToast
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.koin.androidx.compose.koinViewModel
@@ -39,8 +41,10 @@ import org.koin.core.parameter.parametersOf
  * board, which holds until that test changes. Publish while signed out opens the
  * [SignInPublishSheet]; a failed sign-in shows its reason in the Studio's toast slot. Once
  * published the action area morphs into the [PublishedTicket] (Copy code toasts in the same slot)
- * and the Studio turns read-only, its Duplicate the way on to an editable copy. The holders stay
- * here: the screen gets their state and events.
+ * and the Studio turns read-only, its Duplicate the way on to an editable copy; the overflow's
+ * Unpublish… opens the [UnpublishDialog], and once taken down the ticket strikes its code and the
+ * "Unpublished" toast shows in the same slot. The holders stay here: the screen gets their state
+ * and events.
  */
 @Composable
 internal fun EditorRoute(
@@ -66,6 +70,7 @@ internal fun EditorRoute(
     val shownPublish = publish.takeIf { ReleaseFlag.FriendSharing in flags }
     val cardOpen by viewModel.verdictCard.open.collectAsStateWithLifecycle()
     val ticket by viewModel.ticket.collectAsStateWithLifecycle()
+    val unpublish by viewModel.unpublish.state.collectAsStateWithLifecycle()
     // Each Copy code bumps it, so the same code copied twice still toasts twice.
     var copies by remember { mutableIntStateOf(0) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flush() }
@@ -181,9 +186,12 @@ internal fun EditorRoute(
                     Box(toastModifier) {
                         SignInFailureToast(failure = publish.signInFailure, onGone = viewModel.publish::dismissSignInFailure, modifier = Modifier)
                         CodeCopiedToast(code = ticket?.code, copies = copies, modifier = Modifier)
+                        UnpublishedToast(code = ticket?.code, done = unpublish.done, modifier = Modifier)
                     }
                 },
                 readOnly = ticket != null,
+                unpublished = ticket?.unpublished == true,
+                onUnpublish = (viewModel.unpublish::ask).takeIf { ticket?.unpublished == false },
             )
         }
     }
@@ -192,6 +200,15 @@ internal fun EditorRoute(
         onGoogle = { viewModel.publish.signIn(activityContext) },
         onCancel = viewModel.publish::cancelSignIn,
     )
+    ticket?.let { shown ->
+        UnpublishDialog(
+            title = shown.title,
+            code = shown.code,
+            state = unpublish,
+            onConfirm = viewModel::confirmUnpublish,
+            onCancel = viewModel.unpublish::cancel,
+        )
+    }
 }
 
 /**

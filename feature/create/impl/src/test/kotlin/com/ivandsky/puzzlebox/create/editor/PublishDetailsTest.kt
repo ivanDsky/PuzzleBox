@@ -209,6 +209,7 @@ class PublishDetailsTest {
         publishedPuzzles = FakePublishedPuzzleRepository(),
         identity = identity,
         idTokens = OneAccountGoogleIdTokenProvider,
+        updatePublishState = signedOutUnpublishing(),
     )
 
     private fun open(signedIn: Boolean) {

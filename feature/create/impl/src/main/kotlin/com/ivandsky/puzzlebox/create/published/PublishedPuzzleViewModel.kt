@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.create.editor.ShareTicket
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
+import com.ivandsky.puzzlebox.domain.UpdatePublishState
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -31,7 +32,8 @@ import kotlinx.coroutines.withContext
  * kept draft whose reserved code it is. That draft's board shows read-only (its controller puts
  * the board back over any edit), under the share ticket from the row's title and author time,
  * the draft's author name and the game's name and hue. [duplicate] stores an editable copy
- * without the test solve or the code, so it publishes under a new one.
+ * without the test solve or the code, so it publishes under a new one. [unpublish] takes the
+ * code down behind its confirm; the row's unpublished mark flows into the ticket as it lands.
  */
 class PublishedPuzzleViewModel(
     private val key: PublishedPuzzleKey,
@@ -42,18 +44,31 @@ class PublishedPuzzleViewModel(
     private val plays: GamePlayRegistry,
     private val copyDraft: CreateDraftCopy,
     private val dispatchers: DispatcherProvider,
+    updatePublishState: UpdatePublishState,
 ) : ViewModel() {
 
     private val loadDraft = LoadDraft(drafts, games, editors)
     private val mutableState = MutableStateFlow<State>(State.Loading)
     internal val state: StateFlow<State> = mutableState.asStateFlow()
 
+    /** Unpublish and its confirm dialog. */
+    internal val unpublish = UnpublishSession(updatePublishState, viewModelScope)
+
     init {
         viewModelScope.launch {
             val ready = load()
             mutableState.value = ready ?: State.Missing
-            if (ready != null) analyze(ready)
+            if (ready != null) {
+                follow(ready.ticket.code)
+                analyze(ready)
+            }
         }
+    }
+
+    /** The page's Unpublish, once confirmed in its dialog. */
+    fun confirmUnpublish() {
+        val ready = state.value as? State.Ready ?: return
+        unpublish.confirm(ready.ticket.code)
     }
 
     /** Stores an editable copy of the published board and reports its id through [onCopied]. */
@@ -77,12 +92,23 @@ class PublishedPuzzleViewModel(
                 authorTimeMs = row.authorTimeMs,
                 game = games.displayName(row.gameId),
                 accent = plays.brandOf(row.gameId).accent,
+                unpublished = row.unpublished,
             ),
             ui = ui,
             controller = controller,
             draftId = stored.id,
             verdict = Verdict.Checking,
         )
+    }
+
+    /** Keeps the ticket's unpublished mark on the stored row's, from the load on. */
+    private fun follow(code: ShareCode) {
+        viewModelScope.launch {
+            published.observe(code).collect { row ->
+                val unpublished = row?.unpublished ?: return@collect
+                mutableState.update { (it as? State.Ready)?.copy(ticket = it.ticket.copy(unpublished = unpublished)) ?: it }
+            }
+        }
     }
 
     private suspend fun analyze(ready: State.Ready) {

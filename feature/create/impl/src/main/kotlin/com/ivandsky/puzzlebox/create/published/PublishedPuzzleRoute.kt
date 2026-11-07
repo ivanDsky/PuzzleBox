@@ -1,10 +1,12 @@
 package com.ivandsky.puzzlebox.create.published
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,10 +16,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -46,10 +50,12 @@ import org.koin.core.parameter.parametersOf
 /**
  * A published puzzle's page (spec A6): under a compact bar whose Back ([onBack]) returns to the
  * Create root, the board as published (read-only), the share ticket with Copy code and Share, a
- * note that it can't be edited, and **Duplicate as new draft**, which stores an editable copy and
- * opens it through [onOpen]. Copy's "Code copied" toast rises at the bottom. The page
- * **Cross-fades** in once loaded (DurationMedium; ReducedFadeDuration under reduced motion).
- * A code with no stored row or kept draft shows the missing-draft screen.
+ * note that it can't be edited, **Duplicate as new draft**, which stores an editable copy and
+ * opens it through [onOpen], and, while the code is live, **Unpublish…** behind its confirm
+ * dialog; once unpublished the ticket strikes its code and the action collapses (**Shrink +
+ * Fade**, DurationMedium). Copy's "Code copied" and the "Unpublished" toasts rise at the
+ * bottom. The page **Cross-fades** in once loaded (DurationMedium; ReducedFadeDuration under
+ * reduced motion). A code with no stored row or kept draft shows the missing-draft screen.
  */
 @Composable
 internal fun PublishedPuzzleRoute(
@@ -72,14 +78,28 @@ internal fun PublishedPuzzleRoute(
         when (shown) {
             PublishedPuzzleViewModel.State.Loading -> Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
             PublishedPuzzleViewModel.State.Missing -> MissingDraftScreen(onBack = onBack)
-            is PublishedPuzzleViewModel.State.Ready -> PublishedPage(shown, onBack, onDuplicate = { viewModel.duplicate(onOpen) })
+            is PublishedPuzzleViewModel.State.Ready -> PublishedPage(
+                page = shown,
+                unpublish = viewModel.unpublish,
+                onBack = onBack,
+                onDuplicate = { viewModel.duplicate(onOpen) },
+                onConfirmUnpublish = viewModel::confirmUnpublish,
+            )
         }
     }
 }
 
 @Composable
-private fun PublishedPage(page: PublishedPuzzleViewModel.State.Ready, onBack: () -> Unit, onDuplicate: () -> Unit) {
+private fun PublishedPage(
+    page: PublishedPuzzleViewModel.State.Ready,
+    unpublish: UnpublishSession,
+    onBack: () -> Unit,
+    onDuplicate: () -> Unit,
+    onConfirmUnpublish: () -> Unit,
+) {
     var copies by remember { mutableIntStateOf(0) }
+    val asked by unpublish.state.collectAsStateWithLifecycle()
+    val duration = if (rememberReducedMotion()) MotionTokens.ReducedFadeDuration else MotionTokens.DurationMedium
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         Column(Modifier.fillMaxSize()) {
             CompactTopBar(
@@ -105,7 +125,11 @@ private fun PublishedPage(page: PublishedPuzzleViewModel.State.Ready, onBack: ()
                 )
                 PublishedTicket(page.ticket, onCopied = { copies++ }, modifier = Modifier.fillMaxWidth())
                 Text(
-                    text = "Published puzzles can’t be edited. Duplicate it to make changes; that publishes under a new code.",
+                    text = if (page.ticket.unpublished) {
+                        "Unpublished puzzles stay here as a record. Duplicate it to share it again; that publishes under a new code."
+                    } else {
+                        "Published puzzles can’t be edited. Duplicate it to make changes; that publishes under a new code."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     overflow = TextOverflow.Ellipsis,
@@ -115,6 +139,19 @@ private fun PublishedPage(page: PublishedPuzzleViewModel.State.Ready, onBack: ()
                     onClick = onDuplicate,
                     modifier = Modifier.fillMaxWidth().testTag("create.publishedPage.duplicate"),
                 )
+                AnimatedVisibility(
+                    visible = !page.ticket.unpublished,
+                    enter = fadeIn(tween(duration)),
+                    exit = shrinkVertically(tween(duration)) + fadeOut(tween(duration)),
+                ) {
+                    TextButton(
+                        onClick = unpublish::ask,
+                        modifier = Modifier.fillMaxWidth().testTag("create.publishedPage.unpublish"),
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    ) {
+                        Text("Unpublish…")
+                    }
+                }
             }
         }
         CodeCopiedToast(
@@ -122,5 +159,17 @@ private fun PublishedPage(page: PublishedPuzzleViewModel.State.Ready, onBack: ()
             copies = copies,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.xl),
         )
+        UnpublishedToast(
+            code = page.ticket.code,
+            done = asked.done,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.xl),
+        )
     }
+    UnpublishDialog(
+        title = page.ticket.title,
+        code = page.ticket.code,
+        state = asked,
+        onConfirm = onConfirmUnpublish,
+        onCancel = unpublish::cancel,
+    )
 }

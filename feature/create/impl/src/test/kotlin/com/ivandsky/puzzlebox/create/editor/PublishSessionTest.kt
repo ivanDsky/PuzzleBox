@@ -228,6 +228,7 @@ class PublishSessionTest {
                             publishedPuzzles = published,
                             identity = identity,
                             idTokens = noGoogleAccount,
+                            updatePublishState = signedOutUnpublishing(),
                         ).also { vm = it }
                     }
                 },

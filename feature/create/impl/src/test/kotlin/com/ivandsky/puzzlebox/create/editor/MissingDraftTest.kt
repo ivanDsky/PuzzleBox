@@ -69,6 +69,7 @@ class MissingDraftTest {
                             publishedPuzzles = FakePublishedPuzzleRepository(),
                             identity = nobodySignedIn(),
                             idTokens = noGoogleAccount,
+                            updatePublishState = signedOutUnpublishing(),
                         )
                     }
                 },

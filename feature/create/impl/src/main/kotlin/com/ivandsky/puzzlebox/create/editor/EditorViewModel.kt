@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.create.api.EditorKey
+import com.ivandsky.puzzlebox.create.published.UnpublishSession
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
@@ -13,6 +14,7 @@ import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
 import com.ivandsky.puzzlebox.domain.PublishOutcome
+import com.ivandsky.puzzlebox.domain.UpdatePublishState
 import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.VariantId
@@ -27,12 +29,9 @@ import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
@@ -42,7 +41,8 @@ import kotlinx.coroutines.launch
  * leaving the Studio). [saves] must outlive this ViewModel: [viewModelScope] is already
  * cancelled when [onCleared] queues the last save. Once a publish lands the draft is
  * read-only (reopened too, while [publishedPuzzles] holds its reserved code): its [ticket] shows, and edits, undo, redo, resize, clear, rename and the publish
- * details change nothing.
+ * details change nothing. [unpublish] takes the code down; the draft stays the read-only record
+ * of what was published, its ticket struck.
  */
 class EditorViewModel(
     private val key: EditorKey,
@@ -58,6 +58,7 @@ class EditorViewModel(
     private val publishedPuzzles: PublishedPuzzleRepository,
     identity: IdentityService,
     idTokens: GoogleIdTokenProvider,
+    updatePublishState: UpdatePublishState,
     private val validatePublish: ValidatePublish = ValidatePublish(),
 ) : ViewModel() {
 
@@ -108,23 +109,12 @@ class EditorViewModel(
         storeDetails = { authorName, note -> lastStored?.let { write(it.copy(authorName = authorName, note = note)) } },
     )
 
-    /**
-     * The published draft's share ticket: its code, title, author, the author's test time and
-     * the game's name and hue. Null until a publish lands.
-     */
+    /** The published draft's share ticket; null until a publish lands. */
     internal val ticket: StateFlow<ShareTicket?> =
-        combine(publish.state, meta.title, testSolve.passed, mutableState) { session, title, passed, editor ->
-            val code = (session.outcome as? PublishOutcome.Published)?.code ?: return@combine null
-            val gameId = (editor as? EditorUiState.Ready)?.controller?.draft?.value?.gameId ?: return@combine null
-            ShareTicket(
-                code = code,
-                title = title,
-                author = session.details.authorName.trim(),
-                authorTimeMs = passed?.timeMs,
-                game = games.displayName(gameId),
-                accent = plays.brandOf(gameId).accent,
-            )
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+        studioTicket(publish.state, meta.title, testSolve.passed, mutableState, publishedPuzzles, games, plays, viewModelScope)
+
+    /** Unpublish and its confirm dialog. */
+    internal val unpublish = UnpublishSession(updatePublishState, viewModelScope)
 
     init {
         viewModelScope.launch {
@@ -194,6 +184,12 @@ class EditorViewModel(
     fun clear() {
         if (published) return
         history.clear()?.let(::adopt)
+    }
+
+    /** The overflow's Unpublish, once confirmed in its dialog. */
+    fun confirmUnpublish() {
+        val code = (publish.state.value.outcome as? PublishOutcome.Published)?.code ?: return
+        unpublish.confirm(code)
     }
 
     /** App stop (A5): the pending edit is stored now, not at the window's end. */

@@ -302,7 +302,7 @@ class TestSolveSessionTest {
             modules(
                 module {
                     viewModel { (key: EditorKey) ->
-                        EditorViewModel(key, drafts, games, editors, plays, copyDraft, DefaultDispatcherProvider(), saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW }, createShared = signedOutPublishing(drafts), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(), idTokens = noGoogleAccount)
+                        EditorViewModel(key, drafts, games, editors, plays, copyDraft, DefaultDispatcherProvider(), saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW }, createShared = signedOutPublishing(drafts), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(), idTokens = noGoogleAccount, updatePublishState = signedOutUnpublishing())
                             .also { vm = it }
                     }
                 },

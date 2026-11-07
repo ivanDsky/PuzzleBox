@@ -87,6 +87,7 @@ class PublishReservedCodeTest {
             publishedPuzzles = FakePublishedPuzzleRepository(),
             identity = author,
             idTokens = noGoogleAccount,
+            updatePublishState = signedOutUnpublishing(),
         )
         runCurrent()
         val verdict = Verdict.Unique(Solution(listOf(1)))
