@@ -10,7 +10,10 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.PublishOutcome
 import com.ivandsky.puzzlebox.model.ShareCode
 
-/** The last publish's [outcome] under Publish: the share code once published, else why it wasn't. */
+/**
+ * The last publish's [outcome] under Publish: the share code once published, else why it wasn't.
+ * Offline, the day's cap and a refusal are [PublishBanner]'s to say, above Publish.
+ */
 @Composable
 internal fun PublishedTicket(outcome: PublishOutcome, modifier: Modifier = Modifier) {
     when (outcome) {
@@ -21,10 +24,8 @@ internal fun PublishedTicket(outcome: PublishOutcome, modifier: Modifier = Modif
             modifier = modifier.testTag("create.published.code"),
         )
         PublishOutcome.SignedOut -> Notice("Sign in to publish.", "create.publish.signedOut", modifier)
-        PublishOutcome.Offline -> Notice("You're offline. Publish needs a connection.", "create.publish.failed", modifier)
-        PublishOutcome.DailyCapReached -> Notice("You've published the most for today.", "create.publish.failed", modifier)
         is PublishOutcome.Blocked -> Notice("This draft isn't ready to publish.", "create.publish.failed", modifier)
-        is PublishOutcome.Rejected -> Notice("Couldn't publish. Try again.", "create.publish.failed", modifier)
+        PublishOutcome.Offline, PublishOutcome.DailyCapReached, is PublishOutcome.Rejected -> Unit
     }
 }
 

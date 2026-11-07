@@ -68,7 +68,7 @@ fun ActionArea(
     detailsInline: Boolean = true,
     onShowDetails: (() -> Unit)? = null,
 ) {
-    val detailBlocks = publish?.details?.blocks.orEmpty()
+    val detailBlocks = publish?.blocks.orEmpty()
     val shown = remember(blocks, detailBlocks) { blocks + detailBlocks }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(
@@ -168,7 +168,8 @@ private const val BOARD_TAG = "board"
 
 /**
  * Copy for every id in [com.ivandsky.puzzlebox.domain.ValidatePublish.blockIds] and
- * [com.ivandsky.puzzlebox.domain.ValidatePublishDetails.blockIds] (ReadinessCopyTest).
+ * [com.ivandsky.puzzlebox.domain.ValidatePublishDetails.blockIds] (ReadinessCopyTest), plus the
+ * Studio's own day's-cap block.
  */
 private val DOMAIN_COPY: Map<String, String> = mapOf(
     PublishBlock.NOT_UNIQUE to "Not unique",
@@ -177,6 +178,7 @@ private val DOMAIN_COPY: Map<String, String> = mapOf(
     PublishBlock.TITLE_TOO_LONG to "Title is too long",
     PublishBlock.AUTHOR_TOO_LONG to "Name is too long",
     PublishBlock.NOTE_TOO_LONG to "Note is too long",
+    PublishBlock.DAILY_CAP to "Daily limit reached",
 )
 
 private fun statusOf(test: TestSolve): String =

@@ -21,6 +21,7 @@ data class PublishBlock(
         const val NOT_TESTED = "not-tested"           // emitted by 26 (domain)
         const val AUTHOR_TOO_LONG = "author-too-long" // emitted by the domain (ValidatePublishDetails)
         const val NOTE_TOO_LONG = "note-too-long"     // emitted by the domain (ValidatePublishDetails)
-        // since M3: DAILY_CAP · since M4: BLOCKLISTED
+        const val DAILY_CAP = "daily-cap"             // emitted by the Studio once the store answers its daily cap
+        // since M4: BLOCKLISTED
     }
 }
