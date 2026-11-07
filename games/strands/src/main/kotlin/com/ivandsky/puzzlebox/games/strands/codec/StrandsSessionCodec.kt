@@ -3,13 +3,13 @@ package com.ivandsky.puzzlebox.games.strands.codec
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameSessionCodec
+import com.ivandsky.puzzlebox.game.PuzzleKeyTag
 import com.ivandsky.puzzlebox.games.strands.ActiveHint
 import com.ivandsky.puzzlebox.games.strands.HintStage
 import com.ivandsky.puzzlebox.games.strands.StrandsPuzzleRef
 import com.ivandsky.puzzlebox.games.strands.StrandsSession
 import com.ivandsky.puzzlebox.games.strands.StrandsState
 import com.ivandsky.puzzlebox.model.PuzzleKey
-import java.time.LocalDate
 
 /**
  * Strands session codec (A30). The puzzle rides by value (nested [StrandsCodec] bytes,
@@ -42,8 +42,8 @@ object StrandsSessionCodec : GameSessionCodec<StrandsSession> {
     private const val FLAG_NUMBER = 2
     private const val FLAG_HINT = 4
 
-    private const val KEY_DAILY = 0
-    private const val KEY_CUSTOM = 1
+    /** The first format whose ref carries a [PuzzleKeyTag]; v1 refs are untagged dailies. */
+    private const val V_KEY_TAG: Int = 2
 
     override fun serialize(session: StrandsSession): ByteArray {
         val state = session.state
@@ -120,50 +120,20 @@ object StrandsSessionCodec : GameSessionCodec<StrandsSession> {
         )
     }
 
-    private fun writeKey(out: ByteWriter, key: PuzzleKey) {
-        when (key) {
-            is PuzzleKey.Daily -> {
-                out.u8(KEY_DAILY)
-                out.zigzag(key.date.toEpochDay())
-                key.puzzleNumber?.let { out.zigzag(it.toLong()) }
-            }
-
-            is PuzzleKey.Custom -> {
-                val id = key.puzzleId.toByteArray(Charsets.UTF_8)
-                require(id.size in 1..0xFF) { "puzzleId must be 1..255 UTF-8 bytes" }
-                out.u8(KEY_CUSTOM)
-                out.u8(id.size)
-                id.forEach { out.u8(it.toInt() and 0xFF) }
-            }
+    /** The Daily number is not flagged here: flag bit1 says whether it follows the date. */
+    private fun writeKey(out: ByteWriter, key: PuzzleKey) =
+        PuzzleKeyTag.write(key, out::u8) { daily ->
+            out.zigzag(daily.date.toEpochDay())
+            daily.puzzleNumber?.let { out.zigzag(it.toLong()) }
         }
-    }
 
-    /** v1 refs carry no tag and are always dailies; the number rides behind flag bit1. */
     private fun readKey(cursor: ByteCursor, version: Int, hasNumber: Boolean): DecodeResult<PuzzleKey> {
-        val tag = if (version == V1) KEY_DAILY else cursor.u8() ?: return malformed("truncated key tag")
-        return when (tag) {
-            KEY_DAILY -> {
-                val epochDay = cursor.zigzag() ?: return malformed("truncated ref date")
-                if (epochDay !in LocalDate.MIN.toEpochDay()..LocalDate.MAX.toEpochDay()) return malformed("ref date out of range")
-                val number = if (hasNumber) {
-                    cursor.zigzag()?.takeIf { it in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong() }?.toInt()
-                        ?: return malformed("bad ref number")
-                } else {
-                    null
-                }
-                DecodeResult.Ok(PuzzleKey.Daily(LocalDate.ofEpochDay(epochDay), number))
-            }
-
-            KEY_CUSTOM -> {
-                if (hasNumber) return malformed("number on a custom ref")
-                val len = cursor.u8()?.takeIf { it > 0 } ?: return malformed("missing puzzleId length")
-                val id = ByteArray(len)
-                for (i in 0 until len) id[i] = (cursor.u8() ?: return malformed("truncated puzzleId")).toByte()
-                DecodeResult.Ok(PuzzleKey.Custom(String(id, Charsets.UTF_8)))
-            }
-
-            else -> malformed("unknown key tag $tag")
+        val key = PuzzleKeyTag.read(version, taggedSince = V_KEY_TAG, u8 = cursor::u8) {
+            val epochDay = cursor.zigzag() ?: return@read malformed("truncated ref date")
+            val number = if (hasNumber) cursor.zigzag() ?: return@read malformed("truncated ref number") else null
+            PuzzleKeyTag.daily(epochDay, number)
         }
+        return if (hasNumber && key.getOrNull() is PuzzleKey.Custom) malformed("number on a custom ref") else key
     }
 
     /** Null on truncation or a repeated word; keeps the stored order. */

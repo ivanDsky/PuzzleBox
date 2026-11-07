@@ -306,6 +306,16 @@ class QueensSessionCodecTest {
         assertTrue("empty puzzleId", isMalformed(custom.copyOf().also { it[at + 1] = 0 }))
     }
 
+    @Test
+    fun `malformed - a puzzleId that is not UTF-8 and a puzzle number past Int`() {
+        val at = 3 + QueensCodec.encode(puzzle()).size + 1
+        val custom = QueensSessionCodec.serialize(session(ref = customRef()))
+        assertTrue("bad UTF-8", isMalformed(custom.copyOf().also { it[at + 2] = 0xFF.toByte() }))
+        // i64 number = 7 + 2^32: narrowing it to Int would read back 7.
+        val daily = QueensSessionCodec.serialize(session(ref = ref()))
+        assertTrue("number past Int", isMalformed(daily.copyOf().also { it[at + 1 + 8 + 1 + 4] = 1 }))
+    }
+
     /** A fresh-session blob with [doneTail] spliced in as the done-list (count + commands). */
     private fun withDone(count: Int, vararg commandBytes: Int): ByteArray {
         val base = QueensSessionCodec.serialize(fresh())

@@ -125,6 +125,14 @@ class StrandsSessionCodecTest {
         assertTrue((StrandsSessionCodec.deserialize(bytes) as DecodeResult.Err).error is DecodeError.Malformed)
     }
 
+    @Test
+    fun `a custom id that is not UTF-8 is malformed`() {
+        val fresh = StrandsState(tinyPuzzle)
+        val bytes = StrandsSessionCodec.serialize(StrandsSession(StrandsPuzzleRef(PuzzleKey.Custom("A")), fresh))
+        bytes[bytes.indexOfFlags() + 3] = 0xFF.toByte()
+        assertTrue((StrandsSessionCodec.deserialize(bytes) as DecodeResult.Err).error is DecodeError.Malformed)
+    }
+
     // ------------------------------------------------------------- frozen fixtures
 
     private fun fixture(name: String): ByteArray =

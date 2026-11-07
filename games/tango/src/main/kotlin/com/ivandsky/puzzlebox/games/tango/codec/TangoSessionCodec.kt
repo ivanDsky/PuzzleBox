@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameSessionCodec
+import com.ivandsky.puzzlebox.game.PuzzleKeyTag
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoPlace
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
@@ -11,7 +12,6 @@ import com.ivandsky.puzzlebox.games.tango.TangoSession
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.io.ByteArrayOutputStream
 import java.time.Instant
-import java.time.LocalDate
 
 /**
  * Tango session codec v3 (A19): self-describing version byte, canonical encode, the
@@ -23,7 +23,7 @@ import java.time.LocalDate
  *     u8    flags                            (bit0 completedAt present, bit1 ref present)
  *     [bit1] u8 keyTag                       (v3+; 0 = Daily, 1 = Custom)
  *     [bit1, Daily]  i64 epochDay, u8 numberPresent, [numberPresent] i64 puzzleNumber
- *     [bit1, Custom] u8 idLen; idLen x u8 puzzleId (UTF-8)
+ *     [bit1, Custom] u8 idLen (1..255); idLen x u8 puzzleId (UTF-8)
  *     u8    placedCount; placedCount x (u8 idx, u8 value)
  *     u8    hintsUsed; u8 mistakeCount
  *     i64   elapsedMs
@@ -100,8 +100,10 @@ object TangoSessionCodec : GameSessionCodec<TangoSession> {
 
         var ref: TangoPuzzleRef? = null
         if (hasRef) {
-            val key = if (version >= 3) readKey(cursor) else readDaily(cursor)
-            ref = TangoPuzzleRef(key ?: return malformed("bad ref key"))
+            ref = when (val key = readKey(cursor, version)) {
+                is DecodeResult.Ok -> TangoPuzzleRef(key.value)
+                is DecodeResult.Err -> return key
+            }
         }
 
         val placedCount = cursor.u8() ?: return malformed("truncated placement count")
@@ -186,48 +188,31 @@ object TangoSessionCodec : GameSessionCodec<TangoSession> {
         repeat(8) { shift -> out.write(((value shr (shift * 8)) and 0xFF).toInt()) }
     }
 
-    private fun writeRef(out: ByteArrayOutputStream, key: PuzzleKey) {
-        when (key) {
-            is PuzzleKey.Daily -> {
-                out.write(KEY_DAILY)
-                writeI64(out, key.date.toEpochDay())
-                val number = key.puzzleNumber
-                if (number == null) {
-                    out.write(0)
-                } else {
-                    out.write(1)
-                    writeI64(out, number.toLong())
-                }
-            }
-            is PuzzleKey.Custom -> {
-                val id = key.puzzleId.toByteArray(Charsets.UTF_8)
-                require(id.size <= 0xFF) { "custom puzzleId exceeds u8 length" }
-                out.write(KEY_CUSTOM)
-                out.write(id.size)
-                out.write(id)
+    private fun writeRef(out: ByteArrayOutputStream, key: PuzzleKey) =
+        PuzzleKeyTag.write(key, out::write) { daily ->
+            writeI64(out, daily.date.toEpochDay())
+            val number = daily.puzzleNumber
+            if (number == null) {
+                out.write(0)
+            } else {
+                out.write(1)
+                writeI64(out, number.toLong())
             }
         }
-    }
 
-    /** v3+ ref: a key tag, then that key's fields. Null on truncation or an unknown tag. */
-    private fun readKey(cursor: Cursor): PuzzleKey? = when (cursor.u8()) {
-        KEY_DAILY -> readDaily(cursor)
-        KEY_CUSTOM -> cursor.u8()?.let(cursor::bytes)?.let { PuzzleKey.Custom(it.toString(Charsets.UTF_8)) }
-        else -> null
-    }
-
-    /** The Daily fields — the whole ref before v3. Null on truncation. */
-    private fun readDaily(cursor: Cursor): PuzzleKey.Daily? {
-        val epochDay = cursor.i64() ?: return null
-        val number = when (cursor.u8() ?: return null) {
-            1 -> cursor.i64() ?: return null
-            else -> null
+    /** The Daily fields are the whole ref before v3. */
+    private fun readKey(cursor: Cursor, version: Int): DecodeResult<PuzzleKey> =
+        PuzzleKeyTag.read(version, taggedSince = V_KEY_TAG, u8 = cursor::u8) {
+            val epochDay = cursor.i64() ?: return@read malformed("truncated ref date")
+            val number = when (cursor.u8() ?: return@read malformed("truncated ref number flag")) {
+                1 -> cursor.i64() ?: return@read malformed("truncated ref number")
+                else -> null
+            }
+            PuzzleKeyTag.daily(epochDay, number)
         }
-        return PuzzleKey.Daily(LocalDate.ofEpochDay(epochDay), number?.toInt())
-    }
 
-    private const val KEY_DAILY = 0
-    private const val KEY_CUSTOM = 1
+    /** The first format whose ref carries a [PuzzleKeyTag]. */
+    private const val V_KEY_TAG = 3
 
     private fun malformed(detail: String): DecodeResult.Err =
         DecodeResult.Err(DecodeError.Malformed(detail))
