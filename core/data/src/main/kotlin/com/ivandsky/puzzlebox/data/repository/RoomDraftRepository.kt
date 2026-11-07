@@ -60,7 +60,11 @@ private fun DraftEntity.toDraft(): Draft {
         blob = blob,
         title = title,
         updatedAt = Instant.ofEpochMilli(updatedAt),
-        testSolve = if (layoutKey != null && timeMs != null && hints != null) TestSolve(layoutKey, timeMs, hints) else null,
+        testSolve = if (layoutKey != null && timeMs != null && hints != null) {
+            TestSolve(layoutKey, timeMs, hints)
+        } else {
+            null
+        },
         reservedCode = reservedCode,
         imported = imported,
         authorName = authorName,
