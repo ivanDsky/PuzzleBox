@@ -19,6 +19,8 @@ data class PublishBlock(
         const val EMPTY_TITLE = "empty-title"         // emitted by 26 (domain)
         const val TITLE_TOO_LONG = "title-too-long"   // emitted by 26 (domain)
         const val NOT_TESTED = "not-tested"           // emitted by 26 (domain)
-        // since M3: AUTHOR_TOO_LONG, NOTE_TOO_LONG, DAILY_CAP · since M4: BLOCKLISTED
+        const val AUTHOR_TOO_LONG = "author-too-long" // emitted by the domain (ValidatePublishDetails)
+        const val NOTE_TOO_LONG = "note-too-long"     // emitted by the domain (ValidatePublishDetails)
+        // since M3: DAILY_CAP · since M4: BLOCKLISTED
     }
 }

@@ -18,8 +18,9 @@ import kotlin.random.Random
 
 /**
  * Publish (spec A15, 16): the stored draft [draftId], open as [draft] with its live [verdict],
- * goes out as a shared document with the solution stripped. Its code is reserved on the draft
- * before the network call, so a retry after a lost answer reuses it and finds its own document.
+ * goes out as a shared document with the solution stripped, once it and its stored author name
+ * and note pass their checks. Its code is reserved on the draft before the network call, so a
+ * retry after a lost answer reuses it and finds its own document.
  */
 class CreateSharedPuzzle(
     private val drafts: DraftRepository,
@@ -30,11 +31,13 @@ class CreateSharedPuzzle(
     private val random: Random,
     private val clock: () -> Instant,
 ) {
+    private val validateDetails = ValidatePublishDetails()
+
     /** Blocks first; then reuse draft.reservedCode or reserve a new one (saved on the draft BEFORE the network call, A15);
      *  create-if-absent; CodeTaken ⇒ regenerate + re-reserve, at most 3 times, then Rejected; Published ⇒ published_puzzles row. */
     suspend operator fun invoke(draftId: String, draft: EditorDraft<*>, verdict: Verdict): PublishOutcome {
         val stored = drafts.get(draftId) ?: return PublishOutcome.Rejected("no draft $draftId")
-        val blocks = validate(draft, verdict, stored.title, stored.testSolve)
+        val blocks = validate(draft, verdict, stored.title, stored.testSolve) + validateDetails(stored.authorName, stored.note)
         if (blocks.isNotEmpty()) return PublishOutcome.Blocked(blocks)
         val payload = draft.encodeShare() ?: return PublishOutcome.Rejected("${draft.gameId.value} can't be shared")
         val shareVersion = checkNotNull(draft.shareFormatVersion)
