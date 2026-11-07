@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameSessionCodec
+import com.ivandsky.puzzlebox.game.PuzzleKeyTag
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipCommand
 import com.ivandsky.puzzlebox.games.zip.ZipPath
@@ -12,7 +13,6 @@ import com.ivandsky.puzzlebox.games.zip.ZipSession
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.io.ByteArrayOutputStream
 import java.time.Instant
-import java.time.LocalDate
 
 /**
  * Zip session codec v3 — the §4 reader rules applied to the play session, field set
@@ -111,13 +111,10 @@ object ZipSessionCodec : GameSessionCodec<ZipSession> {
 
         var ref: ZipPuzzleRef? = null
         if (hasRef) {
-            val tag = if (version >= 3) cursor.u8() ?: return malformed("truncated key tag") else KEY_DAILY
-            val key = when (tag) {
-                KEY_DAILY -> readDaily(cursor) ?: return malformed("truncated daily key")
-                KEY_CUSTOM -> readCustom(cursor) ?: return malformed("malformed custom key")
-                else -> return malformed("unknown key tag $tag")
+            ref = when (val key = readKey(cursor, version)) {
+                is DecodeResult.Ok -> ZipPuzzleRef(key.value)
+                is DecodeResult.Err -> return key
             }
-            ref = ZipPuzzleRef(key)
         }
 
         val pathLen = cursor.u8() ?: return malformed("truncated path length")
@@ -174,45 +171,28 @@ object ZipSessionCodec : GameSessionCodec<ZipSession> {
     private const val FLAG_REF = 2
     private const val FLAG_TIMER_STARTED = 4
 
-    private const val KEY_DAILY = 0
-    private const val KEY_CUSTOM = 1
+    /** The first format whose ref carries a [PuzzleKeyTag]; v1/v2 refs are untagged dailies. */
+    private const val V_KEY_TAG = 3
 
     private const val TAG_EXTEND = 0
     private const val TAG_RETRACT_TO = 1
     private const val TAG_RESET = 2
 
-    private fun writeKey(out: ByteArrayOutputStream, key: PuzzleKey) {
-        when (key) {
-            is PuzzleKey.Daily -> {
-                out.write(KEY_DAILY)
-                writeI64(out, key.date.toEpochDay()) // fits i32 for any plausible calendar, kept i64-simple
-                val number = key.puzzleNumber
-                out.write(if (number == null) 0 else 1)
-                number?.let { writeI64(out, it.toLong()) }
-            }
-
-            is PuzzleKey.Custom -> {
-                val id = key.puzzleId.encodeToByteArray()
-                require(id.size in 1..255) { "layout carries a u8 puzzleId length" }
-                out.write(KEY_CUSTOM)
-                out.write(id.size)
-                out.write(id)
-            }
+    private fun writeKey(out: ByteArrayOutputStream, key: PuzzleKey) =
+        PuzzleKeyTag.write(key, out::write) { daily ->
+            writeI64(out, daily.date.toEpochDay()) // fits i32 for any plausible calendar, kept i64-simple
+            val number = daily.puzzleNumber
+            out.write(if (number == null) 0 else 1)
+            number?.let { writeI64(out, it.toLong()) }
         }
-    }
 
-    private fun readDaily(cursor: ZipSessionCursor): PuzzleKey.Daily? {
-        val epochDay = cursor.i64() ?: return null
-        val number = if ((cursor.u8() ?: return null) == 1) cursor.i64() ?: return null else null
-        return PuzzleKey.Daily(LocalDate.ofEpochDay(epochDay), number?.toInt())
-    }
-
-    /** Null on truncation, an empty id, or bytes that are not UTF-8. */
-    private fun readCustom(cursor: ZipSessionCursor): PuzzleKey.Custom? {
-        val len = cursor.u8()?.takeIf { it > 0 } ?: return null
-        val id = cursor.bytes(len) ?: return null
-        return runCatching { PuzzleKey.Custom(id.decodeToString(throwOnInvalidSequence = true)) }.getOrNull()
-    }
+    private fun readKey(cursor: ZipSessionCursor, version: Int): DecodeResult<PuzzleKey> =
+        PuzzleKeyTag.read(version, taggedSince = V_KEY_TAG, u8 = cursor::u8) {
+            val epochDay = cursor.i64() ?: return@read malformed("truncated daily key")
+            val hasNumber = (cursor.u8() ?: return@read malformed("truncated daily key")) == 1
+            val number = if (hasNumber) cursor.i64() ?: return@read malformed("truncated daily key") else null
+            PuzzleKeyTag.daily(epochDay, number)
+        }
 
     private fun writeCommands(out: ByteArrayOutputStream, commands: List<ZipCommand>) {
         out.write((commands.size shr 8) and 0xFF)

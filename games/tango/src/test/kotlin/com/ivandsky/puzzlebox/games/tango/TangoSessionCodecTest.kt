@@ -10,6 +10,7 @@ import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -120,6 +121,28 @@ class TangoSessionCodecTest {
         val tagAt = 3 + ((bytes[1].toInt() and 0xFF) shl 8) + (bytes[2].toInt() and 0xFF) + 1
 
         assertTrue(decode(bytes.copyOf(tagAt + 4)) is DecodeResult.Err)
+    }
+
+    @Test
+    fun `a zero-length custom id is rejected on write and malformed on read`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            TangoSessionCodec.serialize(fixtureSession.copy(ref = TangoPuzzleRef(PuzzleKey.Custom(""))))
+        }
+
+        val bytes = fixtureBytes("tango-session-v3-custom.bin")
+        val tagAt = 3 + ((bytes[1].toInt() and 0xFF) shl 8) + (bytes[2].toInt() and 0xFF) + 1
+        val idLen = bytes[tagAt + 1].toInt()
+        val empty = bytes.copyOfRange(0, tagAt + 1) + byteArrayOf(0) + bytes.copyOfRange(tagAt + 2 + idLen, bytes.size)
+
+        assertTrue(decode(empty) is DecodeResult.Err)
+    }
+
+    @Test
+    fun `a custom id that is not UTF-8 is malformed`() {
+        val bytes = fixtureBytes("tango-session-v3-custom.bin")
+        val tagAt = 3 + ((bytes[1].toInt() and 0xFF) shl 8) + (bytes[2].toInt() and 0xFF) + 1
+
+        assertTrue(decode(bytes.clone().also { it[tagAt + 2] = 0xFF.toByte() }) is DecodeResult.Err)
     }
 
     /** [session]'s daily bytes at a pre-v3 [version]: the v3 layout minus the key tag. */

@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameSessionCodec
+import com.ivandsky.puzzlebox.game.PuzzleKeyTag
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensBoard
 import com.ivandsky.puzzlebox.games.queens.QueensCommand
@@ -14,7 +15,6 @@ import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.io.ByteArrayOutputStream
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDate
 
 /**
  * Queens session codec (zip ZipSessionCodec shape, A19): the puzzle rides BY VALUE so an
@@ -66,8 +66,8 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
     private const val CMD_TOGGLE = 2
     private const val CMD_CLEAR = 3
 
-    private const val KEY_DAILY = 0
-    private const val KEY_CUSTOM = 1
+    /** The first format whose ref carries a [PuzzleKeyTag]; older refs are untagged dailies. */
+    private const val V_KEY_TAG: Int = 4
 
     override fun serialize(session: QueensSession): ByteArray {
         val puzzleBytes = QueensCodec.encode(session.puzzle) // canonical, self-describing (A19 nesting)
@@ -241,49 +241,24 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
         )
     }
 
-    private fun writeKey(out: ByteArrayOutputStream, key: PuzzleKey) {
-        when (key) {
-            is PuzzleKey.Daily -> {
-                out.write(KEY_DAILY)
-                writeI64(out, key.date.toEpochDay())
-                val number = key.puzzleNumber
-                out.write(if (number == null) 0 else 1)
-                number?.let { writeI64(out, it.toLong()) }
-            }
-
-            is PuzzleKey.Custom -> {
-                val id = key.puzzleId.toByteArray(Charsets.UTF_8)
-                require(id.size in 1..0xFF) { "puzzleId must be 1..255 UTF-8 bytes" }
-                out.write(KEY_CUSTOM)
-                out.write(id.size)
-                out.write(id)
-            }
+    private fun writeKey(out: ByteArrayOutputStream, key: PuzzleKey) =
+        PuzzleKeyTag.write(key, out::write) { daily ->
+            writeI64(out, daily.date.toEpochDay())
+            val number = daily.puzzleNumber
+            out.write(if (number == null) 0 else 1)
+            number?.let { writeI64(out, it.toLong()) }
         }
-    }
 
-    /** v2/v3 refs carry no tag and are always dailies. */
-    private fun readKey(cursor: SessionCursor, version: Int): DecodeResult<PuzzleKey> {
-        val tag = if (version < VERSION) KEY_DAILY else cursor.u8() ?: return malformed("truncated key tag")
-        return when (tag) {
-            KEY_DAILY -> {
-                val epochDay = cursor.i64() ?: return malformed("truncated ref date")
-                val number = when (cursor.u8()) {
-                    0 -> null
-                    1 -> cursor.i64() ?: return malformed("truncated ref number")
-                    else -> return malformed("malformed ref number flag")
-                }
-                DecodeResult.Ok(PuzzleKey.Daily(LocalDate.ofEpochDay(epochDay), number?.toInt()))
+    private fun readKey(cursor: SessionCursor, version: Int): DecodeResult<PuzzleKey> =
+        PuzzleKeyTag.read(version, taggedSince = V_KEY_TAG, u8 = cursor::u8) {
+            val epochDay = cursor.i64() ?: return@read malformed("truncated ref date")
+            val number = when (cursor.u8()) {
+                0 -> null
+                1 -> cursor.i64() ?: return@read malformed("truncated ref number")
+                else -> return@read malformed("malformed ref number flag")
             }
-
-            KEY_CUSTOM -> {
-                val len = cursor.u8()?.takeIf { it > 0 } ?: return malformed("missing puzzleId length")
-                val id = cursor.bytes(len) ?: return malformed("truncated puzzleId")
-                DecodeResult.Ok(PuzzleKey.Custom(String(id, Charsets.UTF_8)))
-            }
-
-            else -> malformed("unknown key tag $tag")
+            PuzzleKeyTag.daily(epochDay, number)
         }
-    }
 
     /** Ascending cell order for determinism. */
     private fun writeCells(out: ByteArrayOutputStream, cells: Collection<Cell>) {

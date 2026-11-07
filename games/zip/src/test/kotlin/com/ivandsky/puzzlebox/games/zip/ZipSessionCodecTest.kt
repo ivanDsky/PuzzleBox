@@ -193,6 +193,15 @@ class ZipSessionCodecTest {
         assertTrue(badResult is DecodeResult.Err && badResult.error is DecodeError.Malformed)
     }
 
+    @Test
+    fun `a puzzle number past Int is Malformed, not narrowed`() {
+        val blob = ZipSessionCodec.serialize(session(ref = ref()))
+        // i64 number = 592 + 2^32: narrowing it to Int would read back 592.
+        val wide = blob.clone().also { it[keyTagOffset(blob) + 1 + 8 + 1 + 4] = 1 }
+        val result = ZipSessionCodec.deserialize(wide)
+        assertTrue(result is DecodeResult.Err && result.error is DecodeError.Malformed)
+    }
+
     /** C3: canonical serialization — same session, same bytes. */
     @Test
     fun `C3 - serialization is deterministic`() {
