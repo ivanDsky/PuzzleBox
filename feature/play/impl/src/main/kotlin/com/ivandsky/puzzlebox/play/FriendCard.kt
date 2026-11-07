@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,9 +34,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
@@ -108,19 +111,27 @@ internal fun FriendCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                val titleStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                val bylineStyle = MaterialTheme.typography.bodyMedium
+                // Room for a two-line title over the byline, so every card in the carousel is the
+                // same height while a one-line title keeps its byline right under it.
+                val measurer = rememberTextMeasurer()
+                val density = LocalDensity.current
+                val textBlock = remember(titleStyle, bylineStyle, density) {
+                    val lines = measurer.measure("\n", titleStyle).size.height + measurer.measure("", bylineStyle).size.height
+                    with(density) { lines.toDp() } + Spacing.xs
+                }
+                Column(Modifier.heightIn(min = textBlock), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Text(
                         text = card.row.title,
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        style = titleStyle,
                         color = MaterialTheme.colorScheme.onSurface,
-                        // Two lines always, so every card in the carousel is the same height.
-                        minLines = 2,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = "by ${card.row.authorName}",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = bylineStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
