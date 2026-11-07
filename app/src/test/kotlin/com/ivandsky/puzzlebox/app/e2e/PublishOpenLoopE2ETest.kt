@@ -40,7 +40,7 @@ import org.robolectric.annotation.Config
 /**
  * The sharing loop over the real shell: a signed-in author publishes a ready Queens draft from
  * the Studio and reads its code; a friend enters that code in Play, opens the card, plays the
- * puzzle to the win and lands back on the card, which now reads Solved.
+ * puzzle to the win and lands on its result, whose Done returns to the card, now reading Solved.
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -65,7 +65,7 @@ class PublishOpenLoopE2ETest {
     )
 
     @Test
-    fun `a published draft opens by its code and its solve marks the card solved`() = shellRobot(graph = graph) {
+    fun `a published draft opens by its code and its solve lands on its result, then the card reads solved`() = shellRobot(graph = graph) {
         graph.identity.currentIdentity = Identity(uid = AUTHOR, displayName = "Ivan", photoUrl = null)
         shared.signedInUid = AUTHOR
         seedReadyDraft()
@@ -97,8 +97,13 @@ class PublishOpenLoopE2ETest {
         rule.waitUntil(TIMEOUT_MS) {
             // A bare waitUntil drives no frame here; pump one so the win's handoff runs.
             rule.runOnIdle { }
-            rule.onAllNodesWithTag("friend.card.solved", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+            rule.onAllNodesWithTag("route.custom_result", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
         }
+        assertRoute("route.custom_result")
+        awaitTag("custom_result.record")
+
+        tap("custom_result.done")
+        awaitTag("friend.card.solved")
         assertRoute("route.friend")
     }
 
