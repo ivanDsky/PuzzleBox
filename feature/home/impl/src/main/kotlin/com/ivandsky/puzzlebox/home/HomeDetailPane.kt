@@ -1,11 +1,12 @@
 package com.ivandsky.puzzlebox.home
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -14,8 +15,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
@@ -28,26 +31,28 @@ internal fun DetailPane(
     state: HomeUiState,
     modifier: Modifier = Modifier,
 ) {
+    val risePx = with(LocalDensity.current) { MotionTokens.MixTabRise.roundToPx() }
+    val background = MaterialTheme.colorScheme.background
+    val rise = remember(risePx) {
+        // Rise-over (polish 04, D): the arriving pane fades in and rises over the leaving
+        // one, which stays opaque until covered, so two panes never fade at once.
+        fadeIn(tween(MotionTokens.MixTabIn, easing = MotionTokens.EasingStandard)) +
+            slideInVertically(tween(MotionTokens.MixTabIn, easing = MotionTokens.EasingStandard)) { risePx }
+    }
     AnimatedContent(
         targetState = selected,
         modifier = modifier
             .testTag("home.detail_pane"),
-        // Shared axis (A12): arriving content decelerates in with a slight rise,
-        // leaving content accelerates out — exit is the faster half.
-        transitionSpec = {
-            (
-                fadeIn(tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingEmphasizedDecelerate)) +
-                    slideInHorizontally(tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingEmphasizedDecelerate)) { it / 12 }
-                )
-                .togetherWith(fadeOut(tween(MotionTokens.DurationShort, easing = MotionTokens.EasingEmphasizedAccelerate)))
-        },
+        // The leaving pane does not animate; it is only held, beneath, until the rise lands.
+        transitionSpec = { rise togetherWith ExitTransition.KeepUntilTransitionsFinished },
         label = "home-detail",
         contentKey = { it?.isoDay },
     ) { day ->
         if (day == null) {
             HomeStreakPane(state = state, modifier = Modifier.fillMaxSize().padding(Spacing.sm))
         } else {
-            DayDetail(day = day, modifier = Modifier.fillMaxSize())
+            // Opaque like the streak pane, so the pane beneath never shows through as it rises.
+            DayDetail(day = day, modifier = Modifier.fillMaxSize().background(background))
         }
     }
 }

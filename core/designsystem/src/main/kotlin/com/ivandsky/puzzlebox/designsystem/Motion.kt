@@ -18,7 +18,7 @@ object MotionTokens {
     val DurationLong = 300
     val DurationExpressive = 400
 
-    // Screen-to-screen nav transitions (Nav3 default is 700ms — sluggish for tab switches).
+    // In-pane transitions (library pages, game feedback); screens move on the Nav* set below.
     // Fade-through: exit fades out fast, enter starts after a delay — content from the two
     // screens never superimposes (emil-design-eng "two distinct objects" overlap fix;
     // tab switches aren't hierarchical, so the slide stays a residual 1/24).
@@ -32,6 +32,38 @@ object MotionTokens {
     const val NavPopEnter = 120
     const val NavPopEnterDelay = 60
     const val NavPopExit = 60
+
+    // Phone navigation (polish 04, variant B): a push slides the whole window in from the
+    // end edge on top; the outgoing page, its bar with it, parallaxes a fraction of the
+    // width under a scrim. Back mirrors it on the shorter standard clock. A tab switch is a
+    // fade-through on the tab clock.
+    const val NavFullSlideEnter = 380
+    const val NavFullSlidePop = 280
+    const val NavParallaxFraction = 0.28f
+    const val NavScrimAlpha = 0.32f
+    const val NavTabExit = 120
+    const val NavTabEnter = 240
+    const val NavTabEnterDelay = 100
+
+    // Tablet navigation (polish 04, variant D): a game lifts out of its tapped card (container
+    // transform); the screen is opaque throughout and the card's content fades off it over
+    // the first MixLiftCardFade (pop: back on over 25–70%). The rail fades and shifts out by
+    // LiftNavShift over the first LiftNavFraction, under LiftScrimAlpha over the list.
+    val LiftEnter = DurationExpressive
+    val LiftExit = DurationLong
+    const val LiftNavFraction = 0.4f
+    val LiftNavShift: Dp = 24.dp
+    const val LiftScrimAlpha = 0.2f
+    const val MixLiftCardFade = 0.45f
+
+    // Game ⇄ result on tablet: both pages travel the full width together, opaque.
+    const val MixAxisPush = 360
+    const val MixAxisPop = 300
+
+    // Tablet tab and list→detail: the incoming page fades in (and a tab rises) over the
+    // outgoing one, which stays opaque — two pages never fade at once.
+    const val MixTabIn = 220
+    val MixTabRise: Dp = 16.dp
 
     // Material 3 emphasized curves: decelerate on the way in, accelerate on the way out.
     val EasingStandard = CubicBezierEasing(0.2f, 0f, 0f, 1f)
