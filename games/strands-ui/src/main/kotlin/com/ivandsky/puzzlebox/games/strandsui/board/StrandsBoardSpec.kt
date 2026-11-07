@@ -30,13 +30,29 @@ internal object StrandsBoardSpec {
     val SpangramRingWidth: Dp = 2.dp
     val SpangramRingInset: Dp = 4.dp
 
-    /**
-     * A drag joins a cell only inside this circle, radius as a fraction of the pitch, so a
-     * diagonal stroke through a corner never picks up the side neighbour (A12). A straight
-     * diagonal passes 0.71 × pitch from the side neighbours' centres, so 0.40 leaves 0.3 pitch
-     * of wobble while the circle spans 80% of the cell, the size of the drawn token.
+    /*
+     * Drag acceptance (A5, prototype 02 variant E), in cell pitches from the tail's centre
+     * unless named otherwise. The direction is the finger's travel over TravelWindowCells,
+     * so a diagonal drawn beside the centre line, wobbling, still reads as diagonal. A side
+     * letter needs both a heading inside its narrow cone and the finger deep in its token,
+     * so it never steals a corner-cutting diagonal.
      */
-    const val HitCircleFraction: Float = 0.40f
+    const val TravelWindowCells: Float = 0.25f
+    const val SideConeDegrees: Float = 15f
+    const val SideJoinCells: Float = 0.40f
+    const val DiagonalConeDegrees: Float = 30f
+
+    /** Of the diagonal step (√2 pitches): the diagonal letter joins this far along it. */
+    const val DiagonalJoinFraction: Float = 0.30f
+
+    /** Within this of the previous letter's centre the drag backs up onto it. */
+    const val BackJoinCells: Float = 0.30f
+
+    /** Within this of the tail's centre nothing joins: a resting finger never picks a neighbour. */
+    const val StillCells: Float = 0.30f
+
+    /** A move is walked in steps no longer than this, so a fast swipe skips no letter. */
+    const val SubStepCells: Float = 0.15f
 
     /** SC11: no cell, and so no touch-down target, is ever smaller than this. */
     val TouchFloor: Dp = 48.dp

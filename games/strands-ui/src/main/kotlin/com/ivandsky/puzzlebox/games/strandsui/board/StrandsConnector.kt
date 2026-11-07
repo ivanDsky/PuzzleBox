@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.CacheDrawScope
 import androidx.compose.ui.draw.drawWithCache
@@ -31,12 +32,23 @@ import com.ivandsky.puzzlebox.gameui.GridGeometry
  * from token edge to token edge, joining the dashed rings and never crossing a letter
  * (an idle letter keeps its >= 4.5:1 on the bare board, A32).
  *
- * Geometry is built in draw caches, never per frame: [links] rebuild on a size or link
- * change, the trace layer on a trace step (its cache reads [trace]), and a frame only replays them.
+ * The live trace is [StrandsLineMotion]'s: while a drag runs, [finger] (read in the draw
+ * phase) stretches its end toward a free letter (A4), and [animate] turns on grow-in,
+ * retract, tip-home and the head pop; reduced motion keeps only the tip. [links] are built
+ * in a draw cache, rebuilt only on a size or link change.
  */
 @Composable
-internal fun StrandsConnectors(rows: Int, cols: Int, links: List<StrandsLink>, trace: () -> Trace, colors: BoardColors) {
-    val tracePath = remember { Path() }
+internal fun StrandsConnectors(
+    rows: Int,
+    cols: Int,
+    links: List<StrandsLink>,
+    trace: () -> Trace,
+    colors: BoardColors,
+    finger: () -> TraceFinger? = { null },
+    animate: Boolean = false,
+) {
+    val scope = rememberCoroutineScope()
+    val motion = remember { StrandsLineMotion(scope) }
     Spacer(
         Modifier
             .fillMaxSize()
@@ -46,12 +58,11 @@ internal fun StrandsConnectors(rows: Int, cols: Int, links: List<StrandsLink>, t
                 onDrawBehind { for (i in drawn.indices) drawn[i](this) }
             }
             .drawWithCache {
-                val cells = trace().path
-                tracePath.reset()
-                tracePath.polylineThrough(cells, GridGeometry(rows, cols, size.width, size.height))
                 val color = connectorColor(LinkKind.Trace, colors)
                 val stroke = roundStroke(LinkKind.Trace)
-                onDrawBehind { if (cells.size >= 2) drawPath(tracePath, color, style = stroke) }
+                onDrawBehind {
+                    with(motion) { drawTrace(trace().path, finger(), rows, cols, color, stroke, animate) }
+                }
             },
     )
 }
