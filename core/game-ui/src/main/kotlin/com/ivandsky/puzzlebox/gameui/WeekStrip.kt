@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -97,9 +98,9 @@ internal fun weekdayInitial(date: LocalDate, locale: Locale): String =
 @PuzzleBoxPreviews
 @Composable
 internal fun WeekStripPreview() {
-    val zip = GameBrand.Neutral.copy(accent = AccentSlot.Blue)
-    val tango = GameBrand.Neutral.copy(accent = AccentSlot.Orange)
-    val queens = GameBrand.Neutral.copy(accent = AccentSlot.Violet)
+    val zip = GameBrand(AccentSlot.Blue, GameGlyphs.Zip)
+    val tango = GameBrand(AccentSlot.Orange, GameGlyphs.Tango)
+    val queens = GameBrand(AccentSlot.Violet, GameGlyphs.Queens)
     val monday = LocalDate.of(2026, 11, 2)
     val solves = listOf(listOf(zip, tango, queens), listOf(tango), listOf(zip, queens))
     val days = (0 until 7).map { offset ->

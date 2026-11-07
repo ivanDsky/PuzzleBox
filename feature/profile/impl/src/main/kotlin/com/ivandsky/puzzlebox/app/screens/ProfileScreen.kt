@@ -19,7 +19,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
+import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
@@ -154,15 +156,15 @@ internal fun ProfileContentPreview() {
                 daysPlayed = 21,
                 games = listOf(
                     ProfileUiState.GameRow(
-                        GameId("zip"), "Zip", GameBrand.Neutral, solved = 20,
+                        GameId("zip"), "Zip", GameBrand(AccentSlot.Blue, GameGlyphs.Zip), solved = 20,
                         best = BestScore(41_000, hints = 0), rankOrder = RankOrder.TimeThenHints,
                     ),
                     ProfileUiState.GameRow(
-                        GameId("strands"), "Strands", GameBrand.Neutral, solved = 22,
+                        GameId("strands"), "Strands", GameBrand(AccentSlot.Pink, GameGlyphs.Strands), solved = 22,
                         best = BestScore(185_000, hints = 1), rankOrder = RankOrder.HintsThenTime,
                     ),
                     ProfileUiState.GameRow(
-                        GameId("tango"), "Tango", GameBrand.Neutral, solved = 0,
+                        GameId("tango"), "Tango", GameBrand(AccentSlot.Orange, GameGlyphs.Tango), solved = 0,
                         best = null, rankOrder = RankOrder.TimeThenHints,
                     ),
                 ),

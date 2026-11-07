@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -24,15 +25,15 @@ import java.time.LocalDate
 
 private val PreviewDay = LocalDate.of(2026, 11, 5)
 
-private fun previewRow(id: String, name: String, accent: AccentSlot, status: TodayStatus?) =
-    HomeUiState.TodayRow(GameId(id), name, status, GameBrand(accent, GameBrand.Neutral.glyph), RankOrder.TimeThenHints)
+private fun previewRow(id: String, name: String, brand: GameBrand, status: TodayStatus?) =
+    HomeUiState.TodayRow(GameId(id), name, status, brand, RankOrder.TimeThenHints)
 
 private val DefaultSet = listOf(
-    previewRow("zip", "Zip", AccentSlot.Orange, TodayStatus.Solved(9_000L)),
-    previewRow("tango", "Tango", AccentSlot.Blue, TodayStatus.InProgress(192_000L)),
-    previewRow("queens", "Queens", AccentSlot.Violet, TodayStatus.NotStarted),
-    previewRow("strands", "Strands", AccentSlot.Teal, TodayStatus.Solved(261_000L)),
-    previewRow("sudoku", "Mini Sudoku", AccentSlot.Pink, TodayStatus.Solved(112_000L)),
+    previewRow("zip", "Zip", GameBrand(AccentSlot.Blue, GameGlyphs.Zip), TodayStatus.Solved(9_000L)),
+    previewRow("tango", "Tango", GameBrand(AccentSlot.Orange, GameGlyphs.Tango), TodayStatus.InProgress(192_000L)),
+    previewRow("queens", "Queens", GameBrand(AccentSlot.Violet, GameGlyphs.Queens), TodayStatus.NotStarted),
+    previewRow("strands", "Strands", GameBrand(AccentSlot.Pink, GameGlyphs.Strands), TodayStatus.Solved(261_000L)),
+    previewRow("sudoku", "Mini Sudoku", GameBrand(AccentSlot.Teal, GameGlyphs.Sudoku), TodayStatus.Solved(112_000L)),
 )
 
 private fun previewState(today: List<HomeUiState.TodayRow>, target: String = "tango") = HomeUiState(
@@ -97,7 +98,7 @@ internal fun TodayBadgePreview() {
             modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer).padding(Spacing.lg),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            (DefaultSet.take(3) + previewRow("strands", "Strands", AccentSlot.Teal, TodayStatus.Offline)).forEach { row ->
+            (DefaultSet.take(3) + previewRow("strands", "Strands", GameBrand(AccentSlot.Pink, GameGlyphs.Strands), TodayStatus.Offline)).forEach { row ->
                 TodayBadge(row, next = row.game.value == "tango", size = TodayBadgeSize.Compact, onClick = {}, modifier = Modifier.width(66.dp))
             }
         }
@@ -113,7 +114,7 @@ internal fun TodayBadgeRingPreview() {
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             listOf(TodayStatus.NotStarted, TodayStatus.InProgress(1L), TodayStatus.Solved(1L), TodayStatus.Offline).forEach {
-                TodayBadgeRing(GameBrand(AccentSlot.Blue, GameBrand.Neutral.glyph), it, TodayBadgeSize.Expanded)
+                TodayBadgeRing(GameBrand(AccentSlot.Blue, GameGlyphs.Zip), it, TodayBadgeSize.Expanded)
             }
         }
     }

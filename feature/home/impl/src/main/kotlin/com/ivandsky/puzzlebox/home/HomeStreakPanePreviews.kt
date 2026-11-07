@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -24,22 +25,22 @@ import java.time.LocalDate
 
 private val PaneDay = LocalDate.of(2026, 11, 5)
 
-private fun paneRow(id: String, name: String, accent: AccentSlot, order: RankOrder, best: BestScore?) =
+private fun paneRow(id: String, name: String, brand: GameBrand, order: RankOrder, best: BestScore?) =
     HomeUiState.TodayRow(
         GameId(id),
         name,
         if (best == null) TodayStatus.NotStarted else TodayStatus.Solved(best.timeMs),
-        GameBrand(accent, GameBrand.Neutral.glyph),
+        brand,
         order,
         best = best,
     )
 
 private val PaneRows = listOf(
-    paneRow("zip", "Zip", AccentSlot.Orange, RankOrder.TimeThenHints, BestScore(9_000L, 0)),
-    paneRow("tango", "Tango", AccentSlot.Blue, RankOrder.TimeThenHints, BestScore(72_000L, 1)),
-    paneRow("queens", "Queens", AccentSlot.Violet, RankOrder.HintsThenTime, BestScore(101_000L, 0)),
-    paneRow("strands", "Strands", AccentSlot.Teal, RankOrder.HintsThenTime, BestScore(261_000L, 2)),
-    paneRow("sudoku", "Mini Sudoku", AccentSlot.Pink, RankOrder.TimeThenHints, null),
+    paneRow("zip", "Zip", GameBrand(AccentSlot.Blue, GameGlyphs.Zip), RankOrder.TimeThenHints, BestScore(9_000L, 0)),
+    paneRow("tango", "Tango", GameBrand(AccentSlot.Orange, GameGlyphs.Tango), RankOrder.TimeThenHints, BestScore(72_000L, 1)),
+    paneRow("queens", "Queens", GameBrand(AccentSlot.Violet, GameGlyphs.Queens), RankOrder.HintsThenTime, BestScore(101_000L, 0)),
+    paneRow("strands", "Strands", GameBrand(AccentSlot.Pink, GameGlyphs.Strands), RankOrder.HintsThenTime, BestScore(261_000L, 2)),
+    paneRow("sudoku", "Mini Sudoku", GameBrand(AccentSlot.Teal, GameGlyphs.Sudoku), RankOrder.TimeThenHints, null),
 )
 
 private fun paneState(rows: List<HomeUiState.TodayRow>, stats: GameStats) = HomeUiState(
