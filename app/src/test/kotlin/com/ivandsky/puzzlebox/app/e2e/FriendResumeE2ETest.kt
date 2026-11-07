@@ -41,9 +41,10 @@ import org.robolectric.annotation.Config
 
 /**
  * A13 over the real shell and a file-backed Room database: a friend's Queens puzzle played for
- * a while, then killed without saved state and reopened offline, shows its card in the Resume
- * state with the time it was left at, and its Play resumes the same marks and time. Today's
- * Queens, in progress at the same time in its own slot, keeps its own marks and time.
+ * a while, then killed without saved state and reopened offline, opens its card over a saved
+ * time (the in-progress time the card's Resume reads) equal to the time it was left at, and
+ * its Play resumes the same marks and time. Today's Queens, in progress at the same time in
+ * its own slot, keeps its own marks and time.
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
