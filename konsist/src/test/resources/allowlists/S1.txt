@@ -33,7 +33,6 @@ core/game/src/main/kotlin/com/ivandsky/puzzlebox/game/Records.kt 3  # S1
 core/testing/src/main/kotlin/com/ivandsky/puzzlebox/testing/game/TestGames.kt 2  # S1
 feature/history/impl/src/main/kotlin/com/ivandsky/puzzlebox/history/HistoryViewModel.kt 2  # S1
 feature/play/impl/src/main/kotlin/com/ivandsky/puzzlebox/play/ResultViewModel.kt 2  # S1
-feature/profile/impl/src/main/kotlin/com/ivandsky/puzzlebox/app/auth/GoogleIdTokenProvider.kt 3  # S1
 games/queens-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/queensui/QueensBoardModel.kt 2  # S1
 games/queens-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/queensui/QueensPlayUi.kt 2  # S1
 games/queens/src/main/kotlin/com/ivandsky/puzzlebox/games/queens/QueensCommands.kt 2  # S1

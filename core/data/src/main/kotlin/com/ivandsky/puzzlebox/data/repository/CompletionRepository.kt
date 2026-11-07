@@ -20,6 +20,9 @@ interface CompletionRepository {
 
     fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>>
 
+    /** Record and replay rows of one friend puzzle (ref key `custom/<gameId>/<puzzleId>`), newest completedAt first. */
+    fun observeCustom(gameId: GameId, puzzleId: String): Flow<List<CompletionRecord>>
+
     /** The game's best (spec A10, A25): the top record row (first solves) of [game] by the
      *  game's own rank order (ADR-0013) — replays never rank; null = no completion yet. */
     suspend fun best(game: GameId): BestScore?

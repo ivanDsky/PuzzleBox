@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.DraftExport
 import com.ivandsky.puzzlebox.game.editor.DraftState
+import com.ivandsky.puzzlebox.game.editor.EditorShareCodec
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Solution
@@ -22,9 +23,13 @@ import com.ivandsky.puzzlebox.model.GameId
  * Queens' pure editor (ADR-0019): a new board, also what resize and clear reset to (A5), has
  * every cell [QueensDraft.UNPAINTED] (ledger ruling: blank = empty), so it starts Incomplete
  * on the unpainted count; the variant table is the shipped sizes 4..12 (A5). A unique draft
- * exports through the daily [QueensCodec] (A10), so test solve plays a real puzzle.
+ * exports through the daily [QueensCodec] (A10), so test solve plays a real puzzle, and it
+ * shares as board-only [QueensShareCodec] bytes the recipient re-solves.
  */
-object QueensEditor : GameEditor<QueensDraft>, DraftExport<QueensDraft> {
+object QueensEditor :
+    GameEditor<QueensDraft>,
+    DraftExport<QueensDraft>,
+    EditorShareCodec<QueensDraft> by QueensShareCodec {
     override val gameId: GameId get() = QueensDefinition.id
 
     override val variants: List<VariantId> = QueensVariants.all.map { it.id }

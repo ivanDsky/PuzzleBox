@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,6 +48,12 @@ class FakeCompletionRepository(
 
     override fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
         all.map { rows -> rows.filter { it.puzzleRef == puzzleRef } }
+
+    /** Rows carry no completedAt here, so newest first means latest stored first. */
+    override fun observeCustom(gameId: GameId, puzzleId: String): Flow<List<CompletionRecord>> =
+        all.map { rows ->
+            rows.filter { it.puzzleRef.gameId == gameId && it.puzzleRef.key == PuzzleKey.Custom(puzzleId) }.reversed()
+        }
 
     /**
      * Rows are verbatim, so the record is each identity's FIRST stored row (A4 stamping).

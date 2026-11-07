@@ -1,0 +1,18 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.ivandsky.puzzlebox",
+      "sha256_cert_fingerprints": ["8E:88:0D:BA:3E:AB:CB:7C:8E:97:A3:35:83:5B:3D:69:07:9B:5C:16:A8:FC:74:24:B7:1C:58:03:72:05:F7:B9"]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.ivandsky.puzzlebox.debug",
+      "sha256_cert_fingerprints": ["EF:07:04:94:AA:5B:2C:5F:44:DB:B2:B5:B0:E8:CD:4D:82:C1:94:EB:7F:08:B9:10:7F:59:B9:70:66:07:91:3B"]
+    }
+  }
+]

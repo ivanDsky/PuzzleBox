@@ -27,6 +27,10 @@ interface CompletionDao {
     )
     fun observeReplays(puzzleRef: String): Flow<List<CompletionEntity>>
 
+    /** Record and replay rows of one ref, newest first. */
+    @Query("SELECT * FROM completions WHERE puzzleRef = :refKey ORDER BY completedAtMs DESC")
+    fun observeByRef(refKey: String): Flow<List<CompletionEntity>>
+
     /**
      * The best record row (first solves; replays never rank, A10) whose key starts with
      * [prefix] — a game's rows by `"$gameId/"` — time first, hints breaking ties; null when

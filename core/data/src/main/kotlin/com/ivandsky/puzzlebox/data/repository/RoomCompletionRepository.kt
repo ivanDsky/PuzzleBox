@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -41,6 +42,12 @@ internal class RoomCompletionRepository(
 
     override fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
         dao.observeReplays(PuzzleRefKeys.encode(puzzleRef)).map { rows ->
+            rows.mapNotNull { it.toModel(registry) }
+        }
+
+    // Same key shape PuzzleRefKeys.encode writes for a PuzzleKey.Custom ref.
+    override fun observeCustom(gameId: GameId, puzzleId: String): Flow<List<CompletionRecord>> =
+        dao.observeByRef("${PuzzleKey.Custom.NAMESPACE}/${gameId.value}/$puzzleId").map { rows ->
             rows.mapNotNull { it.toModel(registry) }
         }
 

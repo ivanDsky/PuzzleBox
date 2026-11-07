@@ -20,6 +20,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.koin.core)
 
+    testImplementation(projects.core.testing)
     testImplementation(libs.turbine)
     testImplementation(libs.mockito.core)
 }

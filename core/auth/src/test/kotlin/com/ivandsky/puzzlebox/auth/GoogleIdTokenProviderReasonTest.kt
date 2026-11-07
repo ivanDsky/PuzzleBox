@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.app.auth
+package com.ivandsky.puzzlebox.auth
 
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialInterruptedException
@@ -10,8 +10,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Ticket 24: the provider must keep the failure CLASS alive — the profile copy is
- * chosen per class, and only NETWORK may claim a connection problem.
+ * The provider must keep the failure CLASS alive — the profile copy is chosen per
+ * class, and only NETWORK may claim a connection problem.
  */
 class GoogleIdTokenProviderReasonTest {
 
