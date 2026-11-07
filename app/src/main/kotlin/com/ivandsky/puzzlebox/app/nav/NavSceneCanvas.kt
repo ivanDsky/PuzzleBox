@@ -27,6 +27,7 @@ import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import com.ivandsky.puzzlebox.designsystem.LocalNavLiftVisibility
 import com.ivandsky.puzzlebox.designsystem.navLiftTarget
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
+import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 
@@ -42,7 +43,7 @@ internal val LocalNavMotion = compositionLocalOf<State<NavMotion>> { mutableStat
 
 /**
  * Every nav scene's canvas. A board or a result ([entryKey] a [GameKey], a friend's
- * [CustomGameKey], or a [ResultKey]) is
+ * [CustomGameKey], a [ResultKey] or a friend's [CustomResultKey]) is
  * full-window and opaque, insetting only its content; a board is also the target its card
  * lifts into. Any other scene paints opaque inside [LocalChromePadding] only. While this scene
  * is the upper page of a scrimmed move it dims what lies beneath: the window strip to its
@@ -59,7 +60,8 @@ internal fun SceneCanvas(entryKey: Any?, content: @Composable () -> Unit) {
     ) { state -> if (state == EnterExitState.Visible) 1f else 0f }
     val scrim = MaterialTheme.colorScheme.scrim
     val background = MaterialTheme.colorScheme.background
-    val immersive = entryKey is GameKey || entryKey is CustomGameKey || entryKey is ResultKey
+    val immersive = entryKey is GameKey || entryKey is CustomGameKey ||
+        entryKey is ResultKey || entryKey is CustomResultKey
     Box(
         Modifier
             .fillMaxSize()

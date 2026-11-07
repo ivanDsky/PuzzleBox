@@ -62,6 +62,9 @@ private val CardMaxWidth = 420.dp
  * waits on the record write (F2 §7 fire-and-observe); null means the write is still in
  * flight or the verdict is unknown. A failed write ([writeFailed]) stays surfaced and
  * retryable through [onRetryWrite], where the player is after solving.
+ *
+ * [details] is a result's own block under the tiles (a friend's puzzle names its author
+ * and their time there); null, a daily's, adds nothing.
  */
 @Composable
 fun ResultScreen(
@@ -85,6 +88,7 @@ fun ResultScreen(
     rolloverAt: Instant? = null,
     writeFailed: Boolean = false,
     onRetryWrite: () -> Unit = {},
+    details: (@Composable () -> Unit)? = null,
 ) {
     val shownVerdict = verdict.takeUnless { practice }
     BoxWithConstraints(modifier.fillMaxSize()) {
@@ -132,6 +136,7 @@ fun ResultScreen(
                         doneToday = doneToday,
                         total = total,
                     )
+                    details?.invoke()
                     if (writeFailed) WriteFailedRow(onRetryWrite)
                     val pending = primary == null
                     ResultActions(

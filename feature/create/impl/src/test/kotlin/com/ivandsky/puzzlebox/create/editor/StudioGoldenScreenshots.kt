@@ -6,12 +6,14 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -116,7 +118,9 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
             onDuplicate = {},
             onDelete = {},
             board = { boardModifier ->
-                Box(boardModifier.background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))
+                Box(boardModifier, contentAlignment = Alignment.Center) {
+                    Box(Modifier.aspectRatio(1f, matchHeightConstraintsFirst = true).background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))
+                }
             },
             toolStrip = { stripModifier ->
                 ToolStrip(

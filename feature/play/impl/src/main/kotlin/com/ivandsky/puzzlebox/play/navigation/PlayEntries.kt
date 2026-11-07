@@ -9,10 +9,12 @@ import com.ivandsky.puzzlebox.play.GameRoute
 import com.ivandsky.puzzlebox.play.LibraryRoute
 import com.ivandsky.puzzlebox.play.ResultRoute
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
+import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.play.friend.CustomResultRoute
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleRoute
 
 /**
@@ -24,7 +26,8 @@ import com.ivandsky.puzzlebox.play.friend.FriendPuzzleRoute
  * the navigator's back, and solving replaces the board with its slot's result, so back
  * from there lands on the game's origin (SC4). The library's Enter code pushes that code's
  * [FriendPuzzleKey] card; its Play pushes the puzzle's [CustomGameKey] board, and solving
- * replaces the board with the card again. The library opens its code sheet on
+ * replaces the board with its [CustomResultKey] result, whose Done pops back to the card and
+ * whose Play again replaces it with the board again. The library opens its code sheet on
  * [codeDraft]'s text and hands it back through [onCodeDraftTaken].
  */
 fun EntryProviderScope<NavKey>.playEntry(
@@ -55,7 +58,16 @@ fun EntryProviderScope<NavKey>.playEntry(
             key = key,
             layout = layout,
             onBack = { navigator.pop() },
-            onSolved = { _, _, _ -> navigator.replaceTop(FriendPuzzleKey(key.puzzleId)) },
+            onSolved = { _, timeMs, hintsUsed ->
+                navigator.replaceTop(CustomResultKey(key.gameId, key.puzzleId, timeMs, hintsUsed))
+            },
+        )
+    }
+    entry<CustomResultKey> { key ->
+        CustomResultRoute(
+            key = key,
+            onPlayAgain = { navigator.replaceTop(CustomGameKey(key.gameId, key.puzzleId)) },
+            onDone = { navigator.pop() },
         )
     }
     entry<GameKey> { key ->

@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertSame
 import org.junit.Test
 
 /** The card's witness choice opens afresh on each new settled Multiple and lives in the open controller. */
@@ -50,15 +49,15 @@ class VerdictCardStateTest {
     }
 
     @Test
-    fun `the card reads the open controller's overlay, so a fresh board never shows the last choice`() {
+    fun `a choice goes to the board open now, so a fresh board never shows the last board's choice`() {
         state.read(MULTIPLE)
-        state.choose(OPENING.copy(witness = EditorOverlay.Witness.A))
-        assertSame(controller.overlay, state.overlay)
-
+        val last = controller
         controller = OverlayController()
 
-        assertSame(controller.overlay, state.overlay)
-        assertEquals(EditorOverlay(), state.overlay.value)
+        state.choose(OPENING.copy(witness = EditorOverlay.Witness.A))
+
+        assertEquals(listOf(OPENING), last.adopted)
+        assertEquals(OPENING.copy(witness = EditorOverlay.Witness.A), controller.overlay.value)
     }
 
     private class OverlayController : GameEditorController {
