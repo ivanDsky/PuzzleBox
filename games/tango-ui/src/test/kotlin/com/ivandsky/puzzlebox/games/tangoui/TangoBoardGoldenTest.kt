@@ -38,7 +38,9 @@ import org.robolectric.annotation.GraphicsMode
  * the committed golden — drift fails the test. A missing golden is recorded in
  * place; `-Proborazzi.verify` (the module build wires `tango.golden.verify`) makes a
  * missing golden a FAILURE instead of a record. To regenerate a drifted golden,
- * delete it and rerun (record is the default for absent files only).
+ * delete it and rerun (record is the default for absent files only). CI on Linux passes
+ * `-Pgoldens.pixelCompare=false` (the goldens are macOS-rendered): size is still checked,
+ * the pixel diff is skipped.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -49,6 +51,7 @@ class TangoBoardGoldenTest {
     val composeRule = createComposeRule()
 
     private val strictVerify = System.getProperty("tango.golden.verify") == "true"
+    private val pixelCompare = System.getProperty("goldens.pixelCompare") != "false"
 
     private fun goldenPath(name: String) =
         File("src/test/resources/goldens/$name")
@@ -97,6 +100,7 @@ class TangoBoardGoldenTest {
             actual?.width,
         )
         assertEquals(expected?.height, actual?.height)
+        if (!pixelCompare) return
         val width = expected.width
         val height = expected.height
         var firstDiff: String? = null
