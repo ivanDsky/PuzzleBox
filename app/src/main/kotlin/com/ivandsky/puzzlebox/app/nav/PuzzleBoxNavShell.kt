@@ -35,6 +35,8 @@ import org.koin.compose.koinInject
  * hold to [PlaySessionStore.retain], so a popped, replaced or reselected-away game folds
  * and saves; at activity stop it [PlaySessionStore.flush]es every live play, so a pending
  * throttled save is never lost.
+ *
+ * [codeDraft] and [onCodeDraftTaken] reach the Play library: a draft opens its code sheet.
  */
 @Composable
 internal fun PuzzleBoxNavShell(
@@ -43,6 +45,8 @@ internal fun PuzzleBoxNavShell(
     playLayout: PlayLayout,
     historyLayout: HistoryLayout,
     modifier: Modifier = Modifier,
+    codeDraft: () -> String? = { null },
+    onCodeDraftTaken: () -> Unit = {},
     store: PlaySessionStore = koinInject(),
 ) {
     val reduceMotion = rememberReducedMotion()
@@ -59,6 +63,8 @@ internal fun PuzzleBoxNavShell(
             homeLayout = homeLayout,
             playLayout = playLayout,
             historyLayout = historyLayout,
+            codeDraft = codeDraft,
+            onCodeDraftTaken = onCodeDraftTaken,
         ),
     )
     val motion = remember { mutableStateOf(NavMotion.Idle) }

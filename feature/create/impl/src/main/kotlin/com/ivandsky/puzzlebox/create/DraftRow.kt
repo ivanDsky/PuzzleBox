@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.create.ui.VerdictChip
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -92,7 +93,7 @@ private fun DraftRowPreview() {
                     row = CreateUiState.DraftRow(
                         id = "a",
                         gameId = GameId("queens"),
-                        brand = GameBrand.Neutral.copy(accent = AccentSlot.Teal),
+                        brand = GameBrand(AccentSlot.Violet, GameGlyphs.Queens),
                         title = "Sunday crowns",
                         meta = "Queens · 8×8",
                         edited = "edited 2 h ago",
@@ -105,7 +106,7 @@ private fun DraftRowPreview() {
                     row = CreateUiState.DraftRow(
                         id = "b",
                         gameId = GameId("zip"),
-                        brand = GameBrand.Neutral,
+                        brand = GameBrand(AccentSlot.Blue, GameGlyphs.Zip),
                         title = "A very long draft title that runs past the end of the row",
                         meta = "Zip · 7×7 · imported",
                         edited = "edited 3 d ago",

@@ -24,18 +24,23 @@ import com.ivandsky.puzzlebox.play.friend.FriendPuzzleRoute
  * the navigator's back, and solving replaces the board with its slot's result, so back
  * from there lands on the game's origin (SC4). The library's Enter code pushes that code's
  * [FriendPuzzleKey] card; its Play pushes the puzzle's [CustomGameKey] board, and solving
- * replaces the board with the card again.
+ * replaces the board with the card again. The library opens its code sheet on
+ * [codeDraft]'s text and hands it back through [onCodeDraftTaken].
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
     layout: PlayLayout,
     onOpenHistory: () -> Unit,
+    codeDraft: () -> String? = { null },
+    onCodeDraftTaken: () -> Unit = {},
 ) {
     entry<PlayKey> {
         LibraryRoute(
             layout = layout,
             onPlay = { game, day -> navigator.pushOnce(GameKey(game.value, day?.toString())) },
             onOpenCode = { code -> navigator.pushOnce(FriendPuzzleKey(code.value)) },
+            codeDraft = codeDraft(),
+            onCodeDraftTaken = onCodeDraftTaken,
         )
     }
     entry<FriendPuzzleKey> { key ->

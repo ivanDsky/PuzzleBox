@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -29,7 +30,7 @@ private val PreviewToday = LocalDate.parse("2026-11-05")
 private fun previewRow(
     id: String,
     name: String,
-    accent: AccentSlot,
+    brand: GameBrand,
     status: TodayStatus?,
     total: Int,
     solved: Int,
@@ -45,7 +46,7 @@ private fun previewRow(
         card = GameCardModel(
             game = GameId(id),
             name = name,
-            brand = GameBrand.Neutral.copy(accent = accent),
+            brand = brand,
             status = status,
             rankOrder = order,
             puzzleNumber = total,
@@ -69,11 +70,11 @@ private fun previewState(
     solvedScale: Int = 1,
 ): LibraryUiState {
     val rows = listOf(
-        previewRow("zip", "Zip", AccentSlot.Teal, statuses[0], 598, 531 * solvedScale),
-        previewRow("tango", "Tango", AccentSlot.Orange, statuses[1], 431, 240 * solvedScale),
-        previewRow("queens", "Queens", AccentSlot.Pink, statuses[2], 571, 112 * solvedScale),
-        previewRow("strands", "Strands", AccentSlot.Violet, statuses[3], 612, 54 * solvedScale, RankOrder.HintsThenTime),
-        previewRow("minisudoku", "Mini Sudoku", AccentSlot.Blue, statuses[4], 210, 18 * solvedScale),
+        previewRow("zip", "Zip", GameBrand(AccentSlot.Blue, GameGlyphs.Zip), statuses[0], 598, 531 * solvedScale),
+        previewRow("tango", "Tango", GameBrand(AccentSlot.Orange, GameGlyphs.Tango), statuses[1], 431, 240 * solvedScale),
+        previewRow("queens", "Queens", GameBrand(AccentSlot.Violet, GameGlyphs.Queens), statuses[2], 571, 112 * solvedScale),
+        previewRow("strands", "Strands", GameBrand(AccentSlot.Pink, GameGlyphs.Strands), statuses[3], 612, 54 * solvedScale, RankOrder.HintsThenTime),
+        previewRow("minisudoku", "Mini Sudoku", GameBrand(AccentSlot.Teal, GameGlyphs.Sudoku), statuses[4], 210, 18 * solvedScale),
     )
     return LibraryUiState(rows, rows.first().card.game, offline = statuses.any { it == TodayStatus.Offline })
 }
@@ -174,7 +175,7 @@ internal fun LibraryPartsPreview() {
                 LibraryRow(row, selected = index == 0, compact = false, onClick = {})
             }
             rows.take(4).forEach { PreviewDayCard(it) }
-            GameStatsCard(previewRow("zip", "Zip", AccentSlot.Teal, TodayStatus.NotStarted, 598, 0))
+            GameStatsCard(previewRow("zip", "Zip", GameBrand(AccentSlot.Blue, GameGlyphs.Zip), TodayStatus.NotStarted, 598, 0))
             HowToPlayCard(rows[0], hasLesson = true, onOpenLesson = {})
             OfflinePill()
         }

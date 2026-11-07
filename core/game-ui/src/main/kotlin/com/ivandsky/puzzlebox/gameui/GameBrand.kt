@@ -2,11 +2,12 @@ package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.gameGlyph
 
 /**
  * A game's identity outside its board (spec A2): the design-system hue slot every
- * surface tints the game with, and [glyph], the game's 24-grid icon (a tiny picture of
- * its board, identity §2.5; build it with [gameGlyph], draw it with [GameGlyph]). Each
+ * surface tints the game with, and [glyph], the game's 24-grid icon (one of the design
+ * system's GameGlyphs, identity §2.5; draw it with [GameGlyph]). Each
  * game's UI module registers it on its [GamePlayUi]; [GamePlayRegistry.brandOf] is the
  * one lookup, and an unknown id reads [Neutral].
  */

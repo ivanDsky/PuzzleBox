@@ -86,6 +86,7 @@ tasks.withType<Test>().matching { it.name == "testReleaseUnitTest" }.configureEa
     filter.includeTestsMatching("com.ivandsky.puzzlebox.app.ReleaseGameModulesTest")
     filter.includeTestsMatching("com.ivandsky.puzzlebox.app.ReleaseUpdateChecksTest")
     filter.includeTestsMatching("com.ivandsky.puzzlebox.app.ReleaseFlagsBindingTest")
+    filter.includeTestsMatching("com.ivandsky.puzzlebox.app.ReleaseShareLinksTest")
 }
 
 dependencies {

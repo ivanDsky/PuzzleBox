@@ -138,6 +138,28 @@ class CreateSharedPuzzleTest {
         assertTrue(reservedAtPublish.isEmpty())
     }
 
+    @Test
+    fun `an author name over its cap is blocked and reserves nothing`() = runTest {
+        drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)).copy(authorName = "a".repeat(Draft.AUTHOR_MAX + 1)))
+
+        val outcome = createShared()(DRAFT_ID, board, unique)
+
+        assertEquals(PublishOutcome.Blocked(listOf(PublishBlock(PublishBlock.AUTHOR_TOO_LONG))), outcome)
+        assertNull(drafts.rows[DRAFT_ID]?.reservedCode)
+        assertTrue(reservedAtPublish.isEmpty())
+    }
+
+    @Test
+    fun `the trimmed author name and note go out on the document`() = runTest {
+        drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)).copy(authorName = " Ivan ", note = " Start top left \n"))
+
+        val code = (createShared()(DRAFT_ID, board, unique) as PublishOutcome.Published).code
+
+        val doc = checkNotNull(backend.docs[code])
+        assertEquals("Ivan", doc.authorName)
+        assertEquals("Start top left", doc.note)
+    }
+
     private fun stored(testSolve: TestSolve?, reservedCode: String? = null) = Draft(
         id = DRAFT_ID,
         gameId = GameId("list"),

@@ -116,7 +116,8 @@ class FriendResumeE2ETest {
         tapTab(PlayKey)
         openCard(code)
 
-        // The card's Resume reads the friend slot's saved time; today's slot keeps its own.
+        // The card offers Resume and reads the friend slot's saved time; today's slot keeps its own.
+        awaitTag(CARD_RESUME)
         val inProgress = runBlocking { saves.observeInProgress().first() }
         assertTime("the card resumes at the time it was left", friendLeft.elapsedMs, inProgress[friendSlot])
         assertTime("today's Queens keeps its own time", dailyLeft.elapsedMs, inProgress[dailySlot])
@@ -243,6 +244,7 @@ class FriendResumeE2ETest {
         const val CODE_OPEN = "friend.code.open"
         const val CARD_TITLE = "friend.card.title"
         const val CARD_PLAY = "friend.card.play"
+        const val CARD_RESUME = "friend.card.cta.resume"
         const val CARD_UP = "friend.up"
         const val TIMEOUT_MS = 5_000L
     }

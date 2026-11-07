@@ -15,7 +15,8 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * One Sudoku game's play registration: both games share this class and differ by [definition].
- * [brand] is set at the registration line, so the debug 9x9 stays neutral while Mini reads teal.
+ * [brand] is set at the registration line: both share the Sudoku glyph, the debug 9x9 stays
+ * hueless while Mini reads teal.
  */
 class SudokuPlayUi(
     private val definition: SudokuDefinition,

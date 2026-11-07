@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
+import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.domain.ArchiveDay
 import com.ivandsky.puzzlebox.domain.ArchiveProgress
+import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.FriendPuzzleRow
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
@@ -24,6 +27,7 @@ import com.ivandsky.puzzlebox.gameui.GameCardModel
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.TutorialSession
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -91,7 +95,8 @@ internal data class FriendCardModel(val row: FriendPuzzleRow, val gameName: Stri
  * library left in a back stack across a deep sleep re-reads the day when it shows again.
  * Each start prefetches today's uncached puzzles ([syncToday], A12), so a game that can't
  * load reads Offline. The lesson lives here, so a rotation keeps its step. [friends] is
- * From friends ([ObserveFriendPuzzles]), each puzzle under its game's name and brand.
+ * From friends ([ObserveFriendPuzzles]), each puzzle under its game's name and brand; a
+ * [removeFriend] holds its Undo ([FriendRemoval]) in this scope, so it outlives the snackbar.
  *
  * The selected game's [page] is its calendar month ([ObserveArchiveMonth], today's until
  * [showMonth]) and the past day [pick]ed for the day card; a month change keeps the picked
@@ -111,6 +116,9 @@ class LibraryViewModel(
     private val daily: DailyRepository,
     private val prefs: UserPreferencesRepository,
     friendPuzzles: ObserveFriendPuzzles,
+    received: ReceivedPuzzleRepository,
+    saved: SavedPlayRepository,
+    deleteReceivedPuzzle: DeleteReceivedPuzzle,
 ) : ViewModel() {
 
     private val seed: List<LibraryRowModel> = store.playable.map { (game, name) ->
@@ -157,6 +165,11 @@ class LibraryViewModel(
     internal val friends: StateFlow<List<FriendCardModel>> = friendPuzzles()
         .map { rows -> rows.map { FriendCardModel(it, games.displayName(it.gameId), registry.brandOf(it.gameId)) } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
+
+    private val removal = FriendRemoval(received, saved, deleteReceivedPuzzle, viewModelScope)
+
+    /** The friend's puzzle just removed while its Undo is offered, else null. */
+    internal val removedFriend: StateFlow<ShareCode?> = removal.removed
 
     internal val uiState: StateFlow<LibraryUiState> =
         combine(
@@ -218,6 +231,12 @@ class LibraryViewModel(
         picked.value = null
         month.value = null
     }
+
+    /** Removes [code]'s puzzle and saved play from From friends, offering Undo. */
+    internal fun removeFriend(code: ShareCode) = removal.remove(code)
+
+    /** Brings the just-removed puzzle back with its saved play. */
+    internal fun undoRemoveFriend() = removal.undo()
 
     /** [game]'s lesson opens over the library; a no-op without lessons or while one is open. */
     internal fun openLesson(game: GameId) {

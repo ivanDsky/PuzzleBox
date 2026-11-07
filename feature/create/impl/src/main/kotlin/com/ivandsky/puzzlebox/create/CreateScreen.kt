@@ -46,6 +46,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.maxContentWidth
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -152,7 +153,7 @@ private fun DraftList(
 ) {
     val reducedMotion = rememberReducedMotion()
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().maxContentWidth().testTag("create.list"),
         contentPadding = PaddingValues(bottom = ListBottomInset),
     ) {
         if (state.searchVisible) searchItems(state, onQuery, onFilter)

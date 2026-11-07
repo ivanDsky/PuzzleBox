@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.runtime.Composable
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.BestScore
@@ -12,7 +13,7 @@ import java.time.Instant
 // daily (new best, Next), a slower solve with everything done (the countdown), a
 // practice puzzle (no pill, no streak), and a replay (Done).
 
-private val PreviewBrand = GameBrand(AccentSlot.Violet, GameBrand.Neutral.glyph)
+private val PreviewBrand = GameBrand(AccentSlot.Violet, GameGlyphs.Queens)
 
 /** Seven hours and twelve minutes from the preview's wall clock. */
 private fun previewRollover(): Instant = Instant.now().plusSeconds(7 * 3600L + 12 * 60L)
