@@ -14,7 +14,7 @@ import com.ivandsky.puzzlebox.games.zip.engine.ZipSearchOutcome
  * A Zip draft → its [Verdict]. A started but partial path is Incomplete; a path-less board
  * needs two waypoints (a shared board arrives that way) and is then solved from them alone.
  * Otherwise the bounded search counts up to two paths, so Unique, Multiple and None are exact.
- * Zip shows no difficulty and has no guessing gate. A spent or cancelled budget reads as
+ * A None verdict names the cells [ZipClashLocator] blames. Zip shows no difficulty and has no guessing gate. A spent or cancelled budget reads as
  * [Verdict.Undetermined].
  */
 object ZipDraftAnalyzer {
@@ -38,7 +38,7 @@ object ZipDraftAnalyzer {
         if (outcome !is ZipSearchOutcome.Done) return Verdict.Undetermined
         val found = outcome.solutions.map { path -> path.map(Cell::idx) }
         return when (found.size) {
-            0 -> Verdict.None(emptySet())
+            0 -> Verdict.None(ZipClashLocator.conflicts(board))
             1 -> Verdict.Unique(Solution(found[0]))
             else -> Verdict.Multiple(Solution(found[0]), Solution(found[1]), differing(found[0], found[1]))
         }
