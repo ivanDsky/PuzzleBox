@@ -1,0 +1,56 @@
+package com.ivandsky.puzzlebox.games.tangoui.editor
+
+import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.ReplaceDraft
+import com.ivandsky.puzzlebox.games.tango.TangoCell
+import com.ivandsky.puzzlebox.games.tango.editor.TangoDraft
+import com.ivandsky.puzzlebox.games.tango.editor.TangoEditor
+import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
+import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+/**
+ * The Tango editor screen's live draft. A [place] sets or clears one given as one undoable
+ * [ReplaceDraft] step and goes out through [onEdit]; the VM hands replacement drafts back
+ * through [adopt]. Tango has no witness overlay, so [overlay] stays empty.
+ */
+class TangoEditorController(
+    initial: EditorDraft<*>,
+    private val onEdit: (EditorDraft<*>) -> Unit,
+) : GameEditorController {
+
+    private val current = MutableStateFlow(typed(initial))
+    private val noOverlay = MutableStateFlow(EditorOverlay())
+
+    override val draft: StateFlow<EditorDraft<*>> = current.asStateFlow()
+
+    override val overlay: StateFlow<EditorOverlay> = noOverlay.asStateFlow()
+
+    override fun adopt(draft: EditorDraft<*>) {
+        current.value = typed(draft)
+    }
+
+    override fun adoptOverlay(overlay: EditorOverlay) = Unit
+
+    /** Sets cell [idx] to [value], or empties it when [value] is null; no edit when it already holds that. */
+    fun place(idx: Int, value: TangoCell?) {
+        val board = current.value.state.draft
+        require(idx in 0 until TangoDraft.N * TangoDraft.N) { "no cell $idx on a ${TangoDraft.N}×${TangoDraft.N} board" }
+        if (board.givens[idx] == value) return
+        val givens = if (value == null) board.givens - idx else board.givens + (idx to value)
+        val next = current.value.apply(ReplaceDraft(board, board.copy(givens = givens)))
+        current.value = next
+        onEdit(next)
+    }
+
+    private companion object {
+        /** The registry hands this controller Tango drafts only; anything else is a wiring bug. */
+        fun typed(draft: EditorDraft<*>): EditorDraft<TangoDraft> {
+            require(draft.editor === TangoEditor) { "not a Tango draft: ${draft.gameId.value}" }
+            // Safe: the editor is TangoEditor, so the draft and its history are Tango values.
+            return draft as EditorDraft<TangoDraft>
+        }
+    }
+}
