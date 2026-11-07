@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.create.editor
 
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -11,7 +10,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /**
  * The silent clear's toast: "Board changed — test solve cleared." with Undo ([onUndo]), shown
@@ -27,6 +25,6 @@ internal fun TestClearedToast(shown: Boolean, onUndo: () -> Unit, onGone: () -> 
         if (result == SnackbarResult.ActionPerformed) onUndo() else onGone()
     }
     SnackbarHost(snackbar, modifier) { data ->
-        Snackbar(data, Modifier.padding(Spacing.md).testTag("create.toast.testCleared"))
+        Snackbar(data, Modifier.testTag("create.toast.testCleared"))
     }
 }

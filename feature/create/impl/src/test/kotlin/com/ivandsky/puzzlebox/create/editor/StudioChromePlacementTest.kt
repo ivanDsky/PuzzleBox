@@ -2,9 +2,11 @@ package com.ivandsky.puzzlebox.create.editor
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -50,7 +52,7 @@ class StudioChromePlacementTest {
                     onDuplicate = {},
                     onDelete = {},
                     board = { Box(it) },
-                    toolStrip = { Box(it) },
+                    toolStrip = { Box(it.height(STRIP_HEIGHT).testTag(STRIP)) },
                     cardOpen = cardOpen,
                     onShowCard = { cardOpen = true },
                     onDismissCard = { cardOpen = false },
@@ -62,12 +64,17 @@ class StudioChromePlacementTest {
     }
 
     @Test
-    fun `on a phone the toast sits above Test solve`() {
+    @Config(qualifiers = "w411dp-h891dp")
+    fun `on a phone the toast sits at the bottom of the board slot, above the tool strip`() {
         studio(PlayLayout.SinglePane, testCleared = true)
         composeRule.waitUntil { composeRule.onAllNodes(hasTestTag(TOAST)).fetchSemanticsNodes().isNotEmpty() }
 
         val toast = composeRule.onNodeWithTag(TOAST).getBoundsInRoot()
+        val slot = composeRule.onNodeWithTag(BOARD_SLOT).getBoundsInRoot()
+        val strip = composeRule.onNodeWithTag(STRIP).getBoundsInRoot()
         val cta = composeRule.onNodeWithTag(TEST_SOLVE).getBoundsInRoot()
+        assertTrue("toast bottom ${toast.bottom} over the strip's top ${strip.top}", toast.bottom <= strip.top)
+        assertTrue("toast top ${toast.top} above the slot's top ${slot.top}", toast.top >= slot.top)
         assertTrue("toast bottom ${toast.bottom} over Test solve's top ${cta.top}", toast.bottom <= cta.top)
     }
 
@@ -129,6 +136,9 @@ class StudioChromePlacementTest {
         const val SHEET = "create.verdict.sheet"
         const val CARD = "create.verdict.card"
         const val BOARD_SLOT = "create.editor.board"
+        const val STRIP = "test.toolStrip"
+
+        val STRIP_HEIGHT = 96.dp
 
         val NONE = Verdict.None(emptySet())
     }

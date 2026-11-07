@@ -72,7 +72,7 @@ internal fun StudioSidePane(
                 )
                 toolStrip(Modifier.fillMaxWidth())
             }
-            toast(Modifier.align(Alignment.BottomCenter))
+            toast(Modifier.align(Alignment.BottomCenter).padding(Spacing.md))
         }
         actionArea(Modifier.fillMaxWidth())
     }
