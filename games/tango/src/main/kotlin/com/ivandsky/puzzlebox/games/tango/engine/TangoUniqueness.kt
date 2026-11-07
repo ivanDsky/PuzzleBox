@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.tango.engine
 
+import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 
@@ -8,6 +9,9 @@ import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
  * rejected, never guessed through. Exhaustive solver over the empty cells with local
  * consistency pruning; exposed for the fetch path (ticket 03) to gate dailies and
  * archive playback. JVM-only, pure.
+ *
+ * [bounded] polls a [Budget] at every search node and answers [TangoSearchOutcome.Exhausted]
+ * once it is spent; the other entry points run the same search with [Budget.Unlimited].
  */
 object TangoUniqueness {
 
@@ -22,7 +26,18 @@ object TangoUniqueness {
     }
 
     /** Counts solutions up to [limit] by backtracking over empty cells. */
-    fun countSolutions(puzzle: TangoPuzzle, limit: Int = 2): Int = search(puzzle, limit) {}
+    fun countSolutions(puzzle: TangoPuzzle, limit: Int = 2): Int {
+        var count = 0
+        search(puzzle, limit, Budget.Unlimited) { count++ }
+        return count
+    }
+
+    /** Up to [limit] distinct solutions in search order, or [TangoSearchOutcome.Exhausted] once [budget] is spent. */
+    fun bounded(puzzle: TangoPuzzle, limit: Int, budget: Budget): TangoSearchOutcome {
+        val solutions = ArrayList<List<TangoCell>>()
+        val settled = search(puzzle, limit, budget) { grid -> solutions += grid.map { it!! } }
+        return if (settled) TangoSearchOutcome.Done(solutions) else TangoSearchOutcome.Exhausted
+    }
 
     /**
      * [puzzle]'s one solution, row-major and fully filled (givens included), by the same
@@ -32,15 +47,23 @@ object TangoUniqueness {
     fun solve(puzzle: TangoPuzzle): List<TangoCell>? {
         if (puzzle.n % 2 != 0) return null
         var first: List<TangoCell>? = null
-        val count = search(puzzle, limit = 2) { grid -> if (first == null) first = grid.map { it!! } }
+        var count = 0
+        search(puzzle, limit = 2, Budget.Unlimited) { grid ->
+            if (first == null) first = grid.map { it!! }
+            count++
+        }
         return first.takeIf { count == 1 }
     }
 
-    /** Backtracks over the empty cells, handing each full grid to [onSolution], up to [limit]; returns the count. */
-    private fun search(puzzle: TangoPuzzle, limit: Int, onSolution: (Array<TangoCell?>) -> Unit): Int {
+    /**
+     * Backtracks over the empty cells, handing each full grid to [onSolution], up to [limit].
+     * Polls [budget] once per node; false when it ran out before the search settled.
+     */
+    private fun search(puzzle: TangoPuzzle, limit: Int, budget: Budget, onSolution: (Array<TangoCell?>) -> Unit): Boolean {
         val grid = Array<TangoCell?>(puzzle.cellCount) { idx -> puzzle.givens[idx] }
         val empty = (0 until puzzle.cellCount).filter { idx -> grid[idx] == null }
         var count = 0
+        var exhausted = false
 
         fun consistentAt(idx: Int): Boolean {
             val n = puzzle.n
@@ -56,7 +79,11 @@ object TangoUniqueness {
         }
 
         fun rec(i: Int) {
-            if (count >= limit) return
+            if (exhausted || count >= limit) return
+            if (budget.exhausted()) {
+                exhausted = true
+                return
+            }
             if (i == empty.size) {
                 count++
                 onSolution(grid)
@@ -70,7 +97,7 @@ object TangoUniqueness {
             grid[idx] = null
         }
         rec(0)
-        return count
+        return !exhausted
     }
 
     private fun countLine(grid: Array<TangoCell?>, n: Int, start: Int, step: Int, value: TangoCell = TangoCell.SUN): Int {
