@@ -1,6 +1,10 @@
 package com.ivandsky.puzzlebox.games.sudokuui
 
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.test.captureToImage
+import com.ivandsky.puzzlebox.designsystem.LightBoardTokens
+import org.junit.Assert.assertNotEquals
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -116,5 +120,16 @@ class SudokuGridTest {
 
         assertEquals(listOf(20), selections)
         cell(0).assert(SemanticsMatcher.expectValue(SemanticsProperties.Selected, true))
+    }
+
+    @Test
+    fun `the selected cell is an inset tile on its lip over the bare board`() {
+        show(mini, selected = 35)
+
+        val image = cell(35).captureToImage().toPixelMap()
+        val lipRow = image.height - 1 - with(composeRule.density) { 3.dp.toPx() }.toInt()
+        assertEquals(LightBoardTokens.sudokuSelection, image[image.width / 2, image.height / 2])
+        assertEquals(LightBoardTokens.sudokuSelectionLip, image[image.width / 2, lipRow])
+        assertNotEquals(LightBoardTokens.sudokuSelection, image[0, 0])
     }
 }
