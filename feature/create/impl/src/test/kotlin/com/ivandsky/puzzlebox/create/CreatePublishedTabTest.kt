@@ -411,6 +411,7 @@ class CreatePublishedTabTest {
                             games, editors, GamePlayRegistry(emptyList()), drafts, published,
                             CreateDraft(games, drafts, newId = { "new" }, clock = { NOW }), copyDraft, DefaultDispatcherProvider(),
                             syncSolves = SyncSolvesCounts(published, boards, clock = { NOW }),
+                            releaseFlags = flags,
                             clock = { NOW },
                         ).also { create = it }
                     }

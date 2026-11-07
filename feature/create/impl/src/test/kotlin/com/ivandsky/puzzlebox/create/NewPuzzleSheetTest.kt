@@ -116,6 +116,7 @@ class NewPuzzleSheetTest {
                             CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW }),
                             DefaultDispatcherProvider(),
                             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
+                            releaseFlags = get(),
                             clock = { NOW },
                         )
                     }

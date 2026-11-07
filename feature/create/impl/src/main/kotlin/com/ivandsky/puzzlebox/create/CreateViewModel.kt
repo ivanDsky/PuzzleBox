@@ -3,6 +3,8 @@ package com.ivandsky.puzzlebox.create
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
@@ -19,7 +21,6 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.model.GameId
-import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -41,7 +43,8 @@ import kotlinx.coroutines.withContext
  * The Create root: lists the stored drafts and starts new ones. The New puzzle sheet and the
  * empty state offer every game with an editor UI ([GameEditorRegistry.ids], registration
  * order) whose plugin carries the editor, each at exactly its editor's variants (spec A1, A5)
- * with the middle one as its default size, under its [GamePlayRegistry] brand.
+ * with the middle one as its default size, under its [GamePlayRegistry] brand, while its
+ * [EditorReleaseFlags] flag (if any) is on.
  *
  * Each row's verdict chip (spec A7 on the root) is `analyze(draft, Budget.within(1_500…))` on
  * [DispatcherProvider.default], cached by (id, updatedAt): a draft is analysed again only after
@@ -66,11 +69,12 @@ class CreateViewModel(
     private val copyDraft: CreateDraftCopy,
     private val dispatchers: DispatcherProvider,
     private val syncSolves: SyncSolvesCounts,
+    private val releaseFlags: ReleaseFlags,
     private val clock: () -> Instant,
     private val nanoTime: () -> Long = System::nanoTime,
 ) : ViewModel() {
 
-    private val newGames: List<CreateUiState.NewGame> = editors.ids.mapNotNull { id ->
+    private val editorGames: List<CreateUiState.NewGame> = editors.ids.mapNotNull { id ->
         val editor = games[id]?.editor ?: return@mapNotNull null
         val ui = editors[id] ?: return@mapNotNull null
         val sizes = editor.variants.map { CreateUiState.Size(it, ui.sizeLabel(it)) }
@@ -84,6 +88,9 @@ class CreateViewModel(
             sizes = sizes,
         )
     }
+
+    private fun offered(flags: Set<ReleaseFlag>) =
+        editorGames.filter { EditorReleaseFlags.flagFor(it.id)?.let(flags::contains) ?: true }
 
     private val query = MutableStateFlow("")
     private val filter = MutableStateFlow<GameId?>(null)
@@ -102,8 +109,16 @@ class CreateViewModel(
     private val requested = mutableSetOf<DraftStamp>()
 
     val uiState: StateFlow<CreateUiState> =
-        combine(listed(), verdicts, combine(query, filter, tab.onEach(::syncWhenPublished), ::View), deleted, ::stateOf)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CreateUiState(games = newGames))
+        combine(
+            listed(),
+            verdicts,
+            combine(query, filter, tab.onEach(::syncWhenPublished), ::View),
+            deleted,
+            releaseFlags.enabled.map(::offered),
+            ::stateOf,
+        ).stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CreateUiState(games = offered(releaseFlags.enabled.value)),
+        )
 
     fun onQuery(text: String) {
         query.value = text
@@ -207,7 +222,7 @@ class CreateViewModel(
         }
     }
 
-    private fun stateOf(listed: Listed, settled: Map<DraftStamp, Verdict?>, view: View, removed: Draft?): CreateUiState {
+    private fun stateOf(listed: Listed, settled: Map<DraftStamp, Verdict?>, view: View, removed: Draft?, newGames: List<CreateUiState.NewGame>): CreateUiState {
         val stored = listed.drafts
         val text = view.query
         val game = view.filter
@@ -280,16 +295,5 @@ class CreateViewModel(
         const val SEARCH_THRESHOLD = 8
         const val BUDGET_MS = 1_500L
         const val UNDO_WINDOW_MS = 5_000L
-    }
-}
-
-/** "[verb] just now", "[verb] 5 min ago", "[verb] 2 h ago", "[verb] 3 d ago", aged from [at]. */
-private fun ageLabel(verb: String, at: Instant, now: Instant): String {
-    val age = Duration.between(at, now).coerceAtLeast(Duration.ZERO)
-    return when {
-        age.toMinutes() < 1 -> "$verb just now"
-        age.toHours() < 1 -> "$verb ${age.toMinutes()} min ago"
-        age.toDays() < 1 -> "$verb ${age.toHours()} h ago"
-        else -> "$verb ${age.toDays()} d ago"
     }
 }
