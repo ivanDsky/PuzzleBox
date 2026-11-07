@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.create
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,8 +15,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
@@ -32,11 +36,17 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 
 private val PublishedRowMinHeight = 72.dp
+private val Hairline = 1.dp
+
+/** Title and tile once unpublished: still legible, plainly no longer live. */
+private const val UnpublishedAlpha = 0.72f
 
 /**
  * One published puzzle on the Create root (01 handoff, "Published row"): the game's glyph
  * tile, the title, "{Game} · your time 1:42", and at the end the share code on the game's
- * tint over "published 2 h ago". Tapping the row opens its published page through [onOpen].
+ * tint over "published 2 h ago". An unpublished puzzle keeps its row as a record: tile and
+ * title fade, the meta says "Unpublished" and the code is struck on an outlined pill.
+ * Tapping the row opens its published page through [onOpen].
  */
 @Composable
 fun PublishedRow(row: CreateUiState.PublishedRow, onOpen: () -> Unit, modifier: Modifier = Modifier) {
@@ -50,7 +60,8 @@ fun PublishedRow(row: CreateUiState.PublishedRow, onOpen: () -> Unit, modifier: 
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        GameGlyph(row.brand, GameGlyphSize.Tile)
+        val faded = if (row.unpublished) Modifier.alpha(UnpublishedAlpha) else Modifier
+        Box(faded) { GameGlyph(row.brand, GameGlyphSize.Tile) }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(
                 text = row.title,
@@ -58,6 +69,7 @@ fun PublishedRow(row: CreateUiState.PublishedRow, onOpen: () -> Unit, modifier: 
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+                modifier = faded,
             )
             Text(
                 text = row.meta,
@@ -68,14 +80,7 @@ fun PublishedRow(row: CreateUiState.PublishedRow, onOpen: () -> Unit, modifier: 
             )
         }
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            val accent = row.brand.accent.colors()
-            Surface(shape = PillShape, color = accent.container, contentColor = accent.onContainer) {
-                Text(
-                    text = row.code.display,
-                    style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.Monospace),
-                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs).testTag("create.published.row.code"),
-                )
-            }
+            CodeChip(row)
             Text(
                 text = row.published,
                 style = MaterialTheme.typography.bodySmall,
@@ -83,6 +88,30 @@ fun PublishedRow(row: CreateUiState.PublishedRow, onOpen: () -> Unit, modifier: 
                 maxLines = 1,
             )
         }
+    }
+}
+
+/** The share code on the game's tint; once unpublished, struck through on an outlined pill. */
+@Composable
+private fun CodeChip(row: CreateUiState.PublishedRow) {
+    val accent = row.brand.accent.colors()
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        shape = PillShape,
+        color = if (row.unpublished) scheme.surface else accent.container,
+        contentColor = if (row.unpublished) scheme.onSurfaceVariant else accent.onContainer,
+        border = if (row.unpublished) BorderStroke(Hairline, scheme.outlineVariant) else null,
+    ) {
+        Text(
+            text = row.code.display,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontFamily = FontFamily.Monospace,
+                textDecoration = if (row.unpublished) TextDecoration.LineThrough else null,
+            ),
+            modifier = Modifier
+                .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                .testTag(if (row.unpublished) "create.published.row.code.struck" else "create.published.row.code"),
+        )
     }
 }
 
@@ -111,6 +140,18 @@ private fun PublishedRowPreview() {
                         title = "A very long puzzle title that runs past the end of the row",
                         meta = "Zip · your time 12:05",
                         published = "published 3 d ago",
+                    ),
+                    onOpen = {},
+                )
+                PublishedRow(
+                    row = CreateUiState.PublishedRow(
+                        code = checkNotNull(ShareCode.parse("H3R9PD")),
+                        gameId = GameId("queens"),
+                        brand = GameBrand(AccentSlot.Violet, GameGlyphs.Queens),
+                        title = "Taken down",
+                        meta = "Unpublished · your time 2:10",
+                        published = "published 5 d ago",
+                        unpublished = true,
                     ),
                     onOpen = {},
                 )

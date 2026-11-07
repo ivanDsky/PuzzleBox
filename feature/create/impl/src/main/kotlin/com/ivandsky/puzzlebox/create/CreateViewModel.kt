@@ -248,8 +248,9 @@ class CreateViewModel(
         gameId = row.gameId,
         brand = plays.brandOf(row.gameId),
         title = row.title,
-        meta = "${games.displayName(row.gameId)} · your time ${formatDuration(row.authorTimeMs)}",
+        meta = "${if (row.unpublished) "Unpublished" else games.displayName(row.gameId)} · your time ${formatDuration(row.authorTimeMs)}",
         published = ageLabel("published", row.createdAt, now),
+        unpublished = row.unpublished,
     )
 
     private fun filtersOf(stored: List<Draft>): List<CreateUiState.GameFilter> =
