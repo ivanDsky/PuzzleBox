@@ -14,11 +14,16 @@ import kotlin.math.ceil
  * joins (a backtrack) inside [StrandsBoardSpec.BackJoinCells] of its centre; a diagonal letter
  * once the finger has come [StrandsBoardSpec.DiagonalJoinFraction] of the diagonal step; a
  * side letter only inside [StrandsBoardSpec.SideJoinCells] of its centre. A used, off-board
- * or undecided target joins nothing: no side letter stands in for a diagonal.
+ * or undecided target joins nothing: no side letter stands in for a diagonal. Only a tail the
+ * finger has reached ([StrandsBoardSpec.ArriveCells]) grows the trace, so a corner cut into
+ * the wrong diagonal holds there until the finger backs out or comes to it.
  */
 internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, down: Offset) {
     private val trail = TravelTrail().apply { push(down) }
     private var at = down
+
+    /** The tail the finger has come within [StrandsBoardSpec.ArriveCells] of since it joined. */
+    private var reached: Coord? = null
 
     /** The finger's travel over the last [StrandsBoardSpec.TravelWindowCells]; null until it has gone half that. */
     fun travel(): Offset? = trail.travel(StrandsBoardSpec.TravelWindowCells)
@@ -30,7 +35,10 @@ internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, do
         for (i in 1..steps) {
             val point = from + (to - from) * (i.toFloat() / steps)
             trail.push(point)
-            candidate(point, path())?.let(join)
+            candidate(point, path())?.let {
+                reached = null
+                join(it)
+            }
         }
         at = to
     }
@@ -39,8 +47,10 @@ internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, do
         val tail = path.lastOrNull() ?: return null
         val back = path.getOrNull(path.size - 2)
         val fromTail = point - centreOf(tail)
+        if (path.size == 1 || fromTail.getDistance() <= StrandsBoardSpec.ArriveCells) reached = tail
         if (fromTail.getDistance() < StrandsBoardSpec.StillCells) return null
         if (back != null && (point - centreOf(back)).getDistance() <= StrandsBoardSpec.BackJoinCells) return back
+        if (reached != tail) return null
         val heading = travel() ?: fromTail
         val direction = TraceDirection.of(heading.x, heading.y) ?: return null
         val next = Coord(tail.row + direction.dRow, tail.col + direction.dCol)
