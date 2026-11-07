@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.games.queensui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -15,13 +16,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
-import com.ivandsky.puzzlebox.gameui.LocalPlayBoardPaneCap
 import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
@@ -49,7 +50,8 @@ class QueensPlayUi : GamePlayUi {
 
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
-        QueensBoard(controller as QueensPlayController, modifier)
+        // The tutorial host draws no toolbar pane, so the board keeps Queens' own cap.
+        QueensBoard(controller as QueensPlayController, paneCap = null, modifier)
     }
 
     /**
@@ -69,11 +71,12 @@ class QueensPlayUi : GamePlayUi {
         controller: GamePlayController,
         status: PlayBoardStatus,
         layout: PlayLayout,
+        sidePanel: (@Composable ColumnScope.() -> Unit)?,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
         modifier: Modifier,
     ) {
-        QueensPlayScreen(controller as QueensPlayController, status, layout, onRetry, onSolved, modifier)
+        QueensPlayScreen(controller as QueensPlayController, status, layout, sidePanel, onRetry, onSolved, modifier)
     }
 }
 
@@ -100,6 +103,7 @@ fun QueensPlayScreen(
     controller: QueensPlayController,
     status: PlayBoardStatus,
     layout: PlayLayout,
+    sidePanel: (@Composable ColumnScope.() -> Unit)?,
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -109,7 +113,7 @@ fun QueensPlayScreen(
         AdaptivePlayScaffold(
             layout = layout,
             modifier = Modifier.fillMaxSize(),
-            board = { BoardArea(controller, status, onRetry, onSolved) },
+            board = { paneCap -> BoardArea(controller, status, paneCap, onRetry, onSolved) },
             side = {
                 PlayChrome(
                     clock = controller,
@@ -121,6 +125,7 @@ fun QueensPlayScreen(
             actions = {
                 PlayActionBar(controller, controller, remember(controller) { QueensClear(controller) }, QueensBrand.accent)
             },
+            sidePanel = sidePanel,
         )
     }
 }
@@ -130,6 +135,7 @@ fun QueensPlayScreen(
 private fun BoxScope.BoardArea(
     controller: QueensPlayController,
     status: PlayBoardStatus,
+    paneCap: Dp?,
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
 ) {
@@ -166,7 +172,7 @@ private fun BoxScope.BoardArea(
                     controller.board?.session?.takeIf { it.isComplete }?.let { onSolved(it.elapsedMs, it.hintsUsed) }
                 },
             ) {
-                QueensBoard(controller, Modifier)
+                QueensBoard(controller, paneCap, Modifier)
             }
         } else {
             PlayBoardFallback(status, onRetry, tagPrefix = "queens")
@@ -177,11 +183,11 @@ private fun BoxScope.BoardArea(
 /**
  * Queens' one board, chrome-free ([GamePlayUi.Board]): the daily pane and the tutorial
  * host both draw it, so a lesson's tap cycle is the daily one. It fills the space it is
- * given up to the §6 cap — the caller owns any gutter — and draws nothing until
- * [controller] holds a session.
+ * given up to the §6 cap — [paneCap] in a two-pane toolbar pane, the caller owns any
+ * gutter — and draws nothing until [controller] holds a session.
  */
 @Composable
-private fun QueensBoard(controller: QueensPlayController, modifier: Modifier) {
+private fun QueensBoard(controller: QueensPlayController, paneCap: Dp?, modifier: Modifier) {
     val boardState = controller.board ?: return
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
         // §6 sizing policy: the board side is computed — the space given, capped by
@@ -194,7 +200,7 @@ private fun QueensBoard(controller: QueensPlayController, modifier: Modifier) {
             reservedBottom = 0.dp,
             cellsPerSide = boardState.session.puzzle.size,
             panePadding = 0.dp,
-            maxSide = LocalPlayBoardPaneCap.current ?: queensBoardMaxSideFor(boardState.session.puzzle.size),
+            maxSide = paneCap ?: queensBoardMaxSideFor(boardState.session.puzzle.size),
         )
         QueensPlayBoard(
             state = boardState,

@@ -28,8 +28,7 @@ class ObserveTodayLeaderboardTest {
 
     private fun observe(identity: FakeIdentityService, leaderboard: LeaderboardRepository) =
         ObserveTodayLeaderboard(
-            identity = identity,
-            leaderboard = leaderboard,
+            leaderboard = ObserveLeaderboard(identity, leaderboard),
             featured = GetFeaturedGame(TestGames.registry(listOf(GameId("zip"), GameId("tango")))),
             today = { day },
         )()

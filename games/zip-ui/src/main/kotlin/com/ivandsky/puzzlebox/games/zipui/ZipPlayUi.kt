@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -20,6 +21,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.toRect
+import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -29,7 +31,6 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.GridCell
-import com.ivandsky.puzzlebox.gameui.LocalPlayBoardPaneCap
 import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
@@ -57,7 +58,8 @@ class ZipPlayUi : GamePlayUi {
 
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
-        ZipBoard(controller as ZipPlayController, modifier)
+        // The tutorial host draws no toolbar pane, so the board keeps Zip's own cap.
+        ZipBoard(controller as ZipPlayController, paneCap = null, modifier)
     }
 
     /** Clear empties the trace to the start state, one undo unit (R1). */
@@ -68,11 +70,12 @@ class ZipPlayUi : GamePlayUi {
         controller: GamePlayController,
         status: PlayBoardStatus,
         layout: PlayLayout,
+        sidePanel: (@Composable ColumnScope.() -> Unit)?,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
         modifier: Modifier,
     ) {
-        ZipPlayScreen(controller as ZipPlayController, status, layout, onRetry, onSolved, modifier)
+        ZipPlayScreen(controller as ZipPlayController, status, layout, sidePanel, onRetry, onSolved, modifier)
     }
 }
 
@@ -91,6 +94,7 @@ fun ZipPlayScreen(
     controller: ZipPlayController,
     status: PlayBoardStatus,
     layout: PlayLayout,
+    sidePanel: (@Composable ColumnScope.() -> Unit)?,
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -100,7 +104,7 @@ fun ZipPlayScreen(
         AdaptivePlayScaffold(
             layout = layout,
             modifier = Modifier.fillMaxSize(),
-            board = { BoardArea(controller, status, onRetry, onSolved) },
+            board = { paneCap -> BoardArea(controller, status, paneCap, onRetry, onSolved) },
             side = {
                 PlayChrome(
                     clock = controller,
@@ -110,6 +114,7 @@ fun ZipPlayScreen(
                 )
             },
             actions = { PlayActionBar(controller, controller, controller.edits, ZipBrand.accent) },
+            sidePanel = sidePanel,
         )
     }
 }
@@ -119,6 +124,7 @@ fun ZipPlayScreen(
 private fun BoxScope.BoardArea(
     controller: ZipPlayController,
     status: PlayBoardStatus,
+    paneCap: Dp?,
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
 ) {
@@ -150,7 +156,7 @@ private fun BoxScope.BoardArea(
                 },
                 shape = shape,
             ) {
-                ZipBoard(controller, Modifier)
+                ZipBoard(controller, paneCap, Modifier)
             }
         } else {
             PlayBoardFallback(status, onRetry, tagPrefix = "play")
@@ -160,11 +166,12 @@ private fun BoxScope.BoardArea(
 
 /**
  * Zip's one board, chrome-free ([GamePlayUi.Board]): the daily pane and the tutorial host
- * both draw it, so a lesson's trace input is the daily one. Draws nothing until
- * [controller] holds a session.
+ * both draw it, so a lesson's trace input is the daily one. Capped at [paneCap] in a
+ * two-pane toolbar pane, [PlayBoardMaxWidth] otherwise. Draws nothing until [controller]
+ * holds a session.
  */
 @Composable
-private fun ZipBoard(controller: ZipPlayController, modifier: Modifier) {
+private fun ZipBoard(controller: ZipPlayController, paneCap: Dp?, modifier: Modifier) {
     val rejected = controller.feedback.rejectedMove
     val model = remember(controller, controller.session, controller.hintCell, rejected) {
         controller.rendererModel()
@@ -187,7 +194,7 @@ private fun ZipBoard(controller: ZipPlayController, modifier: Modifier) {
     val hooks = remember(puzzle) { ZipDragHooks(puzzle.board) }
     // Snapshot state read only inside ZipPipes' draw: a moving finger redraws, never recomposes.
     val finger = remember { mutableStateOf<Offset?>(null) }
-    val cap = LocalPlayBoardPaneCap.current ?: PlayBoardMaxWidth
+    val cap = paneCap ?: PlayBoardMaxWidth
     Box(modifier) {
         DragTraceBoard(
             rows = model.n,

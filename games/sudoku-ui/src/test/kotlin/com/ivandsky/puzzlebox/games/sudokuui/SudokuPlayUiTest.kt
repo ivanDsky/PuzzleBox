@@ -80,6 +80,7 @@ class SudokuPlayUiTest {
                     controller = controller,
                     status = PlayBoardStatus.Ready(banner = null),
                     layout = layout,
+                    sidePanel = null,
                     onRetry = {},
                     onSolved = { time, hints -> solved += time to hints },
                     modifier = Modifier,

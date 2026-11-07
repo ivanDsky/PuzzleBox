@@ -167,6 +167,7 @@ class SudokuMotionTest {
                         controller = controller,
                         status = PlayBoardStatus.Ready(banner = null),
                         layout = PlayLayout.SinglePane,
+                        sidePanel = null,
                         onRetry = {},
                         onSolved = { time, hints -> solved += time to hints },
                         modifier = Modifier,

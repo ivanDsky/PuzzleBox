@@ -104,7 +104,7 @@ private fun StreakCard(state: PlayStatsState) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Icon(PuzzleIcons.Flame, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Text(
-                if (state.streak > 0) "${state.streak}-day streak" else "No streak yet — solve today to start one",
+                streakText(state.streak),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.ExtraBold,
                 modifier = Modifier.testTag("play.stats.streak"),
@@ -116,6 +116,13 @@ private fun StreakCard(state: PlayStatsState) {
             StatCell(state.averageMs?.let(::formatDuration) ?: NONE, "your average", Modifier.testTag("play.stats.average"))
         }
     }
+}
+
+// Loading keeps the streak's own shape, so the line doesn't reflow when the count lands.
+private fun streakText(streak: Int?): String = when {
+    streak == null -> "$NONE-day streak"
+    streak > 0 -> "$streak-day streak"
+    else -> "No streak yet — solve today to start one"
 }
 
 /** The panel's card: a low container under a hairline outline. */

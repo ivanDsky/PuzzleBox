@@ -105,6 +105,7 @@ abstract class StrandsGoldenTestBase(
                             controller = controller,
                             status = PlayBoardStatus.Ready(banner = null),
                             layout = layout,
+                            sidePanel = null,
                             onRetry = {},
                             onSolved = { _, _ -> },
                         )

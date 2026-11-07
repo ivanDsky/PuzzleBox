@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -68,24 +67,23 @@ class PlayScaffoldLayoutTest {
     ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                CompositionLocalProvider(LocalPlaySidePanel provides slot) {
-                    AdaptivePlayScaffold(
-                        layout = layout,
-                        modifier = Modifier.requiredSize(width.dp, height.dp),
-                        // Honours the cap the way Tango's and Zip's boards do.
-                        board = {
-                            val cap = LocalPlayBoardPaneCap.current ?: PlayBoardMaxWidth
-                            Box(
-                                Modifier.playBoardPane().padding(horizontal = Spacing.lg),
-                                contentAlignment = Alignment.TopCenter,
-                            ) {
-                                Box(Modifier.widthIn(max = cap).heightIn(max = cap).aspectRatio(1f).testTag("board"))
-                            }
-                        },
-                        side = { PlayChrome(clock = null, hints = Hints, banner = null) },
-                        actions = { PlayActionBar(Undo, Hints, clear = null, accent = AccentSlot.Teal) },
-                    )
-                }
+                AdaptivePlayScaffold(
+                    layout = layout,
+                    modifier = Modifier.requiredSize(width.dp, height.dp),
+                    // Honours the cap the way Tango's and Zip's boards do.
+                    board = { paneCap ->
+                        val cap = paneCap ?: PlayBoardMaxWidth
+                        Box(
+                            Modifier.playBoardPane().padding(horizontal = Spacing.lg),
+                            contentAlignment = Alignment.TopCenter,
+                        ) {
+                            Box(Modifier.widthIn(max = cap).heightIn(max = cap).aspectRatio(1f).testTag("board"))
+                        }
+                    },
+                    side = { PlayChrome(clock = null, hints = Hints, banner = null) },
+                    actions = { PlayActionBar(Undo, Hints, clear = null, accent = AccentSlot.Teal) },
+                    sidePanel = slot,
+                )
             }
         }
     }

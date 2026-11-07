@@ -93,7 +93,7 @@ private fun noteFor(times: PlayTimes, rows: List<PlayTimeRow>?): String? = when 
     PlayTimes.Unavailable -> "Today's times aren't available right now"
     is PlayTimes.Board -> when {
         times.rows.isEmpty() -> "No times posted yet today"
-        rows == null -> "Finish to see who's near you"
+        rows == null -> if (times.solved) "Posting your time…" else "Finish to see who's near you"
         else -> null
     }
 }

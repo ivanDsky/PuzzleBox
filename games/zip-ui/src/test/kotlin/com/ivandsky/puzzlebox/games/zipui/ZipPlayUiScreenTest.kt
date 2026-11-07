@@ -82,6 +82,7 @@ class ZipPlayUiScreenTest {
                     controller = controller,
                     status = status,
                     layout = layout,
+                    sidePanel = null,
                     onRetry = onRetry,
                     onSolved = { timeMs, hintsUsed -> solvedFacts = timeMs to hintsUsed },
                 )
@@ -272,7 +273,7 @@ class ZipPlayUiScreenTest {
             PuzzleBoxTheme {
                 density = LocalDensity.current
                 Box(Modifier.requiredSize(width = 1200.dp, height = 800.dp)) {
-                    ZipPlayScreen(controller, PlayBoardStatus.Ready(null), PlayLayout.SinglePane, onRetry = {}, onSolved = { _, _ -> })
+                    ZipPlayScreen(controller, PlayBoardStatus.Ready(null), PlayLayout.SinglePane, sidePanel = null, onRetry = {}, onSolved = { _, _ -> })
                 }
             }
         }
@@ -299,7 +300,7 @@ class ZipPlayUiScreenTest {
             PuzzleBoxTheme {
                 density = LocalDensity.current
                 Box(Modifier.requiredSize(width = 411.dp, height = 900.dp)) {
-                    ZipPlayScreen(controller, PlayBoardStatus.Ready(null), PlayLayout.SinglePane, onRetry = {}, onSolved = { _, _ -> })
+                    ZipPlayScreen(controller, PlayBoardStatus.Ready(null), PlayLayout.SinglePane, sidePanel = null, onRetry = {}, onSolved = { _, _ -> })
                 }
             }
         }

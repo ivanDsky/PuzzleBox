@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.strandsui
 
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.gameui.GameBrand
@@ -32,10 +33,11 @@ class StrandsPlayUi : GamePlayUi {
         controller: GamePlayController,
         status: PlayBoardStatus,
         layout: PlayLayout,
+        sidePanel: (@Composable ColumnScope.() -> Unit)?,
         onRetry: () -> Unit,
         onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
         modifier: Modifier,
     ) {
-        StrandsPlayScreen(controller as StrandsPlayController, status, layout, onRetry, onSolved, modifier)
+        StrandsPlayScreen(controller as StrandsPlayController, status, layout, sidePanel, onRetry, onSolved, modifier)
     }
 }
