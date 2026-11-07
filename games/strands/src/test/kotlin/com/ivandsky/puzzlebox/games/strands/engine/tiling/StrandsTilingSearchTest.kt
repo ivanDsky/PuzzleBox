@@ -98,7 +98,7 @@ class StrandsTilingSearchTest {
         // Eight six-letter words over two letters, one flipped off the board's row snake: thousands of
         // placements per word and no quick tiling, so the search runs until the budget stops it.
         const val BOUND_MS = 1_500L
-        const val WORST_BUDGET_MS = 1_200L
+        const val WORST_BUDGET_MS = 400L
         const val WORST_LETTERS = "NANAANAANNNAAANAANNNNANANANANAAAANNAANANAANAANNN"
         val WORST_WORDS = listOf("NANAAN", "ANNNAA", "AANAAN", "ANANNN", "NAAANA", "ANNAAA", "ANANAA", "NNNAAN")
     }
