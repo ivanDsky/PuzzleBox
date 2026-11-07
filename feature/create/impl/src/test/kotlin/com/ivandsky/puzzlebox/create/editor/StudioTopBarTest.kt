@@ -179,6 +179,7 @@ class StudioTopBarTest {
                             copyDraft,
                             DefaultDispatcherProvider(),
                             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
+                            releaseFlags = get(),
                             clock = { NOW },
                         )
                     }
