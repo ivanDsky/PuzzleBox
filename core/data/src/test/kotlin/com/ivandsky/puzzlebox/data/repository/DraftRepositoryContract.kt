@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import androidx.room.Room
+import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
@@ -8,8 +9,11 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import java.time.Instant
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -19,6 +23,8 @@ import org.junit.runner.RunWith
 import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+
+private const val REEMIT_WINDOW_MS = 300L
 
 /**
  * Behavior every [DraftRepository] adapter must pass (S15). Subclasses supply a fresh, empty
@@ -108,6 +114,36 @@ abstract class DraftRepositoryContract {
 
         repository.delete("d1")
         assertNull(one.first())
+    }
+
+    @Test
+    fun `a live observer sees the draft arrive and leave, and nothing for other drafts`() = runTest {
+        repository.observe("d1").test {
+            assertNull(awaitItem())
+
+            repository.upsert(draft("d1"))
+            assertEquals(draft("d1"), awaitItem())
+
+            repository.upsert(draft("d2"))
+            // Room re-queries on its own threads: give a stray re-emission real time to land.
+            withContext(Dispatchers.Default) { delay(REEMIT_WINDOW_MS) }
+            expectNoEvents()
+
+            repository.delete("d1")
+            assertNull(awaitItem())
+        }
+    }
+
+    @Test
+    fun `updatedAt is kept to the millisecond`() = runTest {
+        val subMillis = Instant.ofEpochSecond(1_700_000_000L, 123_456_789L)
+        val millis = Instant.ofEpochSecond(1_700_000_000L, 123_000_000L)
+
+        repository.upsert(draft("d1").copy(updatedAt = subMillis))
+
+        assertEquals(millis, repository.get("d1")?.updatedAt)
+        assertEquals(millis, repository.observe("d1").first()?.updatedAt)
+        assertEquals(listOf(millis), repository.observeAll().first().map { it.updatedAt })
     }
 
     @Test
