@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
+import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
@@ -52,7 +53,8 @@ import kotlinx.coroutines.withContext
  *
  * The [CreateUiState.Tab.Published] tab lists [published]'s rows, newest first; a draft kept
  * under a published code is that puzzle's board, so it leaves the Drafts tab, its counts, its
- * search and its verdict chips.
+ * search and its verdict chips. Each time that tab shows, [syncSolves] refreshes the rows' solve
+ * counts in the background; the list never waits for it, and the cached counts show meanwhile.
  */
 class CreateViewModel(
     private val games: GameRegistry,
@@ -63,6 +65,7 @@ class CreateViewModel(
     private val createDraft: CreateDraft,
     private val copyDraft: CreateDraftCopy,
     private val dispatchers: DispatcherProvider,
+    private val syncSolves: SyncSolvesCounts,
     private val clock: () -> Instant,
     private val nanoTime: () -> Long = System::nanoTime,
 ) : ViewModel() {
@@ -93,12 +96,13 @@ class CreateViewModel(
     private val deleted = MutableStateFlow<Draft?>(null)
     private var undoWindow: Job? = null
     private var creating: Job? = null
+    private var syncing: Job? = null
 
     /** Stamps already analysed or in flight; touched on the main thread only. */
     private val requested = mutableSetOf<DraftStamp>()
 
     val uiState: StateFlow<CreateUiState> =
-        combine(listed(), verdicts, combine(query, filter, tab, ::View), deleted, ::stateOf)
+        combine(listed(), verdicts, combine(query, filter, tab.onEach(::syncWhenPublished), ::View), deleted, ::stateOf)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CreateUiState(games = newGames))
 
     fun onQuery(text: String) {
@@ -163,6 +167,12 @@ class CreateViewModel(
         undoWindow?.cancel()
         deleted.value = null
         viewModelScope.launch { drafts.upsert(draft) }
+    }
+
+    /** The Published tab showing (on a switch or a return to Create) asks for fresh counts; one sync at a time. */
+    private fun syncWhenPublished(shown: CreateUiState.Tab) {
+        if (shown != CreateUiState.Tab.Published || syncing?.isActive == true) return
+        syncing = viewModelScope.launch { syncSolves() }
     }
 
     /** The drafts still being made (none kept under a published code) beside the published rows. */
@@ -248,9 +258,10 @@ class CreateViewModel(
         gameId = row.gameId,
         brand = plays.brandOf(row.gameId),
         title = row.title,
-        meta = "${if (row.unpublished) "Unpublished" else games.displayName(row.gameId)} · your time ${formatDuration(row.authorTimeMs)}",
+        meta = if (row.unpublished) "Unpublished" else "Author ${formatDuration(row.authorTimeMs)}",
         published = ageLabel("published", row.createdAt, now),
         unpublished = row.unpublished,
+        solves = row.solvesCount,
     )
 
     private fun filtersOf(stored: List<Draft>): List<CreateUiState.GameFilter> =

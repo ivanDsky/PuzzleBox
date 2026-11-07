@@ -35,9 +35,9 @@ data class CreateUiState(
     enum class Tab { Drafts, Published }
 
     /**
-     * One published puzzle's row: its game's [brand] tile, [title], its share [code],
-     * "{Game} · your time 1:42" [meta] ("Unpublished · your time 1:42" once [unpublished]) and
-     * "published 2 h ago" [published].
+     * One published puzzle's row: its game's [brand] tile, [title], its share [code], its
+     * friends' [solves] (the last fetched count; null until first fetched), the "Author 1:42"
+     * [meta] ("Unpublished" once [unpublished]) and "published 2 h ago" [published].
      */
     data class PublishedRow(
         val code: ShareCode,
@@ -47,6 +47,7 @@ data class CreateUiState(
         val meta: String,
         val published: String,
         val unpublished: Boolean = false,
+        val solves: Int? = null,
     )
 
     /**

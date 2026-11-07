@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.create.editor.EditorViewModel
 import com.ivandsky.puzzlebox.create.published.PublishedPuzzleViewModel
 import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
+import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
 import com.ivandsky.puzzlebox.domain.UpdatePublishState
 import java.time.Instant
 import kotlin.random.Random
@@ -24,13 +25,14 @@ private val DraftSaves = named("create.draftSaves")
  * domainModule; the [com.ivandsky.puzzlebox.game.GameRegistry], the
  * [com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry] and the
  * [com.ivandsky.puzzlebox.gameui.GamePlayRegistry] from the app's aggregation (ADR-0001).
- * Publishing ([CreateSharedPuzzle]) and unpublishing ([UpdatePublishState]) are bound here,
- * their only consumer.
+ * Publishing ([CreateSharedPuzzle]), unpublishing ([UpdatePublishState]) and the Published
+ * rows' solve counts ([SyncSolvesCounts]) are bound here, their only consumer.
  */
 val createModule: Module = module {
     // Process lifetime on main, like Play's slot writes: leaving the Studio never cancels its last save.
     single(DraftSaves) { CoroutineScope(SupervisorJob() + get<DispatcherProvider>().main) }
-    viewModel { CreateViewModel(get(), get(), get(), get(), get(), get(), get(), get(), clock = { Instant.now() }) }
+    viewModel { CreateViewModel(get(), get(), get(), get(), get(), get(), get(), get(), syncSolves = get(), clock = { Instant.now() }) }
+    factory { SyncSolvesCounts(published = get(), boards = get(), clock = { Instant.now() }) }
     factory {
         CreateSharedPuzzle(
             drafts = get(),

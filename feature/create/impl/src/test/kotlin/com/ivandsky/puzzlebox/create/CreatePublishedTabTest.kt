@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.create.navigation.publishedPuzzleEntry
 import com.ivandsky.puzzlebox.create.published.PublishedPuzzleViewModel
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
 import com.ivandsky.puzzlebox.data.model.TestSolve
@@ -34,6 +35,7 @@ import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
 import com.ivandsky.puzzlebox.domain.PublishOutcome
+import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
 import com.ivandsky.puzzlebox.domain.UpdatePublishState
 import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.game.DecodeResult
@@ -55,6 +57,7 @@ import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.navigation.navKeySavedStateConfiguration
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
@@ -65,6 +68,7 @@ import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
@@ -105,6 +109,7 @@ class CreatePublishedTabTest {
     private val editors = GameEditorRegistry(listOf(ui))
     private val drafts = FakeDraftRepository()
     private val published = FakePublishedPuzzleRepository()
+    private val boards = FakeCustomBoardRepository()
     private val shared = FakeSharedPuzzleRepository().apply { signedInUid = AUTHOR.uid }
     private val identity = FakeIdentityService(initial = AUTHOR)
     private val copyDraft = CreateDraftCopy(drafts, newId = { COPY_ID }, clock = { NOW })
@@ -173,6 +178,48 @@ class CreatePublishedTabTest {
 
         awaitCount(PUBLISHED_EMPTY, 1)
         awaitCount(PUBLISHED_ROW, 0)
+    }
+
+    @Test
+    fun `showing Published fetches a row's solves and the row says 3 solves`() {
+        storePublished(NEWER, "newer", minutesAgo = 30)
+        solvedBy(NEWER, players = 3)
+        show(CreateKey)
+
+        composeRule.onNodeWithTag(TAB_PUBLISHED).performClick()
+
+        awaitCount(ROW_SOLVES, 1)
+        awaitCount(ROW_SOLVES_NONE, 0)
+        assertEquals(3, create.uiState.value.published.single().solves)
+        assertEquals(3, runBlocking { published.observe(NEWER).first() }?.solvesCount)
+    }
+
+    @Test
+    fun `a puzzle nobody has solved says no solves yet`() {
+        storePublished(NEWER, "newer", minutesAgo = 30)
+        show(CreateKey)
+
+        composeRule.onNodeWithTag(TAB_PUBLISHED).performClick()
+
+        awaitCount(ROW_SOLVES_NONE, 1)
+        awaitCount(ROW_SOLVES, 0)
+        assertEquals(0, create.uiState.value.published.single().solves)
+    }
+
+    @Test
+    fun `offline, the row lists at once with its cached count`() {
+        val checked = NOW.minusSeconds(60 * 60)
+        storePublished(NEWER, "newer", minutesAgo = 90, solves = 5, solvesAt = checked)
+        solvedBy(NEWER, players = 7)
+        boards.online = false
+        show(CreateKey)
+
+        composeRule.onNodeWithTag(TAB_PUBLISHED).performClick()
+
+        awaitCount(ROW_SOLVES, 1)
+        assertEquals(5, create.uiState.value.published.single().solves)
+        val cached = runBlocking { published.observe(NEWER).first() }
+        assertEquals(5 to checked, cached?.solvesCount to cached?.solvesCountAt)
     }
 
     @Test
@@ -342,6 +389,7 @@ class CreatePublishedTabTest {
                         CreateViewModel(
                             games, editors, GamePlayRegistry(emptyList()), drafts, published,
                             CreateDraft(games, drafts, newId = { "new" }, clock = { NOW }), copyDraft, DefaultDispatcherProvider(),
+                            syncSolves = SyncSolvesCounts(published, boards, clock = { NOW }),
                             clock = { NOW },
                         ).also { create = it }
                     }
@@ -368,7 +416,13 @@ class CreatePublishedTabTest {
 
     private val Navigator.top: NavKey get() = state.currentStack.last()
 
-    private fun storePublished(code: ShareCode, draftId: String, minutesAgo: Long) {
+    private fun solvedBy(code: ShareCode, players: Int) = runBlocking {
+        repeat(players) { n ->
+            boards.submit(code, LeaderboardEntry("friend-$n", "Friend $n", "custom/${editor.gameId.value}/${code.value}", 60_000L + n, 0, NOW.toEpochMilli()))
+        }
+    }
+
+    private fun storePublished(code: ShareCode, draftId: String, minutesAgo: Long, solves: Int? = null, solvesAt: Instant? = null) {
         store(draftRow(draftId, marks = 2, code = code))
         runBlocking {
             published.upsert(
@@ -381,8 +435,8 @@ class CreatePublishedTabTest {
                     authorHints = 0,
                     createdAt = NOW.minusSeconds(minutesAgo * 60),
                     unpublished = false,
-                    solvesCount = null,
-                    solvesCountAt = null,
+                    solvesCount = solves,
+                    solvesCountAt = solvesAt,
                 ),
             )
         }
@@ -460,6 +514,8 @@ class CreatePublishedTabTest {
         const val SHARE = "create.published.share"
         const val UNPUBLISHED = "create.published.unpublished"
         const val ROW_CODE_STRUCK = "create.published.row.code.struck"
+        const val ROW_SOLVES = "create.published.row.solves"
+        const val ROW_SOLVES_NONE = "create.published.row.solves.none"
         const val TOAST_UNPUBLISHED = "create.toast.unpublished"
         const val DIALOG = "create.unpublish.dialog"
         const val DIALOG_CONFIRM = "create.unpublish.confirm"
