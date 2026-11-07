@@ -111,6 +111,18 @@ class ToolSlotSwapTest {
     }
 
     @Test
+    fun `with friend sharing off a passed test keeps the tools and opens no details`() {
+        open(PlayLayout.SinglePane, flags = FakeReleaseFlags())
+        awaitTrue { vm.testSolve.passed.value != null }
+        composeRule.waitForIdle()
+
+        awaitTag(STRIP)
+        awaitGone(DETAILS)
+        awaitGone(EDIT_BOARD)
+        awaitGone(SUMMARY)
+    }
+
+    @Test
     fun `Edit board brings the tools back and keeps the test, and the summary reopens the details`() {
         open(PlayLayout.SinglePane)
         awaitTag(EDIT_BOARD)
@@ -204,12 +216,12 @@ class ToolSlotSwapTest {
         idTokens = OneAccountGoogleIdTokenProvider,
     )
 
-    private fun open(layout: PlayLayout) {
+    /** Opens the stored, test-passed draft; Studio tests run with friend sharing on unless [flags] say otherwise (ADR-0022). */
+    private fun open(layout: PlayLayout, flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FriendSharing)) {
         val board = editor.draft(marks = 1)
         runBlocking { drafts.upsert(storedRow(board)) }
         startKoin {
-            // Every Studio test runs with friend sharing on (ADR-0022).
-            modules(module { single<ReleaseFlags> { FakeReleaseFlags(ReleaseFlag.FriendSharing) } })
+            modules(module { single<ReleaseFlags> { flags } })
             modules(module { viewModel { (_: EditorKey) -> editorViewModel().also { vm = it } } })
         }
         val entries = entryProvider<NavKey> { editorEntry(navigator, layout) }
