@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.backend.firebase
 
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import kotlinx.coroutines.CoroutineScope
 import org.koin.dsl.module
@@ -27,6 +28,13 @@ val firebaseBackendModule = module {
     single<SharedPuzzleStore> { FirestoreSharedPuzzleStore() }
     single<SharedPuzzleRepository> {
         FirestoreSharedPuzzleRepository(
+            store = get(),
+            currentUid = { get<IdentityService>().current.value?.uid },
+        )
+    }
+    single<CustomBoardStore> { FirestoreCustomBoardStore() }
+    single<CustomBoardRepository> {
+        FirestoreCustomBoardRepository(
             store = get(),
             currentUid = { get<IdentityService>().current.value?.uid },
         )
