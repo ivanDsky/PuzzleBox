@@ -10,13 +10,28 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PuzzleBox">
 
+        <!-- singleTask: a tapped share link reaches the running app as a new intent
+             instead of stacking a second copy of it. -->
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Share links (ShareCode.LINK_PREFIX), verified against the host's
+                 /.well-known/assetlinks.json. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="https" />
+                <data android:host="puzzlebox-f3356.web.app" />
+                <data android:pathPrefix="/p/" />
             </intent-filter>
         </activity>
     </application>

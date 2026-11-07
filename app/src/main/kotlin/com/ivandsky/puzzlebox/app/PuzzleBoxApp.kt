@@ -26,6 +26,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,10 +40,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.app.nav.FriendLink
 import com.ivandsky.puzzlebox.app.nav.LocalChromePadding
 import com.ivandsky.puzzlebox.app.nav.PuzzleBoxNavShell
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
+import com.ivandsky.puzzlebox.app.nav.applyFriendLink
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.screens.CatalogUnavailableScreen
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
@@ -54,6 +57,7 @@ import com.ivandsky.puzzlebox.history.historyLayoutFor
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.homeLayoutFor
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
@@ -65,21 +69,38 @@ import kotlin.math.roundToInt
  * The app shell: tab bar (or rail) beneath [PuzzleBoxNavShell]. The highlight is the
  * [navigator]'s selected tab, so it always names the tab that owns the screen on top.
  * The Play tab carries a dot while any of today's games is in progress (A13, SC11).
- * Play is immersive (A15, N2): while the selected tab's top is a board ([GameKey]) or a
- * result ([ResultKey]) neither bar nor rail shows, and back is the way out.
+ * Play is immersive (A15, N2): while the selected tab's top is a board ([GameKey], or a
+ * friend's [CustomGameKey]) or a result ([ResultKey]) neither bar nor rail shows, and back
+ * is the way out.
  *
  * Full-screen motion (polish 04): the chrome sits UNDER the scenes, which leave its strip
  * unpainted ([LocalChromePadding]), so a board covers it as one window and the chrome leaves
  * animated with the page beneath it, never in a one-frame cut: the bar parallaxes with the
  * outgoing page (phone), the rail fades and shifts out early in the lift (tablet).
+ *
+ * A [pendingLink] (a tapped share link's URI) lands on the back stack in the composition
+ * that first sees it, so a cold start draws the friend's card on its first frame; then
+ * [onLinkApplied]. A link whose code doesn't parse opens Play's code sheet holding its text.
  */
 @Composable
 fun PuzzleBoxApp(
     windowWidthSizeClass: WindowWidthSizeClass,
     modifier: Modifier = Modifier,
     navigator: Navigator = rememberNavigator(),
+    pendingLink: String? = null,
+    onLinkApplied: () -> Unit = {},
     todaySet: ObserveTodaySet = koinInject(),
 ) {
+    var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
+    if (pendingLink != null) {
+        remember(pendingLink) {
+            FriendLink.of(pendingLink)?.let { link ->
+                navigator.applyFriendLink(link)
+                if (link is FriendLink.Invalid) codeDraft = link.text
+            }
+        }
+        SideEffect(onLinkApplied)
+    }
     // Two-pane needs width AND height: a large tablet in portrait still measures
     // Expanded by width class, so the orientation comes from the current window
     // container size. One policy call drives both the nav shape and Home's pane
@@ -105,7 +126,7 @@ fun PuzzleBoxApp(
     val expanded = layout == HomeLayout.TwoPane
     val selected = navigator.state.tab
     val top = navigator.state.currentStack.last()
-    val immersive = top is GameKey || top is ResultKey
+    val immersive = top is GameKey || top is CustomGameKey || top is ResultKey
     val anyInProgress by remember(todaySet) {
         todaySet().map { entries -> entries.any { it.status is TodayStatus.InProgress } }
     }.collectAsStateWithLifecycle(initialValue = false)
@@ -158,6 +179,8 @@ fun PuzzleBoxApp(
                     playLayout = playLayout,
                     historyLayout = historyLayout,
                     modifier = Modifier.fillMaxSize(),
+                    codeDraft = { codeDraft },
+                    onCodeDraftTaken = { codeDraft = null },
                 )
             }
         }
