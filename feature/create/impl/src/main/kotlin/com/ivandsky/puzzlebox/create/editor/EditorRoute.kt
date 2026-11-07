@@ -57,6 +57,7 @@ internal fun EditorRoute(
     val publish by viewModel.publish.state.collectAsStateWithLifecycle()
     val flags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
     val cardOpen by viewModel.verdictCard.open.collectAsStateWithLifecycle()
+    val overlay by viewModel.verdictCard.overlay.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flush() }
     // Google's account picker needs the activity: read in composition, handed per call.
     val activityContext = LocalContext.current
@@ -79,7 +80,7 @@ internal fun EditorRoute(
             saving = saving,
             verdict = ready.verdict,
             cardOpen = cardOpen,
-            overlay = ready.controller.overlay.collectAsStateWithLifecycle().value,
+            overlay = overlay,
             onShowCard = viewModel.verdictCard::show,
             onDismissCard = viewModel.verdictCard::dismiss,
             onCheckAgain = viewModel.verdictCard::checkAgain,

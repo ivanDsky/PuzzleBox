@@ -27,6 +27,13 @@ class VerdictCardState(
 
     private var lastMultiple: Verdict.Multiple? = null
 
+    /**
+     * The open controller's overlay, read through, never copied: each read follows the
+     * controller open now, so a fresh board never shows the last board's choice.
+     */
+    val overlay: StateFlow<EditorOverlay>
+        get() = controller()?.overlay ?: NO_OVERLAY
+
     fun show() {
         mutableOpen.value = true
     }
@@ -51,5 +58,9 @@ class VerdictCardState(
     /** The author's A/B or Show on board change; the board draws it at once. */
     fun choose(overlay: EditorOverlay) {
         controller()?.adoptOverlay(overlay)
+    }
+
+    private companion object {
+        val NO_OVERLAY: StateFlow<EditorOverlay> = MutableStateFlow(EditorOverlay()).asStateFlow()
     }
 }
