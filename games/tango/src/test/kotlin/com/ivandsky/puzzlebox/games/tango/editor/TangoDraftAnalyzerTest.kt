@@ -45,10 +45,10 @@ class TangoDraftAnalyzerTest {
     }
 
     @Test
-    fun `three suns in a row is None`() {
+    fun `three suns in a row is None with those cells`() {
         val draft = TangoDraft((0..2).associateWith { TangoCell.SUN }, emptyList())
 
-        assertEquals(Verdict.None(emptySet()), analyze(draft))
+        assertEquals(Verdict.None(setOf(0, 1, 2)), analyze(draft))
     }
 
     @Test
