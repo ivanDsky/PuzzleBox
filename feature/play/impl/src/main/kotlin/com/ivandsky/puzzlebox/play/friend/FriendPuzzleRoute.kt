@@ -10,17 +10,17 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.OpenOutcome
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import org.koin.androidx.compose.koinViewModel
@@ -28,8 +28,9 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * A friend's puzzle on the Play stack: a spinner while the code opens, then the scrolling
- * [FriendPuzzleCard], whose Play, Resume or Replay opens the puzzle's board ([onPlay]), or why
- * the code did not open. Up is [onBack], the navigator's pop.
+ * [FriendPuzzleCard], whose Play, Resume or Replay opens the puzzle's board ([onPlay]), or
+ * [FriendOpenError] saying why the code did not open, with Try again or the store listing
+ * when either helps. Up is [onBack], the navigator's pop.
  */
 @Composable
 internal fun FriendPuzzleRoute(
@@ -37,9 +38,10 @@ internal fun FriendPuzzleRoute(
     onPlay: (CustomGameKey) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: FriendPuzzleViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) }),
 ) {
-    val viewModel: FriendPuzzleViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val uriHandler = LocalUriHandler.current
     Column(modifier.fillMaxSize().testTag("route.friend")) {
         CompactTopBar(
             title = "",
@@ -62,21 +64,13 @@ internal fun FriendPuzzleRoute(
                 onAction = { onPlay(card.card.play) },
                 modifier = Modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.xl),
             )
-            is FriendCardState.Failed -> Text(
-                text = failedMessage(card.outcome),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(Spacing.lg).testTag("friend.card.failed"),
-            )
+            is FriendCardState.Failed -> card.outcome.errorCopy(ShareCode.parse(key.code))?.let { copy ->
+                FriendOpenError(
+                    copy = copy,
+                    onRetry = viewModel::retry,
+                    onUpdate = { uriHandler.openStoreListing() },
+                )
+            }
         }
     }
-}
-
-private fun failedMessage(outcome: OpenOutcome): String = when (outcome) {
-    is OpenOutcome.Opened -> ""
-    OpenOutcome.NotFound -> "No puzzle with this code"
-    OpenOutcome.NoLongerAvailable -> "This puzzle is no longer available"
-    is OpenOutcome.NeedsUpdate, is OpenOutcome.UnknownGame -> "This puzzle needs a newer PuzzleBox"
-    OpenOutcome.FailedCheck -> "This puzzle couldn't be checked"
-    OpenOutcome.Offline -> "You're offline"
 }
