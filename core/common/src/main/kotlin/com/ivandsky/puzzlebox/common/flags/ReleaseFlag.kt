@@ -12,4 +12,16 @@ package com.ivandsky.puzzlebox.common.flags
 enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     /** Publishing custom puzzles, friend puzzles by code or link, and their leaderboards. */
     FriendSharing(label = "Friend sharing", releaseDefault = false),
+
+    /** The Zip puzzle editor. */
+    ZipEditor(label = "Zip editor", releaseDefault = false),
+
+    /** The Tango puzzle editor. */
+    TangoEditor(label = "Tango editor", releaseDefault = false),
+
+    /** The Mini Sudoku editor, and the debug-only 9×9 one. */
+    SudokuEditor(label = "Sudoku editor", releaseDefault = false),
+
+    /** The Strands puzzle editor. */
+    StrandsEditor(label = "Strands editor", releaseDefault = false),
 }
