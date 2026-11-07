@@ -100,7 +100,7 @@ internal fun QueensCrownLayer(
         if (crowned) {
             drawQueen(ink, QueensBoardDefaults.queenHeightFraction, alpha = 1f)
         } else {
-            drawX(ink, QueensBoardDefaults.xManualWeight.toPx(), QueensBoardDefaults.xManualLengthFraction)
+            drawX(ink, QueensBoardDefaults.crossWeight.toPx(), QueensBoardDefaults.crossLengthFraction)
         }
     }
 }
