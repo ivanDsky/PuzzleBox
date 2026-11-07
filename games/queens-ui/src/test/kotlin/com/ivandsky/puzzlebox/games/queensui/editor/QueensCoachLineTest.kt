@@ -1,8 +1,11 @@
 package com.ivandsky.puzzlebox.games.queensui.editor
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
@@ -10,13 +13,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
@@ -109,6 +115,40 @@ class QueensCoachLineTest {
             assertTrue("dark=$dark", QueensRegionPalette.contrast(ink, ground) >= GLYPH_BAR)
         }
         assertEquals(2, seen.size)
+    }
+
+    @Test
+    fun `the coach reserves two lines, so the longest copy wraps unclipped at 320 dp`() {
+        var state: QueensCoachState by mutableStateOf(QueensCoachState.Ambiguous)
+        rule.setContent { PuzzleBoxTheme { QueensCoachLine(state, reducedMotion = true) } }
+
+        val ambiguous = rule.onNodeWithTag("queens.editor.coach.ambiguous")
+        val layout = mutableListOf<TextLayoutResult>()
+        ambiguous.fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(layout)
+        assertEquals(2, layout.single().lineCount)
+        assertTrue(!layout.single().hasVisualOverflow)
+        val twoLines = height("queens.editor.coach.ambiguous")
+
+        state = QueensCoachState.Unique
+        rule.waitForIdle()
+        assertEquals(twoLines, height("queens.editor.coach.unique"))
+    }
+
+    @Test
+    fun `in a tall slot the grid takes the full width and the rows sit below it`() {
+        val controller = QueensEditorController(crowned()) {}
+        rule.setContent {
+            PuzzleBoxTheme {
+                Box(Modifier.width(SLOT_WIDTH).height(SLOT_HEIGHT)) {
+                    QueensEditorBoard(controller, Verdict.Unique(Solution(CROWNS)), Modifier.fillMaxSize())
+                }
+            }
+        }
+
+        val grid = rule.onNodeWithTag(BOARD).getUnclippedBoundsInRoot()
+        assertEquals(SLOT_WIDTH, grid.right - grid.left)
+        assertEquals(SLOT_WIDTH, grid.bottom - grid.top)
+        assertTrue(rule.onNodeWithTag("queens.editor.coach.unique").getUnclippedBoundsInRoot().top >= grid.bottom)
     }
 
     @Test
@@ -215,5 +255,7 @@ class QueensCoachLineTest {
         val CROWNS = listOf(1, 9, 17, 18, 26, 34)
         val OTHER = listOf(4, 6, 14, 23, 25, 33)
         val INCOMPLETE = Verdict.Incomplete(IncompleteReason(QueensDraftAnalyzer.REGIONS, 6))
+        val SLOT_WIDTH = 320.dp
+        val SLOT_HEIGHT = 460.dp
     }
 }

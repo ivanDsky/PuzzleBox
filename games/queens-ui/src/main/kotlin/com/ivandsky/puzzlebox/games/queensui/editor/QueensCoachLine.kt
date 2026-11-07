@@ -17,10 +17,11 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 
 /**
- * The one-line coach row under the Queens editor board (flow C): the [state]'s copy, ellipsized,
- * tagged `queens.editor.coach.<place|paint|ambiguous|unique>`. [QueensCoachState.Hidden] keeps
- * the line's height empty, so the board above never resizes. A state change crossfades
- * ([MotionTokens.DurationShort]); [reducedMotion] swaps it instantly.
+ * The two-line coach row under the Queens editor board: the [state]'s copy, tagged
+ * `queens.editor.coach.<place|paint|ambiguous|unique>`. Every state, [QueensCoachState.Hidden]
+ * included, takes exactly two lines, so the longest copy wraps instead of clipping and the
+ * board above never resizes. A state change crossfades ([MotionTokens.DurationShort]);
+ * [reducedMotion] swaps it instantly.
  */
 @Composable
 internal fun QueensCoachLine(state: QueensCoachState, reducedMotion: Boolean, modifier: Modifier = Modifier) {
@@ -36,13 +37,15 @@ internal fun QueensCoachLine(state: QueensCoachState, reducedMotion: Boolean, mo
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = if (shown == QueensCoachState.Unique) FontWeight.SemiBold else FontWeight.Normal,
             color = if (shown == QueensCoachState.Unique) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            minLines = 1,
+            maxLines = LINES,
+            minLines = LINES,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth().then(if (tag == null) Modifier else Modifier.testTag("queens.editor.coach.$tag")),
         )
     }
 }
+
+private const val LINES = 2
 
 private fun tagOf(state: QueensCoachState): String? = when (state) {
     QueensCoachState.Hidden -> null
@@ -75,7 +78,7 @@ private fun QueensCoachLinePaintPreview() {
 }
 
 @PuzzleBoxPreviews
-@Preview(name = "2 answers fit (ellipsized)", widthDp = 320, showBackground = true, group = "Queens coach line")
+@Preview(name = "2 answers fit", widthDp = 320, showBackground = true, group = "Queens coach line")
 @Composable
 private fun QueensCoachLineAmbiguousPreview() {
     PuzzleBoxTheme { QueensCoachLine(QueensCoachState.Ambiguous, reducedMotion = true) }
