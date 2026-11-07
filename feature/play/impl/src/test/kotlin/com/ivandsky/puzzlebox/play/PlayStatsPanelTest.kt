@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -74,7 +75,7 @@ class PlayStatsPanelTest {
     private fun viewModel(identity: Identity? = me): PlayStatsViewModel {
         val history = ObserveGameHistory(fakes.games, daily, completions)
         return PlayStatsViewModel(
-            slot = PlaySlot(alpha, day),
+            slot = PlaySlot.Daily(alpha, day),
             registry = fakes.games,
             brands = fakes.registry,
             calendar = calendar,
@@ -145,7 +146,7 @@ class PlayStatsPanelTest {
     }
 
     private fun record(game: com.ivandsky.puzzlebox.model.GameId, on: java.time.LocalDate, timeMs: Long) =
-        CompletionRecord(TestGames.Ref(game, on, 7), timeMs, 0, RecordStats(1, "{}"))
+        CompletionRecord(TestGames.Ref(game, PuzzleKey.Daily(on, 7)), timeMs, 0, RecordStats(1, "{}"))
 
     private fun entry(uid: String, name: String, timeMs: Long) =
         LeaderboardEntry(uid, name, "${alpha.value}/$day/7", timeMs, 0, 0L)
