@@ -37,10 +37,13 @@ data class BoardColors(
     val boardSelection: Color,
     val boardRegion: Color,
 
-    // Tango glyph fills: sun/moon clear the 3:1 non-text bar vs boardSurface in both
-    // modes; identity rides the silhouette (disc+rays vs crescent).
+    // Tango glyph fills: sun/moon clear the 3:1 non-text bar vs boardSurface and vs the
+    // hint tile in both modes; identity rides the silhouette (disc+rays vs crescent).
     val sunFill: Color,
     val moonFill: Color,
+    // The hinted square: the Tango orange tint as a tile on its lip.
+    val tangoHintFill: Color,
+    val tangoHintLip: Color,
 
     // Mini Sudoku: the selected cell is the full teal fill with the hue's deep ink on
     // it; its row/column/box peers sit on the teal tint.
@@ -53,11 +56,15 @@ data class BoardColors(
     // spangram is gold, the live trace hot pink. The letter on a filled token is
     // always black (>= 4.5:1 on each fill). The hint ring previews the pink and is
     // non-text (>= 3:1 vs boardSurface); an idle letter sits on the bare board
-    // (>= 4.5:1). Connectors take their word's fill.
+    // (>= 4.5:1). Connectors take their word's fill. Each filled token sits on its lip.
     val strandsThemeFill: Color,
     val strandsThemeAltFill: Color,
     val strandsSpangramFill: Color,
     val strandsSelectionFill: Color,
+    val strandsThemeLip: Color,
+    val strandsThemeAltLip: Color,
+    val strandsSpangramLip: Color,
+    val strandsSelectionLip: Color,
     val strandsHintRing: Color,
     val strandsTileText: Color,
     val strandsIdleLetter: Color,
@@ -98,6 +105,8 @@ val DarkBoardTokens = BoardColors(
     boardRegion = DarkColorScheme.surfaceContainerHigh, // future fill tint; stroke its boundary with wall/gridline when built
     sunFill = Color(0xFFFF8524),
     moonFill = Color(0xFF21B7FF),
+    tangoHintFill = Color(0xFF4E270B),
+    tangoHintLip = Color(0xFF0F0300), // −0.20 from a dark tint lands near black, like the neutral lip
     sudokuSelection = Color(0xFF00E8DC),
     sudokuSelectionInk = Color(0xFF002E2B),
     sudokuSelectionLip = Color(0xFF00A198),
@@ -106,6 +115,10 @@ val DarkBoardTokens = BoardColors(
     strandsThemeAltFill = Color(0xFFFF63E4),
     strandsSpangramFill = SplashGold,
     strandsSelectionFill = StrandsHotPink,
+    strandsThemeLip = Color(0xFFB93665),
+    strandsThemeAltLip = Color(0xFFB90DA3),
+    strandsSpangramLip = Color(0xFFB39100),
+    strandsSelectionLip = Color(0xFF83003D),
     strandsHintRing = Color(0xFFFF77A0),
     strandsTileText = Color.Black,
     strandsIdleLetter = DarkColorScheme.onSurface,
@@ -135,6 +148,8 @@ val LightBoardTokens = BoardColors(
     boardRegion = LightColorScheme.surfaceContainerHigh, // future fill tint
     sunFill = Color(0xFFCB6400),
     moonFill = Color(0xFF0089C3),
+    tangoHintFill = Color(0xFFFFDDC9),
+    tangoHintLip = Color(0xFFD4B3A0),
     sudokuSelection = Color(0xFF00C8BD),
     sudokuSelectionInk = Color(0xFF002E2B),
     sudokuSelectionLip = Color(0xFF009B92),
@@ -143,6 +158,10 @@ val LightBoardTokens = BoardColors(
     strandsThemeAltFill = Color(0xFFFD00DF),
     strandsSpangramFill = SplashGold,
     strandsSelectionFill = StrandsHotPink,
+    strandsThemeLip = Color(0xFFCF0064),
+    strandsThemeAltLip = Color(0xFFBF00A8),
+    strandsSpangramLip = Color(0xFFCDA700),
+    strandsSelectionLip = Color(0xFFA4004E),
     strandsHintRing = Color(0xFFFF528F),
     strandsTileText = Color.Black,
     strandsIdleLetter = LightColorScheme.onSurface,

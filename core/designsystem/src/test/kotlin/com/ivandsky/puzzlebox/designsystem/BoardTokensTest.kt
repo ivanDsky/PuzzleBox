@@ -66,6 +66,10 @@ class BoardTokensTest {
         assertEquals(Color(0xFFFF63E4), dark.strandsThemeAltFill)
         assertEquals(Color(0xFFFECF00), dark.strandsSpangramFill)
         assertEquals(Color(0xFFE40070), light.strandsSelectionFill)
+        assertEquals(Color(0xFFCF0064), light.strandsThemeLip)
+        assertEquals(Color(0xFFB39100), dark.strandsSpangramLip)
+        assertEquals(Color(0xFFFFDDC9), light.tangoHintFill)
+        assertEquals(Color(0xFF0F0300), dark.tangoHintLip)
     }
 
     @Test
@@ -73,6 +77,11 @@ class BoardTokensTest {
         for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
             assertTrue(tokens.sudokuSelectionLip.luminance() < tokens.sudokuSelection.luminance())
             assertTrue(tokens.pathTraceLip.luminance() < tokens.pathTrace.luminance())
+            assertTrue(tokens.tangoHintLip.luminance() < tokens.tangoHintFill.luminance())
+            assertTrue(tokens.strandsThemeLip.luminance() < tokens.strandsThemeFill.luminance())
+            assertTrue(tokens.strandsThemeAltLip.luminance() < tokens.strandsThemeAltFill.luminance())
+            assertTrue(tokens.strandsSpangramLip.luminance() < tokens.strandsSpangramFill.luminance())
+            assertTrue(tokens.strandsSelectionLip.luminance() < tokens.strandsSelectionFill.luminance())
         }
     }
 
@@ -86,10 +95,12 @@ class BoardTokensTest {
     // Tango glyph fills (design-direction §3, floor §10.2): silhouette carries the
     // identity, so the fill needs the 3:1 non-text bar vs boardSurface, not 4.5.
     @Test
-    fun `tango sun and moon fills clear the non-text bar vs boardSurface in both themes`() {
+    fun `tango sun and moon fills clear the non-text bar vs boardSurface and the hint tile in both themes`() {
         for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
             assertTrue(contrast(tokens.sunFill, tokens.boardSurface) >= 3f)
             assertTrue(contrast(tokens.moonFill, tokens.boardSurface) >= 3f)
+            assertTrue(contrast(tokens.sunFill, tokens.tangoHintFill) >= 3f)
+            assertTrue(contrast(tokens.moonFill, tokens.tangoHintFill) >= 3f)
         }
     }
 

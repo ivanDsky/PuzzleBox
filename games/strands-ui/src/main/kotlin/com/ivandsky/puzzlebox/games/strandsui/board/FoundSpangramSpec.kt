@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.games.strandsui.board
 
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -20,6 +19,8 @@ internal object FoundSpangramSpec : StrandsCellSpec {
 
     override fun fill(colors: BoardColors): Color = colors.strandsSpangramFill
 
+    override fun lip(colors: BoardColors): Color = colors.strandsSpangramLip
+
     override fun letter(colors: BoardColors): Color = colors.strandsTileText
 
     override val stateWord: String = StrandsCopy.STATE_SPANGRAM
@@ -34,11 +35,10 @@ internal object FoundSpangramSpec : StrandsCellSpec {
 
     override fun DrawScope.decorate(colors: BoardColors, tokenRadius: Float, frame: StrandsCellFrame) {
         val width = StrandsBoardSpec.SpangramRingWidth.toPx()
-        val radius = tokenRadius - StrandsBoardSpec.SpangramRingInset.toPx() - width / 2
-        drawCircle(
+        val half = tokenRadius - StrandsBoardSpec.SpangramRingInset.toPx() - width / 2
+        drawTokenSquare(
             color = colors.strandsTileText,
-            radius = radius * frame.ringScale,
-            center = Offset(size.width / 2, size.height / 2),
+            half = half * frame.ringScale,
             alpha = frame.lit,
             style = Stroke(width = width),
         )

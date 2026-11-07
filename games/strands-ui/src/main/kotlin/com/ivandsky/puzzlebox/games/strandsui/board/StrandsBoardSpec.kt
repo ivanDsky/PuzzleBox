@@ -16,6 +16,14 @@ internal object StrandsBoardSpec {
     /** Letter size as a fraction of the pitch: NYT's 26 px on 54. */
     const val LetterFraction: Float = 26f / 54f
 
+    /*
+     * A filled token is a rounded square on a lip of its own hue (spec A14, prototype
+     * 03-game-colors ?v=e: 24% of the pitch on an 80% token, a 3 px lip): corner radius
+     * and lip depth as fractions of the token's side, so the depth scales with the board.
+     */
+    const val TokenCornerFraction: Float = 0.30f
+    const val TokenLipFraction: Float = 0.08f
+
     val ConnectorWidth: Dp = 12.dp
 
     /** The spangram's non-colour cue (A32): a heavier line than a theme word's. */
