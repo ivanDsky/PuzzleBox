@@ -34,6 +34,9 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import java.time.Instant
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -158,7 +161,7 @@ class VerdictCardTest {
                 module {
                     viewModel { (key: EditorKey) ->
                         val copyDraft = CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW })
-                        EditorViewModel(key, drafts, games, editors, GamePlayRegistry(emptyList()), copyDraft, DefaultDispatcherProvider(), clock = { NOW })
+                        EditorViewModel(key, drafts, games, editors, GamePlayRegistry(emptyList()), copyDraft, DefaultDispatcherProvider(), saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW })
                     }
                 },
             )

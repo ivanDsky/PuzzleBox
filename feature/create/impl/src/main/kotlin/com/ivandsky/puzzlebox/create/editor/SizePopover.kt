@@ -29,13 +29,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.AppShapes
@@ -75,7 +70,7 @@ internal fun SizePopover(
     val reduced = rememberReducedMotion()
     val shown = remember { MutableTransitionState(false).apply { targetState = true } }
     Popup(
-        popupPositionProvider = remember(gap) { AboveAnchor(gap) },
+        popupPositionProvider = remember(gap) { WindowClamped.above(gap) },
         onDismissRequest = onDismiss,
         properties = PopupProperties(focusable = true),
     ) {
@@ -156,23 +151,6 @@ private fun SizeChip(text: String, selected: Boolean, tag: String, onClick: () -
 private fun rangeHint(labels: List<String>): String {
     val range = if (labels.size > 1) "${labels.first()} to ${labels.last()}" else labels.firstOrNull().orEmpty()
     return "Boards are $range. Resizing starts a blank board."
-}
-
-/** Above the anchor with a [gap], centred on it across, kept inside the window. */
-private class AboveAnchor(private val gap: Int) : PopupPositionProvider {
-    override fun calculatePosition(
-        anchorBounds: IntRect,
-        windowSize: IntSize,
-        layoutDirection: LayoutDirection,
-        popupContentSize: IntSize,
-    ): IntOffset {
-        val x = anchorBounds.left + (anchorBounds.width - popupContentSize.width) / 2
-        val y = anchorBounds.top - gap - popupContentSize.height
-        return IntOffset(
-            x.coerceIn(0, maxOf(0, windowSize.width - popupContentSize.width)),
-            y.coerceIn(0, maxOf(0, windowSize.height - popupContentSize.height)),
-        )
-    }
 }
 
 // Preview: the panel mid-table (7×7 checked) and at the table's top end (12×12 checked).

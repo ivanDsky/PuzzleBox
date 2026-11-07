@@ -39,8 +39,8 @@ import java.io.File
 /**
  * 29: the Studio chrome in every verdict state (spec S15, A7): Incomplete, Checking, Unique
  * with a difficulty, Unique · needs guessing (blocked), 2+ solutions, no solution and
- * Undetermined. On the phone the pill's card is open over the bar (a popup, so the whole
- * screen is captured); on the tablet the card sits inline in the side pane. Light and dark.
+ * Undetermined. On the phone the pill's card is open in its bottom sheet (its own window, so
+ * the whole screen is captured); on the tablet the card sits inline in the side pane. Light and dark.
  * The board is the Studio preview's placeholder square: the game's own looks are the
  * Queens editor goldens (games/queens-ui) and the app's Studio composites. Recorded by
  * default, verified with `-Proborazzi.verify=true`; goldens in `snapshots/studio/`.
@@ -85,10 +85,6 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
     private fun capture(name: String, verdict: Verdict, dark: Boolean) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
-        val card = VerdictCardState(recheck = {}).apply {
-            read(verdict)
-            if (layout == PlayLayout.SinglePane) show()
-        }
         rule.mainClock.autoAdvance = false
         rule.setContent {
             val config = Configuration(LocalConfiguration.current).apply {
@@ -98,7 +94,7 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
             CompositionLocalProvider(LocalConfiguration provides config) {
                 // The app's root Scaffold: the background colour, onBackground content colour.
                 PuzzleBoxTheme(darkTheme = dark) {
-                    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { Studio(verdict, card) }
+                    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { Studio(verdict) }
                 }
             }
         }
@@ -107,13 +103,13 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
     }
 
     @Composable
-    private fun Studio(verdict: Verdict, card: VerdictCardState) {
+    private fun Studio(verdict: Verdict) {
         StudioScreen(
             title = "Untitled 3",
             subtitle = "Queens 6×6",
             saving = false,
             verdict = verdict,
-            verdictCard = card,
+            cardOpen = layout == PlayLayout.SinglePane,
             layout = layout,
             onBack = {},
             onRename = {},

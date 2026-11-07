@@ -29,6 +29,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
@@ -66,10 +67,11 @@ private val PillMaxWidth = 208.dp
  * MotionTokens short (already the 120 ms reduced-motion fade); entering Checking pulses once
  * (none under reduced motion), however many edits it stays Checking through; settling on
  * Unique from another settled verdict fires exactly one haptic; a press is Press feedback at
- * MotionTokens.PressScale.
+ * MotionTokens.PressScale. A [compact] pill shows the verdict's glyph alone (a window too narrow
+ * for both the title and the label); the label becomes its content description and stays in the card.
  */
 @Composable
-fun VerdictPill(verdict: Verdict, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun VerdictPill(verdict: Verdict, onClick: () -> Unit, modifier: Modifier = Modifier, compact: Boolean = false) {
     val reducedMotion = rememberReducedMotion()
     val pulse = remember { Animatable(1f) }
     val checking = verdict == Verdict.Checking
@@ -107,12 +109,12 @@ fun VerdictPill(verdict: Verdict, onClick: () -> Unit, modifier: Modifier = Modi
             contentAlignment = Alignment.Center,
             label = "create-verdict-pill",
             contentKey = Verdict::glanceKey,
-        ) { shown -> PillFace(shown) }
+        ) { shown -> PillFace(shown, compact) }
     }
 }
 
 @Composable
-private fun PillFace(verdict: Verdict) {
+private fun PillFace(verdict: Verdict, compact: Boolean) {
     val (container, content) = verdict.tone().colors()
     Surface(
         modifier = Modifier.height(PillHeight).widthIn(max = PillMaxWidth),
@@ -122,13 +124,15 @@ private fun PillFace(verdict: Verdict) {
     ) {
         Box(Modifier.padding(horizontal = Spacing.md), contentAlignment = Alignment.Center) {
             val grade = (verdict as? Verdict.Unique)?.gradeState()
+            val label = verdict.glanceLabel()
+            val graded = if (grade == null) {
+                Modifier
+            } else {
+                Modifier.testTag("create.editor.pill.grade").semantics { stateDescription = grade }
+            }
             Text(
-                text = verdict.glanceLabel(),
-                modifier = if (grade == null) {
-                    Modifier
-                } else {
-                    Modifier.testTag("create.editor.pill.grade").semantics { stateDescription = grade }
-                },
+                text = if (compact) glyphOf(verdict) else label,
+                modifier = if (compact) graded.semantics { contentDescription = label } else graded,
                 style = MaterialTheme.typography.labelLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -152,6 +156,14 @@ private fun UniqueHaptic(verdict: Verdict) {
     }
 }
 
+private fun glyphOf(verdict: Verdict): String = when (verdict) {
+    is Verdict.Incomplete -> "–"
+    Verdict.Checking -> "…"
+    is Verdict.Unique -> "✓"
+    is Verdict.Multiple -> "2+"
+    is Verdict.None -> "✕"
+    Verdict.Undetermined -> "?"
+}
 @PuzzleBoxPreviews
 @Composable
 private fun VerdictPillPreview() {
@@ -169,6 +181,8 @@ private fun VerdictPillPreview() {
                 VerdictPill(Verdict.Multiple(Solution(emptyList()), Solution(emptyList()), emptySet()), onClick = {})
                 VerdictPill(Verdict.None(emptySet()), onClick = {})
                 VerdictPill(Verdict.Undetermined, onClick = {})
+                VerdictPill(Verdict.Unique(Solution(listOf(1, 7, 8, 14)), Difficulty(PillPreviewRung)), onClick = {}, compact = true)
+                VerdictPill(Verdict.None(emptySet()), onClick = {}, compact = true)
             }
         }
     }

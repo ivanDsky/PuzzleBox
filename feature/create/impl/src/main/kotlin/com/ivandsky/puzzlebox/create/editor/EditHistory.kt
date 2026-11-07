@@ -34,6 +34,16 @@ internal class EditHistory {
     /** The undone step again; null when there is nothing to redo. */
     fun redo(): EditorDraft<*>? = current?.redo()?.also(::moveTo)
 
+    /**
+     * Back to the nearest earlier step [target] accepts, however many steps that takes; null,
+     * with nothing moved, when no earlier step does.
+     */
+    fun undoTo(target: (EditorDraft<*>) -> Boolean): EditorDraft<*>? {
+        var step = current?.undo()
+        while (step != null && !target(step)) step = step.undo()
+        return step?.also(::moveTo)
+    }
+
     /** A blank [variant] board as one step; null before [open] or when the draft already has that size. */
     fun resize(variant: VariantId): EditorDraft<*>? =
         current?.takeIf { it.variant != variant }?.resize(variant)?.also(::moveTo)

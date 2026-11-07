@@ -25,35 +25,44 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 
 /**
  * The Studio under its top bar, split by the play policy ([PlayLayout], `playLayoutFor`:
- * Expanded width and landscape). [PlayLayout.SinglePane]: the [board]'s square hangs from the
- * bar with the [toolStrip] and the [actionArea] under it; the verdict card is the pill's popover.
- * [PlayLayout.TwoPane] (02 handoff "Tablet"): the square centred in the left pane, and the
- * [StudioSidePane] on the right with the card inline ([verdict], [verdictCard], [issues]), the
- * strip and the actions. Whatever the game draws under its grid (Queens' coach line and probe
- * strip) is part of [board], so it stays under the board in both layouts.
+ * Expanded width and landscape). [PlayLayout.SinglePane]: the [board] slot hangs from the bar
+ * with the [toolStrip] and the [actionArea] under it; the verdict card is the pill's. The slot is
+ * the full content width and all the height above the strip, not a square: the game sizes its
+ * grid square in it and keeps its own rows (Queens' coach line and probe strip) under the grid.
+ * [PlayLayout.TwoPane] (02 handoff "Tablet"): a square centred in the left pane, and the
+ * [StudioSidePane] on the right with the card inline ([verdict], [overlay], [issues]), the
+ * strip and the actions. The [toast] sits just above the action area in both, so it never
+ * covers Test solve, and on the tablet it stays inside the side pane.
  */
 @Composable
 internal fun StudioLayout(
     layout: PlayLayout,
     verdict: Verdict,
-    verdictCard: VerdictCardState,
+    overlay: EditorOverlay,
+    onCheckAgain: () -> Unit,
+    onOverlay: (EditorOverlay) -> Unit,
     board: @Composable (Modifier) -> Unit,
     toolStrip: @Composable (Modifier) -> Unit,
     issues: @Composable (Modifier) -> Unit,
     actionArea: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier,
+    toast: @Composable (Modifier) -> Unit = {},
 ) {
     when (layout) {
         PlayLayout.SinglePane -> Column(modifier.fillMaxSize()) {
-            BoardSlot(
-                alignment = Alignment.TopCenter,
-                board = board,
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(Spacing.lg),
-            )
-            toolStrip(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md))
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                Column(Modifier.fillMaxSize()) {
+                    Box(Modifier.weight(1f).fillMaxWidth().padding(Spacing.lg).testTag(BoardSlotTag)) {
+                        board(Modifier.fillMaxSize())
+                    }
+                    toolStrip(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md))
+                }
+                toast(Modifier.align(Alignment.BottomCenter))
+            }
             actionArea(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg))
         }
         PlayLayout.TwoPane -> Row(modifier.fillMaxSize()) {
@@ -65,15 +74,20 @@ internal fun StudioLayout(
             VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             StudioSidePane(
                 verdict = verdict,
-                verdictCard = verdictCard,
+                overlay = overlay,
+                onCheckAgain = onCheckAgain,
+                onOverlay = onOverlay,
                 issues = issues,
                 toolStrip = toolStrip,
                 actionArea = actionArea,
+                toast = toast,
                 modifier = Modifier.fillMaxHeight(),
             )
         }
     }
 }
+
+private const val BoardSlotTag = "create.editor.board"
 
 /** The square the game's board fills: the smaller of the slot's width and height. */
 @Composable
@@ -84,7 +98,7 @@ private fun BoardSlot(
 ) {
     BoxWithConstraints(modifier, contentAlignment = alignment) {
         val side = minOf(maxWidth, maxHeight)
-        Box(Modifier.size(side).testTag("create.editor.board")) {
+        Box(Modifier.size(side).testTag(BoardSlotTag)) {
             board(Modifier.fillMaxSize())
         }
     }
@@ -109,7 +123,9 @@ private fun PreviewLayout(layout: PlayLayout) {
     StudioLayout(
         layout = layout,
         verdict = Verdict.Checking,
-        verdictCard = VerdictCardState(recheck = {}),
+        overlay = EditorOverlay(),
+        onCheckAgain = {},
+        onOverlay = {},
         board = { boardModifier ->
             Box(boardModifier.background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))
         },

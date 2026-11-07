@@ -49,7 +49,7 @@ private val TagHorizontalPadding = 6.dp
  * Rename ([onRename]), the [title] on one line over a `STUDIO` tag, the [subtitle]
  * ("Queens 7×7") and the autosave indicator ("Saving…" while [saving], then "✓ Saved") — then
  * the [pill] slot and the overflow ⋮ with Rename, Duplicate as new draft ([onDuplicate]) and
- * Delete draft ([onDelete], in the error colour). "Publish & share" joins the overflow in M3.
+ * Delete draft ([onDelete], in the error colour).
  *
  * Motion: the title block's press is **Press feedback** at MotionTokens.PressScale; the menu's
  * origin-aware **Scale in + Fade in** from the ⋮ is DropdownMenu's own.

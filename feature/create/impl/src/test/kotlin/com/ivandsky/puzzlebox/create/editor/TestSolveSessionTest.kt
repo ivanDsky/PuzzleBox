@@ -63,10 +63,14 @@ import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import java.time.Instant
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -147,6 +151,58 @@ class TestSolveSessionTest {
     }
 
     @Test
+    fun `restoring the test rewinds past aid-only edits made after the clearing edit`() {
+        val test = passTest(opened)
+        val edited = opened.apply(ReplaceDraft(opened.state.draft, AidDraft(marks = 3, aid = 7)))
+        composeRule.runOnIdle { controller.edit(edited) }
+        val aided = edited.apply(ReplaceDraft(edited.state.draft, AidDraft(marks = 3, aid = 9)))
+        composeRule.runOnIdle { controller.edit(aided) }
+        awaitTrue { controller.draft.value.state.draft == aided.state.draft }
+
+        composeRule.runOnIdle { vm.restoreTest() }
+
+        awaitTrue { vm.testSolve.passed.value == test }
+        assertEquals(opened.state.draft, controller.draft.value.state.draft)
+    }
+
+    @Test
+    fun `any later board change dismisses the toast`() {
+        passTest(opened)
+        val edited = opened.apply(ReplaceDraft(opened.state.draft, AidDraft(marks = 3, aid = 7)))
+        composeRule.runOnIdle { controller.edit(edited) }
+        awaitTrue { composeRule.onAllNodes(hasTestTag(TOAST)).fetchSemanticsNodes().isNotEmpty() }
+
+        composeRule.runOnIdle { controller.edit(edited.apply(ReplaceDraft(edited.state.draft, AidDraft(marks = 3, aid = 9)))) }
+
+        awaitTrue { composeRule.onAllNodes(hasTestTag(TOAST)).fetchSemanticsNodes().isEmpty() }
+        assertFalse(vm.testSolve.cleared.value)
+    }
+
+    @Test
+    fun `a toolbar undo back to the tested layout passes the test and dismisses the toast`() {
+        val test = passTest(opened)
+        composeRule.runOnIdle { controller.edit(opened.apply(ReplaceDraft(opened.state.draft, AidDraft(marks = 3, aid = 7)))) }
+        awaitTrue { composeRule.onAllNodes(hasTestTag(TOAST)).fetchSemanticsNodes().isNotEmpty() }
+
+        composeRule.runOnIdle { vm.undo() }
+
+        awaitTrue { composeRule.onAllNodes(hasTestTag(TOAST)).fetchSemanticsNodes().isEmpty() }
+        assertEquals(test, vm.testSolve.passed.value)
+    }
+
+    @Test
+    fun `the toast times out`() {
+        passTest(opened)
+        composeRule.runOnIdle { controller.edit(opened.apply(ReplaceDraft(opened.state.draft, AidDraft(marks = 3, aid = 7)))) }
+        awaitTrue { composeRule.onAllNodes(hasTestTag(TOAST)).fetchSemanticsNodes().isNotEmpty() }
+
+        composeRule.mainClock.advanceTimeBy(TOAST_TIMEOUT_MS)
+
+        awaitTrue { composeRule.onAllNodes(hasTestTag(TOAST)).fetchSemanticsNodes().isEmpty() }
+        assertFalse(vm.testSolve.cleared.value)
+    }
+
+    @Test
     fun `a title edit keeps the test`() {
         val test = passTest(opened)
 
@@ -224,7 +280,7 @@ class TestSolveSessionTest {
             modules(
                 module {
                     viewModel { (key: EditorKey) ->
-                        EditorViewModel(key, drafts, games, editors, plays, copyDraft, DefaultDispatcherProvider(), clock = { NOW })
+                        EditorViewModel(key, drafts, games, editors, plays, copyDraft, DefaultDispatcherProvider(), saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW })
                             .also { vm = it }
                     }
                 },
@@ -259,6 +315,9 @@ class TestSolveSessionTest {
         const val DONE = "create.testSolve.done"
         const val TOAST = "create.toast.testCleared"
         const val PLAY_BOARD = "sandbox.play.board"
+
+        /** Past SnackbarDuration.Long. */
+        const val TOAST_TIMEOUT_MS = 11_000L
 
         fun storedRow(blob: ByteArray) = Draft(
             id = DRAFT_ID,
