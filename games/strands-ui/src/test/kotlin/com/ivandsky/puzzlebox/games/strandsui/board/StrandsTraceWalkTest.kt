@@ -92,6 +92,24 @@ class StrandsTraceWalkTest {
     }
 
     @Test
+    fun `a side drag up to 20 degrees off its axis joins the side letter, not the diagonal`() {
+        // F1: 17.5° below east sat in the old ±30° diagonal cone and took (4, 2).
+        val heading = Math.toRadians(17.5).let { Offset(cos(it).toFloat(), sin(it).toFloat()) }
+        val finger = polyline(listOf(centre(Coord(3, 1)), centre(Coord(3, 1)) + heading), FINE)
+        assertEquals(listOf(Coord(3, 1), Coord(3, 2)), drag(finger))
+    }
+
+    @Test
+    fun `a diagonal joins only 0_40 of the way along its step`() {
+        // F1: the old 0.30 joined (3, 2) a hair past the corner, at 0.38.
+        val start = centre(Coord(2, 1))
+        val short = polyline(listOf(start, start + Offset(0.38f, 0.38f)), FINE)
+        assertEquals(emptyList<Coord>(), drag(short))
+        val past = polyline(listOf(start, start + Offset(0.42f, 0.42f)), FINE)
+        assertEquals(listOf(Coord(2, 1), Coord(3, 2)), drag(past))
+    }
+
+    @Test
     fun `nothing joins close to the last centre`() {
         val start = centre(Coord(4, 2))
         val finger = polyline(listOf(start, start + Offset(0.28f, 0f), start + Offset(0f, 0.28f), start + Offset(-0.2f, -0.2f)), FINE)

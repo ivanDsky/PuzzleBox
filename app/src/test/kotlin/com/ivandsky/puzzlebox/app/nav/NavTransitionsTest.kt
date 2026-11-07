@@ -279,6 +279,23 @@ class NavTransitionsTest {
     }
 
     @Test
+    fun `a held page stays composed and opaque to the end of the move on the scene canvas' scrim clock`() {
+        val probe = Probe(composeRule)
+        val held = listOf(
+            navMotion(playRoot, game, pop = false, reduceMotion = false, NavForm.Tablet, liftable = true),
+            navMotion(game, playRoot, pop = true, reduceMotion = false, NavForm.Tablet, liftable = true),
+            navMotion(homeRoot, playRoot, pop = false, reduceMotion = false, NavForm.Tablet),
+        )
+        held.forEach { motion ->
+            // Its hold transform is a no-op by value; only the scrim's animateFloat keeps it there.
+            val frame = probe.play(motion, atMillis = motion.durationMillis - LATE_MILLIS)
+
+            assertSameRect(frame.container, frame.outgoing)
+            assertOpaque(frame)
+        }
+    }
+
+    @Test
     fun `tablet tab switch fades the incoming over an outgoing tab that stays at alpha 1`() {
         val motion = navMotion(homeRoot, playRoot, pop = false, reduceMotion = false, NavForm.Tablet)
         val frame = Probe(composeRule).play(motion)
@@ -497,6 +514,9 @@ class NavTransitionsTest {
 
         /** Well into every curve, and before the shortest move (the reduced fade) ends. */
         const val SAMPLE_MILLIS = 50L
+
+        /** Just before a move's last frame: a page held only by a shorter clock is gone by now. */
+        const val LATE_MILLIS = 32L
         val PREDICTIVE_HALF = NavMotion.PredictiveMillis / 2L
         const val SETTLE_MILLIS = 3_000L
         const val EPS = 0.5f

@@ -75,7 +75,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * A14: the shared play chrome puts every game's board at the same top y. Each real game
  * is opened on the same Play stack in turn, at one window size, and its board's top edge
- * is read once the board is ready — a phone (one pane) and a tablet (two panes).
+ * is read once the board is ready — a phone (one pane) and a tablet (two panes). A15: on
+ * the tablet every game's route hands it the live stats panel, whose timer replaces the top bar's.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -145,7 +146,27 @@ class PlayBoardPositionTest {
         assertSameBoardTop(DpSize(1280.dp, 800.dp), PlayLayout.TwoPane)
     }
 
+    @Config(sdk = [34], application = android.app.Application::class, qualifiers = "w1280dp-h800dp")
+    @Test
+    fun `every game on a tablet times itself in the stats panel, not the top bar`() {
+        eachGame(DpSize(1280.dp, 800.dp), PlayLayout.TwoPane) { game ->
+            boardTop(game)
+            assertEquals("${game.value} panel timers", 1, count("play.stats.timer"))
+            assertEquals("${game.value} top bar timers", 0, count("play.timer"))
+        }
+    }
+
     private fun assertSameBoardTop(size: DpSize, layout: PlayLayout) {
+        val tops = mutableMapOf<GameId, Float>()
+        eachGame(size, layout) { game -> tops[game] = boardTop(game) }
+        val zipTop = tops.getValue(ZipDefinition.id)
+        tops.forEach { (game, top) -> assertEquals("${game.value} board top (px) vs Zip's", zipTop, top, 0.5f) }
+    }
+
+    private fun count(tag: String) = composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().size
+
+    /** Opens each of [games] in turn on one Play stack at [size] and [layout], handing [check] each once it is on top. */
+    private fun eachGame(size: DpSize, layout: PlayLayout, check: (GameId) -> Unit) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 Box(Modifier.requiredSize(size)) {
@@ -160,16 +181,14 @@ class PlayBoardPositionTest {
                 }
             }
         }
-        val tops = games.associateWith { game ->
+        games.forEach { game ->
             if (game != games.first()) {
                 composeRule.runOnIdle { navigator.replaceTop(GameKey(game.value)) }
                 // Let the stack transition finish: only the new game's board is left.
                 composeRule.waitForIdle()
             }
-            boardTop(game)
+            check(game)
         }
-        val zipTop = tops.getValue(ZipDefinition.id)
-        tops.forEach { (game, top) -> assertEquals("${game.value} board top (px) vs Zip's", zipTop, top, 0.5f) }
     }
 
     /** The top edge of [game]'s board, in root pixels, once its puzzle is ready. */
