@@ -50,7 +50,8 @@ import org.robolectric.annotation.GraphicsMode
  * The friend puzzle card over its ViewModel, with every source a fake: the stored puzzle's
  * facts, the one primary action per state (Play fresh, Resume with the saved play's
  * elapsed, Replay once a solve is recorded), the difficulty chip only when the local
- * re-verify graded the board, and Copy putting the code on the clipboard.
+ * re-verify graded the board, and Copy putting the code on the clipboard, its glyph giving
+ * way to a check for a moment.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -191,5 +192,25 @@ class FriendPuzzleCardTest {
         val clipboard = ApplicationProvider.getApplicationContext<Context>()
             .getSystemService(ClipboardManager::class.java)
         assertEquals(code.display, clipboard.primaryClip?.getItemAt(0)?.text?.toString())
+    }
+
+    @Test
+    fun `Copy shows the copy glyph, a check for a moment after a tap, then the glyph again`() {
+        show()
+        node("friend.card.copy.icon").assertExists()
+
+        composeRule.mainClock.autoAdvance = false
+        node("friend.card.copy").performClick()
+        composeRule.mainClock.advanceTimeUntil {
+            count("friend.card.copied") == 1 && count("friend.card.copy.icon") == 0
+        }
+
+        composeRule.mainClock.advanceTimeUntil(timeoutMillis = COPIED_RETURN_MS) {
+            count("friend.card.copy.icon") == 1 && count("friend.card.copied") == 0
+        }
+    }
+
+    private companion object {
+        const val COPIED_RETURN_MS = 3_000L
     }
 }
