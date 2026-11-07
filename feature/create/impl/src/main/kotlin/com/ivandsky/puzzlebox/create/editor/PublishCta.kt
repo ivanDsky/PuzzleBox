@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,15 +26,15 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.PublishOutcome
-import com.ivandsky.puzzlebox.model.ShareCode
 import kotlin.math.roundToInt
 
 /**
- * The Studio's Publish between why the last publish fell short ([PublishBanner]) and its share
- * code. Enabled once the draft is [ready] and no publish runs; while one runs the pill folds into
- * a spinner circle announcing "Publishing". Signed out it reads "Sign in & publish": the tap signs
- * in first, then publishes. Offline or refused it reads "Retry publish" and, as the attempt
- * ends, jolts once on the reject spring; reduced motion leaves the jolt to the banner alone.
+ * The Studio's Publish under why the last publish fell short ([PublishBanner]). Enabled once
+ * the draft is [ready] and no publish runs; while one runs the pill folds into a spinner circle
+ * announcing "Publishing". Signed out it reads "Sign in & publish": the tap signs in first, then
+ * publishes. Offline or refused it reads "Retry publish" and, as the attempt ends, jolts once on
+ * the reject spring; reduced motion leaves the jolt to the banner alone. Signed out or not
+ * ready, a line under it says so.
  */
 @Composable
 internal fun PublishCta(state: PublishSession.State, ready: Boolean, onPublish: () -> Unit, modifier: Modifier = Modifier) {
@@ -40,7 +42,7 @@ internal fun PublishCta(state: PublishSession.State, ready: Boolean, onPublish: 
     Column(modifier) {
         PublishBanner(state.outcome, Modifier.fillMaxWidth())
         PublishButton(state, ready, onPublish, jolt)
-        state.outcome?.let { PublishedTicket(it, Modifier.padding(top = Spacing.sm)) }
+        state.outcome?.let { PublishNotice(it, Modifier.padding(top = Spacing.sm)) }
     }
 }
 
@@ -60,6 +62,25 @@ private fun PublishButton(state: PublishSession.State, ready: Boolean, onPublish
             .fillMaxWidth()
             .offset { IntOffset(jolt().roundToInt(), 0) }
             .testTag("create.action.publish"),
+    )
+}
+
+/**
+ * Why the last publish didn't go out, when [PublishBanner] has nothing to say: signed out, or the
+ * draft wasn't ready. Published, the [TicketMorph] has already replaced the whole action area.
+ */
+@Composable
+private fun PublishNotice(outcome: PublishOutcome, modifier: Modifier) {
+    val text = when (outcome) {
+        PublishOutcome.SignedOut -> "Sign in to publish."
+        is PublishOutcome.Blocked -> "This draft isn't ready to publish."
+        is PublishOutcome.Published, PublishOutcome.Offline, PublishOutcome.DailyCapReached, is PublishOutcome.Rejected -> return
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.testTag(if (outcome is PublishOutcome.Blocked) "create.publish.failed" else "create.publish.signedOut"),
     )
 }
 
@@ -109,12 +130,4 @@ private fun PublishCtaOfflinePreview() {
 @Composable
 private fun PublishCtaCapPreview() {
     PuzzleBoxTheme { PublishCta(PublishSession.State(outcome = PublishOutcome.DailyCapReached), ready = false, onPublish = {}) }
-}
-
-@PuzzleBoxPreviews
-@Composable
-private fun PublishCtaPublishedPreview() {
-    PuzzleBoxTheme {
-        PublishCta(PublishSession.State(outcome = PublishOutcome.Published(checkNotNull(ShareCode.parse("K7Q2MX")))), ready = true, onPublish = {})
-    }
 }
