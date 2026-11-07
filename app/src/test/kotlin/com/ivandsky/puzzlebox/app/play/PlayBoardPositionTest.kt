@@ -13,6 +13,8 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
@@ -51,6 +53,8 @@ import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.LocalDate
@@ -114,6 +118,9 @@ class PlayBoardPositionTest {
                     factory { ObserveGameStats(get(), get(), ComputeStreak(GetPuzzleDay(get()))) }
                     // Every tutorial seen: the boards draw straight away.
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository(seen = games.toSet()) }
+                    // The tablet side panel's stats: signed out, so no board is read.
+                    single<IdentityService> { FakeIdentityService() }
+                    single<LeaderboardRepository> { FakeLeaderboardRepository() }
                 },
                 playModule,
             )
