@@ -46,7 +46,8 @@ import org.robolectric.annotation.Config
  * a while, then killed without saved state and reopened offline, opens its card over a saved
  * time (the in-progress time the card's Resume reads) equal to the time it was left at, and
  * its Play resumes the same marks and time. Today's Queens, in progress at the same time in
- * its own slot, keeps its own marks and time.
+ * its own slot, keeps its own marks and time. Both clocks are stopped before the kill, so
+ * every time compares exactly, with no wall-clock tolerance.
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -104,13 +105,14 @@ class FriendResumeE2ETest {
 
         background()
         awaitSaved(friendSlot, FRIEND_PLAY_MS)
-        // Stopped, the clock is folded into the saved session: this is what the kill leaves.
+        // Stopped, the clock is folded into the saved session; it stays stopped into the kill,
+        // so this is exactly the time the dead process leaves on disk.
         val friendLeft = savedSession(friendSlot)
-        foreground()
 
-        // The process dies; the next one has no network.
+        // The process dies in the background; the next one has no network.
         shared.online = false
         relaunch()
+        foreground()
         tapTab(PlayKey)
         openCard(code)
 
@@ -124,7 +126,7 @@ class FriendResumeE2ETest {
         val friendResumed = session(friendSlot)
         assertEquals("the friend's puzzle, not today's", friendLeft.ref, friendResumed.ref)
         assertEquals("the same marks", friendLeft.marks, friendResumed.marks)
-        assertTime("the same time", friendLeft.elapsedMs, friendResumed.elapsedMs)
+        assertEquals("the same time", friendLeft.elapsedMs, friendResumed.elapsedMs)
 
         back()
         awaitTag(CARD_TITLE)
@@ -132,7 +134,7 @@ class FriendResumeE2ETest {
         openGame(QUEENS)
         val dailyResumed = session(dailySlot)
         assertEquals("today's marks are untouched", dailyLeft.marks, dailyResumed.marks)
-        assertTime("today's time is untouched", dailyLeft.elapsedMs, dailyResumed.elapsedMs)
+        assertEquals("today's time is untouched", dailyLeft.elapsedMs, dailyResumed.elapsedMs)
     }
 
     /** A friend's unique 6×6 Queens board, published to the shared fake under a fresh code. */
@@ -203,7 +205,7 @@ class FriendResumeE2ETest {
         checkNotNull(store.peek(slot)) { "no live play of $slot" }.controller as QueensPlayController
 
     private fun assertTime(message: String, expectedMs: Long, actualMs: Long?) {
-        assertEquals("$message (±1 s)", expectedMs.toDouble(), checkNotNull(actualMs) { message }.toDouble(), 1_000.0)
+        assertEquals(message, expectedMs, checkNotNull(actualMs) { message })
     }
 
     private val ShellRobot.store: PlaySessionStore get() = graph.koin.get()
