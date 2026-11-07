@@ -110,12 +110,13 @@ class FriendPuzzleCardTest {
             plays = fakes.registry,
             editors = GameEditorRegistry(emptyList()),
             dispatchers = now,
+            board = signedOutBoard(),
         )
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 val state by viewModel.state.collectAsState()
                 (state as? FriendCardState.Ready)?.let { ready ->
-                    FriendPuzzleCard(card = ready.card, onAction = { played += ready.card.play })
+                    FriendPuzzleCard(card = ready.card, onAction = { played += ready.card.play }, onSignIn = {})
                 }
             }
         }

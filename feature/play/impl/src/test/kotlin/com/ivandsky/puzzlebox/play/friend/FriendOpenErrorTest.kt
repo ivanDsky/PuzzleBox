@@ -333,6 +333,7 @@ class FriendOpenErrorTest {
         plays = fakes.registry,
         editors = GameEditorRegistry(emptyList()),
         dispatchers = now,
+        board = signedOutBoard(),
     )
 
     private fun publish(gameId: String = game.value, formatVersion: Int = SharedPuzzleDoc.FORMAT_VERSION) {

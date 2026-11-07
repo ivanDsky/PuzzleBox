@@ -15,9 +15,9 @@ import org.koin.dsl.module
 
 /**
  * Friend puzzles' wiring, included by [playModule]: opening a code ([LoadSharedPuzzle], whose
- * re-check of the board stops after [OPEN_BUDGET_MS]), the Enter code sheet's check, the
- * card's ViewModel and the result's, which reads the puzzle's board through [FriendPuzzleBoard],
- * ranked with [ComputeCustomBoard].
+ * re-check of the board stops after [OPEN_BUDGET_MS]), the Enter code sheet's check, and the
+ * card's ViewModel and the result's, each reading the puzzle's board through its own
+ * [FriendPuzzleBoard], which ranks it with [ComputeCustomBoard].
  * The games are reached only through the app's [com.ivandsky.puzzlebox.game.GameRegistry];
  * this module names none.
  */
@@ -32,9 +32,9 @@ val friendModule = module {
         )
     }
     viewModel { EnterCodeViewModel(get(), get()) }
-    viewModel { (key: FriendPuzzleKey) -> FriendPuzzleViewModel(key, get(), get(), get(), get(), get(), get(), get()) }
     factory { ComputeCustomBoard() }
     factory { FriendPuzzleBoard(get(), get(), get(), get()) }
+    viewModel { (key: FriendPuzzleKey) -> FriendPuzzleViewModel(key, get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: CustomResultKey) -> CustomResultViewModel(key, get(), get(), get(), get(), get(), get(), get()) }
 }
 

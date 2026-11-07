@@ -41,12 +41,13 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 /**
  * A friend's puzzle before it is played: the game's glyph, the title, "by" the author and
  * the note, the size and difficulty chips (difficulty only when the local re-check graded
- * it), the author's time and hints beside yours once solved, the code with Copy, and the
- * one primary action, [onAction]. Sections rise in with the Enter stagger the first time the
- * code's card is shown; under reduced motion they only fade.
+ * it), the author's time and hints beside yours once solved, the code with Copy, the one
+ * primary action, [onAction], and under it the [BoardPreview], whose sign-in is [onSignIn].
+ * Sections rise in with the Enter stagger the first time the code's card is shown; under
+ * reduced motion they only fade.
  */
 @Composable
-internal fun FriendPuzzleCard(card: FriendCard, onAction: () -> Unit, modifier: Modifier = Modifier) {
+internal fun FriendPuzzleCard(card: FriendCard, onAction: () -> Unit, onSignIn: () -> Unit, modifier: Modifier = Modifier) {
     val reduced = rememberReducedMotion()
     val entrance = rememberCardEntrance(card.puzzle.code)
     val accent = card.brand.accent.colors()
@@ -68,6 +69,16 @@ internal fun FriendPuzzleCard(card: FriendCard, onAction: () -> Unit, modifier: 
         Enter(entrance, 3, reduced) { Chips(card, accent.container, accent.onContainer) }
         Enter(entrance, 4, reduced) { Stats(card) }
         Enter(entrance, 5, reduced) { Action(card.action, reduced, onAction) }
+        Enter(entrance, 6, reduced) {
+            BoardPreview(
+                board = card.board,
+                author = puzzle.authorPin(),
+                yours = card.yours,
+                postState = puzzle.postState,
+                signIn = card.signIn,
+                onSignIn = onSignIn,
+            )
+        }
     }
 }
 
@@ -136,7 +147,7 @@ private fun Stats(card: FriendCard) {
                 modifier = Modifier.testTag("friend.card.author.hints"),
             )
         }
-        card.yourTimeMs?.let { Tile("Your time", Modifier.weight(1f)) { Value(formatDuration(it), "friend.card.solved") } }
+        card.yours?.let { Tile("Your time", Modifier.weight(1f)) { Value(formatDuration(it.timeMs), "friend.card.solved") } }
     }
 }
 
