@@ -31,9 +31,9 @@ private val PaneGutter: Dp = Spacing.md
  * The play screen under the route's top bar (title, clock, How to play). Both layouts
  * stack the grid over the keypad, so the digits stay one short reach from the cells.
  * SinglePane docks the shared chrome below. TwoPane (tablet landscape) splits in two
- * columns: the grid over one row of digit keys ending in the notes toggle, and beside it
- * the shared chrome with Erase and Clear under it, so the board gets the height of the two
- * button rows it no longer carries. The action bar's Clear is hidden: the keypad (or the
+ * columns: the grid over the digit keys with the notes toggle beside them, and next to it
+ * the shared chrome with Erase and Clear under it, so the board gets the height of the
+ * button row it no longer carries. The action bar's Clear is hidden: the keypad (or the
  * TwoPane row) has Sudoku's own.
  * The result hand-off waits for the solve sweep ([SudokuMotionHost]); one per board, so a
  * replay's win hands off again.
@@ -81,7 +81,7 @@ internal fun SudokuPlayScreen(
 /**
  * Grid over keypad, sized by [SudokuSizing] for the space given. The tutorial draws only
  * this, so its lessons play on the same keypad as the daily. [inlineNotes] puts the notes
- * toggle at the end of the digit row and leaves Erase and Clear to the caller (TwoPane).
+ * toggle beside the digits and leaves Erase and Clear to the caller (TwoPane).
  */
 @Composable
 internal fun SudokuStackedBoard(state: SudokuBoardState, modifier: Modifier = Modifier, inlineNotes: Boolean = false) {
@@ -141,8 +141,8 @@ private fun SudokuBoardKeypad(state: SudokuBoardState, layout: SudokuLayout, mod
         onClear = state::clear,
         onToggleNotes = state::toggleNotesMode,
         modifier = modifier.testTag("sudoku.keypad"),
-        rows = layout.keyRows,
         keyHeight = layout.key,
-        inlineNotes = layout.inlineNotes,
+        actionHeight = layout.actionKey,
+        actions = layout.actions,
     )
 }
