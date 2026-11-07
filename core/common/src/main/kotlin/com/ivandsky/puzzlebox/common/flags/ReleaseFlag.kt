@@ -9,4 +9,7 @@ package com.ivandsky.puzzlebox.common.flags
  * @property label what the flag turns on, shown in the debug Catalog's Release flags tab.
  * @property releaseDefault the value every release build uses; debug builds start from it too.
  */
-enum class ReleaseFlag(val label: String, val releaseDefault: Boolean)
+enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
+    /** Publishing custom puzzles, friend puzzles by code or link, and their leaderboards. */
+    FriendSharing(label = "Friend sharing", releaseDefault = false),
+}
