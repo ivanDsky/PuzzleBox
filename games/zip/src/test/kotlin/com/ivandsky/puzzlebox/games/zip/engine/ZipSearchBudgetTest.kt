@@ -96,15 +96,18 @@ class ZipSearchBudgetTest {
         val outcome = ZipSearch.bounded(
             ZipWorstCaseFixtures.oppositeCorners,
             limit = 2,
-            budget = Budget.within(BUDGET_MS, System::nanoTime),
+            budget = Budget.within(BOUND_MS, System::nanoTime),
         )
 
         val elapsedMs = (System.nanoTime() - start) / NANOS_PER_MILLI
         assertEquals(ZipSearchOutcome.Done(emptyList()), outcome)
-        assertTrue("took $elapsedMs ms", elapsedMs <= SLACK_MS)
+        assertTrue("took $elapsedMs ms", elapsedMs <= PARITY_BOUND_MS)
     }
 
-    /** Solvable but wide open: the search may not find two paths in time, so Exhausted is allowed. */
+    /**
+     * Solvable but wide open: the search may not find two paths in time, so Exhausted is
+     * allowed. The budget sits well under the bound so a loaded runner still makes it.
+     */
     @Test
     fun `the adjacent-corner worst case settles within the editor budget`() {
         val start = System.nanoTime()
@@ -112,17 +115,18 @@ class ZipSearchBudgetTest {
         val outcome = ZipSearch.bounded(
             ZipWorstCaseFixtures.adjacentCorners,
             limit = 2,
-            budget = Budget.within(BUDGET_MS, System::nanoTime),
+            budget = Budget.within(SEARCH_BUDGET_MS, System::nanoTime),
         )
 
         val elapsedMs = (System.nanoTime() - start) / NANOS_PER_MILLI
-        assertTrue("took $elapsedMs ms", elapsedMs <= BUDGET_MS + SLACK_MS)
+        assertTrue("took $elapsedMs ms", elapsedMs <= BOUND_MS)
         assertTrue(outcome is ZipSearchOutcome.Done || outcome == ZipSearchOutcome.Exhausted)
     }
 
     private companion object {
-        const val BUDGET_MS = 1_500L
-        const val SLACK_MS = 100L
+        const val BOUND_MS = 1_500L
+        const val SEARCH_BUDGET_MS = 400L
+        const val PARITY_BOUND_MS = 100L
         const val NANOS_PER_MILLI = 1_000_000L
     }
 }
