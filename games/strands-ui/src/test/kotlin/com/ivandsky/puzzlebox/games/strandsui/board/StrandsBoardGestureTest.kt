@@ -29,6 +29,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LightBoardTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.CellState
@@ -130,6 +131,21 @@ class StrandsBoardGestureTest {
         StrandsUiFixtures.row(0).forEach { assertEquals(CellState.FoundTheme, stateOf(it)) }
         cell(Coord(0, 3)).assert(hasContentDescription("S, theme"))
         assertEquals(HapticFeedbackType.Confirm, buzzes.last())
+    }
+
+    @Test
+    fun `a found letter is a tile on its lip, the lip showing below the face`() {
+        show()
+        StrandsUiFixtures.row(0).forEach { cell(it).performClick() }
+        cell(Coord(0, 3)).performClick()
+        rule.waitForIdle()
+
+        val image = cell(Coord(0, 0)).captureToImage().toPixelMap()
+        val token = image.height * StrandsBoardSpec.TokenFraction
+        val lip = token * StrandsBoardSpec.TokenLipFraction
+        val faceBottom = image.height / 2f + token / 2
+        assertEquals(LightBoardTokens.strandsThemeLip, image[image.width / 2, (faceBottom + lip / 2).toInt()])
+        assertEquals(LightBoardTokens.strandsThemeFill, image[image.width / 2, (faceBottom - lip).toInt()])
     }
 
     @Test

@@ -56,6 +56,7 @@ import com.ivandsky.puzzlebox.games.strandsui.board.TraceOverlaySpec
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 import com.ivandsky.puzzlebox.games.strandsui.board.altThemeCells
 import com.ivandsky.puzzlebox.games.strandsui.board.altThemeLinks
+import com.ivandsky.puzzlebox.games.strandsui.board.drawTokenSquare
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
@@ -94,8 +95,8 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
 }
 
 /**
- * The stateless board: [model] (the board at rest) as round letter tokens over their
- * connectors, sized to the space it is given ([strandsCellSizeFor]) and centred in it, the
+ * The stateless board: [model] (the board at rest) as letter tokens, rounded squares on
+ * their lips, over their connectors, sized to the space it is given ([strandsCellSizeFor]) and centred in it, the
  * whole width being its touch area. [found] is the word just found, whose letters settle or
  * sweep. [trace] is never read here: each letter derives its own place in it and the trace
  * connector reads it while drawing, so a trace step recomposes only the letters it changes.
@@ -206,9 +207,14 @@ private fun LetterToken(
                 }
                 .drawBehind {
                     val frame = base.value
-                    val radius = size.minDimension / 2
-                    tokenFill(spec, altTheme, traced, frame, join.value, colors)?.let { drawCircle(it, radius) }
-                    with(spec) { decorate(colors, radius, frame) }
+                    val half = size.minDimension / 2
+                    val lip = if (altTheme) colors.strandsThemeAltLip else spec.lip(colors)
+                    val fill = if (altTheme) colors.strandsThemeAltFill else spec.fill(colors)
+                    tokenColor(lip, TraceOverlaySpec.lip(colors), traced, frame, join.value)?.let {
+                        drawTokenSquare(it, half, drop = size.minDimension * StrandsBoardSpec.TokenLipFraction)
+                    }
+                    tokenColor(fill, TraceOverlaySpec.fill(colors), traced, frame, join.value)?.let { drawTokenSquare(it, half) }
+                    with(spec) { decorate(colors, half, frame) }
                 },
             contentAlignment = Alignment.Center,
         ) {
@@ -229,25 +235,23 @@ private fun LetterToken(
 }
 
 /**
- * The live trace overlays any base look, filling in over it as the letter joins ([join]);
- * a found letter turns from the trace colour to its own as it lights ([frame]).
+ * One role of the token (its fill or its lip): the live trace's [selection] overlays the
+ * letter's own [base], filling in over it as the letter joins ([join]); a found letter
+ * turns from the trace colour to its own as it lights ([frame]).
  */
-private fun tokenFill(
-    spec: StrandsCellSpec,
-    altTheme: Boolean,
+private fun tokenColor(
+    base: Color?,
+    selection: Color,
     traced: Boolean,
     frame: StrandsCellFrame,
     join: StrandsCellFrame,
-    colors: BoardColors,
 ): Color? {
-    val fill = if (altTheme) colors.strandsThemeAltFill else spec.fill(colors)
-    val selection = TraceOverlaySpec.fill(colors)
     if (traced) {
         if (join.lit >= 1f) return selection
-        return if (fill == null) selection.copy(alpha = selection.alpha * join.lit) else lerp(fill, selection, join.lit)
+        return if (base == null) selection.copy(alpha = selection.alpha * join.lit) else lerp(base, selection, join.lit)
     }
-    if (fill == null) return null
-    return if (frame.lit >= 1f) fill else lerp(selection, fill, frame.lit)
+    if (base == null) return null
+    return if (frame.lit >= 1f) base else lerp(selection, base, frame.lit)
 }
 
 /** A letter joining the trace fills and pops once; the key is constant because leaving the trace resets it. */

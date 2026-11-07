@@ -17,6 +17,8 @@ internal object HintOrderRevealedSpec : StrandsCellSpec {
 
     override fun fill(colors: BoardColors): Color? = HintOutlinedSpec.fill(colors)
 
+    override fun lip(colors: BoardColors): Color? = HintOutlinedSpec.lip(colors)
+
     override fun letter(colors: BoardColors): Color = HintOutlinedSpec.letter(colors)
 
     override val stateWord: String = HintOutlinedSpec.stateWord

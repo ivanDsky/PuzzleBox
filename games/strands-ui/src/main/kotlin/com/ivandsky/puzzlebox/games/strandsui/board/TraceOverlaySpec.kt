@@ -17,6 +17,8 @@ internal object TraceOverlaySpec : StrandsCellSpec {
 
     override fun fill(colors: BoardColors): Color = colors.strandsSelectionFill
 
+    override fun lip(colors: BoardColors): Color = colors.strandsSelectionLip
+
     override fun letter(colors: BoardColors): Color = colors.strandsTileText
 
     override val stateWord: String = StrandsCopy.SELECTED
