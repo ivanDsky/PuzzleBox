@@ -65,6 +65,8 @@ class MissingDraftTest {
                             GamePlayRegistry(emptyList()), copyDraft, DefaultDispatcherProvider(),
                             saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW },
                             createShared = signedOutPublishing(drafts),
+                            identity = nobodySignedIn(),
+                            idTokens = noGoogleAccount,
                         )
                     }
                 },

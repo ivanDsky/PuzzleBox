@@ -1,10 +1,10 @@
 package com.ivandsky.puzzlebox.play.friend
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -18,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
-import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.OpenOutcome
@@ -28,8 +27,9 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * A friend's puzzle card on the Play stack: its title, Solved once a solve is recorded here,
- * and Play, which opens the puzzle's board ([onPlay]). Up is [onBack], the navigator's pop.
+ * A friend's puzzle on the Play stack: a spinner while the code opens, then the scrolling
+ * [FriendPuzzleCard], whose Play, Resume or Replay opens the puzzle's board ([onPlay]), or why
+ * the code did not open. Up is [onBack], the navigator's pop.
  */
 @Composable
 internal fun FriendPuzzleRoute(
@@ -57,7 +57,11 @@ internal fun FriendPuzzleRoute(
             FriendCardState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(Modifier.testTag("friend.card.loading"))
             }
-            is FriendCardState.Ready -> ReadyCard(card, onPlay = { onPlay(card.play) })
+            is FriendCardState.Ready -> FriendPuzzleCard(
+                card = card.card,
+                onAction = { onPlay(card.card.play) },
+                modifier = Modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.xl),
+            )
             is FriendCardState.Failed -> Text(
                 text = failedMessage(card.outcome),
                 style = MaterialTheme.typography.titleMedium,
@@ -65,30 +69,6 @@ internal fun FriendPuzzleRoute(
                 modifier = Modifier.padding(Spacing.lg).testTag("friend.card.failed"),
             )
         }
-    }
-}
-
-@Composable
-private fun ReadyCard(card: FriendCardState.Ready, onPlay: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        Text(
-            text = card.puzzle.title,
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.testTag("friend.card.title"),
-        )
-        if (card.solved) {
-            Text(
-                text = "Solved",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.testTag("friend.card.solved"),
-            )
-        }
-        PrimaryButton(text = "Play", onClick = onPlay, modifier = Modifier.fillMaxWidth().testTag("friend.card.play"))
     }
 }
 

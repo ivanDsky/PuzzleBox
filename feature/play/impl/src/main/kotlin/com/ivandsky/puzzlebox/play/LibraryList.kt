@@ -22,10 +22,11 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The games list (06-a §List pane): "Games" over the one-line pitch, with [headerAction]
- * trailing them, then every game's [LibraryRow] in registry order. On the tablet the
- * [selected] row is outlined and the list never scrolls; on the phone it scrolls ([scroll],
- * hoisted so back from a page returns to the same offset), shows the offline pill and each
- * row carries a chevron.
+ * trailing them, then [friends] (the From friends section, empty by default), then every
+ * game's [LibraryRow] in registry order. Both layouts scroll ([scroll], hoisted so back
+ * from a page returns to the same offset), so a short tablet window still reaches every
+ * row. On the tablet the [selected] row is outlined; on the phone the list shows the
+ * offline pill and each row carries a chevron.
  */
 @Composable
 internal fun LibraryList(
@@ -35,13 +36,15 @@ internal fun LibraryList(
     onRow: (GameId) -> Unit,
     modifier: Modifier = Modifier,
     headerAction: @Composable () -> Unit = {},
+    friends: @Composable () -> Unit = {},
 ) {
     val phone = layout == PlayLayout.SinglePane
     val reduced = rememberReducedMotion()
     Column(
         modifier = modifier
             .testTag("library.list")
-            .then(if (phone) Modifier.verticalScroll(scroll).padding(horizontal = Spacing.lg) else Modifier)
+            .verticalScroll(scroll)
+            .then(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier)
             .padding(bottom = if (phone) Spacing.xl else 0.dp),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
@@ -57,6 +60,7 @@ internal fun LibraryList(
             headerAction()
         }
         if (phone && state.offline) OfflinePill()
+        friends()
         state.rows.forEachIndexed { index, row ->
             EnterFade(index, reduced) {
                 LibraryRow(

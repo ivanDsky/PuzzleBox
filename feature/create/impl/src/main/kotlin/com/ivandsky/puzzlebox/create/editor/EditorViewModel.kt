@@ -2,8 +2,10 @@ package com.ivandsky.puzzlebox.create.editor
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.create.api.EditorKey
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
@@ -44,6 +46,8 @@ class EditorViewModel(
     private val saves: CoroutineScope,
     private val clock: () -> Instant,
     createShared: CreateSharedPuzzle,
+    identity: IdentityService,
+    idTokens: GoogleIdTokenProvider,
     private val validatePublish: ValidatePublish = ValidatePublish(),
 ) : ViewModel() {
 
@@ -83,6 +87,8 @@ class EditorViewModel(
         draftId = key.draftId,
         createShared = createShared,
         drafts = drafts,
+        identity = identity,
+        idTokens = idTokens,
         scope = viewModelScope,
         flush = { autosave.flush() },
         reserved = { code -> lastStored = lastStored?.copy(reservedCode = code) },

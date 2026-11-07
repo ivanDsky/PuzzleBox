@@ -68,12 +68,14 @@ class PlaySessionStore internal constructor(
     fun open(key: GameKey): ActivePlay? {
         val game = GameId(key.gameId)
         if (games[game] == null || ui[game] == null) return null
-        return open(slotOf(key, game) ?: return null)
+        return open(slotOf(key, game) ?: return null, playAgain = true)
     }
 
     /** The live play of a friend's puzzle, opened as [open] opens a daily's; its board is
-     *  the received puzzle stored when the code opened. Null when the game is unplayable. */
-    fun open(key: CustomGameKey): ActivePlay? = open(key.slot)
+     *  the received puzzle stored when the code opened. A live play is returned as it
+     *  stands, never reset: its key is still on a back stack, so a solve it shows has not
+     *  handed off yet. Null when the game is unplayable. */
+    fun open(key: CustomGameKey): ActivePlay? = open(key.slot, playAgain = false)
 
     /** The live play of [slot]; never creates one. */
     fun peek(slot: PlaySlot): ActivePlay? = slots[slot]
@@ -114,11 +116,12 @@ class PlaySessionStore internal constructor(
         return scope.launch(start = CoroutineStart.UNDISPATCHED) { saves.joinAll() }
     }
 
-    private fun open(slot: PlaySlot): ActivePlay? {
+    /** [playAgain]: a complete live play is reset to a fresh attempt. */
+    private fun open(slot: PlaySlot, playAgain: Boolean): ActivePlay? {
         val plugin = games[slot.gameId] ?: return null
         val gameUi = ui[slot.gameId] ?: return null
         slots[slot]?.let { live ->
-            if (live.controller.isComplete) live.replay()
+            if (playAgain && live.controller.isComplete) live.replay()
             return live
         }
         return ActivePlay(

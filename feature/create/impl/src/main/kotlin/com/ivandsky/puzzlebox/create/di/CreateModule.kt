@@ -44,6 +44,8 @@ val createModule: Module = module {
             saves = get(DraftSaves),
             clock = { Instant.now() },
             createShared = get(),
+            identity = get(),
+            idTokens = get(),
             validatePublish = get(),
         )
     }

@@ -40,6 +40,7 @@ private const val GlyphPillBelowDp = 360
  * [onOverlay]. The title and the overflow's Rename open the [RenameSheet], whose Save reports
  * through [onRename]. While [testCleared] (a board edit invalidated the passed test) a toast
  * above the action area offers Undo ([onUndoTestClear]); it reports its timeout to [onTestClearedGone].
+ * The [toast] slot shows the route's other notices in the same place.
  */
 @Composable
 fun StudioScreen(
@@ -66,6 +67,7 @@ fun StudioScreen(
     testCleared: Boolean = false,
     onUndoTestClear: () -> Unit = {},
     onTestClearedGone: () -> Unit = {},
+    toast: @Composable (Modifier) -> Unit = {},
 ) {
     var renaming by rememberSaveable { mutableStateOf(false) }
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
@@ -107,6 +109,7 @@ fun StudioScreen(
             actionArea = actionArea,
             toast = { toastModifier ->
                 TestClearedToast(shown = testCleared, onUndo = onUndoTestClear, onGone = onTestClearedGone, modifier = toastModifier)
+                toast(toastModifier)
             },
             modifier = Modifier.weight(1f),
         )
