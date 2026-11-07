@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * A board cell in explicit rows x cols coordinates (finding F3-②: the board API is never
@@ -50,4 +52,32 @@ class GridGeometry(
 
     fun isValid(cell: GridCell): Boolean =
         cell.row in 0 until rows && cell.col in 0 until cols
+
+    /**
+     * The interior edge under [position], or null. [band] is the hit half-width across the edge
+     * and [inset] the dead length at each end, both as fractions of the cell size. Outer borders
+     * and the corner overlap of two bands return null, so the tap falls through to the cell.
+     */
+    fun edgeAt(position: Offset, band: Float = 0.22f, inset: Float = 0.22f): GridEdge? {
+        val fx = position.x / cellWidth
+        val fy = position.y / cellHeight
+        if (fx < 0f || fy < 0f || fx >= cols || fy >= rows) return null
+        val line = fx.roundToInt()
+        val lineRow = fy.roundToInt()
+        val nearVertical = line in 1 until cols && abs(fx - line) <= band
+        val nearHorizontal = lineRow in 1 until rows && abs(fy - lineRow) <= band
+        return when {
+            nearVertical && nearHorizontal -> null
+            nearVertical && alongIsLive(fy, inset) ->
+                GridEdge(GridCell(fy.toInt(), line - 1), GridEdge.Side.Right)
+            nearHorizontal && alongIsLive(fx, inset) ->
+                GridEdge(GridCell(lineRow - 1, fx.toInt()), GridEdge.Side.Bottom)
+            else -> null
+        }
+    }
+
+    private fun alongIsLive(fraction: Float, inset: Float): Boolean {
+        val within = fraction - fraction.toInt()
+        return within >= inset && within <= 1f - inset
+    }
 }
