@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -20,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.designsystem.AppDropdownMenu
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.gameui.GameGlyph
@@ -229,7 +229,7 @@ private fun PlayOverflow(items: List<PlayOverflowItem>) {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        AppDropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             items.forEach { item ->
                 val check: (@Composable () -> Unit)? =
                     if (item.checked == true) ({ Icon(PuzzleIcons.Check, contentDescription = "On") }) else null
