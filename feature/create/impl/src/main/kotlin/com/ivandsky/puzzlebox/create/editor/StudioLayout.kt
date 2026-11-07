@@ -35,8 +35,9 @@ import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
  * grid square in it and keeps its own rows (Queens' coach line and probe strip) under the grid.
  * [PlayLayout.TwoPane] (02 handoff "Tablet"): a square centred in the left pane, and the
  * [StudioSidePane] on the right with the card inline ([verdict], [overlay], [issues]), the
- * strip and the actions. The [toast] sits just above the action area in both, so it never
- * covers Test solve, and on the tablet it stays inside the side pane.
+ * strip and the actions. The [toast] covers no control: on the phone it sits at the bottom of
+ * the board slot, in the room the game leaves under its grid and rows, above the strip; on the
+ * tablet inside the side pane, above the action area.
  */
 @Composable
 internal fun StudioLayout(
@@ -55,14 +56,13 @@ internal fun StudioLayout(
     when (layout) {
         PlayLayout.SinglePane -> Column(modifier.fillMaxSize()) {
             Box(Modifier.weight(1f).fillMaxWidth()) {
-                Column(Modifier.fillMaxSize()) {
-                    Box(Modifier.weight(1f).fillMaxWidth().padding(Spacing.lg).testTag(BoardSlotTag)) {
-                        board(Modifier.fillMaxSize())
-                    }
-                    toolStrip(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md))
+                Box(Modifier.fillMaxSize().padding(Spacing.lg).testTag(BoardSlotTag)) {
+                    board(Modifier.fillMaxSize())
                 }
-                toast(Modifier.align(Alignment.BottomCenter))
+                // Into the slot's bottom padding: the room under the game's rows is often one toast high.
+                toast(Modifier.align(Alignment.BottomCenter).padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm))
             }
+            toolStrip(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md))
             actionArea(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg))
         }
         PlayLayout.TwoPane -> Row(modifier.fillMaxSize()) {
