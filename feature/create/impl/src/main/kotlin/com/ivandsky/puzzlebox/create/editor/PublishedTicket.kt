@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
@@ -182,7 +183,7 @@ private fun Landing(landed: Boolean, content: @Composable () -> Unit) {
     }
 }
 
-/** The stub's tear line: a dashed rule between two notches cut in the screen's background. */
+/** The stub's tear line: a dashed rule between two notches cut in the screen's background, all edged in outlineVariant. */
 @Composable
 private fun Perforation() {
     val notch = MaterialTheme.colorScheme.background
@@ -197,8 +198,11 @@ private fun Perforation() {
             strokeWidth = DashStroke.toPx(),
             pathEffect = PathEffect.dashPathEffect(floatArrayOf(DashOn.toPx(), DashOff.toPx())),
         )
-        drawCircle(notch, radius, Offset(0f, y))
-        drawCircle(notch, radius, Offset(size.width, y))
+        val edge = Stroke(DashStroke.toPx())
+        for (x in floatArrayOf(0f, size.width)) {
+            drawCircle(notch, radius, Offset(x, y))
+            drawCircle(dash, radius, Offset(x, y), style = edge)
+        }
     }
 }
 
