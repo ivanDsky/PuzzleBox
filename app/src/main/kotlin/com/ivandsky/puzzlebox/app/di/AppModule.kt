@@ -2,12 +2,15 @@ package com.ivandsky.puzzlebox.app.di
 
 import com.ivandsky.puzzlebox.app.buildTypeChecksForUpdates
 import com.ivandsky.puzzlebox.app.buildTypeUnlistedGames
+import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
+import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -32,6 +35,16 @@ val appModule = module {
             records = get<CompletionRepository>(),
             identityService = get<IdentityService>(),
             leaderboard = get<LeaderboardRepository>(),
+            scope = get<CoroutineScope>(),
+        )
+    }
+    // Friend puzzle wins post to their own boards, never through the daily watcher.
+    single {
+        CustomBoardSubmitter(
+            identity = get<IdentityService>(),
+            received = get<ReceivedPuzzleRepository>(),
+            completions = get<CompletionRepository>(),
+            boards = get<CustomBoardRepository>(),
             scope = get<CoroutineScope>(),
         )
     }

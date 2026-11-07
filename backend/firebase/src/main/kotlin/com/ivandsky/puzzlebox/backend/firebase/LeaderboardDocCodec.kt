@@ -31,8 +31,14 @@ internal object LeaderboardDocCodec {
         FIELD_FORMAT_VERSION to FORMAT_VERSION,
     )
 
-    /** Null when the doc may not appear on a board: unknown version or malformed fields. */
-    fun decode(data: Map<String, Any?>): LeaderboardEntry? {
+    /**
+     * Null when the doc may not appear on a board: unknown version, malformed fields, or a
+     * puzzleRef [acceptsRef] refuses (by default: not an official daily).
+     */
+    fun decode(
+        data: Map<String, Any?>,
+        acceptsRef: (String) -> Boolean = { LeaderboardRef.fromPuzzleRefKey(it) != null },
+    ): LeaderboardEntry? {
         val version = (data[FIELD_FORMAT_VERSION] as? Number)?.toInt() ?: return null
         // A19: a future format may reinterpret known fields — a v1 reader drops it.
         if (version != FORMAT_VERSION) return null
@@ -44,8 +50,8 @@ internal object LeaderboardDocCodec {
         val completedAtMs = (data[FIELD_COMPLETED_AT] as? Number)?.toLong() ?: return null
         if (uid.isEmpty()) return null
         if (timeMs <= 0 || hints < 0 || completedAtMs <= 0) return null
-        // Same official-daily shape the Firestore rules enforce server-side.
-        if (LeaderboardRef.fromPuzzleRefKey(puzzleRef) == null) return null
+        // Same ref shape the Firestore rules enforce server-side.
+        if (!acceptsRef(puzzleRef)) return null
         return LeaderboardEntry(
             uid = uid,
             displayName = displayName,
