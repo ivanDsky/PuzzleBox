@@ -35,7 +35,7 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Verdict
 
 /**
- * The phone Studio's slot under the board: the [tools], or, while [open] and not [editBoard],
+ * The Studio's tool slot, under the board on a phone and in the tablet's side pane: the [tools], or, while [open] and not [editBoard],
  * the publish details [form] with an Edit board chip ([onEditBoard]) that brings the tools back.
  * While [open] the slot holds the taller of the two, so the board above keeps its size across
  * Edit board and back; once the details no longer apply it fits the tools again. Faded-out

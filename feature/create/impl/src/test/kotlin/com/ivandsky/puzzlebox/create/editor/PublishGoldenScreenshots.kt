@@ -32,7 +32,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The Studio's publish states after a passed test, phone and tablet, light and dark: the details
- * (in the tools' slot on the phone, inline on the tablet) signed in and signed out, the sign-in
+ * (in the tools' slot, on the tablet in the side pane's) signed in and signed out, the sign-in
  * sheet, the Publishing spinner pill, Offline, Rejected and the daily cap with their banners
  * and Retry publish, then the share ticket once published and the struck read-only record once
  * unpublished. The board is the Studio preview's placeholder square. Goldens in `snapshots/publish/`.
@@ -102,7 +102,7 @@ abstract class PublishGoldenScreenshots(private val layout: PlayLayout, private 
             board = { PlaceholderBoard(it) },
             toolStrip = { slotModifier ->
                 ToolSlot(
-                    open = layout == PlayLayout.SinglePane && detailsOpen(UNIQUE, PASSED, publish),
+                    open = detailsOpen(UNIQUE, PASSED, publish),
                     editBoard = false,
                     onEditBoard = {},
                     tools = { Tools(it) },
@@ -133,7 +133,6 @@ abstract class PublishGoldenScreenshots(private val layout: PlayLayout, private 
                         modifier = actionsModifier,
                         publish = publish,
                         title = TITLE,
-                        detailsInline = layout == PlayLayout.TwoPane,
                     )
                 }
             },
