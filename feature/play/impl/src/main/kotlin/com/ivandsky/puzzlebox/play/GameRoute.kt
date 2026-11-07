@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.width
@@ -12,6 +13,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,6 +25,7 @@ import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
+import com.ivandsky.puzzlebox.gameui.LocalPlaySidePanel
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayClock
@@ -77,7 +80,8 @@ internal fun GameRoute(
         ) {
             if (!playing) return@PlayTopBar
             val clock = board.controller as? PlayClock
-            if (board.status is PlayBoardStatus.Ready && clock != null) {
+            // TwoPane's side panel draws the large live timer in place of this one (A15).
+            if (layout != PlayLayout.TwoPane && board.status is PlayBoardStatus.Ready && clock != null) {
                 TimerBar(clock.displayedElapsedMs(), Modifier.width(IntrinsicSize.Max).testTag("play.timer"))
             }
             if (play.ui.tutorial.isNotEmpty()) {
@@ -98,16 +102,44 @@ internal fun GameRoute(
                 session = gate.session,
                 onFinished = viewModel::closeTutorial,
             )
-            TutorialGate.Closed -> play.ui.Screen(
-                controller = board.controller,
-                status = board.status,
+            TutorialGate.Closed -> StatsSidePanel(
                 layout = layout,
-                onRetry = play::retry,
-                onSolved = { timeMs, hintsUsed -> onSolved(play.slot, timeMs, hintsUsed) },
-                modifier = Modifier,
-            )
+                slot = play.slot,
+                clock = (board.controller as? PlayClock)?.takeIf { board.status is PlayBoardStatus.Ready },
+            ) {
+                play.ui.Screen(
+                    controller = board.controller,
+                    status = board.status,
+                    layout = layout,
+                    onRetry = play::retry,
+                    onSolved = { timeMs, hintsUsed -> onSolved(play.slot, timeMs, hintsUsed) },
+                    modifier = Modifier,
+                )
+            }
         }
     }
+}
+
+/**
+ * [content] with the tablet side panel's stats (A15) in [LocalPlaySidePanel]: a TwoPane
+ * play scaffold draws [PlayStatsPanel] under the game's chrome, timing it off [clock]
+ * (null while the board isn't ready). A single pane composes [content] alone, so phones
+ * never build the stats.
+ */
+@Composable
+private fun StatsSidePanel(layout: PlayLayout, slot: PlaySlot, clock: PlayClock?, content: @Composable () -> Unit) {
+    if (layout != PlayLayout.TwoPane) {
+        content()
+        return
+    }
+    val stats: PlayStatsViewModel = koinViewModel(key = "stats:$slot", parameters = { parametersOf(slot) })
+    val panel: @Composable ColumnScope.() -> Unit = remember(stats, clock) {
+        {
+            val state by stats.state.collectAsStateWithLifecycle()
+            PlayStatsPanel(state, elapsedMs = { clock?.displayedElapsedMs() })
+        }
+    }
+    CompositionLocalProvider(LocalPlaySidePanel provides panel, content = content)
 }
 
 /** The play top bar: Up, the game's [glyph] and [title], then the play [actions]. */

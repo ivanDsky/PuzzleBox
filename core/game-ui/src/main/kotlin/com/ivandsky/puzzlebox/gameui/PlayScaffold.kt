@@ -45,7 +45,8 @@ val LocalPlayBoardPaneCap: ProvidableCompositionLocal<Dp?> = staticCompositionLo
 
 /**
  * The play route's content for the two-pane side pane, under the game's own chrome (A15:
- * the route fills it with the live stats). Null, or a single pane, shows nothing.
+ * the route fills it with the live stats). It gets the height the chrome leaves, so it
+ * should scroll when taller. Null, or a single pane, shows nothing.
  */
 val LocalPlaySidePanel: ProvidableCompositionLocal<(@Composable ColumnScope.() -> Unit)?> =
     staticCompositionLocalOf { null }
@@ -101,12 +102,13 @@ fun AdaptivePlayScaffold(
             VerticalDivider()
             Column(Modifier.weight(1f - BOARD_PANE_SHARE).fillMaxHeight().testTag("play.side_pane")) {
                 if (side != null) {
-                    // Unfilled weight: the route's panel measures first and the chrome takes what is left.
-                    Box(Modifier.fillMaxWidth().weight(1f, fill = false), contentAlignment = Alignment.TopStart, content = side)
+                    // Unweighted: the game's chrome (captions, found words) measures first and the
+                    // route's panel scrolls in what is left, so a tall panel never hides it.
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopStart, content = side)
                 }
                 LocalPlaySidePanel.current?.let { panel ->
                     Column(
-                        Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm).testTag("play.side_slot"),
+                        Modifier.fillMaxWidth().weight(1f).padding(horizontal = Spacing.lg, vertical = Spacing.sm).testTag("play.side_slot"),
                         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                         content = panel,
                     )
