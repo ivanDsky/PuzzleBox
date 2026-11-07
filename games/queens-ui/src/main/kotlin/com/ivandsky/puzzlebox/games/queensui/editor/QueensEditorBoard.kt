@@ -75,8 +75,11 @@ internal const val UNPAINTED_DESCRIPTION = "unpainted"
  * tests read the painting without pixels. Over the fills, [QueensCellDiagnostics] shows what
  * the [verdict] found, which region pieces stray and, with crowns on a 2-answer board, the
  * other answer's ghost crowns; the verdict card's witness choice ([QueensEditorController.overlay])
- * picks the ghosts' witness, or, without crowns, draws that witness's queens. Under the grid, [QueensCoachLine] and [QueensProbeStrip] each
- * reserve one line; Crown mode keeps the context bar's height empty.
+ * picks the ghosts' witness, or, without crowns, draws that witness's queens. Under the grid,
+ * [QueensCoachLine] reserves two lines, [QueensProbeStrip] one, and the context bar one touch
+ * target (left empty in Crown mode), so none of them moves the grid. The grid is the largest
+ * square that fits the [modifier]'s width and the height left over by those rows: the slot
+ * hands in its whole area, not a pre-sized square.
  */
 @Composable
 internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verdict, modifier: Modifier = Modifier) {
