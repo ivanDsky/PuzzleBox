@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -31,7 +32,9 @@ import org.koin.core.parameter.parametersOf
  * export puzzles) replaces the Studio with the [TestSolveScreen] sandbox on the game's real play
  * board until its Back; a board edit that invalidates the test shows the toast whose Undo brings
  * the board back to the tested layout. Publish shows only while [ReleaseFlag.FriendSharing] is on
- * (ADR-0022). The holders stay here: the screen gets their state and events.
+ * (ADR-0022); publishing while signed out opens the [SignInPublishSheet], and a failed sign-in
+ * shows its reason in the Studio's toast slot. The holders stay here: the screen gets their
+ * state and events.
  */
 @Composable
 internal fun EditorRoute(
@@ -56,6 +59,8 @@ internal fun EditorRoute(
     val cardOpen by viewModel.verdictCard.open.collectAsStateWithLifecycle()
     val overlay by viewModel.verdictCard.overlay.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flush() }
+    // Google's account picker needs the activity: read in composition, handed per call.
+    val activityContext = LocalContext.current
     val routeModifier = modifier.testTag("route.editor")
     when (val ready = state) {
         EditorUiState.Loading -> Box(routeModifier.fillMaxSize())
@@ -127,8 +132,16 @@ internal fun EditorRoute(
             testCleared = testCleared,
             onUndoTestClear = viewModel::restoreTest,
             onTestClearedGone = viewModel.testSolve::dismissCleared,
+            toast = { toastModifier ->
+                SignInFailureToast(failure = publish.signInFailure, onGone = viewModel.publish::dismissSignInFailure, modifier = toastModifier)
+            },
         )
     }
+    SignInPublishSheet(
+        signIn = publish.signIn,
+        onGoogle = { viewModel.publish.signIn(activityContext) },
+        onCancel = viewModel.publish::cancelSignIn,
+    )
 }
 
 /**

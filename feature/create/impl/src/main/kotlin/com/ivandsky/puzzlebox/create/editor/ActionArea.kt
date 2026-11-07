@@ -30,7 +30,8 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
  * Test solve is the next step, so it is Primary until a test passes, then it reads Test again in
  * the quiet style; it is enabled only when [canTestSolve] (a Unique board of a game that exports
  * puzzles). When the Studio can publish ([publish] is its state), Publish follows, enabled once
- * nothing blocks and no publish is running, over the last publish's outcome.
+ * nothing blocks and no publish is running, over the last publish's outcome. Signed out it reads
+ * "Sign in & publish": the tap signs in first, then publishes.
  */
 @Composable
 fun ActionArea(
@@ -60,7 +61,7 @@ fun ActionArea(
         ReadinessLine(blocks)
         if (publish != null) {
             PrimaryButton(
-                text = "Publish",
+                text = if (publish.signedIn) "Publish" else "Sign in & publish",
                 onClick = onPublish,
                 enabled = blocks.isEmpty() && !publish.busy,
                 modifier = Modifier.fillMaxWidth().testTag("create.action.publish"),
@@ -141,6 +142,22 @@ private fun ActionAreaPassedPreview() {
             onTestSolve = {},
             blocks = emptyList(),
             modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/** Ready and signed out: Publish asks for an account first. */
+@PuzzleBoxPreviews
+@Composable
+private fun ActionAreaSignedOutPreview() {
+    PuzzleBoxTheme {
+        ActionArea(
+            passed = TestSolve(layoutKey = "preview", timeMs = 102_000, hints = 0),
+            canTestSolve = true,
+            onTestSolve = {},
+            blocks = emptyList(),
+            modifier = Modifier.fillMaxWidth(),
+            publish = PublishSession.State(signedIn = false),
         )
     }
 }
