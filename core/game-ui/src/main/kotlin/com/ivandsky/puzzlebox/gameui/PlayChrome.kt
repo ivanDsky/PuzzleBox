@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import kotlinx.coroutines.delay
 
@@ -120,7 +121,8 @@ fun PlayClockEffects(clock: PlayClock) {
  * [PlayActionBar] (Undo · Redo · Hint · Clear). The title, timer, How to play and the
  * overflow live in the route's top bar. [clock] runs the shared clock loop here so the
  * fold follows the game's screen. Seams are nullable so a game opts out of a control it
- * does not have: no [clear] hides Clear.
+ * does not have: no [clear] hides Clear. [accent] is the game's slot, filling Hint;
+ * Neutral fits only a game without the action bar.
  */
 @Composable
 fun PlayChrome(
@@ -131,6 +133,7 @@ fun PlayChrome(
     banner: String?,
     modifier: Modifier = Modifier,
     feedback: PlayFeedback? = null,
+    accent: AccentSlot = AccentSlot.Neutral,
 ) {
     if (clock != null) PlayClockEffects(clock)
 
@@ -160,6 +163,6 @@ fun PlayChrome(
 
         PlayCaptionSlot(caption = playCaption(feedback, hints))
 
-        if (undo != null && hints != null) PlayActionBar(undo, hints, clear)
+        if (undo != null && hints != null) PlayActionBar(undo, hints, clear, accent)
     }
 }

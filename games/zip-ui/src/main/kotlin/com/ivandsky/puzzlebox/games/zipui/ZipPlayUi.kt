@@ -107,6 +107,7 @@ fun ZipPlayScreen(
                     clear = controller.edits,
                     banner = ready?.banner,
                     feedback = controller,
+                    accent = ZipBrand.accent,
                 )
             },
         )

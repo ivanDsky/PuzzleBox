@@ -86,6 +86,7 @@ fun TangoPlayScreen(
                     clear = null,
                     banner = ready?.banner,
                     feedback = controller,
+                    accent = TangoBrand.accent,
                 )
             },
         )
