@@ -61,7 +61,8 @@ import org.robolectric.annotation.Config
  * default size and its one-line rule when one is written; a picked game lists exactly
  * its editor's variants, in order; picking a size stores that draft and pushes its Studio.
  * `beta` ships without an editor and `gamma` has an editor but no editor UI: neither is
- * offered. One stored draft keeps the list (and its New puzzle button) on screen.
+ * offered. One stored draft keeps the list (and its New puzzle button) on screen. The real
+ * Queens sizes and labels are the app's NewPuzzleSheetQueensTest.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -142,8 +143,8 @@ class NewPuzzleSheetTest {
         assertEquals(emptyList<String>(), tagsStartingWith(GAME))
 
         composeRule.onNodeWithTag(BACK).performClick()
-        composeRule.onNodeWithTag("$GAME${queens.value}").performClick()
-        assertEquals(queensSizes.map { "$SIZE${it.value}" }, tagsStartingWith(SIZE))
+        assertEquals(listOf(queens, alpha).map { "$GAME${it.value}" }, tagsStartingWith(GAME))
+        assertEquals(emptyList<String>(), tagsStartingWith(SIZE))
     }
 
     @Test
