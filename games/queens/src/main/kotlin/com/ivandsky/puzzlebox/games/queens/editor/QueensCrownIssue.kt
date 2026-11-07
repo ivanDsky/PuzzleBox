@@ -6,8 +6,10 @@ package com.ivandsky.puzzlebox.games.queens.editor
  */
 data class QueensCrownIssue(val id: String, val region: Int, val cells: Set<Int>) {
     companion object {
-        const val DOUBLE: String = "queens.crowns.double"     // "Region X has 2 crowns" (k ≥ 2)
-        const val MISSING: String = "queens.crowns.missing"   // "Region X has no crown" (painted region, 0 crowns)
+        /** A region holding two or more crowns. */
+        const val DOUBLE: String = "queens.crowns.double"
+        /** A painted region with no crown; unpainted cells never form a region. */
+        const val MISSING: String = "queens.crowns.missing"
         /** Every id issuesOf can emit (QueensCopyCoverageTest, 25). */
         val ids: Set<String> = setOf(DOUBLE, MISSING)
 
