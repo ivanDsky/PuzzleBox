@@ -3,6 +3,8 @@ package com.ivandsky.puzzlebox.games.zipui
 import androidx.compose.ui.geometry.Offset
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.gameui.GridCell
+import com.ivandsky.puzzlebox.gameui.TipKind
+import com.ivandsky.puzzlebox.gameui.TraceTip
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.Wall
 import com.ivandsky.puzzlebox.games.zip.WallDirection
@@ -40,7 +42,7 @@ class ZipTraceTipTest {
     fun `toward a legal cell the tip follows the finger one to one`() {
         val tip = tip(cells(0 to 0), dx = 0.3f, dy = 0.04f)!!
         assertEquals(TipKind.Forward, tip.kind)
-        assertEquals(TipAxis.Right, tip.axis)
+        assertEquals(TipAxis.Right, tip.direction)
         assertEquals(0.3f, tip.extent, 1e-4f)
     }
 
@@ -48,7 +50,7 @@ class ZipTraceTipTest {
     fun `a far finger toward a legal cell eases below the reach cap`() {
         val tip = tip(cells(0 to 0), dx = 0f, dy = 3f)!!
         assertEquals(TipKind.Forward, tip.kind)
-        assertEquals(TipAxis.Down, tip.axis)
+        assertEquals(TipAxis.Down, tip.direction)
         assertTrue(tip.extent > MotionTokens.Trace.TipFollowCells)
         assertTrue(tip.extent < MotionTokens.Trace.TipReachCells)
     }
@@ -83,7 +85,7 @@ class ZipTraceTipTest {
     fun `pulling back toward the previous cell shortens the line under the finger`() {
         val tip = tip(cells(0 to 0, 0 to 1), dx = -0.35f, dy = 0f)!!
         assertEquals(TipKind.Back, tip.kind)
-        assertEquals(TipAxis.Left, tip.axis)
+        assertEquals(TipAxis.Left, tip.direction)
         assertEquals(0.35f, tip.extent, 1e-4f)
     }
 
@@ -96,14 +98,14 @@ class ZipTraceTipTest {
     fun `the tip keeps its axis until the finger clearly leaves it`() {
         // 50 degrees below the right axis: past the diagonal, inside the latch band.
         val held = tip(cells(0 to 0), dx = 0.32f, dy = 0.38f, latch = TipAxis.Right)!!
-        assertEquals(TipAxis.Right, held.axis)
+        assertEquals(TipAxis.Right, held.direction)
         val switched = tip(cells(0 to 0), dx = 0.1f, dy = 0.4f, latch = TipAxis.Right)!!
-        assertEquals(TipAxis.Down, switched.axis)
+        assertEquals(TipAxis.Down, switched.direction)
     }
 
-    private fun assertNudge(tip: TraceTip, axis: TipAxis) {
+    private fun assertNudge(tip: TraceTip<TipAxis>, axis: TipAxis) {
         assertEquals(TipKind.Nudge, tip.kind)
-        assertEquals(axis, tip.axis)
+        assertEquals(axis, tip.direction)
         assertTrue("nudge ${tip.extent} > 0", tip.extent > 0f)
         assertTrue("nudge ${tip.extent} ≤ cap", tip.extent <= MotionTokens.Trace.TipNudgeCells)
     }

@@ -1,9 +1,12 @@
 package com.ivandsky.puzzlebox.designsystem
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -196,6 +199,25 @@ object MotionTokens {
         const val BlendMinCells = 0.3f
         val EasingOut = CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
         val EasingRetract = EasingEmphasizedAccelerate
+    }
+}
+
+/** Plays the trace pop ([MotionTokens.Trace]) from the current value: up to PopScale, then back to 1. */
+suspend fun Animatable<Float, AnimationVector1D>.tracePop() {
+    val rise = (MotionTokens.Trace.PopDuration * MotionTokens.Trace.PopRiseFraction).toInt()
+    animateTo(MotionTokens.Trace.PopScale, tween(rise, easing = MotionTokens.Trace.EasingOut))
+    animateTo(1f, tween(MotionTokens.Trace.PopDuration - rise, easing = MotionTokens.EasingStandard))
+}
+
+/** The trace pop's scale at [t] (0..1, clamped) through PopDuration, for frame-driven cells. */
+fun tracePopScale(t: Float): Float {
+    val p = t.coerceIn(0f, 1f)
+    val rise = MotionTokens.Trace.PopRiseFraction
+    val peak = MotionTokens.Trace.PopScale
+    return if (p < rise) {
+        1f + (peak - 1f) * MotionTokens.Trace.EasingOut.transform(p / rise)
+    } else {
+        peak + (1f - peak) * MotionTokens.EasingStandard.transform((p - rise) / (1f - rise))
     }
 }
 

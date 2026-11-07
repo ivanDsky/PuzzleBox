@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.games.strandsui.board
 import androidx.compose.ui.graphics.Color
 import com.ivandsky.puzzlebox.designsystem.BoardColors
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.designsystem.tracePopScale
 import com.ivandsky.puzzlebox.games.strandsui.StrandsCopy
 
 /**
@@ -12,9 +13,6 @@ import com.ivandsky.puzzlebox.games.strandsui.StrandsCopy
  * same beat as the line's head.
  */
 internal object TraceOverlaySpec : StrandsCellSpec {
-    private val PopAt = floatArrayOf(0f, MotionTokens.Trace.PopRiseFraction, 1f)
-    private val PopScale = floatArrayOf(1f, MotionTokens.Trace.PopScale, 1f)
-
     override fun fill(colors: BoardColors): Color = colors.strandsSelectionFill
 
     override fun lip(colors: BoardColors): Color = colors.strandsSelectionLip
@@ -28,12 +26,6 @@ internal object TraceOverlaySpec : StrandsCellSpec {
     override fun frame(elapsedMs: Int, cue: StrandsMotionCue, reduceMotion: Boolean): StrandsCellFrame {
         if (reduceMotion || elapsedMs >= motionMs(cue)) return StrandsCellFrame.Rest
         val fill = MotionTokens.Trace.EasingOut.transform((elapsedMs.toFloat() / MotionTokens.Trace.GrowDuration).coerceAtMost(1f))
-        val pop = elapsedMs.toFloat() / MotionTokens.Trace.PopDuration
-        val scale = if (pop < MotionTokens.Trace.PopRiseFraction) {
-            keyframes(pop, PopAt, PopScale, MotionTokens.Trace.EasingOut)
-        } else {
-            keyframes(pop, PopAt, PopScale, MotionTokens.EasingStandard)
-        }
-        return StrandsCellFrame(scale = scale, lit = fill)
+        return StrandsCellFrame(scale = tracePopScale(elapsedMs.toFloat() / MotionTokens.Trace.PopDuration), lit = fill)
     }
 }

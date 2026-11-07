@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.strandsui.board
 
 import androidx.compose.ui.geometry.Offset
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.gameui.TipKind
 import com.ivandsky.puzzlebox.games.strands.Coord
 import kotlin.math.cos
 import kotlin.math.sin
