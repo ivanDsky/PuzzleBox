@@ -29,6 +29,8 @@ abstract class PuzzleBoxDatabase : RoomDatabase() {
 
     abstract fun publishedPuzzleDao(): PublishedPuzzleDao
 
+    abstract fun receivedPuzzleDao(): ReceivedPuzzleDao
+
     companion object {
         const val NAME = "puzzlebox.db"
     }

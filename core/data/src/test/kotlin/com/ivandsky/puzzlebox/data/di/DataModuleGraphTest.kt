@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
+import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.game.FakeDailySource
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -53,6 +54,7 @@ class DataModuleGraphTest : KoinTest {
             assertNotNull(koin.get<UserPreferencesRepository>())
             assertNotNull(koin.get<DraftRepository>())
             assertNotNull(koin.get<PublishedPuzzleRepository>())
+            assertNotNull(koin.get<ReceivedPuzzleRepository>())
             assertNotNull(koin.get<PuzzleDailyDao>())
         } finally {
             koinApp.close()

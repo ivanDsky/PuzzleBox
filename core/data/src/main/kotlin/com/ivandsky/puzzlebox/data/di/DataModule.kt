@@ -8,9 +8,11 @@ import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstDailyRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineUserPreferencesRepository
 import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
+import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.RoomCompletionRepository
 import com.ivandsky.puzzlebox.data.repository.RoomDraftRepository
 import com.ivandsky.puzzlebox.data.repository.RoomPublishedPuzzleRepository
+import com.ivandsky.puzzlebox.data.repository.RoomReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.RoomSavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
@@ -51,6 +53,8 @@ val dataModule = module {
     single<DraftRepository> { RoomDraftRepository(get()) }
     // The author's published listing; the board stays on the kept, read-only draft.
     single<PublishedPuzzleRepository> { RoomPublishedPuzzleRepository(get()) }
+    // Friends' puzzles opened here; they keep playing offline after their author unpublishes.
+    single<ReceivedPuzzleRepository> { RoomReceivedPuzzleRepository(get()) }
     // Process-wide so the 15-minute update-check throttle survives screen changes.
     single<AppReleaseRepository> { NetworkAppReleaseRepository(get()) }
 }
