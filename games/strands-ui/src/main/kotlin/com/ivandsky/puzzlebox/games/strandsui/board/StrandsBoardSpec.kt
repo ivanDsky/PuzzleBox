@@ -38,12 +38,12 @@ internal object StrandsBoardSpec {
      * so it never steals a corner-cutting diagonal.
      */
     const val TravelWindowCells: Float = 0.25f
-    const val SideConeDegrees: Float = 15f
+    const val SideConeDegrees: Float = 20f
     const val SideJoinCells: Float = 0.40f
-    const val DiagonalConeDegrees: Float = 30f
+    const val DiagonalConeDegrees: Float = 25f
 
     /** Of the diagonal step (√2 pitches): the diagonal letter joins this far along it. */
-    const val DiagonalJoinFraction: Float = 0.30f
+    const val DiagonalJoinFraction: Float = 0.40f
 
     /** Within this of the previous letter's centre the drag backs up onto it. */
     const val BackJoinCells: Float = 0.30f
