@@ -16,8 +16,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
+import com.ivandsky.puzzlebox.designsystem.MaxContentWidth
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.VariantId
@@ -31,9 +31,6 @@ private const val SheetBelowDp = 600
 
 /** Below this screen width the pill shows its glyph alone, so the title keeps the bar's width. */
 private const val GlyphPillBelowDp = 360
-
-/** The single pane's widest content: past it, the Studio centres. */
-private val MaxContentWidth = 720.dp
 
 /**
  * The Studio: the [StudioTopBar] (Back, the draft's [title] over its [subtitle] and the
