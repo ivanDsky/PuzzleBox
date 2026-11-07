@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -53,7 +54,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -92,6 +92,7 @@ class NewPuzzleSheetSudokuGateTest {
 
         rule.onNodeWithTag(NEW).performClick()
 
+        rule.onNodeWithTag(SHEET).assertIsDisplayed()
         rule.onAllNodesWithTag("$GAME${mini.value}").assertCountEquals(0)
     }
 
@@ -194,6 +195,7 @@ class NewPuzzleSheetSudokuGateTest {
     private companion object {
         val NOW: Instant = Instant.parse("2026-11-06T10:00:00Z")
         const val NEW = "create.new"
+        const val SHEET = "create.new.sheet"
         const val GAME = "create.new.game."
         const val SIZE = "create.new.size."
         /** The keypad key for 1 on a blank 6×6: six of it still to place. */
