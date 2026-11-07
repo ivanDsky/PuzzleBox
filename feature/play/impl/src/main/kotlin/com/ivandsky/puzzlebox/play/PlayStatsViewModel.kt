@@ -57,14 +57,15 @@ class PlayStatsViewModel(
         gamesToday = registry.all.size,
         streak = 0,
         // Seven empty days, so the strip holds its height while history loads.
-        week = week(emptyList(), calendar.today(slot.gameId) ?: slot.day),
+        week = week(emptyList(), calendar.today(slot.gameId) ?: (slot as? PlaySlot.Daily)?.day ?: LocalDate.now()),
         best = null,
         rankOrder = registry[slot.gameId]?.score?.rankOrder ?: RankOrder.TimeThenHints,
         averageMs = null,
         times = PlayTimes.Loading,
     )
 
-    private val times: Flow<PlayTimes> = identity.current.flatMapLatest { player ->
+    // A custom puzzle has no daily board.
+    private val times: Flow<PlayTimes> = if (slot !is PlaySlot.Daily) flowOf(PlayTimes.Unavailable) else identity.current.flatMapLatest { player ->
         if (player == null) {
             flowOf(PlayTimes.SignedOut)
         } else {
