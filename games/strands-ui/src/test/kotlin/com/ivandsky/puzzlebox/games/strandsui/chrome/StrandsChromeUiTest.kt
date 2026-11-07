@@ -1,6 +1,15 @@
 package com.ivandsky.puzzlebox.games.strandsui.chrome
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.captureToImage
+import com.ivandsky.puzzlebox.designsystem.colors
+import com.ivandsky.puzzlebox.games.strandsui.StrandsBrand
+import org.robolectric.annotation.GraphicsMode
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
@@ -102,6 +111,20 @@ class StrandsChromeUiTest {
             .assert(hasStateDescription("available"))
             .performClick()
         assertEquals(1, presses)
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `a waiting hint is a chunky Strands-pink button on its lip`() {
+        var lip = Color.Unspecified
+        show {
+            lip = StrandsBrand.accent.colors().lip
+            Box(Modifier.testTag("frame")) {
+                StrandsHintControl(HintUi(available = true, meterThirds = 0), onHint = {}, reduceMotion = true)
+            }
+        }
+        val image = rule.onNodeWithTag("frame").captureToImage().toPixelMap()
+        assertEquals(lip, image[image.width / 2, image.height - 2])
     }
 
     @Test

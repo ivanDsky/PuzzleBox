@@ -14,16 +14,13 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
@@ -40,7 +37,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -48,8 +44,6 @@ import androidx.compose.ui.unit.dp
 // its own hue; the lip is what the face sinks into.
 internal val GameButtonLipDepth: Dp = 4.dp
 private val GameButtonRim: Dp = 2.dp
-private val GameButtonIconSize: Dp = 24.dp
-private val GameButtonIconGap: Dp = 2.dp
 private const val DISABLED_FILL_ALPHA = 0.12f
 private const val DISABLED_CONTENT_ALPHA = 0.38f
 
@@ -86,33 +80,38 @@ fun GameButton(
         colors = gameButtonColors(accent?.colors(), MaterialTheme.colorScheme, LocalNeutralLip.current),
         enabled = enabled,
         interactionSource = interactionSource,
-        icon = icon,
         label = label,
+        describe = !size.showsLabel,
         size = size,
-        modifier = modifier.clickable(
-            interactionSource = interactionSource,
-            indication = null,
-            enabled = enabled,
-            role = Role.Button,
-            onClick = onClick,
-        ),
-    )
+        modifier = modifier.gameButtonClick(interactionSource, enabled, onClick),
+    ) { ink -> GameButtonContent(icon, label.takeIf { size.showsLabel }, ink) }
 }
 
+internal fun Modifier.gameButtonClick(interactionSource: MutableInteractionSource, enabled: Boolean, onClick: () -> Unit) =
+    clickable(
+        interactionSource = interactionSource,
+        indication = null,
+        enabled = enabled,
+        role = Role.Button,
+        onClick = onClick,
+    )
+
 /**
- * The face every game button draws; [modifier] already carries its click or toggle.
- * The sink is the press feedback (MotionTokens: Press, chunky); colour changes
- * crossfade like Select. Reduced motion makes both instant.
+ * The face every game button draws; [modifier] already carries its click or toggle, and
+ * [describe] names it [label] when no visible label does. The sink is the press feedback
+ * (MotionTokens: Press, chunky); colour changes crossfade like Select. Reduced motion makes
+ * both instant. The rim draws over [content], so a fill reaching the edge sits inside it.
  */
 @Composable
 internal fun GameButtonFace(
     colors: GameButtonColors,
     enabled: Boolean,
     interactionSource: MutableInteractionSource,
-    icon: ImageVector,
     label: String,
+    describe: Boolean,
     size: GameButtonSize,
     modifier: Modifier,
+    content: @Composable BoxScope.(ink: Color) -> Unit,
 ) {
     val reduced = rememberReducedMotion()
     val scheme = MaterialTheme.colorScheme
@@ -124,14 +123,14 @@ internal fun GameButtonFace(
     )
     val crossfade: AnimationSpec<Color> = if (reduced) snap() else tween(MotionTokens.SelectDuration, easing = MotionTokens.EasingStandard)
     val fill by animateColorAsState(if (enabled) colors.fill else scheme.onSurface.copy(alpha = DISABLED_FILL_ALPHA), crossfade, label = "game-button-fill")
-    val content by animateColorAsState(if (enabled) colors.content else scheme.onSurface.copy(alpha = DISABLED_CONTENT_ALPHA), crossfade, label = "game-button-content")
+    val ink by animateColorAsState(if (enabled) colors.content else scheme.onSurface.copy(alpha = DISABLED_CONTENT_ALPHA), crossfade, label = "game-button-content")
     val lip by animateColorAsState(if (enabled) colors.lip else Color.Transparent, crossfade, label = "game-button-lip")
     val shape = MaterialTheme.shapes.medium
     Box(
         modifier = modifier
             .heightIn(min = size.minHeight)
             .widthIn(min = ButtonMinHeight)
-            .then(if (size.showsLabel) Modifier else Modifier.semantics { contentDescription = label })
+            .then(if (describe) Modifier.semantics { contentDescription = label } else Modifier)
             .drawBehind {
                 val depth = GameButtonLipDepth.toPx()
                 val face = Size(this.size.width, this.size.height - depth)
@@ -140,19 +139,10 @@ internal fun GameButtonFace(
             .padding(bottom = GameButtonLipDepth)
             .graphicsLayer { translationY = sink.toPx() }
             .background(fill, shape)
-            .border(GameButtonRim, lip, shape)
-            .padding(horizontal = Spacing.xs),
+            .border(GameButtonRim, lip, shape),
         contentAlignment = Alignment.Center,
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(GameButtonIconGap),
-        ) {
-            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(GameButtonIconSize), tint = content)
-            if (size.showsLabel) {
-                Text(text = label, style = GameButtonTextStyle, color = content, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
+        content(ink)
     }
 }
 
