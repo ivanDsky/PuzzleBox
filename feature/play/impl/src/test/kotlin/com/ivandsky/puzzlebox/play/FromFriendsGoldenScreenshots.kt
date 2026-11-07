@@ -74,6 +74,8 @@ abstract class FromFriendsGoldenScreenshots(private val layout: PlayLayout, priv
                     onOpenLesson = {},
                     calendar = CalendarActions(),
                     friends = FriendPreviewCards,
+                    // The goldens show the shipped-on header: Enter code beside the title.
+                    onEnterCode = {},
                 )
                 FriendRemovedSnackbar(removed = removed, onUndo = {}, modifier = Modifier.align(Alignment.BottomCenter))
             }
