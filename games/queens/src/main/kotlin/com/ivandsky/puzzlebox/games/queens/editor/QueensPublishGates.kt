@@ -10,7 +10,7 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
  * ([Verdict.Unique.needsGuessing], spec A9) adds one [PublishBlock.NEEDS_GUESSING], after the splits.
  */
 object QueensPublishGates {
-    /** Every PublishBlock id blocks can emit (QueensCopyCoverageTest, 25). */
+    /** Every PublishBlock id [blocks] can emit, so a copy table can prove it covers them all. */
     val blockIds: Set<String> = setOf(PublishBlock.SPLIT_REGION, PublishBlock.NEEDS_GUESSING)
 
     fun blocks(draft: QueensDraft, verdict: Verdict): List<PublishBlock> {

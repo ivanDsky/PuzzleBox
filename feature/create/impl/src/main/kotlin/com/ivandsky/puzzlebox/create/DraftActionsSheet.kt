@@ -37,10 +37,7 @@ private val ActionRowMinHeight = 56.dp
  * A draft's actions (01 handoff "Draft actions sheet", opened by the row's ⋮ or a long press):
  * a header with the [row]'s glyph tile, title, verdict chip and meta line, then "Continue
  * editing" ([onContinue]), "Duplicate" ([onDuplicate]) and "Delete draft" ([onDelete], in the
- * error colour). Each action slides the sheet away first, then reports. "Publish & share"
- * joins in M3.
- *
- * Motion: the sheet's **Slide in / Slide out** and the scrim's **Fade** are ModalBottomSheet's own.
+ * error colour). Each action slides the sheet away first, then reports.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

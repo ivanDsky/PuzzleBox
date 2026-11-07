@@ -23,7 +23,7 @@ object QueensDraftAnalyzer {
     const val UNPAINTED: String = "queens.unpainted"   // IncompleteReason.count = unpainted cells
     const val REGIONS: String = "queens.regions"       // IncompleteReason.count = painted region count ≠ size
 
-    /** Every IncompleteReason id analyze can emit (QueensCopyCoverageTest, 25). */
+    /** Every IncompleteReason id [analyze] can emit, so a copy table can prove it covers them all. */
     val reasonIds: Set<String> = setOf(UNPAINTED, REGIONS)
 
     fun analyze(draft: QueensDraft, budget: Budget): Verdict {
