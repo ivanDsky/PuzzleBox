@@ -7,6 +7,8 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -32,9 +34,10 @@ import org.koin.core.parameter.parametersOf
  * export puzzles) replaces the Studio with the [TestSolveScreen] sandbox on the game's real play
  * board until its Back; a board edit that invalidates the test shows the toast whose Undo brings
  * the board back to the tested layout. Publish shows only while [ReleaseFlag.FriendSharing] is on
- * (ADR-0022); publishing while signed out opens the [SignInPublishSheet], and a failed sign-in
- * shows its reason in the Studio's toast slot. The holders stay here: the screen gets their
- * state and events.
+ * (ADR-0022). On a phone the passed test's publish details take the tools' [ToolSlot] until Edit
+ * board, which holds until that test changes. Publish while signed out opens the
+ * [SignInPublishSheet]; a failed sign-in shows its reason in the Studio's toast slot. The holders
+ * stay here: the screen gets their state and events.
  */
 @Composable
 internal fun EditorRoute(
@@ -56,6 +59,8 @@ internal fun EditorRoute(
     val testCleared by viewModel.testSolve.cleared.collectAsStateWithLifecycle()
     val publish by viewModel.publish.state.collectAsStateWithLifecycle()
     val flags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
+    // Publish and its details exist only while friend sharing is on (ADR-0022).
+    val shownPublish = publish.takeIf { ReleaseFlag.FriendSharing in flags }
     val cardOpen by viewModel.verdictCard.open.collectAsStateWithLifecycle()
     val overlay by viewModel.verdictCard.overlay.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flush() }
@@ -65,81 +70,110 @@ internal fun EditorRoute(
     when (val ready = state) {
         EditorUiState.Loading -> Box(routeModifier.fillMaxSize())
         EditorUiState.Missing -> MissingDraftScreen(onBack = onBack, modifier = routeModifier)
-        is EditorUiState.Ready -> sandbox?.let { open ->
-            // Its own node under the route's, so both the route's and the screen's tags survive.
-            Box(routeModifier.fillMaxSize()) {
-                TestSolveScreen(
-                    result = open.result,
-                    onBack = viewModel.testSolve::close,
-                    board = { boardModifier -> open.ui.Board(open.controller, boardModifier) },
-                )
-            }
-        } ?: StudioScreen(
-            title = title,
-            subtitle = ready.subtitle,
-            saving = saving,
-            verdict = ready.verdict,
-            cardOpen = cardOpen,
-            overlay = overlay,
-            onShowCard = viewModel.verdictCard::show,
-            onDismissCard = viewModel.verdictCard::dismiss,
-            onCheckAgain = viewModel.verdictCard::checkAgain,
-            onOverlay = viewModel.verdictCard::choose,
-            layout = layout,
-            onBack = onBack,
-            onRename = viewModel.meta::rename,
-            onDuplicate = { viewModel.duplicate(onOpen) },
-            onDelete = { viewModel.delete(onDelete) },
-            board = { boardModifier -> ready.editor.Board(ready.controller, ready.verdict, boardModifier) },
-            toolStrip = { stripModifier ->
-                // The board's controller adopts every resize and undo, so its draft names the open size.
-                val draft by ready.controller.draft.collectAsStateWithLifecycle()
-                ToolStrip(
-                    canUndo = canUndo,
-                    canRedo = canRedo,
-                    onUndo = viewModel::undo,
-                    onRedo = viewModel::redo,
-                    sizes = draft.editor.variants,
-                    size = draft.variant,
-                    sizeLabel = ready.editor::sizeLabel,
-                    onResize = viewModel::resize,
-                    onClear = viewModel::clear,
-                    hint = { hintModifier -> ready.editor.ToolHint(ready.controller, hintModifier) },
-                    modifier = stripModifier,
-                )
-            },
-            modifier = routeModifier,
-            issues = { issuesModifier ->
-                val draft by ready.controller.draft.collectAsStateWithLifecycle()
-                val blocks = remember(draft, ready.verdict) { draft.publishBlocks(ready.verdict) }
-                ready.editor.Issues(ready.controller, ready.verdict, blocks, viewModel.verdictCard::dismiss, issuesModifier)
-            },
-            actionArea = { areaModifier ->
-                val draft by ready.controller.draft.collectAsStateWithLifecycle()
-                val held = rememberHeldVerdict(ready.verdict)
-                ActionArea(
-                    passed = passed,
-                    canTestSolve = draft.canTestSolve && held is Verdict.Unique,
-                    // The live verdict: a tap while Checking starts nothing, as the held solution may not fit the board.
-                    onTestSolve = { viewModel.testSolve.start(draft, ready.verdict) },
-                    blocks = remember(draft, held, title, passed) { viewModel.readiness(draft, held, title, passed) },
-                    modifier = areaModifier,
-                    publish = publish.takeIf { ReleaseFlag.FriendSharing in flags },
-                    // The live verdict, like Test solve: a tap while Checking is refused as not ready.
-                    onPublish = { viewModel.publish.publish(draft, ready.verdict) },
-                    title = title,
-                    onRename = viewModel.meta::rename,
-                    onAuthorName = viewModel.publish::editAuthorName,
-                    onNote = viewModel.publish::editNote,
-                )
-            },
-            testCleared = testCleared,
-            onUndoTestClear = viewModel::restoreTest,
-            onTestClearedGone = viewModel.testSolve::dismissCleared,
-            toast = { toastModifier ->
-                SignInFailureToast(failure = publish.signInFailure, onGone = viewModel.publish::dismissSignInFailure, modifier = toastModifier)
-            },
-        )
+        is EditorUiState.Ready -> {
+            val held = rememberHeldVerdict(ready.verdict)
+            // Edit board holds until the test it set aside changes: a clear, its Undo or a new pass.
+            var editBoard by rememberSaveable(passed) { mutableStateOf(false) }
+            val detailsReady = detailsOpen(held, passed, shownPublish)
+            sandbox?.let { open ->
+                // Its own node under the route's, so both the route's and the screen's tags survive.
+                Box(routeModifier.fillMaxSize()) {
+                    TestSolveScreen(
+                        result = open.result,
+                        onBack = viewModel.testSolve::close,
+                        board = { boardModifier -> open.ui.Board(open.controller, boardModifier) },
+                    )
+                }
+            } ?: StudioScreen(
+                title = title,
+                subtitle = ready.subtitle,
+                saving = saving,
+                verdict = ready.verdict,
+                cardOpen = cardOpen,
+                overlay = overlay,
+                onShowCard = viewModel.verdictCard::show,
+                onDismissCard = viewModel.verdictCard::dismiss,
+                onCheckAgain = viewModel.verdictCard::checkAgain,
+                onOverlay = viewModel.verdictCard::choose,
+                layout = layout,
+                onBack = onBack,
+                onRename = viewModel.meta::rename,
+                onDuplicate = { viewModel.duplicate(onOpen) },
+                onDelete = { viewModel.delete(onDelete) },
+                board = { boardModifier -> ready.editor.Board(ready.controller, ready.verdict, boardModifier) },
+                toolStrip = { slotModifier ->
+                    ToolSlot(
+                        open = layout == PlayLayout.SinglePane && detailsReady,
+                        editBoard = editBoard,
+                        onEditBoard = { editBoard = true },
+                        tools = { stripModifier ->
+                            // The board's controller adopts every resize and undo, so its draft names the open size.
+                            val draft by ready.controller.draft.collectAsStateWithLifecycle()
+                            ToolStrip(
+                                canUndo = canUndo,
+                                canRedo = canRedo,
+                                onUndo = viewModel::undo,
+                                onRedo = viewModel::redo,
+                                sizes = draft.editor.variants,
+                                size = draft.variant,
+                                sizeLabel = ready.editor::sizeLabel,
+                                onResize = viewModel::resize,
+                                onClear = viewModel::clear,
+                                hint = { hintModifier -> ready.editor.ToolHint(ready.controller, hintModifier) },
+                                modifier = stripModifier,
+                            )
+                        },
+                        form = { formModifier, editBoardChip ->
+                            PublishDetails(
+                                title = title,
+                                details = publish.details,
+                                signedIn = publish.signedIn,
+                                onRename = viewModel.meta::rename,
+                                onAuthorName = viewModel.publish::editAuthorName,
+                                onNote = viewModel.publish::editNote,
+                                modifier = formModifier,
+                                enabled = !publish.busy,
+                                paired = true,
+                                action = editBoardChip,
+                            )
+                        },
+                        modifier = slotModifier,
+                    )
+                },
+                modifier = routeModifier,
+                issues = { issuesModifier ->
+                    val draft by ready.controller.draft.collectAsStateWithLifecycle()
+                    val blocks = remember(draft, ready.verdict) { draft.publishBlocks(ready.verdict) }
+                    ready.editor.Issues(ready.controller, ready.verdict, blocks, viewModel.verdictCard::dismiss, issuesModifier)
+                },
+                actionArea = { areaModifier ->
+                    val draft by ready.controller.draft.collectAsStateWithLifecycle()
+                    ActionArea(
+                        passed = passed,
+                        canTestSolve = draft.canTestSolve && held is Verdict.Unique,
+                        // The live verdict: a tap while Checking starts nothing, as the held solution may not fit the board.
+                        onTestSolve = { viewModel.testSolve.start(draft, ready.verdict) },
+                        blocks = remember(draft, held, title, passed) { viewModel.readiness(draft, held, title, passed) },
+                        modifier = areaModifier,
+                        publish = shownPublish,
+                        // The live verdict, like Test solve: a tap while Checking is refused as not ready.
+                        onPublish = { viewModel.publish.publish(draft, ready.verdict) },
+                        title = title,
+                        onRename = viewModel.meta::rename,
+                        onAuthorName = viewModel.publish::editAuthorName,
+                        onNote = viewModel.publish::editNote,
+                        detailsInline = layout == PlayLayout.TwoPane,
+                        onShowDetails = { editBoard = false }.takeIf { detailsReady && editBoard },
+                    )
+                },
+                testCleared = testCleared,
+                onUndoTestClear = viewModel::restoreTest,
+                onTestClearedGone = viewModel.testSolve::dismissCleared,
+                toast = { toastModifier ->
+                    SignInFailureToast(failure = publish.signInFailure, onGone = viewModel.publish::dismissSignInFailure, modifier = toastModifier)
+                },
+            )
+        }
     }
     SignInPublishSheet(
         signIn = publish.signIn,
