@@ -49,8 +49,8 @@ class LookAheadRung(private val propagate: List<QueensRung>) : QueensRung {
     private fun units(puzzle: QueensPuzzle): List<Pair<HintReason, List<Int>>> {
         val n = puzzle.size
         val byRegion = puzzle.regions.indices.groupBy { puzzle.regions[it] }
-        return List(n) { row -> HintReason(HintReason.Kind.ROW, row) to List(n) { row * n + it } } +
-            List(n) { col -> HintReason(HintReason.Kind.COLUMN, col) to List(n) { it * n + col } } +
-            List(n) { region -> HintReason(HintReason.Kind.REGION, region) to byRegion[region].orEmpty() }
+        return List(n) { row -> HintReason(HintReason.Kind.ROW, row, this) to List(n) { row * n + it } } +
+            List(n) { col -> HintReason(HintReason.Kind.COLUMN, col, this) to List(n) { it * n + col } } +
+            List(n) { region -> HintReason(HintReason.Kind.REGION, region, this) to byRegion[region].orEmpty() }
     }
 }
