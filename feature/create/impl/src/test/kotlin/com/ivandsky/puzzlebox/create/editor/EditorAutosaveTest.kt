@@ -115,6 +115,18 @@ class EditorAutosaveTest {
     }
 
     @Test
+    fun `a stored edit carries the editor's draft format version`() = runTest(mainRule.testDispatcher) {
+        drafts.upsert(storedRow(editor.draft(marks = 1).encode()).copy(draftFormatVersion = 0))
+        EditorViewModel(EditorKey(DRAFT_ID), store, games, editors, GamePlayRegistry(emptyList()), copyDraft, lanes, backgroundScope, clock = { NOW })
+        runCurrent()
+
+        controller.edit(edited)
+        advanceTimeBy(WINDOW_MS + 1)
+
+        assertEquals(editor.draftFormatVersion, drafts.rows.getValue(DRAFT_ID).draftFormatVersion)
+    }
+
+    @Test
     fun `a flush on app stop stores the pending edit at once`() = runTest(mainRule.testDispatcher) {
         val vm = open()
         controller.edit(edited)
