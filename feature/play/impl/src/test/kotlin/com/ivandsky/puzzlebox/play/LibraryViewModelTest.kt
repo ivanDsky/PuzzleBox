@@ -1,8 +1,11 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.data.model.PostState
+import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
@@ -17,7 +20,9 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -26,11 +31,13 @@ import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -46,7 +53,8 @@ import org.junit.Test
  * The library's state (A25–A29): rows in registry order with today's status, number,
  * archive progress and stats; the first game selected until [LibraryViewModel.select];
  * offline when any today can't load; the lesson opens and closing it marks it seen; the
- * page's calendar month and picked day (A26) survive a month change and reset to today.
+ * page's calendar month and picked day (A26) survive a month change and reset to today; a
+ * removed friend's puzzle comes back with its saved play on Undo, until its window closes.
  */
 class LibraryViewModelTest {
 
@@ -66,6 +74,7 @@ class LibraryViewModelTest {
     private val calendar = FakeGameCalendar(day)
     private val saved = FakeSavedPlayRepository()
     private val prefs = FakeUserPreferencesRepository()
+    private val received = FakeReceivedPuzzleRepository()
     private val lane = WriteLane()
     private val sync = SyncTodayPuzzles(fakes.games, daily, calendar)
     private val store = PlaySessionStore(
@@ -105,7 +114,10 @@ class LibraryViewModelTest {
             registry = fakes.registry,
             daily = daily,
             prefs = prefs,
-            friendPuzzles = ObserveFriendPuzzles(FakeReceivedPuzzleRepository(), saved, completions, fakes.games),
+            friendPuzzles = ObserveFriendPuzzles(received, saved, completions, fakes.games),
+            received = received,
+            saved = saved,
+            deleteReceivedPuzzle = DeleteReceivedPuzzle(received, saved),
         ).also { vm ->
             screen.launch { vm.uiState.collect {} }
             screen.launch { vm.page.collect {} }
@@ -232,5 +244,80 @@ class LibraryViewModelTest {
         assertEquals(beta, vm.page.value?.game)
         assertEquals(YearMonth.from(day), vm.page.value?.month)
         assertNull(vm.page.value?.picked)
+    }
+
+    @Test
+    fun `Remove deletes a friend's puzzle now and Undo brings it back with its elapsed time`() = runBlocking {
+        received.upsert(friendPuzzle(A))
+        saved.save(PlaySlot.Custom(alpha, A.value), byteArrayOf(7), elapsedMs = 70_000)
+        val vm = observedVm()
+
+        vm.removeFriend(A)
+        dispatcher.scheduler.runCurrent()
+        assertEquals(A, vm.removedFriend.value)
+        assertTrue(received.rows.isEmpty())
+        assertTrue(saved.rows.isEmpty())
+
+        vm.undoRemoveFriend()
+        dispatcher.scheduler.runCurrent()
+        assertNull(vm.removedFriend.value)
+        assertNotNull(received.rows[A])
+        assertEquals(mapOf<PlaySlot, Long>(PlaySlot.Custom(alpha, A.value) to 70_000), saved.observeInProgress().first())
+    }
+
+    @Test
+    fun `once the Undo window closes Undo restores nothing`() = runBlocking {
+        received.upsert(friendPuzzle(A))
+        val vm = observedVm()
+
+        vm.removeFriend(A)
+        dispatcher.scheduler.advanceTimeBy(FriendRemoval.UNDO_WINDOW_MS - 1)
+        assertEquals(A, vm.removedFriend.value)
+        dispatcher.scheduler.advanceTimeBy(2)
+        assertNull(vm.removedFriend.value)
+
+        vm.undoRemoveFriend()
+        dispatcher.scheduler.runCurrent()
+        assertTrue(received.rows.isEmpty())
+    }
+
+    @Test
+    fun `a newer removal takes over Undo and the older one stays removed`() = runBlocking {
+        received.upsert(friendPuzzle(A))
+        received.upsert(friendPuzzle(B))
+        val vm = observedVm()
+
+        vm.removeFriend(A)
+        vm.removeFriend(B)
+        dispatcher.scheduler.runCurrent()
+        assertEquals(B, vm.removedFriend.value)
+
+        vm.undoRemoveFriend()
+        dispatcher.scheduler.runCurrent()
+        assertEquals(setOf(B), received.rows.keys)
+    }
+
+    private fun friendPuzzle(code: ShareCode) = ReceivedPuzzle(
+        code = code,
+        gameId = alpha,
+        variant = TestGames.variant(alpha),
+        sharedFormatVersion = 1,
+        puzzleBytes = byteArrayOf(TestGames.MAGIC),
+        title = "Crown",
+        authorName = "Bo",
+        note = "",
+        authorTimeMs = 100_000,
+        authorHints = 0,
+        authorUid = "author",
+        openedAt = Instant.ofEpochMilli(1_700_000_000_000),
+        unpublished = false,
+        postState = PostState.Pending,
+        postAttempts = 0,
+        difficulty = null,
+    )
+
+    private companion object {
+        val A = checkNotNull(ShareCode.parse("K7Q2MX"))
+        val B = checkNotNull(ShareCode.parse("B4R9TZ"))
     }
 }
