@@ -53,7 +53,7 @@ data class LeaderboardRef(val gameId: String, val day: LocalDate) {
 data class LeaderboardEntry(
     val uid: String,
     val displayName: String,
-    /** Full `gameId/<ISO-day>/<n>` key — the same identity the completions store uses. */
+    /** The completions store's ref key: `gameId/<ISO-day>/<n>` for a daily, `custom/<gameId>/<puzzleId>` for a friend puzzle. */
     val puzzleRef: String,
     /** A3 score inputs; ranking is (timeMs, then hints), lower is better, mistakes free. */
     val timeMs: Long,

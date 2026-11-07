@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import com.ivandsky.puzzlebox.app.di.appModule
 import com.ivandsky.puzzlebox.app.di.buildTypeReleaseFlagsModule
+import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.backend.firebase.firebaseBackendModule
 import com.ivandsky.puzzlebox.auth.di.authModule
@@ -39,12 +40,15 @@ class PuzzleBoxApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         installDebugDesignVariants()
-        // The submit hook (A5): record writes are the only leaderboard source; async,
-        // eventual, and silent when signed out or offline (A7).
-        startKoin {
+        val koin = startKoin {
             androidContext(this@PuzzleBoxApplication)
             modules(appModules)
-        }.koin.get<LeaderboardSubmitWatcher>().start()
+        }.koin
+        // The submit hook (A5): record writes are the only leaderboard source; async,
+        // eventual, and silent when signed out or offline (A7).
+        koin.get<LeaderboardSubmitWatcher>().start()
+        // Friend puzzle wins: posts pending at the last run retry on every app start.
+        koin.get<CustomBoardSubmitter>().start()
     }
 
     // Applies the saved developer design settings before the first frame.

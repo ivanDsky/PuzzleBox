@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.create.editor.EditorViewModel
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
@@ -107,6 +108,7 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<IdentityService>())
             assertNotNull(koin.get<LeaderboardRepository>())
             assertNotNull(koin.get<SharedPuzzleRepository>())
+            assertNotNull(koin.get<CustomBoardRepository>())
             assertNotNull(koin.get<GoogleIdTokenProvider>())
             // C1 regression: ProfileRoute's koinViewModel() needs this definition —
             // without it the first Profile composition throws NoDefinitionFound.
