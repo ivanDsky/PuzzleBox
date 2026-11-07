@@ -92,7 +92,7 @@ fun ResultRoute(
 }
 
 /** Hands [text] to the system share sheet as plain text (ACTION_SEND). */
-private fun Context.shareText(text: String) {
+internal fun Context.shareText(text: String) {
     val send = Intent(Intent.ACTION_SEND)
         .setType("text/plain")
         .putExtra(Intent.EXTRA_TEXT, text)

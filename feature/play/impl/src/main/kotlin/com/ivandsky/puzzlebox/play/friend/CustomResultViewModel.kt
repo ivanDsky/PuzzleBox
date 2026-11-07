@@ -5,10 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -24,8 +27,10 @@ import kotlinx.coroutines.flow.stateIn
 internal data class CustomResultState(
     val timeMs: Long,
     val hintsUsed: Int,
-    val gameName: String,
+    /** "Queens 8×8 · Crown the castle"; the game's name alone until the puzzle is read. */
+    val title: String,
     val brand: GameBrand,
+    val rankOrder: RankOrder,
     /** The friend's puzzle as stored when its code opened; null until read. */
     val puzzle: ReceivedPuzzle? = null,
     /** Null while the puzzle has no completion here yet: the first solve's write is in flight. */
@@ -34,19 +39,19 @@ internal data class CustomResultState(
 
 /** Whether a solve set this device's record of a friend's puzzle. */
 internal sealed interface CustomStanding {
-    /** The first solve here: it is the record. */
+    /** The first solve here, or one that beat the record: it is the record. */
     data object Record : CustomStanding
 
-    /** A later solve; the record stays at [recordTimeMs]. */
-    data class Replay(val recordTimeMs: Long) : CustomStanding
+    /** A later solve that left [record] standing. */
+    data class Replay(val record: BestScore) : CustomStanding
 }
 
 /**
  * One [CustomResultKey]'s result: the solve's own facts ride the key, so the page draws at
  * once and after process death; the stored puzzle and this device's completions of it follow.
  * The solve is the Record when it is the row that stands on the board — the record row, else
- * the oldest — and a Replay otherwise, naming that row's time. The game's name and brand come
- * from the registries; the feature names no game.
+ * the oldest — and a Replay otherwise, naming that row's score. The game's name, size, brand
+ * and rank order come from the registries; the feature names no game.
  */
 internal class CustomResultViewModel(
     private val key: CustomResultKey,
@@ -54,23 +59,35 @@ internal class CustomResultViewModel(
     received: ReceivedPuzzleRepository,
     games: GameRegistry,
     plays: GamePlayRegistry,
+    editors: GameEditorRegistry,
     private val store: PlaySessionStore,
 ) : ViewModel() {
 
     private val slot = PlaySlot.Custom(GameId(key.gameId), key.puzzleId)
 
+    private val gameName = games.displayName(slot.gameId)
+
     private val solve = CustomResultState(
         timeMs = key.timeMs,
         hintsUsed = key.hintsUsed,
-        gameName = games.displayName(slot.gameId),
+        title = gameName,
         brand = plays.brandOf(slot.gameId),
+        rankOrder = games[slot.gameId]?.score?.rankOrder ?: RankOrder.TimeThenHints,
     )
 
     val state: StateFlow<CustomResultState> = combine(
         ShareCode.parse(key.puzzleId)?.let(received::observe) ?: flowOf(null),
         completions.observeCustom(slot.gameId, key.puzzleId),
-    ) { puzzle, records -> solve.copy(puzzle = puzzle, standing = standingOf(records)) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), solve)
+    ) { puzzle, records ->
+        solve.copy(
+            title = puzzle?.let {
+                val size = editors[it.gameId]?.sizeLabel(it.variant) ?: it.variant.value
+                "$gameName $size · ${it.title}"
+            } ?: gameName,
+            puzzle = puzzle,
+            standing = standingOf(records),
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), solve)
 
     /**
      * Play again: resets the finished live play, if it is still held, before its board
@@ -86,7 +103,7 @@ internal class CustomResultViewModel(
         return if (stands.time == key.timeMs && stands.hints == key.hintsUsed) {
             CustomStanding.Record
         } else {
-            CustomStanding.Replay(recordTimeMs = stands.time)
+            CustomStanding.Replay(record = BestScore(stands.time, stands.hints))
         }
     }
 

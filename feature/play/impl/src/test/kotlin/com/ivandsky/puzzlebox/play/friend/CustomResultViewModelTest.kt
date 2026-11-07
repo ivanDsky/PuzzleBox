@@ -25,8 +25,10 @@ import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -162,7 +164,7 @@ class CustomResultViewModelTest {
 
     private fun observed(key: CustomResultKey): CustomResultViewModel {
         val koin = checkNotNull(koin).koin
-        val viewModel = CustomResultViewModel(key, completions, received, fakes.games, fakes.registry, koin.get())
+        val viewModel = CustomResultViewModel(key, completions, received, fakes.games, fakes.registry, koin.get(), koin.get())
         screen.launch { viewModel.state.collect {} }
         main.testDispatcher.scheduler.runCurrent()
         return viewModel
@@ -185,7 +187,7 @@ class CustomResultViewModelTest {
 
         val state = observed(key(130_000L, hints = 1)).state.value
 
-        assertEquals(CustomStanding.Replay(recordTimeMs = 118_000L), state.standing)
+        assertEquals(CustomStanding.Replay(BestScore(118_000L, 0)), state.standing)
         assertEquals(130_000L, state.timeMs)
         assertEquals(1, state.hintsUsed)
     }
@@ -211,29 +213,39 @@ class CustomResultViewModelTest {
     }
 
     @Test
-    fun `the screen stamps Record on a first win and names the standing record on a replay`() {
+    fun `the screen stamps the record pill on a first win and names the standing record on a replay`() {
         var standing: CustomStanding by mutableStateOf(CustomStanding.Record)
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 CustomResultScreen(
-                    state = CustomResultState(130_000L, 0, "Alpha", fakes.registry.brandOf(alpha), puzzle(), standing),
+                    state = CustomResultState(
+                        timeMs = 130_000L,
+                        hintsUsed = 0,
+                        title = "Alpha",
+                        brand = fakes.registry.brandOf(alpha),
+                        rankOrder = RankOrder.TimeThenHints,
+                        puzzle = puzzle(),
+                        standing = standing,
+                    ),
                     onDone = {},
+                    onShare = {},
                     onPlayAgain = {},
                 )
             }
         }
         composeRule.waitForIdle()
-        node("custom_result.time").assertExists()
+        node("result.time").assertExists()
         node("custom_result.author").assertExists()
-        node("custom_result.hints").assertExists()
-        node("custom_result.record").assertExists()
-        assertEquals(0, count("custom_result.replay"))
+        node("result.tile.hints").assertExists()
+        assertEquals("a friend's puzzle has no streak", 0, count("result.tile.streak"))
+        node("result.record_badge").assertExists()
+        assertEquals(0, count("result.previous_best"))
 
-        composeRule.runOnIdle { standing = CustomStanding.Replay(118_000L) }
+        composeRule.runOnIdle { standing = CustomStanding.Replay(BestScore(118_000L, 0)) }
         composeRule.waitForIdle()
 
-        node("custom_result.replay").assertExists()
-        assertEquals(0, count("custom_result.record"))
+        node("result.previous_best").assertExists()
+        assertEquals(0, count("result.record_badge"))
     }
 
     @Test
@@ -245,7 +257,7 @@ class CustomResultViewModelTest {
         assertEquals(key(FakeController.TIME_MS), navigator.top)
         node("route.custom_result").assertExists()
 
-        node("custom_result.done").performScrollTo().performClick()
+        node("result.done").performScrollTo().performClick()
         composeRule.waitForIdle()
 
         assertEquals(FriendPuzzleKey(code.value), navigator.top)
@@ -258,7 +270,7 @@ class CustomResultViewModelTest {
         solve()
         val play = fakes[alpha].latest
 
-        node("custom_result.playAgain").performScrollTo().performClick()
+        node("result.playAgain").performScrollTo().performClick()
         composeRule.waitForIdle()
 
         assertEquals(CustomGameKey(alpha.value, code.value), navigator.top)

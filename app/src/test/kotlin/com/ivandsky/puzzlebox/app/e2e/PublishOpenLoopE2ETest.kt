@@ -100,9 +100,9 @@ class PublishOpenLoopE2ETest {
             rule.onAllNodesWithTag("route.custom_result", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
         }
         assertRoute("route.custom_result")
-        awaitTag("custom_result.record")
+        awaitTag("result.record_badge")
 
-        tap("custom_result.done")
+        tap("result.done")
         awaitTag("friend.card.solved")
         assertRoute("route.friend")
     }
