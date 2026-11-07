@@ -17,7 +17,12 @@ import com.ivandsky.puzzlebox.games.strands.codec.ByteWriter
  * v1: [u8 VERSION] board  [varint n][n × step] done (oldest first)  [varint m][m × step] undone
  *     board = [string letters][string clue][varint p][p × path][zigzag spangram]
  *     path  = [varint k][k × varint cell][u8 named 0|1][string word, only when named]
- *     step  = [u8 TAG_REPLACE] board before, board after
+ *     step  = [u8 1] board before, board after                                   ReplaceDraft
+ *           | [u8 2] path                                                        AddPath
+ *           | [u8 3] [varint index] path before, path after, string lettersBefore, string lettersAfter   EditPath
+ *           | [u8 4] [varint index] path, [zigzag spangramBefore]                RemovePath
+ *           | [u8 5] [zigzag index] [zigzag before]                              SetSpangram
+ *           | [u8 6] string clue, string before                                  SetClue
  * ```
  *
  * Each stack keeps its newest [MAX_HISTORY] steps; older ones drop on encode. Every board,
@@ -32,9 +37,14 @@ object StrandsDraftCodec {
     const val MAX_HISTORY: Int = 10_000
 
     private const val TAG_REPLACE = 0x01
+    private const val TAG_ADD_PATH = 0x02
+    private const val TAG_EDIT_PATH = 0x03
+    private const val TAG_REMOVE_PATH = 0x04
+    private const val TAG_SET_SPANGRAM = 0x05
+    private const val TAG_SET_CLUE = 0x06
     private const val CELLS = StrandsDraft.ROWS * StrandsDraft.COLS
 
-    /** History entries: ReplaceDraft<StrandsDraft>, each with a tag byte. */
+    /** History entries: ReplaceDraft<StrandsDraft> or a [StrandsDraftCommand], each with a tag byte. */
     fun encode(state: DraftState<StrandsDraft>): ByteArray {
         val out = ByteWriter()
         out.u8(VERSION)
@@ -59,24 +69,64 @@ object StrandsDraftCodec {
         out.string(draft.letters)
         out.string(draft.clue)
         out.varint(draft.paths.size)
-        draft.paths.forEach { path ->
-            out.varint(path.cells.size)
-            path.cells.forEach(out::varint)
-            val word = path.word
-            out.u8(if (word == null) 0 else 1)
-            if (word != null) out.string(word)
-        }
+        draft.paths.forEach { writePath(out, it) }
         out.zigzag(draft.spangram.toLong())
+    }
+
+    private fun writePath(out: ByteWriter, path: StrandsDraftPath) {
+        out.varint(path.cells.size)
+        path.cells.forEach(out::varint)
+        val word = path.word
+        out.u8(if (word == null) 0 else 1)
+        if (word != null) out.string(word)
     }
 
     private fun writeSteps(out: ByteWriter, steps: List<Command<StrandsDraft>>) {
         val kept = steps.takeLast(MAX_HISTORY)
         out.varint(kept.size)
         kept.forEach { step ->
-            require(step is ReplaceDraft<*>) { "no draft codec tag for ${step::class.simpleName}" }
-            out.u8(TAG_REPLACE)
-            writeBoard(out, step.before as StrandsDraft)
-            writeBoard(out, step.after as StrandsDraft)
+            when (step) {
+                is ReplaceDraft<*> -> {
+                    out.u8(TAG_REPLACE)
+                    writeBoard(out, step.before as StrandsDraft)
+                    writeBoard(out, step.after as StrandsDraft)
+                }
+                is StrandsDraftCommand -> writeCommand(out, step)
+                else -> throw IllegalArgumentException("no draft codec tag for ${step::class.simpleName}")
+            }
+        }
+    }
+
+    private fun writeCommand(out: ByteWriter, command: StrandsDraftCommand) {
+        when (command) {
+            is StrandsDraftCommand.AddPath -> {
+                out.u8(TAG_ADD_PATH)
+                writePath(out, command.path)
+            }
+            is StrandsDraftCommand.EditPath -> {
+                out.u8(TAG_EDIT_PATH)
+                out.varint(command.index)
+                writePath(out, command.before)
+                writePath(out, command.after)
+                out.string(command.lettersBefore)
+                out.string(command.lettersAfter)
+            }
+            is StrandsDraftCommand.RemovePath -> {
+                out.u8(TAG_REMOVE_PATH)
+                out.varint(command.index)
+                writePath(out, command.path)
+                out.zigzag(command.spangramBefore.toLong())
+            }
+            is StrandsDraftCommand.SetSpangram -> {
+                out.u8(TAG_SET_SPANGRAM)
+                out.zigzag(command.index.toLong())
+                out.zigzag(command.before.toLong())
+            }
+            is StrandsDraftCommand.SetClue -> {
+                out.u8(TAG_SET_CLUE)
+                out.string(command.clue)
+                out.string(command.before)
+            }
         }
     }
 
@@ -104,11 +154,40 @@ object StrandsDraftCodec {
     private fun readSteps(cursor: ByteCursor): List<Command<StrandsDraft>>? {
         val count = cursor.count()?.takeIf { it <= MAX_HISTORY } ?: return null
         return List(count) {
-            if (cursor.u8() != TAG_REPLACE) return null
-            val before = readBoard(cursor) ?: return null
-            ReplaceDraft(before, readBoard(cursor) ?: return null)
+            when (cursor.u8()) {
+                TAG_REPLACE -> {
+                    val before = readBoard(cursor) ?: return null
+                    ReplaceDraft(before, readBoard(cursor) ?: return null)
+                }
+                TAG_ADD_PATH -> StrandsDraftCommand.AddPath(readPath(cursor) ?: return null)
+                TAG_EDIT_PATH -> StrandsDraftCommand.EditPath(
+                    index = cursor.int() ?: return null,
+                    before = readPath(cursor) ?: return null,
+                    after = readPath(cursor) ?: return null,
+                    lettersBefore = cursor.string()?.takeIf { it.length == CELLS } ?: return null,
+                    lettersAfter = cursor.string()?.takeIf { it.length == CELLS } ?: return null,
+                )
+                TAG_REMOVE_PATH -> StrandsDraftCommand.RemovePath(
+                    index = cursor.int() ?: return null,
+                    path = readPath(cursor) ?: return null,
+                    spangramBefore = cursor.spangramIndex() ?: return null,
+                )
+                TAG_SET_SPANGRAM -> StrandsDraftCommand.SetSpangram(
+                    index = cursor.spangramIndex() ?: return null,
+                    before = cursor.spangramIndex() ?: return null,
+                )
+                TAG_SET_CLUE -> StrandsDraftCommand.SetClue(
+                    clue = cursor.string() ?: return null,
+                    before = cursor.string() ?: return null,
+                )
+                else -> return null
+            }
         }
     }
+
+    /** A zigzag spangram index, at least NO_SPANGRAM; null when truncated or out of range. */
+    private fun ByteCursor.spangramIndex(): Int? =
+        zigzag()?.takeIf { it in StrandsDraft.NO_SPANGRAM.toLong()..Int.MAX_VALUE.toLong() }?.toInt()
 
     private fun malformed(detail: String): DecodeResult.Err = DecodeResult.Err(DecodeError.Malformed(detail))
 }

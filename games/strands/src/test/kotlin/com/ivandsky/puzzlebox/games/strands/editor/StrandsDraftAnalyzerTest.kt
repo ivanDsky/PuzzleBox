@@ -37,6 +37,13 @@ class StrandsDraftAnalyzerTest {
     }
 
     @Test
+    fun `a blank word counts as unnamed`() {
+        val paths = List(StrandsDraft.ROWS) { rowPath(it, word = if (it < 2) " " else "${'A' + it}".repeat(cols)) }
+
+        assertEquals(Verdict.Incomplete(IncompleteReason(StrandsDraftAnalyzer.UNNAMED, 2)), analyze(draft(paths = paths)))
+    }
+
+    @Test
     fun `a board without a spangram is Incomplete`() {
         assertEquals(
             Verdict.Incomplete(IncompleteReason(StrandsDraftAnalyzer.NO_SPANGRAM, 0)),
