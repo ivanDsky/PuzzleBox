@@ -7,4 +7,5 @@ import kotlinx.serialization.modules.PolymorphicModuleBuilder
 fun PolymorphicModuleBuilder<NavKey>.createNavKeys() {
     subclass(CreateKey::class, CreateKey.serializer())
     subclass(EditorKey::class, EditorKey.serializer())
+    subclass(PublishedPuzzleKey::class, PublishedPuzzleKey.serializer())
 }
