@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play.friend
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -13,11 +14,15 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
+import com.ivandsky.puzzlebox.auth.GoogleIdToken
+import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
@@ -50,7 +55,9 @@ import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
@@ -125,6 +132,9 @@ class CustomResultViewModelTest {
                     single<GameCalendar> { FakeGameCalendar(LocalDate.parse("2026-11-04")) }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
                     single { GameEditorRegistry(emptyList()) }
+                    single<CustomBoardRepository> { FakeCustomBoardRepository() }
+                    single<IdentityService> { FakeIdentityService() }
+                    single<GoogleIdTokenProvider> { CancelledGoogleIdTokenProvider }
                     factory { LoadPastDay(get(), get()) }
                 },
                 playModule,
@@ -157,6 +167,12 @@ class CustomResultViewModelTest {
         difficulty = null,
     )
 
+    /** The board's sign-in is not under test here: Google's account picker is always dismissed. */
+    private object CancelledGoogleIdTokenProvider : GoogleIdTokenProvider {
+        override suspend fun idToken(activityContext: Context): GoogleIdToken =
+            GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.CANCELLED)
+    }
+
     private fun key(timeMs: Long, hints: Int = 0) = CustomResultKey(alpha.value, code.value, timeMs, hints)
 
     private fun row(timeMs: Long, hints: Int = 0, isRecord: Boolean = false) =
@@ -164,7 +180,10 @@ class CustomResultViewModelTest {
 
     private fun observed(key: CustomResultKey): CustomResultViewModel {
         val koin = checkNotNull(koin).koin
-        val viewModel = CustomResultViewModel(key, completions, received, fakes.games, fakes.registry, koin.get(), koin.get())
+        val viewModel = CustomResultViewModel(
+            key, completions, received, fakes.games, fakes.registry, koin.get(), koin.get(),
+            koin.get(), koin.get(), koin.get(), koin.get(),
+        )
         screen.launch { viewModel.state.collect {} }
         main.testDispatcher.scheduler.runCurrent()
         return viewModel
@@ -230,6 +249,7 @@ class CustomResultViewModelTest {
                     onDone = {},
                     onShare = {},
                     onPlayAgain = {},
+                    onSignIn = {},
                 )
             }
         }
