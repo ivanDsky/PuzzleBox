@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.app.e2e
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.Draft
@@ -22,6 +23,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
@@ -59,6 +61,7 @@ class PublishOpenLoopE2ETest {
             single<PublishedPuzzleRepository> { published }
             single<ReceivedPuzzleRepository> { received }
         },
+        releaseFlags = FakeReleaseFlags(ReleaseFlag.FriendSharing),
     )
 
     @Test

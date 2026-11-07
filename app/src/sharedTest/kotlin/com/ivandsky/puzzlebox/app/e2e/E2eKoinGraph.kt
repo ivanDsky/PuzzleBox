@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -12,6 +13,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -33,7 +35,8 @@ val E2E_TODAY: LocalDate = LocalDate.of(2026, 11, 4)
  * The one Koin graph every E2E test runs on: the production modules
  * ([PuzzleBoxApplication.appModules]) with core:testing fakes on the edges — daily
  * (every game's fixture fresh, so no LinkedIn call), records, saved plays, calendar,
- * preferences, identity and leaderboards. [overrides] load last and win (Koin allows
+ * preferences, identity, leaderboards and [releaseFlags] (none on, as in release; a run of an
+ * unreleased feature passes its flag). [overrides] load last and win (Koin allows
  * overriding by default), e.g. a file-backed database for process-death rows.
  *
  * The fakes outlive [stop]/[start]: a relaunch discards the graph and every single built
@@ -43,6 +46,7 @@ val E2E_TODAY: LocalDate = LocalDate.of(2026, 11, 4)
 class E2eKoinGraph(
     today: LocalDate,
     private val overrides: Module = module {},
+    private val releaseFlags: ReleaseFlags = FakeReleaseFlags(),
 ) {
     val daily: FakeDailyRepository = freshDailyForAllGames()
     val records = FakeCompletionRepository()
@@ -75,6 +79,7 @@ class E2eKoinGraph(
         single<UserPreferencesRepository> { preferences }
         single<IdentityService> { identity }
         single<LeaderboardRepository> { leaderboard }
+        single<ReleaseFlags> { releaseFlags }
     }
 
     /** Starts a fresh graph, replacing any graph still running. */

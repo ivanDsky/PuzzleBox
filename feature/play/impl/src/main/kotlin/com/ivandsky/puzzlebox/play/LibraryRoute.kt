@@ -25,6 +25,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -50,7 +52,7 @@ import org.koin.compose.koinInject
  * day card's day and pages months ([LibraryViewModel.page]). A row whose today can't load also retries; each start prefetches
  * today's uncached puzzles ([LibraryViewModel.syncToday], A12). "Open the lesson" runs
  * the game's tutorial over the library. The header's Enter code opens the code sheet, whose
- * Open is [onOpenCode].
+ * Open is [onOpenCode]; it shows only while [ReleaseFlag.FriendSharing] is on (ADR-0022).
  */
 @Composable
 internal fun LibraryRoute(
@@ -65,6 +67,7 @@ internal fun LibraryRoute(
     val lesson by viewModel.lesson.collectAsStateWithLifecycle()
     val page by viewModel.page.collectAsStateWithLifecycle()
     val month by viewModel.shownMonth.collectAsStateWithLifecycle()
+    val flags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
     var enteringCode by rememberSaveable { mutableStateOf(false) }
     LifecycleStartEffect(viewModel) {
         viewModel.syncToday()
@@ -86,7 +89,7 @@ internal fun LibraryRoute(
                 onPick = viewModel::pick,
                 onBackToToday = viewModel::backToToday,
             ),
-            onEnterCode = { enteringCode = true },
+            onEnterCode = { enteringCode = true }.takeIf { ReleaseFlag.FriendSharing in flags },
         )
         if (enteringCode) {
             EnterCodeSheet(
@@ -121,7 +124,8 @@ internal class CalendarActions(
 /**
  * The library for [state]: list and page side by side, or the phone's list → page push.
  * [page] is the selected game's calendar and [month] the one it asked for (null = today's);
- * on the phone a picked day scrolls the page up to the day card.
+ * on the phone a picked day scrolls the page up to the day card. The header's Enter code shows
+ * only with an [onEnterCode].
  */
 @Composable
 internal fun LibraryScreen(
@@ -136,11 +140,11 @@ internal fun LibraryScreen(
     onOpenLesson: (GameId) -> Unit,
     calendar: CalendarActions,
     modifier: Modifier = Modifier,
-    onEnterCode: () -> Unit = {},
+    onEnterCode: (() -> Unit)? = null,
 ) {
     val listScroll = rememberScrollState()
     val enterCode: @Composable () -> Unit = {
-        SecondaryButton(text = "Enter code", onClick = onEnterCode, modifier = Modifier.testTag("library.enterCode"))
+        onEnterCode?.let { SecondaryButton(text = "Enter code", onClick = it, modifier = Modifier.testTag("library.enterCode")) }
     }
     val onRow: (GameId) -> Unit = { game ->
         onSelect(game)

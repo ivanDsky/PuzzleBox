@@ -6,6 +6,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -14,6 +16,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -51,6 +54,8 @@ class MissingDraftTest {
     @Test
     fun `a draft that can't be opened shows Back, which leaves the Studio`() {
         startKoin {
+            // Every Studio test runs with friend sharing on (ADR-0022).
+            modules(module { single<ReleaseFlags> { FakeReleaseFlags(ReleaseFlag.FriendSharing) } })
             modules(
                 module {
                     viewModel { (key: EditorKey) ->
