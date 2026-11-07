@@ -77,10 +77,10 @@ class ZipDraftAnalyzerTest {
     }
 
     @Test
-    fun `a board no path covers is None with no conflicts yet`() {
+    fun `a board no path covers is None`() {
         val verdict = analyze(open3(listOf(0, 1)))
 
-        assertEquals(Verdict.None(emptySet()), verdict)
+        assertEquals(Verdict.None(setOf(0, 1)), verdict)
     }
 
     @Test
