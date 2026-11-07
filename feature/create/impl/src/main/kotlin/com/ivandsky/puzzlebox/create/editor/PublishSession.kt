@@ -67,7 +67,8 @@ class PublishSession(
      * [busy] while a publish runs; [outcome] is the last one's, null before the first.
      * [signedIn] names the Publish action; [signIn] is the open sign-in sheet, null when closed;
      * [signInFailure] is the last sign-in's failure until it is shown ([dismissSignInFailure]).
-     * [details] are the inline author name and note.
+     * [details] are the inline author name and note. [reopened] when the Published outcome came
+     * from opening an already published draft rather than from a publish here.
      */
     data class State(
         val busy: Boolean = false,
@@ -76,6 +77,7 @@ class PublishSession(
         val signIn: SignIn? = null,
         val signInFailure: SignInFailure? = null,
         val details: Details = Details(),
+        val reopened: Boolean = false,
     ) {
         /** What keeps the draft from publishing here: the details' blocks, then the day's cap once the store answered it. */
         val blocks: List<PublishBlock>
@@ -134,7 +136,7 @@ class PublishSession(
      * stays read-only and shows its ticket.
      */
     fun open(authorName: String, note: String, published: ShareCode?) {
-        if (published != null) mutableState.update { it.copy(outcome = PublishOutcome.Published(published)) }
+        if (published != null) mutableState.update { it.copy(outcome = PublishOutcome.Published(published), reopened = true) }
         authorTyped = authorName.isNotEmpty()
         stored = authorName to note
         setDetails(authorName, note)

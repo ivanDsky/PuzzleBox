@@ -244,10 +244,10 @@ class PublishedStudioTest {
         assertNotEquals(settled, first)
     }
 
-    /** The code's size on the first frame it shows, then once everything has settled. */
+    /** A just-published code's size on the first frame it shows, then once everything has settled. */
     private fun landingSizes(): Pair<Size, Size> {
         composeRule.mainClock.autoAdvance = false
-        composeRule.setContent { PuzzleBoxTheme { PublishedTicket(SAMPLE, onCopied = {}) } }
+        composeRule.setContent { PuzzleBoxTheme { PublishedTicket(SAMPLE.copy(fresh = true), onCopied = {}) } }
         var frames = 0
         while (composeRule.onAllNodes(hasTestTag(CODE)).fetchSemanticsNodes().isEmpty()) {
             check(frames++ < MAX_FRAMES) { "the code never showed" }
@@ -298,6 +298,7 @@ class PublishedStudioTest {
                             publishedPuzzles = published,
                             identity = identity,
                             idTokens = noGoogleAccount,
+                            updatePublishState = signedOutUnpublishing(),
                         ).also { vm = it }
                     }
                 },
