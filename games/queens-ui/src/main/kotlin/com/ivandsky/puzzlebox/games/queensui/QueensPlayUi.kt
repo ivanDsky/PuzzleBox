@@ -21,6 +21,8 @@ import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
+import com.ivandsky.puzzlebox.gameui.LocalPlayBoardPaneCap
+import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
@@ -112,12 +114,12 @@ fun QueensPlayScreen(
                 PlayChrome(
                     clock = controller,
                     hints = controller,
-                    undo = controller,
-                    clear = remember(controller) { QueensClear(controller) },
                     banner = ready?.banner,
                     feedback = controller,
-                    accent = QueensBrand.accent,
                 )
+            },
+            actions = {
+                PlayActionBar(controller, controller, remember(controller) { QueensClear(controller) }, QueensBrand.accent)
             },
         )
     }
@@ -184,8 +186,7 @@ private fun QueensBoard(controller: QueensPlayController, modifier: Modifier) {
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
         // §6 sizing policy: the board side is computed — the space given, capped by
         // queensBoardMaxSideFor (64dp per cell on a daily, PlayBoardMaxWidth on a
-        // lesson), never above the pane. The side panel is already excluded by the
-        // scaffold's board-pane weight.
+        // lesson), never above the pane. A two-pane board fills its pane instead (A15).
         val side = queensBoardSideFor(
             paneWidth = maxWidth,
             paneHeight = maxHeight,
@@ -193,6 +194,7 @@ private fun QueensBoard(controller: QueensPlayController, modifier: Modifier) {
             reservedBottom = 0.dp,
             cellsPerSide = boardState.session.puzzle.size,
             panePadding = 0.dp,
+            maxSide = LocalPlayBoardPaneCap.current ?: queensBoardMaxSideFor(boardState.session.puzzle.size),
         )
         QueensPlayBoard(
             state = boardState,

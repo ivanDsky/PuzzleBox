@@ -19,15 +19,16 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /**
- * The bottom action bar every game shares (A14): Undo · Redo · Hint · Clear, each a tall
+ * The action bar every game shares (A14, A15): Undo · Redo · Hint · Clear, each a tall
  * chunky [GameButton] sharing the row equally. Hint fills with the game's [accent]; the
  * rest stay neutral. The hint half is CORE only as far as the button and the running
  * count ([hintsUsed], the session's A3 count); what a press does is the game's.
  * [onClear] null hides Clear (Tango has none); the rest are always shown, disabled when
- * they cannot act.
+ * they cannot act. Games pass it as [AdaptivePlayScaffold]'s actions: under the caption on
+ * a phone, a toolbar above the board on a landscape tablet.
  */
 @Composable
-fun PlayActionBar(
+internal fun PlayActionBar(
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onHint: () -> Unit,
@@ -65,7 +66,7 @@ fun PlayActionBar(
 
 /** [PlayActionBar] over the play seams: each control reads its game's state. */
 @Composable
-internal fun PlayActionBar(undo: PlayUndo, hints: PlayHints, clear: PlayClear?, accent: AccentSlot, modifier: Modifier = Modifier) {
+fun PlayActionBar(undo: PlayUndo, hints: PlayHints, clear: PlayClear?, accent: AccentSlot, modifier: Modifier = Modifier) {
     PlayActionBar(
         onUndo = undo::undo,
         onRedo = undo::redo,

@@ -114,6 +114,18 @@ class SudokuSizingTest {
     }
 
     @Test
+    fun `a two pane cap lifts the board past the phone cap while it still fits the pane`() {
+        // Tab S9 Ultra, 1848x1000, TwoPane: 70% less the gutters; under the toolbar.
+        val pane = (1848.dp * 0.7f - 24.dp) to (900.dp - 24.dp)
+        for (size in listOf(6, 9)) {
+            val lifted = SudokuSizing.layout(pane.first, pane.second, size, inlineNotes = true, boardMax = 900.dp)
+            assertTrue("size=$size $lifted", lifted.board > PlayBoardMaxWidth)
+            assertBalanced(lifted)
+            assertFits(lifted, pane)
+        }
+    }
+
+    @Test
     fun `every pane keeps the board a whole multiple of a whole-dp cell, balanced with the keys, inside the pane`() {
         val widths = listOf(200, 320, 336, 360, 388, 411, 600, 800, 1000, 1280)
         val heights = listOf(300, 386, 480, 640, 661, 891, 1000, 1280)

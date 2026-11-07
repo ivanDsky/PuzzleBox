@@ -219,8 +219,6 @@ private fun SidePanel(
         PlayChrome(
             clock = controller,
             hints = null,
-            undo = null,
-            clear = null,
             banner = ready?.banner,
         )
         if (header != null) {
