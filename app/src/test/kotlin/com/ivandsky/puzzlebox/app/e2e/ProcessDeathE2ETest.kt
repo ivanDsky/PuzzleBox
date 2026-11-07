@@ -30,7 +30,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -88,8 +87,7 @@ class ProcessDeathE2ETest {
 
         background()
         val killed = checkNotNull(zip().session)
-        // The flush is launched on stop; Room commits on its own executor, so wait for the row.
-        rule.waitUntil(5_000) { runBlocking { saves.load(todaySlot) } != null }
+        awaitSaved()
         foreground()
 
         relaunch()
@@ -146,7 +144,7 @@ class ProcessDeathE2ETest {
         awaitZip()
         rule.runOnIdle { MID_GAME.forEach { zip().extend(it) } }
         background()
-        assertNotNull("mid-game is saved", runBlocking { saves.load(todaySlot) })
+        awaitSaved()
         foreground()
 
         rule.runOnIdle { ZipPlayFixture.solution.drop(MID_GAME.size).forEach { zip().extend(it) } }
@@ -170,6 +168,7 @@ class ProcessDeathE2ETest {
         awaitZip()
         rule.runOnIdle { MID_GAME.forEach { zip().extend(it) } }
         background()
+        awaitSaved()
 
         val kept = runBlocking { saves.observeInProgress().first() }
         assertEquals("the cap holds", CAP, kept.size)
@@ -212,6 +211,14 @@ class ProcessDeathE2ETest {
     private fun ShellRobot.awaitZip(slot: PlaySlot.Daily = todaySlot): ZipSession {
         rule.waitUntil(TIMEOUT_MS) { rule.runOnIdle { store.peek(slot) }?.let { (it.controller as ZipPlayController).session } != null }
         return checkNotNull(rule.runOnIdle { zip(slot).session })
+    }
+
+    /**
+     * Waits for today's saved row after [ShellRobot.background]: the stop only launches the
+     * flush, and Room commits it (save and prune, one transaction) on its own executor.
+     */
+    private fun ShellRobot.awaitSaved() {
+        rule.waitUntil(TIMEOUT_MS) { runBlocking { saves.load(todaySlot) } != null }
     }
 
     /**
