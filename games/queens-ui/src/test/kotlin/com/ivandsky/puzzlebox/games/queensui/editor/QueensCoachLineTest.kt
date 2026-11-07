@@ -3,10 +3,13 @@ package com.ivandsky.puzzlebox.games.queensui.editor
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -24,7 +27,10 @@ import com.ivandsky.puzzlebox.games.queens.editor.QueensAnswerFit
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraftAnalyzer
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
+import com.ivandsky.puzzlebox.games.queensui.QueensRegionPalette
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -78,6 +84,31 @@ class QueensCoachLineTest {
         fit = QueensAnswerFit.Ambiguous(authorIsA = true, ghosts = setOf(1), movable = setOf(1))
         rule.waitForIdle()
         assertProbe(null)
+    }
+
+    @Test
+    fun `the Broken chip sits on the error container, apart from Kept, with readable ink`() {
+        val seen = mutableMapOf<Boolean, Triple<ColorScheme, Pair<Color, Color>?, Pair<Color, Color>?>>()
+        rule.setContent {
+            for (dark in listOf(false, true)) {
+                PuzzleBoxTheme(darkTheme = dark) {
+                    seen[dark] = Triple(
+                        MaterialTheme.colorScheme,
+                        probeChipColors(QueensAnswerFit.Kept),
+                        probeChipColors(QueensAnswerFit.Broken),
+                    )
+                }
+            }
+        }
+        rule.waitForIdle()
+        for ((dark, chips) in seen) {
+            val (scheme, kept, broken) = chips
+            val (ground, ink) = checkNotNull(broken)
+            assertEquals("dark=$dark", scheme.errorContainer to scheme.onErrorContainer, ground to ink)
+            assertNotEquals("dark=$dark", checkNotNull(kept).first, ground)
+            assertTrue("dark=$dark", QueensRegionPalette.contrast(ink, ground) >= GLYPH_BAR)
+        }
+        assertEquals(2, seen.size)
     }
 
     @Test
@@ -174,6 +205,7 @@ class QueensCoachLineTest {
 
     private companion object {
         const val SIZE = 6
+        const val GLYPH_BAR = 4.5f
         const val BOARD = "queens.editor.board"
         const val STRIP = "queens.editor.mode"
         const val PAINT_MODE = "queens.editor.mode.paint"

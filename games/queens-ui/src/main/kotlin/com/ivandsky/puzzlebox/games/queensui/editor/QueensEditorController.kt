@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * The Queens editor screen's live draft, [mode] and selection. In [QueensEditorMode.Crown] a
  * tap places or removes an answer crown ([QueensCrowns.toggle]) as one undoable step, and a
  * refused tap (a crossed cell) is announced on [rejected] instead. In [QueensEditorMode.Paint]
- * (spec S3, select then colour) a tap toggles a cell in the [selection] ([QueensSelection]);
+ * (select, then colour) a tap toggles a cell in the [selection] ([QueensSelection]);
  * [selectAllOf] and [selectArea] grow it; a ring [pick] paints every selected cell as one
  * undoable step and clears the selection. In either mode a [stroke] (a drag out from a
  * coloured cell) paints that cell's colour along the drag. Every edit goes out through
@@ -49,7 +49,7 @@ class QueensEditorController(
     /** The cell of each refused crown tap; the board plays the Reject jolt on it. */
     val rejected: SharedFlow<Int> = refused.asSharedFlow()
 
-    /** The verdict card's witness choice (31); not persisted. */
+    /** The verdict card's witness choice; not persisted. */
     val overlay: StateFlow<EditorOverlay> = shownOverlay.asStateFlow()
 
     override fun adopt(draft: EditorDraft<*>) {
@@ -64,7 +64,7 @@ class QueensEditorController(
     }
 
     /**
-     * With answer crowns on a 2+ solutions [verdict] (flow C), the witness the crowns do not
+     * With answer crowns on a 2+ solutions [verdict], the witness the crowns do not
      * follow, drawn on the board as the ghost crowns; otherwise the default, so the diff ring alone shows.
      */
     override fun openingOverlay(verdict: Verdict): EditorOverlay {

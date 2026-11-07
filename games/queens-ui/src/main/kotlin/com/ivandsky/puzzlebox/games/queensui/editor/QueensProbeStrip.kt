@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -20,9 +22,9 @@ import com.ivandsky.puzzlebox.games.queens.editor.QueensAnswerFit
 import com.ivandsky.puzzlebox.games.queensui.QueensBrand
 
 /**
- * The one-line probe row under the coach line (the 03 handoff's probe, re-based on saved
- * crowns): for [QueensAnswerFit.Kept] "{k} crowns: the one solution keeps them ✓", for
- * [QueensAnswerFit.Broken] "{k} crowns: no solution has all of them", on the accent container
+ * The one-line probe row under the coach line, on saved crowns: for [QueensAnswerFit.Kept]
+ * "{k} crowns: the one solution keeps them ✓" on the accent container, for
+ * [QueensAnswerFit.Broken] "{k} crowns: no solution has all of them" on the error container
  * (tags `queens.editor.probe.kept` / `.broken`). [QueensAnswerFit.Silent] and
  * [QueensAnswerFit.Ambiguous] (the coach's 2-answers state) leave the line's height empty.
  */
@@ -33,13 +35,13 @@ internal fun QueensProbeStrip(fit: QueensAnswerFit, crowns: Int, modifier: Modif
         QueensAnswerFit.Broken -> "broken" to "no solution has all of them"
         QueensAnswerFit.Silent, is QueensAnswerFit.Ambiguous -> null to null
     }
+    val (ground, ink) = probeChipColors(fit) ?: (Color.Unspecified to Color.Unspecified)
     Box(modifier.fillMaxWidth()) {
-        val accent = QueensBrand.accent.colors()
         Text(
             text = if (copy == null) "" else "${if (crowns == 1) "1 crown" else "$crowns crowns"}: $copy",
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
-            color = accent.onContainer,
+            color = ink,
             maxLines = 1,
             minLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -48,11 +50,20 @@ internal fun QueensProbeStrip(fit: QueensAnswerFit, crowns: Int, modifier: Modif
             } else {
                 Modifier
                     .testTag("queens.editor.probe.$tag")
-                    .background(accent.container, MaterialTheme.shapes.small)
+                    .background(ground, MaterialTheme.shapes.small)
                     .padding(horizontal = Spacing.sm)
             },
         )
     }
+}
+
+/** The chip's (ground, ink) for [fit], or null when the line stays empty. */
+@Composable
+@ReadOnlyComposable
+internal fun probeChipColors(fit: QueensAnswerFit): Pair<Color, Color>? = when (fit) {
+    QueensAnswerFit.Kept -> QueensBrand.accent.colors().let { it.container to it.onContainer }
+    QueensAnswerFit.Broken -> MaterialTheme.colorScheme.let { it.errorContainer to it.onErrorContainer }
+    QueensAnswerFit.Silent, is QueensAnswerFit.Ambiguous -> null
 }
 
 @PuzzleBoxPreviews

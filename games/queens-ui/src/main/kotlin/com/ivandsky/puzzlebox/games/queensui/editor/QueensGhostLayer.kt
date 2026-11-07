@@ -9,9 +9,9 @@ import com.ivandsky.puzzlebox.games.queensui.QueensBoardDefaults
 import com.ivandsky.puzzlebox.games.queensui.drawQueen
 
 /**
- * Cell [idx]'s ghost crown when [ghost] (40, round 6): the other answer's queen as the play
- * board's dashed crown outline, in the diff ring's error tint, so it never reads as a placed
- * crown. It **fades in** with the diff ring (spec S19) and tags `queens.editor.cell.<idx>.ghost`.
+ * Cell [idx]'s ghost crown when [ghost]: the other answer's queen as the play board's dashed
+ * crown outline in the teal diff-ring tint, not an error tint, so it never reads as a placed
+ * crown. It **fades in** with the diff ring and tags `queens.editor.cell.<idx>.ghost`.
  * It has no pointer input: the board's gesture layer above takes every tap, so a ghost cell
  * crowns, or refuses when crossed, exactly as it would with no ghost drawn.
  */
