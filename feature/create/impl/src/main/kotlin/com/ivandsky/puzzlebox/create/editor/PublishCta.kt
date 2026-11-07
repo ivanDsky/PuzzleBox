@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.create.editor
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -18,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -32,8 +30,8 @@ import kotlin.math.roundToInt
  * The Studio's Publish under why the last publish fell short ([PublishBanner]). Enabled once
  * the draft is [ready] and no publish runs; while one runs the pill folds into a spinner circle
  * announcing "Publishing". Signed out it reads "Sign in & publish": the tap signs in first, then
- * publishes. Offline or refused it reads "Retry publish" and, as the attempt ends, jolts once on
- * the reject spring; reduced motion leaves the jolt to the banner alone. Signed out or not
+ * publishes. Offline or refused it reads "Retry publish" and, as the attempt ends, shakes once
+ * (MotionTokens' Shake); reduced motion leaves it to the banner alone. Signed out or not
  * ready, a line under it says so.
  */
 @Composable
@@ -85,13 +83,13 @@ private fun PublishNotice(outcome: PublishOutcome, modifier: Modifier) {
 }
 
 /**
- * The CTA's sideways offset in px: one reject-spring swing each time a publish ends in a retry.
+ * The CTA's sideways offset in px: one shake each time a publish ends in a retry.
  * Only a run seen ending counts, so a restored Studio holding an old failure stays still.
  */
 @Composable
 private fun rememberRejectJolt(state: PublishSession.State): () -> Float {
     val reduced = rememberReducedMotion()
-    val kick = with(LocalDensity.current) { JoltKick.toPx() }
+    val kick = with(LocalDensity.current) { MotionTokens.ShakeKick.toPx() }
     val offset = remember { Animatable(0f) }
     var wasBusy by remember { mutableStateOf(state.busy) }
     LaunchedEffect(state.busy) {
@@ -101,18 +99,12 @@ private fun rememberRejectJolt(state: PublishSession.State): () -> Float {
         offset.snapTo(0f)
         offset.animateTo(
             targetValue = 0f,
-            animationSpec = spring(MotionTokens.RejectSpringDamping, MotionTokens.RejectSpringStiffness),
-            initialVelocity = kick * JOLT_VELOCITY_PER_PX,
+            animationSpec = MotionTokens.ShakeSpring,
+            initialVelocity = kick * MotionTokens.ShakeVelocityPerPx,
         )
     }
     return { offset.value }
 }
-
-/** How far the reject jolt first swings. */
-private val JoltKick = 6.dp
-
-/** Launch velocity per px of [JoltKick] (1/s), so the reject spring's first swing peaks near it. */
-private const val JOLT_VELOCITY_PER_PX = 36f
 
 @PuzzleBoxPreviews
 @Composable

@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.designsystem
 
+import androidx.compose.animation.core.FloatSpringSpec
+import kotlin.math.abs
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -90,5 +92,20 @@ class MotionTokensTest {
         assertTrue(MotionTokens.Trace.PopScale > 1f)
         assertTrue(MotionTokens.Trace.PopScale < MotionTokens.PulseScale)
         assertTrue(MotionTokens.Trace.PopRiseFraction in 0f..1f)
+    }
+
+    @Test
+    fun `a shake launched from rest swings out about its kick first, then settles back`() {
+        val spring = FloatSpringSpec(MotionTokens.ShakeSpring.dampingRatio, MotionTokens.ShakeSpring.stiffness)
+        val kick = MotionTokens.ShakeKick.value
+        val velocity = kick * MotionTokens.ShakeVelocityPerPx
+        val swing = (0..SHAKE_SAMPLE_MS).map { ms -> spring.getValueFromNanos(ms * 1_000_000L, 0f, 0f, velocity) }
+        val peak = swing.max()
+        assertTrue("first swing $peak vs kick $kick", abs(peak - kick) <= kick * 0.1f)
+        assertTrue("settled at ${swing.last()}", abs(swing.last()) < kick * 0.05f)
+    }
+
+    private companion object {
+        const val SHAKE_SAMPLE_MS = 600
     }
 }
