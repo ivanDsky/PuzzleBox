@@ -46,9 +46,8 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
  * [PublishDetails] rows — [title], author name and note — until the puzzle is published; their
  * blocks join the readiness line. Unless [detailsInline] the rows live in the phone's
  * [ToolSlot] instead; while the author edits the board ([onShowDetails] set) the readiness line
- * leads with a one-line summary of them whose tap brings them back. Publish follows, enabled
- * once nothing blocks and no publish is running, over the last publish's outcome. Signed out it
- * reads "Sign in & publish": the tap signs in first, then publishes.
+ * leads with a one-line summary of them whose tap brings them back. [PublishCta] follows, ready
+ * once nothing blocks.
  *
  * Motion: the details **Expand** in with a **Fade** (EnterDuration on the emphasized decelerate
  * curve) and collapse the same way once published; under reduced motion they only fade.
@@ -69,7 +68,7 @@ fun ActionArea(
     detailsInline: Boolean = true,
     onShowDetails: (() -> Unit)? = null,
 ) {
-    val detailBlocks = publish?.details?.blocks.orEmpty()
+    val detailBlocks = publish?.blocks.orEmpty()
     val shown = remember(blocks, detailBlocks) { blocks + detailBlocks }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(
@@ -108,15 +107,7 @@ fun ActionArea(
         } else {
             ReadinessLine(shown, Modifier.fillMaxWidth())
         }
-        if (publish != null) {
-            PrimaryButton(
-                text = if (publish.signedIn) "Publish" else "Sign in & publish",
-                onClick = onPublish,
-                enabled = shown.isEmpty() && !publish.busy,
-                modifier = Modifier.fillMaxWidth().testTag("create.action.publish"),
-            )
-            publish.outcome?.let { PublishedTicket(it) }
-        }
+        if (publish != null) PublishCta(publish, ready = shown.isEmpty(), onPublish = onPublish, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -177,7 +168,8 @@ private const val BOARD_TAG = "board"
 
 /**
  * Copy for every id in [com.ivandsky.puzzlebox.domain.ValidatePublish.blockIds] and
- * [com.ivandsky.puzzlebox.domain.ValidatePublishDetails.blockIds] (ReadinessCopyTest).
+ * [com.ivandsky.puzzlebox.domain.ValidatePublishDetails.blockIds] (ReadinessCopyTest), plus the
+ * Studio's own day's-cap block.
  */
 private val DOMAIN_COPY: Map<String, String> = mapOf(
     PublishBlock.NOT_UNIQUE to "Not unique",
@@ -186,6 +178,7 @@ private val DOMAIN_COPY: Map<String, String> = mapOf(
     PublishBlock.TITLE_TOO_LONG to "Title is too long",
     PublishBlock.AUTHOR_TOO_LONG to "Name is too long",
     PublishBlock.NOTE_TOO_LONG to "Note is too long",
+    PublishBlock.DAILY_CAP to "Daily limit reached",
 )
 
 private fun statusOf(test: TestSolve): String =

@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
+import com.ivandsky.puzzlebox.domain.SyncReceivedStatus
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.VariantId
@@ -95,27 +96,31 @@ class FriendPuzzleCardTest {
             override val io = Dispatchers.Unconfined
             override val default = Dispatchers.Unconfined
         }
+        val shared = FakeSharedPuzzleRepository()
         val viewModel = FriendPuzzleViewModel(
             key = FriendPuzzleKey(code.value),
             load = LoadSharedPuzzle(
                 registry = fakes.games,
-                shared = FakeSharedPuzzleRepository(),
+                shared = shared,
                 received = received,
                 budget = { Budget.within(1_000L, System::nanoTime) },
                 clock = { Instant.EPOCH },
             ),
+            sync = SyncReceivedStatus(shared, received),
+            received = received,
             completions = completions,
             saved = saved,
             games = fakes.games,
             plays = fakes.registry,
             editors = GameEditorRegistry(emptyList()),
             dispatchers = now,
+            board = signedOutBoard(),
         )
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 val state by viewModel.state.collectAsState()
                 (state as? FriendCardState.Ready)?.let { ready ->
-                    FriendPuzzleCard(card = ready.card, onAction = { played += ready.card.play })
+                    FriendPuzzleCard(card = ready.card, onAction = { played += ready.card.play }, onSignIn = {})
                 }
             }
         }

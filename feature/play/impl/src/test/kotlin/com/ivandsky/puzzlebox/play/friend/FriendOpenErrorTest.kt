@@ -24,6 +24,7 @@ import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.OpenOutcome
+import com.ivandsky.puzzlebox.domain.SyncReceivedStatus
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
@@ -327,12 +328,15 @@ class FriendOpenErrorTest {
     private fun routeViewModel(key: FriendPuzzleKey = FriendPuzzleKey(code.value)) = FriendPuzzleViewModel(
         key = key,
         load = load,
+        sync = SyncReceivedStatus(shared, received),
+        received = received,
         completions = FakeCompletionRepository(),
         saved = FakeSavedPlayRepository(),
         games = fakes.games,
         plays = fakes.registry,
         editors = GameEditorRegistry(emptyList()),
         dispatchers = now,
+        board = signedOutBoard(),
     )
 
     private fun publish(gameId: String = game.value, formatVersion: Int = SharedPuzzleDoc.FORMAT_VERSION) {
