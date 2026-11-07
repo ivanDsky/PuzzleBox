@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
 import com.ivandsky.puzzlebox.gameui.unavailableMessage
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -34,7 +35,7 @@ class SlotOpeningTest {
     private val alpha = TestGames.alpha
     private val today = LocalDate.parse("2026-11-04")
     private val yesterday = today.minusDays(1)
-    private val todaySlot = PlaySlot(alpha, today)
+    private val todaySlot = PlaySlot.Daily(alpha, today)
 
     private val games = TestGames.registry(listOf(alpha))
     private val daily = FakeDailyRepository()
@@ -109,9 +110,9 @@ class SlotOpeningTest {
             ),
         )
 
-        val origin = opening.open(PlaySlot(alpha, yesterday)) as SlotOpening.Origin.Restored
+        val origin = opening.open(PlaySlot.Daily(alpha, yesterday)) as SlotOpening.Origin.Restored
 
-        assertArrayEquals(TestGames.replayBlob(alpha, puzzle, yesterday, 412), origin.session)
+        assertArrayEquals(TestGames.replayBlob(alpha, puzzle, PuzzleKey.Daily(yesterday, 412)), origin.session)
         assertEquals(0, daily.todayCalls(alpha))
     }
 
@@ -128,7 +129,7 @@ class SlotOpeningTest {
 
     @Test
     fun `a cache-only game's uncaptured past day keeps the no-longer-saved copy`() = runTest {
-        val origin = opening.open(PlaySlot(alpha, yesterday)) as SlotOpening.Origin.Unavailable
+        val origin = opening.open(PlaySlot.Daily(alpha, yesterday)) as SlotOpening.Origin.Unavailable
 
         assertEquals("That day is no longer saved on this device.", origin.message)
         assertTrue(origin.retryable)
@@ -140,16 +141,16 @@ class SlotOpeningTest {
         val puzzle = TestGames.puzzle(alpha, tag = 5)
         daily.setDay(alpha, yesterday, DailyDay.Ready(puzzle, 412))
 
-        val origin = opening.open(PlaySlot(alpha, yesterday)) as SlotOpening.Origin.Restored
+        val origin = opening.open(PlaySlot.Daily(alpha, yesterday)) as SlotOpening.Origin.Restored
 
-        assertArrayEquals(TestGames.replayBlob(alpha, puzzle, yesterday, 412), origin.session)
+        assertArrayEquals(TestGames.replayBlob(alpha, puzzle, PuzzleKey.Daily(yesterday, 412)), origin.session)
         assertEquals(1, daily.dayCalls(alpha, yesterday))
     }
 
     @Test
     fun `each past-day failure names its cause and offers Retry only where it can help`() = runTest {
         daily.setArchiveRange(alpha, today.minusDays(30)..today)
-        val outside = opening.open(PlaySlot(alpha, today.minusDays(31))) as SlotOpening.Origin.Unavailable
+        val outside = opening.open(PlaySlot.Daily(alpha, today.minusDays(31))) as SlotOpening.Origin.Unavailable
         assertEquals("This puzzle isn't available.", outside.message)
         assertFalse(outside.retryable)
 
@@ -168,7 +169,7 @@ class SlotOpeningTest {
             ),
         ).forEach { (error, copy, retryable) ->
             daily.setDay(alpha, yesterday, DailyDay.Failed(error))
-            val origin = opening.open(PlaySlot(alpha, yesterday)) as SlotOpening.Origin.Unavailable
+            val origin = opening.open(PlaySlot.Daily(alpha, yesterday)) as SlotOpening.Origin.Unavailable
             assertEquals(copy, origin.message)
             assertEquals("Retry for $error", retryable, origin.retryable)
         }
@@ -177,7 +178,7 @@ class SlotOpeningTest {
 
     @Test
     fun `an unregistered game is unavailable and keeps its save`() = runTest {
-        val slot = PlaySlot(TestGames.beta, today)
+        val slot = PlaySlot.Daily(TestGames.beta, today)
         saved.save(slot, SessionBlob.encode(TestGames.beta, byteArrayOf(1)), elapsedMs = 0L)
 
         assertTrue(opening.open(slot) is SlotOpening.Origin.Unavailable)

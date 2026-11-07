@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.app.nav
 
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation3.runtime.NavKey
+import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
@@ -22,5 +23,6 @@ data class TopLevelDestination(
 val topLevelDestinations = listOf(
     TopLevelDestination(HomeKey, "Home", PuzzleIcons.Home, PuzzleIcons.HomeFilled, "nav.tab.home"),
     TopLevelDestination(PlayKey, "Play", PuzzleIcons.Box, PuzzleIcons.BoxFilled, "nav.tab.play"),
+    TopLevelDestination(CreateKey, "Create", PuzzleIcons.Create, PuzzleIcons.CreateFilled, "nav.tab.create"),
     TopLevelDestination(ProfileKey, "Profile", PuzzleIcons.Profile, PuzzleIcons.ProfileFilled, "nav.tab.profile"),
 )

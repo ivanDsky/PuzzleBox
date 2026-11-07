@@ -1,0 +1,23 @@
+{
+  "description": "Ticket 04 worst-case 12x12 editor board (open grid, sparse regions): rows 0-9 are one region each, region 10 is the single cell (10,0), region 11 the single cell (11,1); every other cell of rows 10-11 is region 0. The two single-cell regions touch, so there is no solution and an unbudgeted limit=2 search must enumerate every no-touch 10-row column arrangement before answering None. Slowest of 29 offline candidates (single-cell traps, row/column bands, big-blob, 20 random sparse boards).",
+  "size": 12,
+  "queensPerUnit": 1,
+  "limit": 2,
+  "unbudgetedVerdict": "None",
+  "unbudgetedMs": 4844,
+  "unbudgetedNote": "QueensSearch.bounded(limit=2) on a cold Apple-silicon JVM test run, 2026-11-06; trap variants at other columns ran 4.0-4.5 s",
+  "regions": [
+    0,0,0,0,0,0,0,0,0,0,0,0,
+    1,1,1,1,1,1,1,1,1,1,1,1,
+    2,2,2,2,2,2,2,2,2,2,2,2,
+    3,3,3,3,3,3,3,3,3,3,3,3,
+    4,4,4,4,4,4,4,4,4,4,4,4,
+    5,5,5,5,5,5,5,5,5,5,5,5,
+    6,6,6,6,6,6,6,6,6,6,6,6,
+    7,7,7,7,7,7,7,7,7,7,7,7,
+    8,8,8,8,8,8,8,8,8,8,8,8,
+    9,9,9,9,9,9,9,9,9,9,9,9,
+    10,0,0,0,0,0,0,0,0,0,0,0,
+    0,11,0,0,0,0,0,0,0,0,0,0
+  ]
+}

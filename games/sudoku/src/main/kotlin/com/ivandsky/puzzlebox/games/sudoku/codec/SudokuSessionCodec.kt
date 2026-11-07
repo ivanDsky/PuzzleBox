@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameSessionCodec
+import com.ivandsky.puzzlebox.game.PuzzleKeyTag
 import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCommand
@@ -13,19 +14,22 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCommandCodec.Reader
 import com.ivandsky.puzzlebox.games.sudoku.engine.rules.SudokuConflicts
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.io.ByteArrayOutputStream
 import java.time.Instant
-import java.time.LocalDate
 
 /**
- * Session bytes v1, puzzle embedded by value so an unfinished day survives offline.
+ * Session bytes v2, puzzle embedded by value so an unfinished day survives offline.
  * Multi-byte fields are little-endian; `cell` and `command` are [SudokuCommandCodec]'s:
  *
  * ```
- * 0   u8    formatVersion = 1
+ * 0   u8    formatVersion = 2
  *     u16   puzzleLen; puzzleLen x u8     (SudokuCodec bytes)
  *     u8    flags                         (bit0 completedAt, bit1 ref, bit2 notesMode)
- *     [bit1] u8 gameIdLen; ASCII gameId, i64 epochDay, u8 hasNumber, [hasNumber] i32 puzzleNumber
+ *     [bit1] u8 keyTag                    (v2+; v1 carries no tag and is always Daily)
+ *            u8 gameIdLen; ASCII gameId
+ *       0 Daily   i64 epochDay, u8 hasNumber, [hasNumber] i32 puzzleNumber
+ *       1 Custom  u8 idLen (1..255); idLen x u8 UTF-8 puzzleId
  *     N² x cell                           (row-major)
  *     u16   doneCount; doneCount x command        (undo stack, oldest first)
  *     u16   undoneCount; undoneCount x command    (redo stack, bottom first)
@@ -40,7 +44,7 @@ import java.time.LocalDate
  */
 object SudokuSessionCodec : GameSessionCodec<SudokuSession> {
 
-    const val VERSION: Int = 1
+    const val VERSION: Int = 2
 
     /** Decode bound on each history list; [serialize] keeps only the newest this many. */
     const val MAX_HISTORY: Int = 10_000
@@ -49,6 +53,9 @@ object SudokuSessionCodec : GameSessionCodec<SudokuSession> {
     private const val FLAG_REF = 2
     private const val FLAG_NOTES_MODE = 4
     private const val KNOWN_FLAGS = FLAG_COMPLETED or FLAG_REF or FLAG_NOTES_MODE
+
+    /** The first format whose ref carries a [PuzzleKeyTag]; v1 refs are untagged dailies. */
+    private const val V_KEY_TAG = 2
 
     override fun serialize(session: SudokuSession): ByteArray {
         val puzzleBytes = SudokuCodec.encode(session.puzzle)
@@ -65,14 +72,18 @@ object SudokuSessionCodec : GameSessionCodec<SudokuSession> {
         out.write(flags)
 
         session.ref?.let { ref ->
-            val id = ref.gameId.value.toByteArray(Charsets.US_ASCII)
-            require(id.size in 1..0xFF) { "gameId must be 1..255 ASCII chars" }
-            out.write(id.size)
-            out.write(id)
-            out.writeLe(ref.date.toEpochDay(), bytes = 8)
-            val number = ref.puzzleNumber
-            out.write(if (number == null) 0 else 1)
-            if (number != null) out.writeLe(number.toLong(), bytes = 4)
+            val gameId = ref.gameId.value.toByteArray(Charsets.US_ASCII)
+            require(gameId.size in 1..0xFF) { "gameId must be 1..255 ASCII chars" }
+            val writeGameId = {
+                out.write(gameId.size)
+                out.write(gameId)
+            }
+            PuzzleKeyTag.write(ref.key, out::write, afterTag = writeGameId) { daily ->
+                out.writeLe(daily.date.toEpochDay(), bytes = 8)
+                val number = daily.puzzleNumber
+                out.write(if (number == null) 0 else 1)
+                if (number != null) out.writeLe(number.toLong(), bytes = 4)
+            }
         }
 
         session.board.cells.forEach { SudokuCommandCodec.writeCell(out, it) }
@@ -87,7 +98,7 @@ object SudokuSessionCodec : GameSessionCodec<SudokuSession> {
     override fun deserialize(bytes: ByteArray): DecodeResult<SudokuSession> {
         val reader = Reader(bytes)
         val version = reader.u8() ?: return malformed("empty session blob")
-        if (version != VERSION) return DecodeResult.Err(DecodeError.UnsupportedVersion(version, VERSION))
+        if (version !in 1..VERSION) return DecodeResult.Err(DecodeError.UnsupportedVersion(version, VERSION))
 
         val puzzleLen = reader.u16() ?: return malformed("truncated puzzle length")
         val puzzleBytes = reader.bytes(puzzleLen) ?: return malformed("truncated puzzle blob")
@@ -98,7 +109,7 @@ object SudokuSessionCodec : GameSessionCodec<SudokuSession> {
 
         val flags = reader.u8() ?: return malformed("truncated flags")
         if (flags and KNOWN_FLAGS.inv() != 0) return malformed("unknown flag bits in $flags")
-        val ref = if (flags and FLAG_REF != 0) readRef(reader) ?: return malformed("malformed ref") else null
+        val ref = if (flags and FLAG_REF != 0) readRef(reader, version) ?: return malformed("malformed ref") else null
 
         val cells = ArrayList<SudokuCell>(puzzle.geometry.cellCount)
         for (idx in 0 until puzzle.geometry.cellCount) {
@@ -141,16 +152,29 @@ object SudokuSessionCodec : GameSessionCodec<SudokuSession> {
         )
     }
 
-    private fun readRef(reader: Reader): SudokuPuzzleRef? {
-        val idLen = reader.u8()?.takeIf { it > 0 } ?: return null
-        val id = reader.bytes(idLen)?.takeIf { raw -> raw.all { it >= 0 } } ?: return null
-        val epochDay = reader.i64()?.takeIf { it in LocalDate.MIN.toEpochDay()..LocalDate.MAX.toEpochDay() } ?: return null
-        val number = when (reader.u8()) {
-            0 -> null
-            1 -> reader.i32() ?: return null
-            else -> return null
-        }
-        return SudokuPuzzleRef(GameId(id.decodeToString()), LocalDate.ofEpochDay(epochDay), number)
+    private fun readRef(reader: Reader, version: Int): SudokuPuzzleRef? {
+        var gameId: GameId? = null
+        val key = PuzzleKeyTag.read(
+            version,
+            taggedSince = V_KEY_TAG,
+            u8 = reader::u8,
+            afterTag = { readGameId(reader)?.also { gameId = it } != null },
+        ) {
+            val epochDay = reader.i64() ?: return@read malformed("truncated ref date")
+            val number = when (reader.u8()) {
+                0 -> null
+                1 -> reader.i32() ?: return@read malformed("truncated ref number")
+                else -> return@read malformed("malformed ref number flag")
+            }
+            PuzzleKeyTag.daily(epochDay, number?.toLong())
+        }.getOrNull() ?: return null
+        return SudokuPuzzleRef(gameId ?: return null, key)
+    }
+
+    private fun readGameId(reader: Reader): GameId? {
+        val len = reader.u8()?.takeIf { it > 0 } ?: return null
+        val id = reader.bytes(len)?.takeIf { raw -> raw.all { it >= 0 } } ?: return null
+        return GameId(id.decodeToString())
     }
 
     /** Null when the cell is malformed or disagrees with the puzzle about which cells are given. */

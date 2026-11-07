@@ -30,7 +30,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -88,8 +87,7 @@ class ProcessDeathE2ETest {
 
         background()
         val killed = checkNotNull(zip().session)
-        // The flush is launched on stop; Room commits on its own executor, so wait for the row.
-        rule.waitUntil(5_000) { runBlocking { saves.load(todaySlot) } != null }
+        awaitSaved()
         foreground()
 
         relaunch()
@@ -146,7 +144,7 @@ class ProcessDeathE2ETest {
         awaitZip()
         rule.runOnIdle { MID_GAME.forEach { zip().extend(it) } }
         background()
-        assertNotNull("mid-game is saved", runBlocking { saves.load(todaySlot) })
+        awaitSaved()
         foreground()
 
         rule.runOnIdle { ZipPlayFixture.solution.drop(MID_GAME.size).forEach { zip().extend(it) } }
@@ -157,7 +155,7 @@ class ProcessDeathE2ETest {
 
     @Test
     fun `SC8 the newest save evicts the oldest past the cap of 8`() = shellRobot(playHub, graph = roomGraph()) {
-        val older = (CAP downTo 1).map { PlaySlot(ZipDefinition.id, E2E_TODAY.minusDays(it.toLong())) }
+        val older = (CAP downTo 1).map { PlaySlot.Daily(ZipDefinition.id, E2E_TODAY.minusDays(it.toLong())) }
         runBlocking {
             older.forEach { slot ->
                 saves.save(slot, byteArrayOf(1), elapsedMs = 0L)
@@ -170,6 +168,7 @@ class ProcessDeathE2ETest {
         awaitZip()
         rule.runOnIdle { MID_GAME.forEach { zip().extend(it) } }
         background()
+        awaitSaved()
 
         val kept = runBlocking { saves.observeInProgress().first() }
         assertEquals("the cap holds", CAP, kept.size)
@@ -198,20 +197,28 @@ class ProcessDeathE2ETest {
         awaitTag(PAST_DAY_LABEL)
         rule.onNodeWithText("Yesterday's puzzle").assertIsDisplayed()
         assertEquals("the live board keeps its day and trace", MID_GAME, rule.runOnIdle { zip().session?.path })
-        assertNull("no board opened for the new day", rule.runOnIdle { store.peek(PlaySlot(ZipDefinition.id, E2E_TODAY.plusDays(1))) })
+        assertNull("no board opened for the new day", rule.runOnIdle { store.peek(PlaySlot.Daily(ZipDefinition.id, E2E_TODAY.plusDays(1))) })
     }
 
     private val ShellRobot.store: PlaySessionStore get() = graph.koin.get()
     private val ShellRobot.saves: SavedPlayRepository get() = graph.koin.get()
 
     /** The live play of [slot] (read off the main thread only while the activity is stopped). */
-    private fun ShellRobot.zip(slot: PlaySlot = todaySlot): ZipPlayController =
+    private fun ShellRobot.zip(slot: PlaySlot.Daily = todaySlot): ZipPlayController =
         checkNotNull(store.peek(slot)) { "no live zip play for ${slot.day}" }.controller as ZipPlayController
 
     /** Waits until [slot]'s live Zip has its session, and returns it. */
-    private fun ShellRobot.awaitZip(slot: PlaySlot = todaySlot): ZipSession {
+    private fun ShellRobot.awaitZip(slot: PlaySlot.Daily = todaySlot): ZipSession {
         rule.waitUntil(TIMEOUT_MS) { rule.runOnIdle { store.peek(slot) }?.let { (it.controller as ZipPlayController).session } != null }
         return checkNotNull(rule.runOnIdle { zip(slot).session })
+    }
+
+    /**
+     * Waits for today's saved row after [ShellRobot.background]: the stop only launches the
+     * flush, and Room commits it (save and prune, one transaction) on its own executor.
+     */
+    private fun ShellRobot.awaitSaved() {
+        rule.waitUntil(TIMEOUT_MS) { runBlocking { saves.load(todaySlot) } != null }
     }
 
     /**
@@ -219,7 +226,7 @@ class ProcessDeathE2ETest {
      * ViewModel and the Koin graph go (the fakes are the disk), and the navigator's saved
      * bundle comes back to a fresh shell. The restored Result has no live play behind it.
      */
-    private fun ShellRobot.solveThenDie(slot: PlaySlot) {
+    private fun ShellRobot.solveThenDie(slot: PlaySlot.Daily) {
         if (slot == todaySlot) openGame(ZIP)
         awaitZip(slot)
         rule.runOnIdle { ZipPlayFixture.solution.forEach { zip(slot).extend(it) } }
@@ -262,8 +269,8 @@ class ProcessDeathE2ETest {
     /** A History replay of [PAST_DAY], open on Home's stack. */
     private val pastGame = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey(), GameKey(ZIP, "$PAST_DAY")))
 
-    private val todaySlot = PlaySlot(ZipDefinition.id, E2E_TODAY)
-    private val pastSlot = PlaySlot(ZipDefinition.id, PAST_DAY)
+    private val todaySlot = PlaySlot.Daily(ZipDefinition.id, E2E_TODAY)
+    private val pastSlot = PlaySlot.Daily(ZipDefinition.id, PAST_DAY)
 
     private companion object {
         const val HISTORY = "route.history"

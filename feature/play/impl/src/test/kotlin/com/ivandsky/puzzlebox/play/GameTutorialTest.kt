@@ -119,7 +119,7 @@ class GameTutorialTest {
         composeRule.waitForIdle()
     }
 
-    private fun live() = koin!!.koin.get<PlaySessionStore>().peek(PlaySlot(alpha, day))!!
+    private fun live() = koin!!.koin.get<PlaySessionStore>().peek(PlaySlot.Daily(alpha, day))!!
 
     private fun records() = runBlocking { completions.observeRecords().first() }
 

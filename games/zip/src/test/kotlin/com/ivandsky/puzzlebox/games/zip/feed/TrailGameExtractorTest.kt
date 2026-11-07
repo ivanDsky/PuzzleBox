@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.zip.feed
 
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.games.zip.codec.ZipWireParser
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -30,7 +31,7 @@ class TrailGameExtractorTest {
         assertEquals(6, daily.value.puzzle.board.n)
         assertEquals(4, daily.value.puzzle.board.walls.size)
         assertEquals(36, daily.value.puzzle.solution!!.size)
-        assertEquals(592, daily.value.ref.puzzleNumber)
+        assertEquals(592, (daily.value.ref.key as PuzzleKey.Daily).puzzleNumber)
     }
 
     @Test

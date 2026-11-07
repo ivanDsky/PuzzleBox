@@ -112,7 +112,7 @@ class StrandsArchiveE2ETest {
     @Test
     fun `SC16 nine archive days evict the oldest Strands save and keep the Zip one`() =
         shellRobot(playHub, today = TODAY, graph = dataGraph()) {
-            val zipSlot = PlaySlot(ZipDefinition.id, TODAY)
+            val zipSlot = PlaySlot.Daily(ZipDefinition.id, TODAY)
             runBlocking { saves.save(zipSlot, byteArrayOf(1), elapsedMs = 0L) }
             // Today loads too: a game whose today can't load offers "Try again" on never-opened days.
             serve(TODAY, *ARCHIVE.toTypedArray())
@@ -129,7 +129,7 @@ class StrandsArchiveE2ETest {
             background()
 
             val kept = runBlocking { saves.observeInProgress().first() }.keys
-            val strandsSlots = ARCHIVE.map { PlaySlot(StrandsDefinition.id, it) }
+            val strandsSlots = ARCHIVE.map { PlaySlot.Daily(StrandsDefinition.id, it) }
             assertEquals(
                 "Zip's save plus the newest 8 Strands saves",
                 setOf(zipSlot) + strandsSlots.drop(1),
@@ -141,7 +141,7 @@ class StrandsArchiveE2ETest {
     private val ShellRobot.saves: SavedPlayRepository get() = graph.koin.get()
 
     private fun ShellRobot.awaitStrands(day: LocalDate) {
-        val slot = PlaySlot(StrandsDefinition.id, day)
+        val slot = PlaySlot.Daily(StrandsDefinition.id, day)
         rule.waitUntil(TIMEOUT_MS) {
             rule.runOnIdle { graph.koin.get<PlaySessionStore>().peek(slot) }
                 ?.let { (it.controller as StrandsPlayController).session } != null

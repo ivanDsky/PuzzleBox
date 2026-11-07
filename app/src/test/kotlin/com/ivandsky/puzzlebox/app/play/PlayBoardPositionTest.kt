@@ -172,5 +172,5 @@ class PlayBoardPositionTest {
         return composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().single().positionInRoot.y
     }
 
-    private fun play(game: GameId) = koin!!.koin.get<PlaySessionStore>().peek(PlaySlot(game, cadenceToday))
+    private fun play(game: GameId) = koin!!.koin.get<PlaySessionStore>().peek(PlaySlot.Daily(game, cadenceToday))
 }

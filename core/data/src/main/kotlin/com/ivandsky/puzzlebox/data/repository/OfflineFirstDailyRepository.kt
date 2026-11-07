@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.game.FetchResult
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -88,7 +89,7 @@ internal class OfflineFirstDailyRepository(
         when (val fetch = if (past) source.fetchPast(day) else source.fetchDaily(day)) {
             is FetchResult.Ok -> {
                 dao.upsert(fetch.value.puzzle.toEntity(fetch.value.ref, clock()))
-                DailyDay.Ready(fetch.value.puzzle, fetch.value.ref.puzzleNumber)
+                DailyDay.Ready(fetch.value.puzzle, (fetch.value.ref.key as? PuzzleKey.Daily)?.puzzleNumber)
             }
             is FetchResult.Err -> DailyDay.Failed(fetch.error)
         }

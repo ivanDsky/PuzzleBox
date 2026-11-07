@@ -12,6 +12,8 @@ import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
+import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
+import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
@@ -48,6 +50,8 @@ val appModule = module {
     // Every game module's play registration; a duplicate game id throws (ADR-0007).
     single { GamePlayRegistry(getAll<GamePlayUi>()) }
 
+    // Every game module's editor UI (ADR-0019); a duplicate game id throws.
+    single { GameEditorRegistry(getAll<GameEditorUi>()) }
     // The installed build GetAppUpdate compares against; debug never checks (spec A4).
     single {
         val context = androidContext()

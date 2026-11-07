@@ -3,6 +3,8 @@ package com.ivandsky.puzzlebox.domain
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.game.RecordStats
@@ -25,10 +27,13 @@ import org.junit.Test
  */
 class ObserveGameHistoryTest {
 
+    /** A friend-puzzle ref (ADR-0018): its key is custom, so it has no date. */
+    private data class CustomRef(override val gameId: GameId, override val key: PuzzleKey) : PuzzleRef
+
     private val games = listOf(alpha, beta)
 
     private fun record(game: GameId, day: LocalDate, puzzleNumber: Int? = 916) = CompletionRecord(
-        puzzleRef = Ref(game, day, puzzleNumber),
+        puzzleRef = Ref(game, PuzzleKey.Daily(day, puzzleNumber)),
         time = 41_000L,
         hints = 1,
         stats = RecordStats(schemaVersion = 1, blob = "{}"),
@@ -153,5 +158,18 @@ class ObserveGameHistoryTest {
         ).first()
 
         assertEquals(false, rows.single().archived)
+    }
+
+    @Test
+    fun `a custom record beside the dailies adds no history row`() = runTest {
+        val day = LocalDate.of(2026, 11, 1)
+        val custom = record(alpha, day).copy(puzzleRef = CustomRef(alpha, PuzzleKey.Custom("ABC123")))
+        val rows = gameHistoryDays(
+            daily = daily(),
+            games = games,
+            completions = FakeCompletionRepository(listOf(custom, record(beta, day))),
+        ).first()
+
+        assertEquals(listOf(GameHistoryDay(beta, day, 916, record(beta, day))), rows)
     }
 }

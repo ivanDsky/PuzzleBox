@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.zip
 
 import com.ivandsky.puzzlebox.games.zip.engine.ZipMove
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -16,7 +17,7 @@ class ZipScoreModelTest {
     private val model = ZipScoreModel()
     private val t0 = Instant.ofEpochMilli(1_000_000)
 
-    private fun completedSession(ref: ZipPuzzleRef? = ZipPuzzleRef(java.time.LocalDate.of(2026, 10, 30), 592)) =
+    private fun completedSession(ref: ZipPuzzleRef? = ZipPuzzleRef(PuzzleKey.Daily(java.time.LocalDate.of(2026, 10, 30), 592))) =
         ZipSession(
             ref = ref,
             puzzle = ZipTestSupport.n5Puzzle(),
@@ -32,7 +33,7 @@ class ZipScoreModelTest {
     @Test
     fun `completion carries the indexed A3 fields`() {
         val record = model.completion(completedSession())!!
-        assertEquals(ZipPuzzleRef(java.time.LocalDate.of(2026, 10, 30), 592), record.puzzleRef)
+        assertEquals(ZipPuzzleRef(PuzzleKey.Daily(java.time.LocalDate.of(2026, 10, 30), 592)), record.puzzleRef)
         assertEquals(61_500, record.time)
         assertEquals(3, record.hints)
         assertNull(record.firstCompletedAt) // core/data stamps it

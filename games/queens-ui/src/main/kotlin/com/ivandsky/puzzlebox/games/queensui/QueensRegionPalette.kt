@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.games.queensui
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 /**
  * Module-local N-region fill vocabulary (direction doc §4 — the ONE approved new token,
@@ -25,8 +27,25 @@ import androidx.compose.ui.graphics.Color
  *    X glyphs and the crown >= 4.5:1 vs their own fill, everything >= 3:1. Because the
  *    candidates and fills are all token-driven, the floor is provable for any region id
  *    in either mode without trusting raw official colors.
+ * 4. Dot texture (ticket 20, 03 handoff open question 2): with only 10 hues, ids 10/11
+ *    (K/L on 11×11 and 12×12 boards) repeat A/B, so [textured] regions carry four dots
+ *    per cell at [textureDotOffset]/(1 − offset) of the cell, ink at [textureDotAlpha],
+ *    radius max([textureDotMinRadius], [textureDotRadiusFraction] of the cell). Static —
+ *    drawn by `drawRegionTexture`, shared by play and the editor.
  */
 object QueensRegionPalette {
+
+    /** Dot ink opacity over a textured region's fill. */
+    const val textureDotAlpha: Float = 0.35f
+
+    /** Dot radius floor, so dots stay visible on the smallest cells. */
+    val textureDotMinRadius: Dp = 1.5.dp
+
+    /** Dot radius as a fraction of the cell side. */
+    const val textureDotRadiusFraction: Float = 0.05f
+
+    /** Dot centre inset from the cell's top/left edge, as a fraction of the cell side. */
+    const val textureDotOffset: Float = 0.22f
 
     // Light: pastel fills on the pale canvas; even ids L* 84, odd ids L* 92.
     private val light = listOf(
@@ -101,3 +120,6 @@ object QueensRegionPalette {
         return 0.2126f * linear(red) + 0.7152f * linear(green) + 0.0722f * linear(blue)
     }
 }
+
+/** Whether [region]'s cells carry the dot texture (ids past the 10-hue cycle). */
+fun QueensRegionPalette.textured(region: Int): Boolean = region >= 10

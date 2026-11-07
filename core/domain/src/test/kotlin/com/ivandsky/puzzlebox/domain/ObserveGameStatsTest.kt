@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
@@ -47,7 +48,7 @@ class ObserveGameStatsTest {
     /** [game]'s solve [daysAgo] days before today; a null [puzzleNumber] is a practice play. */
     private fun solve(game: GameId, daysAgo: Long, time: Long, hints: Int = 0, puzzleNumber: Int? = 100) =
         CompletionRecord(
-            puzzleRef = Ref(game, today.minusDays(daysAgo), puzzleNumber),
+            puzzleRef = Ref(game, PuzzleKey.Daily(today.minusDays(daysAgo), puzzleNumber)),
             time = time,
             hints = hints,
             stats = RecordStats(schemaVersion = 1, blob = "{}"),

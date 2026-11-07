@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.zip
 
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -67,7 +68,7 @@ class ZipCodecPropertyTest {
             editionText = "594",
         ).getOrThrow()
         assertEquals(com.ivandsky.puzzlebox.game.VariantId("zip/n8"), parsed.puzzle.variant)
-        assertEquals(594, parsed.ref.puzzleNumber)
+        assertEquals(594, (parsed.ref.key as PuzzleKey.Daily).puzzleNumber)
         assertEquals(puzzle.board, parsed.puzzle.board)
         assertEquals(solution, parsed.puzzle.solution)
         val bytes = ZipCodec.encode(parsed.puzzle)

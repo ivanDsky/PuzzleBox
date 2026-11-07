@@ -4,6 +4,8 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.app.CatalogScreen
+import com.ivandsky.puzzlebox.create.navigation.createEntry
+import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.api.HistoryKey
@@ -27,7 +29,8 @@ import com.ivandsky.puzzlebox.profile.navigation.profileEntry
  * rows push the day's game key; the account card
  * selects the Profile tab, leaving Home's stack as it was; a Profile game row pushes that
  * game's [HistoryKey] and Profile's (debug-only) catalog link pushes [CatalogKey], both on
- * Profile's stack. Back pops the current tab's stack ([Navigator.pop]),
+ * Profile's stack. The Create tab's New puzzle and its draft rows push that draft's
+ * Studio on Create's stack. Back pops the current tab's stack ([Navigator.pop]),
  * including after process-death restore.
  */
 internal fun puzzleBoxEntryProvider(
@@ -40,6 +43,8 @@ internal fun puzzleBoxEntryProvider(
     historyEntry(navigator, historyLayout)
     playEntry(navigator, playLayout, onOpenHistory = { navigator.pushOnce(HistoryKey()) })
     resultEntry(navigator)
+    createEntry(navigator)
+    editorEntry(navigator, playLayout)
     profileEntry(
         onOpenHistory = { game -> navigator.pushOnce(HistoryKey(game.value)) },
         onOpenCatalog = { navigator.push(CatalogKey) },

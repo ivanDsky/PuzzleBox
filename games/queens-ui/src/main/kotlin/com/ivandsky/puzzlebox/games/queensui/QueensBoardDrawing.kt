@@ -17,8 +17,10 @@ import com.ivandsky.puzzlebox.gameui.GridGeometry
  * a full-contrast [QueensBoardDefaults.regionBorderWeight] stroke on every interior edge
  * between two different regions so region shapes read, and the hinted region's boundary
  * in [QueensBoardDefaults.hintBorderWeight] boardSelection (§5.5) on top of that.
+ * The [drawRegionTexture] dots go down first, so the lattice and borders stay on top.
  */
 internal fun DrawScope.drawCellEdges(model: QueensBoardModel, hintColor: Color, ink: Color) {
+    drawRegionTexture(model, ink)
     val n = model.n
     val g = GridGeometry(n, n, size.width, size.height)
     val hairline = QueensBoardDefaults.cellGridLineWeight.toPx()
@@ -64,6 +66,28 @@ internal fun DrawScope.drawCellEdges(model: QueensBoardModel, hintColor: Color, 
                 if (hinted || otherHinted) hintColor else ink,
                 if (hinted || otherHinted) hintWeight else regionWeight,
             )
+        }
+    }
+}
+
+/**
+ * Ticket 20 dot texture: four static dots per cell of every [QueensRegionPalette.textured]
+ * region (ids 10+ repeat the 10-hue cycle), so K/L never read as A/B on 11×11 and 12×12.
+ */
+internal fun DrawScope.drawRegionTexture(model: QueensBoardModel, ink: Color) {
+    val n = model.n
+    val g = GridGeometry(n, n, size.width, size.height)
+    val cell = minOf(g.cellWidth, g.cellHeight)
+    val radius = maxOf(QueensRegionPalette.textureDotMinRadius.toPx(), cell * QueensRegionPalette.textureDotRadiusFraction)
+    val near = QueensRegionPalette.textureDotOffset
+    val far = 1f - near
+    val dot = ink.copy(alpha = QueensRegionPalette.textureDotAlpha)
+    for (idx in 0 until n * n) {
+        if (!QueensRegionPalette.textured(model.regions[idx])) continue
+        val left = (idx % n) * g.cellWidth
+        val top = (idx / n) * g.cellHeight
+        for (fx in floatArrayOf(near, far)) for (fy in floatArrayOf(near, far)) {
+            drawCircle(dot, radius, Offset(left + g.cellWidth * fx, top + g.cellHeight * fy))
         }
     }
 }

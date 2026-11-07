@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.queensPlugin
 import com.ivandsky.puzzlebox.games.queens.queensVariantId
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 
 /**
@@ -76,7 +77,7 @@ internal object QueensTutorial {
                 formatVersion = QueensCodec.VERSION,
                 payload = QueensCodec.encode(puzzle),
             ),
-            ref = queensPlugin.refOf(day, null),
+            ref = queensPlugin.refOf(PuzzleKey.Daily(day, null)),
             guided = guided,
         )
     }

@@ -26,6 +26,7 @@ import androidx.savedstate.serialization.encodeToSavedState
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
+import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -222,7 +223,7 @@ class PerTabShellTest {
         assertEquals(
             NavigationState(
                 tab = ProfileKey,
-                stacks = listOf(listOf(HomeKey), listOf(PlayKey), listOf(ProfileKey, CatalogKey)),
+                stacks = listOf(listOf(HomeKey), listOf(PlayKey), listOf(CreateKey), listOf(ProfileKey, CatalogKey)),
             ),
             state(),
         )

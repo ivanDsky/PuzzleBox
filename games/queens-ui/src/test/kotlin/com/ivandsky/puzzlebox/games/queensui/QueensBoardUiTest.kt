@@ -29,6 +29,7 @@ import com.ivandsky.puzzlebox.games.queens.MarkKind
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -346,7 +347,7 @@ class QueensBoardUiTest {
             override fun completion(session: QueensSession): CompletionRecord {
                 completions++
                 return CompletionRecord(
-                    puzzleRef = QueensPuzzleRef(LocalDate.parse("2026-11-02"), 1),
+                    puzzleRef = QueensPuzzleRef(PuzzleKey.Daily(LocalDate.parse("2026-11-02"), 1)),
                     time = session.elapsedMs,
                     hints = session.hintsUsed,
                     stats = RecordStats(schemaVersion = 1, blob = ""),

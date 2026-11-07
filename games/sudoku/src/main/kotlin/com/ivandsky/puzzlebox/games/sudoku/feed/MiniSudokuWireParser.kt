@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.SudokuVariant
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -31,7 +32,7 @@ object MiniSudokuWireParser {
         try {
             val obj = Json.parseToJsonElement(json) as? JsonObject ?: throw WireError("not a JSON object")
             val puzzle = parsePuzzle(obj, expected)
-            val ref = SudokuPuzzleRef(SudokuGames.MINI.id, date, editionText?.toIntOrNull())
+            val ref = SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(date, editionText?.toIntOrNull()))
             DecodeResult.Ok(Daily(puzzle, ref))
         } catch (e: SizeMismatch) {
             DecodeResult.Err(DecodeError.VariantSizeMismatch(expected.id.value, expected.geometry.size, e.actual))

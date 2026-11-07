@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.games.strands.StrandsPuzzle
 import com.ivandsky.puzzlebox.games.strands.StrandsPuzzleRef
 import com.ivandsky.puzzlebox.games.strands.StrandsWord
 import com.ivandsky.puzzlebox.games.strands.codec.StrandsCodec
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 
 /**
@@ -41,7 +42,7 @@ internal object StrandsUiFixtures {
     }
 
     val day: LocalDate = LocalDate.of(2026, 11, 5)
-    val ref = StrandsPuzzleRef(day, StrandsNumber.of(day))
+    val ref = StrandsPuzzleRef(PuzzleKey.Daily(day, StrandsNumber.of(day)))
 
     fun envelope() = StrandsCodec.envelope(puzzle)
 }

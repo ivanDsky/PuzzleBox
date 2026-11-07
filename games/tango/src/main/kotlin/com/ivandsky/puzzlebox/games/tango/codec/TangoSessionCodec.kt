@@ -4,22 +4,26 @@ import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameSessionCodec
+import com.ivandsky.puzzlebox.game.PuzzleKeyTag
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoPlace
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.TangoSession
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.io.ByteArrayOutputStream
 import java.time.Instant
 
 /**
- * Tango session codec v2 (A19): self-describing version byte, canonical encode, the
+ * Tango session codec v3 (A19): self-describing version byte, canonical encode, the
  * puzzle riding by value so an in-progress day survives offline replay (Zip precedent).
  *
  * ```
- * 0   u8    formatVersion = 2
+ * 0   u8    formatVersion = 3
  *     u16   puzzleLen (BE); puzzleLen x u8   (TangoCodec bytes)
  *     u8    flags                            (bit0 completedAt present, bit1 ref present)
- *     [bit1] i64 epochDay, u8 numberPresent, i64 puzzleNumber
+ *     [bit1] u8 keyTag                       (v3+; 0 = Daily, 1 = Custom)
+ *     [bit1, Daily]  i64 epochDay, u8 numberPresent, [numberPresent] i64 puzzleNumber
+ *     [bit1, Custom] u8 idLen (1..255); idLen x u8 puzzleId (UTF-8)
  *     u8    placedCount; placedCount x (u8 idx, u8 value)
  *     u8    hintsUsed; u8 mistakeCount
  *     i64   elapsedMs
@@ -29,12 +33,13 @@ import java.time.Instant
  *     ...   unknown tail carried verbatim (A19)
  * ```
  * i64 fields are little-endian. A history cell byte is 0 for "empty", else the [TangoCell]
- * wire byte. v1 is the same layout without the two history lists; it still decodes (empty
- * history) so saves and archived replays written before undo existed keep working.
+ * wire byte. v2 is the same layout without the key tag (a ref is always a Daily); v1 is v2
+ * without the two history lists. Both still decode, so saves and archived replays written
+ * before custom boards and before undo keep working.
  */
 object TangoSessionCodec : GameSessionCodec<TangoSession> {
 
-    const val VERSION: Int = 2
+    const val VERSION: Int = 3
 
     /** Decode bound on each history list; [serialize] keeps only the newest this many. */
     const val MAX_HISTORY: Int = 10_000
@@ -57,16 +62,7 @@ object TangoSessionCodec : GameSessionCodec<TangoSession> {
         if (session.ref != null) flags = flags or FLAG_REF
         out.write(flags)
 
-        session.ref?.let { ref ->
-            writeI64(out, ref.date.toEpochDay())
-            val number = ref.puzzleNumber
-            if (number == null) {
-                out.write(0)
-            } else {
-                out.write(1)
-                writeI64(out, number.toLong())
-            }
-        }
+        session.ref?.let { writeRef(out, it.key) }
 
         val placements = session.placements.entries.sortedBy { it.key }
         out.write(placements.size)
@@ -104,14 +100,10 @@ object TangoSessionCodec : GameSessionCodec<TangoSession> {
 
         var ref: TangoPuzzleRef? = null
         if (hasRef) {
-            val epochDay = cursor.i64() ?: return malformed("truncated ref date")
-            val hasNumber = cursor.u8() ?: return malformed("truncated ref number flag")
-            val number = if (hasNumber == 1) {
-                cursor.i64() ?: return malformed("truncated ref number")
-            } else {
-                null
+            ref = when (val key = readKey(cursor, version)) {
+                is DecodeResult.Ok -> TangoPuzzleRef(key.value)
+                is DecodeResult.Err -> return key
             }
-            ref = TangoPuzzleRef(java.time.LocalDate.ofEpochDay(epochDay), number?.toInt())
         }
 
         val placedCount = cursor.u8() ?: return malformed("truncated placement count")
@@ -195,6 +187,32 @@ object TangoSessionCodec : GameSessionCodec<TangoSession> {
     private fun writeI64(out: ByteArrayOutputStream, value: Long) {
         repeat(8) { shift -> out.write(((value shr (shift * 8)) and 0xFF).toInt()) }
     }
+
+    private fun writeRef(out: ByteArrayOutputStream, key: PuzzleKey) =
+        PuzzleKeyTag.write(key, out::write) { daily ->
+            writeI64(out, daily.date.toEpochDay())
+            val number = daily.puzzleNumber
+            if (number == null) {
+                out.write(0)
+            } else {
+                out.write(1)
+                writeI64(out, number.toLong())
+            }
+        }
+
+    /** The Daily fields are the whole ref before v3. */
+    private fun readKey(cursor: Cursor, version: Int): DecodeResult<PuzzleKey> =
+        PuzzleKeyTag.read(version, taggedSince = V_KEY_TAG, u8 = cursor::u8) {
+            val epochDay = cursor.i64() ?: return@read malformed("truncated ref date")
+            val number = when (cursor.u8() ?: return@read malformed("truncated ref number flag")) {
+                1 -> cursor.i64() ?: return@read malformed("truncated ref number")
+                else -> null
+            }
+            PuzzleKeyTag.daily(epochDay, number)
+        }
+
+    /** The first format whose ref carries a [PuzzleKeyTag]. */
+    private const val V_KEY_TAG = 3
 
     private fun malformed(detail: String): DecodeResult.Err =
         DecodeResult.Err(DecodeError.Malformed(detail))

@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.games.zip.ZipBoard
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -115,7 +116,7 @@ object ZipWireParser {
                     board = ZipBoard(gridSize, walls, waypoints),
                     solution = solution,
                 ),
-                ref = ZipPuzzleRef(date = date, puzzleNumber = editionText?.toIntOrNull()),
+                ref = ZipPuzzleRef(PuzzleKey.Daily(date, editionText?.toIntOrNull())),
             ),
         )
     }

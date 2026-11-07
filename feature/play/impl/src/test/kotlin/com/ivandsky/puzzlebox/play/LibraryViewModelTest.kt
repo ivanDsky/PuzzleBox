@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -128,7 +129,7 @@ class LibraryViewModelTest {
     @Test
     fun `a solve shows in the row's status and stats`() {
         val vm = observedVm()
-        runBlocking { completions.onCompleted(CompletionRecord(TestGames.Ref(alpha, day, 7), 30_000L, 0, RecordStats(1, "{}"))) }
+        runBlocking { completions.onCompleted(CompletionRecord(TestGames.Ref(alpha, PuzzleKey.Daily(day, 7)), 30_000L, 0, RecordStats(1, "{}"))) }
         dispatcher.scheduler.runCurrent()
         assertEquals(TodayStatus.Solved(30_000L), vm.row(alpha).card.status)
         assertEquals(1, vm.row(alpha).stats.solved)

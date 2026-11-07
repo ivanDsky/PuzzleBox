@@ -3,6 +3,8 @@ package com.ivandsky.puzzlebox.domain
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
@@ -31,6 +33,9 @@ import org.junit.Test
 /** An archive month's days (spec A26/A27) over the core:testing fakes; local data only, never a fetch. */
 class ObserveArchiveMonthTest {
 
+    /** A friend-puzzle ref (ADR-0018): its key is custom, so it has no date. */
+    private data class CustomRef(override val gameId: GameId, override val key: PuzzleKey) : PuzzleRef
+
     private val day1 = LocalDate.of(2025, 3, 18)
     private val today = LocalDate.of(2026, 11, 5)
     private val day = LocalDate.of(2026, 10, 20)
@@ -45,7 +50,7 @@ class ObserveArchiveMonthTest {
 
     private fun record(time: Long, game: GameId = alpha, on: LocalDate = day) =
         CompletionRecord(
-            puzzleRef = Ref(game, on),
+            puzzleRef = Ref(game, PuzzleKey.Daily(on, null)),
             time = time,
             hints = 0,
             stats = RecordStats(schemaVersion = 1, blob = "{}"),
@@ -116,8 +121,8 @@ class ObserveArchiveMonthTest {
         val placeholderDay = day.plusDays(3)
         listOf(solvedDay, playingDay, storedDay).forEach { store(on = it) }
         storePlaceholder(on = placeholderDay)
-        saved.save(PlaySlot(alpha, solvedDay), byteArrayOf(1), elapsedMs = 9_000L)
-        saved.save(PlaySlot(alpha, playingDay), byteArrayOf(1), elapsedMs = 7_000L)
+        saved.save(PlaySlot.Daily(alpha, solvedDay), byteArrayOf(1), elapsedMs = 9_000L)
+        saved.save(PlaySlot.Daily(alpha, playingDay), byteArrayOf(1), elapsedMs = 7_000L)
         completions.onCompleted(record(time = 42_000L, on = solvedDay))
         completions.onCompleted(record(time = 1L, game = beta, on = storedDay))
 
@@ -174,5 +179,16 @@ class ObserveArchiveMonthTest {
 
         assertEquals(strandsToday, days.last().date)
         assertEquals(LocalDate.of(2026, 11, 5), month(YearMonth.from(day), beta, newYork).first().on(day).openedOn)
+    }
+
+    @Test
+    fun `a custom record beside the dailies fills no archive cell`() = runTest {
+        val custom = record(time = 9_000L).copy(puzzleRef = CustomRef(alpha, PuzzleKey.Custom("ABC123")))
+        completions.setRecords(listOf(custom, record(time = 12_000L, on = day.minusDays(1))))
+
+        val days = month(YearMonth.from(day)).first()
+
+        assertEquals(PastDayStatus.Solved(12_000L), days.on(day.minusDays(1)).status)
+        assertEquals(listOf(day.minusDays(1)), days.filter { it.status is PastDayStatus.Solved }.map { it.date })
     }
 }

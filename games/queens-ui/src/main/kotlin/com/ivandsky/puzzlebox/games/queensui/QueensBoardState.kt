@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHints
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.SinglesRung
 import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSolver
 import java.time.Instant
 
@@ -157,6 +158,9 @@ class QueensBoardState(
     /** The §5.5 caption of the active hint, null when there is none (PlayHints seam). */
     val hintCaption: String? get() = queensHintCaption(hint)
 
+    /** Test tag of [hintCaption]: `queens.hint.caption.<rung.id>`, or the unit kind for singles. */
+    val hintCaptionTag: String? get() = queensHintCaptionTag(hint)
+
     /**
      * §5.5 staged ladder: first tap presents the hint (stage 1); a repeat tap while the
      * engine still forces the SAME cell escalates to stage 2 ([hintPointed] — the crown
@@ -223,20 +227,35 @@ class QueensBoardState(
 
 /**
  * The §5.5 caption text for the active hint (fix round 6). The region is always named
- * by its palette color (the pulsed fill); the deduction names the unit whose every
- * other square is blocked. null = nothing to show (no hint, or a no-op hint).
+ * by its palette color (the pulsed fill); a singles deduction names the unit whose every
+ * other square is blocked, a higher rung adds its own why-sentence from [QueensRungCopy]
+ * (spec A9). null = nothing to show (no hint, or a no-op hint).
  */
 internal fun queensHintCaption(hint: QueensHint?): String? = when (hint) {
     is QueensHint.Region -> {
         val color = QueensRegionPalette.hueName(hint.region)
-        when (hint.reason?.kind) {
-            HintReason.Kind.ROW -> "The $color queen goes in this row. The other squares are blocked."
-            HintReason.Kind.COLUMN -> "The $color queen goes in this column. The other squares are blocked."
-            HintReason.Kind.REGION -> "The $color queen goes here. The other $color squares are blocked."
-            // Solver-only forcing: the honest fallback (never a fabricated reason).
-            null -> "Hint — the $color region"
+        val reason = hint.reason
+        val rungCaption = reason?.rung?.takeIf { it != SinglesRung }?.let { QueensRungCopy.caption(it.captionKey) }
+        when {
+            rungCaption != null -> "The $color queen goes here. $rungCaption"
+            reason == null -> "Hint — the $color region" // solver-only forcing: never a fabricated reason
+            else -> when (reason.kind) {
+                HintReason.Kind.ROW -> "The $color queen goes in this row. The other squares are blocked."
+                HintReason.Kind.COLUMN -> "The $color queen goes in this column. The other squares are blocked."
+                HintReason.Kind.REGION -> "The $color queen goes here. The other $color squares are blocked."
+            }
         }
     }
     is QueensHint.Incorrect -> "Some of these queens can't stay. Take one away."
     QueensHint.None, null -> null
+}
+
+/**
+ * The caption's test tag (spec A9): `queens.hint.caption.<rung.id>` for a rung above singles,
+ * `queens.hint.caption.<kind>` (ROW/COLUMN/REGION) for singles; null without a reason.
+ */
+internal fun queensHintCaptionTag(hint: QueensHint?): String? {
+    val reason = (hint as? QueensHint.Region)?.reason ?: return null
+    val suffix = if (reason.rung == SinglesRung) reason.kind.name else reason.rung.id
+    return "queens.hint.caption.$suffix"
 }

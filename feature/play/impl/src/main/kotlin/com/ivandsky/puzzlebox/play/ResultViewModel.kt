@@ -89,7 +89,7 @@ class ResultViewModel(
     games: GameRegistry,
 ) : ViewModel() {
 
-    private val slot = PlaySlot(GameId(key.gameId), LocalDate.parse(key.day))
+    private val slot = PlaySlot.Daily(GameId(key.gameId), LocalDate.parse(key.day))
     private val solve = ActivePlay.Solve(key.timeMs, key.hintsUsed)
     private val live: ActivePlay? = store.peek(slot)
     private val names: Map<GameId, String> = store.playable.toMap()

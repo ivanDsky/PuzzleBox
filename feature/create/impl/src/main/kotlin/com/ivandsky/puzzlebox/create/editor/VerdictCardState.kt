@@ -1,0 +1,58 @@
+package com.ivandsky.puzzlebox.create.editor
+
+import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
+import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+/**
+ * The verdict card's holder (02 handoff, "Pill popover"): whether the card is [open], and
+ * [checkAgain], which hands the open draft back to the verdict pipeline through [recheck].
+ * The pill opens it; an outside tap, Back or any board edit closes it.
+ *
+ * On a 2+ solutions verdict it also holds the A/B witness choice, [overlay] (spec A7, 31):
+ * each new settled Multiple [read] resets it to the open [controller]'s
+ * `openingOverlay`, and every change goes to that controller's `adoptOverlay` so the board
+ * draws it. Checking keeps the choice, as the board holds its last settled reading.
+ */
+class VerdictCardState(
+    private val recheck: () -> Unit,
+    private val controller: () -> GameEditorController? = { null },
+) {
+
+    private val mutableOpen = MutableStateFlow(false)
+    val open: StateFlow<Boolean> = mutableOpen.asStateFlow()
+
+    private val mutableOverlay = MutableStateFlow(EditorOverlay())
+    val overlay: StateFlow<EditorOverlay> = mutableOverlay.asStateFlow()
+
+    private var lastMultiple: Verdict.Multiple? = null
+
+    fun show() {
+        mutableOpen.value = true
+    }
+
+    fun dismiss() {
+        mutableOpen.value = false
+    }
+
+    /** Runs the analysis again on the same draft; the card stays open to show the new verdict. */
+    fun checkAgain() {
+        recheck()
+    }
+
+    /** Each verdict the Studio shows: a new settled Multiple opens the witness choice afresh. */
+    fun read(verdict: Verdict) {
+        if (verdict !is Verdict.Multiple || verdict == lastMultiple) return
+        lastMultiple = verdict
+        choose(controller()?.openingOverlay(verdict) ?: EditorOverlay())
+    }
+
+    /** The author's A/B or Show on board change; the board draws it at once. */
+    fun choose(overlay: EditorOverlay) {
+        mutableOverlay.value = overlay
+        controller()?.adoptOverlay(overlay)
+    }
+}

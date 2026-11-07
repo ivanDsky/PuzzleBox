@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.games.strands.codec.StrandsCodec
 import com.ivandsky.puzzlebox.gameui.TutorialSandbox
 import com.ivandsky.puzzlebox.gameui.TutorialSession
 import com.ivandsky.puzzlebox.gameui.TutorialState
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
@@ -56,7 +57,7 @@ class StrandsTutorialTest {
 
     @Test
     fun `every lesson is numbered, so its solve hands the sandbox a record`() {
-        for (step in steps) assertNotNull(step.ref.puzzleNumber)
+        for (step in steps) assertNotNull((step.ref.key as PuzzleKey.Daily).puzzleNumber)
     }
 
     @Test

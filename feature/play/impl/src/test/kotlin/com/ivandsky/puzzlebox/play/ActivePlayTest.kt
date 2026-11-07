@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
 import com.ivandsky.puzzlebox.gameui.unavailableMessage
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -41,7 +42,7 @@ class ActivePlayTest {
 
     private val game = TestGames.alpha
     private val day = LocalDate.parse("2026-10-31")
-    private val ref = TestGames.Ref(game, day, 7)
+    private val ref = TestGames.Ref(game, PuzzleKey.Daily(day, 7))
     private val key = GameKey(game.value, day.toString())
 
     private val fakes = FakeGames(listOf(game))
@@ -74,7 +75,7 @@ class ActivePlayTest {
     private fun loaded(): ActivePlay = store.open(key)!!
 
     /** The slot's saved row holds [session], as a released or app-stopped play left it. */
-    private fun savedRow(session: ByteArray) = runBlocking { saved.save(PlaySlot(game, day), SessionBlob.encode(game, session), elapsedMs = 0L) }
+    private fun savedRow(session: ByteArray) = runBlocking { saved.save(PlaySlot.Daily(game, day), SessionBlob.encode(game, session), elapsedMs = 0L) }
 
     private fun records() = runBlocking { completions.observeRecords().first() }
 
@@ -91,7 +92,7 @@ class ActivePlayTest {
     fun `today without a captured row adopts an unnumbered identity`() {
         daily.setHistory(game, emptyList())
         loaded()
-        assertEquals(TestGames.Ref(game, day, null), ui.latest.ref)
+        assertEquals(TestGames.Ref(game, PuzzleKey.Daily(day, null)), ui.latest.ref)
     }
 
     @Test
@@ -148,7 +149,7 @@ class ActivePlayTest {
     fun `a practice win (no edition number) still writes its record but never gets a best verdict`() {
         daily.setHistory(game, emptyList())
         val play = loaded()
-        val practice = TestGames.Ref(game, day, null)
+        val practice = TestGames.Ref(game, PuzzleKey.Daily(day, null))
 
         ui.latest.win()
 
@@ -181,7 +182,7 @@ class ActivePlayTest {
 
     @Test
     fun `another game's faster solve never counts as this game's best`() {
-        val other = TestGames.Ref(TestGames.beta, day, 7)
+        val other = TestGames.Ref(TestGames.beta, PuzzleKey.Daily(day, 7))
         completions.setRecords(listOf(FakeController.record(other).copy(time = 1_000)))
         val play = loaded()
         ui.latest.win()
@@ -192,7 +193,7 @@ class ActivePlayTest {
     @Test
     fun `a solve slower than the game's best on another day is not a new best and shows that best`() {
         val faster = FakeController.TIME_MS - 10_000
-        completions.setRecords(listOf(FakeController.record(TestGames.Ref(game, day.minusDays(1), 6)).copy(time = faster)))
+        completions.setRecords(listOf(FakeController.record(TestGames.Ref(game, PuzzleKey.Daily(day.minusDays(1), 6))).copy(time = faster)))
         val play = loaded()
         ui.latest.win()
         assertEquals(RecordVerdict.NotBest, play.record.value.verdict)

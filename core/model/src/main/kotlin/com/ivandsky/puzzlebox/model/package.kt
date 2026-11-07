@@ -17,6 +17,6 @@
  * seam AND it carries no framework weight. Module-internal shapes (Room entities, wire
  * DTOs, game variants) stay in their owning module.
  *
- * Current members: [GameId], [ThemeMode].
+ * Current members: [GameId], [PuzzleKey], [ThemeMode].
  */
 package com.ivandsky.puzzlebox.model

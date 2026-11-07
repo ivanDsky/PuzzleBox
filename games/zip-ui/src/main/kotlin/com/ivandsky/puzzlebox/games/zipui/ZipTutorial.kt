@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 
 /**
@@ -71,6 +72,6 @@ object ZipTutorial {
             formatVersion = ZipCodec.VERSION,
             payload = ZipCodec.encode(puzzle),
         )
-        return TutorialStep(instruction, envelope, ZipPuzzleRef(lessonDay, puzzleNumber = null))
+        return TutorialStep(instruction, envelope, ZipPuzzleRef(PuzzleKey.Daily(lessonDay, puzzleNumber = null)))
     }
 }

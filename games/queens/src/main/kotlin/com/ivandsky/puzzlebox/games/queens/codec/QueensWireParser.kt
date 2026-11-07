@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.queens.QueensVariants
 import com.ivandsky.puzzlebox.games.queens.queensVariantId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -111,7 +112,7 @@ object QueensWireParser {
                     queensPerUnit = variant.queensPerUnit,
                     solution = queens,
                 ),
-                ref = QueensPuzzleRef(date = date, puzzleNumber = editionText?.toIntOrNull()),
+                ref = QueensPuzzleRef(PuzzleKey.Daily(date, editionText?.toIntOrNull())),
             ),
         )
     }

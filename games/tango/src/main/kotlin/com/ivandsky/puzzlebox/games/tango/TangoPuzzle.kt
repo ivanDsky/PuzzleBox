@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.tango
 
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.game.VariantId
 
 /** The two-valued Tango cell: sun or moon (A11). */
@@ -123,10 +124,7 @@ data class TangoPuzzle(
     }
 }
 
-/** Official daily identity (zip precedent): the LinkedIn day plus the puzzle number, null for custom boards. */
-data class TangoPuzzleRef(
-    override val date: java.time.LocalDate,
-    override val puzzleNumber: Int?,
-) : PuzzleRef {
+/** Which Tango puzzle (ADR-0018): a LinkedIn day's daily (edition number when known) or a friend's custom board. */
+data class TangoPuzzleRef(override val key: PuzzleKey) : PuzzleRef {
     override val gameId: GameId get() = TangoDefinition.id
 }

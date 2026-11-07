@@ -2,14 +2,11 @@ package com.ivandsky.puzzlebox.games.sudoku
 
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.model.GameId
-import java.time.LocalDate
+import com.ivandsky.puzzlebox.model.PuzzleKey
 
 /**
- * Daily identity (ADR-0004). [gameId] is stored because one engine serves two games;
- * [puzzleNumber] is the LinkedIn edition, null for the bundled board.
+ * Puzzle identity (ADR-0004, ADR-0018): [gameId] is stored because one engine serves two
+ * games; [key] is a day's daily (puzzle number = the LinkedIn edition, null for the bundled
+ * board) or a friend's puzzle by share code.
  */
-data class SudokuPuzzleRef(
-    override val gameId: GameId,
-    override val date: LocalDate,
-    override val puzzleNumber: Int?,
-) : PuzzleRef
+data class SudokuPuzzleRef(override val gameId: GameId, override val key: PuzzleKey) : PuzzleRef

@@ -125,7 +125,7 @@ class QueensRotationRestoreTest {
         return repo
     }
 
-    private val slot = PlaySlot(QueensDefinition.id, QueensDefinition.cadence.today())
+    private val slot = PlaySlot.Daily(QueensDefinition.id, QueensDefinition.cadence.today())
 
     /** The Play tab's stack; a field, so it outlives recreations as the shell's saved state does. */
     private var navigator = Navigator(NavigationState(tab = PlayKey, stacks = listOf(listOf(PlayKey))))

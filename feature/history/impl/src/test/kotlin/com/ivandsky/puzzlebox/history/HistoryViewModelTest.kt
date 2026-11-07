@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -172,7 +173,7 @@ class HistoryViewModelTest {
             setHistory(TANGO, listOf(HistoryTestSupport.tangoEntry(yesterday, puzzleNumber = null)))
         }
         val completions = FakeCompletionRepository().apply {
-            val practice = HistoryTestSupport.tangoRecord(yesterday).copy(puzzleRef = TestGames.Ref(TANGO, yesterday, null))
+            val practice = HistoryTestSupport.tangoRecord(yesterday).copy(puzzleRef = TestGames.Ref(TANGO, PuzzleKey.Daily(yesterday, null)))
             setRecords(listOf(HistoryTestSupport.record(today), practice))
         }
 
@@ -217,7 +218,7 @@ class HistoryViewModelTest {
                     HistoryTestSupport.tangoRecord(today, timeMs = 61_000),
                     // Faster, but practice: never a best.
                     HistoryTestSupport.tangoRecord(practiceDay, timeMs = 5_000)
-                        .copy(puzzleRef = TestGames.Ref(TANGO, practiceDay, null)),
+                        .copy(puzzleRef = TestGames.Ref(TANGO, PuzzleKey.Daily(practiceDay, null))),
                 ),
             )
         }

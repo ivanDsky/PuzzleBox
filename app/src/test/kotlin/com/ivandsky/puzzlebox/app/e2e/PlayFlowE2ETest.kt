@@ -6,6 +6,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
+import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
@@ -23,6 +24,7 @@ import com.ivandsky.puzzlebox.games.zip.ZipSession
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -207,17 +209,17 @@ class PlayFlowE2ETest {
     /** Every other game is solved today, so a Zip solve leaves nothing next. */
     private fun solvedOthersGraph() = solvedGraph(
         tangoRecord(),
-        record(QueensPuzzleRef(E2E_TODAY, 1)),
-        record(SudokuPuzzleRef(SudokuGames.MINI.id, E2E_TODAY, 1)),
-        record(SudokuPuzzleRef(SudokuGames.CLASSIC.id, E2E_TODAY, null)),
-        record(StrandsPuzzleRef(E2E_TODAY, StrandsNumber.of(E2E_TODAY))),
+        record(QueensPuzzleRef(PuzzleKey.Daily(E2E_TODAY, 1))),
+        record(SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(E2E_TODAY, 1))),
+        record(SudokuPuzzleRef(SudokuGames.CLASSIC.id, PuzzleKey.Daily(E2E_TODAY, null))),
+        record(StrandsPuzzleRef(PuzzleKey.Daily(E2E_TODAY, StrandsNumber.of(E2E_TODAY)))),
     )
 
     private fun solvedGraph(vararg records: CompletionRecord) = E2eKoinGraph(E2E_TODAY).apply {
         this.records.setRecords(records.toList())
     }
 
-    private fun tangoRecord() = record(TangoPuzzleRef(E2E_TODAY, 301))
+    private fun tangoRecord() = record(TangoPuzzleRef(PuzzleKey.Daily(E2E_TODAY, 301)))
 
     private fun record(ref: PuzzleRef) = CompletionRecord(
         puzzleRef = ref,
@@ -230,12 +232,13 @@ class PlayFlowE2ETest {
         tab: NavKey,
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
+        create: List<NavKey> = listOf(CreateKey),
         profile: List<NavKey> = listOf(ProfileKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, profile))
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, create, profile))
 
     private val playHub = stacks(tab = PlayKey)
     private val inZip = stacks(tab = PlayKey, play = listOf(PlayKey, GameKey(ZIP)))
-    private val todaySlot = PlaySlot(ZipDefinition.id, E2E_TODAY)
+    private val todaySlot = PlaySlot.Daily(ZipDefinition.id, E2E_TODAY)
 
     private companion object {
         const val HOME = "route.home"

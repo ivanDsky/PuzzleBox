@@ -44,8 +44,9 @@ internal class RoomCompletionRepository(
             rows.mapNotNull { it.toModel(registry) }
         }
 
-    // PuzzleRefKeys.encode leads every key with "$gameId/". A game this build does not
-    // ship ranks time-first, the shared default.
+    // PuzzleRefKeys.encode leads every daily key with "$gameId/"; a custom key leads with
+    // "custom/", so the prefix keeps friends' puzzles out of the daily best (ADR-0018).
+    // A game this build does not ship ranks time-first, the shared default.
     override suspend fun best(game: GameId): BestScore? {
         val prefix = "${game.value}/"
         val row = when (registry[game]?.score?.rankOrder ?: RankOrder.TimeThenHints) {

@@ -124,7 +124,7 @@ class QueensPlayWiringTest {
             allowOverride = true,
         )
         val store = koinApp.koin.get<PlaySessionStore>()
-        val slot = PlaySlot(QueensDefinition.id, QueensDefinition.cadence.today())
+        val slot = PlaySlot.Daily(QueensDefinition.id, QueensDefinition.cadence.today())
         fun queens() = store.peek(slot)?.controller as? QueensPlayController
 
         val navigator = Navigator(NavigationState(tab = PlayKey, stacks = listOf(listOf(PlayKey))))
