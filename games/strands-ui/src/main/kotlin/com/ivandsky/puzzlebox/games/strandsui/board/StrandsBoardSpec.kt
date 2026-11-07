@@ -48,7 +48,9 @@ internal object StrandsBoardSpec {
     const val TravelWindowCells: Float = 0.25f
     const val SideConeDegrees: Float = 20f
     const val SideJoinCells: Float = 0.40f
-    const val DiagonalConeDegrees: Float = 25f
+
+    /** What the side cone leaves of the 45° between an axis and a diagonal: the cones tile the circle, so every heading decides one. */
+    const val DiagonalConeDegrees: Float = 45f - SideConeDegrees
 
     /** Of the diagonal step (√2 pitches): the diagonal letter joins this far along it. */
     const val DiagonalJoinFraction: Float = 0.40f

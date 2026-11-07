@@ -57,6 +57,7 @@ import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 import com.ivandsky.puzzlebox.games.strandsui.board.altThemeCells
 import com.ivandsky.puzzlebox.games.strandsui.board.altThemeLinks
 import com.ivandsky.puzzlebox.games.strandsui.board.drawTokenSquare
+import com.ivandsky.puzzlebox.games.strandsui.board.tokenColor
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
@@ -100,8 +101,6 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
  * whole width being its touch area. [found] is the word just found, whose letters settle or
  * sweep. [trace] is never read here: each letter derives its own place in it and the trace
  * connector reads it while drawing, so a trace step recomposes only the letters it changes.
- * [finger] is the dragging finger the live tip reaches for: written by the drag, read only
- * in the connector's draw, so a moving finger redraws and never recomposes.
  */
 @Composable
 internal fun StrandsBoardContent(
@@ -111,7 +110,22 @@ internal fun StrandsBoardContent(
     trace: () -> Trace,
     onTrace: (TraceStep) -> Unit,
     modifier: Modifier = Modifier,
-    finger: MutableState<TraceFinger?> = remember { mutableStateOf(null) },
+) = StrandsBoardLayout(model, found, reduceMotion, trace, onTrace, remember { mutableStateOf<TraceFinger?>(null) }, modifier)
+
+/**
+ * [StrandsBoardContent] with the drag's [finger] handed in: the drag writes it and only the
+ * connector's draw reads it, so a moving finger redraws the tip and recomposes nothing. A
+ * preview holds a drag still by handing in the finger its session ended on.
+ */
+@Composable
+internal fun StrandsBoardLayout(
+    model: StrandsRendererModel,
+    found: FoundEvent?,
+    reduceMotion: Boolean,
+    trace: () -> Trace,
+    onTrace: (TraceStep) -> Unit,
+    finger: MutableState<TraceFinger?>,
+    modifier: Modifier = Modifier,
 ) {
     val colors = LocalBoardColors.current
     val altCells = remember(model.links) { altThemeLinks(model.links).altThemeCells() }
@@ -232,26 +246,6 @@ private fun LetterToken(
             )
         }
     }
-}
-
-/**
- * One role of the token (its fill or its lip): the live trace's [selection] overlays the
- * letter's own [base], filling in over it as the letter joins ([join]); a found letter
- * turns from the trace colour to its own as it lights ([frame]).
- */
-private fun tokenColor(
-    base: Color?,
-    selection: Color,
-    traced: Boolean,
-    frame: StrandsCellFrame,
-    join: StrandsCellFrame,
-): Color? {
-    if (traced) {
-        if (join.lit >= 1f) return selection
-        return if (base == null) selection.copy(alpha = selection.alpha * join.lit) else lerp(base, selection, join.lit)
-    }
-    if (base == null) return null
-    return if (frame.lit >= 1f) base else lerp(selection, base, frame.lit)
 }
 
 /** A letter joining the trace fills and pops once; the key is constant because leaving the trace resets it. */
