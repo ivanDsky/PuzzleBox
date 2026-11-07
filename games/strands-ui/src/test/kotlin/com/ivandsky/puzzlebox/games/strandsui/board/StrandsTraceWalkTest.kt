@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.games.strandsui.board
 import androidx.compose.ui.geometry.Offset
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strandsui.Trace
-import com.ivandsky.puzzlebox.games.strandsui.TraceInput
 import com.ivandsky.puzzlebox.games.strandsui.TraceStep
 import kotlin.math.cos
 import kotlin.math.floor
@@ -12,10 +11,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * A5 on the pure walk, in cell units over a 6 × 8 board: a drag's direction is its travel
- * over the last [StrandsBoardSpec.TravelWindowCells], so a diagonal drawn with a ±20° wobble,
- * on or off the centre line, joins only diagonal letters, and a side drag (straight or ±10°)
- * joins the side letters. Fingers are zigzags: legs of [LEG] cells alternating ± the wobble.
+ * A5 on the walk, driven through [StrandsDragSession] in cell units over a 6 × 8 board: a
+ * drag's direction is its travel over the last [StrandsBoardSpec.TravelWindowCells], so a
+ * diagonal drawn with a ±20° wobble, on or off the centre line, joins only diagonal letters,
+ * and a side drag (straight or ±10°) joins the side letters. Fingers are zigzags: legs of
+ * [LEG] cells alternating ± the wobble.
  */
 class StrandsTraceWalkTest {
 
@@ -112,22 +112,11 @@ class StrandsTraceWalkTest {
         assertEquals(0.2f, travel.y, 1e-3f)
     }
 
-    /** Runs [finger] (its first point the touch-down) through the walk as the gesture layer does. */
+    /** Runs [finger] (its first point the touch-down) through the [StrandsDragSession] the gesture layer drives. */
     private fun drag(finger: List<Offset>): List<Coord> {
-        val start = Coord(floor(finger[0].y).toInt(), floor(finger[0].x).toInt())
-        val alone = listOf(start)
+        val session = StrandsDragSession(rows, cols, Coord(floor(finger[0].y).toInt(), floor(finger[0].x).toInt()), finger[0])
         var trace = Trace()
-        var dragging = false
-        val walk = StrandsTraceWalk(rows, cols, finger[0])
-        for (point in finger.drop(1)) {
-            walk.moveTo(point, { if (dragging) trace.path else alone }) { over ->
-                if (!dragging) {
-                    dragging = true
-                    trace = (TraceInput.dragStart(start) as TraceStep.Updated).trace
-                }
-                trace = (TraceInput.dragTo(trace, over) as TraceStep.Updated).trace
-            }
-        }
+        for (point in finger.drop(1)) session.move(point, trace).forEach { trace = (it as TraceStep.Updated).trace }
         return trace.path
     }
 

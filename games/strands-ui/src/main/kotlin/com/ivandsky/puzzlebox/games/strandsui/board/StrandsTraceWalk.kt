@@ -7,26 +7,34 @@ import kotlin.math.ceil
 /**
  * Which letter a drag joins (A5, prototype 02 variant E), in cell units (x = column, y = row)
  * from the touch-down at [down]. A move is walked in [StrandsBoardSpec.SubStepCells] sub-steps
- * so a fast swipe skips nothing; at each, the direction is the finger's [travel], not the angle
- * from the last centre, so a diagonal drawn beside the centre line stays diagonal.
+ * so a fast swipe skips nothing; at each, the direction is the finger's [travel], never the
+ * angle from the last centre, so a diagonal drawn beside the centre line stays diagonal and a
+ * finger resting off-centre, in a token's corner, decides nothing.
  *
  * From the tail: nothing joins within [StrandsBoardSpec.StillCells]; the previous letter
- * joins (a backtrack) inside [StrandsBoardSpec.BackJoinCells] of its centre; a diagonal letter
- * once the finger has come [StrandsBoardSpec.DiagonalJoinFraction] of the diagonal step; a
- * side letter only inside [StrandsBoardSpec.SideJoinCells] of its centre. A used, off-board
- * or undecided target joins nothing: no side letter stands in for a diagonal. Only a tail the
- * finger has reached ([StrandsBoardSpec.ArriveCells]) grows the trace, so a corner cut into
- * the wrong diagonal holds there until the finger backs out or comes to it.
+ * joins (a backtrack) inside [StrandsBoardSpec.BackJoinCells] of its centre; any other letter
+ * only once the travel has decided a heading: a diagonal letter once the finger has come
+ * [StrandsBoardSpec.DiagonalJoinFraction] of the diagonal step, a side letter only inside
+ * [StrandsBoardSpec.SideJoinCells] of its centre. A used or off-board target joins nothing:
+ * no side letter stands in for a diagonal. Only a tail the finger has reached
+ * ([StrandsBoardSpec.ArriveCells]) grows the trace, so a corner cut into the wrong diagonal
+ * holds there until the finger backs out or comes to it.
  */
 internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, down: Offset) {
     private val trail = TravelTrail().apply { push(down) }
-    private var at = down
+
+    /** Where the finger is: the last point walked to. */
+    var at = down
+        private set
 
     /** The tail the finger has come within [StrandsBoardSpec.ArriveCells] of since it joined. */
     private var reached: Coord? = null
 
     /** The finger's travel over the last [StrandsBoardSpec.TravelWindowCells]; null until it has gone half that. */
     fun travel(): Offset? = trail.travel(StrandsBoardSpec.TravelWindowCells)
+
+    /** Whether the finger has reached [path]'s tail, so a free letter ahead of it can join (F2). */
+    fun armed(path: List<Coord>): Boolean = path.isNotEmpty() && reaches(at, path)
 
     /** Walks the finger to [to], handing [join] every letter it takes on the way; [path] is the trace so far. */
     fun moveTo(to: Offset, path: () -> List<Coord>, join: (Coord) -> Unit) {
@@ -47,12 +55,12 @@ internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, do
         val tail = path.lastOrNull() ?: return null
         val back = path.getOrNull(path.size - 2)
         val fromTail = point - centreOf(tail)
-        if (path.size == 1 || fromTail.getDistance() <= StrandsBoardSpec.ArriveCells) reached = tail
+        if (reaches(point, path)) reached = tail
         if (fromTail.getDistance() < StrandsBoardSpec.StillCells) return null
         if (back != null && (point - centreOf(back)).getDistance() <= StrandsBoardSpec.BackJoinCells) return back
         if (reached != tail) return null
-        val heading = travel() ?: fromTail
-        val direction = TraceDirection.of(heading.x, heading.y) ?: return null
+        val heading = travel() ?: return null
+        val direction = TraceDirection.of(heading.x, heading.y)
         val next = Coord(tail.row + direction.dRow, tail.col + direction.dCol)
         if (next.row !in 0 until rows || next.col !in 0 until cols || next in path) return null
         val joins = if (direction.isDiagonal) {
@@ -62,6 +70,12 @@ internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, do
             (point - centreOf(next)).getDistance() <= StrandsBoardSpec.SideJoinCells
         }
         return next.takeIf { joins }
+    }
+
+    /** A lone letter is reached by the touch-down itself; a joined one once the finger comes to it. */
+    private fun reaches(point: Offset, path: List<Coord>): Boolean {
+        val tail = path.last()
+        return reached == tail || path.size == 1 || (point - centreOf(tail)).getDistance() <= StrandsBoardSpec.ArriveCells
     }
 }
 

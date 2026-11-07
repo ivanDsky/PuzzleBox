@@ -31,15 +31,13 @@ internal enum class TraceDirection(val dRow: Int, val dCol: Int) {
     companion object {
         /**
          * The direction of the travel ([dx], [dy]): a side within [StrandsBoardSpec.SideConeDegrees]
-         * of an axis, else a diagonal within [StrandsBoardSpec.DiagonalConeDegrees] of 45°; null
-         * between the cones, where a finger has not yet made up its mind.
+         * of an axis, else the diagonal between: the cones tile the circle, so every travel has one.
          */
-        fun of(dx: Float, dy: Float): TraceDirection? {
+        fun of(dx: Float, dy: Float): TraceDirection {
             val deg = degreesOf(dx, dy)
             val m = deg % 90f
             if (minOf(m, 90f - m) <= StrandsBoardSpec.SideConeDegrees) return entries[((deg / 90f).roundToInt() % 4) * 2]
-            if (abs(45f - m) <= StrandsBoardSpec.DiagonalConeDegrees) return entries[(floor(deg / 90f).toInt() * 2 + 1) % 8]
-            return null
+            return entries[(floor(deg / 90f).toInt() * 2 + 1) % 8]
         }
 
         /** The screen angle of ([dx], [dy]) in [0, 360). */

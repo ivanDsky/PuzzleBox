@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.lerp
 import com.ivandsky.puzzlebox.designsystem.BoardColors
 import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
@@ -96,6 +97,26 @@ internal fun DrawScope.drawTokenSquare(
         alpha = alpha,
         style = style,
     )
+}
+
+/**
+ * One role of the token (its fill or its lip): the live trace's [selection] overlays the
+ * letter's own [base], filling in over it as the letter joins ([join]); a found letter
+ * turns from the trace colour to its own as it lights ([frame]).
+ */
+internal fun tokenColor(
+    base: Color?,
+    selection: Color,
+    traced: Boolean,
+    frame: StrandsCellFrame,
+    join: StrandsCellFrame,
+): Color? {
+    if (traced) {
+        if (join.lit >= 1f) return selection
+        return if (base == null) selection.copy(alpha = selection.alpha * join.lit) else lerp(base, selection, join.lit)
+    }
+    if (base == null) return null
+    return if (frame.lit >= 1f) base else lerp(selection, base, frame.lit)
 }
 
 /**

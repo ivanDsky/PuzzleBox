@@ -10,13 +10,14 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** A4: the live tip follows toward a free letter, backs toward the previous one, and only nudges anywhere else. */
+/** A4: the live tip follows toward a free letter the walk can join, backs toward the previous one, and only nudges anywhere else. */
 class StrandsTraceTipTest {
 
     private val rows = 4
     private val cols = 4
 
-    private fun finger(tail: Coord, dx: Float, dy: Float) = TraceFinger(centreOf(tail) + Offset(dx, dy), Offset(dx, dy))
+    private fun finger(tail: Coord, dx: Float, dy: Float, armed: Boolean = true) =
+        TraceFinger(centreOf(tail) + Offset(dx, dy), Offset(dx, dy), armed)
 
     private fun heading(degrees: Float): Offset {
         val rad = Math.toRadians(degrees.toDouble())
@@ -66,15 +67,32 @@ class StrandsTraceTipTest {
     }
 
     @Test
+    fun `from a tail the finger has not reached the tip only nudges`() {
+        // A wrong diagonal: (2, 1) joined while the finger was still beside (1, 0), never came to it.
+        val path = listOf(Coord(1, 0), Coord(2, 1))
+        val tip = strandsTip(path, finger(Coord(2, 1), 0.7f, -0.2f, armed = false), rows, cols, latch = null)!!
+        assertEquals(TraceDirection.East, tip.direction)
+        assertEquals(TipKind.Nudge, tip.kind)
+        assertTrue(tip.extent <= MotionTokens.Trace.TipNudgeCells)
+    }
+
+    @Test
+    fun `from a tail the finger has not reached the tip still backs up`() {
+        val path = listOf(Coord(1, 0), Coord(2, 1))
+        val tip = strandsTip(path, finger(Coord(2, 1), -0.4f, -0.4f, armed = false), rows, cols, latch = null)!!
+        assertEquals(TipKind.Back, tip.kind)
+    }
+
+    @Test
     fun `the tip keeps its direction until the travel clears the cone by the latch margin`() {
         val tail = Coord(1, 1)
         val inMargin = heading(MotionTokens.Trace.TipLatchDegrees8Way + StrandsBoardSpec.SideConeDegrees - 1f) * 0.4f
         val beyond = heading(MotionTokens.Trace.TipLatchDegrees8Way + StrandsBoardSpec.SideConeDegrees + 1f) * 0.4f
-        val held = strandsTip(listOf(tail), TraceFinger(centreOf(tail) + inMargin, inMargin), rows, cols, TraceDirection.East)!!
+        val held = strandsTip(listOf(tail), TraceFinger(centreOf(tail) + inMargin, inMargin, armed = true), rows, cols, TraceDirection.East)!!
         assertEquals(TraceDirection.East, held.direction)
-        val unlatched = strandsTip(listOf(tail), TraceFinger(centreOf(tail) + inMargin, inMargin), rows, cols, latch = null)!!
+        val unlatched = strandsTip(listOf(tail), TraceFinger(centreOf(tail) + inMargin, inMargin, armed = true), rows, cols, latch = null)!!
         assertEquals(TraceDirection.SouthEast, unlatched.direction)
-        val moved = strandsTip(listOf(tail), TraceFinger(centreOf(tail) + beyond, beyond), rows, cols, TraceDirection.East)!!
+        val moved = strandsTip(listOf(tail), TraceFinger(centreOf(tail) + beyond, beyond, armed = true), rows, cols, TraceDirection.East)!!
         assertEquals(TraceDirection.SouthEast, moved.direction)
     }
 
