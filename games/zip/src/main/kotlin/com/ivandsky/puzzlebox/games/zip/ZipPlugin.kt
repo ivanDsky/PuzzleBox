@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.codec.ZipSessionCodec
+import com.ivandsky.puzzlebox.games.zip.editor.ZipEditor
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
 import com.ivandsky.puzzlebox.games.zip.engine.ZipState
 import com.ivandsky.puzzlebox.games.zip.engine.ZipValidation
@@ -102,6 +103,7 @@ val zipPlugin: GamePlugin<ZipState, ZipSession, ZipRendererModel> =
                 },
             )
         },
+        editor = ZipEditor,
     )
 
 /**
