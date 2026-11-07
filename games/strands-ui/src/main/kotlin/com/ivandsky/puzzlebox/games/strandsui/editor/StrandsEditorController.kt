@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.ReplaceDraft
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
+import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraftCommand
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraftPath
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
 import com.ivandsky.puzzlebox.games.strandsui.Trace
@@ -19,8 +20,10 @@ import kotlinx.coroutines.flow.asStateFlow
  * The Strands editor screen's live draft, trace and word text. [traceTo] grows the live
  * [trace] cell by cell over cells no path holds yet; [endTrace] lifts it: a trace of two or
  * more cells becomes one path, the [word] typed so far written onto the path's blank cells,
- * as one undoable [ReplaceDraft] step. Every edit goes out through `onEdit`; the VM hands
- * replacement drafts back through [adopt].
+ * as one undoable step: an [StrandsDraftCommand.AddPath], or a [ReplaceDraft] when the word
+ * also wrote letters. A tap on a traced cell selects its path ([selectedPath]); [removePath]
+ * drops it as one [StrandsDraftCommand.RemovePath]. Every edit goes out through `onEdit`; the
+ * VM hands replacement drafts back through [adopt].
  */
 class StrandsEditorController(
     initial: EditorDraft<*>,
@@ -30,6 +33,7 @@ class StrandsEditorController(
     private val current = MutableStateFlow(typed(initial))
     private val tracing = MutableStateFlow<List<Int>>(emptyList())
     private val typedWord = MutableStateFlow("")
+    private val selected = MutableStateFlow<Int?>(null)
 
     override val draft: StateFlow<EditorDraft<*>> = current.asStateFlow()
 
@@ -41,9 +45,29 @@ class StrandsEditorController(
     /** The word text the next lift writes onto the path's blank cells. */
     val word: StateFlow<String> = typedWord.asStateFlow()
 
+    /** The index of the selected path, null when none is; never persisted. */
+    val selectedPath: StateFlow<Int?> = selected.asStateFlow()
+
     override fun adopt(draft: EditorDraft<*>) {
         current.value = typed(draft)
         tracing.value = emptyList()
+        selected.value = selected.value?.takeIf { it in current.value.state.draft.paths.indices }
+    }
+
+    /** Selects the path at [index], or none for null or an index no path has. */
+    fun selectPath(index: Int?) {
+        selected.value = index?.takeIf { it in current.value.state.draft.paths.indices }
+        if (selected.value != null) tracing.value = emptyList()
+    }
+
+    /** Removes the path at [index] as one undoable step; a no-op for an index no path has. */
+    fun removePath(index: Int) {
+        val before = current.value.state.draft
+        val path = before.paths.getOrNull(index) ?: return
+        val next = current.value.apply(StrandsDraftCommand.RemovePath(index, path, before.spangram))
+        current.value = next
+        selected.value = null
+        onEdit(next)
     }
 
     override fun adoptOverlay(overlay: EditorOverlay) = Unit
@@ -65,7 +89,27 @@ class StrandsEditorController(
         val cells = path.map { it.row * StrandsDraft.COLS + it.col }
         if (cells.any { it in held() }) return
         tracing.value = cells
+        if (cells.isNotEmpty()) selected.value = null
     }
+
+    /** One step of the play board's touch: a lone traced cell a path holds selects that path. */
+    internal fun step(step: TraceStep) {
+        when (step) {
+            is TraceStep.Updated -> {
+                val lone = step.trace.path.singleOrNull()?.let { it.row * StrandsDraft.COLS + it.col }
+                val owner = if (lone == null) -1 else current.value.state.draft.paths.indexOfFirst { lone in it.cells }
+                if (owner >= 0) selectPath(owner) else show(step.trace.path)
+            }
+            is TraceStep.Submit -> {
+                show(step.path)
+                endTrace()
+            }
+            TraceStep.Cleared -> clearTrace()
+        }
+    }
+
+    /** A tap on [cell], as the play board would take it. */
+    internal fun tapCell(cell: Int) = step(TraceInput.tap(Trace(tracing.value.map(::coordOf)), coordOf(cell)))
 
     /** Drops the trace without an edit. */
     internal fun clearTrace() {
@@ -85,9 +129,13 @@ class StrandsEditorController(
         }
         val spelled = cells.map { letters[it] }.joinToString("")
         val path = StrandsDraftPath(cells, spelled.takeIf { StrandsDraft.BLANK !in it })
-        val after = before.copy(letters = String(letters), paths = before.paths + path)
-        val next = current.value.apply(ReplaceDraft(before, after))
+        val next = if (String(letters) == before.letters) {
+            current.value.apply(StrandsDraftCommand.AddPath(path))
+        } else {
+            current.value.apply(ReplaceDraft(before, before.copy(letters = String(letters), paths = before.paths + path)))
+        }
         current.value = next
+        selected.value = null
         typedWord.value = ""
         onEdit(next)
     }
