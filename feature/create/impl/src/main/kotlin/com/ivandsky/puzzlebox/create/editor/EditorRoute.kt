@@ -62,7 +62,6 @@ internal fun EditorRoute(
     // Publish and its details exist only while friend sharing is on (ADR-0022).
     val shownPublish = publish.takeIf { ReleaseFlag.FriendSharing in flags }
     val cardOpen by viewModel.verdictCard.open.collectAsStateWithLifecycle()
-    val overlay by viewModel.verdictCard.overlay.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flush() }
     // Google's account picker needs the activity: read in composition, handed per call.
     val activityContext = LocalContext.current
@@ -72,6 +71,7 @@ internal fun EditorRoute(
         EditorUiState.Missing -> MissingDraftScreen(onBack = onBack, modifier = routeModifier)
         is EditorUiState.Ready -> {
             val held = rememberHeldVerdict(ready.verdict)
+            val overlay by ready.controller.overlay.collectAsStateWithLifecycle()
             // Edit board holds until the test it set aside changes: a clear, its Undo or a new pass.
             var editBoard by rememberSaveable(passed) { mutableStateOf(false) }
             val detailsReady = detailsOpen(held, passed, shownPublish)
