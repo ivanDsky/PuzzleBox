@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -36,8 +37,10 @@ import org.koin.core.parameter.parametersOf
  * the board back to the tested layout. Publish shows only while [ReleaseFlag.FriendSharing] is on
  * (ADR-0022). On a phone the passed test's publish details take the tools' [ToolSlot] until Edit
  * board, which holds until that test changes. Publish while signed out opens the
- * [SignInPublishSheet]; a failed sign-in shows its reason in the Studio's toast slot. The holders
- * stay here: the screen gets their state and events.
+ * [SignInPublishSheet]; a failed sign-in shows its reason in the Studio's toast slot. Once
+ * published the action area morphs into the [PublishedTicket] (Copy code toasts in the same slot)
+ * and the Studio turns read-only, its Duplicate the way on to an editable copy. The holders stay
+ * here: the screen gets their state and events.
  */
 @Composable
 internal fun EditorRoute(
@@ -62,6 +65,9 @@ internal fun EditorRoute(
     // Publish and its details exist only while friend sharing is on (ADR-0022).
     val shownPublish = publish.takeIf { ReleaseFlag.FriendSharing in flags }
     val cardOpen by viewModel.verdictCard.open.collectAsStateWithLifecycle()
+    val ticket by viewModel.ticket.collectAsStateWithLifecycle()
+    // Each Copy code bumps it, so the same code copied twice still toasts twice.
+    var copies by remember { mutableIntStateOf(0) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flush() }
     // Google's account picker needs the activity: read in composition, handed per call.
     val activityContext = LocalContext.current
@@ -147,31 +153,37 @@ internal fun EditorRoute(
                     ready.editor.Issues(ready.controller, ready.verdict, blocks, viewModel.verdictCard::dismiss, issuesModifier)
                 },
                 actionArea = { areaModifier ->
-                    val draft by ready.controller.draft.collectAsStateWithLifecycle()
-                    ActionArea(
-                        passed = passed,
-                        canTestSolve = draft.canTestSolve && held is Verdict.Unique,
-                        // The live verdict: a tap while Checking starts nothing, as the held solution may not fit the board.
-                        onTestSolve = { viewModel.testSolve.start(draft, ready.verdict) },
-                        blocks = remember(draft, held, title, passed) { viewModel.readiness(draft, held, title, passed) },
-                        modifier = areaModifier,
-                        publish = shownPublish,
-                        // The live verdict, like Test solve: a tap while Checking is refused as not ready.
-                        onPublish = { viewModel.publish.publish(draft, ready.verdict) },
-                        title = title,
-                        onRename = viewModel.meta::rename,
-                        onAuthorName = viewModel.publish::editAuthorName,
-                        onNote = viewModel.publish::editNote,
-                        detailsInline = layout == PlayLayout.TwoPane,
-                        onShowDetails = { editBoard = false }.takeIf { detailsReady && editBoard },
-                    )
+                    TicketMorph(ticket = ticket, onCopied = { copies++ }, modifier = areaModifier) { actionsModifier ->
+                        val draft by ready.controller.draft.collectAsStateWithLifecycle()
+                        ActionArea(
+                            passed = passed,
+                            canTestSolve = draft.canTestSolve && held is Verdict.Unique,
+                            // The live verdict: a tap while Checking starts nothing, as the held solution may not fit the board.
+                            onTestSolve = { viewModel.testSolve.start(draft, ready.verdict) },
+                            blocks = remember(draft, held, title, passed) { viewModel.readiness(draft, held, title, passed) },
+                            modifier = actionsModifier,
+                            publish = shownPublish,
+                            // The live verdict, like Test solve: a tap while Checking is refused as not ready.
+                            onPublish = { viewModel.publish.publish(draft, ready.verdict) },
+                            title = title,
+                            onRename = viewModel.meta::rename,
+                            onAuthorName = viewModel.publish::editAuthorName,
+                            onNote = viewModel.publish::editNote,
+                            detailsInline = layout == PlayLayout.TwoPane,
+                            onShowDetails = { editBoard = false }.takeIf { detailsReady && editBoard },
+                        )
+                    }
                 },
                 testCleared = testCleared,
                 onUndoTestClear = viewModel::restoreTest,
                 onTestClearedGone = viewModel.testSolve::dismissCleared,
                 toast = { toastModifier ->
-                    SignInFailureToast(failure = publish.signInFailure, onGone = viewModel.publish::dismissSignInFailure, modifier = toastModifier)
+                    Box(toastModifier) {
+                        SignInFailureToast(failure = publish.signInFailure, onGone = viewModel.publish::dismissSignInFailure, modifier = Modifier)
+                        CodeCopiedToast(code = ticket?.code, copies = copies, modifier = Modifier)
+                    }
                 },
+                readOnly = ticket != null,
             )
         }
     }

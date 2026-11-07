@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
+import com.ivandsky.puzzlebox.domain.PublishOutcome
 import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.VariantId
@@ -24,8 +25,11 @@ import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
@@ -33,14 +37,15 @@ import kotlinx.coroutines.launch
  * [EditorDraft], hands every edit to its holders and autosaves it with its undo history
  * ([saving]; stored at once on [flush], before [duplicate], [delete] and [publish] and on
  * leaving the Studio). [saves] must outlive this ViewModel: [viewModelScope] is already
- * cancelled when [onCleared] queues the last save.
+ * cancelled when [onCleared] queues the last save. Once a publish lands the draft is
+ * read-only: its [ticket] shows, and edits, undo, redo, resize and clear change nothing.
  */
 class EditorViewModel(
     private val key: EditorKey,
     private val drafts: DraftRepository,
     private val games: GameRegistry,
     private val editors: GameEditorRegistry,
-    plays: GamePlayRegistry,
+    private val plays: GamePlayRegistry,
     copyDraft: CreateDraftCopy,
     dispatchers: DispatcherProvider,
     private val saves: CoroutineScope,
@@ -77,6 +82,9 @@ class EditorViewModel(
     /** The stored row as last written; null until the draft has loaded. */
     private var lastStored: Draft? = null
 
+    /** The board as last recorded: a published draft puts it back over any edit that slips through. */
+    private var board: EditorDraft<*>? = null
+
     private val autosave = DraftAutosave(saves, drafts::upsert)
 
     /** "Saving…" while an edit waits to be stored, "✓ Saved" once it is. */
@@ -94,6 +102,24 @@ class EditorViewModel(
         reserved = { code -> lastStored = lastStored?.copy(reservedCode = code) },
         storeDetails = { authorName, note -> lastStored?.let { write(it.copy(authorName = authorName, note = note)) } },
     )
+
+    /**
+     * The published draft's share ticket: its code, title, author, the author's test time and
+     * the game's name and hue. Null until a publish lands.
+     */
+    internal val ticket: StateFlow<ShareTicket?> =
+        combine(publish.state, meta.title, testSolve.passed, mutableState) { session, title, passed, editor ->
+            val code = (session.outcome as? PublishOutcome.Published)?.code ?: return@combine null
+            val gameId = (editor as? EditorUiState.Ready)?.controller?.draft?.value?.gameId ?: return@combine null
+            ShareTicket(
+                code = code,
+                title = title,
+                author = session.details.authorName.trim(),
+                authorTimeMs = passed?.timeMs,
+                game = games.displayName(gameId),
+                accent = plays.brandOf(gameId).accent,
+            )
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
         viewModelScope.launch {
@@ -115,6 +141,7 @@ class EditorViewModel(
         meta.open(stored.title)
         publish.open(stored.authorName, stored.note)
         history.open(draft)
+        board = draft
         testSolve.open(stored.testSolve, draft)
         // The verdict lands after the debounce; it is only published once this state is Ready.
         verdicts.submit(draft)
@@ -132,26 +159,31 @@ class EditorViewModel(
      */
     fun restoreTest() {
         testSolve.dismissCleared()
+        if (published) return
         history.undoTo(testSolve::isTested)?.let(::adopt)
     }
 
     /** One step back: the board adopts it, then it is checked and stored like any edit. */
     fun undo() {
+        if (published) return
         history.undo()?.let(::adopt)
     }
 
     /** The undone step again, handled like [undo]. */
     fun redo() {
+        if (published) return
         history.redo()?.let(::adopt)
     }
 
     /** A blank [variant] board as one undoable step (A5); picking the open size is not a step. */
     fun resize(variant: VariantId) {
+        if (published) return
         history.resize(variant)?.let(::adopt)
     }
 
     /** A blank board of the open size as one undoable step (A5). */
     fun clear() {
+        if (published) return
         history.clear()?.let(::adopt)
     }
 
@@ -190,6 +222,7 @@ class EditorViewModel(
             ready.controller.adopt(draft)
             mutableState.value = ready.copy(subtitle = subtitleOf(draft, ready.editor))
         }
+        board = draft
         changed(draft)
     }
 
@@ -200,10 +233,18 @@ class EditorViewModel(
     fun readiness(draft: EditorDraft<*>, verdict: Verdict, title: String, passed: TestSolve?): List<PublishBlock> =
         validatePublish(draft, verdict, title, passed)
 
+    /** A board edit; a published board takes none, so its controller is put back where it was. */
     private fun onEdit(draft: EditorDraft<*>) {
+        if (published) {
+            board?.let { (mutableState.value as? EditorUiState.Ready)?.controller?.adopt(it) }
+            return
+        }
+        board = draft
         history.record(draft)
         changed(draft)
     }
+
+    private val published: Boolean get() = publish.state.value.outcome is PublishOutcome.Published
 
     private fun changed(draft: EditorDraft<*>) {
         verdictCard.dismiss()

@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.create.editor
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.create.FakeEditorController
 import com.ivandsky.puzzlebox.create.FakeGameEditor
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
 import com.ivandsky.puzzlebox.create.TestDraft
@@ -68,10 +67,8 @@ class PublishReservedCodeTest {
         override val default: CoroutineDispatcher = mainRule.testDispatcher
     }
 
-    private val controller: FakeEditorController get() = ui.controllers.single()
-
     @Test
-    fun `an edit after a publish keeps the reserved code on the stored draft`() = runTest(mainRule.testDispatcher) {
+    fun `a save after a publish keeps the reserved code on the stored draft`() = runTest(mainRule.testDispatcher) {
         val board = editor.draft(marks = 1)
         val author = FakeIdentityService(Identity(uid = AUTHOR, displayName = "Ivan", photoUrl = null))
         drafts.upsert(storedRow(board))
@@ -99,11 +96,12 @@ class PublishReservedCodeTest {
         val code = (outcome as? PublishOutcome.Published)?.code
         assertNotNull("published, got $outcome", code)
 
-        controller.edit(editor.draft(marks = 2))
+        // A published board is read-only; a rename is the save that still runs.
+        vm.meta.rename("Renamed")
         advanceTimeBy(WINDOW_MS + 1)
 
         val stored = drafts.rows.getValue(DRAFT_ID)
-        assertEquals("the edit was stored", 2, editor.decodeDraft(stored.blob).getOrNull()?.draft?.marks)
+        assertEquals("the rename was stored", "Renamed", stored.title)
         assertEquals("the reserved code survives the autosave", code?.value, stored.reservedCode)
     }
 
