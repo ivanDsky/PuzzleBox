@@ -18,4 +18,5 @@ val databaseModule = module {
     single { get<PuzzleBoxDatabase>().savedPlayDao() }
     single { get<PuzzleBoxDatabase>().customSavedPlayDao() }
     single { get<PuzzleBoxDatabase>().draftDao() }
+    single { get<PuzzleBoxDatabase>().publishedPuzzleDao() }
 }
