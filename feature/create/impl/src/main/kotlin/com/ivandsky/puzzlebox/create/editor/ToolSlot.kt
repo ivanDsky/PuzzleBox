@@ -135,7 +135,7 @@ private fun ToolSlotToolsPreview() {
     }
 }
 
-/** Ready to publish: the details in the tools' place, Edit board on the note row. */
+/** Ready to publish: the details in the tools' place, Edit board heading them. */
 @PuzzleBoxPreviews
 @Composable
 private fun ToolSlotDetailsPreview() {

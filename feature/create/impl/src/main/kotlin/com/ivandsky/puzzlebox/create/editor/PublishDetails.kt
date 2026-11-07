@@ -8,16 +8,15 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,12 +41,13 @@ import com.ivandsky.puzzlebox.domain.ValidatePublishDetails
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 
 /**
- * The inline details before publishing (08 handoff "details"): the [title] row, which opens
- * Rename ([onRename]); the author name, "by", from [details], with an `n/40` counter; and the
- * note behind "+ Add a note", with an `n/140` counter. Counters count trimmed characters; over a
+ * The details before publishing (08 handoff "details"), three outlined fields with `n/cap`
+ * counters: the [title], read-only, whose tap opens Rename ([onRename]); the author name, "by",
+ * from [details]; and the note behind "+ Add a note". Counters count trimmed characters; over a
  * cap the field shows its inline error. Signed out ([signedIn] false) the author placeholder
- * says Google fills it. Rows are disabled while not [enabled] (a publish runs). [paired] sets the
- * title and the author side by side, for a short slot; an [action] ends the "+ Add a note" row.
+ * says Google fills it. Fields are disabled while not [enabled] (a publish runs). [paired] sets
+ * the title and the author side by side, for a short slot; an [action] heads the form, at the
+ * end of its "Publish details" row.
  *
  * Motion: the note row **Expands** in with a **Fade** (EnterDuration on the emphasized
  * decelerate curve); under reduced motion it only fades.
@@ -70,8 +70,18 @@ fun PublishDetails(
     var focusNote by remember { mutableStateOf(false) }
     val blocked = remember(details.blocks) { details.blocks.map(PublishBlock::id).toSet() }
     Column(modifier.testTag("create.details"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        if (action != null) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Publish details",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.weight(1f),
+                )
+                action()
+            }
+        }
         Paired(paired) { half ->
-            TitleRow(title, enabled, counted = !paired, half) { renaming = true }
+            TitleField(title, enabled, half) { renaming = true }
             DetailField(
                 value = details.authorName,
                 onValueChange = onAuthorName,
@@ -86,22 +96,16 @@ fun PublishDetails(
                 modifier = half,
             )
         }
-        if (!noteOpen || action != null) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                if (!noteOpen) {
-                    AppTextButton(
-                        text = "+ Add a note",
-                        onClick = {
-                            noteOpen = true
-                            focusNote = true
-                        },
-                        enabled = enabled,
-                        modifier = Modifier.testTag("create.details.addNote"),
-                    )
-                }
-                Spacer(Modifier.weight(1f))
-                action?.invoke()
-            }
+        if (!noteOpen) {
+            AppTextButton(
+                text = "+ Add a note",
+                onClick = {
+                    noteOpen = true
+                    focusNote = true
+                },
+                enabled = enabled,
+                modifier = Modifier.testTag("create.details.addNote"),
+            )
         }
         val reduced = rememberReducedMotion()
         AnimatedVisibility(
@@ -169,42 +173,37 @@ private fun Paired(paired: Boolean, content: @Composable (Modifier) -> Unit) {
     if (paired) Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) { content(Modifier.weight(1f)) } else content(Modifier.fillMaxWidth())
 }
 
-/** The title as it will be shared, with its counter while [counted]; a tap opens Rename. */
+/**
+ * The title as it will be shared, in the author field's outlined style with its counter; it is
+ * renamed in its sheet, so the field is read-only and a tap anywhere on it opens Rename.
+ */
 @Composable
-private fun TitleRow(title: String, enabled: Boolean, counted: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        enabled = enabled,
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = modifier.testTag("create.details.title"),
-    ) {
-        Row(
-            Modifier.padding(horizontal = if (counted) Spacing.lg else Spacing.md, vertical = Spacing.md),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("Title", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    text = title.ifBlank { "Name your puzzle" },
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (title.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            if (counted) {
-                Text(
-                    text = "${title.trimmedLength()}/${Draft.TITLE_MAX}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Icon(PuzzleIcons.Create, contentDescription = "Rename", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+private fun TitleField(title: String, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val length = title.trimmedLength()
+    Box(modifier) {
+        OutlinedTextField(
+            value = title,
+            onValueChange = {},
+            readOnly = true,
+            enabled = enabled,
+            label = { Text("Title") },
+            placeholder = { Text("Name your puzzle", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            trailingIcon = { Icon(PuzzleIcons.Create, contentDescription = null) },
+            singleLine = true,
+            isError = length > Draft.TITLE_MAX,
+            supportingText = { CapSupport(length, Draft.TITLE_MAX, length > Draft.TITLE_MAX, TITLE_TAG) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Box(
+            Modifier
+                .matchParentSize()
+                .clickable(enabled = enabled, onClickLabel = "Rename", role = Role.Button, onClick = onClick)
+                .testTag(TITLE_TAG),
+        )
     }
 }
+
+private const val TITLE_TAG = "create.details.title"
 
 @PuzzleBoxPreviews
 @Composable
