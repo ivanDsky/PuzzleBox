@@ -99,6 +99,22 @@ object PuzzleIcons {
     val Flame: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ic_local_fire_department)
 
+    /** Closed to new entries: `lock`. */
+    val Lock: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_lock)
+
+    /** A shared link that no longer leads anywhere: `link_off`. */
+    val LinkOff: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_link_off)
+
+    /** Content that failed its integrity check: `gpp_bad`, a shield with a cross. */
+    val FailedCheck: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_gpp_bad)
+
+    /** Needs a newer PuzzleBox: `system_update`. */
+    val Update: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_system_update)
+
     /** Hub status: not started, a ring (StatusMarkIcons.kt). */
     val StatusRing: ImageVector = StatusRingMark
 
@@ -151,6 +167,10 @@ internal fun PuzzleIconsPreview() {
             "Back" to PuzzleIcons.Back,
             "Check" to PuzzleIcons.Check,
             "Flame" to PuzzleIcons.Flame,
+            "Lock" to PuzzleIcons.Lock,
+            "LinkOff" to PuzzleIcons.LinkOff,
+            "FailedCheck" to PuzzleIcons.FailedCheck,
+            "Update" to PuzzleIcons.Update,
             "Close" to PuzzleIcons.Close,
             "Search" to PuzzleIcons.Search,
             "ExpandMore" to PuzzleIcons.ExpandMore,

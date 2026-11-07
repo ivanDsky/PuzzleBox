@@ -74,22 +74,26 @@ internal fun DetailField(
             capitalization = capitalization,
             imeAction = if (singleLine) ImeAction.Next else ImeAction.Default,
         ),
-        supportingText = {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Text(
-                    text = if (tooLong) "Up to $max characters" else "",
-                    modifier = Modifier.weight(1f).then(if (tooLong) Modifier.testTag("$tag.error") else Modifier),
-                    color = MaterialTheme.colorScheme.error,
-                )
-                Text(
-                    text = "${field.text.trimmedLength()}/$max",
-                    modifier = Modifier.testTag("$tag.counter"),
-                    color = if (tooLong) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.End,
-                )
-            }
-        },
+        supportingText = { CapSupport(field.text.trimmedLength(), max, tooLong, tag) },
     )
+}
+
+/** A capped field's supporting line: while [tooLong] its "Up to [max]" error, and its `[length]/[max]` counter. */
+@Composable
+internal fun CapSupport(length: Int, max: Int, tooLong: Boolean, tag: String) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Text(
+            text = if (tooLong) "Up to $max characters" else "",
+            modifier = Modifier.weight(1f).then(if (tooLong) Modifier.testTag("$tag.error") else Modifier),
+            color = MaterialTheme.colorScheme.error,
+        )
+        Text(
+            text = "$length/$max",
+            modifier = Modifier.testTag("$tag.counter"),
+            color = if (tooLong) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.End,
+        )
+    }
 }
 
 /** Characters as the caps count them ([com.ivandsky.puzzlebox.domain.ValidatePublishDetails]): code points, once trimmed. */

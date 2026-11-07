@@ -151,6 +151,7 @@ fun StudioScreen(
                     toast(toastModifier)
                 },
                 modifier = Modifier.weight(1f),
+                hugBoard = readOnly,
             )
         }
     }

@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import com.ivandsky.puzzlebox.data.repository.DAILY_PUBLISH_CAP
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -29,6 +30,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.PublishOutcome
+import java.util.Locale
 
 /**
  * Why the last publish didn't land, above Publish: offline or refused in the error container
@@ -66,12 +68,13 @@ private fun Banner(banner: Kind) {
             .semantics { liveRegion = LiveRegionMode.Polite },
     ) {
         Column(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text(banner.title, style = MaterialTheme.typography.titleSmall)
+            Text(banner.title.format(Locale.ROOT, DAILY_PUBLISH_CAP), style = MaterialTheme.typography.titleSmall)
             Text(banner.body, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
 
+/** Each title takes the day's publish cap as its one format argument; only [Cap] shows it. */
 private enum class Kind(val tag: String, val title: String, val body: String) {
     Offline(
         tag = "create.publish.banner.offline",
@@ -80,7 +83,7 @@ private enum class Kind(val tag: String, val title: String, val body: String) {
     ),
     Cap(
         tag = "create.publish.banner.cap",
-        title = "You've published 20 today",
+        title = "You've published %d today",
         body = "That's today's limit; publishing opens again tomorrow. You can still test solve, and the draft waits here.",
     ),
     Rejected(

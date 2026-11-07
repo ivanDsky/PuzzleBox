@@ -53,11 +53,12 @@ fun EntryProviderScope<NavKey>.editorEntry(navigator: Navigator, layout: PlayLay
     }
 }
 
-/** A published puzzle's page; back pops to the Create root, Duplicate opens the copy in its place. */
-fun EntryProviderScope<NavKey>.publishedPuzzleEntry(navigator: Navigator) {
+/** A published puzzle's page in the play policy's [layout]; back pops to the Create root, Duplicate opens the copy in its place. */
+fun EntryProviderScope<NavKey>.publishedPuzzleEntry(navigator: Navigator, layout: PlayLayout) {
     entry<PublishedPuzzleKey> { key ->
         PublishedPuzzleRoute(
             key = key,
+            layout = layout,
             onBack = { navigator.pop() },
             onOpen = { draftId -> navigator.replaceTop(EditorKey(draftId)) },
         )

@@ -1,11 +1,5 @@
 package com.ivandsky.puzzlebox.create.editor
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -19,18 +13,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.runtime.remember
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntSize
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
-import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.domain.PublishOutcome
 import com.ivandsky.puzzlebox.domain.ValidatePublishDetails
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 
@@ -42,15 +32,11 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
  * (its detail lives in the game's fix list), or Ready when none remain (spec A8, A10, A25).
  * Test solve is the next step, so it is Primary until a test passes, then it reads Test again in
  * the quiet style; it is enabled only when [canTestSolve] (a Unique board of a game that exports
- * puzzles). When the Studio can publish ([publish] is its state), a passed test opens the
- * [PublishDetails] rows — [title], author name and note — until the puzzle is published; their
- * blocks join the readiness line. Unless [detailsInline] the rows live in the phone's
- * [ToolSlot] instead; while the author edits the board ([onShowDetails] set) the readiness line
- * leads with a one-line summary of them whose tap brings them back. [PublishCta] follows, ready
- * once nothing blocks.
- *
- * Motion: the details **Expand** in with a **Fade** (EnterDuration on the emphasized decelerate
- * curve) and collapse the same way once published; under reduced motion they only fade.
+ * puzzles). When the Studio can publish ([publish] is its state), the [PublishDetails] blocks
+ * join the readiness line; the rows themselves live in the [ToolSlot]. While the author edits
+ * the board ([onShowDetails] set) the readiness line leads with a one-line summary of them,
+ * [title] and author name, whose tap brings them back. [PublishCta] follows, ready once nothing
+ * blocks.
  */
 @Composable
 fun ActionArea(
@@ -62,10 +48,6 @@ fun ActionArea(
     publish: PublishSession.State? = null,
     onPublish: () -> Unit = {},
     title: String = "",
-    onRename: (String) -> Unit = {},
-    onAuthorName: (String) -> Unit = {},
-    onNote: (String) -> Unit = {},
-    detailsInline: Boolean = true,
     onShowDetails: (() -> Unit)? = null,
 ) {
     val detailBlocks = publish?.blocks.orEmpty()
@@ -85,21 +67,7 @@ fun ActionArea(
         } else {
             SecondaryButton(text = "Test again", onClick = onTestSolve, enabled = canTestSolve, modifier = buttonModifier)
         }
-        if (publish != null && detailsInline) {
-            DetailsReveal(visible = passed != null && publish.outcome !is PublishOutcome.Published) {
-                PublishDetails(
-                    title = title,
-                    details = publish.details,
-                    signedIn = publish.signedIn,
-                    onRename = onRename,
-                    onAuthorName = onAuthorName,
-                    onNote = onNote,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !publish.busy,
-                )
-            }
-        }
-        if (publish != null && !detailsInline && onShowDetails != null) {
+        if (publish != null && onShowDetails != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 PublishDetailsSummary(title, publish.details.authorName, onShowDetails, Modifier.weight(1f, fill = false))
                 ReadinessLine(shown, Modifier.weight(1f, fill = false))
@@ -108,21 +76,6 @@ fun ActionArea(
             ReadinessLine(shown, Modifier.fillMaxWidth())
         }
         if (publish != null) PublishCta(publish, ready = shown.isEmpty(), onPublish = onPublish, modifier = Modifier.fillMaxWidth())
-    }
-}
-
-/** Shows [content] once a test passes, expanding it in; reduced motion only fades. */
-@Composable
-private fun DetailsReveal(visible: Boolean, content: @Composable () -> Unit) {
-    val reduced = rememberReducedMotion()
-    val spec = tween<IntSize>(MotionTokens.EnterDuration, easing = MotionTokens.EasingEmphasizedDecelerate)
-    val fade = tween<Float>(if (reduced) MotionTokens.ReducedFadeDuration else MotionTokens.EnterDuration)
-    AnimatedVisibility(
-        visible = visible,
-        enter = if (reduced) fadeIn(fade) else expandVertically(spec) + fadeIn(fade),
-        exit = if (reduced) fadeOut(fade) else shrinkVertically(spec) + fadeOut(fade),
-    ) {
-        content()
     }
 }
 
@@ -231,10 +184,10 @@ private fun ActionAreaSignedOutPreview() {
     }
 }
 
-/** Ready and signed in: the details carry the display name, and Publish is enabled. */
+/** Ready and signed in: Publish is enabled. */
 @PuzzleBoxPreviews
 @Composable
-private fun ActionAreaDetailsPreview() {
+private fun ActionAreaReadyPreview() {
     PuzzleBoxTheme {
         ActionArea(
             passed = TestSolve(layoutKey = "preview", timeMs = 102_000, hints = 0),
@@ -248,7 +201,7 @@ private fun ActionAreaDetailsPreview() {
     }
 }
 
-/** A phone's Edit board: the details folded into their summary over Publish. */
+/** Edit board: the details folded into their summary over Publish. */
 @PuzzleBoxPreviews
 @Composable
 private fun ActionAreaEditingBoardPreview() {
@@ -261,13 +214,12 @@ private fun ActionAreaEditingBoardPreview() {
             modifier = Modifier.fillMaxWidth(),
             publish = PublishSession.State(details = PublishSession.Details(authorName = "Ivan")),
             title = "Castle",
-            detailsInline = false,
             onShowDetails = {},
         )
     }
 }
 
-/** An author name over its cap: the inline error, its readiness phrase, and Publish disabled. */
+/** An author name over its cap: its readiness phrase, and Publish disabled. */
 @PuzzleBoxPreviews
 @Composable
 private fun ActionAreaDetailsTooLongPreview() {

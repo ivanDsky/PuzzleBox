@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,10 +22,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
@@ -32,18 +34,43 @@ import com.ivandsky.puzzlebox.designsystem.ErrorState
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.OpenOutcome
 import com.ivandsky.puzzlebox.model.ShareCode
 
-/** What a friend sees when a code didn't open: its [title] and [body], tagged [tag], with at most one [action]. */
+/** What a friend sees when a code didn't open: its [title] and [body], tagged [tag], named by [glyph], with at most one [action]. */
 internal data class OpenErrorCopy(
     val tag: String,
     val title: String,
     val body: String,
     val action: OpenErrorAction?,
+    val glyph: OpenErrorGlyph,
 )
+
+/** The icon that names why a code didn't open. */
+internal enum class OpenErrorGlyph {
+    NotFound,
+    Gone,
+    FailedCheck,
+    NeedsUpdate,
+    UnknownGame,
+    Offline,
+}
+
+private val OpenErrorGlyph.icon: ImageVector
+    @Composable get() = when (this) {
+        OpenErrorGlyph.NotFound -> PuzzleIcons.Search
+        OpenErrorGlyph.Gone -> PuzzleIcons.LinkOff
+        OpenErrorGlyph.FailedCheck -> PuzzleIcons.FailedCheck
+        OpenErrorGlyph.NeedsUpdate -> PuzzleIcons.Update
+        OpenErrorGlyph.UnknownGame -> PuzzleIcons.Box
+        OpenErrorGlyph.Offline -> PuzzleIcons.NeedsConnection
+    }
+
+// A full-screen state reads centred when it sits a little above the middle.
+private val OpticalCentre = BiasAlignment(horizontalBias = 0f, verticalBias = -0.2f)
 
 /** The one thing a failed open can offer, under its button [label]. */
 internal enum class OpenErrorAction(val label: String) {
@@ -66,42 +93,48 @@ internal fun OpenOutcome.errorCopy(code: ShareCode?): OpenErrorCopy? = when (thi
         body = code?.let { "Nothing is shared as ${it.display}. Check the code with whoever sent it." }
             ?: "Check the code with whoever sent it.",
         action = null,
+        glyph = OpenErrorGlyph.NotFound,
     )
     OpenOutcome.NoLongerAvailable -> OpenErrorCopy(
         tag = "friend.error.noLongerAvailable",
         title = "This puzzle is no longer available",
         body = "Its author took it down before it reached this phone.",
         action = null,
+        glyph = OpenErrorGlyph.Gone,
     )
     OpenOutcome.FailedCheck -> OpenErrorCopy(
         tag = "friend.error.failedCheck",
         title = "This puzzle didn't pass its check",
         body = "Every shared board must have exactly one answer. This one couldn't be confirmed, so it won't open.",
         action = null,
+        glyph = OpenErrorGlyph.FailedCheck,
     )
     is OpenOutcome.NeedsUpdate -> OpenErrorCopy(
         tag = "friend.error.needsUpdate",
         title = "Update PuzzleBox to play",
         body = "It was made with a newer PuzzleBox. Update, then open the code again.",
         action = OpenErrorAction.Update,
+        glyph = OpenErrorGlyph.NeedsUpdate,
     )
     is OpenOutcome.UnknownGame -> OpenErrorCopy(
         tag = "friend.error.unknownGame",
         title = "This puzzle needs a game this build doesn't have",
         body = "It's for a game this version of PuzzleBox doesn't include.",
         action = null,
+        glyph = OpenErrorGlyph.UnknownGame,
     )
     OpenOutcome.Offline -> OpenErrorCopy(
         tag = "friend.error.offline",
         title = "You're offline",
         body = "A new code needs a connection to open. Puzzles you've opened before still play.",
         action = OpenErrorAction.Retry,
+        glyph = OpenErrorGlyph.Offline,
     )
 }
 
 /**
- * The friend route's full-screen state for a code that didn't open: [copy] centred, with its
- * action, [onRetry] or [onUpdate], when it has one.
+ * The friend route's full-screen state for a code that didn't open: [copy] under its glyph, a
+ * little above centre, with its action, [onRetry] or [onUpdate], when it has one.
  *
  * Motion: a **fade in** over [MotionTokens.DurationMedium] once the check concludes, so the
  * spinner doesn't cut to it; reduced motion shortens it to [MotionTokens.ReducedFadeDuration].
@@ -122,7 +155,7 @@ internal fun FriendOpenError(
     }
     Box(
         modifier = modifier.fillMaxSize().graphicsLayer { alpha = shown.value },
-        contentAlignment = Alignment.Center,
+        contentAlignment = OpticalCentre,
     ) {
         ErrorState(
             title = copy.title,
@@ -134,6 +167,7 @@ internal fun FriendOpenError(
             },
             modifier = Modifier.testTag(copy.tag),
             retryLabel = copy.action?.label.orEmpty(),
+            icon = { Icon(copy.glyph.icon, contentDescription = null, modifier = Modifier.testTag("friend.error.icon")) },
         )
     }
 }

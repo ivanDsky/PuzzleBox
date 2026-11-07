@@ -63,6 +63,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -108,6 +109,15 @@ class PublishDetailsTest {
         awaitTag(AUTHOR_FIELD)
         assertEquals(AUTHOR.displayName, vm.publish.state.value.details.authorName)
         assertEquals(AUTHOR.displayName, fieldText(AUTHOR_FIELD))
+    }
+
+    @Test
+    fun `the title carries its counter like the other fields, with Edit board heading the form`() {
+        open(signedIn = true)
+
+        awaitTag(TITLE_COUNTER)
+        awaitTag(EDIT_BOARD)
+        assertTrue(bounds(EDIT_BOARD).bottom <= bounds(TITLE).top)
     }
 
     @Test
@@ -191,6 +201,8 @@ class PublishDetailsTest {
 
     private fun fieldText(tag: String): String? =
         composeRule.onNodeWithTag(tag).fetchSemanticsNode().config.getOrElseNullable(SemanticsProperties.EditableText) { null }?.text
+
+    private fun bounds(tag: String) = composeRule.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
 
     private fun editorViewModel(): EditorViewModel = EditorViewModel(
         EditorKey(DRAFT_ID), drafts, games, editors, GamePlayRegistry(emptyList()),
@@ -279,6 +291,9 @@ class PublishDetailsTest {
         const val ADD_NOTE = "create.details.addNote"
         const val NOTE_FIELD = "create.details.note"
         const val NOTE_ERROR = "create.details.note.error"
+        const val TITLE = "create.details.title"
+        const val TITLE_COUNTER = "create.details.title.counter"
+        const val EDIT_BOARD = "create.tool.editBoard"
 
         fun storedRow(board: EditorDraft<TestDraft>) = Draft(
             id = DRAFT_ID,

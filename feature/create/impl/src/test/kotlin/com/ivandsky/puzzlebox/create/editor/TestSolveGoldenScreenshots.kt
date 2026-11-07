@@ -132,7 +132,6 @@ class TestSolveGoldenScreenshots {
                     modifier = areaModifier,
                     publish = PublishSession.State(details = DETAILS),
                     title = TITLE,
-                    detailsInline = false,
                     onShowDetails = {}.takeIf { editBoard },
                 )
             },

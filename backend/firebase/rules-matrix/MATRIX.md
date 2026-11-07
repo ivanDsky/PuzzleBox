@@ -123,6 +123,9 @@ It exits non-zero when any verdict differs from the expected one. Request time i
 
 2026-11-07, rules at the commit that added this file: **80 cases, 80/80 passed**, exit 0.
 
+2026-11-07, re-run after `firebase deploy --only firestore,hosting --project puzzlebox-f3356` released this
+same `firestore.rules`: **80/80 passed**, exit 0. The output below is unchanged.
+
 ```
 PASS  ALLOW  [puzzles] anonymous get of a puzzle
 PASS  ALLOW  [puzzles] signed-in get of a puzzle

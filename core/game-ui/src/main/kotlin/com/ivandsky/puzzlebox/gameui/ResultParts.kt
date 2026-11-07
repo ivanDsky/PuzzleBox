@@ -49,8 +49,9 @@ internal fun resultTitle(game: String, number: Int?, practice: Boolean): String 
 /**
  * The result's header row (spec A16): the game's glyph tile (tag `result.stamp`), which
  * lands with the [Stamp] once on entry (Stamp handles reduced motion; a preview shows it
- * at rest), then [title] (tag `result.label`) and the record pill. The glyph's box is
- * reserved from the first frame, so the stamp never shifts the row.
+ * at rest), then [title] (tag `result.label`, wrapping to a second line rather than losing
+ * words to the pill) and the record pill. The glyph's box is reserved from the first
+ * frame, so the stamp never shifts the row.
  */
 @Composable
 internal fun ResultHeader(brand: GameBrand, title: String, verdict: RecordVerdict?, modifier: Modifier = Modifier) {
@@ -69,7 +70,7 @@ internal fun ResultHeader(brand: GameBrand, title: String, verdict: RecordVerdic
             text = title,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f).testTag("result.label"),
         )

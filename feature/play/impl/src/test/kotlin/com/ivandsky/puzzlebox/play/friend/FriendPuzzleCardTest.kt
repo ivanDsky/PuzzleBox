@@ -163,6 +163,7 @@ class FriendPuzzleCardTest {
         node("friend.card.cta.play").assertExists()
         assertEquals(0, count("friend.card.cta.resume"))
         assertEquals(0, count("friend.card.solved"))
+        assertEquals(0, count("friend.card.solved.hints"))
         node("friend.card.play").performClick()
 
         assertEquals(listOf(CustomGameKey(game.value, code.value)), played)
@@ -178,13 +179,14 @@ class FriendPuzzleCardTest {
     }
 
     @Test
-    fun `a recorded solve offers Replay and shows your time`() {
+    fun `a recorded solve offers Replay and shows your time and hints`() {
         val ref = checkNotNull(fakes.games[game]).refOf(PuzzleKey.Custom(code.value))
-        completions.setRecords(listOf(CompletionRecord(ref, 125_000L, 0, RecordStats(1, "{}"))))
+        completions.setRecords(listOf(CompletionRecord(ref, 125_000L, 2, RecordStats(1, "{}"))))
         show()
 
         node("friend.card.cta.replay").assertExists()
         node("friend.card.solved").assert(hasText(formatDuration(125_000L), substring = true))
+        node("friend.card.solved.hints").assert(hasText("2", substring = true))
     }
 
     @Test

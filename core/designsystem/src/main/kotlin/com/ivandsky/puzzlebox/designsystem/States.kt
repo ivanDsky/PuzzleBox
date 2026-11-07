@@ -12,9 +12,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,7 +53,11 @@ fun EmptyState(
     }
 }
 
-/** An error with its cause; [onRetry] null when retrying can't help, so no button is offered. */
+/**
+ * An error with its cause; [onRetry] null when retrying can't help, so no button is offered.
+ * An [icon] names the kind of failure in a neutral disc above the title; without one, a small
+ * error-coloured rule sets the tone. The block never grows past [MaxTextWidth].
+ */
 @Composable
 fun ErrorState(
     title: String,
@@ -56,17 +65,32 @@ fun ErrorState(
     onRetry: (() -> Unit)?,
     modifier: Modifier = Modifier,
     retryLabel: String = "Try again",
+    icon: (@Composable () -> Unit)? = null,
 ) {
-    StateLayout(modifier) {
-        // One small error-colored rule sets the tone; the text stays neutral so the
-        // copy carries the meaning instead of an alarm.
-        Box(
-            modifier = Modifier
-                .width(Spacing.xxl)
-                .height(Spacing.xs)
-                .clip(MaterialTheme.shapes.extraSmall)
-                .background(MaterialTheme.colorScheme.error),
-        )
+    StateLayout(modifier.widthIn(max = MaxTextWidth)) {
+        // The text stays neutral so the copy carries the meaning instead of an alarm.
+        if (icon != null) {
+            Box(
+                modifier = Modifier
+                    .size(ErrorDiscSize)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(Modifier.size(ErrorIconSize), propagateMinConstraints = true) {
+                    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant) {
+                        icon()
+                    }
+                }
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .width(Spacing.xxl)
+                    .height(Spacing.xs)
+                    .clip(MaterialTheme.shapes.extraSmall)
+                    .background(MaterialTheme.colorScheme.error),
+            )
+        }
         Text(
             text = title,
             style = MaterialTheme.typography.headlineSmall,
@@ -82,6 +106,9 @@ fun ErrorState(
         if (onRetry != null) PrimaryButton(text = retryLabel, onClick = onRetry)
     }
 }
+
+private val ErrorIconSize = Spacing.xxl
+private val ErrorDiscSize = Spacing.xxl * 2
 
 @Composable
 private fun StateLayout(
@@ -127,6 +154,21 @@ internal fun ErrorStatePreview() {
             title = "Something went wrong",
             message = "We couldn't load your boards. Check your connection and try again.",
             onRetry = {},
+        )
+    }
+}
+
+/** The error slot naming its failure with an icon, and no retry. */
+@ShowkaseComposable(name = "ErrorState icon", group = "States")
+@PuzzleBoxPreviews
+@Composable
+internal fun ErrorStateIconPreview() {
+    PuzzleBoxTheme {
+        ErrorState(
+            title = "You're offline",
+            message = "A new code needs a connection to open.",
+            onRetry = null,
+            icon = { Icon(PuzzleIcons.NeedsConnection, contentDescription = null) },
         )
     }
 }

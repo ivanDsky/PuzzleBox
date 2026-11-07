@@ -39,7 +39,9 @@ import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
  * [PlayLayout.TwoPane] (02 handoff "Tablet"): a square centred in the left pane, and the
  * [StudioSidePane] on the right with the card inline ([verdict], [overlay], [issues]), the
  * strip and the actions. The [toast] covers no control: on the phone it sits in the board slot,
- * above the strip; on the tablet inside the side pane, above the action area.
+ * above the strip; on the tablet inside the side pane, above the action area. With [hugBoard]
+ * (a read-only board) the phone slot takes only the group's height, so the board sits under the
+ * bar with the strip and the actions right below it and the spare height left at the bottom.
  */
 @Composable
 internal fun StudioLayout(
@@ -54,6 +56,7 @@ internal fun StudioLayout(
     actionArea: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier,
     toast: @Composable (Modifier) -> Unit = {},
+    hugBoard: Boolean = false,
 ) {
     when (layout) {
         PlayLayout.SinglePane -> Column(modifier.fillMaxSize()) {
@@ -61,13 +64,14 @@ internal fun StudioLayout(
             PhoneBoardSlot(
                 board = board,
                 toast = toast,
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg),
+                hug = hugBoard,
+                modifier = Modifier.weight(1f, fill = !hugBoard).fillMaxWidth().padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg),
             )
             toolStrip(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md))
             actionArea(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg))
         }
         PlayLayout.TwoPane -> Row(modifier.fillMaxSize()) {
-            BoardSlot(
+            SquareBoardSlot(
                 alignment = Alignment.Center,
                 board = board,
                 modifier = Modifier.weight(1f).fillMaxHeight().padding(Spacing.lg),
@@ -92,13 +96,15 @@ private const val BoardSlotTag = "create.editor.board"
 
 /**
  * The phone's board slot: the game's group (grid and rows, [board]) measured to its own height
- * and set on the slot's bottom, so it meets the strip. The [toast] sits in the spare height above
- * the group when it fits there, clear of the rows; when the grid takes the height, at the bottom.
+ * and set on the slot's bottom, so it meets the strip; while [hug] the slot is the group's height.
+ * The [toast] sits in the spare height above the group when it fits there, clear of the rows;
+ * when the grid takes the height, at the bottom.
  */
 @Composable
 private fun PhoneBoardSlot(
     board: @Composable (Modifier) -> Unit,
     toast: @Composable (Modifier) -> Unit,
+    hug: Boolean,
     modifier: Modifier,
 ) {
     Layout(
@@ -112,7 +118,7 @@ private fun PhoneBoardSlot(
         val group = measurables[0].measure(loose)
         val note = measurables[1].measure(loose)
         val width = constraints.maxWidth
-        val height = constraints.maxHeight
+        val height = if (hug) group.height else constraints.maxHeight
         layout(width, height) {
             val groupTop = height - group.height
             group.placeRelative((width - group.width) / 2, groupTop)
@@ -124,9 +130,9 @@ private fun PhoneBoardSlot(
     }
 }
 
-/** The square the game's board fills: the smaller of the slot's width and height. */
+/** The square the game's board fills: the smaller of the slot's width and height, at [alignment]. */
 @Composable
-private fun BoardSlot(
+internal fun SquareBoardSlot(
     alignment: Alignment,
     board: @Composable (Modifier) -> Unit,
     modifier: Modifier,

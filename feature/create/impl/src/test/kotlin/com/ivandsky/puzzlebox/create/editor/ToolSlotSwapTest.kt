@@ -75,10 +75,10 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
 
 /**
- * The phone's tool slot: once a Unique board's test passes, the publish details take the tool
- * strip's place, so the board keeps its size; Edit board brings the tools back without touching
- * the test, and a board edit then clears it (Undo toast) while the tools stay. On a tablet the
- * tools and the details sit side by side as before.
+ * The tool slot: once a Unique board's test passes, the publish details take the tool strip's
+ * place, so the board keeps its size; Edit board brings the tools back without touching the
+ * test, and a board edit then clears it (Undo toast) while the tools stay. A tablet's side pane
+ * follows the same rule.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h640dp")
@@ -176,12 +176,31 @@ class ToolSlotSwapTest {
 
     @Test
     @Config(qualifiers = "w1280dp-h800dp-land")
-    fun `on a tablet the tools and the details sit side by side`() {
+    fun `on a tablet the details take the place of the tools in the side pane and Edit board brings the tools back`() {
         open(PlayLayout.TwoPane)
 
         awaitTag(DETAILS)
+        awaitGone(STRIP)
+        awaitTrue { composeRule.onAllNodes(hasTestTag(DETAILS) and hasAnyAncestor(hasTestTag(SIDE_PANE))).fetchSemanticsNodes().size == 1 }
+
+        composeRule.onNodeWithTag(EDIT_BOARD).performClick()
+
         awaitTag(STRIP)
+        awaitGone(DETAILS)
+        awaitTag(SUMMARY)
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp-land")
+    fun `on a tablet with friend sharing off a passed test keeps the tools in the side pane`() {
+        open(PlayLayout.TwoPane, flags = FakeReleaseFlags())
+        awaitTrue { vm.testSolve.passed.value != null }
+        composeRule.waitForIdle()
+
+        awaitTag(STRIP)
+        awaitGone(DETAILS)
         awaitGone(EDIT_BOARD)
+        awaitGone(SUMMARY)
     }
 
     private fun assertBoardKeepsItsSize() {
@@ -281,6 +300,7 @@ class ToolSlotSwapTest {
         const val SUMMARY = "create.details.summary"
         const val TOAST = "create.toast.testCleared"
         const val BOARD = "create.editor.board"
+        const val SIDE_PANE = "create.studio.sidePane"
 
         fun storedRow(board: EditorDraft<TestDraft>) = Draft(
             id = DRAFT_ID,

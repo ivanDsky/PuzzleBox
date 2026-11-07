@@ -39,6 +39,7 @@ import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.formatDuration
+import com.ivandsky.puzzlebox.designsystem.maxContentWidth
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 
@@ -49,7 +50,7 @@ import com.ivandsky.puzzlebox.designsystem.tabular
  * spring when the card's recheck finds it), the author's time and hints beside yours once solved, the code with Copy, the one
  * primary action, [onAction], and under it the [BoardPreview], whose sign-in is [onSignIn].
  * Sections rise in with the Enter stagger the first time the code's card is shown; under
- * reduced motion they only fade.
+ * reduced motion they only fade. On a wide window the card keeps to one centred column.
  */
 @Composable
 internal fun FriendPuzzleCard(card: FriendCard, onAction: () -> Unit, onSignIn: () -> Unit, modifier: Modifier = Modifier) {
@@ -57,7 +58,7 @@ internal fun FriendPuzzleCard(card: FriendCard, onAction: () -> Unit, onSignIn: 
     val entrance = rememberCardEntrance(card.puzzle.code)
     val accent = card.brand.accent.colors()
     val puzzle = card.puzzle
-    Column(modifier.fillMaxWidth().padding(horizontal = Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+    Column(modifier.maxContentWidth().padding(horizontal = Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         Enter(entrance, 0, reduced) { FriendCardHead(card, reduced) }
         Enter(entrance, 1, reduced) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -160,14 +161,14 @@ private fun Stats(card: FriendCard) {
     Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Tile("Author", Modifier.weight(1f)) {
             Value(formatDuration(card.puzzle.authorTimeMs), "friend.card.author.time")
-            Text(
-                text = hintsLabel(card.puzzle.authorHints),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag("friend.card.author.hints"),
-            )
+            Hints(card.puzzle.authorHints, "friend.card.author.hints")
         }
-        card.yours?.let { Tile("Your time", Modifier.weight(1f)) { Value(formatDuration(it.timeMs), "friend.card.solved") } }
+        card.yours?.let {
+            Tile("Your time", Modifier.weight(1f)) {
+                Value(formatDuration(it.timeMs), "friend.card.solved")
+                Hints(it.hints, "friend.card.solved.hints")
+            }
+        }
     }
 }
 
@@ -188,6 +189,16 @@ private fun Value(text: String, tag: String) {
         text = text,
         style = MaterialTheme.typography.titleLarge.tabular().copy(fontWeight = FontWeight.Bold),
         color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.testTag(tag),
+    )
+}
+
+@Composable
+private fun Hints(hints: Int, tag: String) {
+    Text(
+        text = hintsLabel(hints),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.testTag(tag),
     )
 }

@@ -35,6 +35,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.maxContentWidth
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -97,7 +98,7 @@ fun CreateScreen(
     )
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            LargeTopBar(title = "Create", subtitle = headerCounts(state, showPublished), modifier = Modifier.testTag("create.header"))
+            LargeTopBar(title = "Create", subtitle = headerCounts(state, showPublished), modifier = Modifier.maxContentWidth().testTag("create.header"))
             when {
                 state.loading -> Unit
                 state.isEmpty -> CreateEmptyState(games = state.games, onStart = onNew)

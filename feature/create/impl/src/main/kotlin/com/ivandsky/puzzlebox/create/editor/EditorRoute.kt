@@ -114,7 +114,7 @@ internal fun EditorRoute(
                 board = { boardModifier -> ready.editor.Board(ready.controller, ready.verdict, boardModifier) },
                 toolStrip = { slotModifier ->
                     ToolSlot(
-                        open = layout == PlayLayout.SinglePane && detailsReady,
+                        open = detailsReady,
                         editBoard = editBoard,
                         onEditBoard = { editBoard = true },
                         tools = { stripModifier ->
@@ -171,10 +171,6 @@ internal fun EditorRoute(
                             // The live verdict, like Test solve: a tap while Checking is refused as not ready.
                             onPublish = { viewModel.publish.publish(draft, ready.verdict) },
                             title = title,
-                            onRename = viewModel.meta::rename,
-                            onAuthorName = viewModel.publish::editAuthorName,
-                            onNote = viewModel.publish::editNote,
-                            detailsInline = layout == PlayLayout.TwoPane,
                             onShowDetails = { editBoard = false }.takeIf { detailsReady && editBoard },
                         )
                     }
