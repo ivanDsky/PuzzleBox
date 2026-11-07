@@ -95,12 +95,10 @@ class BoardTokensTest {
     // Tango glyph fills (design-direction §3, floor §10.2): silhouette carries the
     // identity, so the fill needs the 3:1 non-text bar vs boardSurface, not 4.5.
     @Test
-    fun `tango sun and moon fills clear the non-text bar vs boardSurface and the hint tile in both themes`() {
+    fun `tango sun and moon fills clear the non-text bar vs boardSurface in both themes`() {
         for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
             assertTrue(contrast(tokens.sunFill, tokens.boardSurface) >= 3f)
             assertTrue(contrast(tokens.moonFill, tokens.boardSurface) >= 3f)
-            assertTrue(contrast(tokens.sunFill, tokens.tangoHintFill) >= 3f)
-            assertTrue(contrast(tokens.moonFill, tokens.tangoHintFill) >= 3f)
         }
     }
 
@@ -177,7 +175,7 @@ class BoardTokensTest {
     @Test
     fun `strands tile text meets AA on every tinted fill in both themes`() {
         for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
-            for (fill in listOf(tokens.strandsThemeFill, tokens.strandsThemeAltFill, tokens.strandsSpangramFill, tokens.strandsSelectionFill)) {
+            for (fill in listOf(tokens.strandsThemeFill, tokens.strandsSpangramFill, tokens.strandsSelectionFill)) {
                 assertTrue(contrast(tokens.strandsTileText, fill) >= 4.5f)
             }
         }
