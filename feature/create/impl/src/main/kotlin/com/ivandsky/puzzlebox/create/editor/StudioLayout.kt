@@ -162,7 +162,9 @@ private fun PreviewLayout(layout: PlayLayout) {
         onCheckAgain = {},
         onOverlay = {},
         board = { boardModifier ->
-            Box(boardModifier.aspectRatio(1f).background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))
+            Box(boardModifier, contentAlignment = Alignment.Center) {
+                Box(Modifier.aspectRatio(1f, matchHeightConstraintsFirst = true).background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))
+            }
         },
         toolStrip = { stripModifier ->
             ToolStrip(
