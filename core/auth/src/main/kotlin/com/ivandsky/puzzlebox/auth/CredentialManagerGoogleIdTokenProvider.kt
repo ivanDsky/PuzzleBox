@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.app.auth
+package com.ivandsky.puzzlebox.auth
 
 import android.content.Context
 import androidx.annotation.StringRes
@@ -16,54 +16,8 @@ import java.io.IOException
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * Android/platform seam for Google ID-token acquisition (ticket-16 design §2): this is
- * the Credential-Manager-specific half of Google sign-in; the pure
- * [com.ivandsky.puzzlebox.data.identity.IdentityService] only ever sees the token string,
- * which is exactly what makes the backend swappable.
- */
-interface GoogleIdTokenProvider {
-    /**
-     * [activityContext] must be an Activity context below API 34: the Credential
-     * Manager provider launches its own activity from it, which crashes from an
-     * application context. The application context stays internal (resources,
-     * clearCredentialState).
-     */
-    suspend fun idToken(activityContext: Context): GoogleIdToken
-}
-
-sealed interface GoogleIdToken {
-    data class Available(val token: String) : GoogleIdToken
-
-    /**
-     * No usable token. [reason] preserves the failure class so the profile UI can
-     * show honest copy (ticket 24) — only [Reason.NETWORK] may blame the connection.
-     */
-    data class Unavailable(val reason: Reason) : GoogleIdToken {
-        enum class Reason {
-            /** No Google account/credential on this device ([NoCredentialException]). */
-            NO_CREDENTIAL,
-
-            /** Credential Manager or its provider down/unsupported ([GetCredentialException], e.g. API availability). */
-            PROVIDER_UNAVAILABLE,
-
-            /** User closed the sign-in sheet ([GetCredentialCancellationException]) — a choice, not an error. */
-            CANCELLED,
-
-            /** Network/IO failure reaching the credential provider. */
-            NETWORK,
-
-            /** Credential arrived but was unusable ([GoogleIdTokenParsingException], empty token). */
-            MALFORMED,
-
-            /** Anything else. */
-            OTHER,
-        }
-    }
-}
-
-/**
- * Ticket 24: classify a Credential Manager failure before its type is lost — the
- * profile copy is chosen per class, and only NETWORK may claim a connection problem.
+ * Classify a Credential Manager failure before its type is lost — the profile copy
+ * is chosen per class, and only NETWORK may claim a connection problem.
  * Order matters: cancellation and no-credential extend [GetCredentialException].
  */
 internal fun unavailableReason(e: Exception): GoogleIdToken.Unavailable.Reason = when (e) {
@@ -83,7 +37,7 @@ internal fun unavailableReason(e: Exception): GoogleIdToken.Unavailable.Reason =
  * Every failure degrades to [GoogleIdToken.Unavailable] — the signed-out path is a
  * first-class state, never an error surface (A7).
  */
-class CredentialManagerGoogleIdTokenProvider(
+internal class CredentialManagerGoogleIdTokenProvider(
     private val context: Context,
     @StringRes private val serverClientIdRes: Int,
 ) : GoogleIdTokenProvider {

@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.app
 
 import android.app.Application
-import com.ivandsky.puzzlebox.app.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
