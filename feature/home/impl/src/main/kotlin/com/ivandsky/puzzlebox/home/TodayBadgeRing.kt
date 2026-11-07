@@ -5,6 +5,7 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +41,8 @@ private val TrackStroke = 3.dp
 private val DashStroke = 2.dp
 private val DashOn = 3.dp
 private val DashOff = 5.dp
+private val DiscLipDrop = 2.dp
+private val DiscRise = 1.dp
 
 /**
  * One game's ring per [status]: a bare track (NotStarted), the track plus a fixed half arc
@@ -54,6 +57,7 @@ internal fun TodayBadgeRing(
     modifier: Modifier = Modifier,
 ) {
     val accent = brand.accent.colors().accent
+    val lip = brand.accent.colors().lip
     val track = MaterialTheme.colorScheme.outlineVariant
     val outline = MaterialTheme.colorScheme.outline
     val solved = status is TodayStatus.Solved
@@ -96,7 +100,12 @@ internal fun TodayBadgeRing(
                             style = Stroke(TrackStroke.toPx(), cap = StrokeCap.Round),
                         )
                     }
-                    if (fill > 0f) drawCircle(accent.copy(alpha = accent.alpha * fill))
+                    if (fill > 0f) {
+                        // Spec A14: the disc is a raised face on a darker lip of its own hue.
+                        val radius = this.size.minDimension / 2 - DiscLipDrop.toPx()
+                        drawCircle(lip.copy(alpha = lip.alpha * fill), radius, center + Offset(0f, DiscLipDrop.toPx()))
+                        drawCircle(accent.copy(alpha = accent.alpha * fill), radius, center - Offset(0f, DiscRise.toPx()))
+                    }
                 }
             }
         }
@@ -108,7 +117,9 @@ internal fun TodayBadgeRing(
                 is TodayStatus.Solved -> LocalOnFill.current
                 else -> accent
             },
-            modifier = Modifier.size(size.ring * GLYPH_SHARE),
+            modifier = Modifier
+                .offset(y = if (solved) -DiscRise else 0.dp)
+                .size(size.ring * GLYPH_SHARE),
         )
     }
 }
