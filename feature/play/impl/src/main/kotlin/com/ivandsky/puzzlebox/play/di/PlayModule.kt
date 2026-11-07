@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.play.di
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.GameViewModel
@@ -26,7 +27,8 @@ import org.koin.dsl.module
  * included) and the calendar from :core:data's dataModule, and the use cases (today's
  * set, history, stats, the rollover) from :core:domain's domainModule. The tablet stats
  * panel's identity and leaderboard come from the backend module. This module names no game;
- * friend puzzles' wiring is [friendModule], From friends' [ObserveFriendPuzzles] is here.
+ * friend puzzles' wiring is [friendModule], From friends' [ObserveFriendPuzzles] and
+ * [DeleteReceivedPuzzle] are here.
  *
  * [PlaySessionStore] is a single so live plays outlive their entries' compositions. Its
  * slot opening and every slot's writer share ONE [WriteLane], so a released slot's final
@@ -59,7 +61,8 @@ val playModule = module {
         )
     }
     factory { ObserveFriendPuzzles(received = get(), saved = get(), completions = get(), registry = get()) }
-    viewModel { LibraryViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { DeleteReceivedPuzzle(received = get(), saved = get()) }
+    viewModel { LibraryViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
     viewModel { (slot: PlaySlot) -> PlayStatsViewModel(slot, get(), get(), get(), get()) }
     viewModel { (key: ResultKey) -> ResultViewModel(key, get(), get(), get(), get(), get(), get(), get(), get()) }

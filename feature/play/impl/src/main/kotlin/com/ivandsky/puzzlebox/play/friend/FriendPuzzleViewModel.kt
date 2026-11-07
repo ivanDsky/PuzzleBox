@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -69,7 +70,7 @@ internal sealed interface FriendCardAction {
 }
 
 /**
- * One [FriendPuzzleKey]'s card: opens the code once with [LoadSharedPuzzle] (a puzzle already
+ * One [FriendPuzzleKey]'s card: opens the code with [LoadSharedPuzzle] (a puzzle already
  * on this device opens without the network), then follows the puzzle's saved play and its
  * completions, so the primary action reads Resume while a play is saved and Replay once a
  * solve is recorded. The game's name, brand and size label come from the registries; the
@@ -78,13 +79,13 @@ internal sealed interface FriendCardAction {
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class FriendPuzzleViewModel(
     key: FriendPuzzleKey,
-    load: LoadSharedPuzzle,
+    private val load: LoadSharedPuzzle,
     private val completions: CompletionRepository,
     private val saved: SavedPlayRepository,
     private val games: GameRegistry,
     private val plays: GamePlayRegistry,
     private val editors: GameEditorRegistry,
-    dispatchers: DispatcherProvider,
+    private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
 
     private val opened = MutableStateFlow<OpenOutcome?>(null)
@@ -99,9 +100,22 @@ internal class FriendPuzzleViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), FriendCardState.Loading)
 
+    private val code = ShareCode.parse(key.code)
+    private var opening: Job? = null
+
     init {
-        viewModelScope.launch {
-            val code = ShareCode.parse(key.code)
+        open()
+    }
+
+    /** Opens the code again after it didn't open, showing Loading while it runs. */
+    fun retry() {
+        opened.value = null
+        open()
+    }
+
+    private fun open() {
+        opening?.cancel()
+        opening = viewModelScope.launch {
             opened.value = if (code == null) OpenOutcome.NotFound else withContext(dispatchers.default) { load(code) }
         }
     }

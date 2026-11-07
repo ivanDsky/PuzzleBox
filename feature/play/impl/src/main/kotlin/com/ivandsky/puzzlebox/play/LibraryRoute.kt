@@ -14,12 +14,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -52,8 +54,9 @@ import org.koin.compose.koinInject
  * day card's day and pages months ([LibraryViewModel.page]). A row whose today can't load also retries; each start prefetches
  * today's uncached puzzles ([LibraryViewModel.syncToday], A12). "Open the lesson" runs
  * the game's tutorial over the library. The header's Enter code opens the code sheet, whose
- * Open is [onOpenCode]. Enter code and From friends show only while [ReleaseFlag.FriendSharing]
- * is on (ADR-0022).
+ * Open is [onOpenCode]. Enter code and From friends show only while [ReleaseFlag.FriendSharing] is
+ * on (ADR-0022). A From friends card's Remove shows "Removed <code>" with Undo. A [codeDraft] opens
+ * the sheet with that text already in the field, then is taken ([onCodeDraftTaken]).
  */
 @Composable
 internal fun LibraryRoute(
@@ -61,6 +64,8 @@ internal fun LibraryRoute(
     onPlay: (GameId, LocalDate?) -> Unit,
     onOpenCode: (ShareCode) -> Unit,
     modifier: Modifier = Modifier,
+    codeDraft: String? = null,
+    onCodeDraftTaken: () -> Unit = {},
 ) {
     val viewModel: LibraryViewModel = koinViewModel()
     val registry: GamePlayRegistry = koinInject()
@@ -70,7 +75,18 @@ internal fun LibraryRoute(
     val month by viewModel.shownMonth.collectAsStateWithLifecycle()
     val flags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
     val friends by viewModel.friends.collectAsStateWithLifecycle()
+    val removedFriend by viewModel.removedFriend.collectAsStateWithLifecycle()
     var enteringCode by rememberSaveable { mutableStateOf(false) }
+    var codePrefill by rememberSaveable { mutableStateOf("") }
+    LaunchedEffect(codeDraft) {
+        if (codeDraft != null) {
+            codePrefill = codeDraft
+            enteringCode = true
+            onCodeDraftTaken()
+        }
+    }
+    // A closed sheet forgets the draft: the next Enter code opens empty.
+    if (!enteringCode && codePrefill.isNotEmpty()) LaunchedEffect(Unit) { codePrefill = "" }
     LifecycleStartEffect(viewModel) {
         viewModel.syncToday()
         onStopOrDispose { }
@@ -94,7 +110,9 @@ internal fun LibraryRoute(
             onEnterCode = { enteringCode = true }.takeIf { ReleaseFlag.FriendSharing in flags },
             friends = friends.takeIf { ReleaseFlag.FriendSharing in flags }.orEmpty(),
             onOpenFriend = onOpenCode,
+            onRemoveFriend = viewModel::removeFriend,
         )
+        FriendRemovedSnackbar(removedFriend, onUndo = viewModel::undoRemoveFriend, modifier = Modifier.align(Alignment.BottomCenter))
         if (enteringCode) {
             EnterCodeSheet(
                 onOpen = { code ->
@@ -102,6 +120,7 @@ internal fun LibraryRoute(
                     onOpenCode(code)
                 },
                 onDismiss = { enteringCode = false },
+                initialText = codePrefill,
             )
         }
         val open = lesson
@@ -130,7 +149,7 @@ internal class CalendarActions(
  * [page] is the selected game's calendar and [month] the one it asked for (null = today's);
  * on the phone a picked day scrolls the page up to the day card. The header's Enter code shows
  * only with an [onEnterCode]. [friends] heads the list as From friends, each card opening its
- * puzzle through [onOpenFriend].
+ * puzzle through [onOpenFriend] and removing it through [onRemoveFriend].
  */
 @Composable
 internal fun LibraryScreen(
@@ -148,12 +167,13 @@ internal fun LibraryScreen(
     onEnterCode: (() -> Unit)? = null,
     friends: List<FriendCardModel> = emptyList(),
     onOpenFriend: (ShareCode) -> Unit = {},
+    onRemoveFriend: (ShareCode) -> Unit = {},
 ) {
     val listScroll = rememberScrollState()
     val enterCode: @Composable () -> Unit = {
         onEnterCode?.let { SecondaryButton(text = "Enter code", onClick = it, modifier = Modifier.testTag("library.enterCode")) }
     }
-    val fromFriends: @Composable () -> Unit = { FromFriendsRow(friends, onOpenFriend) }
+    val fromFriends: @Composable () -> Unit = { FromFriendsRow(friends, onOpenFriend, onRemoveFriend) }
     val onRow: (GameId) -> Unit = { game ->
         onSelect(game)
         if (state.rows.firstOrNull { it.card.game == game }?.card?.status == TodayStatus.Offline) {

@@ -16,5 +16,22 @@
         <activity
             android:name="androidx.activity.ComponentActivity"
             android:exported="true" />
+        <!-- Share links (ShareCode.LINK_PREFIX), verified against the host's
+             /.well-known/assetlinks.json: debug only while friend sharing is dark (ADR-0022),
+             merged onto the main manifest's MainActivity. -->
+        <activity
+            android:name="com.ivandsky.puzzlebox.app.MainActivity"
+            tools:node="merge">
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="https" />
+                <data android:host="puzzlebox-f3356.web.app" />
+                <data android:pathPrefix="/p/" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

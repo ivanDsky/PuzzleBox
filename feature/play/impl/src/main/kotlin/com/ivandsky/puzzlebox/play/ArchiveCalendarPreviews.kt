@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -50,7 +51,7 @@ private fun previewRow(): LibraryRowModel = LibraryRowModel(
     card = GameCardModel(
         game = GameId("zip"),
         name = "Zip",
-        brand = GameBrand.Neutral.copy(accent = AccentSlot.Teal),
+        brand = GameBrand(AccentSlot.Blue, GameGlyphs.Zip),
         status = TodayStatus.NotStarted,
         rankOrder = RankOrder.TimeThenHints,
         puzzleNumber = numberOf(PreviewToday),

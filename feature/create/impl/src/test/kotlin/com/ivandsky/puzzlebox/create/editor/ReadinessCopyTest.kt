@@ -11,6 +11,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import com.ivandsky.puzzlebox.create.FakeGameEditor
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ValidatePublish
+import com.ivandsky.puzzlebox.domain.ValidatePublishDetails
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import org.junit.Rule
 import org.junit.Test
@@ -46,6 +47,13 @@ class ReadinessCopyTest {
         show(ValidatePublish.blockIds.map(::PublishBlock))
         ValidatePublish.blockIds.forEach { id -> compose.onNodeWithTag("create.readiness.$id").assert(nonEmptyText) }
         compose.onAllNodesWithTag("create.readiness.ready").assertCountEquals(0)
+    }
+
+    @Test
+    fun everyDetailsBlockIdHasItsOwnPhrase() {
+        show(ValidatePublishDetails.blockIds.map(::PublishBlock))
+        ValidatePublishDetails.blockIds.forEach { id -> compose.onNodeWithTag("create.readiness.$id").assert(nonEmptyText) }
+        compose.onAllNodesWithTag("create.readiness.board").assertCountEquals(0)
     }
 
     @Test

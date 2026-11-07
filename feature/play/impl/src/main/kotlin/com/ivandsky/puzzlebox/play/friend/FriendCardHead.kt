@@ -57,7 +57,12 @@ private fun CodePill(
     code: String,
     reduced: Boolean,
     copy: @Composable () -> Unit = {
-        Text("Copy", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        Icon(
+            PuzzleIcons.Copy,
+            contentDescription = "Copy",
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(MarkSize).testTag("friend.card.copy.icon"),
+        )
     },
 ) {
     val clipboard = LocalClipboard.current
@@ -91,7 +96,12 @@ private fun CodePill(
             )
             AnimatedContent(targetState = copied, transitionSpec = { crossfade(reduced) }, label = "copy") { done ->
                 if (done) {
-                    Icon(PuzzleIcons.Check, contentDescription = "Copied", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(CheckSize))
+                    Icon(
+                        PuzzleIcons.Check,
+                        contentDescription = "Copied",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(MarkSize).testTag("friend.card.copied"),
+                    )
                 } else {
                     copy()
                 }
@@ -101,6 +111,6 @@ private fun CodePill(
 }
 
 private val MinTouch = 48.dp
-private val CheckSize = 18.dp
+private val MarkSize = 18.dp
 private const val COPIED_HOLD_MS = 1_500L
 private const val CLIP_LABEL = "PuzzleBox code"

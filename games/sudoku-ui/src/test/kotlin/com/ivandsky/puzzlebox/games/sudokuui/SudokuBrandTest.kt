@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.sudokuui
 
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -20,15 +21,17 @@ class SudokuBrandTest {
     private val registry = GamePlayRegistry(listOf(mini, classic))
 
     @Test
-    fun `mini registers teal with its own glyph`() {
+    fun `mini registers teal with the sudoku glyph`() {
         val brand = registry.brandOf(SudokuGames.MINI.id)
         assertEquals(AccentSlot.Teal, brand.accent)
-        assertSame(MiniSudokuGlyph, brand.glyph)
+        assertSame(GameGlyphs.Sudoku, brand.glyph)
         assertNotEquals(GameBrand.Neutral.glyph, brand.glyph)
     }
 
     @Test
-    fun `classic stays neutral`() {
-        assertEquals(GameBrand.Neutral, registry.brandOf(SudokuGames.CLASSIC.id))
+    fun `classic keeps the neutral hue and shares the sudoku glyph`() {
+        val brand = registry.brandOf(SudokuGames.CLASSIC.id)
+        assertEquals(AccentSlot.Neutral, brand.accent)
+        assertSame(GameGlyphs.Sudoku, brand.glyph)
     }
 }

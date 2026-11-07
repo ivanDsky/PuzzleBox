@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.games.queens.render.QueensRendererModel
@@ -60,7 +61,7 @@ private fun Cell(model: QueensRendererModel, row: Int, col: Int) {
     ) {
         if (idx in model.queens) {
             Icon(
-                imageVector = QueensCrown,
+                imageVector = GameGlyphs.Queens,
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxSize(QueensBoardDefaults.queenHeightFraction)

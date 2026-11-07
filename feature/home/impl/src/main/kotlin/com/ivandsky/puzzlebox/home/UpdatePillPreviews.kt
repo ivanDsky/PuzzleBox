@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -29,15 +30,15 @@ import java.time.LocalDate
 private val PillDay = LocalDate.of(2026, 11, 5)
 private const val PREVIEW_URL = "https://github.com/ivanDsky/PuzzleBox/releases/latest"
 
-private fun pillRow(id: String, name: String, accent: AccentSlot, status: TodayStatus) =
-    HomeUiState.TodayRow(GameId(id), name, status, GameBrand(accent, GameBrand.Neutral.glyph), RankOrder.TimeThenHints)
+private fun pillRow(id: String, name: String, brand: GameBrand, status: TodayStatus) =
+    HomeUiState.TodayRow(GameId(id), name, status, brand, RankOrder.TimeThenHints)
 
 private val PillRows = listOf(
-    pillRow("zip", "Zip", AccentSlot.Orange, TodayStatus.Solved(9_000L)),
-    pillRow("tango", "Tango", AccentSlot.Blue, TodayStatus.InProgress(192_000L)),
-    pillRow("queens", "Queens", AccentSlot.Violet, TodayStatus.NotStarted),
-    pillRow("strands", "Strands", AccentSlot.Teal, TodayStatus.Solved(261_000L)),
-    pillRow("sudoku", "Mini Sudoku", AccentSlot.Pink, TodayStatus.NotStarted),
+    pillRow("zip", "Zip", GameBrand(AccentSlot.Blue, GameGlyphs.Zip), TodayStatus.Solved(9_000L)),
+    pillRow("tango", "Tango", GameBrand(AccentSlot.Orange, GameGlyphs.Tango), TodayStatus.InProgress(192_000L)),
+    pillRow("queens", "Queens", GameBrand(AccentSlot.Violet, GameGlyphs.Queens), TodayStatus.NotStarted),
+    pillRow("strands", "Strands", GameBrand(AccentSlot.Pink, GameGlyphs.Strands), TodayStatus.Solved(261_000L)),
+    pillRow("sudoku", "Mini Sudoku", GameBrand(AccentSlot.Teal, GameGlyphs.Sudoku), TodayStatus.NotStarted),
 )
 
 private val PillState = HomeUiState(

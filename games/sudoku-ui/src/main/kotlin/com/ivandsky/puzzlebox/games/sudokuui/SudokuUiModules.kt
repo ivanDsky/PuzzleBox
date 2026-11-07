@@ -13,5 +13,5 @@ val miniSudokuUiModule: Module = module {
 
 /** Classic Sudoku's play UI; installed once its daily source ships (ticket 08). */
 val sudokuUiModule: Module = module {
-    single<GamePlayUi>(qualifier = qualifier(SudokuGames.CLASSIC.id.value)) { SudokuPlayUi(SudokuGames.CLASSIC) }
+    single<GamePlayUi>(qualifier = qualifier(SudokuGames.CLASSIC.id.value)) { SudokuPlayUi(SudokuGames.CLASSIC, ClassicSudokuBrand) }
 }

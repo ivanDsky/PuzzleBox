@@ -81,7 +81,7 @@ import org.robolectric.shadows.ShadowLooper
  * shows its own reason.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "w360dp-h640dp")
 class PublishSignInTest {
 
     @get:Rule

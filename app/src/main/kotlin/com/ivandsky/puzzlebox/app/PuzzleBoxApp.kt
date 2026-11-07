@@ -26,25 +26,27 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.app.nav.FriendLink
 import com.ivandsky.puzzlebox.app.nav.LocalChromePadding
 import com.ivandsky.puzzlebox.app.nav.PuzzleBoxNavShell
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
+import com.ivandsky.puzzlebox.app.nav.applyFriendLink
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
-import com.ivandsky.puzzlebox.app.screens.CatalogUnavailableScreen
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -54,32 +56,54 @@ import com.ivandsky.puzzlebox.history.historyLayoutFor
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.homeLayoutFor
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.map
 import org.koin.compose.koinInject
-import kotlin.math.roundToInt
 
 /**
  * The app shell: tab bar (or rail) beneath [PuzzleBoxNavShell]. The highlight is the
  * [navigator]'s selected tab, so it always names the tab that owns the screen on top.
  * The Play tab carries a dot while any of today's games is in progress (A13, SC11).
- * Play is immersive (A15, N2): while the selected tab's top is a board ([GameKey]) or a
- * result ([ResultKey]) neither bar nor rail shows, and back is the way out.
+ * Play is immersive (A15, N2): while the selected tab's top is a board ([GameKey], or a
+ * friend's [CustomGameKey]) or a result ([ResultKey]) neither bar nor rail shows, and back
+ * is the way out.
  *
  * Full-screen motion (polish 04): the chrome sits UNDER the scenes, which leave its strip
  * unpainted ([LocalChromePadding]), so a board covers it as one window and the chrome leaves
  * animated with the page beneath it, never in a one-frame cut: the bar parallaxes with the
  * outgoing page (phone), the rail fades and shifts out early in the lift (tablet).
+ *
+ * A [pendingLink] (a tapped share link's URI) lands on the back stack in the composition
+ * that first sees it, so a cold start draws the friend's card on its first frame; then
+ * [onLinkApplied]. A link whose code doesn't parse opens Play's code sheet holding its text.
+ * While [ReleaseFlag.FriendSharing] is off a link is taken and dropped (ADR-0022).
  */
 @Composable
 fun PuzzleBoxApp(
     windowWidthSizeClass: WindowWidthSizeClass,
     modifier: Modifier = Modifier,
     navigator: Navigator = rememberNavigator(),
+    pendingLink: String? = null,
+    onLinkApplied: () -> Unit = {},
     todaySet: ObserveTodaySet = koinInject(),
+    releaseFlags: ReleaseFlags = koinInject(),
 ) {
+    var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
+    val flags by releaseFlags.enabled.collectAsStateWithLifecycle()
+    if (pendingLink != null) {
+        remember(pendingLink) {
+            // Friend sharing off (ADR-0022): the link is taken and dropped, the app stays put.
+            FriendLink.of(pendingLink)?.takeIf { ReleaseFlag.FriendSharing in flags }?.let { link ->
+                navigator.applyFriendLink(link)
+                if (link is FriendLink.Invalid) codeDraft = link.text
+            }
+        }
+        SideEffect(onLinkApplied)
+    }
     // Two-pane needs width AND height: a large tablet in portrait still measures
     // Expanded by width class, so the orientation comes from the current window
     // container size. One policy call drives both the nav shape and Home's pane
@@ -105,7 +129,7 @@ fun PuzzleBoxApp(
     val expanded = layout == HomeLayout.TwoPane
     val selected = navigator.state.tab
     val top = navigator.state.currentStack.last()
-    val immersive = top is GameKey || top is ResultKey
+    val immersive = top is GameKey || top is CustomGameKey || top is ResultKey
     val anyInProgress by remember(todaySet) {
         todaySet().map { entries -> entries.any { it.status is TodayStatus.InProgress } }
     }.collectAsStateWithLifecycle(initialValue = false)
@@ -158,6 +182,8 @@ fun PuzzleBoxApp(
                     playLayout = playLayout,
                     historyLayout = historyLayout,
                     modifier = Modifier.fillMaxSize(),
+                    codeDraft = { codeDraft },
+                    onCodeDraftTaken = { codeDraft = null },
                 )
             }
         }
@@ -228,52 +254,4 @@ private fun chromePadding(expanded: Boolean, barHeight: Dp, railWidth: Dp): Padd
         end = bars.calculateEndPadding(direction),
         bottom = if (expanded) bars.calculateBottomPadding() else barHeight,
     )
-}
-
-// Catalog route (ticket showkase-v2-01): debug builds render the new Showkase browser
-// inline — it follows PuzzleBoxTheme instead of the old pinned-dark activity. Main cannot
-// reference debug-only code at compile time (the debug source set doesn't exist in
-// release), so the browser is registered reflectively: loading CatalogDebugBinding runs
-// its class-init, which assigns DebugCatalogContent. The FLAG_DEBUGGABLE gate keeps
-// release from ever touching the reflection path; anything that can't or shouldn't load
-// the browser (release, non-debuggable) gets the cutover placeholder (showkase-v2-05) —
-// the old screens are gone, not demoted to a fallback.
-internal object DebugCatalogContent {
-    @Volatile
-    var browser: (
-@Composable (openGame: (String) -> Unit) -> Unit)? = null
-}
-
-private const val DEBUG_CATALOG_BINDING =
-    "com.ivandsky.puzzlebox.app.debug.CatalogDebugBinding"
-@Composable
-internal fun CatalogScreen(openGame: (String) -> Unit) {
-    val debugBrowser = debugCatalogBrowser()
-    Box(Modifier.testTag("route.catalog")) {
-        if (debugBrowser != null) {
-            debugBrowser(openGame)
-        } else {
-            CatalogUnavailableScreen()
-        }
-    }
-}
-
-@Composable
-private fun debugCatalogBrowser(): (
-@Composable (openGame: (String) -> Unit) -> Unit)? {
-    val isDebuggable = LocalContext.current.applicationInfo.flags and
-        android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
-    return if (isDebuggable) {
-        remember {
-            try {
-                // Class.forName initializes the class, running the binding's registration.
-                Class.forName(DEBUG_CATALOG_BINDING)
-                DebugCatalogContent.browser
-            } catch (_: Throwable) {
-                null
-            }
-        }
-    } else {
-        null
-    }
 }

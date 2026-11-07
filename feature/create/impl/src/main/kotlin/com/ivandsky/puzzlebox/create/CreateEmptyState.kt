@@ -20,10 +20,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.maxContentWidth
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GameGlyph
@@ -47,7 +49,7 @@ fun CreateEmptyState(
 ) {
     Column(
         modifier = modifier
-            .fillMaxWidth()
+            .maxContentWidth()
             .verticalScroll(rememberScrollState())
             .testTag("create.empty"),
     ) {
@@ -134,17 +136,17 @@ internal fun GameStartRow(
 
 /** Stand-in games for this module's previews, with their real rule lines and two size ranges. */
 internal val PreviewGames: List<CreateUiState.NewGame> = listOf(
-    previewGame("queens", "Queens", AccentSlot.Violet, (4..12).toList()),
-    previewGame("zip", "Zip", AccentSlot.Orange, (5..8).toList()),
-    previewGame("tango", "Tango", AccentSlot.Teal, listOf(6)),
+    previewGame("queens", "Queens", GameBrand(AccentSlot.Violet, GameGlyphs.Queens), (4..12).toList()),
+    previewGame("zip", "Zip", GameBrand(AccentSlot.Blue, GameGlyphs.Zip), (5..8).toList()),
+    previewGame("tango", "Tango", GameBrand(AccentSlot.Orange, GameGlyphs.Tango), listOf(6)),
 )
 
-private fun previewGame(id: String, name: String, accent: AccentSlot, sizes: List<Int>): CreateUiState.NewGame {
+private fun previewGame(id: String, name: String, brand: GameBrand, sizes: List<Int>): CreateUiState.NewGame {
     val all = sizes.map { CreateUiState.Size(VariantId("$id/$it"), "$it×$it") }
     return CreateUiState.NewGame(
         id = GameId(id),
         name = name,
-        brand = GameBrand.Neutral.copy(accent = accent),
+        brand = brand,
         rule = gameRuleLine(GameId(id)),
         defaultSize = all[all.size / 2],
         sizes = all,

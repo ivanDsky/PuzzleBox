@@ -1,5 +1,11 @@
 package com.ivandsky.puzzlebox.create.editor
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -12,13 +18,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.runtime.remember
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntSize
+import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.domain.PublishOutcome
+import com.ivandsky.puzzlebox.domain.ValidatePublishDetails
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 
 /**
@@ -29,9 +41,14 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
  * (its detail lives in the game's fix list), or Ready when none remain (spec A8, A10, A25).
  * Test solve is the next step, so it is Primary until a test passes, then it reads Test again in
  * the quiet style; it is enabled only when [canTestSolve] (a Unique board of a game that exports
- * puzzles). When the Studio can publish ([publish] is its state), Publish follows, enabled once
- * nothing blocks and no publish is running, over the last publish's outcome. Signed out it reads
- * "Sign in & publish": the tap signs in first, then publishes.
+ * puzzles). When the Studio can publish ([publish] is its state), a passed test opens the
+ * [PublishDetails] rows — [title], author name and note — until the puzzle is published; their
+ * blocks join the readiness line. Publish follows, enabled once nothing blocks and no publish is
+ * running, over the last publish's outcome. Signed out it reads "Sign in & publish": the tap
+ * signs in first, then publishes.
+ *
+ * Motion: the details **Expand** in with a **Fade** (EnterDuration on the emphasized decelerate
+ * curve) and collapse the same way once published; under reduced motion they only fade.
  */
 @Composable
 fun ActionArea(
@@ -42,7 +59,13 @@ fun ActionArea(
     modifier: Modifier = Modifier,
     publish: PublishSession.State? = null,
     onPublish: () -> Unit = {},
+    title: String = "",
+    onRename: (String) -> Unit = {},
+    onAuthorName: (String) -> Unit = {},
+    onNote: (String) -> Unit = {},
 ) {
+    val detailBlocks = publish?.details?.blocks.orEmpty()
+    val shown = remember(blocks, detailBlocks) { blocks + detailBlocks }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(
             text = passed?.let(::statusOf) ?: "Not tested",
@@ -58,16 +81,45 @@ fun ActionArea(
         } else {
             SecondaryButton(text = "Test again", onClick = onTestSolve, enabled = canTestSolve, modifier = buttonModifier)
         }
-        ReadinessLine(blocks)
+        if (publish != null) {
+            DetailsReveal(visible = passed != null && publish.outcome !is PublishOutcome.Published) {
+                PublishDetails(
+                    title = title,
+                    details = publish.details,
+                    signedIn = publish.signedIn,
+                    onRename = onRename,
+                    onAuthorName = onAuthorName,
+                    onNote = onNote,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !publish.busy,
+                )
+            }
+        }
+        ReadinessLine(shown)
         if (publish != null) {
             PrimaryButton(
                 text = if (publish.signedIn) "Publish" else "Sign in & publish",
                 onClick = onPublish,
-                enabled = blocks.isEmpty() && !publish.busy,
+                enabled = shown.isEmpty() && !publish.busy,
                 modifier = Modifier.fillMaxWidth().testTag("create.action.publish"),
             )
             publish.outcome?.let { PublishedTicket(it) }
         }
+    }
+}
+
+/** Shows [content] once a test passes, expanding it in; reduced motion only fades. */
+@Composable
+private fun DetailsReveal(visible: Boolean, content: @Composable () -> Unit) {
+    val reduced = rememberReducedMotion()
+    val spec = tween<IntSize>(MotionTokens.EnterDuration, easing = MotionTokens.EasingEmphasizedDecelerate)
+    val fade = tween<Float>(if (reduced) MotionTokens.ReducedFadeDuration else MotionTokens.EnterDuration)
+    AnimatedVisibility(
+        visible = visible,
+        enter = if (reduced) fadeIn(fade) else expandVertically(spec) + fadeIn(fade),
+        exit = if (reduced) fadeOut(fade) else shrinkVertically(spec) + fadeOut(fade),
+    ) {
+        content()
     }
 }
 
@@ -105,12 +157,17 @@ private fun readinessOf(blocks: List<PublishBlock>): List<Pair<String, String>> 
 
 private const val BOARD_TAG = "board"
 
-/** Copy for every id in [com.ivandsky.puzzlebox.domain.ValidatePublish.blockIds] (ReadinessCopyTest). */
+/**
+ * Copy for every id in [com.ivandsky.puzzlebox.domain.ValidatePublish.blockIds] and
+ * [com.ivandsky.puzzlebox.domain.ValidatePublishDetails.blockIds] (ReadinessCopyTest).
+ */
 private val DOMAIN_COPY: Map<String, String> = mapOf(
     PublishBlock.NOT_UNIQUE to "Not unique",
     PublishBlock.NOT_TESTED to "Not tested",
     PublishBlock.EMPTY_TITLE to "Title is empty",
     PublishBlock.TITLE_TOO_LONG to "Title is too long",
+    PublishBlock.AUTHOR_TOO_LONG to "Name is too long",
+    PublishBlock.NOTE_TOO_LONG to "Note is too long",
 )
 
 private fun statusOf(test: TestSolve): String =
@@ -158,6 +215,42 @@ private fun ActionAreaSignedOutPreview() {
             blocks = emptyList(),
             modifier = Modifier.fillMaxWidth(),
             publish = PublishSession.State(signedIn = false),
+            title = "Castle",
+        )
+    }
+}
+
+/** Ready and signed in: the details carry the display name, and Publish is enabled. */
+@PuzzleBoxPreviews
+@Composable
+private fun ActionAreaDetailsPreview() {
+    PuzzleBoxTheme {
+        ActionArea(
+            passed = TestSolve(layoutKey = "preview", timeMs = 102_000, hints = 0),
+            canTestSolve = true,
+            onTestSolve = {},
+            blocks = emptyList(),
+            modifier = Modifier.fillMaxWidth(),
+            publish = PublishSession.State(details = PublishSession.Details(authorName = "Ivan")),
+            title = "Castle",
+        )
+    }
+}
+
+/** An author name over its cap: the inline error, its readiness phrase, and Publish disabled. */
+@PuzzleBoxPreviews
+@Composable
+private fun ActionAreaDetailsTooLongPreview() {
+    val author = "a".repeat(Draft.AUTHOR_MAX + 1)
+    PuzzleBoxTheme {
+        ActionArea(
+            passed = TestSolve(layoutKey = "preview", timeMs = 102_000, hints = 0),
+            canTestSolve = true,
+            onTestSolve = {},
+            blocks = emptyList(),
+            modifier = Modifier.fillMaxWidth(),
+            publish = PublishSession.State(details = PublishSession.Details(author, "", ValidatePublishDetails()(author, ""))),
+            title = "Castle",
         )
     }
 }

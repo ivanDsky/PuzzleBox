@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.VariantId
@@ -39,7 +40,7 @@ private fun previewCard(
         difficulty = difficulty,
     ),
     gameName = "Queens",
-    brand = GameBrand.Neutral.copy(accent = AccentSlot.Pink),
+    brand = GameBrand(AccentSlot.Violet, GameGlyphs.Queens),
     size = "8×8",
     action = action,
     yourTimeMs = yourTimeMs,

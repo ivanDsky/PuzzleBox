@@ -127,6 +127,10 @@ internal fun EditorRoute(
                     publish = publish.takeIf { ReleaseFlag.FriendSharing in flags },
                     // The live verdict, like Test solve: a tap while Checking is refused as not ready.
                     onPublish = { viewModel.publish.publish(draft, ready.verdict) },
+                    title = title,
+                    onRename = viewModel.meta::rename,
+                    onAuthorName = viewModel.publish::editAuthorName,
+                    onNote = viewModel.publish::editNote,
                 )
             },
             testCleared = testCleared,
