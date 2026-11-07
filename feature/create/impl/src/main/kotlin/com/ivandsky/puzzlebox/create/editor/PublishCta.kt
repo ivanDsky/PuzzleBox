@@ -2,10 +2,10 @@ package com.ivandsky.puzzlebox.create.editor
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,25 +37,30 @@ import kotlin.math.roundToInt
 @Composable
 internal fun PublishCta(state: PublishSession.State, ready: Boolean, onPublish: () -> Unit, modifier: Modifier = Modifier) {
     val jolt = rememberRejectJolt(state)
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    Column(modifier) {
         PublishBanner(state.outcome, Modifier.fillMaxWidth())
-        PrimaryButton(
-            text = when {
-                state.busy -> "Publishing"
-                state.retry -> "Retry publish"
-                state.signedIn -> "Publish"
-                else -> "Sign in & publish"
-            },
-            onClick = onPublish,
-            enabled = ready && !state.busy,
-            loading = state.busy,
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset { IntOffset(jolt().roundToInt(), 0) }
-                .testTag("create.action.publish"),
-        )
-        state.outcome?.let { PublishedTicket(it) }
+        PublishButton(state, ready, onPublish, jolt)
+        state.outcome?.let { PublishedTicket(it, Modifier.padding(top = Spacing.sm)) }
     }
+}
+
+@Composable
+private fun PublishButton(state: PublishSession.State, ready: Boolean, onPublish: () -> Unit, jolt: () -> Float) {
+    PrimaryButton(
+        text = when {
+            state.busy -> "Publishing"
+            state.retry -> "Retry publish"
+            state.signedIn -> "Publish"
+            else -> "Sign in & publish"
+        },
+        onClick = onPublish,
+        enabled = ready && !state.busy,
+        loading = state.busy,
+        modifier = Modifier
+            .fillMaxWidth()
+            .offset { IntOffset(jolt().roundToInt(), 0) }
+            .testTag("create.action.publish"),
+    )
 }
 
 /**

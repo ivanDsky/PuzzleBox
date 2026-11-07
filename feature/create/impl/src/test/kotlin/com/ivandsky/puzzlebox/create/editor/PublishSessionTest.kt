@@ -2,10 +2,14 @@ package com.ivandsky.puzzlebox.create.editor
 
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.key
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.isNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -72,7 +76,7 @@ import org.robolectric.shadows.ShadowLooper
  * A publish that doesn't land says why under Publish: offline, or refused, the banner names it
  * and Publish turns into Retry, which goes out under the code already reserved; nothing is
  * written or queued meanwhile. At the day's cap the cap block joins the readiness line, Publish
- * stays off and test solving stays on.
+ * stays off and test solving stays on. While a publish runs, Publish is a spinner that takes no taps.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h640dp")
@@ -170,6 +174,20 @@ class PublishSessionTest {
         assertTrue(vm.publish.state.value.outcome is PublishOutcome.Rejected)
         assertTrue(vm.publish.state.value.retry)
         assertTrue(shared.docs.isEmpty())
+    }
+
+    @Test
+    fun `while a publish runs the call-to-action is a busy spinner that takes no taps`() {
+        var taps = 0
+        composeRule.setContent {
+            PuzzleBoxTheme { PublishCta(PublishSession.State(busy = true), ready = true, onPublish = { taps++ }) }
+        }
+
+        val cta = composeRule.onNodeWithTag(PUBLISH)
+        cta.assert(isNotEnabled())
+        cta.assert(hasProgressBarRangeInfo(ProgressBarRangeInfo.Indeterminate))
+        cta.performClick()
+        assertEquals(0, taps)
     }
 
     private fun tapPublish() {

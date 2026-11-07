@@ -33,7 +33,7 @@ import com.ivandsky.puzzlebox.domain.PublishOutcome
 /**
  * Why the last publish didn't land, above Publish: offline or refused in the error container
  * (Publish then reads Retry), the day's cap in the tertiary one. Any other [outcome] shows
- * nothing. The banner opens and closes in place (expand + fade on the enter curve); reduced
+ * nothing; shown, it keeps its own gap above Publish. The banner opens and closes in place (expand + fade on the enter curve); reduced
  * motion fades it.
  */
 @Composable
@@ -60,6 +60,7 @@ private fun Banner(banner: Kind) {
         contentColor = content,
         shape = AppShapes.medium,
         modifier = Modifier
+            .padding(bottom = Spacing.sm)
             .fillMaxWidth()
             .testTag(banner.tag)
             .semantics { liveRegion = LiveRegionMode.Polite },
