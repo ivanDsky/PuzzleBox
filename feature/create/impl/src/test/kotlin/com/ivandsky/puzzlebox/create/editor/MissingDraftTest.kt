@@ -59,6 +59,7 @@ class MissingDraftTest {
                             key, drafts, GameRegistry(emptyList()), GameEditorRegistry(listOf(FakeGameEditorUi())),
                             GamePlayRegistry(emptyList()), copyDraft, DefaultDispatcherProvider(),
                             saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW },
+                            createShared = signedOutPublishing(drafts),
                         )
                     }
                 },

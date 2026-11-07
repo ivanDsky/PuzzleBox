@@ -29,7 +29,8 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
  * (its detail lives in the game's fix list), or Ready when none remain (spec A8, A10, A25).
  * Test solve is the next step, so it is Primary until a test passes, then it reads Test again in
  * the quiet style; it is enabled only when [canTestSolve] (a Unique board of a game that exports
- * puzzles). M2 has no Publish button: publishing arrives in M3.
+ * puzzles). When the Studio can publish ([publish] is its state), Publish follows, enabled once
+ * nothing blocks and no publish is running, over the last publish's outcome.
  */
 @Composable
 fun ActionArea(
@@ -38,6 +39,8 @@ fun ActionArea(
     onTestSolve: () -> Unit,
     blocks: List<PublishBlock>,
     modifier: Modifier = Modifier,
+    publish: PublishSession.State? = null,
+    onPublish: () -> Unit = {},
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(
@@ -55,6 +58,15 @@ fun ActionArea(
             SecondaryButton(text = "Test again", onClick = onTestSolve, enabled = canTestSolve, modifier = buttonModifier)
         }
         ReadinessLine(blocks)
+        if (publish != null) {
+            PrimaryButton(
+                text = "Publish",
+                onClick = onPublish,
+                enabled = blocks.isEmpty() && !publish.busy,
+                modifier = Modifier.fillMaxWidth().testTag("create.action.publish"),
+            )
+            publish.outcome?.let { PublishedTicket(it) }
+        }
     }
 }
 

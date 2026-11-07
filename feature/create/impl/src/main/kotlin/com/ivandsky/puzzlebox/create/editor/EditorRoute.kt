@@ -47,6 +47,7 @@ internal fun EditorRoute(
     val sandbox by viewModel.testSolve.sandbox.collectAsStateWithLifecycle()
     val passed by viewModel.testSolve.passed.collectAsStateWithLifecycle()
     val testCleared by viewModel.testSolve.cleared.collectAsStateWithLifecycle()
+    val publish by viewModel.publish.state.collectAsStateWithLifecycle()
     val cardOpen by viewModel.verdictCard.open.collectAsStateWithLifecycle()
     val overlay by viewModel.verdictCard.overlay.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flush() }
@@ -113,6 +114,9 @@ internal fun EditorRoute(
                     onTestSolve = { viewModel.testSolve.start(draft, ready.verdict) },
                     blocks = remember(draft, held, title, passed) { viewModel.readiness(draft, held, title, passed) },
                     modifier = areaModifier,
+                    publish = publish,
+                    // The live verdict, like Test solve: a tap while Checking is refused as not ready.
+                    onPublish = { viewModel.publish.publish(draft, ready.verdict) },
                 )
             },
             testCleared = testCleared,
