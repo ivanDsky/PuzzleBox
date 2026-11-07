@@ -31,8 +31,9 @@ unregistered in release), ADR-0016 the persisted-query GraphQL GET rung in `Feed
 ADR-0017 LinkedIn by-number archive, ADR-0018 custom-puzzle identity, ADR-0019 the editor
 seam (`GameEditor` in `core:game`, `GameEditorUi` in `core:game-ui`, one game-agnostic
 `feature:create`), ADR-0020 shared puzzles in Firestore, ADR-0021 the tools module family,
-ADR-0022 trunk delivery (required `pr-check` CI; unfinished work merges dark behind a
-`ReleaseFlag`, bound per build type; the flip PR releases).
+ADR-0022 trunk delivery (unfinished work merges dark behind a
+`ReleaseFlag`, bound per build type; the flip PR releases), ADR-0023 CI on main only (PRs
+run no CI; the local `assembleDebug test` is the merge gate; main tests before releasing).
 
 ## Layout
 

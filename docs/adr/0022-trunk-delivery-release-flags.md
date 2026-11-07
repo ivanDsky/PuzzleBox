@@ -11,7 +11,8 @@ merge. That only works if merging and releasing are separate steps: a half-built
 to merge without being reachable in a release build.
 
 ## Decision
-1. **CI judges every merge.** `.github/workflows/pr-check.yml` (job `pr-check`) runs on every PR
+1. **CI judges every merge.** *(Superseded by ADR-0023: PRs no longer run CI; main runs this
+   suite after each merge, before releasing.)* `.github/workflows/pr-check.yml` (job `pr-check`) runs on every PR
    into main and on main itself: `./gradlew assembleDebug test`, which covers the module-graph
    guard, every module's unit tests, `:app`'s release host tests and `:konsist`. Main's branch
    protection requires `pr-check`. Screenshot goldens are recorded on macOS, so CI runs them in

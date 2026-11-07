@@ -1,6 +1,8 @@
-# Every push to main builds the release APK, signed with the release key, and publishes it as
-# GitHub release v<versionName>. A versionName that already has a tag publishes nothing.
-name: Release
+# The one CI workflow (ADR-0023): PRs run no CI and merge without a status check. Every push to
+# main runs the full build + unit tests first; only a green tree builds the release APK, signed
+# with the release key, and publishes it as GitHub release v<versionName>. A versionName that
+# already has a tag publishes nothing. A red run means main is broken: fix forward or revert.
+name: Main
 
 on:
   push:
@@ -30,7 +32,26 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # Runs on the default branch only, so setup-gradle writes the Gradle cache here.
       - uses: gradle/actions/setup-gradle@v4
+
+      # `assembleDebug` also runs checkModuleGraph (ADR-0008) via preBuild. `test` covers the
+      # JVM modules, every Android module's debug unit tests, :app's release host tests
+      # (ReleaseGameModulesTest, ReleaseUpdateChecksTest, ReleaseFlagsBindingTest) and :konsist (ADR-0009).
+      # Screenshot goldens are recorded on macOS: Linux fonts drift, so pixels are not
+      # verified here (roborazzi stays in record mode, and goldens.pixelCompare=false makes
+      # the Tango harness skip its always-on pixel diff); verify them locally with
+      # -Proborazzi.verify=true.
+      - name: Build and unit tests
+        run: ./gradlew assembleDebug test --continue -Pgoldens.pixelCompare=false
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: "**/build/reports/tests/"
+          retention-days: 7
 
       - name: Check signing secrets
         env:
