@@ -26,14 +26,17 @@ import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
-import org.junit.After
+import androidx.compose.runtime.DisposableEffect
+import org.junit.AfterClass
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
+import org.junit.rules.ExternalResource
+import org.junit.rules.RuleChain
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
@@ -52,31 +55,36 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], application = android.app.Application::class)
 class ChromeExitShellTest {
 
+    // Koin is the outer rule: the activity and its composition are torn down while the graph
+    // is still up. As an @After, stopKoin() closed the scopes first, and the disposing
+    // composition (ViewModels, koinInject) then resolved from a closed scope.
+    private val composeRule = createAndroidComposeRule<ComponentActivity>()
+
     @get:Rule
-    val composeRule = createAndroidComposeRule<ComponentActivity>()
+    val rules: RuleChain = RuleChain.outerRule(KoinGraph()).around(composeRule)
 
     private lateinit var navigator: Navigator
 
-    @Before
-    fun startGraph() {
-        stopKoin()
-        startKoin {
-            androidContext(RuntimeEnvironment.getApplication())
-            modules(
-                PuzzleBoxApplication.appModules + module {
-                    single<DailyRepository> { freshDailyForAllGames() }
-                    single<CompletionRepository> { FakeCompletionRepository() }
-                    single<SavedPlayRepository> { FakeSavedPlayRepository() }
-                    single<IdentityService> { FakeIdentityService() }
-                    single<LeaderboardRepository> { FakeLeaderboardRepository() }
-                },
-            )
+    private class KoinGraph : ExternalResource() {
+        override fun before() {
+            stopKoin()
+            startKoin {
+                androidContext(RuntimeEnvironment.getApplication())
+                modules(
+                    PuzzleBoxApplication.appModules + module {
+                        single<DailyRepository> { freshDailyForAllGames() }
+                        single<CompletionRepository> { FakeCompletionRepository() }
+                        single<SavedPlayRepository> { FakeSavedPlayRepository() }
+                        single<IdentityService> { FakeIdentityService() }
+                        single<LeaderboardRepository> { FakeLeaderboardRepository() }
+                    },
+                )
+            }
         }
-    }
 
-    @After
-    fun stopGraph() {
-        stopKoin()
+        override fun after() {
+            stopKoin()
+        }
     }
 
     @Test
@@ -115,6 +123,9 @@ class ChromeExitShellTest {
 
     private fun showHub(width: WindowWidthSizeClass) {
         composeRule.setContent {
+            DisposableEffect(Unit) {
+                onDispose { disposals += GlobalContext.getOrNull() != null }
+            }
             PuzzleBoxTheme(darkTheme = false) {
                 PuzzleBoxApp(
                     windowWidthSizeClass = width,
@@ -145,6 +156,15 @@ class ChromeExitShellTest {
     private fun left(tag: String): Float = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot().left.value
 
     private companion object {
+        /** Whether Koin was still up as each test's composition was disposed. */
+        val disposals = mutableListOf<Boolean>()
+
+        @AfterClass
+        @JvmStatic
+        fun compositionsDisposedBeforeKoinStopped() {
+            assertTrue("every composition disposes with Koin still up: $disposals", disposals.isNotEmpty() && disposals.all { it })
+        }
+
         const val ZIP = "zip"
         const val PLAY_TAB = "nav.tab.play"
 
