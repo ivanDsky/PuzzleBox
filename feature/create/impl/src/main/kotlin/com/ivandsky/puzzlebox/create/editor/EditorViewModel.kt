@@ -96,7 +96,7 @@ class EditorViewModel(
     /** "Saving…" while an edit waits to be stored, "✓ Saved" once it is. */
     val saving: StateFlow<Boolean> = autosave.saving
 
-    /** Publish and its details: the pending edit is stored first; the reserved code comes back onto the row this writes. */
+    /** Publish and its details: the pending edit is stored first; the reserved code goes onto the row this writes. */
     val publish = PublishSession(
         draftId = key.draftId,
         createShared = createShared,
@@ -105,7 +105,7 @@ class EditorViewModel(
         idTokens = idTokens,
         scope = viewModelScope,
         flush = { autosave.flush() },
-        reserved = { code -> lastStored = lastStored?.copy(reservedCode = code) },
+        reserved = { code -> lastStored = lastStored?.copy(reservedCode = code)?.also(autosave::offer) },
         storeDetails = { authorName, note -> lastStored?.let { write(it.copy(authorName = authorName, note = note)) } },
     )
 

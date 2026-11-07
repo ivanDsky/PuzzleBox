@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.model.ShareCode
+import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,9 +26,10 @@ import kotlinx.coroutines.launch
 
 /**
  * The Studio's Publish: [publish] stores the pending edit first ([flush]), so the shared title,
- * details and test are the ones on screen, then runs [createShared]. The use case writes the
- * reserved code onto the stored row; [reserved] hands it back to the Studio's one writer, so a
- * later autosave keeps it. One publish at a time.
+ * details and test are the ones on screen, then runs [createShared]. A draft with no
+ * reserved code gets one before the network call, handed to [reserved], the Studio's one writer,
+ * and stored by the [flush] that follows, so an autosave during the call keeps it; the use case
+ * reuses it. A later code (a taken one replaced) comes back through [reserved] too. One publish at a time.
  *
  * A publish that falls short (spec A15, A16) stays the outcome until the next one: offline or
  * refused, [State.retry] turns Publish into Retry, which goes out under the reserved code, so a
@@ -61,6 +63,7 @@ class PublishSession(
     private val reserved: (code: String?) -> Unit,
     private val storeDetails: (authorName: String, note: String) -> Unit,
     private val validateDetails: ValidatePublishDetails = ValidatePublishDetails(),
+    private val random: Random = Random.Default,
 ) {
 
     /**
@@ -216,6 +219,7 @@ class PublishSession(
         store()
         scope.launch {
             flush()
+            reserveBeforeCall()
             val outcome = createShared(draftId, request.draft, request.verdict)
             reserved(drafts.get(draftId)?.reservedCode)
             if (outcome == PublishOutcome.SignedOut && !afterSignIn) {
@@ -225,6 +229,18 @@ class PublishSession(
                 mutableState.update { it.copy(busy = false, outcome = outcome) }
             }
         }
+    }
+
+    /**
+     * A draft with no usable reserved code gets one now, through [reserved] and the Studio's one
+     * writer, so every autosave while [createShared] is in flight carries it (spec A15). Storing it
+     * behind the writer's back would let an autosave of the older row wipe it.
+     */
+    private suspend fun reserveBeforeCall() {
+        val row = drafts.get(draftId) ?: return
+        if (row.reservedCode?.let(ShareCode::parse) != null) return
+        reserved(ShareCode.random(random).value)
+        flush()
     }
 
     /** Shows [who]'s display name, clamped to the cap, while the author has none of their own. */
