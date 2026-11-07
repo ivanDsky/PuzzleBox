@@ -31,11 +31,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -47,7 +45,6 @@ import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
 import com.ivandsky.puzzlebox.app.nav.applyFriendLink
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
-import com.ivandsky.puzzlebox.app.screens.CatalogUnavailableScreen
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -251,52 +248,4 @@ private fun chromePadding(expanded: Boolean, barHeight: Dp, railWidth: Dp): Padd
         end = bars.calculateEndPadding(direction),
         bottom = if (expanded) bars.calculateBottomPadding() else barHeight,
     )
-}
-
-// Catalog route (ticket showkase-v2-01): debug builds render the new Showkase browser
-// inline — it follows PuzzleBoxTheme instead of the old pinned-dark activity. Main cannot
-// reference debug-only code at compile time (the debug source set doesn't exist in
-// release), so the browser is registered reflectively: loading CatalogDebugBinding runs
-// its class-init, which assigns DebugCatalogContent. The FLAG_DEBUGGABLE gate keeps
-// release from ever touching the reflection path; anything that can't or shouldn't load
-// the browser (release, non-debuggable) gets the cutover placeholder (showkase-v2-05) —
-// the old screens are gone, not demoted to a fallback.
-internal object DebugCatalogContent {
-    @Volatile
-    var browser: (
-@Composable (openGame: (String) -> Unit) -> Unit)? = null
-}
-
-private const val DEBUG_CATALOG_BINDING =
-    "com.ivandsky.puzzlebox.app.debug.CatalogDebugBinding"
-@Composable
-internal fun CatalogScreen(openGame: (String) -> Unit) {
-    val debugBrowser = debugCatalogBrowser()
-    Box(Modifier.testTag("route.catalog")) {
-        if (debugBrowser != null) {
-            debugBrowser(openGame)
-        } else {
-            CatalogUnavailableScreen()
-        }
-    }
-}
-
-@Composable
-private fun debugCatalogBrowser(): (
-@Composable (openGame: (String) -> Unit) -> Unit)? {
-    val isDebuggable = LocalContext.current.applicationInfo.flags and
-        android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
-    return if (isDebuggable) {
-        remember {
-            try {
-                // Class.forName initializes the class, running the binding's registration.
-                Class.forName(DEBUG_CATALOG_BINDING)
-                DebugCatalogContent.browser
-            } catch (_: Throwable) {
-                null
-            }
-        }
-    } else {
-        null
-    }
 }
