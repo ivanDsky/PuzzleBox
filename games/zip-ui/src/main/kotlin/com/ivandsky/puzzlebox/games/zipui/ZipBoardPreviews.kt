@@ -70,6 +70,19 @@ internal fun ZipBoardDotsMidTracePreview() {
 
 @PuzzleBoxPreviews
 @Composable
+internal fun ZipBoardHeadPreview() {
+    PuzzleBoxTheme {
+        // n6, trace ending on a plain cell: the head disc (MotionTokens.Trace.HeadScale × the
+        // line width) reads as the line end; a lone start cell would show just the head.
+        ZipBoard(
+            zipPreviewModel(6, waypoints = listOf(0, 5, 18, 30, 35), path = listOf(0, 6, 7, 8, 14)),
+            Modifier.padding(24.dp),
+        )
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
 internal fun ZipBoardDotsN8FreshPreview() {
     PuzzleBoxTheme {
         // n8 with all 16 waypoints, two-digit labels "10"–"16" included; the last four

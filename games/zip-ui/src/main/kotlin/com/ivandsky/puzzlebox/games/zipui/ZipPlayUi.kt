@@ -11,11 +11,13 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.toRect
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
@@ -181,18 +183,22 @@ private fun ZipBoard(controller: ZipPlayController, modifier: Modifier) {
         }
         controller.clearHintArrow()
     }
+    val hooks = remember(puzzle) { ZipDragHooks(puzzle.board) }
+    // Snapshot state read only inside ZipPipes' draw: a moving finger redraws, never recomposes.
+    val finger = remember { mutableStateOf<Offset?>(null) }
     Box(modifier) {
         DragTraceBoard(
             rows = model.n,
             cols = model.n,
             path = model.path.map { GridCell(it / model.n, it % model.n) },
-            hooks = remember(puzzle) { ZipDragHooks(puzzle.board) },
+            hooks = hooks,
             onEvent = controller::onDragEvent,
             edgeOverlays = zipWallOverlays(model),
-            underlay = { ZipPipes(model) },
+            underlay = { ZipPipes(model, { finger.value }, hooks, animate = !reducedMotion) },
             cellContent = { row, col ->
-                ZipCellDecor(model, row, col, animateFlash = !reducedMotion)
+                ZipCellDecor(model, row, col, animated = !reducedMotion)
             },
+            onPointer = { finger.value = it },
             // A4: capped at PlayBoardMaxWidth and centered by the pane; BoardGrid's
             // aspectRatio keeps the grid exact under these loose constraints. The
             // outline rides the same modifier (U1 §4 — Zip's outline is gridline-weight).
