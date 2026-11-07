@@ -10,8 +10,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
+import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.segmentedButtonColors
 
 /** The [controller]'s Crown | Paint toggle, shown in the tool strip's hint slot. */
 @Composable
@@ -21,8 +23,8 @@ internal fun QueensModeToggle(controller: QueensEditorController, modifier: Modi
 }
 
 /**
- * Two segments, **Crown** and **Paint** (tags `queens.editor.mode.crown` / `.paint`); the
- * [mode] segment is selected and a tap on either calls [onSelect].
+ * Two segments, **Crown** and **Paint** (tags `queens.editor.mode.crown` / `.paint`), in the
+ * Studio's violet selection style; the [mode] segment is selected and a tap on either calls [onSelect].
  */
 @Composable
 internal fun QueensModeToggle(mode: QueensEditorMode, onSelect: (QueensEditorMode) -> Unit, modifier: Modifier = Modifier) {
@@ -33,6 +35,7 @@ internal fun QueensModeToggle(mode: QueensEditorMode, onSelect: (QueensEditorMod
                 selected = mode == each,
                 onClick = { onSelect(each) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = modes.size),
+                colors = AccentSlot.Violet.segmentedButtonColors(),
                 modifier = Modifier.testTag("queens.editor.mode.${each.name.lowercase()}"),
             ) {
                 Text(

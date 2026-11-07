@@ -16,6 +16,9 @@ object QueensEditorDefaults {
      */
     const val ghostOutlineAlpha: Float = 0.85f
 
+    /** An auto × under a ghost crown steps back, so the ghost reads first and the two never tangle. */
+    const val ghostedXAlpha: Float = 0.3f
+
     /** Accent wash over a selected cell. */
     const val selectionOverlayAlpha: Float = 0.28f
 

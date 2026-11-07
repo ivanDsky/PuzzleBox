@@ -30,7 +30,9 @@ import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.model.GameId
 
-private val GameRowMinHeight = 68.dp
+/** Title plus a two-line rule, so every game row stands the same height. */
+private val GameRowMinHeight = 84.dp
+private const val RuleMaxLines = 2
 
 /**
  * The first-time Create root (spec A3; 01 handoff "Empty (first time)", option C): with no
@@ -113,7 +115,7 @@ internal fun GameStartRow(
                     modifier = Modifier.testTag("$tagRoot.rule.$id"),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = RuleMaxLines,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -130,20 +132,20 @@ internal fun GameStartRow(
     }
 }
 
-/** Stand-in games for this module's previews: two sizes ranges, one game without a rule line. */
+/** Stand-in games for this module's previews, with their real rule lines and two size ranges. */
 internal val PreviewGames: List<CreateUiState.NewGame> = listOf(
-    previewGame("queens", "Queens", AccentSlot.Violet, (4..12).toList(), "One crown in every row, column and colour region"),
-    previewGame("zip", "Zip", AccentSlot.Orange, (5..8).toList(), "Draw one path through every cell, hitting the numbers in order"),
-    previewGame("tango", "Tango", AccentSlot.Teal, listOf(6), null),
+    previewGame("queens", "Queens", AccentSlot.Violet, (4..12).toList()),
+    previewGame("zip", "Zip", AccentSlot.Orange, (5..8).toList()),
+    previewGame("tango", "Tango", AccentSlot.Teal, listOf(6)),
 )
 
-private fun previewGame(id: String, name: String, accent: AccentSlot, sizes: List<Int>, rule: String?): CreateUiState.NewGame {
+private fun previewGame(id: String, name: String, accent: AccentSlot, sizes: List<Int>): CreateUiState.NewGame {
     val all = sizes.map { CreateUiState.Size(VariantId("$id/$it"), "$it×$it") }
     return CreateUiState.NewGame(
         id = GameId(id),
         name = name,
         brand = GameBrand.Neutral.copy(accent = accent),
-        rule = rule,
+        rule = gameRuleLine(GameId(id)),
         defaultSize = all[all.size / 2],
         sizes = all,
     )

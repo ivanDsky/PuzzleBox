@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.model.GameId
@@ -114,6 +115,9 @@ class FakeEditorController(
     private val current = MutableStateFlow(initial)
     override val draft: StateFlow<EditorDraft<*>> = current.asStateFlow()
 
+    private val shownOverlay = MutableStateFlow(EditorOverlay())
+    override val overlay: StateFlow<EditorOverlay> = shownOverlay.asStateFlow()
+
     val adopted = mutableListOf<EditorDraft<*>>()
 
     /** What the fake fix row's Select picked. */
@@ -122,6 +126,10 @@ class FakeEditorController(
     override fun adopt(draft: EditorDraft<*>) {
         adopted += draft
         current.value = draft
+    }
+
+    override fun adoptOverlay(overlay: EditorOverlay) {
+        shownOverlay.value = overlay
     }
 
     fun edit(next: EditorDraft<*>) {

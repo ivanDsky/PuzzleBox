@@ -56,10 +56,11 @@ internal fun StudioLayout(
     when (layout) {
         PlayLayout.SinglePane -> Column(modifier.fillMaxSize()) {
             Box(Modifier.weight(1f).fillMaxWidth()) {
-                Box(Modifier.fillMaxSize().padding(Spacing.lg).testTag(BoardSlotTag)) {
+                // No bottom padding: the game's reserved rows already part the grid from the strip.
+                Box(Modifier.fillMaxSize().padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg).testTag(BoardSlotTag)) {
                     board(Modifier.fillMaxSize())
                 }
-                // Into the slot's bottom padding: the room under the game's rows is often one toast high.
+                // Into the room under the game's rows, which is often one toast high.
                 toast(Modifier.align(Alignment.BottomCenter).padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm))
             }
             toolStrip(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md))

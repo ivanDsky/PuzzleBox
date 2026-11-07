@@ -154,7 +154,7 @@ private fun StudioScreenPreview() {
                     sizeLabel = { "4×4" },
                     onResize = {},
                     onClear = {},
-                    hint = { Text("Tap a cell to cycle its region colour", it, style = MaterialTheme.typography.bodySmall) },
+                    hint = { Text("Drag across cells, then pick a colour", it, style = MaterialTheme.typography.bodySmall) },
                     modifier = stripModifier,
                 )
             },

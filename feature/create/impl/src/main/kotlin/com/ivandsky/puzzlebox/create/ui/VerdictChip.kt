@@ -22,8 +22,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -38,9 +38,10 @@ private val ChipHeight = 24.dp
 private val ChipIconSize = 14.dp
 
 /**
- * A draft row's verdict at a glance (01 handoff, "Draft row"): a small one-line chip in the
- * verdict's tone, with a Unique's grade; a check mark on a publishable Unique, the hint flag
- * on one that needs guessing. Its state description is the verdict's machine name
+ * A draft row's verdict at a glance (01 handoff, "Draft row"): a small one-line pill in the
+ * verdict's tone, round and lettered like the Studio's verdict pill, with a Unique's grade; a
+ * check mark on a publishable Unique, the hint flag on one that needs guessing. Its state
+ * description is the verdict's machine name
  * ("Unique", "Checking", …) for tests and accessibility services alike. Motion: a change of
  * verdict kind or grade is a **Crossfade** on MotionTokens short, already the reduced-motion fade.
  */
@@ -65,7 +66,7 @@ private fun ChipFace(verdict: Verdict) {
     val (container, content) = verdict.tone().colors(neutralContent = MaterialTheme.colorScheme.onSurfaceVariant)
     Surface(
         modifier = Modifier.height(ChipHeight),
-        shape = AppShapes.extraSmall,
+        shape = PillShape,
         color = container,
         contentColor = content,
     ) {
@@ -78,7 +79,7 @@ private fun ChipFace(verdict: Verdict) {
                 val glyph = if (verdict.needsGuessing) PuzzleIcons.Hint else PuzzleIcons.Check
                 Icon(glyph, contentDescription = null, modifier = Modifier.size(ChipIconSize))
             }
-            Text(text = verdict.glanceLabel(), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            Text(text = verdict.glanceLabel(), style = MaterialTheme.typography.labelLarge, maxLines = 1)
         }
     }
 }
