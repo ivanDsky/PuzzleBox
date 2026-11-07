@@ -29,6 +29,8 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.GridCell
+import com.ivandsky.puzzlebox.gameui.LocalPlayBoardPaneCap
+import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
@@ -103,13 +105,11 @@ fun ZipPlayScreen(
                 PlayChrome(
                     clock = controller,
                     hints = controller,
-                    undo = controller,
-                    clear = controller.edits,
                     banner = ready?.banner,
                     feedback = controller,
-                    accent = ZipBrand.accent,
                 )
             },
+            actions = { PlayActionBar(controller, controller, controller.edits, ZipBrand.accent) },
         )
     }
 }
@@ -187,6 +187,7 @@ private fun ZipBoard(controller: ZipPlayController, modifier: Modifier) {
     val hooks = remember(puzzle) { ZipDragHooks(puzzle.board) }
     // Snapshot state read only inside ZipPipes' draw: a moving finger redraws, never recomposes.
     val finger = remember { mutableStateOf<Offset?>(null) }
+    val cap = LocalPlayBoardPaneCap.current ?: PlayBoardMaxWidth
     Box(modifier) {
         DragTraceBoard(
             rows = model.n,
@@ -200,12 +201,13 @@ private fun ZipBoard(controller: ZipPlayController, modifier: Modifier) {
                 ZipCellDecor(model, row, col, animated = !reducedMotion)
             },
             onPointer = { finger.value = it },
-            // A4: capped at PlayBoardMaxWidth and centered by the pane; BoardGrid's
-            // aspectRatio keeps the grid exact under these loose constraints. The
-            // outline rides the same modifier (U1 §4 — Zip's outline is gridline-weight).
+            // A4: capped at PlayBoardMaxWidth (a two-pane board fills its pane, A15) and
+            // centered by the pane; BoardGrid's aspectRatio keeps the grid exact under
+            // these loose constraints. The outline rides the same modifier (U1 §4 — Zip's
+            // outline is gridline-weight).
             modifier = Modifier
-                .widthIn(max = PlayBoardMaxWidth)
-                .heightIn(max = PlayBoardMaxWidth)
+                .widthIn(max = cap)
+                .heightIn(max = cap)
                 .zipBoardOutline(model.n)
                 .testTag("play.board"),
         )

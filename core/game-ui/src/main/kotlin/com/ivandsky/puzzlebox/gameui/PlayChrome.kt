@@ -17,14 +17,13 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import kotlinx.coroutines.delay
 
 /*
  * The play chrome, split core | game (user ruling 2026-11-03): every game shows a title,
  * a clock, a hint control, undo/redo and a degrade banner, so those are CORE — drawn once
- * here from small seams the game's play state implements. What each seam MEANS is the
+ * in game-ui from small seams the game's play state implements. What each seam MEANS is the
  * game's: when its clock starts, what a hint does, what an undo unit is, what Clear wipes
  * ([PlayClear]). A game's own settings (Queens' Auto-cross) ride the top bar's overflow
  * as [PlayOverflowItem]s (A14).
@@ -115,25 +114,20 @@ fun PlayClockEffects(clock: PlayClock) {
 }
 
 /**
- * The play chrome under the board every game shares (A14, tango-05, split core | game
- * 2026-11-03): the degrade banner (§6 copy passed in), the one reserved caption slot
- * ([PlayCaptionSlot] over [playCaption]: violation > rejection > hint) and the bottom
- * [PlayActionBar] (Undo · Redo · Hint · Clear). The title, timer, How to play and the
- * overflow live in the route's top bar. [clock] runs the shared clock loop here so the
- * fold follows the game's screen. Seams are nullable so a game opts out of a control it
- * does not have: no [clear] hides Clear. [accent] is the game's slot, filling Hint;
- * Neutral fits only a game without the action bar.
+ * The play chrome every game shares beside or under its board (A14, tango-05, split
+ * core | game 2026-11-03): the degrade banner (§6 copy passed in) and the one reserved
+ * caption slot ([PlayCaptionSlot] over [playCaption]: violation > rejection > hint). The
+ * controls are the scaffold's [AdaptivePlayScaffold] actions ([PlayActionBar]); the
+ * title, timer, How to play and the overflow live in the route's top bar. [clock] runs the
+ * shared clock loop here so the fold follows the game's screen.
  */
 @Composable
 fun PlayChrome(
     clock: PlayClock?,
     hints: PlayHints?,
-    undo: PlayUndo?,
-    clear: PlayClear?,
     banner: String?,
     modifier: Modifier = Modifier,
     feedback: PlayFeedback? = null,
-    accent: AccentSlot = AccentSlot.Neutral,
 ) {
     if (clock != null) PlayClockEffects(clock)
 
@@ -162,7 +156,5 @@ fun PlayChrome(
         }
 
         PlayCaptionSlot(caption = playCaption(feedback, hints))
-
-        if (undo != null && hints != null) PlayActionBar(undo, hints, clear, accent)
     }
 }

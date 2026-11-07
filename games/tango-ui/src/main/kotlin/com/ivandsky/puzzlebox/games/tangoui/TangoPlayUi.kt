@@ -16,6 +16,8 @@ import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
+import com.ivandsky.puzzlebox.gameui.LocalPlayBoardPaneCap
+import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
@@ -59,9 +61,9 @@ class TangoPlayUi : GamePlayUi {
 /**
  * The Tango play screen (tango-05, A14): the Zip play shell (ticket 13/23 semantics) with
  * 04's board renderer. Tap placements land through [TangoBoardRenderer]'s placement
- * callback; the caption and action bar are the shared [PlayChrome], with no Clear (Tango
- * has none). Design §6: the win moment is the same [PlaySolveFrame] then route handoff;
- * this screen never renders win content.
+ * callback; the caption is the shared [PlayChrome] and the controls the shared
+ * [PlayActionBar], with no Clear (Tango has none). Design §6: the win moment is the same
+ * [PlaySolveFrame] then route handoff; this screen never renders win content.
  */
 @Composable
 fun TangoPlayScreen(
@@ -82,13 +84,11 @@ fun TangoPlayScreen(
                 PlayChrome(
                     clock = controller,
                     hints = controller,
-                    undo = controller,
-                    clear = null,
                     banner = ready?.banner,
                     feedback = controller,
-                    accent = TangoBrand.accent,
                 )
             },
+            actions = { PlayActionBar(controller, controller, clear = null, accent = TangoBrand.accent) },
         )
     }
 }
@@ -151,11 +151,12 @@ private fun TangoBoard(controller: TangoPlayController, modifier: Modifier) {
     // play shell only wires placements into the controller. The outline
     // rides the board modifier (§2 — the Zip outline pattern).
     val renderer = remember(controller) { TangoBoardRenderer(onPlacement = controller::onPlacement) }
+    val cap = LocalPlayBoardPaneCap.current ?: PlayBoardMaxWidth
     renderer.Content(
         model = model,
         modifier = modifier
-            .widthIn(max = PlayBoardMaxWidth)
-            .heightIn(max = PlayBoardMaxWidth)
+            .widthIn(max = cap)
+            .heightIn(max = cap)
             // No zipBoardOutline here: that's Zip's ROUNDED outline. Tango's
             // squared mesh closes itself with a square border (renderer).
             .testTag("play.board"),

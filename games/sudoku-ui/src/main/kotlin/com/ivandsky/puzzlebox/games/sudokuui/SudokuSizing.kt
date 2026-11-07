@@ -15,14 +15,14 @@ import kotlin.math.roundToInt
  * (prototype 01 D, user pick): the digit key is as tall as a board cell, and grows to at
  * most 1.25 x the cell only into height left over, so neither the board nor the keys win at
  * the other's cost; a pane too small for 48dp of both shrinks them together. The board
- * takes the width (capped at [PlayBoardMaxWidth], a whole multiple of a whole-dp cell)
- * whenever the height allows.
+ * takes the width (capped at [boardMax]: [PlayBoardMaxWidth], or a two-pane board pane's
+ * side; a whole multiple of a whole-dp cell) whenever the height allows.
  *
  * Notes, Erase and Clear sit in a row under the digits, [actionKeyFor] tall. When that row
  * would force the width-bound board smaller (a cramped pane: the key would have to drop
  * under the cell), they move into a fourth column beside the digits at key height instead
  * ([SudokuKeypadActions.Column]). With inlineNotes (TwoPane, where Erase and Clear sit in
- * the side pane) only the notes toggle takes that column.
+ * the toolbar) only the notes toggle takes that column.
  */
 object SudokuSizing {
 
@@ -38,10 +38,16 @@ object SudokuSizing {
     private const val KEY_GROWTH = 1.25f
     private const val ACTION_ROW_SHARE = 0.75f
 
-    fun layout(maxWidth: Dp, maxHeight: Dp, size: Int, inlineNotes: Boolean = false): SudokuLayout {
+    fun layout(
+        maxWidth: Dp,
+        maxHeight: Dp,
+        size: Int,
+        inlineNotes: Boolean = false,
+        boardMax: Dp = PlayBoardMaxWidth,
+    ): SudokuLayout {
         require(size > 0 && size % COLUMNS == 0) { "size must be a positive multiple of $COLUMNS, was $size" }
         val rows = size / COLUMNS
-        val widthCell = floor(minOf(maxWidth, PlayBoardMaxWidth).value / size).toInt().coerceAtLeast(0)
+        val widthCell = floor(minOf(maxWidth, boardMax).value / size).toInt().coerceAtLeast(0)
         val actions = when {
             inlineNotes -> SudokuKeypadActions.NotesColumn
             heightFor(size, rows, SudokuKeypadActions.Row, widthCell, widthCell) <= maxHeight -> SudokuKeypadActions.Row
