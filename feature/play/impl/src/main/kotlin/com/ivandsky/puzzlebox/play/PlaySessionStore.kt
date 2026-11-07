@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import java.time.LocalDate
@@ -66,9 +67,56 @@ class PlaySessionStore internal constructor(
      */
     fun open(key: GameKey): ActivePlay? {
         val game = GameId(key.gameId)
-        val plugin = games[game] ?: return null
-        val gameUi = ui[game] ?: return null
-        val slot = slotOf(key, game) ?: return null
+        if (games[game] == null || ui[game] == null) return null
+        return open(slotOf(key, game) ?: return null)
+    }
+
+    /** The live play of a friend's puzzle, opened as [open] opens a daily's; its board is
+     *  the received puzzle stored when the code opened. Null when the game is unplayable. */
+    fun open(key: CustomGameKey): ActivePlay? = open(key.slot)
+
+    /** The live play of [slot]; never creates one. */
+    fun peek(slot: PlaySlot): ActivePlay? = slots[slot]
+
+    /**
+     * [slot]'s newest unfinished session as a SessionBlob envelope, for the hub's
+     * thumbnail: a live play's change still waiting in its writer's window, else the saved
+     * row, read after every save already queued (a just-released play's final save
+     * included). Null when the slot has neither. Never opens a play.
+     */
+    internal suspend fun latestSave(slot: PlaySlot): ByteArray? = slots[slot]?.unsavedSession ?: opening.savedRow(slot)
+
+    /**
+     * Releases every live slot that no key in [keys] names: a [GameKey] with a day names
+     * that day, a null-day one the slot it pinned, a [ResultKey] its play's slot (the
+     * result's badge and retry read it), and a [CustomGameKey] its friend's puzzle. A
+     * released play folds its clock and queues its final save before this returns, so a
+     * reopen's read is ordered after it.
+     */
+    fun retain(keys: Collection<NavKey>) {
+        val gameKeys = keys.filterIsInstance<GameKey>().toSet()
+        pinned.keys.retainAll(gameKeys)
+        val named = gameKeys.mapNotNullTo(HashSet()) { key ->
+            if (key.day == null) pinned[key] else PlaySlot.Daily(GameId(key.gameId), LocalDate.parse(key.day))
+        }
+        keys.filterIsInstance<ResultKey>().mapTo(named) { PlaySlot.Daily(GameId(it.gameId), LocalDate.parse(it.day)) }
+        keys.filterIsInstance<CustomGameKey>().mapTo(named) { it.slot }
+        val released = slots.filterKeys { it !in named }.values.toList()
+        released.forEach { play ->
+            slots.remove(play.slot)
+            scope.launch(start = CoroutineStart.UNDISPATCHED) { play.close() }
+        }
+    }
+
+    /** Folds every live play's clock and writes every pending save; the job ends when all are on disk. */
+    fun flush(): Job {
+        val saves = slots.values.map { play -> scope.launch(start = CoroutineStart.UNDISPATCHED) { play.save() } }
+        return scope.launch(start = CoroutineStart.UNDISPATCHED) { saves.joinAll() }
+    }
+
+    private fun open(slot: PlaySlot): ActivePlay? {
+        val plugin = games[slot.gameId] ?: return null
+        val gameUi = ui[slot.gameId] ?: return null
         slots[slot]?.let { live ->
             if (live.controller.isComplete) live.replay()
             return live
@@ -88,43 +136,6 @@ class PlaySessionStore internal constructor(
         }
     }
 
-    /** The live play of [slot]; never creates one. */
-    fun peek(slot: PlaySlot): ActivePlay? = slots[slot]
-
-    /**
-     * [slot]'s newest unfinished session as a SessionBlob envelope, for the hub's
-     * thumbnail: a live play's change still waiting in its writer's window, else the saved
-     * row, read after every save already queued (a just-released play's final save
-     * included). Null when the slot has neither. Never opens a play.
-     */
-    internal suspend fun latestSave(slot: PlaySlot): ByteArray? = slots[slot]?.unsavedSession ?: opening.savedRow(slot)
-
-    /**
-     * Releases every live slot that no key in [keys] names: a [GameKey] with a day names
-     * that day, a null-day one the slot it pinned, and a [ResultKey] its play's slot (the
-     * result's badge and retry read it). A released play folds its clock and queues its
-     * final save before this returns, so a reopen's read is ordered after it.
-     */
-    fun retain(keys: Collection<NavKey>) {
-        val gameKeys = keys.filterIsInstance<GameKey>().toSet()
-        pinned.keys.retainAll(gameKeys)
-        val named = gameKeys.mapNotNullTo(HashSet()) { key ->
-            if (key.day == null) pinned[key] else PlaySlot.Daily(GameId(key.gameId), LocalDate.parse(key.day))
-        }
-        keys.filterIsInstance<ResultKey>().mapTo(named) { PlaySlot.Daily(GameId(it.gameId), LocalDate.parse(it.day)) }
-        val released = slots.filterKeys { it !in named }.values.toList()
-        released.forEach { play ->
-            slots.remove(play.slot)
-            scope.launch(start = CoroutineStart.UNDISPATCHED) { play.close() }
-        }
-    }
-
-    /** Folds every live play's clock and writes every pending save; the job ends when all are on disk. */
-    fun flush(): Job {
-        val saves = slots.values.map { play -> scope.launch(start = CoroutineStart.UNDISPATCHED) { play.save() } }
-        return scope.launch(start = CoroutineStart.UNDISPATCHED) { saves.joinAll() }
-    }
-
     private fun slotOf(key: GameKey, game: GameId): PlaySlot? {
         key.day?.let { return PlaySlot.Daily(game, LocalDate.parse(it)) }
         pinned[key]?.let { return it }
@@ -134,3 +145,5 @@ class PlaySessionStore internal constructor(
 
     private fun playScope(): CoroutineScope = CoroutineScope(scope.coroutineContext + Job(scope.coroutineContext[Job]))
 }
+
+private val CustomGameKey.slot: PlaySlot get() = PlaySlot.Custom(GameId(gameId), puzzleId)

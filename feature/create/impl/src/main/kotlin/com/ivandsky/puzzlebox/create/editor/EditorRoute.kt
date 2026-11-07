@@ -12,10 +12,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
 /**
@@ -27,7 +30,8 @@ import org.koin.core.parameter.parametersOf
  * a fix's Select closes the card so the selection shows. Test solve (Unique boards of games that
  * export puzzles) replaces the Studio with the [TestSolveScreen] sandbox on the game's real play
  * board until its Back; a board edit that invalidates the test shows the toast whose Undo brings
- * the board back to the tested layout. The holders stay here: the screen gets their state and events.
+ * the board back to the tested layout. Publish shows only while [ReleaseFlag.FriendSharing] is on
+ * (ADR-0022). The holders stay here: the screen gets their state and events.
  */
 @Composable
 internal fun EditorRoute(
@@ -47,6 +51,8 @@ internal fun EditorRoute(
     val sandbox by viewModel.testSolve.sandbox.collectAsStateWithLifecycle()
     val passed by viewModel.testSolve.passed.collectAsStateWithLifecycle()
     val testCleared by viewModel.testSolve.cleared.collectAsStateWithLifecycle()
+    val publish by viewModel.publish.state.collectAsStateWithLifecycle()
+    val flags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
     val cardOpen by viewModel.verdictCard.open.collectAsStateWithLifecycle()
     val overlay by viewModel.verdictCard.overlay.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flush() }
@@ -113,6 +119,9 @@ internal fun EditorRoute(
                     onTestSolve = { viewModel.testSolve.start(draft, ready.verdict) },
                     blocks = remember(draft, held, title, passed) { viewModel.readiness(draft, held, title, passed) },
                     modifier = areaModifier,
+                    publish = publish.takeIf { ReleaseFlag.FriendSharing in flags },
+                    // The live verdict, like Test solve: a tap while Checking is refused as not ready.
+                    onPublish = { viewModel.publish.publish(draft, ready.verdict) },
                 )
             },
             testCleared = testCleared,

@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -10,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -19,10 +21,11 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
- * The games list (06-a §List pane): "Games" over the one-line pitch, then every game's
- * [LibraryRow] in registry order. On the tablet the [selected] row is outlined and the
- * list never scrolls; on the phone it scrolls ([scroll], hoisted so back from a page
- * returns to the same offset), shows the offline pill and each row carries a chevron.
+ * The games list (06-a §List pane): "Games" over the one-line pitch, with [headerAction]
+ * trailing them, then every game's [LibraryRow] in registry order. On the tablet the
+ * [selected] row is outlined and the list never scrolls; on the phone it scrolls ([scroll],
+ * hoisted so back from a page returns to the same offset), shows the offline pill and each
+ * row carries a chevron.
  */
 @Composable
 internal fun LibraryList(
@@ -31,6 +34,7 @@ internal fun LibraryList(
     scroll: ScrollState,
     onRow: (GameId) -> Unit,
     modifier: Modifier = Modifier,
+    headerAction: @Composable () -> Unit = {},
 ) {
     val phone = layout == PlayLayout.SinglePane
     val reduced = rememberReducedMotion()
@@ -41,13 +45,16 @@ internal fun LibraryList(
             .padding(bottom = if (phone) Spacing.xl else 0.dp),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Column(Modifier.fillMaxWidth().heightIn(min = 64.dp), verticalArrangement = Arrangement.Center) {
-            Text("Games", style = MaterialTheme.typography.headlineLarge)
-            Text(
-                "Every puzzle, back to #1",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Row(Modifier.fillMaxWidth().heightIn(min = 64.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Games", style = MaterialTheme.typography.headlineLarge)
+                Text(
+                    "Every puzzle, back to #1",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            headerAction()
         }
         if (phone && state.offline) OfflinePill()
         state.rows.forEachIndexed { index, row ->

@@ -8,9 +8,12 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.GameRoute
 import com.ivandsky.puzzlebox.play.LibraryRoute
 import com.ivandsky.puzzlebox.play.ResultRoute
+import com.ivandsky.puzzlebox.play.api.CustomGameKey
+import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.play.friend.FriendPuzzleRoute
 
 /**
  * The play feature's routes. [PlayKey] is the Play tab's games library: a day card's
@@ -19,7 +22,9 @@ import com.ivandsky.puzzlebox.play.api.ResultKey
  * "Older puzzles" footer; it stays because the app's entry provider (outside this ticket)
  * still passes it. A [GameKey] on any stack draws its slot's live play: Up is
  * the navigator's back, and solving replaces the board with its slot's result, so back
- * from there lands on the game's origin (SC4).
+ * from there lands on the game's origin (SC4). The library's Enter code pushes that code's
+ * [FriendPuzzleKey] card; its Play pushes the puzzle's [CustomGameKey] board, and solving
+ * replaces the board with the card again.
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
@@ -30,6 +35,22 @@ fun EntryProviderScope<NavKey>.playEntry(
         LibraryRoute(
             layout = layout,
             onPlay = { game, day -> navigator.pushOnce(GameKey(game.value, day?.toString())) },
+            onOpenCode = { code -> navigator.pushOnce(FriendPuzzleKey(code.value)) },
+        )
+    }
+    entry<FriendPuzzleKey> { key ->
+        FriendPuzzleRoute(
+            key = key,
+            onPlay = { game -> navigator.pushOnce(game) },
+            onBack = { navigator.pop() },
+        )
+    }
+    entry<CustomGameKey> { key ->
+        GameRoute(
+            key = key,
+            layout = layout,
+            onBack = { navigator.pop() },
+            onSolved = { _, _, _ -> navigator.replaceTop(FriendPuzzleKey(key.puzzleId)) },
         )
     }
     entry<GameKey> { key ->

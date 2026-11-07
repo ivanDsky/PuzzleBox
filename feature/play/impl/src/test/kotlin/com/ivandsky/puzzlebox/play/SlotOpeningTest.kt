@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
@@ -47,6 +48,7 @@ class SlotOpeningTest {
         calendar = FakeGameCalendar(today),
         games = games,
         lane = WriteLane(),
+        received = FakeReceivedPuzzleRepository(),
     )
 
     @Test

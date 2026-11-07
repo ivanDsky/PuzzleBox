@@ -98,6 +98,7 @@ private fun PreviewScreen(state: LibraryUiState, layout: PlayLayout) {
                 onRetry = {},
                 onOpenLesson = {},
                 calendar = CalendarActions(),
+                onEnterCode = {},
             )
         }
     }

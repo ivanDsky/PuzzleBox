@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.PastDayOutcome
@@ -15,6 +16,7 @@ import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
 import com.ivandsky.puzzlebox.gameui.unavailableMessage
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -30,7 +32,8 @@ import kotlinx.coroutines.flow.first
  * 3. a past day opened by date — from the cache, or fetched once for an archive game —
  *    carrying the day's puzzleNumber from the cache so the record identity (ADR-0004)
  *    survives keys that name only game and day (arch-2);
- * 4. otherwise [Origin.Unavailable], whose copy names the cause.
+ * 4. a friend's puzzle ([PlaySlot.Custom]) from the [received] puzzles stored when it opened;
+ * 5. otherwise [Origin.Unavailable], whose copy names the cause.
  */
 internal class SlotOpening(
     private val daily: DailyRepository,
@@ -39,14 +42,15 @@ internal class SlotOpening(
     private val calendar: GameCalendar,
     private val games: GameRegistry,
     private val lane: WriteLane,
+    private val received: ReceivedPuzzleRepository,
 ) {
     /** Where a slot's board comes from (patterns-9). */
     sealed interface Origin {
         /** A [SessionBlob] envelope to adopt: a saved play or a past day's replay build. */
         class Restored(val session: ByteArray) : Origin
 
-        /** Today's fresh daily; [banner] is the degrade copy when it is a cached fallback;
-         *  [puzzleNumber] is the day's number from the cache's history (ADR-0004), if any. */
+        /** A fresh board: today's daily, or a friend's stored puzzle; [banner] is the degrade copy when
+         *  it is a cached fallback; [puzzleNumber] is the day's number from the cache's history (ADR-0004), if any. */
         class Fetched(val puzzle: Puzzle, val banner: String?, val puzzleNumber: Int?) : Origin
 
         /** Nothing to play; [message] is the copy; [retryable] offers Retry (false when the
@@ -57,9 +61,21 @@ internal class SlotOpening(
     suspend fun open(slot: PlaySlot): Origin {
         val plugin = games[slot.gameId] ?: return Origin.Unavailable(UNREGISTERED)
         restore(slot, plugin)?.let { return Origin.Restored(it) }
-        val daily = slot as? PlaySlot.Daily ?: return Origin.Unavailable(UNREGISTERED)
-        val today = calendar.today(slot.gameId) ?: return Origin.Unavailable(UNREGISTERED)
-        return if (daily.day == today) fetch(daily) else build(daily)
+        return when (slot) {
+            is PlaySlot.Custom -> friend(slot)
+            is PlaySlot.Daily -> {
+                val today = calendar.today(slot.gameId) ?: return Origin.Unavailable(UNREGISTERED)
+                if (slot.day == today) fetch(slot) else build(slot)
+            }
+        }
+    }
+
+    /** A friend's puzzle as it was verified when it opened here; it has no edition number. */
+    private suspend fun friend(slot: PlaySlot.Custom): Origin {
+        val row = ShareCode.parse(slot.puzzleId)?.let { received.get(it) }
+            ?: return Origin.Unavailable(FRIEND_MISSING, retryable = false)
+        val puzzle = Puzzle(row.gameId, row.variant, row.sharedFormatVersion, row.puzzleBytes)
+        return Origin.Fetched(puzzle, banner = null, puzzleNumber = null)
     }
 
     /** The slot's saved row as stored, read through the [lane] after every save queued before it; never deletes. */
@@ -109,6 +125,7 @@ internal class SlotOpening(
         const val UNREGISTERED = "This game isn't available in this build."
         const val DAY_MISSING = "That day is no longer saved on this device."
         const val DAY_UNREADABLE = "This day didn't load right, so it can't be played again."
+        const val FRIEND_MISSING = "This puzzle is no longer saved on this device."
     }
 }
 

@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -52,7 +53,7 @@ class PlaySessionStoreTest {
         return PlaySessionStore(
             games = fakes.games,
             ui = ui,
-            opening = SlotOpening(daily, LoadPastDay(daily, fakes.games), saved, calendar, fakes.games, lane),
+            opening = SlotOpening(daily, LoadPastDay(daily, fakes.games), saved, calendar, fakes.games, lane, FakeReceivedPuzzleRepository()),
             writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
             completions = FakeCompletionRepository(),
             calendar = calendar,

@@ -24,7 +24,8 @@ import org.koin.dsl.module
  * (ADR-0001: one registration per game); the repositories (the tutorial-seen preferences
  * included) and the calendar from :core:data's dataModule, and the use cases (today's
  * set, history, stats, the rollover) from :core:domain's domainModule. The tablet stats
- * panel's identity and leaderboard come from the backend module. This module names no game.
+ * panel's identity and leaderboard come from the backend module. This module names no game;
+ * friend puzzles' wiring is [friendModule].
  *
  * [PlaySessionStore] is a single so live plays outlive their entries' compositions. Its
  * slot opening and every slot's writer share ONE [WriteLane], so a released slot's final
@@ -32,6 +33,7 @@ import org.koin.dsl.module
  * lifetime, so a release never cancels a queued save.
  */
 val playModule = module {
+    includes(friendModule)
     single {
         val lane = WriteLane()
         val saved = get<SavedPlayRepository>()
@@ -47,6 +49,7 @@ val playModule = module {
                 calendar = get(),
                 games = get(),
                 lane = lane,
+                received = get(),
             ),
             writers = { slot -> SlotWriter(slot, saved, lane, writes) },
             completions = get(),

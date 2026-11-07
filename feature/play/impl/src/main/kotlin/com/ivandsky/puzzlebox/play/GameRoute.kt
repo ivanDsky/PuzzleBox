@@ -32,8 +32,10 @@ import com.ivandsky.puzzlebox.gameui.PlayOverflowItem
 import com.ivandsky.puzzlebox.gameui.TimerBar
 import com.ivandsky.puzzlebox.gameui.TutorialHost
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
 /**
@@ -58,8 +60,62 @@ internal fun GameRoute(
     modifier: Modifier = Modifier,
 ) {
     val viewModel: GameViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
-    val play = viewModel.play
     val pastDay by viewModel.pastDay.collectAsStateWithLifecycle()
+    val tutorial by viewModel.tutorial.collectAsStateWithLifecycle()
+    GameBoard(
+        play = viewModel.play,
+        pastDay = pastDay,
+        tutorial = tutorial,
+        onHowToPlay = viewModel::howToPlay,
+        onTutorialFinished = viewModel::closeTutorial,
+        layout = layout,
+        onBack = onBack,
+        onSolved = onSolved,
+        modifier = modifier,
+    )
+}
+
+/**
+ * A friend's puzzle's board: the store's live play of the key's custom slot under the same
+ * play top bar, without a tutorial gate. A friend's puzzle is never a past day.
+ */
+@Composable
+internal fun GameRoute(
+    key: CustomGameKey,
+    layout: PlayLayout,
+    onBack: () -> Unit,
+    onSolved: (slot: PlaySlot, timeMs: Long, hintsUsed: Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val store = koinInject<PlaySessionStore>()
+    val play = remember(key) { store.open(key) }
+    GameBoard(
+        play = play,
+        pastDay = false,
+        tutorial = TutorialGate.Closed,
+        onHowToPlay = null,
+        onTutorialFinished = {},
+        layout = layout,
+        onBack = onBack,
+        onSolved = onSolved,
+        modifier = modifier,
+    )
+}
+
+/** One live [play]'s top bar and board, behind the [tutorial] gate; How to play shows
+ *  when [onHowToPlay] is given and the game has lessons. */
+@Composable
+private fun GameBoard(
+    play: ActivePlay?,
+    pastDay: Boolean,
+    tutorial: TutorialGate,
+    onHowToPlay: (() -> Unit)?,
+    onTutorialFinished: () -> Unit,
+    layout: PlayLayout,
+    onBack: () -> Unit,
+    onSolved: (slot: PlaySlot, timeMs: Long, hintsUsed: Int) -> Unit,
+    modifier: Modifier,
+) {
     Column(modifier = modifier.testTag("route.game")) {
         if (play == null) {
             PlayTopBar(title = if (pastDay) PAST_DAY else "", pastDay = pastDay, onBack = onBack)
@@ -67,7 +123,6 @@ internal fun GameRoute(
             return@Column
         }
         val record by play.record.collectAsStateWithLifecycle()
-        val tutorial by viewModel.tutorial.collectAsStateWithLifecycle()
         val board by play.board.collectAsStateWithLifecycle()
         val playing = tutorial == TutorialGate.Closed
         PlayTopBar(
@@ -82,8 +137,8 @@ internal fun GameRoute(
             if (layout != PlayLayout.TwoPane && board.status is PlayBoardStatus.Ready && clock != null) {
                 TimerBar(clock.displayedElapsedMs(), Modifier.width(IntrinsicSize.Max).testTag("play.timer"))
             }
-            if (play.ui.tutorial.isNotEmpty()) {
-                IconButton(onClick = viewModel::howToPlay, modifier = Modifier.testTag("play.how_to_play")) {
+            if (onHowToPlay != null && play.ui.tutorial.isNotEmpty()) {
+                IconButton(onClick = onHowToPlay, modifier = Modifier.testTag("play.how_to_play")) {
                     Icon(
                         imageVector = PuzzleIcons.HowTo,
                         contentDescription = "How to play",
@@ -93,12 +148,12 @@ internal fun GameRoute(
             }
             PlayOverflow(play.ui.overflowFor(board.controller))
         }
-        when (val gate = tutorial) {
+        when (tutorial) {
             TutorialGate.Checking -> PlayBoardFallback(PlayBoardStatus.Loading, onRetry = {}, tagPrefix = "game")
             is TutorialGate.Open -> TutorialHost(
                 ui = play.ui,
-                session = gate.session,
-                onFinished = viewModel::closeTutorial,
+                session = tutorial.session,
+                onFinished = onTutorialFinished,
             )
             TutorialGate.Closed -> {
                 // Phones never build the stats: only the two-pane side panel shows them (A15).
