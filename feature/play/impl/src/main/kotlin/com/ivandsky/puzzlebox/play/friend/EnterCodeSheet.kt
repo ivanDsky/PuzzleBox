@@ -36,13 +36,18 @@ import kotlinx.coroutines.launch
 /**
  * Open a friend's puzzle by its code: one field and Open, enabled once the field parses as a
  * [ShareCode] (case, dashes and spaces don't matter). [onOpen] gets the parsed code after the
- * sheet hides; the IME's Go submits too.
+ * sheet hides; the IME's Go submits too. The field starts at [initialText].
  *
  * Motion: the sheet's **Slide in / Slide out** and the scrim's **Fade** are ModalBottomSheet's own.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun EnterCodeSheet(onOpen: (ShareCode) -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+internal fun EnterCodeSheet(
+    onOpen: (ShareCode) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    initialText: String = "",
+) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     ModalBottomSheet(
@@ -53,13 +58,14 @@ internal fun EnterCodeSheet(onOpen: (ShareCode) -> Unit, onDismiss: () -> Unit, 
         EnterCodeContent(
             onOpen = { code -> scope.launch { sheetState.hide() }.invokeOnCompletion { onOpen(code) } },
             autoFocus = true,
+            initialText = initialText,
         )
     }
 }
 
 @Composable
-private fun EnterCodeContent(onOpen: (ShareCode) -> Unit, autoFocus: Boolean) {
-    var text by rememberSaveable { mutableStateOf("") }
+private fun EnterCodeContent(onOpen: (ShareCode) -> Unit, autoFocus: Boolean, initialText: String = "") {
+    var text by rememberSaveable { mutableStateOf(initialText) }
     val code = ShareCode.parse(text)
     val focus = remember { FocusRequester() }
     if (autoFocus) LaunchedEffect(Unit) { focus.requestFocus() }
@@ -99,5 +105,14 @@ private fun EnterCodeContent(onOpen: (ShareCode) -> Unit, autoFocus: Boolean) {
 private fun EnterCodeContentPreview() {
     PuzzleBoxTheme {
         EnterCodeContent(onOpen = {}, autoFocus = false)
+    }
+}
+
+/** Opened from a link whose code doesn't parse: its text waits in the field, Open disabled. */
+@PuzzleBoxPreviews
+@Composable
+private fun EnterCodeContentFromLinkPreview() {
+    PuzzleBoxTheme {
+        EnterCodeContent(onOpen = {}, autoFocus = false, initialText = "K7Q2M")
     }
 }
