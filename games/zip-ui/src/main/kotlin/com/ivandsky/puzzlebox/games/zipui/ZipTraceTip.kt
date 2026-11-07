@@ -4,10 +4,11 @@ import androidx.compose.ui.geometry.Offset
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.gameui.DragTraceHooks
 import com.ivandsky.puzzlebox.gameui.GridCell
+import com.ivandsky.puzzlebox.gameui.TipKind
+import com.ivandsky.puzzlebox.gameui.TraceTip
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
-import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -15,20 +16,6 @@ import kotlin.math.roundToInt
 internal enum class TipAxis(val dRow: Int, val dCol: Int) {
     Right(0, 1), Down(1, 0), Left(0, -1), Up(-1, 0),
 }
-
-internal enum class TipKind {
-    /** Toward a cell the game would accept: the line end follows the finger. */
-    Forward,
-
-    /** Toward the previous cell: the line shortens under the finger. */
-    Back,
-
-    /** Toward a wall, the edge, a used cell or an out-of-order waypoint (A4). */
-    Nudge,
-}
-
-/** The live tip: [extent] cells from the tail centre along [axis]. */
-internal data class TraceTip(val kind: TipKind, val axis: TipAxis, val extent: Float)
 
 /**
  * Projects [finger] (in cell units: x = column, y = row) onto ONE grid axis from the
@@ -43,7 +30,7 @@ internal fun traceTip(
     cols: Int,
     hooks: DragTraceHooks,
     latch: TipAxis?,
-): TraceTip? {
+): TraceTip<TipAxis>? {
     val tail = path.lastOrNull() ?: return null
     val vx = finger.x - (tail.col + 0.5f)
     val vy = finger.y - (tail.row + 0.5f)
@@ -63,18 +50,8 @@ internal fun traceTip(
         else -> TipKind.Nudge
     }
     val push = max(0f, vx * axis.dCol + vy * axis.dRow)
-    return TraceTip(kind, axis, if (kind == TipKind.Nudge) nudge(push) else follow(push))
+    return TraceTip(kind, axis, if (kind == TipKind.Nudge) TraceTip.nudge(push) else TraceTip.follow(push))
 }
-
-/** 1:1 up to the follow distance, then a soft approach to the reach cap. */
-private fun follow(push: Float): Float {
-    val linear = MotionTokens.Trace.TipFollowCells
-    val span = MotionTokens.Trace.TipReachCells - linear
-    return if (push <= linear) push else linear + span * (1 - exp(-(push - linear) / span))
-}
-
-private fun nudge(push: Float): Float =
-    MotionTokens.Trace.TipNudgeCells * (1 - exp(-push / MotionTokens.Trace.TipNudgeRiseCells))
 
 private fun angleBetween(a: Float, b: Float): Float {
     val d = abs(a - b) % (2 * PI).toFloat()
