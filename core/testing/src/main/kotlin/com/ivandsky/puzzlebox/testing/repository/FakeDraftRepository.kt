@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.testing.repository
 
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
+import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -28,7 +29,8 @@ class FakeDraftRepository : DraftRepository {
     override suspend fun get(id: String): Draft? = state.value[id]?.detached()
 
     override suspend fun upsert(draft: Draft) {
-        state.update { it + (draft.id to draft.detached()) }
+        val stored = draft.copy(updatedAt = draft.updatedAt.truncatedTo(ChronoUnit.MILLIS)).detached()
+        state.update { it + (draft.id to stored) }
     }
 
     override suspend fun delete(id: String) {

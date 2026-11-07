@@ -13,7 +13,7 @@ interface DraftRepository {
 
     suspend fun get(id: String): Draft?
 
-    /** Inserts [draft] or replaces the one with the same id. */
+    /** Inserts [draft] or replaces the one with the same id. [Draft.updatedAt] is kept to the millisecond. */
     suspend fun upsert(draft: Draft)
 
     /** Removes the draft with [id]; a missing id is a no-op. */

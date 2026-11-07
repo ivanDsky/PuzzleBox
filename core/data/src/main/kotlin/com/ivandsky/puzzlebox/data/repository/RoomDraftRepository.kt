@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 /**
@@ -17,9 +18,11 @@ import kotlinx.coroutines.flow.map
  */
 internal class RoomDraftRepository(private val dao: DraftDao) : DraftRepository {
 
-    override fun observeAll(): Flow<List<Draft>> = dao.observeAll().map { rows -> rows.map { it.toDraft() } }
+    // Room re-runs both queries on every `drafts` write, including other drafts' autosaves.
+    override fun observeAll(): Flow<List<Draft>> =
+        dao.observeAll().map { rows -> rows.map { it.toDraft() } }.distinctUntilChanged()
 
-    override fun observe(id: String): Flow<Draft?> = dao.observe(id).map { it?.toDraft() }
+    override fun observe(id: String): Flow<Draft?> = dao.observe(id).map { it?.toDraft() }.distinctUntilChanged()
 
     override suspend fun get(id: String): Draft? = dao.get(id)?.toDraft()
 
