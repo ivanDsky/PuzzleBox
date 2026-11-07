@@ -26,7 +26,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
@@ -89,7 +88,6 @@ internal fun ArchiveDayCard(
     val action = if (unavailable) onRetry else onPlay
     GameCardSurface(
         colors = colors,
-        shape = AppShapes.extraLarge,
         onClick = action,
         modifier = modifier.fillMaxWidth().heightIn(min = 196.dp).testTag("library.day_card"),
         motif = {
