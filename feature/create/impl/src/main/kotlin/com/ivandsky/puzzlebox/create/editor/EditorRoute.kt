@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -114,11 +116,13 @@ internal fun EditorRoute(
             },
             actionArea = { areaModifier ->
                 val draft by ready.controller.draft.collectAsStateWithLifecycle()
+                val held = rememberHeldVerdict(ready.verdict)
                 ActionArea(
                     passed = passed,
-                    canTestSolve = draft.canTestSolve && ready.verdict is Verdict.Unique,
+                    canTestSolve = draft.canTestSolve && held is Verdict.Unique,
+                    // The live verdict: a tap while Checking starts nothing, as the held solution may not fit the board.
                     onTestSolve = { viewModel.testSolve.start(draft, ready.verdict) },
-                    blocks = remember(draft, ready.verdict, title, passed) { viewModel.readiness(draft, ready.verdict, title, passed) },
+                    blocks = remember(draft, held, title, passed) { viewModel.readiness(draft, held, title, passed) },
                     modifier = areaModifier,
                 )
             },
@@ -127,4 +131,16 @@ internal fun EditorRoute(
             onTestClearedGone = viewModel.testSolve::dismissCleared,
         )
     }
+}
+
+/**
+ * [verdict], except that while it is Checking this is the last settled one, as the coach line
+ * and the board hold it, so the action area doesn't flip to "Not unique" after every edit.
+ * Before any verdict settles it is [verdict] itself.
+ */
+@Composable
+private fun rememberHeldVerdict(verdict: Verdict): Verdict {
+    val settled = remember { mutableStateOf<Verdict?>(null) }
+    SideEffect { if (verdict != Verdict.Checking) settled.value = verdict }
+    return if (verdict == Verdict.Checking) settled.value ?: verdict else verdict
 }
