@@ -46,9 +46,8 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
  * [PublishDetails] rows — [title], author name and note — until the puzzle is published; their
  * blocks join the readiness line. Unless [detailsInline] the rows live in the phone's
  * [ToolSlot] instead; while the author edits the board ([onShowDetails] set) the readiness line
- * leads with a one-line summary of them whose tap brings them back. Publish follows, enabled
- * once nothing blocks and no publish is running, over the last publish's outcome. Signed out it
- * reads "Sign in & publish": the tap signs in first, then publishes.
+ * leads with a one-line summary of them whose tap brings them back. [PublishCta] follows, ready
+ * once nothing blocks.
  *
  * Motion: the details **Expand** in with a **Fade** (EnterDuration on the emphasized decelerate
  * curve) and collapse the same way once published; under reduced motion they only fade.
@@ -108,15 +107,7 @@ fun ActionArea(
         } else {
             ReadinessLine(shown, Modifier.fillMaxWidth())
         }
-        if (publish != null) {
-            PrimaryButton(
-                text = if (publish.signedIn) "Publish" else "Sign in & publish",
-                onClick = onPublish,
-                enabled = shown.isEmpty() && !publish.busy,
-                modifier = Modifier.fillMaxWidth().testTag("create.action.publish"),
-            )
-            publish.outcome?.let { PublishedTicket(it) }
-        }
+        if (publish != null) PublishCta(publish, ready = shown.isEmpty(), onPublish = onPublish, modifier = Modifier.fillMaxWidth())
     }
 }
 
