@@ -130,6 +130,17 @@ class ZipEditorWallsTest {
     }
 
     @Test
+    fun `a tap at the grid end of an edge still hits it`() {
+        val controller = show()
+        rule.onNodeWithTag(BOARD).performTouchInput {
+            click(Offset(3f * width / SIZE, 4.95f * height / SIZE))
+        }
+        rule.waitForIdle()
+
+        assertEquals(setOf(right(22)), controller.shown.value.walls)
+    }
+
+    @Test
     fun `taps in the Path step place no walls`() {
         val controller = show(step = "path")
         tapRight(7)

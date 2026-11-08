@@ -52,7 +52,10 @@ class ZipEditorController(
     /** The step whose tools the row shows; the stroke draws in [ZipEditorStep.Path] only. */
     val step: StateFlow<ZipEditorStep> = selected.asStateFlow()
 
-    /** The cell the last refused [tapNumber] or [tapEdge] landed on; each refusal is a new value. */
+    /**
+     * The cell the last refused [tapNumber] or [tapEdge] landed on; each refusal is a new
+     * value.
+     */
     internal val shaken: StateFlow<Shake?> = shaking.asStateFlow()
 
     /** A refused tap on [cell]; a fresh instance per tap so a repeat tap re-triggers. */
