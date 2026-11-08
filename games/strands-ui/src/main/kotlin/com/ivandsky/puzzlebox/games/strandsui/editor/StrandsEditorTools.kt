@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -131,9 +132,34 @@ internal fun StrandsExtendHandle(count: Int, onExtend: () -> Unit, modifier: Mod
     }
 }
 
+/** The spangram switch (`strands.editor.spangram.<index>`) of the selected path. */
+@Composable
+internal fun StrandsSpangramToggle(
+    index: Int,
+    isSpangram: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FilterChip(
+        selected = isSpangram,
+        onClick = onToggle,
+        label = { Text("Spangram") },
+        modifier = modifier.testTag("strands.editor.spangram.$index"),
+    )
+}
+
 @PuzzleBoxPreviews
 @Preview(name = "Three cells missing", showBackground = true, group = "Strands extend handle")
 @Composable
 private fun StrandsExtendHandlePreview() {
     PuzzleBoxTheme { StrandsExtendHandle(count = 3, onExtend = {}, modifier = Modifier.padding(Spacing.md)) }
+}
+
+@PuzzleBoxPreviews
+@Preview(name = "Marked", showBackground = true, group = "Strands spangram toggle")
+@Composable
+private fun StrandsSpangramTogglePreview() {
+    PuzzleBoxTheme {
+        StrandsSpangramToggle(index = 0, isSpangram = true, onToggle = {}, modifier = Modifier.padding(Spacing.md))
+    }
 }
