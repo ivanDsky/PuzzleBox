@@ -55,8 +55,8 @@ internal fun rememberQueensRejection(controller: QueensEditorController): Queens
 /**
  * Cell [idx]'s answer-crown layer over its fill: the play board's crown when [crowned]
  * (tag `queens.editor.cell.<idx>.crown`), else its automatic × when [crossed] (tag
- * `.autoX`; dimmed to [QueensEditorDefaults.ghostedXAlpha] and tagged `.autoX.dim` when
- * [ghosted], so the other answer's ghost crown reads over it), both in the region's on-ink
+ * `.autoX`; dimmed to [QueensEditorDefaults.ghostedXAlpha] when [ghosted], so the other
+ * answer's ghost crown reads over it), both in the region's on-ink
  * ([crownInk]; over the clash wash when [clash]).
  * While [rejection] points here the cell wears the error wash and plays the Reject jolt
  * (a medium-bouncy spring dip and back); reduced motion keeps the wash without the jolt.
@@ -96,7 +96,6 @@ internal fun QueensCrownLayer(
             .testTag(
                 when {
                     crowned -> "queens.editor.cell.$idx.crown"
-                    ghosted -> "queens.editor.cell.$idx.autoX.dim"
                     else -> "queens.editor.cell.$idx.autoX"
                 },
             )

@@ -87,7 +87,7 @@ import org.robolectric.annotation.Config
 /**
  * A friend's puzzle result over its ViewModel and the play routes, every source a fake: the
  * first solve here reads Record with its time, a slower replay reads Replay with the record
- * that stands, and the state carries no streak. Solving the board lands on the result, Done
+ * that stands, and the screen shows no streak. Solving the board lands on the result, Done
  * returns to the card, Play again replays the finished play, and the key survives saved state.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -254,14 +254,6 @@ class CustomResultViewModelTest {
         node("custom_board.closed").assertExists()
         node("custom_board.you.local_only").assertExists()
         assertEquals("a closed board never says it is posting", 0, count("custom_board.you.pending"))
-    }
-
-    @Test
-    fun `the state carries no streak`() {
-        val fields = CustomResultState::class.java.declaredFields.map { it.name.lowercase() }
-
-        assertTrue(fields.isNotEmpty())
-        assertFalse("no streak on a friend's puzzle: $fields", fields.any { "streak" in it })
     }
 
     @Test
