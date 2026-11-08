@@ -11,14 +11,24 @@ import kotlinx.coroutines.flow.update
  * for the screens that would otherwise show Posting until the player's own row lands.
  * One app-scoped instance: the watcher writes, readers observe. In memory only; after
  * process death every post reads [SubmitStatus.Posting] until the watcher tries it again.
+ *
+ * The map is FIFO-capped at [maxEntries] (insert order, oldest evicted first). An evicted
+ * key reads [SubmitStatus.Posting] again — identical to a fresh process — and is unreachable
+ * for any board a screen is likely to show, since the current board's status is re-written
+ * by every watcher attempt.
  */
 class SubmitStatusTracker {
+
+    private val maxEntries = 512
 
     private val statuses = MutableStateFlow<Map<Pair<String, String>, SubmitStatus>>(emptyMap())
 
     /** Records [status] for [uid]'s entry on [puzzleRef] (a `gameId/<ISO-day>/<n>` key). */
     fun set(uid: String, puzzleRef: String, status: SubmitStatus) {
-        statuses.update { it + ((uid to puzzleRef) to status) }
+        statuses.update { current ->
+            val next = current + ((uid to puzzleRef) to status)
+            if (next.size > maxEntries) next.entries.drop(next.size - maxEntries).associate { it.toPair() } else next
+        }
     }
 
     /**
