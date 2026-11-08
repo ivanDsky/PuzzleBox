@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.changedToUp
@@ -24,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.editor.TangoDraft
 import com.ivandsky.puzzlebox.games.tango.editor.TangoEditor
@@ -40,16 +43,28 @@ private val EditorBoardMaxWidth = 480.dp
  * The editor's board: the play renderer over the [controller]'s draft, every cell a free
  * given (no cell is inert). Touch is [tangoEditorGestures]: pressing a square or an edge
  * shows its next state (the square `.preview`, the edge `tango.editor.edge.<cell>.<side>`
- * band) and lifting commits it as one step. Markers show as on the play board.
+ * band) and lifting commits it as one step. Markers show as on the play board. The
+ * [verdict] and the card's witness choice ([TangoEditorController.overlay]) are drawn by
+ * [TangoDiagnosticsLayer].
  */
 @Composable
-internal fun TangoEditorBoard(controller: TangoEditorController, modifier: Modifier = Modifier) {
+internal fun TangoEditorBoard(
+    controller: TangoEditorController,
+    modifier: Modifier = Modifier,
+    verdict: Verdict = Verdict.Checking,
+) {
     val draft by controller.draft.collectAsState()
     val pressed by controller.preview.collectAsState()
+    val overlay by controller.overlay.collectAsState()
     val board = draft.state.draft as TangoDraft
     val target = pressed
     val shown = if (target == null) board else controller.commandFor(target).apply(board)
-    val model = remember(shown) { modelOf(shown) }
+    // The last settled verdict, so the witness symbols hold while a new analysis runs.
+    val settled = remember { mutableStateOf<Verdict?>(null) }
+    SideEffect { if (verdict != Verdict.Checking) settled.value = verdict }
+    val held = if (verdict == Verdict.Checking) settled.value else verdict
+    val diagnostics = tangoDiagnostics(shown, verdict, held, overlay)
+    val model = remember(shown, diagnostics.witness) { modelOf(shown, diagnostics.witness) }
     val renderer = remember { TangoBoardRenderer() }
     Box(
         modifier
@@ -59,6 +74,7 @@ internal fun TangoEditorBoard(controller: TangoEditorController, modifier: Modif
             .tangoEditorGestures(controller),
     ) {
         renderer.Content(model = model, modifier = Modifier.fillMaxWidth())
+        TangoDiagnosticsLayer(diagnostics)
         if (target != null) PressWash(target)
     }
 }
@@ -132,7 +148,7 @@ private fun Modifier.tangoEditorGestures(controller: TangoEditorController): Mod
         }
     }
 
-private fun modelOf(board: TangoDraft): TangoRendererModel = TangoRendererModel(
+private fun modelOf(board: TangoDraft, witness: Map<Int, TangoCell>): TangoRendererModel = TangoRendererModel(
     n = TangoDraft.N,
     cells = List(TangoDraft.N * TangoDraft.N) { TangoRendererModel.CellRender(board.givens[it], isGiven = false) },
     markers = board.markers
@@ -140,6 +156,7 @@ private fun modelOf(board: TangoDraft): TangoRendererModel = TangoRendererModel(
         .map { TangoRendererModel.MarkerRender(it.cell, it.side, it.kind) },
     rejection = null,
     status = TangoRendererModel.Status.IDLE,
+    ghosts = witness,
 )
 
 @PuzzleBoxPreviews
