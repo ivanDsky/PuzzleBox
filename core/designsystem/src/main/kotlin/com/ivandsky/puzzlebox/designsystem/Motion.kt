@@ -208,6 +208,16 @@ object MotionTokens {
         const val BlendMinCells = 0.3f
         val EasingOut = CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
         val EasingRetract = EasingEmphasizedAccelerate
+
+        // Snap trace (Zip, Strands; flag SnapTrace): no tip, no head pop, no finger. The line
+        // end blends to the last committed cell on EasingOut: grow 70 ms, backtrack retract
+        // 42 ms (60% of grow, exit < enter). A length change under SnapBlendMinCells is drawn
+        // at once. A Strands letter joins when the pointer is within SnapHitRadiusCells of its
+        // centre (prototype 02-trace-feel defaults).
+        const val SnapGrowDuration = 70
+        const val SnapRetractDuration = 42
+        const val SnapBlendMinCells = 0.05f
+        const val SnapHitRadiusCells = 0.40f
     }
 }
 
