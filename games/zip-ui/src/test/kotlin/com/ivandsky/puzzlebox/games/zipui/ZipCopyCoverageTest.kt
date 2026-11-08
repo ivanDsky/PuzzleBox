@@ -1,11 +1,11 @@
 package com.ivandsky.puzzlebox.games.zipui
 
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
@@ -76,7 +76,13 @@ class ZipCopyCoverageTest {
     private fun showIssues() {
         rule.setContent {
             PuzzleBoxTheme {
-                ZipEditorUi.Issues(controller, verdict, emptyList(), onSelect = {}, modifier = Modifier)
+                ZipEditorUi.Issues(
+                    controller,
+                    verdict,
+                    emptyList(),
+                    onSelect = {},
+                    modifier = Modifier,
+                )
             }
         }
     }
