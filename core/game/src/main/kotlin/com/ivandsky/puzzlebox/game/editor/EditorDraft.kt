@@ -41,11 +41,16 @@ class EditorDraft<D : Any>(val editor: GameEditor<D>, val state: DraftState<D>) 
     fun redo(): EditorDraft<D>? =
         state.history.redo(state.draft)?.let { EditorDraft(editor, DraftState(it.state, it.history)) }
 
-    /** One undoable step: apply(ReplaceDraft(state.draft, editor.newDraft(variant))). */
-    fun resize(variant: VariantId): EditorDraft<D> = apply(ReplaceDraft(state.draft, editor.newDraft(variant)))
+    /**
+     * One undoable step: the editor's [DraftResize] board when it has one, else a blank
+     * [variant] board. The cast is erased: a game's editor implements both over the same [D].
+     */
+    fun resize(variant: VariantId): EditorDraft<D> = apply(
+        ReplaceDraft(state.draft, (editor as? DraftResize<D>)?.resized(state.draft, variant) ?: editor.newDraft(variant)),
+    )
 
-    /** One undoable step: resize(variant). */
-    fun clear(): EditorDraft<D> = resize(variant)
+    /** One undoable step: always a blank board of the current variant. */
+    fun clear(): EditorDraft<D> = apply(ReplaceDraft(state.draft, editor.newDraft(variant)))
 
     fun encode(): ByteArray = editor.encodeDraft(state)
 
