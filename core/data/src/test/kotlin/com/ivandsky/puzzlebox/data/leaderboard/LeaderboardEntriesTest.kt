@@ -3,10 +3,13 @@ package com.ivandsky.puzzlebox.data.leaderboard
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
 import com.ivandsky.puzzlebox.database.CompletionEntity
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.testing.repository.RankOrderCases
 import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -153,13 +156,34 @@ class LeaderboardEntriesTest {
     }
 
     @Test
-    fun `A3 ordering is time then hints, lower is better`() {
+    fun `time-first ordering is time then hints, lower is better`() {
         val entries = listOf(
             LeaderboardEntry("a", "A", refKey, timeMs = 200_000, hints = 0, completedAtMs = 1),
             LeaderboardEntry("b", "B", refKey, timeMs = 100_000, hints = 5, completedAtMs = 2),
             LeaderboardEntry("c", "C", refKey, timeMs = 100_000, hints = 1, completedAtMs = 3),
-        ).sortedWith(leaderboardOrder)
+        ).sortedWith(RankOrder.TimeThenHints.entryComparator())
         assertEquals(listOf("c", "b", "a"), entries.map { it.uid })
+    }
+
+    @Test
+    fun `hints-first ordering is hints then time, lower is better`() {
+        val entries = listOf(
+            LeaderboardEntry("a", "A", refKey, timeMs = 50_000, hints = 3, completedAtMs = 1),
+            LeaderboardEntry("b", "B", refKey, timeMs = 200_000, hints = 0, completedAtMs = 2),
+            LeaderboardEntry("c", "C", refKey, timeMs = 100_000, hints = 0, completedAtMs = 3),
+        ).sortedWith(RankOrder.HintsThenTime.entryComparator())
+        assertEquals(listOf("c", "b", "a"), entries.map { it.uid })
+    }
+
+    @Test
+    fun `the entry comparator puts each rank-order case's best first`() {
+        RankOrderCases.all.filterNot { it.replay }.forEach { case ->
+            val entries = listOf(
+                LeaderboardEntry("prev", "P", refKey, case.previous.timeMs, case.previous.hints, completedAtMs = 1),
+                LeaderboardEntry("play", "Q", refKey, case.play.timeMs, case.play.hints, completedAtMs = 2),
+            ).sortedWith(case.order.entryComparator())
+            assertEquals(case.name, case.best, BestScore(entries.first().timeMs, entries.first().hints))
+        }
     }
 
     @Test

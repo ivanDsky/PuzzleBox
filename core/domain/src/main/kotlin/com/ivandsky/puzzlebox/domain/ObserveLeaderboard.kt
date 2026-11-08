@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.domain
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.onStart
 class ObserveLeaderboard(
     private val identity: IdentityService,
     private val leaderboard: LeaderboardRepository,
+    private val registry: GameRegistry,
 ) {
 
     operator fun invoke(game: GameId, day: LocalDate): Flow<TodayLeaderboard> = observe({ game }, { day })
@@ -32,7 +34,8 @@ class ObserveLeaderboard(
             if (player == null) {
                 flowOf(TodayLeaderboard.SignedOut)
             } else {
-                leaderboard.observe(LeaderboardRef(game().value, day()))
+                val id = game()
+                leaderboard.observe(LeaderboardRef(id.value, day()), registry.rankOrderOf(id))
                     .map { snapshot ->
                         TodayLeaderboard.SignedIn(
                             identity = player,

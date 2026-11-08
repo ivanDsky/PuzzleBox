@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.data.leaderboard
 
+import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.RankOrder
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import kotlinx.coroutines.flow.Flow
@@ -67,7 +69,7 @@ data class LeaderboardEntry(
  */
 data class LeaderboardSnapshot(
     val board: LeaderboardRef,
-    /** Sorted by [leaderboardOrder] — rank is list position. */
+    /** Sorted by the board's [RankOrder.entryComparator] — rank is list position. */
     val entries: List<LeaderboardEntry>,
     val formatVersion: Int = FORMAT_VERSION,
 ) {
@@ -103,15 +105,13 @@ sealed interface SubmitError {
  */
 interface LeaderboardRepository {
 
-    /**
-     * Live board updates. `null` snapshot = board not observable right now (signed out,
-     * offline, or backend refused) — never an exception (A7).
-     */
-    fun observe(board: LeaderboardRef): Flow<LeaderboardSnapshot?>
+    /** Live board ranked by [order]; null = not observable right now (soft unavailable, A14).
+     *  [order] MUST be the board's game's rank order; `ObserveLeaderboard` is the only production caller. */
+    fun observe(board: LeaderboardRef, order: RankOrder): Flow<LeaderboardSnapshot?>
 
     suspend fun submit(entry: LeaderboardEntry): SubmitResult
 }
 
-/** A3 ranking: completion time, then hints; lower is better; mistakes never enter. */
-val leaderboardOrder: Comparator<LeaderboardEntry> =
-    compareBy({ it.timeMs }, { it.hints })
+/** The one entry ranking rule: [RankOrder.comparator] over the entry's (timeMs, hints). Replaces `leaderboardOrder` (deleted). */
+fun RankOrder.entryComparator(): Comparator<LeaderboardEntry> =
+    compareBy(comparator) { BestScore(it.timeMs, it.hints) }

@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitError
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
+import com.ivandsky.puzzlebox.game.RankOrder
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -28,10 +29,10 @@ internal class FirestoreLeaderboardRepository(
     private val currentUid: () -> String?,
 ) : LeaderboardRepository {
 
-    override fun observe(board: LeaderboardRef): Flow<LeaderboardSnapshot?> {
+    override fun observe(board: LeaderboardRef, order: RankOrder): Flow<LeaderboardSnapshot?> {
         // A7: signed out = no board, no error — callers show their signed-out state.
         if (currentUid() == null) return flowOf(null)
-        return store.observeEntries(board.boardId)
+        return store.observeEntries(board.boardId, order)
             .map<List<Map<String, Any?>>, LeaderboardSnapshot?> { docs ->
                 LeaderboardSnapshot(board = board, entries = docs.mapNotNull(LeaderboardDocCodec::decode))
             }
