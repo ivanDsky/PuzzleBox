@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.DraftExport
 import com.ivandsky.puzzlebox.game.editor.DraftState
+import com.ivandsky.puzzlebox.game.editor.EditorShareCodec
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Solution
@@ -19,10 +20,14 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * Strands' pure editor (ADR-0019): one variant, a new board has blank letters, an empty clue and
- * no paths; drafts persist through [StrandsDraftCodec] and analysis is [StrandsDraftAnalyzer].
+ * no paths; drafts persist through [StrandsDraftCodec], analysis is [StrandsDraftAnalyzer] and a
+ * draft shares as paths-free [StrandsShareCodec] bytes whose tiling the recipient re-derives.
  * [toPuzzle] bakes [StrandsValidWords] in, so it loads the dictionary: call it off the main thread.
  */
-object StrandsEditor : GameEditor<StrandsDraft>, DraftExport<StrandsDraft> {
+object StrandsEditor :
+    GameEditor<StrandsDraft>,
+    DraftExport<StrandsDraft>,
+    EditorShareCodec<StrandsDraft> by StrandsShareCodec {
     override val gameId: GameId get() = StrandsDefinition.id
 
     override val variants: List<VariantId> = listOf(StrandsDefinition.VARIANT)
