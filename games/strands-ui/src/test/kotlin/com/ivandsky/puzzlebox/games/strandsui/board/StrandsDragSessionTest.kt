@@ -54,10 +54,11 @@ class StrandsDragSessionTest {
     @Test
     fun `a tail the walk will not grow from gives the tip no stretch`() {
         // An east drag dipping 29° cuts into the diagonal (4, 2) from inside (3, 2), then
-        // pulls up-right toward (3, 3): the walk refuses it until the finger comes to (4, 2).
+        // wanders on toward it, short of (3, 2) and (4, 2) alike: the walk grows nothing until
+        // the finger comes to (4, 2).
         val session = session()
         var trace = Trace()
-        for (point in listOf(Offset(2.05f, 3.8f), Offset(2.6f, 3.3f))) {
+        for (point in listOf(Offset(2.05f, 3.8f), Offset(2.2f, 3.95f))) {
             session.move(point, trace).forEach { trace = (it as TraceStep.Updated).trace }
         }
         assertEquals(listOf(start, Coord(4, 2)), trace.path)

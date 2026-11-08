@@ -11,14 +11,17 @@ import kotlin.math.ceil
  * angle from the last centre, so a diagonal drawn beside the centre line stays diagonal and a
  * finger resting off-centre, in a token's corner, decides nothing.
  *
- * From the tail: nothing joins within [StrandsBoardSpec.StillCells]; the previous letter
- * joins (a backtrack) inside [StrandsBoardSpec.BackJoinCells] of its centre; any other letter
- * only once the travel has decided a heading: a diagonal letter once the finger has come
+ * From the tail: nothing joins within [StrandsBoardSpec.StillCells]; an earlier letter
+ * joins (a backtrack, cutting the trace back to it) inside [StrandsBoardSpec.BackJoinCells]
+ * of its centre; any other letter only once the travel has decided a heading: a diagonal letter once the finger has come
  * [StrandsBoardSpec.DiagonalJoinFraction] of the diagonal step, a side letter only inside
- * [StrandsBoardSpec.SideJoinCells] of its centre. A used or off-board target joins nothing:
+ * [StrandsBoardSpec.SideJoinCells] of its centre; a free neighbour whose heart
+ * ([StrandsBoardSpec.HeartCells]) the finger has come to joins whatever the heading, so a
+ * corner cut that reads diagonal never skips the letter it passed through. A used or off-board target joins nothing:
  * no side letter stands in for a diagonal. Only a tail the finger has reached
  * ([StrandsBoardSpec.ArriveCells]) grows the trace, so a corner cut into the wrong diagonal
- * holds there until the finger backs out or comes to it.
+ * holds there until the finger backs out or comes to it, or until the finger's heading joins
+ * a free letter beside the one before it, which the wrong tail then gives way to.
  */
 internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, down: Offset) {
     private val trail = TravelTrail().apply { push(down) }
@@ -29,6 +32,9 @@ internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, do
 
     /** The tail the finger has come within [StrandsBoardSpec.ArriveCells] of since it joined. */
     private var reached: Coord? = null
+
+    /** Set by [candidate] when its letter is a reroute: the tail to give up first, back to the letter before it. */
+    private var giveUp: Coord? = null
 
     /** The finger's travel over the last [StrandsBoardSpec.TravelWindowCells]; null until it has gone half that. */
     fun travel(): Offset? = trail.travel(StrandsBoardSpec.TravelWindowCells)
@@ -45,6 +51,7 @@ internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, do
             trail.push(point)
             candidate(point, path())?.let {
                 reached = null
+                giveUp?.let(join)
                 join(it)
             }
         }
@@ -52,24 +59,58 @@ internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, do
     }
 
     private fun candidate(point: Offset, path: List<Coord>): Coord? {
+        giveUp = null
         val tail = path.lastOrNull() ?: return null
         val back = path.getOrNull(path.size - 2)
         val fromTail = point - centreOf(tail)
         if (reaches(point, path)) reached = tail
         if (fromTail.getDistance() < StrandsBoardSpec.StillCells) return null
-        if (back != null && (point - centreOf(back)).getDistance() <= StrandsBoardSpec.BackJoinCells) return back
-        if (reached != tail) return null
+        val earlier = path.dropLast(1).firstOrNull { (point - centreOf(it)).getDistance() <= StrandsBoardSpec.BackJoinCells }
+        if (earlier != null) return earlier
+        if (reached != tail) return back?.let { reroute(point, path, tail, it) }
+        return heartOf(point, path, tail) ?: joinFrom(point, path, tail)
+    }
+
+    /** The free letter beside [anchor] the finger is within [StrandsBoardSpec.HeartCells] of the centre of, whatever its heading. */
+    private fun heartOf(point: Offset, path: List<Coord>, anchor: Coord): Coord? {
+        var best: Coord? = null
+        var bestDistance = StrandsBoardSpec.HeartCells
+        for (dRow in -1..1) for (dCol in -1..1) {
+            val cell = Coord(anchor.row + dRow, anchor.col + dCol)
+            if (cell.row !in 0 until rows || cell.col !in 0 until cols || cell in path) continue
+            val distance = (point - centreOf(cell)).getDistance()
+            if (distance <= bestDistance) {
+                best = cell
+                bestDistance = distance
+            }
+        }
+        return best
+    }
+
+    /** The letter beside [anchor] the finger's heading and position join, if any. */
+    private fun joinFrom(point: Offset, path: List<Coord>, anchor: Coord): Coord? {
         val heading = travel() ?: return null
         val direction = TraceDirection.of(heading.x, heading.y)
-        val next = Coord(tail.row + direction.dRow, tail.col + direction.dCol)
+        val next = Coord(anchor.row + direction.dRow, anchor.col + direction.dCol)
         if (next.row !in 0 until rows || next.col !in 0 until cols || next in path) return null
         val joins = if (direction.isDiagonal) {
-            val advanced = (fromTail.x * direction.dCol + fromTail.y * direction.dRow) / direction.length
+            val fromAnchor = point - centreOf(anchor)
+            val advanced = (fromAnchor.x * direction.dCol + fromAnchor.y * direction.dRow) / direction.length
             advanced >= StrandsBoardSpec.DiagonalJoinFraction * direction.length
         } else {
             (point - centreOf(next)).getDistance() <= StrandsBoardSpec.SideJoinCells
         }
         return next.takeIf { joins }
+    }
+
+    /**
+     * The letter beside [back], the letter before the unreached [tail], that the finger's heading
+     * and position join as if it were [back]'s tail, or null; the tail then gives way to it ([giveUp]).
+     */
+    private fun reroute(point: Offset, path: List<Coord>, tail: Coord, back: Coord): Coord? {
+        val next = joinFrom(point, path, back) ?: return null
+        giveUp = back
+        return next
     }
 
     /** A lone letter is reached by the touch-down itself; a joined one once the finger comes to it. */
