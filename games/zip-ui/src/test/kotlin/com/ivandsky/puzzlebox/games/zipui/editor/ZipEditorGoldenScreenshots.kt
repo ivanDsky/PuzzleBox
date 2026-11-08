@@ -25,9 +25,9 @@ import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.Wall
 import com.ivandsky.puzzlebox.games.zip.WallDirection
-import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.editor.ZipDraft
 import com.ivandsky.puzzlebox.games.zip.editor.ZipDraftAnalyzer
 import com.ivandsky.puzzlebox.games.zip.editor.ZipEditor
@@ -85,11 +85,11 @@ abstract class ZipEditorGoldenScreenshots(private val device: String) {
     @Test fun `none clash light`() = none(dark = false)
     @Test fun `none clash dark`() = none(dark = true)
 
-    @Test fun `witness a light`() = multiple("witness-a", dark = false, EditorOverlay(EditorOverlay.Witness.A, true))
-    @Test fun `witness a dark`() = multiple("witness-a", dark = true, EditorOverlay(EditorOverlay.Witness.A, true))
+    @Test fun `witness a light`() = witness("witness-a", EditorOverlay.Witness.A, dark = false)
+    @Test fun `witness a dark`() = witness("witness-a", EditorOverlay.Witness.A, dark = true)
 
-    @Test fun `witness b light`() = multiple("witness-b", dark = false, EditorOverlay(EditorOverlay.Witness.B, true))
-    @Test fun `witness b dark`() = multiple("witness-b", dark = true, EditorOverlay(EditorOverlay.Witness.B, true))
+    @Test fun `witness b light`() = witness("witness-b", EditorOverlay.Witness.B, dark = false)
+    @Test fun `witness b dark`() = witness("witness-b", EditorOverlay.Witness.B, dark = true)
 
     private fun step(name: String, step: ZipEditorStep, dark: Boolean) {
         val draft = if (step == ZipEditorStep.Walls) WALLED else UNIQUE
@@ -97,11 +97,18 @@ abstract class ZipEditorGoldenScreenshots(private val device: String) {
     }
 
     private fun partial(dark: Boolean) {
-        val draft = UNIQUE.copy(path = SNAKE.take(PARTIAL_CELLS), waypoints = listOf(0, SNAKE[PARTIAL_CELLS - 1]))
+        val draft = UNIQUE.copy(
+            path = SNAKE.take(PARTIAL_CELLS),
+            waypoints = listOf(0, SNAKE[PARTIAL_CELLS - 1]),
+        )
         capture("partial-path", dark, draft, analyzed<Verdict.Incomplete>(draft), fixList = true)
     }
 
-    private fun unique(dark: Boolean) = capture("unique", dark, UNIQUE, analyzed<Verdict.Unique>(UNIQUE))
+    private fun unique(dark: Boolean) =
+        capture("unique", dark, UNIQUE, analyzed<Verdict.Unique>(UNIQUE))
+
+    private fun witness(name: String, which: EditorOverlay.Witness, dark: Boolean) =
+        multiple(name, dark, EditorOverlay(which, showOnBoard = true))
 
     private fun multiple(name: String, dark: Boolean, overlay: EditorOverlay? = null) {
         val draft = ZipDraft(SIZE, emptySet(), SNAKE, listOf(0, LAST))
@@ -132,7 +139,8 @@ abstract class ZipEditorGoldenScreenshots(private val device: String) {
         fixList: Boolean = false,
     ) {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+        val resolver = context.contentResolver
+        Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         val controller = ZipEditorController(EditorDraft(ZipEditor, DraftState(draft))) {}
         step?.let(controller::select)
         overlay?.let(controller::adoptOverlay)
@@ -146,8 +154,20 @@ abstract class ZipEditorGoldenScreenshots(private val device: String) {
                 PuzzleBoxTheme(darkTheme = dark) {
                     Surface(Modifier.testTag(GOLDEN)) {
                         Column(Modifier.padding(Spacing.md).then(frame())) {
-                            ZipEditorBoard(controller, Modifier.fillMaxWidth().weight(1f, fill = false), verdict)
-                            if (fixList) ZipEditorUi.Issues(controller, verdict, emptyList(), {}, Modifier.fillMaxWidth())
+                            ZipEditorBoard(
+                                controller,
+                                Modifier.fillMaxWidth().weight(1f, fill = false),
+                                verdict,
+                            )
+                            if (fixList) {
+                                ZipEditorUi.Issues(
+                                    controller,
+                                    verdict,
+                                    emptyList(),
+                                    {},
+                                    Modifier.fillMaxWidth(),
+                                )
+                            }
                         }
                     }
                 }
@@ -158,7 +178,11 @@ abstract class ZipEditorGoldenScreenshots(private val device: String) {
     }
 
     private fun frame(): Modifier =
-        if (device == "tablet") Modifier.size(TabletPaneWidth, TabletPaneHeight) else Modifier.width(PhoneWidth)
+        if (device == "tablet") {
+            Modifier.size(TabletPaneWidth, TabletPaneHeight)
+        } else {
+            Modifier.width(PhoneWidth)
+        }
 
     private fun out(name: String, dark: Boolean): String =
         File(checkNotNull(System.getProperty("user.dir")))
@@ -188,11 +212,16 @@ abstract class ZipEditorGoldenScreenshots(private val device: String) {
         }
 
         /** The snake numbered at every row end: one solution. */
-        val UNIQUE: ZipDraft = ZipDraft(SIZE, emptySet(), SNAKE, listOf(0, 4, 9, 5, 10, 14, 19, 15, 20, 24))
+        val UNIQUE: ZipDraft =
+            ZipDraft(SIZE, emptySet(), SNAKE, listOf(0, 4, 9, 5, 10, 14, 19, 15, 20, 24))
 
         /** [UNIQUE] with walls along row 0's bottom edge between its snake neighbours. */
         val WALLED: ZipDraft = UNIQUE.copy(
-            walls = setOf(Wall(Cell(1), WallDirection.DOWN), Wall(Cell(2), WallDirection.DOWN), Wall(Cell(3), WallDirection.DOWN)),
+            walls = setOf(
+                Wall(Cell(1), WallDirection.DOWN),
+                Wall(Cell(2), WallDirection.DOWN),
+                Wall(Cell(3), WallDirection.DOWN),
+            ),
         )
 
         /** Cell 6 closed on every side. */
