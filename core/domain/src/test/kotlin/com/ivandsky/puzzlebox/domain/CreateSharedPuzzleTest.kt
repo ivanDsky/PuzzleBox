@@ -200,7 +200,7 @@ class CreateSharedPuzzleTest {
         forced = PublishResult.ClockSkew
         drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)))
 
-        assertEquals(PublishOutcome.ClockSkew, createShared()(DRAFT_ID, board, unique))
+        assertEquals(PublishOutcome.ClockSkew, createShared()(DRAFT_ID, board, unique, reserve))
         assertNothingPublished()
         assertEquals(reservedAtPublish.single(), drafts.rows[DRAFT_ID]?.reservedCode)
     }
