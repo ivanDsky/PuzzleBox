@@ -1,34 +1,48 @@
 package com.ivandsky.puzzlebox.games.sudokuui.editor
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.GameButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
-import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuDraft
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuKeypad
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuKeypadActions
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuKeypadModel
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuLayout
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuSizing
+import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 
 /**
- * The tools row under the grid, [height] tall: Erase, Clear, and a third slot kept free for
- * the symmetry toggle. Erase stays on with nothing selected (it then nudges); Clear is off
- * while the board holds no digit.
+ * The tools row under the grid, [height] tall: Erase, Clear and the Symmetry toggle. Erase
+ * stays on with nothing selected (it then nudges); Clear is off while the board holds no
+ * digit. Symmetry shows its mode as state and, while [unpaired] cells wait for a partner,
+ * their count in a badge.
  */
 @Composable
 internal fun SudokuEditorTools(
     controller: SudokuEditorController,
     canClear: Boolean,
+    unpaired: Int,
     height: Dp,
     modifier: Modifier = Modifier,
 ) {
@@ -50,7 +64,34 @@ internal fun SudokuEditorTools(
             modifier = tool.testTag("sudoku.editor.clear"),
             enabled = canClear,
         )
-        Spacer(tool)
+        SymmetryButton(controller, unpaired, tool)
+    }
+}
+
+@Composable
+private fun SymmetryButton(controller: SudokuEditorController, unpaired: Int, modifier: Modifier) {
+    val symmetry by controller.symmetry.collectAsState()
+    Box(modifier) {
+        GameButton(
+            onClick = controller::cycleSymmetry,
+            icon = PuzzleIcons.Appearance,
+            label = "Symmetry",
+            modifier = Modifier.fillMaxSize().testTag("sudoku.editor.symmetry").semantics {
+                stateDescription = symmetry.name
+            },
+        )
+        if (unpaired > 0) {
+            Text(
+                text = unpaired.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape)
+                    .padding(horizontal = 6.dp)
+                    .testTag("sudoku.editor.unpaired"),
+            )
+        }
     }
 }
 
