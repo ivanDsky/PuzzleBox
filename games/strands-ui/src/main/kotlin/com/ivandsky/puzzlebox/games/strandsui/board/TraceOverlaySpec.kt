@@ -29,20 +29,3 @@ internal object TraceOverlaySpec : StrandsCellSpec {
         return StrandsCellFrame(scale = tracePopScale(elapsedMs.toFloat() / MotionTokens.Trace.PopDuration), lit = fill)
     }
 }
-
-/**
- * [TraceOverlaySpec] under the Snap flag: the fill and the letter colour ramp over
- * [MotionTokens.Trace.SnapGrowDuration], matching the line's grow, and the token never scales.
- */
-internal object SnapTraceOverlaySpec : StrandsCellSpec by TraceOverlaySpec {
-    override fun motionMs(cue: StrandsMotionCue): Int = MotionTokens.Trace.SnapGrowDuration
-
-    override fun frame(elapsedMs: Int, cue: StrandsMotionCue, reduceMotion: Boolean): StrandsCellFrame {
-        if (reduceMotion || elapsedMs >= motionMs(cue)) return StrandsCellFrame.Rest
-        val progress = (elapsedMs.toFloat() / MotionTokens.Trace.SnapGrowDuration).coerceIn(0f, 1f)
-        return StrandsCellFrame(lit = MotionTokens.Trace.EasingOut.transform(progress))
-    }
-}
-
-/** The live trace's token look: [SnapTraceOverlaySpec] when [snap] (flag SnapTrace), else [TraceOverlaySpec]. */
-internal fun traceOverlaySpec(snap: Boolean): StrandsCellSpec = if (snap) SnapTraceOverlaySpec else TraceOverlaySpec

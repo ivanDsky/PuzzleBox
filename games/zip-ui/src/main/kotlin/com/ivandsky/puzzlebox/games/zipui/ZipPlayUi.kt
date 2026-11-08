@@ -31,7 +31,6 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.GridCell
-import com.ivandsky.puzzlebox.gameui.LocalSnapTrace
 import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
@@ -195,7 +194,6 @@ private fun ZipBoard(controller: ZipPlayController, paneCap: Dp?, modifier: Modi
     val hooks = remember(puzzle) { ZipDragHooks(puzzle.board) }
     // Snapshot state read only inside ZipPipes' draw: a moving finger redraws, never recomposes.
     val finger = remember { mutableStateOf<Offset?>(null) }
-    val snap = LocalSnapTrace.current
     val cap = paneCap ?: PlayBoardMaxWidth
     Box(modifier) {
         DragTraceBoard(
@@ -205,11 +203,11 @@ private fun ZipBoard(controller: ZipPlayController, paneCap: Dp?, modifier: Modi
             hooks = hooks,
             onEvent = controller::onDragEvent,
             edgeOverlays = zipWallOverlays(model),
-            underlay = { ZipPipes(model, { finger.value }, hooks, animate = !reducedMotion, snap = snap) },
+            underlay = { ZipPipes(model, { finger.value }, hooks, animate = !reducedMotion) },
             cellContent = { row, col ->
-                ZipCellDecor(model, row, col, animated = !reducedMotion, snap = snap)
+                ZipCellDecor(model, row, col, animated = !reducedMotion)
             },
-            onPointer = { if (!snap) finger.value = it },
+            onPointer = { finger.value = it },
             // A4: capped at PlayBoardMaxWidth (a two-pane board fills its pane, A15) and
             // centered by the pane; BoardGrid's aspectRatio keeps the grid exact under
             // these loose constraints. The outline rides the same modifier (U1 §4 — Zip's

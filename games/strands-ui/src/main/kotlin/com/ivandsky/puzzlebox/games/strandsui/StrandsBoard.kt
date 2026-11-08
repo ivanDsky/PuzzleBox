@@ -33,7 +33,6 @@ import com.ivandsky.puzzlebox.games.strandsui.board.altThemeCells
 import com.ivandsky.puzzlebox.games.strandsui.board.altThemeLinks
 import com.ivandsky.puzzlebox.games.strandsui.board.rememberTraceEndFrame
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
-import com.ivandsky.puzzlebox.gameui.LocalSnapTrace
 
 /**
  * Strands' one board, chrome-free ([com.ivandsky.puzzlebox.gameui.GamePlayUi.Board]): the
@@ -110,8 +109,6 @@ internal fun StrandsBoardLayout(
     // Read only by the motion effects, so a touch-down recomposes nothing.
     val touchSeq = remember { mutableIntStateOf(0) }
     val end = rememberTraceEndFrame(traceEnd(), reduceMotion, touchSeq)
-    // The Snap flag (SnapTrace), read once for the connector and every token.
-    val snap = LocalSnapTrace.current
     BoxWithConstraints(modifier.fillMaxWidth()) {
         val cell = strandsCellSizeFor(maxWidth, maxHeight, model.rows, model.cols)
         val boardSize = DpSize(cell * model.cols, cell * model.rows)
@@ -123,7 +120,7 @@ internal fun StrandsBoardLayout(
                 // Strands has no grid: the letters float on the bare board.
                 colors = colors.copy(boardGridLine = Color.Transparent),
                 underlay = {
-                    StrandsConnectors(model.rows, model.cols, model.links, trace, colors, { finger.value }, animate = !reduceMotion, snap = snap)
+                    StrandsConnectors(model.rows, model.cols, model.links, trace, colors, { finger.value }, animate = !reduceMotion)
                     StrandsTraceEndConnector(model.rows, model.cols, { end.value }, colors)
                 },
                 cellContent = { row, col ->
@@ -135,7 +132,6 @@ internal fun StrandsBoardLayout(
                         reduceMotion = reduceMotion,
                         touchSeq = touchSeq,
                         end = end,
-                        snap = snap,
                         colors = colors,
                         trace = trace,
                         onTrace = onTrace,

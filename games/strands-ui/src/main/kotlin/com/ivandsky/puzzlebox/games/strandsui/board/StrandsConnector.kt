@@ -34,10 +34,8 @@ import com.ivandsky.puzzlebox.gameui.GridGeometry
  *
  * The live trace is [StrandsLineMotion]'s: while a drag runs, [finger] (read in the draw
  * phase) stretches its end toward a free letter (A4), and [animate] turns on grow-in,
- * retract, tip-home and the head pop; reduced motion keeps only the tip. With [snap] (flag
- * SnapTrace) the live trace is [StrandsSnapLine] instead: no finger, tip or pop, the end on
- * the last letter centre; [finger] is ignored. [links] are built in a draw cache, rebuilt
- * only on a size or link change.
+ * retract, tip-home and the head pop; reduced motion keeps only the tip. [links] are built
+ * in a draw cache, rebuilt only on a size or link change.
  */
 @Composable
 internal fun StrandsConnectors(
@@ -48,11 +46,9 @@ internal fun StrandsConnectors(
     colors: BoardColors,
     finger: () -> TraceFinger? = { null },
     animate: Boolean = false,
-    snap: Boolean = false,
 ) {
     val scope = rememberCoroutineScope()
     val motion = remember { StrandsLineMotion(scope) }
-    val snapLine = if (snap) remember { StrandsSnapLine(scope) } else null
     Spacer(
         Modifier
             .fillMaxSize()
@@ -66,11 +62,7 @@ internal fun StrandsConnectors(
                 val color = connectorColor(LinkKind.Trace, colors)
                 val stroke = roundStroke(LinkKind.Trace)
                 onDrawBehind {
-                    if (snapLine != null) {
-                        with(snapLine) { drawTrace(trace().path, rows, cols, color, stroke, animate) }
-                    } else {
-                        with(motion) { drawTrace(trace().path, finger(), rows, cols, color, stroke, animate) }
-                    }
+                    with(motion) { drawTrace(trace().path, finger(), rows, cols, color, stroke, animate) }
                 }
             },
     )

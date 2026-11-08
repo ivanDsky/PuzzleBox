@@ -63,7 +63,6 @@ fun ZipCellDecor(
     col: Int,
     modifier: Modifier = Modifier,
     animated: Boolean = false,
-    snap: Boolean = false,
 ) {
     val idx = row * model.n + col
     val dotFraction = ZipBoardSpec.dotSizeFraction(model.n)
@@ -75,8 +74,7 @@ fun ZipCellDecor(
     val scheme = MaterialTheme.colorScheme
 
     val pulse by animateFloatAsState(
-        // Snap trace (flag SnapTrace): no reject shrink; the reject wash alone shows the mistake.
-        targetValue = if (isRejected && !snap) 0.86f else 1f,
+        targetValue = if (isRejected) 0.86f else 1f,
         animationSpec = spring(
             dampingRatio = MotionTokens.RejectSpringDamping,
             stiffness = MotionTokens.RejectSpringStiffness,
@@ -90,7 +88,7 @@ fun ZipCellDecor(
     LaunchedEffect(inPath) {
         val entered = inPath && !wasInPath
         wasInPath = inPath
-        if (animated && !snap && entered && cell.isWaypoint) {
+        if (animated && entered && cell.isWaypoint) {
             pop.tracePop()
         } else {
             pop.snapTo(1f)
@@ -187,8 +185,6 @@ fun ZipCellDecor(
  * disc sits on the line end. In the live game [finger] (board px, read in the draw phase)
  * drives the tip toward cells [hooks] accepts, and [animate] turns on grow-in, retract,
  * tip-home and the head pop ([MotionTokens.Trace]); reduced motion keeps only the tip.
- * With [snap] (flag SnapTrace) the line is [ZipSnapLine]: no finger, tip or pop, the end on
- * the last cell centre; [finger] and [hooks] are ignored.
  */
 @Composable
 fun ZipPipes(
@@ -196,28 +192,17 @@ fun ZipPipes(
     finger: () -> Offset? = { null },
     hooks: DragTraceHooks? = null,
     animate: Boolean = false,
-    snap: Boolean = false,
 ) {
     val board = LocalBoardColors.current
     val scope = rememberCoroutineScope()
     val motion = remember { ZipLineMotion(scope) }
-    val snapLine = if (snap) remember { ZipSnapLine(scope) } else null
     val path = remember(model.path, model.n) { model.path.map { GridCell(it / model.n, it % model.n) } }
     Canvas(Modifier.fillMaxSize()) {
-        if (snapLine != null) {
-            with(snapLine) {
-                drawTrace(
-                    path, model.n, board.pathTrace, board.pathTraceLip,
-                    ZipBoardSpec.pathTraceWidthFraction, ZipBoardSpec.pathTraceLipFraction, animate,
-                )
-            }
-        } else {
-            with(motion) {
-                drawTrace(
-                    path, finger(), hooks, model.n, board.pathTrace, board.pathTraceLip,
-                    ZipBoardSpec.pathTraceWidthFraction, ZipBoardSpec.pathTraceLipFraction, animate,
-                )
-            }
+        with(motion) {
+            drawTrace(
+                path, finger(), hooks, model.n, board.pathTrace, board.pathTraceLip,
+                ZipBoardSpec.pathTraceWidthFraction, ZipBoardSpec.pathTraceLipFraction, animate,
+            )
         }
     }
 }
