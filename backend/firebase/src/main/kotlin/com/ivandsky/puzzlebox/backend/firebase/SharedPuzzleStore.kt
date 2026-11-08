@@ -15,8 +15,8 @@ import kotlinx.coroutines.tasks.await
 internal interface SharedPuzzleStore {
 
     /**
-     * In one transaction: reports an existing `puzzles/{code}` with its fields, or stops at the cap, or creates
-     * the doc from [fields] and bumps the author's count for [utcDay].
+     * In one transaction: reports an existing `puzzles/{code}` with its fields, or stops at the
+     * cap, or creates the doc from [fields] and bumps the author's count for [utcDay].
      */
     suspend fun publish(code: String, fields: Map<String, Any?>, uid: String, utcDay: String): StoreWrite
 

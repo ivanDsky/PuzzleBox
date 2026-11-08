@@ -86,6 +86,16 @@ abstract class SharedPuzzleRepositoryContract {
     }
 
     @Test
+    fun republishingAnUnpublishedOwnDocIsCodeTakenAndKeepsItUnpublished() = runTest {
+        signInAs(AUTHOR)
+        repository.publish(doc())
+        repository.unpublish(code())
+
+        assertEquals(PublishResult.CodeTaken, repository.publish(doc()))
+        assertEquals(SharedFetchResult.Found(doc(unpublished = true)), repository.fetch(code()))
+    }
+
+    @Test
     fun anotherAuthorsCodeIsTakenAndLeftUntouched() = runTest {
         signInAs(AUTHOR)
         repository.publish(doc())
