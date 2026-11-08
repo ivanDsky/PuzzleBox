@@ -10,7 +10,8 @@ import org.koin.dsl.module
 /**
  * Profile feature wiring: ProfileRoute's koinViewModel(). The sign-in seam comes from
  * authModule, the use cases from domainModule; the GameRegistry, the per-game brands
- * (GamePlayRegistry) and UserPreferencesRepository from the app graph.
+ * (GamePlayRegistry), UserPreferencesRepository and ReleaseFlags from the app graph; the
+ * SavedStateHandle (the board pick, first in the repo) is injected by Koin's viewModel scope.
  */
 val profileModule: Module = module {
     viewModel {
@@ -24,6 +25,9 @@ val profileModule: Module = module {
             registry = get(),
             brands = get(),
             preferences = get(),
+            releaseFlags = get(),
+            observeLatestSolvedToday = get(),
+            savedStateHandle = get(),
         )
     }
 }

@@ -18,6 +18,8 @@ dependencies {
     implementation(projects.feature.history.api)
     // GoogleIdTokenProvider: the sign-in seam the VM asks for a token.
     implementation(projects.core.auth)
+    // ReleaseFlags: the PerGameLeaderboards gate the VM collects (ADR-0022).
+    implementation(projects.core.common)
 
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.core)
