@@ -15,6 +15,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.testTag as nodeTestTag
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -105,7 +108,10 @@ internal fun SudokuDiagnosticsLayer(size: Int, diagnostics: SudokuDiagnostics, m
                                     lineHeight = fontSize,
                                     textAlign = TextAlign.Center,
                                 ),
-                                modifier = Modifier.testTag("sudoku.editor.cell.$idx.witness"),
+                                modifier = Modifier.clearAndSetSemantics {
+                                    nodeTestTag = "sudoku.editor.cell.$idx.witness"
+                                    stateDescription = "answer $digit"
+                                },
                             )
                         }
                     }

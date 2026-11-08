@@ -15,6 +15,9 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.testTag as nodeTestTag
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.min
@@ -76,7 +79,10 @@ internal fun SudokuForcedLayer(
                                     lineHeight = fontSize,
                                     textAlign = TextAlign.Center,
                                 ),
-                                modifier = Modifier.testTag("sudoku.editor.cell.$idx.forced"),
+                                modifier = Modifier.clearAndSetSemantics {
+                                    nodeTestTag = "sudoku.editor.cell.$idx.forced"
+                                    stateDescription = "forced $digit"
+                                },
                             )
                         }
                     }

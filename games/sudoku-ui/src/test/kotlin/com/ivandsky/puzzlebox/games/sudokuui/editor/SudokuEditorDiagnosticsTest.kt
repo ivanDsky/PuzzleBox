@@ -3,7 +3,9 @@ package com.ivandsky.puzzlebox.games.sudokuui.editor
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -81,12 +83,14 @@ class SudokuEditorDiagnosticsTest {
         val controller = controllerOf(emptyMap())
         controller.adoptOverlay(EditorOverlay(EditorOverlay.Witness.A, showOnBoard = true))
         show(controller, MULTIPLE)
-        rule.onNodeWithTag("sudoku.editor.cell.$DIFFERING.witness").assertTextEquals(A.values[DIFFERING].toString())
+        rule.onNodeWithTag("sudoku.editor.cell.$DIFFERING.witness")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "answer ${A.values[DIFFERING]}"))
 
         controller.adoptOverlay(EditorOverlay(EditorOverlay.Witness.B, showOnBoard = true))
         rule.waitForIdle()
 
-        rule.onNodeWithTag("sudoku.editor.cell.$DIFFERING.witness").assertTextEquals(B.values[DIFFERING].toString())
+        rule.onNodeWithTag("sudoku.editor.cell.$DIFFERING.witness")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "answer ${B.values[DIFFERING]}"))
     }
 
     @Test
@@ -123,7 +127,8 @@ class SudokuEditorDiagnosticsTest {
         rule.waitForIdle()
 
         assertEquals((1 until CELLS).toSet(), tagged("witness"))
-        rule.onNodeWithTag("sudoku.editor.cell.$DIFFERING.witness").assertTextEquals(B.values[DIFFERING].toString())
+        rule.onNodeWithTag("sudoku.editor.cell.$DIFFERING.witness")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "answer ${B.values[DIFFERING]}"))
     }
 
     private companion object {

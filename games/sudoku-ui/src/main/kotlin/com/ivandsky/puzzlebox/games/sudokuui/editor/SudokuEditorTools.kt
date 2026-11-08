@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
@@ -104,7 +105,8 @@ private fun SymmetryButton(controller: SudokuEditorController, unpaired: Int, mo
                     .align(Alignment.TopEnd)
                     .background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape)
                     .padding(horizontal = 6.dp)
-                    .testTag("sudoku.editor.unpaired"),
+                    .testTag("sudoku.editor.unpaired")
+                    .semantics { contentDescription = "Unpaired cells: $unpaired" },
             )
         }
     }
