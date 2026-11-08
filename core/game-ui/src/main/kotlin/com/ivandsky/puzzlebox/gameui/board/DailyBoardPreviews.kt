@@ -40,7 +40,7 @@ private fun SignInSlot() = Text("Sign in with Google")
 @PuzzleBoxPreviews
 @Composable
 internal fun DailyBoardRankedPreview() = Padded {
-    DailyBoard("Queens · today", RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows))
+    DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows))
 }
 
 @PuzzleBoxPreviews
@@ -55,55 +55,67 @@ internal fun DailyBoardRowPreview() = Padded {
 @PuzzleBoxPreviews
 @Composable
 internal fun DailyBoardStrandsPreview() = Padded {
-    DailyBoard("Strands · today", RankOrder.HintsThenTime, DailyBoardState.Ranked(StrandsRows))
+    DailyBoard(dailyBoardTitle("Strands"), RankOrder.HintsThenTime, DailyBoardState.Ranked(StrandsRows))
 }
 
 @PuzzleBoxPreviews
 @Composable
 internal fun DailyBoardPostingPreview() = Padded {
-    DailyBoard("Queens · today", RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows, DailyBoardNote.Posting))
+    DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows, DailyBoardNote.Posting))
 }
 
 @PuzzleBoxPreviews
 @Composable
 internal fun DailyBoardReplayPreview() = Padded {
-    DailyBoard("Queens · today", RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows, DailyBoardNote.ReplayFirstTimeStands))
+    DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows, DailyBoardNote.ReplayFirstTimeStands))
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun DailyBoardDeferredNotePreview() = Padded {
+    DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows, DailyBoardNote.Deferred))
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun DailyBoardRejectedNotePreview() = Padded {
+    DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows, DailyBoardNote.Rejected))
 }
 
 @PuzzleBoxPreviews
 @Composable
 internal fun DailyBoardEmptyPreview() = Padded {
-    DailyBoard("Queens · today", RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList()))
+    DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList()))
 }
 
 @PuzzleBoxPreviews
 @Composable
 internal fun DailyBoardLoadingPreview() = Padded {
-    DailyBoard("Queens · today", RankOrder.TimeThenHints, DailyBoardState.Loading)
+    DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.Loading)
 }
 
 @PuzzleBoxPreviews
 @Composable
 internal fun DailyBoardUnavailablePreview() = Padded {
-    DailyBoard("Queens · today", RankOrder.TimeThenHints, DailyBoardState.Unavailable)
+    DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.Unavailable)
 }
 
 @PuzzleBoxPreviews
 @Composable
 internal fun DailyBoardSignedOutPreview() = Padded {
-    DailyBoard("Queens · today", RankOrder.TimeThenHints, DailyBoardState.SignedOut, signIn = { SignInSlot() })
+    DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.SignedOut, signIn = { SignInSlot() })
 }
 
 @Preview(name = "Tablet light", device = TabletSpec, showBackground = true)
 @Preview(name = "Tablet dark", device = TabletSpec, uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
 @Composable
 internal fun DailyBoardTabletPreview() = Padded {
-    DailyBoard("Queens · today", RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows, DailyBoardNote.Posting))
+    DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows, DailyBoardNote.Posting))
 }
 
 @Preview(name = "Tablet Strands light", device = TabletSpec, showBackground = true)
 @Preview(name = "Tablet Strands dark", device = TabletSpec, uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
 @Composable
 internal fun DailyBoardStrandsTabletPreview() = Padded {
-    DailyBoard("Strands · today", RankOrder.HintsThenTime, DailyBoardState.Ranked(StrandsRows))
+    DailyBoard(dailyBoardTitle("Strands"), RankOrder.HintsThenTime, DailyBoardState.Ranked(StrandsRows))
 }

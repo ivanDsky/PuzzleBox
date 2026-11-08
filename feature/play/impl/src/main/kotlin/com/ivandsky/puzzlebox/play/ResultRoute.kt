@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
 import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.board.DailyBoard
+import com.ivandsky.puzzlebox.gameui.board.dailyBoardTitle
 import com.ivandsky.puzzlebox.gameui.resultShareText
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.api.ResultKey
@@ -138,7 +139,7 @@ private fun resultBoard(key: ResultKey, viewModel: ResultViewModel, game: String
     val shown = board ?: return null
     return {
         DailyBoard(
-            title = "$game · today",
+            title = dailyBoardTitle(game),
             order = viewModel.boardOrder,
             state = shown,
             signIn = {
