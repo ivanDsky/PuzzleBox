@@ -7,7 +7,8 @@ import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 /**
  * Tango hint (F3 marker): a forced move plus WHY it is forced (spec hints bullet — the hint
  * reveals the rule and evidence, never just a cell). Produced by the deduction ladder in
- * [TangoRules] (marker → triple → count → line completion); usage is counted by the caller (A3).
+ * [TangoRules] (marker → triple → count → line completion); usage is counted by the caller
+ * (A3).
  */
 sealed interface TangoHint : Hint {
 

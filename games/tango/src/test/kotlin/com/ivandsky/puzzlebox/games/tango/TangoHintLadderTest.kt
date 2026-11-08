@@ -121,7 +121,7 @@ class TangoHintLadderTest {
 
     @Test
     fun `a column needing counts and triples together hints its bottom cell`() {
-        // Daily 758 column 1 reads M M S _ _ _: both fills left end in a sun, no single rung sees it.
+        // Daily 758 column 1 reads M M S _ _ _: both fills left end in a sun; no one rung sees it.
         val puzzle = blank(mapOf(1 to TangoCell.MOON, 7 to TangoCell.MOON, 13 to TangoCell.SUN))
 
         val hint = TangoRules.hint(TangoState(puzzle, TangoTestSupport.gridOf(puzzle)))

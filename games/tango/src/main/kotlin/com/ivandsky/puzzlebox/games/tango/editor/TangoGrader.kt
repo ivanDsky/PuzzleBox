@@ -10,8 +10,8 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoState
  * Grades a Tango board by walking [TangoRules.hint] (spec A9): every forced move is placed and
  * its reason maps to a [TangoRung]; the grade is the hardest rung used. The hint ladder tries
  * markers, three-in-a-row, line counts, then line completion, so the walk is deterministic
- * and a board is only as hard as the rungs it cannot avoid. A walk that meets [TangoHint.Stuck] with a cell
- * still empty is [TangoGrade.stuck].
+ * and a board is only as hard as the rungs it cannot avoid. A walk that meets
+ * [TangoHint.Stuck] with a cell still empty is [TangoGrade.stuck].
  */
 object TangoGrader {
     /** Walks [TangoRules.hint] from the givens; Stuck before full ⇒ stuck. */
