@@ -111,6 +111,36 @@ It exits non-zero when any verdict differs from the expected one. Request time i
 | deny | update | `leaderboards/zip_2026-11-07/entries/bob` | bob | second daily entry write |
 | deny | delete | `leaderboards/zip_2026-11-07/entries/bob` | bob | owner deletes a daily entry |
 
+## daily leaderboards (allow-list and day window)
+
+Ticket 03 (spec A5, A6). Entries land only for `zip | tango | queens | strands | minisudoku` and only when
+the puzzle day is server UTC today −2, −1, 0 or +1. Relative to the fixed request time that is
+`2026-11-05` … `2026-11-08`; `2026-11-04` (day −3) and `2026-11-09` (day +2) are denied. The board id,
+the ref and the day always agree, so each row's path day is the ref day.
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| allow | create | `leaderboards/zip_2026-11-07/entries/bob` | bob | zip entry for today |
+| allow | create | `leaderboards/tango_2026-11-07/entries/bob` | bob | tango entry for today |
+| allow | create | `leaderboards/queens_2026-11-07/entries/bob` | bob | queens entry for today |
+| allow | create | `leaderboards/strands_2026-11-07/entries/bob` | bob | strands entry for today |
+| allow | create | `leaderboards/minisudoku_2026-11-07/entries/bob` | bob | minisudoku entry for today |
+| allow | create | `leaderboards/zip_2026-11-05/entries/bob` | bob | zip entry two days back (window start) |
+| allow | create | `leaderboards/zip_2026-11-06/entries/bob` | bob | zip entry for yesterday |
+| allow | create | `leaderboards/zip_2026-11-08/entries/bob` | bob | zip entry one day ahead (window end) |
+| allow | create | `leaderboards/tango_2026-11-05/entries/bob` | bob | tango entry two days back |
+| allow | create | `leaderboards/strands_2026-11-08/entries/bob` | bob | strands entry one day ahead |
+| deny | create | `leaderboards/sudoku_2026-11-07/entries/bob` | bob | sudoku entry (debug-only game) |
+| deny | create | `leaderboards/custom_2026-11-07/entries/bob` | bob | custom as a daily game id |
+| deny | create | `leaderboards/chess_2026-11-07/entries/bob` | bob | unknown game id |
+| deny | create | `leaderboards/Zip_2026-11-07/entries/bob` | bob | game id in another case |
+| deny | create | `leaderboards/zip_2026-11-04/entries/bob` | bob | zip entry three days back |
+| deny | create | `leaderboards/zip_2026-11-09/entries/bob` | bob | zip entry two days ahead |
+| deny | create | `leaderboards/tango_2026-11-04/entries/bob` | bob | tango entry three days back |
+| deny | create | `leaderboards/strands_2026-11-09/entries/bob` | bob | strands entry two days ahead |
+| deny | create | `leaderboards/minisudoku_2025-11-07/entries/bob` | bob | minisudoku entry a year back |
+| deny | create | `leaderboards/queens_2026-11-31/entries/bob` | bob | queens entry for a day that does not exist |
+
 ## deny-all
 
 | Expect | Method | Path | Auth | Case |
@@ -121,10 +151,9 @@ It exits non-zero when any verdict differs from the expected one. Request time i
 
 ## Last run
 
-2026-11-07, rules at the commit that added this file: **80 cases, 80/80 passed**, exit 0.
-
-2026-11-07, re-run after `firebase deploy --only firestore,hosting --project puzzlebox-f3356` released this
-same `firestore.rules`: **80/80 passed**, exit 0. The output below is unchanged.
+2026-11-07, rules at the commit that added the daily allow-list and day window (ticket 03, not deployed;
+the run uses the local source on the Rules Test API): **100 cases, 100/100 passed**, exit 0. The 80 cases
+before this ticket all still pass.
 
 ```
 PASS  ALLOW  [puzzles] anonymous get of a puzzle
@@ -204,8 +233,28 @@ PASS  DENY  [daily leaderboards (unchanged)] daily entry with timeMs 0
 PASS  DENY  [daily leaderboards (unchanged)] daily entry with formatVersion 2
 PASS  DENY  [daily leaderboards (unchanged)] second daily entry write
 PASS  DENY  [daily leaderboards (unchanged)] owner deletes a daily entry
+PASS  ALLOW  [daily leaderboards (allow-list and day window)] zip entry for today
+PASS  ALLOW  [daily leaderboards (allow-list and day window)] tango entry for today
+PASS  ALLOW  [daily leaderboards (allow-list and day window)] queens entry for today
+PASS  ALLOW  [daily leaderboards (allow-list and day window)] strands entry for today
+PASS  ALLOW  [daily leaderboards (allow-list and day window)] minisudoku entry for today
+PASS  ALLOW  [daily leaderboards (allow-list and day window)] zip entry two days back (window start)
+PASS  ALLOW  [daily leaderboards (allow-list and day window)] zip entry for yesterday
+PASS  ALLOW  [daily leaderboards (allow-list and day window)] zip entry one day ahead (window end)
+PASS  ALLOW  [daily leaderboards (allow-list and day window)] tango entry two days back
+PASS  ALLOW  [daily leaderboards (allow-list and day window)] strands entry one day ahead
+PASS  DENY  [daily leaderboards (allow-list and day window)] sudoku entry (debug-only game)
+PASS  DENY  [daily leaderboards (allow-list and day window)] custom as a daily game id
+PASS  DENY  [daily leaderboards (allow-list and day window)] unknown game id
+PASS  DENY  [daily leaderboards (allow-list and day window)] game id in another case
+PASS  DENY  [daily leaderboards (allow-list and day window)] zip entry three days back
+PASS  DENY  [daily leaderboards (allow-list and day window)] zip entry two days ahead
+PASS  DENY  [daily leaderboards (allow-list and day window)] tango entry three days back
+PASS  DENY  [daily leaderboards (allow-list and day window)] strands entry two days ahead
+PASS  DENY  [daily leaderboards (allow-list and day window)] minisudoku entry a year back
+PASS  DENY  [daily leaderboards (allow-list and day window)] queens entry for a day that does not exist
 PASS  DENY  [deny-all] signed-in read of an unmatched path
 PASS  DENY  [deny-all] signed-in write of an unmatched path
 PASS  DENY  [deny-all] signed-in read of a puzzle's unknown subcollection
-80/80 passed
+100/100 passed
 ```

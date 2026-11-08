@@ -1635,6 +1635,246 @@
       }
     },
     {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "zip entry for today",
+      "expect": "allow",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "zip/2026-11-07/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "tango entry for today",
+      "expect": "allow",
+      "method": "create",
+      "path": "leaderboards/tango_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "tango/2026-11-07/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "queens entry for today",
+      "expect": "allow",
+      "method": "create",
+      "path": "leaderboards/queens_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "queens/2026-11-07/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "strands entry for today",
+      "expect": "allow",
+      "method": "create",
+      "path": "leaderboards/strands_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "strands/2026-11-07/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "minisudoku entry for today",
+      "expect": "allow",
+      "method": "create",
+      "path": "leaderboards/minisudoku_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "minisudoku/2026-11-07/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "zip entry two days back (window start)",
+      "expect": "allow",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-05/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "zip/2026-11-05/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "zip entry for yesterday",
+      "expect": "allow",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-06/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "zip/2026-11-06/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "zip entry one day ahead (window end)",
+      "expect": "allow",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-08/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "zip/2026-11-08/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "tango entry two days back",
+      "expect": "allow",
+      "method": "create",
+      "path": "leaderboards/tango_2026-11-05/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "tango/2026-11-05/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "strands entry one day ahead",
+      "expect": "allow",
+      "method": "create",
+      "path": "leaderboards/strands_2026-11-08/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "strands/2026-11-08/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "sudoku entry (debug-only game)",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/sudoku_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "sudoku/2026-11-07/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "custom as a daily game id",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/custom_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "custom/2026-11-07/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "unknown game id",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/chess_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "chess/2026-11-07/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "game id in another case",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/Zip_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "Zip/2026-11-07/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "zip entry three days back",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-04/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "zip/2026-11-04/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "zip entry two days ahead",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-09/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "zip/2026-11-09/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "tango entry three days back",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/tango_2026-11-04/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "tango/2026-11-04/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "strands entry two days ahead",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/strands_2026-11-09/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "strands/2026-11-09/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "minisudoku entry a year back",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/minisudoku_2025-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "minisudoku/2025-11-07/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (allow-list and day window)",
+      "name": "queens entry for a day that does not exist",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/queens_2026-11-31/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "queens/2026-11-31/1"
+      }
+    },
+    {
       "group": "deny-all",
       "name": "signed-in read of an unmatched path",
       "expect": "deny",

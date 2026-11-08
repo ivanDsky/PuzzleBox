@@ -30,3 +30,5 @@ accept only Zip refs, so no non-Zip game reaches a leaderboard today.
 - Order on `GameDefinition`: identity/wire concerns; ranking is a score concern.
 
 *(Amended 2026-11-06 by ADR-0020: per-puzzle custom boards rank by the game's `RankOrder`, with a hints-then-time index for Strands; daily boards stay Zip-only and time-first.)*
+
+*(Amended 2026-11-07 by ADR-0024: daily boards are per game and no longer Zip-only or time-first. The rules accept the five daily ids (`zip | tango | queens | strands | minisudoku`) on recent days only, and the board query and every local sort follow the game's `RankOrder`, so a Strands daily board ranks hints first. The "Strands records are submitted by the watcher and rejected by rules" consequence holds only until the rules deploy.)*
