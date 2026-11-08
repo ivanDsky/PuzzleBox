@@ -45,8 +45,6 @@ import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
 import com.ivandsky.puzzlebox.app.nav.applyFriendLink
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -81,7 +79,6 @@ import org.koin.compose.koinInject
  * A [pendingLink] (a tapped share link's URI) lands on the back stack in the composition
  * that first sees it, so a cold start draws the friend's card on its first frame; then
  * [onLinkApplied]. A link whose code doesn't parse opens Play's code sheet holding its text.
- * While [ReleaseFlag.FriendSharing] is off a link is taken and dropped (ADR-0022).
  */
 @Composable
 fun PuzzleBoxApp(
@@ -91,14 +88,11 @@ fun PuzzleBoxApp(
     pendingLink: String? = null,
     onLinkApplied: () -> Unit = {},
     todaySet: ObserveTodaySet = koinInject(),
-    releaseFlags: ReleaseFlags = koinInject(),
 ) {
     var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
-    val flags by releaseFlags.enabled.collectAsStateWithLifecycle()
     if (pendingLink != null) {
         remember(pendingLink) {
-            // Friend sharing off (ADR-0022): the link is taken and dropped, the app stays put.
-            FriendLink.of(pendingLink)?.takeIf { ReleaseFlag.FriendSharing in flags }?.let { link ->
+            FriendLink.of(pendingLink)?.let { link ->
                 navigator.applyFriendLink(link)
                 if (link is FriendLink.Invalid) codeDraft = link.text
             }

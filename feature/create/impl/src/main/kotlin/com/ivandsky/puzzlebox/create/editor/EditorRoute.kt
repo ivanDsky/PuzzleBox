@@ -16,15 +16,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.published.UnpublishDialog
 import com.ivandsky.puzzlebox.create.published.UnpublishedToast
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
 /**
@@ -36,9 +33,9 @@ import org.koin.core.parameter.parametersOf
  * a fix's Select closes the card so the selection shows. Test solve (Unique boards of games that
  * export puzzles) replaces the Studio with the [TestSolveScreen] sandbox on the game's real play
  * board until its Back; a board edit that invalidates the test shows the toast whose Undo brings
- * the board back to the tested layout. Publish shows only while [ReleaseFlag.FriendSharing] is on
- * (ADR-0022). On a phone the passed test's publish details take the tools' [ToolSlot] until Edit
- * board, which holds until that test changes. Publish while signed out opens the
+ * the board back to the tested layout. On a phone the passed test's publish details take the
+ * tools' [ToolSlot] until Edit board, which holds until that test changes. Publish while signed
+ * out opens the
  * [SignInPublishSheet]; a failed sign-in shows its reason in the Studio's toast slot. Once
  * published the action area morphs into the [PublishedTicket] (Copy code toasts in the same slot)
  * and the Studio turns read-only, its Duplicate the way on to an editable copy; the overflow's
@@ -65,9 +62,6 @@ internal fun EditorRoute(
     val passed by viewModel.testSolve.passed.collectAsStateWithLifecycle()
     val testCleared by viewModel.testSolve.cleared.collectAsStateWithLifecycle()
     val publish by viewModel.publish.state.collectAsStateWithLifecycle()
-    val flags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
-    // Publish and its details exist only while friend sharing is on (ADR-0022).
-    val shownPublish = publish.takeIf { ReleaseFlag.FriendSharing in flags }
     val cardOpen by viewModel.verdictCard.open.collectAsStateWithLifecycle()
     val ticket by viewModel.ticket.collectAsStateWithLifecycle()
     val unpublish by viewModel.unpublish.state.collectAsStateWithLifecycle()
@@ -85,7 +79,7 @@ internal fun EditorRoute(
             val overlay by ready.controller.overlay.collectAsStateWithLifecycle()
             // Edit board holds until the test it set aside changes: a clear, its Undo or a new pass.
             var editBoard by rememberSaveable(passed) { mutableStateOf(false) }
-            val detailsReady = detailsOpen(held, passed, shownPublish)
+            val detailsReady = detailsOpen(held, passed, publish)
             sandbox?.let { open ->
                 // Its own node under the route's, so both the route's and the screen's tags survive.
                 Box(routeModifier.fillMaxSize()) {
@@ -167,7 +161,7 @@ internal fun EditorRoute(
                             onTestSolve = { viewModel.testSolve.start(draft, ready.verdict) },
                             blocks = remember(draft, held, title, passed) { viewModel.readiness(draft, held, title, passed) },
                             modifier = actionsModifier,
-                            publish = shownPublish,
+                            publish = publish,
                             // The live verdict, like Test solve: a tap while Checking is refused as not ready.
                             onPublish = { viewModel.publish.publish(draft, ready.verdict) },
                             title = title,

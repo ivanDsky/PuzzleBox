@@ -65,3 +65,4 @@ to merge without being reachable in a release build.
 - FriendSharing flipped to `releaseDefault = true` in 0.17.0 on 2026-11-07. The App Links
   filter for `puzzlebox-f3356.web.app/p/` moved from the debug manifest to the main manifest
   in the same PR.
+- The FriendSharing flag was removed, with every branch on it, on 2026-11-07.
