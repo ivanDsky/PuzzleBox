@@ -24,7 +24,9 @@ class SudokuSymmetryTest {
     fun self_mirrored_and_off_cells_have_no_mirror() {
         assertNull(SudokuSymmetry.Rotational.mirrorOf(40, 9))
         assertNull(SudokuSymmetry.Mirror.mirrorOf(40, 9))
+        assertNull(SudokuSymmetry.Mirror.mirrorOf(4, 9))
         assertNull(SudokuSymmetry.Off.mirrorOf(0, 6))
+        assertNull(SudokuSymmetry.Off.mirrorOf(40, 9))
     }
 
     @Test

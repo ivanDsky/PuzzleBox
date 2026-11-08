@@ -118,6 +118,7 @@ class SudokuEditorSymmetryTest {
         controller.digit(3)
         show()
         composeRule.onAllNodesWithTag("sudoku.editor.unpaired").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("sudoku.editor.unpaired.cell").assertCountEquals(0)
     }
 
     @Test
