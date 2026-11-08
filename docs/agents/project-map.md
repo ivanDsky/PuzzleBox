@@ -158,8 +158,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `domainModule`): `ObserveGameHistory` (records UNION every registered game's captured days →
   `GameHistoryDay`), `GetFeaturedGame` (registry's first game as `GameSummary`),
   `ComputeStreak`, `LoadPastDay` (a past day by date — cached, or fetched once for an archive game — → the game's session blob as
-  `PastDayOutcome`), `ObserveLeaderboard` (identity-gated board for one game and day),
-  `ObserveTodayLeaderboard` (the featured game's today board via `ObserveLeaderboard`:
+  `PastDayOutcome`), `ObserveLeaderboard` (identity-gated board for one game and day, or `today(game)` on the game's calendar day:
   `TodayLeaderboard`), `ObservePlayStats` (one slot's tablet side-panel stats: streak, week,
   today progress, times → `PlayStats`), `ObserveTodaySet` (saved plays + records + each game's calendar day →
   registry-order `TodayEntry` per game: Solved/InProgress(elapsed)/NotStarted; `nextUnsolved`). Android library.
@@ -283,7 +282,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   history row pushes that day's `GameKey` on Home's stack, which resumes or replays the slot.
 - `feature/profile/impl/` (`:feature:profile:impl`) — packages kept from the app:
   `app/screens/` (`ProfileRoute`, `ProfileScreen`, `ProfileLeaderboard`, `ProfileViewModel`
-  over `ObserveTodayLeaderboard` + `ObserveGameStats`/`ObserveGameHistory` (the record) +
+  over `ObserveLeaderboard.today` + `ObserveGameStats`/`ObserveGameHistory` (the record) +
   `UserPreferencesRepository` (Appearance), `ProfileUiState`), `profile/ProfileRecord`
   (header, lifetime grid, per-game rows opening `HistoryKey(game)`), `profile/AppearanceRow`,
   `app/auth/GoogleIdTokenProvider` (Credential Manager, typed `Unavailable.Reason`),

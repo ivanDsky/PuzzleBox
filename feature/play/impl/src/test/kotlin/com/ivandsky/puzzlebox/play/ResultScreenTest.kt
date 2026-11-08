@@ -479,7 +479,7 @@ class ResultScreenTest {
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
                     single<CustomBoardRepository> { FakeCustomBoardRepository() }
                     single { dismissedGoogleSignIn }
-                    factory { ObserveLeaderboard(get(), get(), get()) }
+                    factory { ObserveLeaderboard(get(), get(), get(), get()) }
                     factory { ObserveResultRank(get()) }
                     factory { ObserveResultInsights(get(), get(), get(), get()) }
                 },

@@ -17,7 +17,8 @@ val profileModule: Module = module {
         ProfileViewModel(
             identityService = get<IdentityService>(),
             idTokenProvider = get<GoogleIdTokenProvider>(),
-            observeTodayLeaderboard = get(),
+            observeLeaderboard = get(),
+            getFeaturedGame = get(),
             observeGameStats = get(),
             observeGameHistory = get(),
             registry = get(),
