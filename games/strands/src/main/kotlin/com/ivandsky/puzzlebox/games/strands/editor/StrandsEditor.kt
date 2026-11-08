@@ -52,33 +52,7 @@ object StrandsEditor :
 
     override fun parse(text: String): NotationResult<StrandsDraft> = StrandsNotation.parse(text)
 
-    /**
-     * Text [parse] accepts for every draft the editor or a share can build, so it is lossy where
-     * the grammar cannot say it: a clue's line breaks become a space, a letter outside A-Z a
-     * blank, a word its cells no longer spell goes unnamed, and a path with no cells (share-opened
-     * drafts have none) is dropped, with [StrandsDraft.spangram] following its path.
-     */
-    override fun print(draft: StrandsDraft): String = StrandsNotation.print(printable(draft))
-
-    private fun printable(draft: StrandsDraft): StrandsDraft {
-        val letters = draft.letters.map { ch ->
-            when (ch) {
-                in 'A'..'Z' -> ch
-                in 'a'..'z' -> ch.uppercaseChar()
-                else -> StrandsDraft.BLANK
-            }
-        }.joinToString("")
-        val kept = draft.paths.withIndex().filter { it.value.cells.isNotEmpty() }
-        return StrandsDraft(
-            letters = letters,
-            clue = draft.clue.replace(LINE_BREAKS, " "),
-            paths = kept.map { (_, path) ->
-                val spelled = path.cells.map { letters[it] }.joinToString("")
-                path.copy(word = path.word?.takeIf { it.uppercase() == spelled })
-            },
-            spangram = kept.indexOfFirst { it.index == draft.spangram },
-        )
-    }
+    override fun print(draft: StrandsDraft): String = StrandsNotation.print(draft)
 
     override fun columns(draft: StrandsDraft): Int = StrandsDraft.COLS
 
@@ -133,6 +107,4 @@ object StrandsEditor :
         check(extend()) { "no path spells $text over its tiled cells" }
         return order
     }
-
-    private val LINE_BREAKS = Regex("[\r\n]+")
 }

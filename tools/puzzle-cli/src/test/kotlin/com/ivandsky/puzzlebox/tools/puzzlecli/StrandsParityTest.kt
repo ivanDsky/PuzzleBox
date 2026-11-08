@@ -5,8 +5,6 @@ import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.NotationParse
 import com.ivandsky.puzzlebox.game.editor.NotationResult
 import com.ivandsky.puzzlebox.game.editor.NotationText
-import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
-import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraftPath
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
@@ -19,9 +17,8 @@ import java.io.File
  * one CliVerdict JSON whose `verdict` and `blocks` equal the fixture's `# expect:` line and the
  * app's persisted round trip — `NotationText.parse` → `EditorDraft.encode()` → `EditorDraft.open`
  * → `analyze` + `publishBlocks`, the path ImportDraftFromText performs — and the exit code
- * follows the §9.2 rule (0 ⇔ unique with no block, 2 malformed, 1 otherwise). Also pins the
- * M5-14-a carry-over edges: a cell-less word is malformed at the same line/col as the parser,
- * and `print` always writes text its own parser accepts.
+ * follows the §9.2 rule (0 ⇔ unique with no block, 2 malformed, 1 otherwise). Also pins that a
+ * cell-less word is malformed at the same line/col as the parser.
  */
 class StrandsParityTest {
 
@@ -71,66 +68,6 @@ class StrandsParityTest {
         assertEquals(CliExit.INVALID_TEXT, exit)
     }
 
-    @Test
-    fun `a clue holding line breaks prints text that parses back`() {
-        val draft = blankDraft().copy(clue = "two\nlines\r\nand\rmore")
-
-        val reopened = reparse(StrandsEditor.print(draft))
-
-        assertEquals(StrandsDraft.NO_SPANGRAM, reopened.spangram)
-        assertTrue("clue kept on one line: ${reopened.clue}", reopened.clue.none { it == '\n' || it == '\r' })
-    }
-
-    @Test
-    fun `words a share-opened draft has no cells for print as text that parses back`() {
-        val draft = blankDraft().copy(
-            paths = listOf(
-                StrandsDraftPath(emptyList(), "FORK"),
-                StrandsDraftPath(listOf(0, 1, 2, 3), "ABCD"),
-            ),
-            letters = "ABCD" + ".".repeat(CELLS - 4),
-            spangram = 1,
-        )
-
-        val reopened = reparse(StrandsEditor.print(draft))
-
-        assertEquals(listOf(StrandsDraftPath(listOf(0, 1, 2, 3), "ABCD")), reopened.paths)
-        assertEquals(0, reopened.spangram)
-    }
-
-    @Test
-    fun `a spangram without cells leaves the reopened draft with no spangram`() {
-        val draft = blankDraft().copy(paths = listOf(StrandsDraftPath(emptyList(), "FORK")), spangram = 0)
-
-        val reopened = reparse(StrandsEditor.print(draft))
-
-        assertEquals(emptyList<StrandsDraftPath>(), reopened.paths)
-        assertEquals(StrandsDraft.NO_SPANGRAM, reopened.spangram)
-    }
-
-    @Test
-    fun `a letter outside A to Z prints as a blank and its path as unnamed`() {
-        val draft = blankDraft().copy(
-            letters = "CAF\u00C9" + ".".repeat(CELLS - 4),
-            paths = listOf(StrandsDraftPath(listOf(0, 1, 2, 3), "CAF\u00C9")),
-        )
-
-        val reopened = reparse(StrandsEditor.print(draft))
-
-        assertEquals("CAF." + ".".repeat(CELLS - 4), reopened.letters)
-        assertEquals(listOf(StrandsDraftPath(listOf(0, 1, 2, 3), null)), reopened.paths)
-    }
-
-    private fun blankDraft(): StrandsDraft =
-        StrandsDraft(".".repeat(CELLS), "", emptyList(), StrandsDraft.NO_SPANGRAM)
-
-    /** Prints through the app's `NotationText` path and returns the draft the text reopens as. */
-    private fun reparse(printed: String): StrandsDraft {
-        val parsed = NotationText.parse(printed, PuzzleCli.registry)
-        assertTrue("printed text must parse, got $parsed for:\n$printed", parsed is NotationParse.Parsed)
-        return (parsed as NotationParse.Parsed).draft.state.draft as StrandsDraft
-    }
-
     private fun validate(path: String): Pair<Int, CliVerdict> {
         val out = mutableListOf<String>()
         val err = mutableListOf<String>()
@@ -156,8 +93,4 @@ class StrandsParityTest {
 
     /** The app path's answer: the verdict name and the publish-block ids, in order. */
     private data class AppVerdict(val verdictName: String, val blockIds: List<String>)
-
-    private companion object {
-        const val CELLS = StrandsDraft.ROWS * StrandsDraft.COLS
-    }
 }
