@@ -29,6 +29,7 @@ internal class FriendRemoval(
 ) {
     @Volatile
     private var window: Job? = null
+    @Volatile
     private var slot: PlaySlot.Custom? = null
     private val _removed = MutableStateFlow<ShareCode?>(null)
     private val _hidden = MutableStateFlow<Set<ShareCode>>(emptySet())
@@ -39,7 +40,10 @@ internal class FriendRemoval(
     /** The codes the list leaves out: the offered one and any whose delete is still running. */
     val hidden: StateFlow<Set<ShareCode>> = _hidden.asStateFlow()
 
-    /** Hides [code] of [game] and opens its Undo window; a newer removal deletes the older one now. */
+    /**
+     * Hides [code] of [game] and opens its Undo window; a newer removal deletes the older one
+     * now.
+     */
     fun remove(code: ShareCode, game: GameId) {
         if (_removed.value == code) return
         close()

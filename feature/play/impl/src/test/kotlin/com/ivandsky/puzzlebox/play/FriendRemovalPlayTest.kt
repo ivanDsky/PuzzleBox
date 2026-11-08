@@ -47,13 +47,18 @@ class FriendRemovalPlayTest {
 
     private fun TestScope.store(): PlaySessionStore {
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
-        val daily = FakeDailyRepository().apply { setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha))) }
+        val daily = FakeDailyRepository().apply {
+            setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
+        }
         val calendar = FakeGameCalendar(today)
         val lane = WriteLane()
         return PlaySessionStore(
             games = fakes.games,
             ui = fakes.registry,
-            opening = SlotOpening(daily, LoadPastDay(daily, fakes.games), saved, calendar, fakes.games, lane, received),
+            opening = SlotOpening(
+                daily, LoadPastDay(daily, fakes.games), saved, calendar,
+                fakes.games, lane, received,
+            ),
             writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
             completions = FakeCompletionRepository(),
             calendar = calendar,
