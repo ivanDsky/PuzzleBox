@@ -30,6 +30,9 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
  * Notes fills with the game's accent while on (A14).
  * Clear is one undoable command, so it needs no confirm; a solved board turns the actions off.
  * Switching notes morphs the digit keys one by one outward from the toggle (SudokuDigitKey).
+ * The editor draws the digits alone ([showActions] false: its own tools row has Erase and
+ * Clear, and Notes means nothing for givens), tags each key `digitTag(d)` and reads each
+ * key's [placed] count (`placed[d - 1]`) instead of the digits left.
  */
 @Composable
 fun SudokuKeypad(
@@ -42,6 +45,9 @@ fun SudokuKeypad(
     keyHeight: Dp = SudokuSizing.keyMin,
     actionHeight: Dp = SudokuSizing.keyMin,
     actions: SudokuKeypadActions = SudokuKeypadActions.Row,
+    showActions: Boolean = true,
+    placed: List<Int>? = null,
+    digitTag: ((Int) -> String)? = null,
 ) {
     val reducedMotion = rememberReducedMotion()
     val rows = model.size / DIGIT_COLUMNS
@@ -50,9 +56,11 @@ fun SudokuKeypad(
     BoxWithConstraints(modifier.fillMaxWidth()) {
         val keyWidth = SudokuSizing.digitKeyWidth(maxWidth, rows, actions)
         val digits: @Composable () -> Unit = {
-            DigitBlock(model, actions, Modifier.width(keyWidth).height(keyHeight), reducedMotion, onDigit)
+            DigitBlock(model, actions, Modifier.width(keyWidth).height(keyHeight), reducedMotion, placed, digitTag, onDigit)
         }
-        if (actions == SudokuKeypadActions.Row) {
+        if (!showActions) {
+            digits()
+        } else if (actions == SudokuKeypadActions.Row) {
             Column(verticalArrangement = Arrangement.spacedBy(gap)) {
                 digits()
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
@@ -99,6 +107,8 @@ private fun DigitBlock(
     actions: SudokuKeypadActions,
     keyModifier: Modifier,
     reducedMotion: Boolean,
+    placed: List<Int>?,
+    digitTag: ((Int) -> String)?,
     onDigit: (Int) -> Unit,
 ) {
     val rows = model.size / DIGIT_COLUMNS
@@ -110,6 +120,7 @@ private fun DigitBlock(
                         digit = digit,
                         size = model.size,
                         remaining = model.remaining[digit - 1],
+                        placed = placed?.get(digit - 1),
                         notesMode = model.notesMode,
                         reducedMotion = reducedMotion,
                         // The wave starts at the key nearest the notes toggle: bottom-left under
@@ -120,7 +131,7 @@ private fun DigitBlock(
                             row + DIGIT_COLUMNS - 1 - column
                         },
                         onClick = { onDigit(digit) },
-                        modifier = keyModifier,
+                        modifier = if (digitTag == null) keyModifier else keyModifier.testTag(digitTag(digit)),
                     )
                 }
             }
