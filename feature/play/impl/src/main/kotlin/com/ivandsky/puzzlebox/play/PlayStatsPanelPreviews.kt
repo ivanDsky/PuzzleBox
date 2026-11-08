@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.WeekDay
 import java.time.LocalDate
@@ -110,4 +111,34 @@ internal fun PlayStatsPanelHintsFirstPreview() = PanelPreview(
         },
     ),
     elapsedMs = 31_000L,
+)
+
+/** Per-game board on, own post deferred: Near you (interactive mode) reads the saved-offline note. */
+@PuzzleBoxPreviews
+@Composable
+internal fun PlayStatsPanelDeferredPreview() = PanelPreview(
+    Loaded.copy(
+        times = (Loaded.times as PlayTimes.Board).copy(
+            rows = OthersOnly,
+            solved = true,
+            order = RankOrder.TimeThenHints,
+            post = SubmitStatus.Deferred,
+        ),
+    ),
+    elapsedMs = 95_000L,
+)
+
+/** Per-game board on, own post rejected: Near you (interactive mode) reads the failure note. */
+@PuzzleBoxPreviews
+@Composable
+internal fun PlayStatsPanelRejectedPreview() = PanelPreview(
+    Loaded.copy(
+        times = (Loaded.times as PlayTimes.Board).copy(
+            rows = OthersOnly,
+            solved = true,
+            order = RankOrder.TimeThenHints,
+            post = SubmitStatus.Rejected,
+        ),
+    ),
+    elapsedMs = 95_000L,
 )
