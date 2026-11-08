@@ -23,7 +23,8 @@ import com.ivandsky.puzzlebox.gameui.GridGeometry
  *
  * A down beside the board clears the trace. [onTouch] fires on every down, before any
  * step, so the board can retire running motion: input never waits on an animation. While a
- * drag runs, [onFinger] gets the finger for the live tip, and null once it lifts.
+ * drag runs, [onFinger] gets the finger for the live tip, and null once it lifts. A size
+ * change mid-gesture does not restart it; positions map with the size in force.
  */
 @Composable
 internal fun BoxScope.StrandsGestureLayer(
@@ -36,24 +37,31 @@ internal fun BoxScope.StrandsGestureLayer(
     onFinger: (TraceFinger?) -> Unit,
 ) {
     val currentTrace by rememberUpdatedState(trace)
+    val currentBoardSize by rememberUpdatedState(boardSize)
     val currentOnTrace by rememberUpdatedState(onTrace)
     val currentOnTouch by rememberUpdatedState(onTouch)
     val currentOnFinger by rememberUpdatedState(onFinger)
     Box(
         Modifier
             .matchParentSize()
-            .pointerInput(rows, cols, boardSize) {
+            .pointerInput(rows, cols) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     currentOnTouch()
-                    val boardWidth = boardSize.width.toPx()
-                    val boardHeight = boardSize.height.toPx()
-                    val origin = Offset((size.width - boardWidth) / 2, (size.height - boardHeight) / 2)
-                    val geometry = GridGeometry(rows, cols, boardWidth, boardHeight)
-                    fun inCells(position: Offset) =
-                        (position - origin).let { Offset(it.x / geometry.cellWidth, it.y / geometry.cellHeight) }
-                    val downAt = down.position - origin
-                    val start = StrandsHitTest.cellAt(geometry, downAt.x, downAt.y)
+                    fun origin() = Offset(
+                        (size.width - currentBoardSize.width.toPx()) / 2,
+                        (size.height - currentBoardSize.height.toPx()) / 2,
+                    )
+                    fun geometry() = GridGeometry(
+                        rows, cols, currentBoardSize.width.toPx(), currentBoardSize.height.toPx(),
+                    )
+                    fun inCells(position: Offset): Offset {
+                        val geometry = geometry()
+                        val inBoard = position - origin()
+                        return Offset(inBoard.x / geometry.cellWidth, inBoard.y / geometry.cellHeight)
+                    }
+                    val downAt = down.position - origin()
+                    val start = StrandsHitTest.cellAt(geometry(), downAt.x, downAt.y)
                     if (start == null) {
                         currentOnTrace(TraceInput.outside())
                         return@awaitEachGesture
