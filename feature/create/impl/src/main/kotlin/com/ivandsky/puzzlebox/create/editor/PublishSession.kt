@@ -8,7 +8,6 @@ import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.model.Draft
-import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
 import com.ivandsky.puzzlebox.domain.PublishOutcome
 import com.ivandsky.puzzlebox.domain.ValidatePublishDetails
@@ -16,7 +15,6 @@ import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.model.ShareCode
-import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,10 +24,10 @@ import kotlinx.coroutines.launch
 
 /**
  * The Studio's Publish: [publish] stores the pending edit first ([flush]), so the shared title,
- * details and test are the ones on screen, then runs [createShared]. A draft with no
- * reserved code gets one before the network call, handed to [reserved], the Studio's one writer,
- * and stored by the [flush] that follows, so an autosave during the call keeps it; the use case
- * reuses it. A later code (a taken one replaced) comes back through [reserved] too. One publish at a time.
+ * details and test are the ones on screen, then runs [createShared]. A code it picks (none
+ * reserved yet, or a taken one replaced) comes back through [reserved], the Studio's one
+ * writer, and is stored by a [flush] before the next try goes out, so an autosave during the
+ * call carries it and no other path writes the reserved code. One publish at a time.
  *
  * A publish that falls short (spec A15, A16) stays the outcome until the next one: offline or
  * refused, [State.retry] turns Publish into Retry, which goes out under the reserved code, so a
@@ -55,15 +53,13 @@ import kotlinx.coroutines.launch
 class PublishSession(
     private val draftId: String,
     private val createShared: CreateSharedPuzzle,
-    private val drafts: DraftRepository,
     private val identity: IdentityService,
     private val idTokens: GoogleIdTokenProvider,
     private val scope: CoroutineScope,
     private val flush: suspend () -> Unit,
-    private val reserved: (code: String?) -> Unit,
+    private val reserved: (code: String) -> Unit,
     private val storeDetails: (authorName: String, note: String) -> Unit,
     private val validateDetails: ValidatePublishDetails = ValidatePublishDetails(),
-    private val random: Random = Random.Default,
 ) {
 
     /**
@@ -219,9 +215,7 @@ class PublishSession(
         store()
         scope.launch {
             flush()
-            reserveBeforeCall()
-            val outcome = createShared(draftId, request.draft, request.verdict)
-            reserved(drafts.get(draftId)?.reservedCode)
+            val outcome = createShared(draftId, request.draft, request.verdict, ::reserve)
             if (outcome == PublishOutcome.SignedOut && !afterSignIn) {
                 mutableState.update { it.copy(busy = false) }
                 askToSignIn(request)
@@ -232,14 +226,13 @@ class PublishSession(
     }
 
     /**
-     * A draft with no usable reserved code gets one now, through [reserved] and the Studio's one
-     * writer, so every autosave while [createShared] is in flight carries it (spec A15). Storing it
-     * behind the writer's back would let an autosave of the older row wipe it.
+     * The code [createShared] picked (none reserved yet, or a taken one replaced) goes through
+     * [reserved] and the Studio's one writer, and is stored before this returns, so every
+     * autosave from now on carries it (spec A15). Storing it behind the writer's back would let an
+     * autosave of the older row wipe it.
      */
-    private suspend fun reserveBeforeCall() {
-        val row = drafts.get(draftId) ?: return
-        if (row.reservedCode?.let(ShareCode::parse) != null) return
-        reserved(ShareCode.random(random).value)
+    private suspend fun reserve(code: ShareCode) {
+        reserved(code.value)
         flush()
     }
 

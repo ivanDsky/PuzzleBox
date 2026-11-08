@@ -21,6 +21,10 @@ import kotlin.random.Random
  * goes out as a shared document with the solution stripped, once it and its stored author name
  * and note pass their checks. Its code is reserved on the draft before the network call, so a
  * retry after a lost answer reuses it and finds its own document.
+ *
+ * The draft has one writer, the caller's: a code this use case picks (none reserved yet, or a
+ * taken one replaced) is handed to `reserve`, which returns once the draft holds it, so a save
+ * of an older row cannot put the old code back. The use case never writes the draft itself.
  */
 class CreateSharedPuzzle(
     private val drafts: DraftRepository,
@@ -33,16 +37,21 @@ class CreateSharedPuzzle(
 ) {
     private val validateDetails = ValidatePublishDetails()
 
-    /** Blocks first; then reuse draft.reservedCode or reserve a new one (saved on the draft BEFORE the network call, A15);
+    /** Blocks first; then reuse draft.reservedCode or reserve a new one (stored through [reserve] BEFORE the network call, A15);
      *  create-if-absent; CodeTaken ⇒ regenerate + re-reserve, at most 3 times, then Rejected; Published ⇒ published_puzzles row. */
-    suspend operator fun invoke(draftId: String, draft: EditorDraft<*>, verdict: Verdict): PublishOutcome {
+    suspend operator fun invoke(
+        draftId: String,
+        draft: EditorDraft<*>,
+        verdict: Verdict,
+        reserve: suspend (code: ShareCode) -> Unit,
+    ): PublishOutcome {
         val stored = drafts.get(draftId) ?: return PublishOutcome.Rejected("no draft $draftId")
         val blocks = validate(draft, verdict, stored.title, stored.testSolve) + validateDetails(stored.authorName, stored.note)
         if (blocks.isNotEmpty()) return PublishOutcome.Blocked(blocks)
         val payload = draft.encodeShare() ?: return PublishOutcome.Rejected("${draft.gameId.value} can't be shared")
         val shareVersion = checkNotNull(draft.shareFormatVersion)
         val uid = identity.current.value?.uid ?: return PublishOutcome.SignedOut
-        var row = if (stored.reservedCode?.let(ShareCode::parse) != null) stored else reserve(stored)
+        var row = if (stored.reservedCode?.let(ShareCode::parse) != null) stored else stored.reserved(reserve)
         var regenerations = 0
         while (true) {
             val code = checkNotNull(ShareCode.parse(checkNotNull(row.reservedCode)))
@@ -55,7 +64,7 @@ class CreateSharedPuzzle(
                 PublishResult.CodeTaken -> {
                     if (regenerations == MAX_REGENERATIONS) return PublishOutcome.Rejected("no free share code")
                     regenerations++
-                    row = reserve(row)
+                    row = row.reserved(reserve)
                 }
                 PublishResult.DailyCapReached -> return PublishOutcome.DailyCapReached
                 PublishResult.Offline -> return PublishOutcome.Offline
@@ -65,9 +74,12 @@ class CreateSharedPuzzle(
         }
     }
 
-    /** Stores a fresh random code on [row]; the edit time stays, as no board changed. */
-    private suspend fun reserve(row: Draft): Draft =
-        row.copy(reservedCode = ShareCode.random(random).value).also { drafts.upsert(it) }
+    /** Hands a fresh random code to [reserve]; [this] with it. The edit time stays: no board changed. */
+    private suspend fun Draft.reserved(reserve: suspend (ShareCode) -> Unit): Draft {
+        val code = ShareCode.random(random)
+        reserve(code)
+        return copy(reservedCode = code.value)
+    }
 
     private fun Draft.toDoc(code: ShareCode, uid: String, shareVersion: Int, payload: ByteArray): SharedPuzzleDoc {
         val test = checkNotNull(testSolve)
