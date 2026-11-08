@@ -45,10 +45,12 @@ import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
 import com.ivandsky.puzzlebox.app.nav.applyFriendLink
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.gameui.SnapTraceHost
 import com.ivandsky.puzzlebox.gameui.playLayoutFor
 import com.ivandsky.puzzlebox.history.historyLayoutFor
 import com.ivandsky.puzzlebox.home.HomeLayout
@@ -88,6 +90,7 @@ fun PuzzleBoxApp(
     pendingLink: String? = null,
     onLinkApplied: () -> Unit = {},
     todaySet: ObserveTodaySet = koinInject(),
+    releaseFlags: ReleaseFlags = koinInject(),
 ) {
     var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
     if (pendingLink != null) {
@@ -171,15 +174,17 @@ fun PuzzleBoxApp(
                 )
             }
             CompositionLocalProvider(LocalChromePadding provides chromePadding(expanded, barHeight, railWidth)) {
-                PuzzleBoxNavShell(
-                    navigator = navigator,
-                    homeLayout = layout,
-                    playLayout = playLayout,
-                    historyLayout = historyLayout,
-                    modifier = Modifier.fillMaxSize(),
-                    codeDraft = { codeDraft },
-                    onCodeDraftTaken = { codeDraft = null },
-                )
+                SnapTraceHost(releaseFlags) {
+                    PuzzleBoxNavShell(
+                        navigator = navigator,
+                        homeLayout = layout,
+                        playLayout = playLayout,
+                        historyLayout = historyLayout,
+                        modifier = Modifier.fillMaxSize(),
+                        codeDraft = { codeDraft },
+                        onCodeDraftTaken = { codeDraft = null },
+                    )
+                }
             }
         }
     }
