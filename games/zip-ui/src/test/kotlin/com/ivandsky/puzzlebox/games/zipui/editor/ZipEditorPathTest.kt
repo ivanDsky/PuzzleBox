@@ -103,6 +103,22 @@ class ZipEditorPathTest {
     }
 
     @Test
+    fun `a drag diagonally through a grid vertex extends the path by both cells`() {
+        val controller = show(path = listOf(0))
+        rule.onNodeWithTag(BOARD).performTouchInput {
+            down(centre(0))
+            moveTo(centre(SIZE + 1))
+            up()
+        }
+        rule.waitForIdle()
+
+        val path = controller.shown.value.path
+        assertEquals(3, path.size)
+        assertEquals(listOf(0, SIZE + 1), listOf(path.first(), path.last()))
+        assertEquals(1, edits.size)
+    }
+
+    @Test
     fun `a drag from the tail extends the path`() {
         val controller = show(path = listOf(0, 1))
         drag(1, 2, 7)
