@@ -177,16 +177,18 @@ class FriendResumeE2ETest {
     /** Marks [cells] once each on [slot]'s live board, then lets [ms] of play pass. */
     private fun ShellRobot.play(slot: PlaySlot, cells: List<Int>, ms: Long) {
         session(slot)
-        val startedAt = System.currentTimeMillis()
         rule.runOnIdle { cells.forEach { checkNotNull(controller(slot).board).onTap(it) } }
+        // The clock window opened with the first mark: stamp after it, so the wait always
+        // outlasts [ms] of the window and the saved time can never fall short of it.
+        val startedAt = System.currentTimeMillis()
         assertEquals("one mark per tap", cells.toSet(), session(slot).marks.keys.mapTo(HashSet()) { it.idx })
         // Queens' clock is the wall clock.
         rule.waitUntil(ms + TIMEOUT_MS) { System.currentTimeMillis() - startedAt >= ms }
     }
 
-    /** Waits until [slot]'s row holding at least [playedMs] is on disk; Room commits on its own executor. */
+    /** Waits until [slot]'s row holding at least [playedMs] is on disk; the save's hand-back runs on the main looper. */
     private fun ShellRobot.awaitSaved(slot: PlaySlot, playedMs: Long) {
-        rule.waitUntil(TIMEOUT_MS) { runBlocking { saves.observeInProgress().first() }[slot]?.let { it >= playedMs } == true }
+        awaitIdling { runBlocking { saves.observeInProgress().first() }[slot]?.let { it >= playedMs } == true }
     }
 
     /** [slot]'s session as the disk holds it. */
@@ -198,7 +200,7 @@ class FriendResumeE2ETest {
 
     /** [slot]'s live session once its board is ready. */
     private fun ShellRobot.session(slot: PlaySlot): QueensSession {
-        rule.waitUntil(TIMEOUT_MS) { (store.peek(slot)?.controller as? QueensPlayController)?.board != null }
+        awaitIdling { (store.peek(slot)?.controller as? QueensPlayController)?.board != null }
         return checkNotNull(rule.runOnIdle { controller(slot).board?.session })
     }
 
