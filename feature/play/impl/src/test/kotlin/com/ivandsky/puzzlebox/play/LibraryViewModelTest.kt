@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
@@ -34,6 +35,7 @@ import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -99,7 +101,7 @@ class LibraryViewModelTest {
         screen.cancel()
     }
 
-    private fun observedVm(): LibraryViewModel {
+    private fun observedVm(delete: DeleteReceivedPuzzle = DeleteReceivedPuzzle(received, saved)): LibraryViewModel {
         val history = ObserveGameHistory(fakes.games, daily, completions)
         return LibraryViewModel(
             store = store,
@@ -115,7 +117,7 @@ class LibraryViewModelTest {
             daily = daily,
             prefs = prefs,
             friendPuzzles = ObserveFriendPuzzles(received, saved, completions, fakes.games),
-            deleteReceivedPuzzle = DeleteReceivedPuzzle(received, saved),
+            deleteReceivedPuzzle = delete,
             appScope = CoroutineScope(dispatcher + Job()),
         ).also { vm ->
             screen.launch { vm.uiState.collect {} }
@@ -299,6 +301,33 @@ class LibraryViewModelTest {
         vm.undoRemoveFriend()
         dispatcher.scheduler.advanceTimeBy(FriendRemoval.UNDO_WINDOW_MS + 1)
         assertEquals(setOf(B), received.rows.keys)
+    }
+
+    @Test
+    fun `the card stays out of the list while its delete is still running`() = runBlocking {
+        received.upsert(friendPuzzle(A))
+        val gate = CompletableDeferred<Unit>()
+        val gated = object : ReceivedPuzzleRepository by received {
+            override suspend fun delete(code: ShareCode) {
+                gate.await()
+                received.delete(code)
+            }
+        }
+        val vm = observedVm(DeleteReceivedPuzzle(gated, saved))
+        screen.launch { vm.friends.collect {} }
+        dispatcher.scheduler.runCurrent()
+
+        vm.removeFriend(A)
+        dispatcher.scheduler.advanceTimeBy(FriendRemoval.UNDO_WINDOW_MS + 1)
+        dispatcher.scheduler.runCurrent()
+        assertNull(vm.removedFriend.value)
+        assertNotNull(received.rows[A])
+        assertTrue(vm.friends.value.isEmpty())
+
+        gate.complete(Unit)
+        dispatcher.scheduler.runCurrent()
+        assertTrue(received.rows.isEmpty())
+        assertTrue(vm.friends.value.isEmpty())
     }
 
     private fun friendPuzzle(code: ShareCode) = ReceivedPuzzle(

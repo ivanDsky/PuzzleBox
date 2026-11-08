@@ -163,8 +163,8 @@ class LibraryViewModel(
 
     private val removal = FriendRemoval(deleteReceivedPuzzle, appScope)
 
-    internal val friends: StateFlow<List<FriendCardModel>> = combine(friendPuzzles(), removal.removed) { rows, hidden ->
-        rows.filter { it.code != hidden }
+    internal val friends: StateFlow<List<FriendCardModel>> = combine(friendPuzzles(), removal.hidden) { rows, hidden ->
+        rows.filter { it.code !in hidden }
             .map { FriendCardModel(it, games.displayName(it.gameId), registry.brandOf(it.gameId)) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
 
