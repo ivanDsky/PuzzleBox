@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.tango.editor
 
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -11,9 +12,12 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 
 /**
  * A Tango draft → its [Verdict]. A board with no givens and no markers is Incomplete;
- * givens that already break a rule are None with those cells, before any search; anything else goes to the bounded search for up to two solutions, so Unique, Multiple and
- * None are exact. Solution values are [com.ivandsky.puzzlebox.games.tango.TangoCell] ordinals,
- * row-major. A spent or cancelled [Budget] reads as [Verdict.Undetermined].
+ * givens that already break a rule are None with those cells, before any search; anything else
+ * goes to the bounded search for up to two solutions, so Unique, Multiple and None are exact.
+ * Unique carries the [TangoGrader] difficulty, or needs guessing when the hint ladder gets
+ * stuck before the board is full. Solution values are
+ * [com.ivandsky.puzzlebox.games.tango.TangoCell] ordinals, row-major. A spent or cancelled
+ * [Budget] reads as [Verdict.Undetermined].
  */
 object TangoDraftAnalyzer {
     const val EMPTY: String = "tango.empty"      // count 0: no givens and no markers
@@ -31,11 +35,20 @@ object TangoDraftAnalyzer {
         val found = outcome.solutions.map { solution -> solution.map { it.ordinal } }
         return when (found.size) {
             0 -> Verdict.None(emptySet())
-            1 -> Verdict.Unique(Solution(found[0]))
+            1 -> unique(puzzle, Solution(found[0]))
             else -> {
                 val (a, b) = found
                 Verdict.Multiple(Solution(a), Solution(b), a.indices.filter { a[it] != b[it] }.toSet())
             }
+        }
+    }
+
+    private fun unique(puzzle: TangoPuzzle, solution: Solution): Verdict.Unique {
+        val grade = TangoGrader.grade(puzzle)
+        return if (grade.stuck) {
+            Verdict.Unique(solution, needsGuessing = true)
+        } else {
+            Verdict.Unique(solution, difficulty = grade.hardest?.let(::Difficulty))
         }
     }
 }

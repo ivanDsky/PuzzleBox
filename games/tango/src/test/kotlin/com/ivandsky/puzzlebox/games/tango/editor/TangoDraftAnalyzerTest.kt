@@ -29,7 +29,10 @@ class TangoDraftAnalyzerTest {
 
         val verdict = analyze(TangoDraft(sample.givens, sample.markers))
 
-        assertEquals(Verdict.Unique(Solution(TangoTestSupport.solution.map { it.ordinal })), verdict)
+        assertEquals(
+            Solution(TangoTestSupport.solution.map { it.ordinal }),
+            (verdict as Verdict.Unique).solution,
+        )
     }
 
     @Test
