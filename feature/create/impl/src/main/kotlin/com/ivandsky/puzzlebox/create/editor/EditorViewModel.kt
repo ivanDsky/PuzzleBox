@@ -100,7 +100,6 @@ class EditorViewModel(
     val publish = PublishSession(
         draftId = key.draftId,
         createShared = createShared,
-        drafts = drafts,
         identity = identity,
         idTokens = idTokens,
         scope = viewModelScope,
