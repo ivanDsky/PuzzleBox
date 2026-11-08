@@ -1,16 +1,22 @@
 package com.ivandsky.puzzlebox.games.zip.editor
 
 import com.ivandsky.puzzlebox.game.DecodeResult
+import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.game.editor.DraftExport
 import com.ivandsky.puzzlebox.game.editor.DraftResize
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.GameEditor
+import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.Wall
 import com.ivandsky.puzzlebox.games.zip.WallDirection
+import com.ivandsky.puzzlebox.games.zip.ZipBoard
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
+import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
+import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
 import com.ivandsky.puzzlebox.model.GameId
 
@@ -18,9 +24,10 @@ import com.ivandsky.puzzlebox.model.GameId
  * Zip's pure editor (ADR-0019): a new board is the variant's size with no walls, no path and
  * no waypoints, so it starts Incomplete; the variant table is the daily sizes n5..n8. Resizing
  * keeps the top-left: the path is cut at its first cell outside, waypoints and walls outside
- * are dropped, and the path's ends are numbered again.
+ * are dropped, and the path's ends are numbered again. A unique draft exports through the
+ * daily [ZipCodec] with the path as the solution (A10), so test solve plays a real puzzle.
  */
-object ZipEditor : GameEditor<ZipDraft>, DraftResize<ZipDraft> {
+object ZipEditor : GameEditor<ZipDraft>, DraftResize<ZipDraft>, DraftExport<ZipDraft> {
     override val gameId: GameId get() = ZipDefinition.id
 
     override val variants: List<VariantId> = ZipVariants.all.map { it.id }
@@ -56,5 +63,17 @@ object ZipEditor : GameEditor<ZipDraft>, DraftResize<ZipDraft> {
         val path = draft.path.takeWhile(::fits).map(::moved)
         val kept = ZipDraft(size, walls, path, draft.waypoints.filter(::fits).map(::moved))
         return kept.stroke(path).apply(kept)
+    }
+
+    /** ZipCodec bytes of the draft's board with [solution] as the embedded path. */
+    override fun toPuzzle(draft: ZipDraft, solution: Solution): Puzzle {
+        val board = ZipBoard(draft.n, draft.walls, draft.waypoints.map(::Cell))
+        val puzzle = ZipPuzzle(variantOf(draft), board, solution.values.map(::Cell))
+        return Puzzle(
+            gameId = gameId,
+            variant = variantOf(draft),
+            formatVersion = ZipCodec.VERSION,
+            payload = ZipCodec.encode(puzzle),
+        )
     }
 }
