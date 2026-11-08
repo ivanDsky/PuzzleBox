@@ -26,7 +26,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     SnapTrace(label = "Snap trace drawing", releaseDefault = false),
 
     /** The hero Results page after a daily solve: counting-up time, streak, week, time spread, rank. */
-    ResultsHero(label = "Results hero", releaseDefault = false),
+    ResultsHero(label = "Results hero", releaseDefault = true),
 
     /** Per-game daily leaderboards: Profile game switcher and board, Result board, tablet panel rows (spec A21). */
     PerGameLeaderboards(label = "Per-game leaderboards", releaseDefault = false),
