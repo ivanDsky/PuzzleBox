@@ -77,9 +77,10 @@ internal fun TangoEditorBoard(
     val model = remember(shown, ghosts) { modelOf(shown, ghosts) }
     val renderer = remember { TangoBoardRenderer() }
     Box(
-        modifier
-            .fillMaxWidth()
+        Modifier
             .widthIn(max = EditorBoardMaxWidth)
+            .then(modifier)
+            .fillMaxWidth()
             .testTag("tango.editor.board")
             .tangoEditorGestures(controller),
     ) {
@@ -93,9 +94,9 @@ internal fun TangoEditorBoard(
 
 /** Outlines every interior edge's hit band, so the author sees where a tap lands. */
 @Composable
-private fun TapZoneBands() {
+private fun BoxScope.TapZoneBands() {
     val color = MaterialTheme.colorScheme.primary
-    Canvas(Modifier.fillMaxSize().testTag("tango.editor.tapZones.bands")) {
+    Canvas(Modifier.matchParentSize().testTag("tango.editor.tapZones.bands")) {
         val n = TangoDraft.N
         val pitch = size.width / n
         val across = TangoBoardSpec.editEdgeBandAcrossFraction
