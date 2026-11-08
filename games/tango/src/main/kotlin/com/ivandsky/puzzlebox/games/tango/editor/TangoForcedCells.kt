@@ -10,7 +10,7 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoState
 /** Pure, read-only aid: how far the hint ladder carries a solver from the givens. */
 object TangoForcedCells {
     /**
-     * Every cell the existing hint ladder (TangoRules.hint: marker → triple → count) forces from
+     * Every cell the existing hint ladder (TangoRules.hint: marker → triple → count → line) forces from
      * [draft]'s givens, walked until Stuck or full; never the givens themselves. Empty when the
      * givens break a rule. Places nothing.
      */

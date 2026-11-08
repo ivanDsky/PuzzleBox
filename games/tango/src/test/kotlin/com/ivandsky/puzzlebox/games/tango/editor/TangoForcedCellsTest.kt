@@ -16,7 +16,8 @@ class TangoForcedCellsTest {
     fun `a triple completion is returned with its symbol`() {
         val draft = TangoDraft(mapOf(0 to sun, 1 to sun), emptyList())
 
-        assertEquals(mapOf(2 to moon), TangoForcedCells.of(draft))
+        // 2 is the triple completion; the line rung then forces 5 (a sun there leaves MMM at 2-4).
+        assertEquals(mapOf(2 to moon, 5 to moon), TangoForcedCells.of(draft))
     }
 
     @Test
