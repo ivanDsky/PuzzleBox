@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipBoard as ZipBoardModel
@@ -107,10 +108,11 @@ private fun CellTags(board: ZipDraft) {
 @Composable
 private fun shakeOffset(controller: ZipEditorController): Animatable<Float, *> {
     val shaken by controller.shaken.collectAsState()
+    val reduced = rememberReducedMotion()
     val offset = remember { Animatable(0f) }
     val reach = with(LocalDensity.current) { SHAKE_DP.dp.toPx() }
     LaunchedEffect(shaken) {
-        if (shaken == null) return@LaunchedEffect
+        if (shaken == null || reduced) return@LaunchedEffect
         offset.animateTo(
             0f,
             keyframes {

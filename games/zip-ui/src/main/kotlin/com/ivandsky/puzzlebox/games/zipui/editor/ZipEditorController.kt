@@ -48,10 +48,10 @@ class ZipEditorController(
     val step: StateFlow<ZipEditorStep> = selected.asStateFlow()
 
     /** The end cell the last refused [tapNumber] landed on; each refusal is a new value. */
-    val shaken: StateFlow<Shake?> = shaking.asStateFlow()
+    internal val shaken: StateFlow<Shake?> = shaking.asStateFlow()
 
     /** A refused tap on [cell]; a fresh instance per tap so a repeat tap re-triggers. */
-    class Shake(val cell: Int)
+    internal class Shake(val cell: Int)
 
     override val overlay: StateFlow<EditorOverlay> = shownOverlay.asStateFlow()
 

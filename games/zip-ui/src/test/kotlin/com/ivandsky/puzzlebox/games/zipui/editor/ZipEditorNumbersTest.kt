@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.games.zip.editor.ZipDraftCommand
 import com.ivandsky.puzzlebox.games.zip.editor.ZipEditor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -130,6 +131,21 @@ class ZipEditorNumbersTest {
 
         assertTrue(edits.isEmpty())
         assertEquals(listOf(0, 4), controller.shown.value.waypoints)
+    }
+
+    @Test
+    fun `two taps on the same end both shake and commit nothing`() {
+        val controller = show()
+        tap(0)
+        val first = controller.shaken.value
+        tap(0)
+        val second = controller.shaken.value
+
+        assertNotNull(first)
+        assertNotNull(second)
+        assertNotSame(first, second)
+        assertEquals(0, second?.cell)
+        assertTrue(edits.isEmpty())
     }
 
     @Test
