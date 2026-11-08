@@ -30,8 +30,6 @@ import com.ivandsky.puzzlebox.model.GameId
 
 private val FixRowMinHeight = 48.dp
 
-private const val FORCED_CELLS = "Forced cells"
-
 /** Tango's editor UI: the play board over a [TangoEditorController]. */
 object TangoEditorUi : GameEditorUi {
 
@@ -74,7 +72,7 @@ object TangoEditorUi : GameEditorUi {
                 FilterChip(
                     selected = forced,
                     onClick = tango::toggleForcedView,
-                    label = { Text(FORCED_CELLS, maxLines = 1) },
+                    label = { Text(TangoEditorCopy.FORCED_CELLS, maxLines = 1) },
                     modifier = Modifier.testTag("tango.editor.forced.toggle"),
                 )
             }

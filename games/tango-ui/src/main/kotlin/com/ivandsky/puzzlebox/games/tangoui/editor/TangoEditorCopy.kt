@@ -15,6 +15,9 @@ internal object TangoEditorCopy {
 
     const val TAP_ZONES: String = "Tap zones"
 
+    /** The forced-cells card heading. */
+    const val FORCED_CELLS: String = "Forced cells"
+
     private val fixes: Map<String, String> = mapOf(
         TangoDraftAnalyzer.EMPTY to "Add a sun, a moon or an edge mark to start",
         PublishBlock.NEEDS_GUESSING to "Logic alone can't finish it — players would have to guess",
