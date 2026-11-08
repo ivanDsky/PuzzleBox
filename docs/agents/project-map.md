@@ -159,7 +159,8 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `GameHistoryDay`), `GetFeaturedGame` (registry's first game as `GameSummary`),
   `ComputeStreak`, `LoadPastDay` (a past day by date — cached, or fetched once for an archive game — → the game's session blob as
   `PastDayOutcome`), `ObserveLeaderboard` (identity-gated board for one game and day, or `today(game)` on the game's calendar day:
-  `TodayLeaderboard`), `ObservePlayStats` (one slot's tablet side-panel stats: streak, week,
+  `TodayLeaderboard`), `ObserveLatestSolvedToday` (the game whose numbered daily was solved most recently on its own today, or null),
+  `ObservePlayStats` (one slot's tablet side-panel stats: streak, week,
   today progress, times → `PlayStats`), `ObserveTodaySet` (saved plays + records + each game's calendar day →
   registry-order `TodayEntry` per game: Solved/InProgress(elapsed)/NotStarted; `nextUnsolved`). Android library.
 - `core/game/` (`:core:game`, pure JVM) — the orthogonal game contracts (ADR-0001):
