@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.tangoui.editor
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.TouchInjectionScope
@@ -10,12 +11,15 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.editor.TangoDraft
 import com.ivandsky.puzzlebox.games.tango.editor.TangoEditor
 import com.ivandsky.puzzlebox.games.tango.editor.TangoForcedCells
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlin.coroutines.CoroutineContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -36,12 +40,11 @@ class TangoForcedLayerTest {
     val rule = createComposeRule()
 
     private val edits = ArrayList<EditorDraft<*>>()
-    private val start: EditorDraft<TangoDraft> = EditorDraft.fresh(TangoEditor, TangoEditor.variants.first())
-        .let { fresh ->
-            EditorDraft(
-                TangoEditor,
-                fresh.state.copy(draft = fresh.state.draft.copy(givens = mapOf(0 to TangoCell.SUN, 1 to TangoCell.SUN))),
-            )
+    private val start: EditorDraft<TangoDraft> =
+        EditorDraft.fresh(TangoEditor, TangoEditor.variants.first()).let { fresh ->
+            val givens = mapOf(0 to TangoCell.SUN, 1 to TangoCell.SUN)
+            val board = fresh.state.draft.copy(givens = givens)
+            EditorDraft(TangoEditor, fresh.state.copy(draft = board))
         }
     private val controller = TangoEditorController(start) { edits += it }
 
@@ -50,17 +53,22 @@ class TangoForcedLayerTest {
     private fun forcedTags(): Set<String> =
         TangoForcedCells.of(board()).keys.map { "tango.editor.cell.$it.forced" }.toSet()
 
-    private fun forcedCount() = rule.onAllNodesWithTag("tango.editor.forced", useUnmergedTree = true)
+    private fun forcedCount() =
+        rule.onAllNodesWithTag("tango.editor.forced", useUnmergedTree = true)
 
     private fun show() {
-        rule.setContent { PuzzleBoxTheme { TangoEditorBoard(controller, Modifier.fillMaxWidth()) } }
+        rule.setContent {
+            CompositionLocalProvider(LocalForcedDispatchers provides InlineDispatcherProvider) {
+                PuzzleBoxTheme { TangoEditorBoard(controller, Modifier.fillMaxWidth()) }
+            }
+        }
     }
 
     private fun assertTagged(tags: Set<String>) {
-        rule.waitUntil(timeoutMillis = 5_000) {
-            tags.all { rule.onAllNodesWithTag(it, useUnmergedTree = true).fetchSemanticsNodes().size == 1 }
-        }
-        (0 until TangoDraft.N * TangoDraft.N).map { "tango.editor.cell.$it.forced" }.filter { it !in tags }
+        rule.waitForIdle()
+        tags.forEach { rule.onAllNodesWithTag(it, useUnmergedTree = true).assertCountEquals(1) }
+        (0 until TangoDraft.N * TangoDraft.N).map { "tango.editor.cell.$it.forced" }
+            .filter { it !in tags }
             .forEach { rule.onAllNodesWithTag(it, useUnmergedTree = true).assertCountEquals(0) }
     }
 
@@ -86,8 +94,8 @@ class TangoForcedLayerTest {
         forcedCount().assertCountEquals(1)
 
         controller.toggleForcedView()
-        rule.waitUntil(timeoutMillis = 5_000) { forcedCount().fetchSemanticsNodes().isEmpty() }
         assertTagged(emptySet())
+        forcedCount().assertCountEquals(0)
     }
 
     @Test
@@ -124,4 +132,15 @@ class TangoForcedLayerTest {
         x = (cell % TangoDraft.N + 0.5f) * width / TangoDraft.N,
         y = (cell / TangoDraft.N + 0.5f) * height / TangoDraft.N,
     )
+}
+
+/** Runs the walk inline on the calling thread, so idling the compose rule settles it. */
+private object InlineDispatcherProvider : DispatcherProvider {
+    private val inline = object : CoroutineDispatcher() {
+        override fun isDispatchNeeded(context: CoroutineContext) = false
+        override fun dispatch(context: CoroutineContext, block: Runnable) = block.run()
+    }
+    override val main: CoroutineDispatcher = inline
+    override val io: CoroutineDispatcher = inline
+    override val default: CoroutineDispatcher = inline
 }
