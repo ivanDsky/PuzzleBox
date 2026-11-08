@@ -22,8 +22,10 @@ rules_version = '2';
 // Layout: puzzles/{code}/entries/{uid} — that puzzle's board, in the daily entry format
 //   with puzzleRef "custom/<gameId>/<code>"; closed once the puzzle is unpublished and
 //   never open to the puzzle's author.
-// Layout: authors/{uid} = {day, count} — the author's publishes on one UTC day. Every
+// Layout: authors/{uid} = {day, count, last?} — the author's publishes on one UTC day. Every
 //   puzzle create must bump it in the same write, and the bump is capped at 20 per day.
+//   `last` is the share code the bump is for; when present, the create must be for that code,
+//   so one bump covers one create. Older clients omit it, and a doc without it is still valid.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -132,11 +134,13 @@ service cloud.firestore {
           && puzzle.unpublished == false;
       }
 
-      // The author's quota doc must move by exactly one publish in this same write.
+      // The author's quota doc must move by exactly one publish in this same write, and name
+      // this puzzle when it records a `last`.
       function bumpsPublishQuota() {
         let author = /databases/$(database)/documents/authors/$(request.auth.uid);
         let before = exists(author) ? get(author).data : null;
-        return isPublishQuotaBump(before, getAfter(author).data);
+        let after = getAfter(author).data;
+        return isPublishQuotaBump(before, after) && (!('last' in after) || after.last == code);
       }
     }
 
@@ -188,14 +192,17 @@ service cloud.firestore {
     }
 
     // [after] is [before] plus one publish today (UTC); a doc from an earlier day restarts at one.
+    // The optional [last] is shaped like a share code.
     function isPublishQuotaBump(before, after) {
       let today = utcDay(request.time);
       return after.keys().hasAll(['day', 'count'])
-        && after.keys().hasOnly(['day', 'count'])
+        && after.keys().hasOnly(['day', 'count', 'last'])
         && after.day == today
         && after.count is int
         && after.count == (before != null && before.day == today ? before.count + 1 : 1)
-        && after.count <= 20;
+        && after.count <= 20
+        && (!('last' in after)
+          || (after.last is string && after.last.matches('^[0-9A-HJKMNP-TV-Z]{6}$')));
     }
 
     function utcDay(time) {

@@ -16,7 +16,8 @@ internal interface SharedPuzzleStore {
 
     /**
      * In one transaction: reports an existing `puzzles/{code}` with its fields, or stops at the
-     * cap, or creates the doc from [fields] and bumps the author's count for [utcDay].
+     * cap, or creates the doc from [fields] and bumps the author's count for [utcDay], naming
+     * [code] as the bump's `last`.
      */
     suspend fun publish(code: String, fields: Map<String, Any?>, uid: String, utcDay: String): StoreWrite
 
@@ -36,6 +37,7 @@ internal sealed interface StoreWrite {
 
 internal const val FIELD_AUTHOR_DAY = "day"
 internal const val FIELD_AUTHOR_COUNT = "count"
+internal const val FIELD_AUTHOR_LAST = "last"
 
 /** The `authors/{uid}` count after one more create on [utcDay], or null when that day's cap is used up. */
 internal fun nextPublishCount(author: Map<String, Any?>?, utcDay: String): Long? {
@@ -44,8 +46,9 @@ internal fun nextPublishCount(author: Map<String, Any?>?, utcDay: String): Long?
     return if (count >= DAILY_PUBLISH_CAP) null else count + 1
 }
 
-internal fun authorFields(utcDay: String, count: Long): Map<String, Any?> =
-    mapOf(FIELD_AUTHOR_DAY to utcDay, FIELD_AUTHOR_COUNT to count)
+/** The `authors/{uid}` doc after a create of [code]: the rules let one bump cover only that code. */
+internal fun authorFields(utcDay: String, count: Long, code: String): Map<String, Any?> =
+    mapOf(FIELD_AUTHOR_DAY to utcDay, FIELD_AUTHOR_COUNT to count, FIELD_AUTHOR_LAST to code)
 
 internal class FirestoreSharedPuzzleStore : SharedPuzzleStore {
 
@@ -74,7 +77,7 @@ internal class FirestoreSharedPuzzleStore : SharedPuzzleStore {
             val count = nextPublishCount(tx.get(authorDoc).data, utcDay)
                 ?: return@runTransaction StoreWrite.CapReached
             tx.set(puzzleDoc, fields)
-            tx.set(authorDoc, authorFields(utcDay, count))
+            tx.set(authorDoc, authorFields(utcDay, count, code))
             StoreWrite.Created
         }.await()
     }
