@@ -51,7 +51,7 @@ class StrandsEditorPanelTest {
     }
 
     @Test
-    fun `one row per path and none without paths`() {
+    fun `one row per path and none beyond the last`() {
         path(0, 1)
         path(6, 7, 8)
         show()
@@ -88,6 +88,20 @@ class StrandsEditorPanelTest {
         rule.onNodeWithTag("strands.editor.clue").performTextInput("Kitchen")
         assertEquals(0, edits.size)
         rule.onNodeWithTag("strands.editor.clue").performImeAction()
+
+        assertEquals("Kitchen", board().clue)
+        assertEquals(1, edits.size)
+        controller.adopt(checkNotNull(controller.draft.value.undo()))
+        assertEquals("", board().clue)
+    }
+
+    @Test
+    fun `a clue commits when focus leaves the field`() {
+        show()
+        rule.onNodeWithTag("strands.editor.clue").performClick()
+        rule.onNodeWithTag("strands.editor.clue").performTextInput("Kitchen")
+        assertEquals(0, edits.size)
+        rule.onNodeWithTag("strands.editor.word").performClick()
 
         assertEquals("Kitchen", board().clue)
         assertEquals(1, edits.size)

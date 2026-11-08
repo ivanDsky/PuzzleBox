@@ -23,7 +23,8 @@ import kotlinx.coroutines.flow.asStateFlow
  * as one undoable step: an [StrandsDraftCommand.AddPath], or a [ReplaceDraft] when the word
  * also wrote letters. A tap on a traced cell selects its path ([selectedPath]); [removePath]
  * drops it as one [StrandsDraftCommand.RemovePath]; [toggleSpangram] marks or unmarks one;
- * [setClue] sets the theme clue. Every edit goes out through `onEdit`; the VM hands replacement drafts back through [adopt].
+ * [setClue] sets the theme clue. Every edit goes out through `onEdit`; the VM hands
+ * replacement drafts back through [adopt].
  */
 class StrandsEditorController(
     initial: EditorDraft<*>,
