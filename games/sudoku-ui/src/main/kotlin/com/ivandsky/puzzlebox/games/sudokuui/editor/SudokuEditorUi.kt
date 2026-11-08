@@ -43,7 +43,7 @@ class SudokuEditorUi(private val definition: SudokuDefinition) : GameEditorUi {
 
     @Composable
     override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) {
-        SudokuEditorBoard(controller as SudokuEditorController, definition.variant.geometry, modifier)
+        SudokuEditorBoard(controller as SudokuEditorController, definition.variant.geometry, modifier, verdict)
     }
 
     /**
