@@ -150,7 +150,7 @@ class ProcessDeathE2ETest {
         rule.runOnIdle { ZipPlayFixture.solution.drop(MID_GAME.size).forEach { zip().extend(it) } }
         assertRoute(RESULT)
 
-        rule.waitUntil(TIMEOUT_MS) { runBlocking { saves.load(todaySlot) } == null }
+        awaitIdling { runBlocking { saves.load(todaySlot) } == null }
     }
 
     @Test
@@ -218,7 +218,7 @@ class ProcessDeathE2ETest {
      * flush, and Room commits it (save and prune, one transaction) on its own executor.
      */
     private fun ShellRobot.awaitSaved() {
-        rule.waitUntil(TIMEOUT_MS) { runBlocking { saves.load(todaySlot) } != null }
+        awaitIdling { runBlocking { saves.load(todaySlot) } != null }
     }
 
     /**
