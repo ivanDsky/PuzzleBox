@@ -1,0 +1,56 @@
+package com.ivandsky.puzzlebox.create.importtext
+
+import com.ivandsky.puzzlebox.domain.ImportDraftFromText
+import com.ivandsky.puzzlebox.domain.ImportResult
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+/**
+ * The Import from text sheet's holder (spec A23): sheet state, submit, navigate on import.
+ * One concern, so every screen that offers the sheet owns one. [onImported] gets the new
+ * draft's id once, after the sheet has hidden.
+ */
+class ImportTextState(
+    private val importDraft: ImportDraftFromText,
+    private val scope: CoroutineScope,
+    private val onImported: (draftId: String) -> Unit,
+) {
+    private val state = MutableStateFlow(ImportSheetUi())
+
+    val ui: StateFlow<ImportSheetUi> = state.asStateFlow()
+
+    fun open() {
+        state.value = ImportSheetUi(visible = true)
+    }
+
+    fun edit(text: String) {
+        state.update { it.copy(text = text, error = null) }
+    }
+
+    /**
+     * checking = true → importDraft(text) → Imported: hide + [onImported]; else visible with
+     * the error (text kept, cleared for TooLarge). A submit while one is running is dropped.
+     */
+    fun submit(text: String) {
+        if (state.value.checking) return
+        state.update { it.copy(text = text, checking = true, error = null) }
+        scope.launch {
+            when (val result = importDraft(text)) {
+                is ImportResult.Imported -> {
+                    state.value = ImportSheetUi()
+                    onImported(result.draftId)
+                }
+                is ImportResult.TooLarge -> state.value = ImportSheetUi(visible = true, error = result)
+                else -> state.update { it.copy(checking = false, error = result) }
+            }
+        }
+    }
+
+    fun dismiss() {
+        state.value = ImportSheetUi()
+    }
+}
