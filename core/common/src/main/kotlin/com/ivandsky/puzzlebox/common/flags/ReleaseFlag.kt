@@ -22,9 +22,6 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     /** The Strands puzzle editor. */
     StrandsEditor(label = "Strands editor", releaseDefault = false),
 
-    /** Snap trace drawing on Zip and Strands: no live tip, no pop, 70 ms grow, Strands radius join. */
-    SnapTrace(label = "Snap trace drawing", releaseDefault = false),
-
     /** The hero Results page after a daily solve: counting-up time, streak, week, time spread, rank. */
     ResultsHero(label = "Results hero", releaseDefault = true),
 

@@ -11,7 +11,6 @@ import androidx.compose.ui.graphics.drawscope.translate
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.gameui.DragTraceHooks
 import com.ivandsky.puzzlebox.gameui.GridCell
-import com.ivandsky.puzzlebox.gameui.SnapLineMotion
 import com.ivandsky.puzzlebox.gameui.TraceLineMotion
 import kotlin.math.floor
 import kotlinx.coroutines.CoroutineScope
@@ -69,56 +68,6 @@ internal class ZipLineMotion(scope: CoroutineScope) {
             stroke.lineTo(endPoint.x, endPoint.y)
         }
         // The lip (spec A14): the same line and head, a fraction of the pitch lower, in the darker hue.
-        translate(top = minOf(pitchX, pitchY) * lipFraction) {
-            if (end > 0f) drawPath(stroke, lip, style = style)
-            drawCircle(lip, radius = headRadius, center = endPoint)
-        }
-        if (end > 0f) drawPath(stroke, color, style = style)
-        drawCircle(color, radius = headRadius, center = endPoint)
-    }
-}
-
-/**
- * The Zip line under the Snap flag over the shared [SnapLineMotion]: no finger, no tip, no
- * pop. The end sits on the last cell centre; the head disc stays at its resting size. Same
- * stroke, lip and head look as [ZipLineMotion]. Called from the draw phase only.
- */
-internal class ZipSnapLine(scope: CoroutineScope) {
-    private val motion = SnapLineMotion<GridCell>(scope)
-    private val stroke = Path()
-
-    fun DrawScope.drawTrace(
-        path: List<GridCell>,
-        n: Int,
-        color: Color,
-        lip: Color,
-        widthFraction: Float,
-        lipFraction: Float,
-        animate: Boolean,
-    ) {
-        val end = motion.step(path, animate)
-        val line = motion.line
-        if (line.isEmpty()) return
-        val pitchX = size.width / n
-        val pitchY = size.height / n
-        fun centre(index: Int): Offset = line[index].let { Offset((it.col + 0.5f) * pitchX, (it.row + 0.5f) * pitchY) }
-        val width = minOf(pitchX, pitchY) * widthFraction
-        val last = floor(end).toInt().coerceIn(0, line.lastIndex)
-        val endPoint = if (last < line.lastIndex) {
-            val from = centre(last)
-            from + (centre(last + 1) - from) * (end - last)
-        } else {
-            centre(last)
-        }
-        val style = Stroke(width, cap = StrokeCap.Round, join = StrokeJoin.Round)
-        val headRadius = width * MotionTokens.Trace.HeadScale / 2
-        if (end > 0f) {
-            stroke.reset()
-            val start = centre(0)
-            stroke.moveTo(start.x, start.y)
-            for (i in 1..last) centre(i).let { stroke.lineTo(it.x, it.y) }
-            stroke.lineTo(endPoint.x, endPoint.y)
-        }
         translate(top = minOf(pitchX, pitchY) * lipFraction) {
             if (end > 0f) drawPath(stroke, lip, style = style)
             drawCircle(lip, radius = headRadius, center = endPoint)

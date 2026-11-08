@@ -17,8 +17,7 @@ class StrandsDragSessionTest {
 
     private val start = Coord(3, 1)
 
-    private fun session(down: Offset = centreOf(start), snap: Boolean = false) =
-        StrandsDragSession(rows, cols, start, down, snap)
+    private fun session(down: Offset = centreOf(start)) = StrandsDragSession(rows, cols, start, down)
 
     @Test
     fun `the first letter joined starts the drag at the touched letter`() {
@@ -80,42 +79,5 @@ class StrandsDragSessionTest {
         val steps = jitter.flatMap { session.move(down + it, Trace()) }
         assertEquals(emptyList<TraceStep>(), steps)
         assertEquals(TraceStep.Updated(Trace(listOf(start))), session.end(Trace()))
-    }
-
-    @Test
-    fun `snap mode joins a letter the finger is within the radius of, with no travel needed`() {
-        // Down 0.3 from the side letter's centre, a 1px move: the radius holds it, the walk would still be deciding a heading.
-        val down = centreOf(Coord(3, 2)) - Offset(0.3f, 0f)
-        val steps = session(down, snap = true).move(down + Offset(0.01f, 0f), Trace())
-        assertEquals(
-            listOf(TraceStep.Updated(Trace(listOf(start))), TraceStep.Updated(Trace(listOf(start, Coord(3, 2))))),
-            steps,
-        )
-    }
-
-    @Test
-    fun `snap mode keeps tap semantics until the first join`() {
-        val session = session(snap = true)
-        assertEquals(emptyList<TraceStep>(), session.move(centreOf(start) + Offset(0.3f, 0.2f), Trace()))
-        assertEquals(TraceStep.Updated(Trace(listOf(start))), session.end(Trace()))
-    }
-
-    @Test
-    fun `snap mode reports no finger even in a drag`() {
-        val session = session(snap = true)
-        val dragged = (session.move(centreOf(Coord(3, 2)), Trace()).last() as TraceStep.Updated).trace
-        assertEquals(listOf(start, Coord(3, 2)), dragged.path)
-        assertNull(session.finger(dragged))
-        assertEquals(TraceStep.Submit(listOf(start, Coord(3, 2))), session.end(dragged))
-    }
-
-    @Test
-    fun `snap mode backtracks by radius`() {
-        val session = session(snap = true)
-        var trace = Trace()
-        for (to in listOf(centreOf(Coord(3, 2)), centreOf(Coord(3, 3)), centreOf(Coord(3, 2)) + Offset(0.3f, 0f))) {
-            session.move(to, trace).forEach { trace = (it as TraceStep.Updated).trace }
-        }
-        assertEquals(listOf(start, Coord(3, 2)), trace.path)
     }
 }
