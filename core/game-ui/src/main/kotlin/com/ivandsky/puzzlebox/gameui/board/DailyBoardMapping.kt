@@ -24,10 +24,14 @@ fun TodayLeaderboard.toDailyBoardState(note: DailyBoardNote? = null): DailyBoard
     }
 }
 
-/** The line for a post whose row has not landed; null once Posted, when there is nothing left to say. */
+/**
+ * The line for a post whose row has not landed: still going, saved off, or refused — and
+ * [SubmitStatus.Posted] without a row means the time stands outside the loaded rows (RG9).
+ * Callers show this only while the player's own row is absent; a landed row is the truth.
+ */
 fun SubmitStatus.toBoardNote(): DailyBoardNote? = when (this) {
     SubmitStatus.Posting -> DailyBoardNote.Posting
     SubmitStatus.Deferred -> DailyBoardNote.Deferred
     SubmitStatus.Rejected -> DailyBoardNote.Rejected
-    SubmitStatus.Posted -> null
+    SubmitStatus.Posted -> DailyBoardNote.PostedOutsideTop
 }

@@ -18,7 +18,6 @@ import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 import com.ivandsky.puzzlebox.game.RankOrder
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -147,11 +146,17 @@ class DailyBoardTest {
     }
 
     @Test
-    fun `each post status maps to its note, Posted to none`() {
+    fun `a posted time outside the rows reads its copy`() {
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList(), DailyBoardNote.PostedOutsideTop))
+        composeRule.onNodeWithTag("daily_board.note").assertTextEquals("Your time is posted — outside the top 100.")
+    }
+
+    @Test
+    fun `each post status maps to its note, a posted one to outside the rows`() {
         assertEquals(DailyBoardNote.Posting, SubmitStatus.Posting.toBoardNote())
         assertEquals(DailyBoardNote.Deferred, SubmitStatus.Deferred.toBoardNote())
         assertEquals(DailyBoardNote.Rejected, SubmitStatus.Rejected.toBoardNote())
-        assertNull(SubmitStatus.Posted.toBoardNote())
+        assertEquals(DailyBoardNote.PostedOutsideTop, SubmitStatus.Posted.toBoardNote())
     }
 
     @Test

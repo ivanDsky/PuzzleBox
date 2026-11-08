@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
+import com.ivandsky.puzzlebox.data.leaderboard.inSubmitWindow
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.PlayStats
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
@@ -37,7 +38,7 @@ class PlayStatsViewModel(
     private val slot: PlaySlot,
     private val registry: GameRegistry,
     private val brands: GamePlayRegistry,
-    calendar: GameCalendar,
+    private val calendar: GameCalendar,
     observePlayStats: ObservePlayStats,
     releaseFlags: ReleaseFlags,
     private val posts: SubmitStatusTracker,
@@ -100,15 +101,18 @@ class PlayStatsViewModel(
         }
     }
 
-    private fun rows(snapshot: LeaderboardSnapshot, uid: String, solved: Boolean, perGame: Boolean, post: SubmitStatus?): PlayTimes.Board =
-        PlayTimes.Board(
+    private fun rows(snapshot: LeaderboardSnapshot, uid: String, solved: Boolean, perGame: Boolean, post: SubmitStatus?): PlayTimes.Board {
+        val daily = slot as? PlaySlot.Daily
+        return PlayTimes.Board(
             rows = snapshot.entries.mapIndexed { index, entry ->
                 PlayTimeRow(rank = index + 1, name = entry.displayName, timeMs = entry.timeMs, hints = entry.hints, you = entry.uid == uid)
             },
             solved = solved,
             order = if (perGame) registry.rankOrderOf(slot.gameId) else null,
             post = post,
+            pastDay = daily != null && !calendar.inSubmitWindow(daily.gameId, daily.day),
         )
+    }
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L

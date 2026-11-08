@@ -157,10 +157,11 @@ internal fun YouLine(yours: BestScore, status: YouStatus?) {
 
 /**
  * The signed-out board's offer, headed [title]: [onSignIn] with Google, busy while [signIn] is signing in and
- * saying how a failed try went; [yourTimeMs], when this device has solved it, is named as kept.
+ * saying how a failed try went; [yourTimeMs], when this device has solved it, is named as kept. With [button]
+ * off it draws text only — the hero result page's rank row already carries the one sign-in action (RG11).
  */
 @Composable
-internal fun SignInPrompt(title: String, yourTimeMs: Long?, signIn: BoardSignIn, onSignIn: () -> Unit) {
+internal fun SignInPrompt(title: String, yourTimeMs: Long?, signIn: BoardSignIn, onSignIn: () -> Unit, button: Boolean = true) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -174,13 +175,15 @@ internal fun SignInPrompt(title: String, yourTimeMs: Long?, signIn: BoardSignIn,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
-        val busy = signIn == BoardSignIn.SigningIn
-        SecondaryButton(
-            text = if (busy) "Signing in…" else "Sign in with Google",
-            onClick = onSignIn,
-            enabled = !busy,
-            modifier = Modifier.testTag("custom_board.sign_in"),
-        )
+        if (button) {
+            val busy = signIn == BoardSignIn.SigningIn
+            SecondaryButton(
+                text = if (busy) "Signing in…" else "Sign in with Google",
+                onClick = onSignIn,
+                enabled = !busy,
+                modifier = Modifier.testTag("custom_board.sign_in"),
+            )
+        }
         val failure = when (signIn) {
             BoardSignIn.Failed -> "custom_board.sign_in.failed" to "Couldn't sign in. Try again."
             BoardSignIn.Offline -> "custom_board.sign_in.offline" to "You're offline. Sign in once you're back."

@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.SubmitError
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
+import com.ivandsky.puzzlebox.data.leaderboard.inSubmitWindow
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.model.GameId
 import kotlin.coroutines.cancellation.CancellationException
@@ -71,11 +72,10 @@ class LeaderboardSubmitWatcher(
         }
     }
 
-    /** The entry's day is the game's today or yesterday; an unknown game never submits. */
+    /** The entry's day is the game's today or yesterday ([inSubmitWindow]); an unknown game never submits. */
     private fun inWindow(entry: LeaderboardEntry): Boolean {
         val ref = LeaderboardRef.fromPuzzleRefKey(entry.puzzleRef) ?: return false
-        val today = calendar.today(GameId(ref.gameId)) ?: return false
-        return ref.day == today || ref.day == today.minusDays(1)
+        return calendar.inSubmitWindow(GameId(ref.gameId), ref.day)
     }
 
     /** Posted or Rejected settle the entry; Deferred = retry later. */

@@ -406,7 +406,31 @@ class ResultViewModelTest {
         assertEquals(DailyBoardNote.Posting, noteFor(SubmitStatus.Posting))
         assertEquals(DailyBoardNote.Deferred, noteFor(SubmitStatus.Deferred))
         assertEquals(DailyBoardNote.Rejected, noteFor(SubmitStatus.Rejected))
-        assertNull(noteFor(SubmitStatus.Posted))
+        assertEquals(DailyBoardNote.PostedOutsideTop, noteFor(SubmitStatus.Posted))
+    }
+
+    @Test
+    fun `flag on, a posted time outside the loaded rows says so until the own row lands`() {
+        val ref = LeaderboardRef(alpha.value, day)
+        leaderboard.setEntries(ref, listOf(entry("a", 30)))
+        posts.set(ME.uid, "alpha/$day/7", SubmitStatus.Posted)
+        val vm = vm(flags = boardOn(), identity = ME).boardObserved()
+        assertEquals(DailyBoardNote.PostedOutsideTop, ranked(vm.dailyBoard.value).note)
+
+        leaderboard.setEntries(ref, listOf(entry("a", 30), entry(ME.uid, 40)))
+        dispatcher.scheduler.runCurrent()
+        assertNull(ranked(vm.dailyBoard.value).note)
+    }
+
+    @Test
+    fun `flag on, a replay keeps the first-time note over a posted-outside status`() {
+        completions.setRecords(listOf(record(FakeController.TIME_MS, 0)))
+        solveLive()
+        leaderboard.setEntries(LeaderboardRef(alpha.value, day), listOf(entry("a", 30)))
+        posts.set(ME.uid, "alpha/$day/7", SubmitStatus.Posted)
+        val vm = vm(flags = boardOn(), identity = ME).boardObserved().observed()
+        assertEquals(RecordVerdict.Replay, vm.state.value.verdict)
+        assertEquals(DailyBoardNote.ReplayFirstTimeStands, ranked(vm.dailyBoard.value).note)
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.app.play
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import android.content.Context
@@ -144,6 +145,35 @@ class RealGamesResultRouteTest {
     @Test
     fun `no daily board with the leaderboard flag off`() {
         assertBoard(shown = false)
+    }
+
+    @Test
+    fun `signed out on the hero page the rank row is the one sign-in action`() {
+        val today = ZipDefinition.cadence.today()
+        val daily = freshDailyForAllGames().apply {
+            setHistory(ZipDefinition.id, listOf(ZipPlayFixture.entry(today)))
+        }
+        startGraph(daily, today, FakeReleaseFlags(ReleaseFlag.PerGameLeaderboards))
+        try {
+            composeRule.setContent {
+                PuzzleBoxTheme(darkTheme = false) {
+                    ResultRoute(
+                        key = ResultKey(ZipDefinition.id.value, today.toString(), 95_000L, 0),
+                        onPlayAgain = {},
+                        onNext = {},
+                        onDone = {},
+                    )
+                }
+            }
+            composeRule.waitForIdle()
+            // The board shows (signed out) and says text only; the rank row keeps the action (RG11).
+            composeRule.onNodeWithTag("daily_board.title").assertExists()
+            composeRule.onNodeWithText("Sign in to see today's board").assertExists()
+            composeRule.onNodeWithTag("result.side.rank.signin").assertExists()
+            composeRule.onNodeWithTag("custom_board.sign_in").assertDoesNotExist()
+        } finally {
+            stopKoin()
+        }
     }
 
     /** Today's numbered Zip result under [flags]: the board shows only with PerGameLeaderboards. */
