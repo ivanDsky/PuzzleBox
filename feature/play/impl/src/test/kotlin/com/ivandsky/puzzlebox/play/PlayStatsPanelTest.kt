@@ -27,6 +27,7 @@ import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.model.PlaySlot
@@ -198,6 +199,42 @@ class PlayStatsPanelTest {
     @Test
     fun `flag off, a deferred post keeps today's posting line`() {
         showNearYouAwaitingRow(SubmitStatus.Deferred, FakeReleaseFlags())
+        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Posting your time…")
+    }
+
+    /** Solved, own row missing, order [order] and post [post]: the note frozen in place. */
+    private fun showNoteAwaitingRow(order: RankOrder?, post: SubmitStatus?) {
+        showFrozen(
+            PlayStatsState(
+                gameName = "Zip",
+                solvedToday = 1,
+                gamesToday = 2,
+                streak = 2,
+                week = emptyList(),
+                best = null,
+                rankOrder = RankOrder.TimeThenHints,
+                averageMs = null,
+                times = PlayTimes.Board(
+                    (1..3).map { PlayTimeRow(it, "Player $it", it * 10_000L, hints = 0, you = false) },
+                    solved = true,
+                    order = order,
+                    post = post,
+                ),
+            ),
+        )
+        composeRule.onNodeWithTag("play.stats.tab.near").performClick()
+        composeRule.waitForIdle()
+    }
+
+    @Test
+    fun `flag off with no post read, near you keeps the plain posting line`() {
+        showNoteAwaitingRow(order = null, post = null)
+        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Posting your time…")
+    }
+
+    @Test
+    fun `flag on with no post read, the post note path still says the time is posting`() {
+        showNoteAwaitingRow(order = RankOrder.TimeThenHints, post = null)
         composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Posting your time…")
     }
 

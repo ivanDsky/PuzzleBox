@@ -62,21 +62,22 @@ private const val LIST_ROWS = 6
 @Composable
 internal fun PlayTimesCard(times: PlayTimes, modifier: Modifier = Modifier) {
     var tab by rememberSaveable { mutableStateOf(TimesTab.Top) }
+    val board = times as? PlayTimes.Board
     StatsCard(modifier.testTag("play.stats.times")) {
-        CardLabel((times as? PlayTimes.Board)?.order?.let(::rankRuleText) ?: "Times today", Modifier.padding(bottom = Spacing.sm))
+        CardLabel(board?.order?.let(::rankRuleText) ?: "Times today", Modifier.padding(bottom = Spacing.sm))
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             TimesTab.entries.forEachIndexed { index, entry ->
                 SegmentedButton(
                     selected = tab == entry,
                     onClick = { tab = entry },
                     shape = SegmentedButtonDefaults.itemShape(index = index, count = TimesTab.entries.size),
-                    enabled = times is PlayTimes.Board,
+                    enabled = board != null,
                     modifier = Modifier.testTag(entry.tag),
                 ) { Text(entry.label) }
             }
         }
         Box(Modifier.fillMaxWidth().padding(top = Spacing.sm).height(RowHeight * LIST_ROWS)) {
-            val rows = (times as? PlayTimes.Board)?.let { if (tab == TimesTab.Top) it.top else it.nearYou }
+            val rows = board?.let { if (tab == TimesTab.Top) it.top else it.nearYou }
             val note = noteFor(times, rows)
             if (note != null) {
                 Text(
@@ -87,7 +88,7 @@ internal fun PlayTimesCard(times: PlayTimes, modifier: Modifier = Modifier) {
                     modifier = Modifier.align(Alignment.Center).padding(horizontal = Spacing.lg).testTag("play.stats.times.note"),
                 )
             } else if (rows != null) {
-                Column { rows.forEach { TimeRow(it, (times as PlayTimes.Board).order) } }
+                Column { rows.forEach { TimeRow(it, board?.order) } }
             }
         }
     }
@@ -101,9 +102,13 @@ private fun noteFor(times: PlayTimes, rows: List<PlayTimeRow>?): String? = when 
         times.rows.isEmpty() -> "No times posted yet today"
         rows == null -> when {
             !times.solved -> "Finish to see who's near you"
-            // Flag off (no post read): the plain Posting line, as before the per-game board.
-            times.post == null -> DailyBoardNote.Posting.text
-            else -> times.post.toBoardNote()?.text
+            // Flag off (order null, no per-game board): the plain Posting line, as before.
+            times.order == null -> DailyBoardNote.Posting.text
+            else -> when (times.post) {
+                // Flag on, no post read (unreachable today): the post-note path says Posting.
+                null -> DailyBoardNote.Posting.text
+                else -> times.post.toBoardNote()?.text
+            }
         }
         else -> null
     }
