@@ -21,7 +21,15 @@ import java.io.ByteArrayOutputStream
  *     board = [u8 g][g × (u8 cell, u8 TangoCell byte)]   (ascending cells)
  *             [u8 k][k × (u8 cell, u8 side, u8 kind)]     (draft order)
  *     step  = [u8 TAG_REPLACE] board before, board after
+ *           | [u8 TAG_SET_CELL][u8 cell][u8 value][u8 previous]                  (TangoCell byte, 0 = empty)
+ *           | [u8 TAG_SET_MARKER][u8 cell][u8 side][u8 kind][u8 previous]        (kind byte, NO_MARKER = none)
  * ```
+ *
+ * Markers decode in (cell, side) order with a repeated edge keeping its last kind, so every
+ * decoded draft is one the commands revert exactly.
+ *
+ * The command tags joined v1 without a bump: a ReplaceDraft-only history writes exactly its
+ * earlier bytes, so every stored draft and the frozen `tango-draft-v1.bin` decode unchanged.
  *
  * Each stack keeps its newest [MAX_HISTORY] steps; older ones drop on encode. Unknown
  * versions, tags, off-board cells or edges and trailing bytes are rejected, never guessed.
@@ -33,9 +41,13 @@ object TangoDraftCodec {
     const val MAX_HISTORY: Int = 10_000
 
     private const val TAG_REPLACE = 0x02
+    private const val TAG_SET_CELL = 0x03
+    private const val TAG_SET_MARKER = 0x04
+    private const val NO_CELL = 0
+    private const val NO_MARKER = 0xFF
     private const val CELLS = TangoDraft.N * TangoDraft.N
 
-    /** History entries: ReplaceDraft<TangoDraft> only, each with a tag byte. */
+    /** History entries: TangoDraftCommand.SetCell/SetMarker and ReplaceDraft<TangoDraft>, each with a tag byte. */
     fun encode(state: DraftState<TangoDraft>): ByteArray {
         val out = ByteArrayOutputStream()
         out.write(VERSION)
@@ -75,10 +87,30 @@ object TangoDraftCodec {
         out.write(kept.size shr 8)
         out.write(kept.size and 0xFF)
         kept.forEach { step ->
-            check(step is ReplaceDraft<*>) { "no draft codec tag for ${step::class.simpleName}" }
-            out.write(TAG_REPLACE)
-            writeBoard(out, step.before as TangoDraft)
-            writeBoard(out, step.after as TangoDraft)
+            when (step) {
+                is TangoDraftCommand.SetCell -> {
+                    out.write(TAG_SET_CELL)
+                    out.write(step.cell)
+                    out.write(step.value?.toByte() ?: NO_CELL)
+                    out.write(step.previous?.toByte() ?: NO_CELL)
+                }
+
+                is TangoDraftCommand.SetMarker -> {
+                    out.write(TAG_SET_MARKER)
+                    out.write(step.cell)
+                    out.write(step.side.toByte())
+                    out.write(step.kind?.toByte() ?: NO_MARKER)
+                    out.write(step.previous?.toByte() ?: NO_MARKER)
+                }
+
+                is ReplaceDraft<*> -> {
+                    out.write(TAG_REPLACE)
+                    writeBoard(out, step.before as TangoDraft)
+                    writeBoard(out, step.after as TangoDraft)
+                }
+
+                else -> error("no draft codec tag for ${step::class.simpleName}")
+            }
         }
     }
 
@@ -98,7 +130,7 @@ object TangoDraftCodec {
             if (!onBoard(cell, side)) return null
             markers.add(TangoMarker(cell, side, kind))
         }
-        return TangoDraft(givens, markers)
+        return TangoDraft(givens, markers.canonicalMarkers())
     }
 
     private fun readSteps(cursor: Cursor): List<Command<TangoDraft>>? {
@@ -106,12 +138,51 @@ object TangoDraftCodec {
         if (count > MAX_HISTORY) return null // before allocating anything proportional to it
         val steps = ArrayList<Command<TangoDraft>>(count)
         repeat(count) {
-            if (cursor.u8() != TAG_REPLACE) return null
-            val before = readBoard(cursor) ?: return null
-            steps.add(ReplaceDraft(before, readBoard(cursor) ?: return null))
+            val step: Command<TangoDraft> = when (cursor.u8() ?: return null) {
+                TAG_REPLACE -> {
+                    val before = readBoard(cursor) ?: return null
+                    ReplaceDraft(before, readBoard(cursor) ?: return null)
+                }
+
+                TAG_SET_CELL -> readSetCell(cursor) ?: return null
+                TAG_SET_MARKER -> readSetMarker(cursor) ?: return null
+                else -> return null
+            }
+            steps.add(step)
         }
         return steps
     }
+
+    private fun readSetCell(cursor: Cursor): TangoDraftCommand.SetCell? {
+        val cell = cursor.u8()?.takeIf { it < CELLS } ?: return null
+        val value = readCellByte(cursor) ?: return null
+        val previous = readCellByte(cursor) ?: return null
+        return TangoDraftCommand.SetCell(cell, value.value, previous.value)
+    }
+
+    private fun readSetMarker(cursor: Cursor): TangoDraftCommand.SetMarker? {
+        val cell = cursor.u8() ?: return null
+        val side = TangoEdgeSide.fromByte(cursor.u8() ?: return null) ?: return null
+        if (!onBoard(cell, side)) return null
+        val kind = readKindByte(cursor) ?: return null
+        val previous = readKindByte(cursor) ?: return null
+        return TangoDraftCommand.SetMarker(cell, side, kind.value, previous.value)
+    }
+
+    /** Boxed so a legitimate "empty" is not confused with a malformed byte. */
+    private fun readCellByte(cursor: Cursor): Optional<TangoCell>? {
+        val raw = cursor.u8() ?: return null
+        if (raw == NO_CELL) return Optional(null)
+        return Optional(TangoCell.fromByte(raw) ?: return null)
+    }
+
+    private fun readKindByte(cursor: Cursor): Optional<TangoMarkerKind>? {
+        val raw = cursor.u8() ?: return null
+        if (raw == NO_MARKER) return Optional(null)
+        return Optional(TangoMarkerKind.fromByte(raw) ?: return null)
+    }
+
+    private class Optional<T : Any>(val value: T?)
 
     /** The marker's neighbor exists: RIGHT needs a column to the right, DOWN a row below. */
     private fun onBoard(cell: Int, side: TangoEdgeSide): Boolean = cell < CELLS && when (side) {

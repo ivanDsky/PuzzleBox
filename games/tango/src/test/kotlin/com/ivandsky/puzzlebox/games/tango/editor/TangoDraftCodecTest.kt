@@ -19,8 +19,8 @@ class TangoDraftCodecTest {
     private val seeded = TangoDraft(
         givens = mapOf(0 to TangoCell.SUN, 35 to TangoCell.MOON),
         markers = listOf(
-            TangoMarker(7, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME),
             TangoMarker(2, TangoEdgeSide.DOWN, TangoMarkerKind.OPPOSITE),
+            TangoMarker(7, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME),
         ),
     )
 
