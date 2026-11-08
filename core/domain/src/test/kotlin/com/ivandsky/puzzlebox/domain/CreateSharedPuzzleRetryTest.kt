@@ -92,6 +92,8 @@ class CreateSharedPuzzleRetryTest {
         assertEquals("the new code is the reserved one", code.value, drafts.rows.getValue(DRAFT_ID).reservedCode)
         assertEquals("friends get the new title", "Fortress", backend.docs.getValue(code).title)
         assertEquals("the lost doc keeps its old title", "Castle", backend.docs.getValue(lost).title)
+        assertTrue("the lost doc is retired", backend.docs.getValue(lost).unpublished)
+        assertTrue("the new doc stays published", !backend.docs.getValue(code).unpublished)
         assertEquals("the row carries the new title", "Fortress", published.rows.getValue(code).title)
         assertEquals("only the new code is listed", setOf(code), published.rows.keys)
     }
