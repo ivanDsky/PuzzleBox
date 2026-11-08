@@ -28,6 +28,10 @@ user, the PR is a place to read the change, not a test gate.
    (`./gradlew assembleDebug test`) must be green on the PR branch rebased onto fresh
    `origin/main`, and the `review-change` fast tier must be clean. A rebase that pulls in new
    main commits runs the suite again before the merge.
+   *Amendment 2026-11-08:* the green run must be on the PR rebased onto fresh `origin/main`.
+   If main moves while the suite runs, the gate runs again only when the new main commits change
+   a file the PR also changes. Otherwise the green run counts and the PR merges. PR #90 passed
+   nine runs and never merged, because main moved every 5 minutes. `merge-local.sh` does this.
 4. **A red main stops merges.** The next PR is either a `git revert` of the culprit squash
    commit or a one-line obvious fix forward. Other merges wait until main is green again.
 
@@ -44,3 +48,6 @@ user, the PR is a place to read the change, not a test gate.
   warm-cache PR check takes about 3.5 minutes; see `.scratch/ci-speed/`).
 - Screenshot goldens are still not pixel-verified on CI (ADR-0022): verify them locally with
   `-Proborazzi.verify=true`.
+- A semantic conflict through a file the PR does not touch can now reach main. Example: #109's
+  forced-cells test broke after #89 changed `TangoRules`. Main's release run is the backstop,
+  and §4 (red main stops merges) applies.
