@@ -5,7 +5,11 @@ rules_version = '2';
 // Layout: leaderboards/{boardId}/entries/{uid}
 //   boardId = "<gameId>_<ISO-day>" (e.g. "zip_2026-10-31") — one board per official
 //   daily puzzle (A5); one entry per uid (the first write wins, A4 record semantics).
-//   Entries carry the full puzzleRef "zip/<ISO-day>/<n>" and the A3 score inputs.
+//   Entries carry the full puzzleRef "<gameId>/<ISO-day>/<n>" and the A3 score inputs.
+//   Only the games in dailyGameIds() have daily boards, and only for a puzzle day in
+//   [server UTC date - 2, server UTC date + 1] (ADR-0024): an explicit allow-list, not a
+//   generic id pattern, because entries can never be deleted; no historical backfill.
+//   A sixth daily game needs its id on that list and a deploy of this file.
 //
 // Posture (brief product decisions): deny-all default; reads authenticated; writes
 // owner-only with sanity validation (timeMs > 0, hints >= 0, puzzleRef shape and
@@ -39,6 +43,22 @@ service cloud.firestore {
       // First write stands (A4): no score edits, no deletes, no replay overwrites (A5).
       allow update, delete: if false;
 
+      // The games with a daily board; FirestoreRulesAllowListTest pins it to the game registry.
+      function dailyGameIds() {
+        return ['zip', 'tango', 'queens', 'strands', 'minisudoku'];
+      }
+
+      // The four UTC days an entry may be for: server today -2, -1, 0 and +1 (ADR-0024).
+      // Exact days, not a string range: a range would also admit a day that does not exist.
+      function dailyWindowDays() {
+        return [
+          utcDay(request.time - duration.value(2, 'd')),
+          utcDay(request.time - duration.value(1, 'd')),
+          utcDay(request.time),
+          utcDay(request.time + duration.value(1, 'd'))
+        ];
+      }
+
       function validEntry() {
         let entry = request.resource.data;
         let ref = entry.puzzleRef;
@@ -48,7 +68,9 @@ service cloud.firestore {
           && entry.displayName.size() > 0
           && entry.displayName.size() <= 64
           && ref is string
-          && ref.matches('^zip/[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])/[1-9][0-9]*$')
+          && ref.matches('^[a-z]+/[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])/[1-9][0-9]*$')
+          && ref.split('/')[0] in dailyGameIds()
+          && ref.split('/')[1] in dailyWindowDays()
           && ref.split('/')[0] + '_' + ref.split('/')[1] == boardId
           && entry.timeMs is int
           && entry.timeMs > 0
