@@ -19,4 +19,5 @@ enum class TangoRung(
     MARKER_BINDING("marker", Easy, "tango.rung.marker"),
     THREE_IN_A_ROW("triple", Medium, "tango.rung.triple"),
     LINE_FULL("count", Hard, "tango.rung.count"),
+    LINE_FILLS("lineFills", Hard, "tango.rung.lineFills"),
 }

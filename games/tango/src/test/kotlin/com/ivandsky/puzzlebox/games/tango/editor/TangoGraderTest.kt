@@ -21,7 +21,8 @@ import org.junit.Test
  * Spec A9 for Tango: a Unique board's label is the level of the hardest hint-ladder rung its
  * walk uses, one fixture per label; a Unique board the walk cannot finish needs guessing, has
  * no label and is blocked from publishing. Easy, Medium and Hard are cut from the bundled
- * sample's solution; the stuck fixture is the real daily #758.
+ * sample's solution, Hard line completion from the real daily #758; the stuck fixture is a
+ * generated unique board no rung forces.
  */
 class TangoGraderTest {
 
@@ -47,14 +48,21 @@ class TangoGraderTest {
             TangoRung.LINE_FULL,
             Difficulty.Level.Hard,
         ),
+        Fixture(
+            "line fills",
+            "MMSSMS/MSSMSM/....../....../....../......",
+            "24R=,26R=,28Rx,30R=,32Rx,34R=",
+            TangoRung.LINE_FILLS,
+            Difficulty.Level.Hard,
+        ),
     )
 
     private val stuck = Fixture(
-        "real daily 758",
-        "MMSSMS/MSSMSM/....../....../....../......",
-        "24R=,26R=,28Rx,30R=,32Rx,34R=",
-        TangoRung.THREE_IN_A_ROW,
-        Difficulty.Level.Medium,
+        "unique board no rung forces",
+        "S...../.S..../...M../.....M/....../....SS",
+        "1D=,3D=,5D=,12Dx,13Dx,16D=,19Rx",
+        TangoRung.LINE_FILLS,
+        Difficulty.Level.Hard,
     )
 
     @Test
@@ -84,7 +92,7 @@ class TangoGraderTest {
 
         val verdict = TangoDraftAnalyzer.analyze(draft, Budget.Unlimited)
 
-        assertTrue(TangoGrader.grade(stuck.puzzle()).stuck)
+        assertEquals(TangoGrade(stuck.rung, stuck = true), TangoGrader.grade(stuck.puzzle()))
         val unique = verdict as Verdict.Unique
         assertNull(unique.difficulty)
         assertTrue(unique.needsGuessing)
@@ -148,7 +156,7 @@ class TangoGraderTest {
     @Test
     fun `rungs are declared in difficulty order`() {
         assertEquals(
-            listOf(Difficulty.Level.Easy, Difficulty.Level.Medium, Difficulty.Level.Hard),
+            listOf(Difficulty.Level.Easy, Difficulty.Level.Medium, Difficulty.Level.Hard, Difficulty.Level.Hard),
             TangoRung.entries.map { it.level },
         )
     }
