@@ -5,11 +5,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.TouchInjectionScope
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -31,7 +28,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The Path step through its tags: extend from either end, backtrack, Reverse, Clear path; each is one undo step. */
+/**
+ * The Path step through its tags: extend from either end, backtrack, Reverse, Clear path;
+ * each is one undo step.
+ */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w420dp-h900dp-420dpi")
@@ -75,10 +75,7 @@ class ZipEditorPathTest {
         rule.waitForIdle()
     }
 
-    private fun assertCovered(count: Int) {
-        rule.onNodeWithTag("zip.editor.hint")
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "$count/${SIZE * SIZE}"))
-    }
+    private fun covered(controller: ZipEditorController) = ZipEditorHintState.of(controller.shown.value)
 
     private fun board(draft: EditorDraft<*>) = draft.state.draft as ZipDraft
 
@@ -176,12 +173,14 @@ class ZipEditorPathTest {
 
     @Test
     fun `the hint shows the covered cell count`() {
-        show(path = listOf(0, 1, 2))
-        assertCovered(3)
+        val controller = show(path = listOf(0, 1, 2))
+        rule.onAllNodesWithTag("zip.editor.hint").assertCountEquals(1)
+        assertEquals(ZipEditorHintState(covered = 3, total = SIZE * SIZE), covered(controller))
+        assertTrue(!covered(controller).complete)
 
         drag(2, 7, 12)
 
-        assertCovered(5)
+        assertEquals(ZipEditorHintState(covered = 5, total = SIZE * SIZE), covered(controller))
     }
 
     @Test
