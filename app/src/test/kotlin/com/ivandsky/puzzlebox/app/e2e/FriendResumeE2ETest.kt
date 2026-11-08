@@ -186,7 +186,10 @@ class FriendResumeE2ETest {
         rule.waitUntil(ms + TIMEOUT_MS) { System.currentTimeMillis() - startedAt >= ms }
     }
 
-    /** Waits until [slot]'s row holding at least [playedMs] is on disk; the save's hand-back runs on the main looper. */
+    /**
+     * Waits until [slot]'s row holding at least [playedMs] is on disk; the save's hand-back
+     * runs on the main looper.
+     */
     private fun ShellRobot.awaitSaved(slot: PlaySlot, playedMs: Long) {
         awaitIdling { runBlocking { saves.observeInProgress().first() }[slot]?.let { it >= playedMs } == true }
     }
