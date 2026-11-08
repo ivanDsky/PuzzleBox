@@ -1,0 +1,14 @@
+[
+  {"input": "k7q-2mx", "code": "K7Q2MX"},
+  {"input": "K7Q2MX", "code": "K7Q2MX"},
+  {"input": "k7q 2mx", "code": "K7Q2MX"},
+  {"input": "o7q-2mx", "code": "07Q2MX"},
+  {"input": "i7q2mx", "code": "17Q2MX"},
+  {"input": "l7q2mx", "code": "17Q2MX"},
+  {"input": "IL0O11", "code": "110011"},
+  {"input": "U7Q2MX", "code": null},
+  {"input": "K7Q2M", "code": null},
+  {"input": "K7Q2MXZ", "code": null},
+  {"input": "K7Q2M#", "code": null},
+  {"input": "", "code": null}
+]
