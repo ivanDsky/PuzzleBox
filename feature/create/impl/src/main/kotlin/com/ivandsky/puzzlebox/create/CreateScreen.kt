@@ -64,7 +64,8 @@ private const val DELETED_TITLE_MAX = 28
  * Undo ([onUndoDelete]); it leaves when the state clears it (the 5 s window is the ViewModel's).
  *
  * While [importEnabled] the header carries a tonal Import pill ([onImportOpen]) that opens the
- * [ImportSheet] over [importSheet] ([onImportEdit], [onImportSubmit], [onImportDismiss]).
+ * [ImportSheet] over [importSheet] ([onImportEdit], [onImportSubmit], [onImportDismiss]); its
+ * clipboard banner uses [onImportClipboard], [onImportPaste] and [onImportClipboardDismiss].
  *
  * Motion: rows **Fade in** / **Fade out** and slide to new places with a **Layout animation**
  * (MotionTokens medium, EasingStandard) as edits reorder them and the query narrows them; the
@@ -90,6 +91,9 @@ fun CreateScreen(
     onImportEdit: (String) -> Unit = {},
     onImportSubmit: (String) -> Unit = {},
     onImportDismiss: () -> Unit = {},
+    onImportClipboard: (String?) -> Unit = {},
+    onImportPaste: () -> Unit = {},
+    onImportClipboardDismiss: () -> Unit = {},
 ) {
     var sheetOpen by rememberSaveable { mutableStateOf(false) }
     var actionsId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -135,7 +139,15 @@ fun CreateScreen(
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).testTag("create.snackbar"))
     }
-    ImportSheet(ui = importSheet, onEdit = onImportEdit, onSubmit = onImportSubmit, onDismiss = onImportDismiss)
+    ImportSheet(
+        ui = importSheet,
+        onEdit = onImportEdit,
+        onSubmit = onImportSubmit,
+        onDismiss = onImportDismiss,
+        onClipboard = onImportClipboard,
+        onPaste = onImportPaste,
+        onDismissClipboard = onImportClipboardDismiss,
+    )
     if (sheetOpen) {
         NewPuzzleSheet(
             games = state.games,
