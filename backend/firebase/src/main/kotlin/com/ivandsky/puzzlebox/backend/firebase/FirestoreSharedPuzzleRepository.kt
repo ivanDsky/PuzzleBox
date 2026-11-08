@@ -11,26 +11,30 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Firestore implementation of the shared-puzzle seam over `puzzles/{code}` and `authors/{uid}`
  * (ADR-0020). Publish is create-if-absent, so a retry with the same code and content after a lost
  * ack is [PublishResult.Published]; the same code with other content, or one the author has since
  * unpublished, is [PublishResult.CodeTaken]. Every Firebase exception is mapped to a typed result
- * here.
+ * here. The rules stamp the quota with the server's UTC day, so a denied write from a device on
+ * another day is [PublishResult.ClockSkew] rather than [PublishResult.Rejected].
  */
 internal class FirestoreSharedPuzzleRepository(
     private val store: SharedPuzzleStore,
     private val currentUid: () -> String?,
     private val utcDay: () -> String = { LocalDate.now(ZoneOffset.UTC).toString() },
+    private val serverDay: suspend () -> String? = ::firebaseServerDay,
 ) : SharedPuzzleRepository {
 
     override suspend fun publish(doc: SharedPuzzleDoc): PublishResult {
         val uid = currentUid() ?: return PublishResult.SignedOut
         if (doc.authorUid != uid) return PublishResult.Rejected("authorUid is not the signed-in user")
+        val day = utcDay()
         return try {
             val fields = SharedPuzzleDocCodec.encode(doc)
-            when (val write = store.publish(doc.code.value, fields, uid, utcDay())) {
+            when (val write = store.publish(doc.code.value, fields, uid, day)) {
                 StoreWrite.Created -> PublishResult.Published(doc.code)
                 // A retry after a lost ack finds its own doc. Changed content would leave friends
                 // on the old one and an unpublished doc is closed to them: both count as taken.
@@ -48,8 +52,24 @@ internal class FirestoreSharedPuzzleRepository(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            if (e.isTransient()) PublishResult.Offline else PublishResult.Rejected(e.message)
+            when {
+                e.isTransient() -> PublishResult.Offline
+                e.isDenied() && deviceDayIsWrong(day) -> PublishResult.ClockSkew
+                else -> PublishResult.Rejected(e.message)
+            }
         }
+    }
+
+    /**
+     * True only when the server's day was read within [SERVER_DAY_TIMEOUT] and differs from [day];
+     * unreadable or too slow means unknown.
+     */
+    private suspend fun deviceDayIsWrong(day: String): Boolean = try {
+        withTimeoutOrNull(SERVER_DAY_TIMEOUT) { serverDay() }?.let { it != day } ?: false
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        false
     }
 
     /** Best effort: a failed write leaves the orphan, and never blocks the author's publish. */
@@ -103,3 +123,6 @@ private fun Exception.isTransient(): Boolean = when (this) {
 
     else -> false
 }
+
+private fun Exception.isDenied(): Boolean =
+    this is FirebaseFirestoreException && code == FirebaseFirestoreException.Code.PERMISSION_DENIED

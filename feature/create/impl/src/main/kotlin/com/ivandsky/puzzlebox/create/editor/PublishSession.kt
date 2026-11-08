@@ -82,9 +82,13 @@ class PublishSession(
         val blocks: List<PublishBlock>
             get() = if (outcome == PublishOutcome.DailyCapReached) details.blocks + DailyCapBlock else details.blocks
 
-        /** The last publish fell short in a way another try may fix: offline, or refused. */
+        /**
+         * The last publish fell short in a way another try may fix: offline, a wrong clock, or
+         * refused.
+         */
         val retry: Boolean
-            get() = outcome == PublishOutcome.Offline || outcome is PublishOutcome.Rejected
+            get() = outcome == PublishOutcome.Offline || outcome == PublishOutcome.ClockSkew ||
+                outcome is PublishOutcome.Rejected
     }
 
     /** The author name and note as typed; [blocks] are what keeps them from publishing. */

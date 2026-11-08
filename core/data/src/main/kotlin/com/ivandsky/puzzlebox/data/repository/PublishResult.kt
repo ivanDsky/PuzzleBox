@@ -13,6 +13,8 @@ sealed interface PublishResult {
     data class Published(val code: ShareCode) : PublishResult
     data object CodeTaken : PublishResult      // caller regenerates and re-reserves
     data object DailyCapReached : PublishResult
+    /** The server refused the write and the device's UTC day is not the server's: a wrong clock. */
+    data object ClockSkew : PublishResult
     data object Offline : PublishResult
     data object SignedOut : PublishResult
     data class Rejected(val message: String?) : PublishResult

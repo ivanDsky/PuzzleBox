@@ -17,6 +17,9 @@ sealed interface PublishOutcome {
 
     data object DailyCapReached : PublishOutcome
 
+    /** The store refused the document and the device's UTC day is not the server's. */
+    data object ClockSkew : PublishOutcome
+
     /** The store refused the document, or no free code was found. */
     data class Rejected(val message: String?) : PublishOutcome
 }

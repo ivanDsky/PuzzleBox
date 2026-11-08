@@ -47,10 +47,13 @@ class CreateSharedPuzzleTest {
 
     /** The draft's reserved code as stored at each publish call. */
     private val reservedAtPublish = mutableListOf<String?>()
+
+    /** Set to make the store answer this instead of the fake's own result. */
+    private var forced: PublishResult? = null
     private val shared = object : SharedPuzzleRepository by backend {
         override suspend fun publish(doc: SharedPuzzleDoc): PublishResult {
             reservedAtPublish += drafts.rows[DRAFT_ID]?.reservedCode
-            return backend.publish(doc)
+            return forced ?: backend.publish(doc)
         }
     }
     private val published = FakePublishedPuzzleRepository()
@@ -190,6 +193,16 @@ class CreateSharedPuzzleTest {
 
         assertEquals(PublishOutcome.DailyCapReached, createShared()(DRAFT_ID, board, unique, reserve))
         assertNothingPublished()
+    }
+
+    @Test
+    fun `a wrong device clock reaches the caller, lists nothing and keeps the reserved code`() = runTest {
+        forced = PublishResult.ClockSkew
+        drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)))
+
+        assertEquals(PublishOutcome.ClockSkew, createShared()(DRAFT_ID, board, unique, reserve))
+        assertNothingPublished()
+        assertEquals(reservedAtPublish.single(), drafts.rows[DRAFT_ID]?.reservedCode)
     }
 
     private fun assertNothingPublished() {
