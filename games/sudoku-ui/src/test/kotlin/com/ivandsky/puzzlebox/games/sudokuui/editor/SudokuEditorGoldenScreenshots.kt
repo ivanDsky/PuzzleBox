@@ -125,7 +125,8 @@ abstract class SudokuEditorGoldenScreenshots(private val device: String) {
     private fun symmetry(game: Game, dark: Boolean) {
         val shown = open(game, game.guessing)
         shown.controller.cycleSymmetry()
-        assertTrue("some givens have no mirror partner", shown.controller.symmetry.value.unpaired(shown.draft).isNotEmpty())
+        val unpaired = shown.controller.symmetry.value.unpaired(shown.draft)
+        assertTrue("some givens have no mirror partner", unpaired.isNotEmpty())
         capture(game, "symmetry", dark, shown, analyzed<Verdict.Unique>(shown.draft, game))
     }
 
@@ -134,7 +135,8 @@ abstract class SudokuEditorGoldenScreenshots(private val device: String) {
         val expected = SudokuForcedCells.of(shown.draft).keys
         assertTrue("logic places some cells", expected.isNotEmpty())
         shown.controller.toggleForcedView()
-        capture(game, "forced", dark, shown, analyzed<Verdict.Unique>(shown.draft, game), forcedCells = expected)
+        val verdict = analyzed<Verdict.Unique>(shown.draft, game)
+        capture(game, "forced", dark, shown, verdict, forcedCells = expected)
     }
 
     private fun unique(game: Game, dark: Boolean) {
@@ -154,7 +156,8 @@ abstract class SudokuEditorGoldenScreenshots(private val device: String) {
     private fun multiple(game: Game, dark: Boolean) {
         val shown = open(game, game.multiple)
         shown.controller.adoptOverlay(EditorOverlay(EditorOverlay.Witness.A, showOnBoard = true))
-        capture(game, "multiple-witness", dark, shown, analyzed<Verdict.Multiple>(shown.draft, game))
+        val verdict = analyzed<Verdict.Multiple>(shown.draft, game)
+        capture(game, "multiple-witness", dark, shown, verdict)
     }
 
     /** Two equal givens in a row: both ring as clashes, before and after the solver's verdict. */
@@ -172,12 +175,14 @@ abstract class SudokuEditorGoldenScreenshots(private val device: String) {
         val cells = if (givens.isEmpty()) List(size * size) { 0 } else grid(givens)
         assertEquals("every cell is spelled out", size * size, cells.size)
         val draft = blank.state.draft.copy(givens = cells)
-        val controller = SudokuEditorController(EditorDraft(editor, blank.state.copy(draft = draft))) {}
+        val state = blank.state.copy(draft = draft)
+        val controller = SudokuEditorController(EditorDraft(editor, state)) {}
         return Opened(controller, draft)
     }
 
     private inline fun <reified V : Verdict> analyzed(draft: SudokuDraft, game: Game): V {
-        val verdict = SudokuDraftAnalyzer.analyze(draft, game.definition.variant.geometry, Budget.Unlimited)
+        val geometry = game.definition.variant.geometry
+        val verdict = SudokuDraftAnalyzer.analyze(draft, geometry, Budget.Unlimited)
         assertTrue("expected ${V::class.simpleName}, got $verdict", verdict is V)
         return verdict as V
     }
@@ -192,7 +197,8 @@ abstract class SudokuEditorGoldenScreenshots(private val device: String) {
         forcedCells: Set<Int> = emptySet(),
     ) {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+        val animatorScale = Settings.Global.ANIMATOR_DURATION_SCALE
+        Settings.Global.putFloat(context.contentResolver, animatorScale, 0f)
         val ui = SudokuEditorUi(game.definition)
         val blocks = SudokuPublishGates.blocks(shown.draft, verdict)
         rule.setContent {
@@ -207,31 +213,43 @@ abstract class SudokuEditorGoldenScreenshots(private val device: String) {
                 PuzzleBoxTheme(darkTheme = dark) {
                     Surface(Modifier.testTag(GOLDEN)) {
                         Column(Modifier.padding(Spacing.md).then(frame())) {
-                            ui.Board(shown.controller, verdict, Modifier.fillMaxWidth().weight(1f, fill = false))
-                            if (fixList) ui.Issues(shown.controller, verdict, blocks, onSelect = {}, Modifier.fillMaxWidth())
+                            val fill = Modifier.fillMaxWidth()
+                            ui.Board(shown.controller, verdict, fill.weight(1f, fill = false))
+                            if (fixList) {
+                                ui.Issues(shown.controller, verdict, blocks, onSelect = {}, fill)
+                            }
                         }
                     }
                 }
             }
         }
-        rule.waitUntil { forcedTags(game) == forcedCells }
         rule.waitForIdle()
+        assertEquals(forcedCells, forcedTags(game))
         rule.onNodeWithTag(GOLDEN).captureRoboImage(out(game, name, dark))
     }
 
     private fun frame(): Modifier =
-        if (device == "tablet") Modifier.size(TabletPaneWidth, TabletPaneHeight) else Modifier.width(PhoneWidth)
+        if (device == "tablet") {
+            Modifier.size(TabletPaneWidth, TabletPaneHeight)
+        } else {
+            Modifier.width(PhoneWidth)
+        }
 
     private fun forcedTags(game: Game): Set<Int> {
         val size = game.definition.variant.geometry.size
         return (0 until size * size)
-            .filter { rule.onAllNodesWithTag("sudoku.editor.cell.$it.forced").fetchSemanticsNodes().isNotEmpty() }
+            .filter {
+                val tag = "sudoku.editor.cell.$it.forced"
+                rule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+            }
             .toSet()
     }
 
     private fun out(game: Game, name: String, dark: Boolean): String =
         File(checkNotNull(System.getProperty("user.dir")))
-            .resolve("snapshots/editor/$name-${game.label}-$device-${if (dark) "dark" else "light"}.png")
+            .resolve(
+                "snapshots/editor/$name-${game.label}-$device-${if (dark) "dark" else "light"}.png",
+            )
             .canonicalFile
             .also { checkNotNull(it.parentFile).mkdirs() }
             .absolutePath
@@ -280,10 +298,14 @@ abstract class SudokuEditorGoldenScreenshots(private val device: String) {
         val CLASSIC = Game(
             definition = SudokuGames.CLASSIC,
             label = "9x9",
-            unique = "53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79",
-            guessing = "8..........36......7..9.2...5...7.......457.....1...3...1....68..85...1..9....4..",
-            multiple = "...........36......7..9.2...5...7.......457.....1...3...1....68..85...1..9....4..",
-            clashing = "5.5.7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79",
+            unique =
+                "53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79",
+            guessing =
+                "8..........36......7..9.2...5...7.......457.....1...3...1....68..85...1..9....4..",
+            multiple =
+                "...........36......7..9.2...5...7.......457.....1...3...1....68..85...1..9....4..",
+            clashing =
+                "5.5.7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79",
             selectedCell = 0,
         )
     }
