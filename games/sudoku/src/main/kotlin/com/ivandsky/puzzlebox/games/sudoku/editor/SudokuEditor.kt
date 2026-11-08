@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.GameEditor
+import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.sudoku.SudokuDefinition
 import com.ivandsky.puzzlebox.model.GameId
@@ -52,4 +53,7 @@ class SudokuEditor(private val definition: SudokuDefinition) : GameEditor<Sudoku
 
     override fun analyze(draft: SudokuDraft, budget: Budget): Verdict =
         SudokuDraftAnalyzer.analyze(draft, variant.geometry, budget)
+
+    override fun publishBlocks(draft: SudokuDraft, verdict: Verdict): List<PublishBlock> =
+        SudokuPublishGates.blocks(draft, verdict)
 }
