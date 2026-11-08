@@ -24,7 +24,10 @@ internal object SudokuShareCodec : EditorShareCodec<SudokuDraft> {
         return out
     }
 
-    /** version byte > 1 ⇒ UnsupportedVersion(found, 1); a short, long or out-of-range payload ⇒ Malformed. */
+    /**
+     * version byte > 1 ⇒ UnsupportedVersion(found, 1); a short, long or out-of-range payload ⇒
+     * Malformed.
+     */
     override fun decodeShare(bytes: ByteArray): DecodeResult<SudokuDraft> {
         if (bytes.isEmpty()) return malformed("empty share bytes")
         val version = bytes.u8(0)
