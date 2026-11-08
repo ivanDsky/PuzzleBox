@@ -3,11 +3,17 @@ package com.ivandsky.puzzlebox.games.zipui.editor
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
@@ -30,15 +36,33 @@ import kotlin.math.max
 
 /**
  * The Zip editor's board: the play board's look (dots, pipe, outline) over the controller's
- * [ZipEditorController.shown] draft, with a stroke gesture that draws the author's path.
+ * [ZipEditorController.shown] draft, with a stroke gesture that draws the author's path in the
+ * Path step, and the step tabs and actions ([ZipEditorTools]) below the grid.
  */
 @Composable
 fun ZipEditorBoard(controller: ZipEditorController, modifier: Modifier = Modifier) {
     val board by controller.shown.collectAsState()
     val model = remember(board) { rendererModel(board) }
-    Box(modifier.testTag("zip.editor.board")) {
-        ZipBoard(model, Modifier.fillMaxWidth())
-        Box(Modifier.matchParentSize().strokeGestures(controller, board.n))
+    val step by controller.step.collectAsState()
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.weight(1f, fill = false).aspectRatio(1f, matchHeightConstraintsFirst = true).testTag("zip.editor.board")) {
+            ZipBoard(model, Modifier.fillMaxSize())
+            CellTags(board.n)
+            if (step == ZipEditorStep.Path) Box(Modifier.matchParentSize().strokeGestures(controller, board.n))
+        }
+        ZipEditorTools(controller)
+    }
+}
+
+/** An invisible grid of cells, each tagged `zip.editor.cell.<idx>`, over the drawn board. */
+@Composable
+private fun CellTags(n: Int) {
+    Column(Modifier.fillMaxSize()) {
+        repeat(n) { row ->
+            Row(Modifier.weight(1f).fillMaxWidth()) {
+                repeat(n) { col -> Box(Modifier.weight(1f).fillMaxHeight().testTag("zip.editor.cell.${row * n + col}")) }
+            }
+        }
     }
 }
 
@@ -83,14 +107,14 @@ private fun walk(geometry: GridGeometry, from: Offset, to: Offset) =
 @Preview(name = "Zip editor, drawn path", widthDp = 360, heightDp = 420, showBackground = true)
 @Composable
 private fun ZipEditorBoardPathPreview() {
-    PuzzleBoxTheme { ZipEditorBoard(previewController(path = listOf(0, 1, 2, 7, 12, 11, 10)), Modifier.fillMaxWidth()) }
+    PuzzleBoxTheme { ZipEditorBoard(previewController(path = listOf(0, 1, 2, 7, 12, 11, 10)), Modifier.fillMaxSize()) }
 }
 
 @PuzzleBoxPreviews
 @Preview(name = "Zip editor, empty", widthDp = 360, heightDp = 420, showBackground = true)
 @Composable
 private fun ZipEditorBoardEmptyPreview() {
-    PuzzleBoxTheme { ZipEditorBoard(previewController(path = emptyList()), Modifier.fillMaxWidth()) }
+    PuzzleBoxTheme { ZipEditorBoard(previewController(path = emptyList()), Modifier.fillMaxSize()) }
 }
 
 private fun previewController(path: List<Int>): ZipEditorController {
