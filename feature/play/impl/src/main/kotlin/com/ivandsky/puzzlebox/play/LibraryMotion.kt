@@ -11,12 +11,17 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.offset
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 
 // The push travels a twelfth of the width: enough to read as forward, not a full slide.
@@ -25,9 +30,20 @@ private const val PUSH_TRAVEL_DIVISOR = 12
 /**
  * A block's entrance (06-a §Motion): a fade staggered by its [index], capped so a long
  * list never waits; [reduced] motion is one short fade. Previews show it settled.
+ *
+ * The fade is a graphicsLayer alpha, which composites into an offscreen buffer cut to the
+ * layer's bounds, so anything the content paints outside its own bounds is clipped until
+ * the fade ends. A block that does (a selection ring) gives that overhang as [bleed]: the
+ * layer grows by it on every side while the block keeps its place and size in the layout.
  */
 @Composable
-internal fun EnterFade(index: Int, reduced: Boolean, modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+internal fun EnterFade(
+    index: Int,
+    reduced: Boolean,
+    modifier: Modifier = Modifier,
+    bleed: Dp = 0.dp,
+    content: @Composable BoxScope.() -> Unit,
+) {
     val settled = LocalInspectionMode.current
     val alpha = remember { Animatable(if (settled) 1f else 0f) }
     LaunchedEffect(alpha) {
@@ -42,7 +58,22 @@ internal fun EnterFade(index: Int, reduced: Boolean, modifier: Modifier = Modifi
         }
         alpha.animateTo(1f, spec)
     }
-    Box(modifier.graphicsLayer { this.alpha = alpha.value }, content = content)
+    val room = if (bleed > 0.dp) Modifier.bleedLayout(bleed) else Modifier
+    val inset = if (bleed > 0.dp) Modifier.padding(bleed) else Modifier
+    Box(modifier.then(room).graphicsLayer { this.alpha = alpha.value }.then(inset), content = content)
+}
+
+/**
+ * Lets the node measure [room] larger on every side, then reports the original size and
+ * places the node [room] up and left: the node's own bounds (and layer) hold the overhang
+ * while its parent lays out the same footprint as without it.
+ */
+private fun Modifier.bleedLayout(room: Dp): Modifier = layout { measurable, constraints ->
+    val r = room.roundToPx()
+    val placeable = measurable.measure(constraints.offset(horizontal = 2 * r, vertical = 2 * r))
+    layout((placeable.width - 2 * r).coerceAtLeast(0), (placeable.height - 2 * r).coerceAtLeast(0)) {
+        placeable.place(-r, -r)
+    }
 }
 
 /**
