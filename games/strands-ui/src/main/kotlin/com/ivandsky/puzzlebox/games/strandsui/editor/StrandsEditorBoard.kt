@@ -20,6 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.invisibleToUser
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSpec
+import com.ivandsky.puzzlebox.games.strandsui.board.drawTokenSquare
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -101,11 +103,13 @@ internal fun StrandsEditorBoard(
                 val tail = selected?.let { board.paths[it] }
                 StrandsDiagnosticsLayer(diagnostics, Modifier.fillMaxSize())
                 val missing = (tail?.let { word.length - it.cells.size } ?: 0).coerceAtLeast(0)
+                val covered = remember(board.paths, live) { board.paths.flatMap { it.cells }.toSet() + live.toSet() }
                 CellTaps(
                     onTap = controller::tapCell,
                     extendAt = tail?.cells?.last()?.takeIf { missing > 0 },
                     missing = missing,
                     onExtend = controller::extend,
+                    idle = (0 until StrandsDraft.ROWS * StrandsDraft.COLS).toSet() - covered,
                     pockets = pockets,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -140,10 +144,13 @@ private fun CellTaps(
     extendAt: Int?,
     missing: Int,
     onExtend: () -> Unit,
+    idle: Set<Int>,
     pockets: Set<Int>,
     modifier: Modifier = Modifier,
 ) {
     val outline = MaterialTheme.colorScheme.error
+    val tileFill = MaterialTheme.colorScheme.surfaceVariant
+    val tileOutline = MaterialTheme.colorScheme.outline
     BoxWithConstraints(modifier) {
         val cell = strandsCellSizeFor(maxWidth, maxHeight, StrandsDraft.ROWS, StrandsDraft.COLS)
         Box(Modifier.fillMaxWidth().height(cell * StrandsDraft.ROWS), contentAlignment = Alignment.Center) {
@@ -162,6 +169,15 @@ private fun CellTaps(
                                             onClick { onTap(idx); true }
                                         },
                                 ) {
+                                    if (idx in idle) {
+                                        // An empty tile, so a fresh draft shows a grid instead of a void.
+                                        Box(
+                                            Modifier
+                                                .fillMaxSize()
+                                                .drawBehind { drawEmptyTile(tileFill, tileOutline) }
+                                                .testTag("strands.editor.cell.empty"),
+                                        )
+                                    }
                                     if (idx in pockets) {
                                         Box(
                                             Modifier
@@ -188,6 +204,13 @@ private fun CellTaps(
             }
         }
     }
+}
+
+/** A filled tile in the play token's rounded square: the empty look of an unclaimed cell. */
+private fun DrawScope.drawEmptyTile(fill: Color, outline: Color) {
+    val half = size.minDimension / 2f * StrandsBoardSpec.TokenFraction
+    drawTokenSquare(fill, half)
+    drawTokenSquare(outline, half, style = Stroke(1.dp.toPx()))
 }
 
 /** A dashed rectangle just inside the cell: the mark of a cell no word can fill. */

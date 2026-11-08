@@ -80,6 +80,12 @@ internal fun StrandsWordField(controller: StrandsEditorController, modifier: Mod
         value = word,
         onValueChange = controller::typeWord,
         singleLine = true,
+        label = {
+            Text(
+                StrandsEditorCopy.WORD_FIELD,
+                Modifier.testTag("strands.editor.word.label"),
+            )
+        },
         isError = check == WordCheck.Unknown,
         supportingText = {
             Text(
