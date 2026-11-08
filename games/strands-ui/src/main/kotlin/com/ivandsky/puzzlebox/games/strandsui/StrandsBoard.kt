@@ -56,9 +56,11 @@ import com.ivandsky.puzzlebox.games.strandsui.board.TraceOverlaySpec
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 import com.ivandsky.puzzlebox.games.strandsui.board.altThemeCells
 import com.ivandsky.puzzlebox.games.strandsui.board.altThemeLinks
+import com.ivandsky.puzzlebox.games.strandsui.board.traceOverlaySpec
 import com.ivandsky.puzzlebox.games.strandsui.board.drawTokenSquare
 import com.ivandsky.puzzlebox.games.strandsui.board.tokenColor
 import com.ivandsky.puzzlebox.gameui.BoardGrid
+import com.ivandsky.puzzlebox.gameui.LocalSnapTrace
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
 /**
@@ -132,6 +134,8 @@ internal fun StrandsBoardLayout(
     // Bumped by every touch-down: a running settle, sweep or hint pulse rests at once (A12).
     // Read only by the motion effects, so a touch-down recomposes nothing.
     val touchSeq = remember { mutableIntStateOf(0) }
+    // The Snap flag (SnapTrace), read once for the connector and every token.
+    val snap = LocalSnapTrace.current
     BoxWithConstraints(modifier.fillMaxWidth()) {
         val cell = strandsCellSizeFor(maxWidth, maxHeight, model.rows, model.cols)
         val boardSize = DpSize(cell * model.cols, cell * model.rows)
@@ -143,7 +147,7 @@ internal fun StrandsBoardLayout(
                 // Strands has no grid: the letters float on the bare board.
                 colors = colors.copy(boardGridLine = Color.Transparent),
                 underlay = {
-                    StrandsConnectors(model.rows, model.cols, model.links, trace, colors, { finger.value }, animate = !reduceMotion)
+                    StrandsConnectors(model.rows, model.cols, model.links, trace, colors, { finger.value }, animate = !reduceMotion, snap = snap)
                 },
                 cellContent = { row, col ->
                     LetterToken(
@@ -153,6 +157,7 @@ internal fun StrandsBoardLayout(
                         found = found,
                         reduceMotion = reduceMotion,
                         touchSeq = touchSeq,
+                        snap = snap,
                         colors = colors,
                         trace = trace,
                         onTrace = onTrace,
@@ -182,6 +187,7 @@ private fun LetterToken(
     found: FoundEvent?,
     reduceMotion: Boolean,
     touchSeq: IntState,
+    snap: Boolean,
     colors: BoardColors,
     altTheme: Boolean,
     trace: () -> Trace,
@@ -200,7 +206,7 @@ private fun LetterToken(
     val composed = remember { ComposedOnce() }
     SideEffect { composed.done = true }
     val joinTrigger = remember(traced) { JoinTrigger.takeIf { traced && composed.done } }
-    val join = rememberCellFrame(TraceOverlaySpec, joinTrigger, reduceMotion, touchSeq)
+    val join = rememberCellFrame(traceOverlaySpec(snap), joinTrigger, reduceMotion, touchSeq)
     val tokenSize = pitch * StrandsBoardSpec.TokenFraction
     // Pitch-proportional and immune to font scale, like the token it sits in.
     val letterSize = with(LocalDensity.current) { (pitch * StrandsBoardSpec.LetterFraction).toSp() }

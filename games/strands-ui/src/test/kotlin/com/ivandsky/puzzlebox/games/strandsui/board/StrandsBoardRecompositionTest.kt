@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.games.strandsui.StrandsBoard
 import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayController
 import com.ivandsky.puzzlebox.games.strandsui.StrandsUiFixtures
 import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.LocalSnapTrace
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,10 +49,18 @@ class StrandsBoardRecompositionTest {
         Offset(width * (at.col + 0.5f) / 4, height * (at.row + 0.5f) / 4)
 
     @Test
-    fun `a drag across five letters recomposes no letter off the trace`() {
+    fun `a drag across five letters recomposes no letter off the trace`() = dragAcrossFiveLetters(snap = false)
+
+    @Test
+    fun `under snap a drag across five letters recomposes no letter off the trace`() = dragAcrossFiveLetters(snap = true)
+
+    private fun dragAcrossFiveLetters(snap: Boolean) {
         rule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                CompositionLocalProvider(LocalTokenComposed provides { compositions[it] = (compositions[it] ?: 0) + 1 }) {
+                CompositionLocalProvider(
+                    LocalTokenComposed provides { compositions[it] = (compositions[it] ?: 0) + 1 },
+                    LocalSnapTrace provides snap,
+                ) {
                     Box(Modifier.size(400.dp, 300.dp)) { StrandsBoard(controller) }
                 }
             }

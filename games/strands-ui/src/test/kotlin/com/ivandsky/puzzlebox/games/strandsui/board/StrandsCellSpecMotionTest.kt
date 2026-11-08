@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.strandsui.board
 
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
@@ -18,7 +19,7 @@ import org.junit.Test
  */
 class StrandsCellSpecMotionTest {
 
-    private val specs = listOf(IdleSpec, TraceOverlaySpec, FoundThemeSpec, FoundSpangramSpec, HintOutlinedSpec, HintOrderRevealedSpec)
+    private val specs = listOf(IdleSpec, TraceOverlaySpec, SnapTraceOverlaySpec, FoundThemeSpec, FoundSpangramSpec, HintOutlinedSpec, HintOrderRevealedSpec)
     private val cue = StrandsMotionCue(order = 2, count = 4)
 
     @Test
@@ -39,6 +40,35 @@ class StrandsCellSpecMotionTest {
             val moving = (0 until total step 10).any { spec.frame(it, cue, reduceMotion = false) != StrandsCellFrame.Rest }
             assertTrue("$spec never moves", moving)
         }
+    }
+
+    @Test
+    fun `under snap a joining letter fills over the snap grow, eased out, and never scales`() {
+        val grow = MotionTokens.Trace.SnapGrowDuration
+        assertEquals(70, grow)
+        assertEquals(grow, SnapTraceOverlaySpec.motionMs(cue))
+        assertEquals(0f, SnapTraceOverlaySpec.frame(0, cue, reduceMotion = false).lit, 0f)
+        val half = SnapTraceOverlaySpec.frame(grow / 2, cue, reduceMotion = false).lit
+        assertTrue("lit at 35 ms is $half", half > 0f && half < 1f)
+        assertEquals(1f, SnapTraceOverlaySpec.frame(grow, cue, reduceMotion = false).lit, 0f)
+        for (t in 0..grow + 30) {
+            assertEquals("scale at $t", 1f, SnapTraceOverlaySpec.frame(t, cue, reduceMotion = false).scale, 0f)
+        }
+        var last = 0f
+        for (t in 0..grow) {
+            val lit = SnapTraceOverlaySpec.frame(t, cue, reduceMotion = false).lit
+            assertTrue("lit rises at $t", lit >= last)
+            last = lit
+        }
+    }
+
+    @Test
+    fun `with the flag off a joining letter keeps its grow and pop`() {
+        assertEquals(TraceOverlaySpec, traceOverlaySpec(snap = false))
+        assertEquals(SnapTraceOverlaySpec, traceOverlaySpec(snap = true))
+        val mid = TraceOverlaySpec.frame(MotionTokens.Trace.PopDuration / 4, cue, reduceMotion = false)
+        assertTrue("pops past 1: ${mid.scale}", mid.scale > 1f)
+        assertEquals(maxOf(MotionTokens.Trace.GrowDuration, MotionTokens.Trace.PopDuration), TraceOverlaySpec.motionMs(cue))
     }
 
     @Test

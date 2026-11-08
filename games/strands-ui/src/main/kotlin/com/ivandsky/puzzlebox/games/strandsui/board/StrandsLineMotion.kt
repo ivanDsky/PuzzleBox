@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.gameui.SnapLineMotion
 import com.ivandsky.puzzlebox.gameui.TraceLineMotion
 import com.ivandsky.puzzlebox.games.strands.Coord
 import kotlin.math.floor
@@ -65,6 +66,50 @@ internal class StrandsLineMotion(scope: CoroutineScope) {
         }
         if (path.size >= 2) {
             drawCircle(color, radius = stroke.width * MotionTokens.Trace.HeadScale / 2 * motion.headScale, center = endPoint)
+        }
+    }
+}
+
+/**
+ * The live trace connector under the Snap flag over the shared [SnapLineMotion]: no finger,
+ * no tip, no pop. The end sits on the last letter centre; the head disc is drawn only for a
+ * path of two or more letters, at resting size. Called from the draw phase only.
+ */
+internal class StrandsSnapLine(scope: CoroutineScope) {
+    private val motion = SnapLineMotion<Coord>(scope)
+    private val line = Path()
+
+    fun DrawScope.drawTrace(
+        path: List<Coord>,
+        rows: Int,
+        cols: Int,
+        color: Color,
+        stroke: Stroke,
+        animate: Boolean,
+    ) {
+        val end = motion.step(path, animate)
+        val cells = motion.line
+        if (cells.isEmpty()) return
+        val pitchX = size.width / cols
+        val pitchY = size.height / rows
+        fun centre(index: Int): Offset = cells[index].let { Offset((it.col + 0.5f) * pitchX, (it.row + 0.5f) * pitchY) }
+        val last = floor(end).toInt().coerceIn(0, cells.lastIndex)
+        val endPoint = if (last < cells.lastIndex) {
+            val from = centre(last)
+            from + (centre(last + 1) - from) * (end - last)
+        } else {
+            centre(last)
+        }
+        if (end > 0f) {
+            line.reset()
+            val start = centre(0)
+            line.moveTo(start.x, start.y)
+            for (i in 1..last) centre(i).let { line.lineTo(it.x, it.y) }
+            line.lineTo(endPoint.x, endPoint.y)
+            drawPath(line, color, style = stroke)
+        }
+        if (path.size >= 2) {
+            drawCircle(color, radius = stroke.width * MotionTokens.Trace.HeadScale / 2, center = endPoint)
         }
     }
 }
