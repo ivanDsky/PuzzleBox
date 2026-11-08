@@ -2,9 +2,12 @@ package com.ivandsky.puzzlebox.app.leaderboard
 
 import android.app.Application
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitError
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
@@ -19,8 +22,10 @@ import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -67,7 +72,7 @@ class LeaderboardSubmitWatcherTest {
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
 
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope, SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
 
         assertEquals(1, leaderboard.submitted.size)
@@ -83,7 +88,7 @@ class LeaderboardSubmitWatcherTest {
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope, SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
         assertTrue(leaderboard.submitted.isEmpty()) // A7: signed out = local-only
 
@@ -100,7 +105,7 @@ class LeaderboardSubmitWatcherTest {
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope, SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
 
         // Room re-emits the whole records list on any write.
@@ -124,7 +129,7 @@ class LeaderboardSubmitWatcherTest {
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
 
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope, SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
 
         assertTrue(leaderboard.submitted.isEmpty())
@@ -140,7 +145,7 @@ class LeaderboardSubmitWatcherTest {
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
 
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope, SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle() // must not throw
 
         assertEquals(1, leaderboard.submitted.size)
@@ -153,7 +158,7 @@ class LeaderboardSubmitWatcherTest {
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope, SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
         assertEquals(1, leaderboard.submitted.size)
 
@@ -179,7 +184,7 @@ class LeaderboardSubmitWatcherTest {
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
 
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope, SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
         assertEquals(1, attempts) // attempted once, failed
 
@@ -206,7 +211,7 @@ class LeaderboardSubmitWatcherTest {
         val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler)).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler), SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
 
         assertEquals(
@@ -221,7 +226,7 @@ class LeaderboardSubmitWatcherTest {
         val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler)).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler), SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
         assertEquals(1, leaderboard.submitted.size)
 
@@ -246,7 +251,7 @@ class LeaderboardSubmitWatcherTest {
             nextSubmitResult = { SubmitResult.Err(SubmitError.Rejected("denied")) },
         )
         val scheduler = TestCoroutineScheduler()
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler)).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler), SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
         records.setRecords(listOf(zipRecord(day, 592), zipRecord(day, 593)))
         scheduler.advanceUntilIdle()
@@ -255,5 +260,91 @@ class LeaderboardSubmitWatcherTest {
             listOf("zip/2026-10-31/592", "zip/2026-10-31/593"),
             leaderboard.submitted.map { it.puzzleRef },
         )
+    }
+
+    /** Every status [statuses] reports for u1's post to today's zip board, from now on. */
+    private fun TestCoroutineScheduler.statusesSeen(statuses: SubmitStatusTracker): List<SubmitStatus> {
+        val seen = mutableListOf<SubmitStatus>()
+        CoroutineScope(UnconfinedTestDispatcher(this) + Job()).launch {
+            statuses.observe("u1", LeaderboardRef("zip", day)).collect { seen += it }
+        }
+        return seen
+    }
+
+    @Test
+    fun `a successful submit goes Posting then Posted`() = runTest {
+        val records = FakeCompletionRepository(listOf(record()))
+        val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
+        val scheduler = TestCoroutineScheduler()
+        val statuses = SubmitStatusTracker()
+        val seen = scheduler.statusesSeen(statuses)
+
+        LeaderboardSubmitWatcher(records, identity, FakeLeaderboardRepository(), calendar, scope(scheduler), statuses).start()
+        scheduler.advanceUntilIdle()
+
+        assertEquals(listOf(SubmitStatus.Posting, SubmitStatus.Posted), seen)
+    }
+
+    @Test
+    fun `a deferred submit posts on a later emission`() = runTest {
+        val records = FakeCompletionRepository(listOf(record()))
+        val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
+        var attempts = 0
+        val leaderboard = FakeLeaderboardRepository(
+            nextSubmitResult = { entry ->
+                attempts++
+                if (attempts == 1) SubmitResult.Err(SubmitError.Unavailable("offline")) else SubmitResult.Ok(entry)
+            },
+        )
+        val scheduler = TestCoroutineScheduler()
+        val statuses = SubmitStatusTracker()
+        val seen = scheduler.statusesSeen(statuses)
+
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler), statuses).start()
+        scheduler.advanceUntilIdle()
+        assertEquals(listOf(SubmitStatus.Posting, SubmitStatus.Deferred), seen)
+
+        // Yesterday's record changes the list (an identical one would conflate) without sharing today's board.
+        records.setRecords(listOf(record(), zipRecord(day.minusDays(1), 591)))
+        scheduler.advanceUntilIdle()
+
+        assertEquals(listOf(SubmitStatus.Posting, SubmitStatus.Deferred, SubmitStatus.Posting, SubmitStatus.Posted), seen)
+    }
+
+    @Test
+    fun `a rejected submit stays Rejected and is not retried`() = runTest {
+        val records = FakeCompletionRepository(listOf(record()))
+        val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
+        val leaderboard = FakeLeaderboardRepository(
+            nextSubmitResult = { SubmitResult.Err(SubmitError.Rejected("denied")) },
+        )
+        val scheduler = TestCoroutineScheduler()
+        val statuses = SubmitStatusTracker()
+        val seen = scheduler.statusesSeen(statuses)
+
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler), statuses).start()
+        scheduler.advanceUntilIdle()
+        records.setRecords(listOf(record(), zipRecord(day.minusDays(1), 591)))
+        scheduler.advanceUntilIdle()
+
+        assertEquals(listOf(SubmitStatus.Posting, SubmitStatus.Rejected), seen)
+        assertEquals(1, leaderboard.submitted.count { it.puzzleRef == "zip/2026-10-31/592" })
+    }
+
+    @Test
+    fun `signed out writes no status`() = runTest {
+        val records = FakeCompletionRepository(listOf(record()))
+        val scheduler = TestCoroutineScheduler()
+        val statuses = SubmitStatusTracker()
+        val seen = scheduler.statusesSeen(statuses)
+        val leaderboard = FakeLeaderboardRepository(
+            nextSubmitResult = { SubmitResult.Err(SubmitError.Rejected("denied")) },
+        )
+
+        LeaderboardSubmitWatcher(records, FakeIdentityService(initial = null), leaderboard, calendar, scope(scheduler), statuses).start()
+        scheduler.advanceUntilIdle()
+
+        assertEquals(listOf(SubmitStatus.Posting), seen) // the unread default, never written
+        assertTrue(leaderboard.submitted.isEmpty())
     }
 }
