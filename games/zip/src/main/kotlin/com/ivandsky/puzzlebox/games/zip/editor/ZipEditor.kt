@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.DraftExport
 import com.ivandsky.puzzlebox.game.editor.DraftResize
 import com.ivandsky.puzzlebox.game.editor.DraftState
+import com.ivandsky.puzzlebox.game.editor.EditorNotation
 import com.ivandsky.puzzlebox.game.editor.EditorShareCodec
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.Solution
@@ -29,7 +30,8 @@ import com.ivandsky.puzzlebox.model.GameId
  * daily [ZipCodec] with the path as the solution (A10), so test solve plays a real puzzle.
  */
 object ZipEditor : GameEditor<ZipDraft>, DraftResize<ZipDraft>, DraftExport<ZipDraft>,
-    EditorShareCodec<ZipDraft> by ZipShareCodec {
+    EditorShareCodec<ZipDraft> by ZipShareCodec,
+    EditorNotation<ZipDraft> by ZipNotation {
     override val gameId: GameId get() = ZipDefinition.id
 
     override val variants: List<VariantId> = ZipVariants.all.map { it.id }
