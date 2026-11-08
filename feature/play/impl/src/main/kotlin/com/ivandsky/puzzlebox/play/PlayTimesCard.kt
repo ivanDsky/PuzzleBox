@@ -36,6 +36,8 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.bestScoreText
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardNote
+import com.ivandsky.puzzlebox.gameui.board.toBoardNote
 import com.ivandsky.puzzlebox.gameui.rankRuleText
 
 private enum class TimesTab(val label: String, val tag: String) {
@@ -97,7 +99,12 @@ private fun noteFor(times: PlayTimes, rows: List<PlayTimeRow>?): String? = when 
     PlayTimes.Unavailable -> "Today's times aren't available right now"
     is PlayTimes.Board -> when {
         times.rows.isEmpty() -> "No times posted yet today"
-        rows == null -> if (times.solved) "Posting your time…" else "Finish to see who's near you"
+        rows == null -> when {
+            !times.solved -> "Finish to see who's near you"
+            // Flag off (no post read): the plain Posting line, as before the per-game board.
+            times.post == null -> DailyBoardNote.Posting.text
+            else -> times.post.toBoardNote()?.text
+        }
         else -> null
     }
 }

@@ -15,6 +15,8 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
@@ -75,6 +77,7 @@ class PlayStatsPanelTest {
     private val leaderboard = FakeLeaderboardRepository(
         mapOf(board to (1..8).map { entry(if (it == 7) "me" else "p$it", "Player $it", it * 10_000L) }),
     )
+    private val posts = SubmitStatusTracker()
 
     private fun viewModel(
         identity: Identity? = me,
@@ -99,6 +102,7 @@ class PlayStatsPanelTest {
                 leaderboard = ObserveLeaderboard(FakeIdentityService(identity), leaderboard, fakes.games, calendar),
             ),
             releaseFlags = flags,
+            posts = posts,
         )
     }
 
@@ -152,6 +156,49 @@ class PlayStatsPanelTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Finish to see who's near you")
+    }
+
+    /** Solved, the own row not on the board, the watcher at [status]: the panel on Near you. */
+    private fun showNearYouAwaitingRow(status: SubmitStatus, flags: FakeReleaseFlags) {
+        val solvedToday = FakeCompletionRepository().apply { setRecords(listOf(record(alpha, day, 40_000L))) }
+        val othersOnly = FakeLeaderboardRepository(mapOf(board to (1..3).map { entry("p$it", "Player $it", it * 10_000L) }))
+        posts.set(me.uid, "${alpha.value}/$day/7", status)
+        show(viewModel(completions = solvedToday, leaderboard = othersOnly, flags = flags))
+        composeRule.onNodeWithTag("play.stats.tab.near").performClick()
+        composeRule.waitForIdle()
+    }
+
+    private val boardOn = FakeReleaseFlags(ReleaseFlag.PerGameLeaderboards)
+
+    @Test
+    fun `flag on, a post in flight says the time is posting`() {
+        showNearYouAwaitingRow(SubmitStatus.Posting, boardOn)
+        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Posting your time…")
+    }
+
+    @Test
+    fun `flag on, a deferred post says it is saved on this device`() {
+        showNearYouAwaitingRow(SubmitStatus.Deferred, boardOn)
+        composeRule.onNodeWithTag("play.stats.times.note")
+            .assertTextEquals("Saved on this device — it'll post when you're online.")
+    }
+
+    @Test
+    fun `flag on, a rejected post says it could not post`() {
+        showNearYouAwaitingRow(SubmitStatus.Rejected, boardOn)
+        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Couldn't post this time.")
+    }
+
+    @Test
+    fun `flag on, a posted entry ends the posting line`() {
+        showNearYouAwaitingRow(SubmitStatus.Posted, boardOn)
+        composeRule.onNodeWithTag("play.stats.times.note").assertDoesNotExist()
+    }
+
+    @Test
+    fun `flag off, a deferred post keeps today's posting line`() {
+        showNearYouAwaitingRow(SubmitStatus.Deferred, FakeReleaseFlags())
+        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Posting your time…")
     }
 
     @Test
