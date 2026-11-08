@@ -30,6 +30,8 @@ import com.ivandsky.puzzlebox.model.GameId
 
 private val FixRowMinHeight = 48.dp
 
+private const val FORCED_CELLS = "Forced cells"
+
 /** Tango's editor UI: the play board over a [TangoEditorController]. */
 object TangoEditorUi : GameEditorUi {
 
@@ -47,11 +49,12 @@ object TangoEditorUi : GameEditorUi {
         TangoEditorBoard(controller as TangoEditorController, modifier, verdict)
     }
 
-    /** The press-preview-lift line and the Tap zones toggle. */
+    /** The press-preview-lift line and the Tap zones and Forced cells toggles. */
     @Composable
     override fun ToolHint(controller: GameEditorController, modifier: Modifier) {
         val tango = controller as TangoEditorController
         val zones by tango.tapZones.collectAsState()
+        val forced by tango.forcedView.collectAsState()
         Row(
             modifier,
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -67,6 +70,12 @@ object TangoEditorUi : GameEditorUi {
                 onClick = tango::toggleTapZones,
                 label = { Text(TangoEditorCopy.TAP_ZONES, maxLines = 1) },
                 modifier = Modifier.testTag("tango.editor.tapZones"),
+            )
+            FilterChip(
+                selected = forced,
+                onClick = tango::toggleForcedView,
+                label = { Text(FORCED_CELLS, maxLines = 1) },
+                modifier = Modifier.testTag("tango.editor.forced.toggle"),
             )
         }
     }

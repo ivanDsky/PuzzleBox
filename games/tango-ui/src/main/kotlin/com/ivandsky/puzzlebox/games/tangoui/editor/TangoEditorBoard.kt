@@ -50,7 +50,8 @@ private val EditorBoardMaxWidth = 480.dp
  * shows its next state (the square `.preview`, the edge `tango.editor.edge.<cell>.<side>`
  * band) and lifting commits it as one step. Markers show as on the play board. The
  * [verdict] and the card's witness choice ([TangoEditorController.overlay]) are drawn by
- * [TangoDiagnosticsLayer].
+ * [TangoDiagnosticsLayer]; [TangoEditorController.forcedView] adds the forced cells as
+ * faint symbols ([TangoForcedLayer]), under the witness, never taking a tap.
  */
 @Composable
 internal fun TangoEditorBoard(
@@ -62,6 +63,7 @@ internal fun TangoEditorBoard(
     val pressed by controller.preview.collectAsState()
     val overlay by controller.overlay.collectAsState()
     val zones by controller.tapZones.collectAsState()
+    val forcedOn by controller.forcedView.collectAsState()
     val board = draft.state.draft as TangoDraft
     val target = pressed
     val shown = if (target == null) board else controller.commandFor(target).apply(board)
@@ -70,7 +72,9 @@ internal fun TangoEditorBoard(
     SideEffect { if (verdict != Verdict.Checking) settled.value = verdict }
     val held = if (verdict == Verdict.Checking) settled.value else verdict
     val diagnostics = tangoDiagnostics(shown, verdict, held, overlay)
-    val model = remember(shown, diagnostics.witness) { modelOf(shown, diagnostics.witness) }
+    val forced by rememberForcedCells(board, forcedOn)
+    val ghosts = remember(forced, diagnostics.witness) { forced + diagnostics.witness }
+    val model = remember(shown, ghosts) { modelOf(shown, ghosts) }
     val renderer = remember { TangoBoardRenderer() }
     Box(
         modifier
@@ -80,6 +84,7 @@ internal fun TangoEditorBoard(
             .tangoEditorGestures(controller),
     ) {
         renderer.Content(model = model, modifier = Modifier.fillMaxWidth())
+        TangoForcedLayer(forced.keys)
         TangoDiagnosticsLayer(diagnostics)
         if (zones) TapZoneBands()
         if (target != null) PressWash(target)
