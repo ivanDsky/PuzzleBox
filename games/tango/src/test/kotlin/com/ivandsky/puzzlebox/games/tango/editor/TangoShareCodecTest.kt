@@ -107,4 +107,42 @@ class TangoShareCodecTest {
         assertMalformed(fixture().also { it[at + 1] = 2 })
         assertMalformed(fixture().also { it[at + 2] = 2 })
     }
+
+    @Test
+    fun `an unsorted marker pair is malformed`() {
+        val at = fixture().size - 6
+        val swapped = fixture().also {
+            for (i in 0..2) it[at + i] = it[at + 3 + i].also { _ -> it[at + 3 + i] = it[at + i] }
+        }
+
+        assertMalformed(swapped)
+    }
+
+    @Test
+    fun `a repeated edge is malformed whatever its kind`() {
+        val same = byteArrayOf(1, 0, 2, 3, 0, 0, 3, 0, 0)
+        val flipped = byteArrayOf(1, 0, 2, 3, 0, 0, 3, 0, 1)
+
+        assertMalformed(same)
+        assertMalformed(flipped)
+    }
+
+    @Test
+    fun `the largest board stays far under the share size cap`() {
+        val n = TangoDraft.N
+        val full = TangoDraft(
+            givens = (0 until n * n).associateWith { TangoCell.SUN },
+            markers = (0 until n * n).flatMap { cell ->
+                listOfNotNull(
+                    TangoMarker(cell, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME).takeIf { cell % n < n - 1 },
+                    TangoMarker(cell, TangoEdgeSide.DOWN, TangoMarkerKind.OPPOSITE).takeIf { cell / n < n - 1 },
+                )
+            },
+        )
+
+        val bytes = TangoShareCodec.encodeShare(full)
+
+        assertTrue("${bytes.size} bytes", bytes.size < 8192)
+        assertEquals(full, decodeOk(bytes))
+    }
 }

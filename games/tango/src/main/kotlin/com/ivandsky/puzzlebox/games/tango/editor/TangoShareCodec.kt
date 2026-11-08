@@ -16,11 +16,11 @@ import java.io.ByteArrayOutputStream
  * ```
  * v1: [u8 version] [u8 g][g × (u8 cell, u8 TangoCell byte)]
  *     [u8 k][k × (u8 cell, u8 side, u8 kind)]
- *     givens ascending by cell; markers sorted by (cell, side, kind)
+ *     givens ascending by cell; markers strictly ascending by (cell, side), one per edge
  * ```
  *
- * Never a solution or history: the recipient re-solves the board. Unordered or repeated givens,
- * off-board cells or edges and trailing bytes are malformed.
+ * Never a solution or history: the recipient re-solves the board. Unordered or repeated givens or
+ * markers, off-board cells or edges and trailing bytes are malformed.
  */
 internal object TangoShareCodec : EditorShareCodec<TangoDraft> {
     override val shareFormatVersion: Int = 1
@@ -62,11 +62,15 @@ internal object TangoShareCodec : EditorShareCodec<TangoDraft> {
             givens[cell] = TangoCell.fromByte(u8() ?: return malformed("truncated given")) ?: return malformed("bad given value")
         }
         val markers = ArrayList<TangoMarker>()
+        var lastEdge = -1
         repeat(u8() ?: return malformed("truncated marker count")) {
             val cell = u8() ?: return malformed("truncated marker")
             val side = TangoEdgeSide.fromByte(u8() ?: return malformed("truncated marker")) ?: return malformed("bad marker side")
             val kind = TangoMarkerKind.fromByte(u8() ?: return malformed("truncated marker")) ?: return malformed("bad marker kind")
             if (!onBoard(cell, side)) return malformed("marker at $cell $side off the board")
+            val edge = cell * 2 + side.ordinal
+            if (edge <= lastEdge) return malformed("marker at $cell $side unordered or repeated")
+            lastEdge = edge
             markers.add(TangoMarker(cell, side, kind))
         }
         if (pos != bytes.size) return malformed("${bytes.size - pos} trailing bytes")
