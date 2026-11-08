@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.create
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -33,6 +34,9 @@ import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import java.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -82,8 +86,9 @@ class ImportEntriesTest {
     }
 
     @Test
-    fun `with the flag off neither entry exists`() {
+    fun `with the flag off the empty state has no import button`() {
         show(importOn = false)
+        composeRule.onNodeWithTag(EMPTY).assertExists()
         composeRule.onAllNodesWithTag(EMPTY_IMPORT).assertCountEquals(0)
     }
 
@@ -109,7 +114,29 @@ class ImportEntriesTest {
         composeRule.onAllNodesWithTag(DRAFT_IMPORTED, useUnmergedTree = true).assertCountEquals(1)
     }
 
-    private fun androidx.compose.ui.test.junit4.ComposeTestRule.exists(tag: String): Boolean =
+    @Test
+    fun `the actions sheet header carries the imported tag of an imported draft`() {
+        show(importOn = true, seed = listOf(draft("copy", imported = true)))
+        composeRule.onNodeWithTag(DRAFT_MORE).performClick()
+        composeRule.waitUntil { composeRule.exists(ACTIONS_CONTINUE) }
+        // One in the row behind the sheet, one in the sheet's own header.
+        composeRule.onAllNodesWithTag(DRAFT_IMPORTED, useUnmergedTree = true).assertCountEquals(2)
+    }
+
+    @Test
+    fun `the row state flags an imported draft and its meta carries no suffix`() {
+        val games = GameRegistry(listOf(withEditor(FakeGameEditor(game))))
+        val editors = GameEditorRegistry(listOf(FakeGameEditorUi(game)))
+        val plays = GamePlayRegistry(emptyList())
+        val imported = rowOf(draft("copy", imported = true), emptyMap(), NOW, games, editors, plays)
+        val plain = rowOf(draft("plain", imported = false), emptyMap(), NOW, games, editors, plays)
+
+        assertTrue(imported.imported)
+        assertFalse(plain.imported)
+        assertEquals(plain.meta, imported.meta)
+    }
+
+    private fun ComposeTestRule.exists(tag: String): Boolean =
         onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
 
     private fun show(importOn: Boolean, seed: List<Draft> = emptyList()) {
@@ -183,6 +210,9 @@ class ImportEntriesTest {
         val NOW: Instant = Instant.parse("2026-11-06T10:00:00Z")
         const val NEW = "create.new"
         const val NEW_SHEET = "create.new.sheet"
+        const val EMPTY = "create.empty"
+        const val DRAFT_MORE = "create.draft.more"
+        const val ACTIONS_CONTINUE = "create.actions.continue"
         const val NEW_IMPORT = "create.new.import"
         const val EMPTY_IMPORT = "create.empty.import"
         const val IMPORT_SHEET = "create.import.sheet"

@@ -32,7 +32,7 @@ internal fun filtersOf(
         CreateUiState.GameFilter(id, games.displayName(id), plays.brandOf(id), count)
     }
 
-/** One Drafts-tab row: [draft]'s tile, "Game · size[ · imported]", its age as of [now] and its chip. */
+/** One Drafts-tab row: [draft]'s tile, "Game · size", its age as of [now] and its chip. */
 internal fun rowOf(
     draft: Draft,
     settled: Map<DraftStamp, Verdict?>,
@@ -43,14 +43,14 @@ internal fun rowOf(
 ): CreateUiState.DraftRow {
     val stamp = DraftStamp(draft.id, draft.updatedAt)
     val size = editors[draft.gameId]?.sizeLabel(draft.variant) ?: draft.variant.value
-    val imported = if (draft.imported) " · imported" else ""
     return CreateUiState.DraftRow(
         id = draft.id,
         gameId = draft.gameId,
         brand = plays.brandOf(draft.gameId),
         title = draft.title,
-        meta = "${games.displayName(draft.gameId)} · $size$imported",
+        meta = "${games.displayName(draft.gameId)} · $size",
         edited = ageLabel("edited", draft.updatedAt, now),
         verdict = if (stamp in settled) settled[stamp] else Verdict.Checking,
+        imported = draft.imported,
     )
 }
