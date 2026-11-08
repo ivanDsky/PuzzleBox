@@ -31,7 +31,7 @@ fun DailyBoard(
         )
         when (state) {
             DailyBoardState.Loading -> Line("Loading…", "daily_board.loading")
-            DailyBoardState.Unavailable -> Line("The board isn't available right now.", "daily_board.unavailable")
+            DailyBoardState.Unavailable -> Line("Leaderboard unavailable right now.", "daily_board.unavailable")
             DailyBoardState.SignedOut -> signIn?.invoke()
             is DailyBoardState.Ranked -> Ranked(state, order)
         }
