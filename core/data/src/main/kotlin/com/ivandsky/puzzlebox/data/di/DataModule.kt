@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.data.calendar.CadenceGameCalendar
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.InMemorySharedTextStore
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstDailyRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineUserPreferencesRepository
@@ -15,6 +16,7 @@ import com.ivandsky.puzzlebox.data.repository.RoomPublishedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.RoomReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.RoomSavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.data.repository.SharedTextStore
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.data.update.AppReleaseRepository
 import com.ivandsky.puzzlebox.data.update.NetworkAppReleaseRepository
@@ -57,4 +59,7 @@ val dataModule = module {
     single<ReceivedPuzzleRepository> { RoomReceivedPuzzleRepository(get()) }
     // Process-wide so the 15-minute update-check throttle survives screen changes.
     single<AppReleaseRepository> { NetworkAppReleaseRepository(get()) }
+    // Shared-text hand-off (M5-08): app puts, the Create root takes it exactly once. In memory
+    // only — the shared text is transient, never persisted, never in a NavKey (P8).
+    single<SharedTextStore> { InMemorySharedTextStore() }
 }
