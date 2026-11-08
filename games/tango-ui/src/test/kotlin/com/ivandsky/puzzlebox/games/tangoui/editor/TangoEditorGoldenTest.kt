@@ -4,7 +4,6 @@ import android.content.res.Configuration
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
@@ -15,7 +14,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
-import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.editor.Budget
@@ -31,14 +29,12 @@ import com.ivandsky.puzzlebox.games.tango.editor.TangoDraftAnalyzer
 import com.ivandsky.puzzlebox.games.tango.editor.TangoEditor
 import com.ivandsky.puzzlebox.games.tango.editor.TangoForcedCells
 import com.ivandsky.puzzlebox.games.tango.editor.TangoPublishGates
+import com.ivandsky.puzzlebox.games.tangoui.GoldenCompare
+import com.ivandsky.puzzlebox.games.tangoui.TestInlineDispatcherProvider
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.GridEdge
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
-import kotlinx.coroutines.CoroutineDispatcher
-import java.awt.image.BufferedImage
 import java.io.File
-import javax.imageio.ImageIO
-import kotlin.coroutines.CoroutineContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -131,24 +127,23 @@ abstract class TangoEditorGoldenTest(private val device: String) {
         capture("tap-zones", dark, SAMPLE, analyzed<Verdict.Unique>(SAMPLE)) { toggleTapZones() }
     }
 
-    /** Two suns side by side force the cell after them, and more follows; the board stays partly empty. */
+    /** STUCK: unique, so no differ shade; the hint ladder forces some cells, then stalls. */
     private fun forcedCells(dark: Boolean) {
-        val draft = TangoDraft(mapOf(0 to TangoCell.SUN, 1 to TangoCell.SUN), emptyList())
-        val forced = TangoForcedCells.of(draft)
+        val forced = TangoForcedCells.of(STUCK)
         assertTrue("the board forces some cells", forced.isNotEmpty())
-        assertTrue("the board is not forced whole", forced.size + draft.givens.size < CELLS)
-        capture("forced-cells", dark, draft, analyzed<Verdict.Multiple>(draft)) { toggleForcedView() }
+        assertTrue("the board is not forced whole", forced.size + STUCK.givens.size < CELLS)
+        capture("forced-cells", dark, STUCK, analyzed<Verdict.Unique>(STUCK)) { toggleForcedView() }
     }
 
     private fun unique(dark: Boolean) {
         val verdict = analyzed<Verdict.Unique>(SAMPLE)
-        assertTrue("the board carries its label", verdict.difficulty != null && !verdict.needsGuessing)
+        assertTrue("the board has a label", verdict.difficulty != null && !verdict.needsGuessing)
         capture("unique-label", dark, SAMPLE, verdict)
     }
 
     private fun needsGuessing(dark: Boolean) {
         val verdict = analyzed<Verdict.Unique>(STUCK)
-        assertTrue("no rung finishes the board", verdict.needsGuessing && verdict.difficulty == null)
+        assertTrue("no rung finishes it", verdict.needsGuessing && verdict.difficulty == null)
         capture("needs-guessing", dark, STUCK, verdict)
     }
 
@@ -194,69 +189,36 @@ abstract class TangoEditorGoldenTest(private val device: String) {
             }
             CompositionLocalProvider(
                 LocalConfiguration provides config,
-                LocalForcedDispatchers provides GoldenInlineDispatcherProvider,
+                LocalForcedDispatchers provides TestInlineDispatcherProvider,
             ) {
                 PuzzleBoxTheme(darkTheme = dark) {
                     Surface(Modifier.testTag(GOLDEN)) {
                         Column(Modifier.padding(Spacing.md).then(frame())) {
                             TangoEditorUi.Board(controller, verdict, Modifier.fillMaxWidth())
                             TangoEditorUi.ToolHint(controller, Modifier.fillMaxWidth())
-                            TangoEditorUi.Issues(controller, verdict, blocks, onSelect = {}, modifier = Modifier.fillMaxWidth())
+                            TangoEditorUi.Issues(
+                                controller,
+                                verdict,
+                                blocks,
+                                onSelect = {},
+                                modifier = Modifier.fillMaxWidth(),
+                            )
                         }
                     }
                 }
             }
         }
         rule.waitForIdle()
-        val scratch = File("build/roborecord/editor/${stem(name, dark)}.png").apply { parentFile?.mkdirs() }
+        val stem = stem(name, dark)
+        val scratch = File("build/roborecord/editor/$stem.png").apply { parentFile?.mkdirs() }
         rule.onNodeWithTag(GOLDEN).captureRoboImage(scratch)
-        verify(stem(name, dark), scratch)
+        GoldenCompare.check(File("src/test/resources/goldens/editor/$stem.png"), scratch, stem)
     }
 
     private fun frame(): Modifier =
-        if (device == "tablet") Modifier.size(TabletPaneWidth, TabletPaneHeight) else Modifier.width(PhoneWidth)
+        if (device == "tablet") Modifier.width(TabletPaneWidth) else Modifier.width(PhoneWidth)
 
     private fun stem(name: String, dark: Boolean) = "$name-$device-${if (dark) "dark" else "light"}"
-
-    private fun verify(stem: String, scratch: File) {
-        val golden = File("src/test/resources/goldens/editor/$stem.png")
-        when (mode) {
-            "record" -> {
-                golden.parentFile?.mkdirs()
-                scratch.copyTo(golden, overwrite = true)
-            }
-            "verify" -> {
-                if (!golden.exists()) {
-                    throw AssertionError(
-                        "Golden $stem is missing and verify mode forbids recording; " +
-                            "run with -Proborazzi.record=true once to record it, then re-verify.",
-                    )
-                }
-                assertMatches(golden, scratch, stem)
-            }
-            // compare: the capture stays in build/roborecord; no golden is read or written.
-        }
-    }
-
-    private fun assertMatches(golden: File, scratch: File, stem: String) {
-        val expected = ImageIO.read(golden)
-        val actual = ImageIO.read(scratch)
-        assertEquals("Golden $stem drifted in width", expected.width, actual.width)
-        assertEquals("Golden $stem drifted in height", expected.height, actual.height)
-        if (!pixelCompare) return
-        val differing = differingPixels(expected, actual)
-        assertTrue(
-            "Golden $stem drifted: $differing differing pixels. If intended, re-record " +
-                "with -Proborazzi.record=true.",
-            differing == 0,
-        )
-    }
-
-    /** Pixel-exact on decoded colours, so PNG metadata noise cannot fail a run. */
-    private fun differingPixels(expected: BufferedImage, actual: BufferedImage): Int =
-        (0 until expected.height).sumOf { y ->
-            (0 until expected.width).count { x -> expected.getRGB(x, y) != actual.getRGB(x, y) }
-        }
 
     private companion object {
         const val GOLDEN = "golden"
@@ -267,7 +229,6 @@ abstract class TangoEditorGoldenTest(private val device: String) {
 
         /** The tablet Studio's left pane (1280 − the 372 dp side pane) less the padding. */
         val TabletPaneWidth = 876.dp
-        val TabletPaneHeight = 720.dp
 
         /** The bundled sample: unique, graded by its hardest rung. */
         val SAMPLE = TangoDraft(
@@ -298,15 +259,4 @@ abstract class TangoEditorGoldenTest(private val device: String) {
             ),
         )
     }
-}
-
-/** Runs the forced-cells walk inline, so idling the compose rule settles it. */
-private object GoldenInlineDispatcherProvider : DispatcherProvider {
-    private val inline = object : CoroutineDispatcher() {
-        override fun isDispatchNeeded(context: CoroutineContext) = false
-        override fun dispatch(context: CoroutineContext, block: Runnable) = block.run()
-    }
-    override val main: CoroutineDispatcher = inline
-    override val io: CoroutineDispatcher = inline
-    override val default: CoroutineDispatcher = inline
 }

@@ -41,7 +41,8 @@ class TangoEditorBoardBoundsTest {
         rule.setContent {
             PuzzleBoxTheme {
                 Box(Modifier.size(PaneWidth, PaneHeight)) {
-                    TangoEditorBoard(controller, Modifier.fillMaxWidth(), Verdict.None(setOf(0, 1, 2)))
+                    val verdict = Verdict.None(setOf(0, 1, 2))
+                    TangoEditorBoard(controller, Modifier.fillMaxWidth(), verdict)
                 }
             }
         }
@@ -60,7 +61,8 @@ class TangoEditorBoardBoundsTest {
 
         val board = rule.onNodeWithTag("tango.editor.board").getUnclippedBoundsInRoot()
         val cell = rule.onNodeWithTag("tango.editor.cell.0.clash").getUnclippedBoundsInRoot()
-        assertEquals((board.right - board.left).value / TangoDraft.N, (cell.right - cell.left).value, 0.5f)
+        val boardWidth = (board.right - board.left).value
+        assertEquals(boardWidth / TangoDraft.N, (cell.right - cell.left).value, 0.5f)
     }
 
     @Test
