@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -132,9 +133,9 @@ class StrandsEditorTraceTest {
         trace(0, 1)
         trace(6, 7)
 
-        rule.onNodeWithTag("strands.editor.path.1").performClick()
+        rule.onNodeWithTag("strands.editor.path.1").performScrollTo().performClick()
         assertEquals(1, controller.selectedPath.value)
-        rule.onNodeWithTag("strands.editor.path.1").performClick()
+        rule.onNodeWithTag("strands.editor.path.1").performScrollTo().performClick()
         assertNull(controller.selectedPath.value)
         rule.onNodeWithTag("strands.editor.remove").assertDoesNotExist()
     }
