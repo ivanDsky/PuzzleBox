@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.domain.AuthorPin
 import com.ivandsky.puzzlebox.domain.CustomBoardView
 import com.ivandsky.puzzlebox.domain.RankedEntry
 import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
 
 // The rows a friend puzzle's board is drawn from, shared by the result's board and the card's preview.
 
@@ -155,11 +156,11 @@ internal fun YouLine(yours: BestScore, status: YouStatus?) {
 }
 
 /**
- * The signed-out board's offer: [onSignIn] with Google, busy while [signIn] is signing in and
+ * The signed-out board's offer, headed [title]: [onSignIn] with Google, busy while [signIn] is signing in and
  * saying how a failed try went; [yourTimeMs], when this device has solved it, is named as kept.
  */
 @Composable
-internal fun SignInPrompt(yourTimeMs: Long?, signIn: BoardSignIn, onSignIn: () -> Unit) {
+internal fun SignInPrompt(title: String, yourTimeMs: Long?, signIn: BoardSignIn, onSignIn: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -167,7 +168,7 @@ internal fun SignInPrompt(yourTimeMs: Long?, signIn: BoardSignIn, onSignIn: () -
             .padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Text("Sign in to see how friends did", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
+        Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
         Text(
             yourTimeMs?.let { "Your ${formatDuration(it)} is saved on this phone either way." } ?: "Playing never needs it.",
             style = MaterialTheme.typography.bodySmall,

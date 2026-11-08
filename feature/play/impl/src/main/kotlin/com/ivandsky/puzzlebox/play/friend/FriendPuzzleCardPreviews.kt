@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import java.time.Instant
 
 private fun previewCard(

@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow

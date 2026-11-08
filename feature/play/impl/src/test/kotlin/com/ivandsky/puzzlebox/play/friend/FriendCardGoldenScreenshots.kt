@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.GOLDEN_PHONE
 import com.ivandsky.puzzlebox.play.GOLDEN_TABLET
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.settleAndCapture
 import com.ivandsky.puzzlebox.play.showGolden
 import java.time.Instant

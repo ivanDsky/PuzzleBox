@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.AuthorPin
 import com.ivandsky.puzzlebox.domain.CustomBoardView
 import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
 
 /**
  * The card's look at the puzzle's board before playing: the [author] pinned as on the result,
@@ -72,7 +73,7 @@ internal fun BoardPreview(
                     is CustomBoardView.Ranked -> if (shown.top.isEmpty()) EmptyBoardLine() else shown.top.forEach { RankedLine(it) }
                     is CustomBoardView.SignedOut -> {
                         yours?.let { YouLine(it, statusOf(postOn(postState, closed), shown)) }
-                        if (!closed) SignInPrompt(yours?.timeMs, signIn, onSignIn)
+                        if (!closed) SignInPrompt("Sign in to see how friends did", yours?.timeMs, signIn, onSignIn)
                     }
                     is CustomBoardView.Unavailable, null -> Unit
                 }
