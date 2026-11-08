@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.domain.AuthorPin
 import com.ivandsky.puzzlebox.domain.CustomBoardView
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
 
 // My row below the cut pops in from a little smaller, on the stamp's spring.
 private const val MINE_POP_FROM_SCALE = 0.9f
@@ -94,7 +95,7 @@ internal fun CustomBoard(
                     is CustomBoardView.Ranked -> RankedLines(shown, yours, post, reduced)
                     is CustomBoardView.SignedOut -> {
                         YouLine(yours, statusOf(post, shown))
-                        if (!closed) SignInPrompt(yours.timeMs, signIn, onSignIn)
+                        if (!closed) SignInPrompt("Sign in to see how friends did", yours.timeMs, signIn, onSignIn)
                     }
                     is CustomBoardView.Unavailable -> {
                         YouLine(yours, statusOf(post, shown))
