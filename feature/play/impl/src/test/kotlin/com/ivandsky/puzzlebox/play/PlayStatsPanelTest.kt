@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
@@ -29,6 +30,7 @@ import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -56,7 +58,7 @@ class PlayStatsPanelTest {
     private val alpha = TestGames.alpha
     private val beta = TestGames.beta
     private val day = TestGames.definition(alpha).cadence.today()
-    private val fakes = FakeGames(listOf(alpha, beta))
+    private val fakes = FakeGames(listOf(alpha, beta), hintsRanked = setOf(alpha))
     private val calendar = FakeGameCalendar(day)
     private val daily = FakeDailyRepository()
     private val completions = FakeCompletionRepository().apply {
@@ -78,6 +80,7 @@ class PlayStatsPanelTest {
         identity: Identity? = me,
         completions: FakeCompletionRepository = this.completions,
         leaderboard: FakeLeaderboardRepository = this.leaderboard,
+        flags: FakeReleaseFlags = FakeReleaseFlags(),
     ): PlayStatsViewModel {
         val history = ObserveGameHistory(fakes.games, daily, completions)
         return PlayStatsViewModel(
@@ -95,6 +98,7 @@ class PlayStatsPanelTest {
                 calendar = calendar,
                 leaderboard = ObserveLeaderboard(FakeIdentityService(identity), leaderboard, fakes.games, calendar),
             ),
+            releaseFlags = flags,
         )
     }
 
@@ -193,9 +197,32 @@ class PlayStatsPanelTest {
         composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Sign in on Profile to see today's times")
     }
 
+    @Test
+    fun `flag off, a hints-first game's board keeps its time-only rows and label`() {
+        val hinted = FakeLeaderboardRepository(mapOf(board to listOf(entry("p1", "Player 1", 10_000L, hints = 2))))
+        show(viewModel(leaderboard = hinted))
+
+        composeRule.onNodeWithText("Times today").assertExists()
+        composeRule.onNodeWithTag("play.stats.row").assertTextContains("0:10", substring = true)
+        composeRule.onNodeWithText("Fewest hints first, then time").assertDoesNotExist()
+        composeRule.onNodeWithText("2 hints", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `flag on, a hints-first game's rows lead with hints under its rule`() {
+        val hinted = FakeLeaderboardRepository(
+            mapOf(board to listOf(entry("p1", "Player 1", 30_000L, hints = 0), entry("p2", "Player 2", 10_000L, hints = 2))),
+        )
+        show(viewModel(leaderboard = hinted, flags = FakeReleaseFlags(ReleaseFlag.PerGameLeaderboards)))
+
+        composeRule.onNodeWithText("Fewest hints first, then time").assertExists()
+        composeRule.onNodeWithText("Perfect · 0:30").assertExists()
+        composeRule.onNodeWithText("2 hints · 0:10").assertExists()
+    }
+
     private fun record(game: com.ivandsky.puzzlebox.model.GameId, on: java.time.LocalDate, timeMs: Long) =
         CompletionRecord(TestGames.Ref(game, PuzzleKey.Daily(on, 7)), timeMs, 0, RecordStats(1, "{}"))
 
-    private fun entry(uid: String, name: String, timeMs: Long) =
-        LeaderboardEntry(uid, name, "${alpha.value}/$day/7", timeMs, 0, 0L)
+    private fun entry(uid: String, name: String, timeMs: Long, hints: Int = 0) =
+        LeaderboardEntry(uid, name, "${alpha.value}/$day/7", timeMs, hints, 0L)
 }
