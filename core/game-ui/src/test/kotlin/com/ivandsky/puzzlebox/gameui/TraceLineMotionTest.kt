@@ -107,6 +107,62 @@ class TraceLineMotionTest {
         assertTrue("retracting frame reads state: $backtrack", backtrack > 0)
     }
 
+    @Test
+    fun `a forward tip rides the line's end toward its cell without a blend`() = runTest {
+        val motion = motion()
+        motion.step(listOf(0, 1), animate = false)
+
+        // Arming a small lean moves nothing but the finger; a lean that grows follows 1:1,
+        // with no tween between the finger and the end.
+        assertEquals(1.25f, motion.step(listOf(0, 1), TraceTip(TipKind.Forward, 2, 0.25f), animate = true))
+        assertEquals(1.6f, motion.step(listOf(0, 1), TraceTip(TipKind.Forward, 2, 0.6f), animate = true))
+        assertEquals("the tip cell rides the line's end", listOf(0, 1, 2), motion.line)
+    }
+
+    @Test
+    fun `a back tip pulls the end along the committed line`() = runTest {
+        val motion = motion()
+        motion.step(listOf(0, 1), animate = false)
+
+        assertEquals(0.75f, motion.step(listOf(0, 1), TraceTip(TipKind.Back, 0, 0.25f), animate = true))
+        assertEquals(0.5f, motion.step(listOf(0, 1), TraceTip(TipKind.Back, 0, 0.5f), animate = true))
+        assertEquals("a back tip adds no cell", listOf(0, 1), motion.line)
+    }
+
+    @Test
+    fun `a tip let go returns home over HomeDuration`() = runTest {
+        val motion = motion()
+        motion.step(listOf(0, 1), animate = false)
+        motion.step(listOf(0, 1), TraceTip(TipKind.Forward, 2, 0.9f), animate = true)
+        frames(MotionTokens.Trace.GrowDuration + 3 * FRAME_MS) { motion.step(listOf(0, 1), TraceTip(TipKind.Forward, 2, 0.9f), animate = true) }
+
+        // The release frame starts the home tween but still draws the lean.
+        assertEquals(1.9f, motion.step(listOf(0, 1), animate = true))
+        val ends = frames(MotionTokens.Trace.HomeDuration + 3 * FRAME_MS) { motion.step(listOf(0, 1), animate = true) }
+
+        ends.zipWithNext().forEach { (a, b) -> assertTrue("homes monotonically: $a then $b", b <= a) }
+        assertTrue("still leaning one frame in: ${ends.first()}", ends.first() < 1.9f)
+        assertEquals(1f, ends.last())
+    }
+
+    @Test
+    fun `a lean appearing far from the tail grows in instead of snapping`() = runTest {
+        val motion = motion()
+        motion.step(listOf(0, 1), animate = false)
+
+        assertEquals("the arming frame still draws the tail", 1f, motion.step(listOf(0, 1), TraceTip(TipKind.Forward, 2, 0.9f), animate = true))
+        val ends = frames(MotionTokens.Trace.GrowDuration + 3 * FRAME_MS) { motion.step(listOf(0, 1), TraceTip(TipKind.Forward, 2, 0.9f), animate = true) }
+        assertEquals(1.9f, ends.last())
+    }
+
+    @Test
+    fun `reduced motion draws the tip at once, and home on lift`() = runTest {
+        val motion = motion()
+        motion.step(listOf(0, 1), animate = false)
+        assertEquals(1.9f, motion.step(listOf(0, 1), TraceTip(TipKind.Forward, 2, 0.9f), animate = false))
+        assertEquals(1f, motion.step(listOf(0, 1), animate = false))
+    }
+
     private fun TestScope.motion(): TraceLineMotion<Int> =
         TraceLineMotion(CoroutineScope(backgroundScope.coroutineContext + VirtualFrameClock(testScheduler)))
 

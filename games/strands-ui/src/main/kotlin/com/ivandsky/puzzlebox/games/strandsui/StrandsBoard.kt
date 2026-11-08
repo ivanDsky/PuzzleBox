@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
@@ -22,6 +23,7 @@ import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.games.strands.Coord
+import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsConnectors
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsGestureLayer
@@ -89,6 +91,16 @@ internal fun StrandsBoardContent(
     // Bumped by every touch-down: a running settle, sweep or hint pulse rests at once (A12).
     // Read only by the motion effects, so a touch-down recomposes nothing.
     val touchSeq = remember { mutableIntStateOf(0) }
+    // The drag writes the finger (cell units); only the connector's draw reads it, so a moving finger redraws the tip and recomposes nothing.
+    val finger = remember { mutableStateOf<Offset?>(null) }
+    // The tip leans only at letters the board would join next — never one already found (A4).
+    val foundLetter = remember(model.cells) {
+        val foundCells = model.cells
+            .filter { it.state == CellState.FoundTheme || it.state == CellState.FoundSpangram }
+            .mapTo(HashSet()) { it.coord }
+        val isFound: (Coord) -> Boolean = { it in foundCells }
+        isFound
+    }
     val end = rememberTraceEndFrame(traceEnd(), reduceMotion, touchSeq)
     BoxWithConstraints(modifier.fillMaxWidth()) {
         val cell = strandsCellSizeFor(maxWidth, maxHeight, model.rows, model.cols)
@@ -101,7 +113,7 @@ internal fun StrandsBoardContent(
                 // Strands has no grid: the letters float on the bare board.
                 colors = colors.copy(boardGridLine = Color.Transparent),
                 underlay = {
-                    StrandsConnectors(model.rows, model.cols, model.links, trace, colors, animate = !reduceMotion)
+                    StrandsConnectors(model.rows, model.cols, model.links, trace, colors, { finger.value }, foundLetter, animate = !reduceMotion)
                     StrandsTraceEndConnector(model.rows, model.cols, { end.value }, colors)
                 },
                 cellContent = { row, col ->
@@ -126,6 +138,7 @@ internal fun StrandsBoardContent(
                 trace = trace,
                 onTrace = onTrace,
                 onTouch = { touchSeq.intValue++ },
+                onFinger = { finger.value = it },
             )
         }
     }

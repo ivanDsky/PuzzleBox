@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.gameui.DragTraceHooks
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.TraceLineMotion
 import kotlin.math.floor
@@ -16,8 +17,10 @@ import kotlinx.coroutines.CoroutineScope
 
 /**
  * The Zip line's frame state over the shared [TraceLineMotion]: Zip draws the line, its lip
- * and the head on the visible end. Called from the draw phase only: the Animatables are read
- * there, so a running tween redraws without recomposing the board.
+ * and the head on the visible end. [finger] (board px, read in the draw phase) leans the end
+ * at a cell [hooks] accepts while the drag runs. Called from the draw phase only: the finger
+ * and the Animatables are read there, so a moving finger or a running tween redraws without
+ * recomposing the board.
  */
 internal class ZipLineMotion(scope: CoroutineScope) {
     private val motion = TraceLineMotion<GridCell>(scope)
@@ -25,6 +28,8 @@ internal class ZipLineMotion(scope: CoroutineScope) {
 
     fun DrawScope.drawTrace(
         path: List<GridCell>,
+        finger: Offset?,
+        hooks: DragTraceHooks?,
         n: Int,
         color: Color,
         lip: Color,
@@ -34,7 +39,9 @@ internal class ZipLineMotion(scope: CoroutineScope) {
     ) {
         val pitchX = size.width / n
         val pitchY = size.height / n
-        val end = motion.step(path, animate)
+        val fingerCells = finger?.let { Offset(it.x / pitchX, it.y / pitchY) }
+        val tip = if (fingerCells != null && hooks != null) zipTip(path, fingerCells, hooks) else null
+        val end = motion.step(path, tip, animate)
         if (path.isEmpty()) return
         val line = motion.line
         fun centre(index: Int): Offset {

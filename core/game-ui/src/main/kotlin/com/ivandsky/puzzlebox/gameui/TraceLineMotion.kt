@@ -10,13 +10,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
- * A trace line's frame state (Zip and Strands, spec A1): the committed path is instant; the
+ * A trace line's frame state (Zip and Strands, spec A1/A4): the committed path is instant; the
  * VISIBLE end is a fractional index along [line], blended over [MotionTokens.Trace]
- * durations whenever the path changes. The end never leaves the last committed cell by
- * itself: the head sits there and only the grow and retract blends move it between cells.
- * A backtrack keeps the removed cells in [line] until the end has retracted past them.
- * Each game draws [line] up to the end. Call [step] from the draw phase only, so a running
- * tween redraws the line and recomposes nothing.
+ * durations whenever the path changes. A live [TraceTip] ([TraceTip.extent] of a step past the
+ * last committed cell, or back toward the previous one) moves the end with the finger without
+ * a blend, resting on the tail whenever the tip is refused; let go, it returns home over
+ * [MotionTokens.Trace.HomeDuration]. A committed backtrack keeps the removed cells in [line]
+ * until the end has retracted past them. Each game projects its tip and draws [line] up to the
+ * end. Call [step] from the draw phase only, so a running tween redraws the line and
+ * recomposes nothing.
  */
 class TraceLineMotion<C : Any>(private val scope: CoroutineScope) {
     private val blend = Animatable(1f)
@@ -29,41 +31,72 @@ class TraceLineMotion<C : Any>(private val scope: CoroutineScope) {
 
     private var drawnPath: List<C>? = null
     private var drawnEnd = 0f
+    private var hadTip = false
 
-    /** The cells to draw this frame: the path, plus the cells a backtrack is still retracting off. */
+    /** The cells to draw this frame: the path and its tip cell, plus the cells a backtrack is still retracting off. */
     var line: List<C> = emptyList()
         private set
 
     /** How far along [line] the visible end sits this frame. */
-    fun step(path: List<C>, animate: Boolean): Float {
+    fun step(path: List<C>, tip: TraceTip<C>? = null, animate: Boolean): Float {
         val previous = drawnPath
         drawnPath = path
         if (path.isEmpty()) {
             line = path
             drawnEnd = 0f
+            hadTip = false
             return 0f
         }
         val changed = previous != null && previous != path
 
-        val target = path.lastIndex.toFloat()
-        val shared = commonPrefix(line, path)
-        val retracting = shared == path.size && line.size > path.size
+        // A forward tip leans at a cell the game has not committed, so its cell rides the line's
+        // end; a back tip rides the committed line, which already runs through the previous cell.
+        val tipCell = tip?.takeIf { it.kind == TipKind.Forward }?.toward
+        val target = path.lastIndex.toFloat() + when (tip?.kind) {
+            TipKind.Forward -> tip.extent
+            TipKind.Back -> -tip.extent
+            null -> 0f
+        }
+        val releasing = hadTip && tip == null
+        val arming = !hadTip && tip != null
+        hadTip = tip != null
+
+        val nextLine = path + listOfNotNull(tipCell)
+        val shared = commonPrefix(line, nextLine)
+        // A dropped tip cell is a release, not a leftover to retract along.
+        val retracting = !releasing && shared == nextLine.size && line.size > nextLine.size
         val mapped = if (shared > 0) minOf(drawnEnd, (shared - 1).toFloat()) else target
         val truncated = shared > 0 && mapped < drawnEnd - 1e-6f
         when {
-            !animate -> line = path
+            !animate -> line = nextLine
             retracting -> when {
                 // Off the old line along the removed cells; one short enough is not worth a blend.
                 changed && drawnEnd - target > MotionTokens.Trace.BlendMinCells ->
                     startBlend(drawnEnd, MotionTokens.Trace.RetractDuration, MotionTokens.Trace.EasingRetract)
-                changed -> line = path
-                !blending() -> line = path
+                changed -> line = nextLine
+                !blending() -> line = nextLine
             }
             else -> {
-                line = path
+                line = nextLine
                 when {
+                    // Let go mid-lean, or swung into a refused direction: home from wherever the
+                    // end is drawn, however short the way back.
+                    releasing && abs(target - drawnEnd) > 0.01f ->
+                        startBlend(drawnEnd, MotionTokens.Trace.HomeDuration, MotionTokens.Trace.EasingRetract)
+                    // A lean appearing far from the tail (a finger swung off a refused direction)
+                    // grows in rather than snapping.
+                    arming && abs(target - drawnEnd) > MotionTokens.Trace.BlendMinCells ->
+                        startBlend(
+                            drawnEnd,
+                            if (target > drawnEnd) MotionTokens.Trace.GrowDuration else MotionTokens.Trace.RetractDuration,
+                            if (target > drawnEnd) MotionTokens.Trace.EasingOut else MotionTokens.Trace.EasingRetract,
+                        )
                     shared > 0 && (changed || truncated) && abs(target - mapped) > MotionTokens.Trace.BlendMinCells ->
-                        startBlend(mapped, MotionTokens.Trace.GrowDuration, MotionTokens.Trace.EasingOut)
+                        startBlend(
+                            mapped,
+                            if (target > mapped) MotionTokens.Trace.GrowDuration else MotionTokens.Trace.RetractDuration,
+                            if (target > mapped) MotionTokens.Trace.EasingOut else MotionTokens.Trace.EasingRetract,
+                        )
                     blending() && (changed || truncated) -> startBlend(mapped, blendDuration, blendEasing)
                 }
             }

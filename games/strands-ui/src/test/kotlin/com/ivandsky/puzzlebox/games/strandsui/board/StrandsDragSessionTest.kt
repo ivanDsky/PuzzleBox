@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strandsui.Trace
 import com.ivandsky.puzzlebox.games.strandsui.TraceStep
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /** A5/A12: what one touch on a letter makes of the trace, in cell units over a 6 × 8 board. */
@@ -41,15 +42,26 @@ class StrandsDragSessionTest {
     }
 
     @Test
-    fun `a dip into a diagonal joins only that letter until the finger comes to it`() {
+    fun `the finger shows only once the touch is a drag`() {
+        val session = session()
+        session.move(centreOf(start) + Offset(0.1f, 0f), Trace())
+        assertNull(session.finger())
+        session.move(centreOf(Coord(3, 2)), Trace())
+        assertEquals(centreOf(Coord(3, 2)), session.finger())
+    }
+
+    @Test
+    fun `the finger tracks every move once the touch is a drag`() {
         // An east drag dipping 29° cuts into the diagonal (4, 2) from inside (3, 2), then
-        // wanders on toward it, short of (3, 2) and (4, 2) alike: the walk grows nothing more.
+        // wanders on toward it, short of (3, 2) and (4, 2) alike: the walk grows nothing,
+        // but the tip still leans where the finger is.
         val session = session()
         var trace = Trace()
         for (point in listOf(Offset(2.05f, 3.8f), Offset(2.2f, 3.95f))) {
             session.move(point, trace).forEach { trace = (it as TraceStep.Updated).trace }
         }
         assertEquals(listOf(start, Coord(4, 2)), trace.path)
+        assertEquals(Offset(2.2f, 3.95f), session.finger())
     }
 
     @Test

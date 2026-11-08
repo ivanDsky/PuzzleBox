@@ -186,10 +186,19 @@ object MotionTokens {
     const val BonusRiseDuration = 640
     const val BonusReducedHold = 700
 
-    // Trace (Zip + Strands, spec A1): the line end sits on the last committed cell, a head
-    // disc on it; cells added grow in along the path and a backtrack retracts along it.
-    // Reduced: no grow or retract.
+    // Trace (Zip + Strands, spec A1/A4): the line end leans from the last committed cell along
+    // ONE legal direction toward the finger (never freehand, never into a refused cell) and
+    // rests on the cell when the finger points anywhere else; a head disc rides the end.
+    // Cells added grow in along the path and a backtrack retracts along it. Reduced: the tip
+    // still leans; no grow, retract or home.
     object Trace {
+        // Closer than this to the tail centre there is no tip, so a resting finger never jitters.
+        const val TipDeadCells = 0.06f
+
+        // The tip tracks the finger's push along its axis 1:1, never past this fraction of the
+        // step: it can not reach the next centre before the cell commits.
+        const val TipMaxCells = 0.9f
+
         // Head Ø as a multiple of the line width.
         const val HeadScale = 1.2f
 
@@ -200,9 +209,11 @@ object MotionTokens {
         const val PopRiseFraction = 0.4f
 
         // Cells added in one event grow in along the path; a backtrack retracts faster than it
-        // grew (exit < enter). Length changes under BlendMinCells follow instantly.
+        // grew (exit < enter); a tip let go returns to the tail centre faster still. Length
+        // changes under BlendMinCells (the finger dragging the tip) follow instantly.
         const val GrowDuration = 100
         const val RetractDuration = 60
+        const val HomeDuration = 60
         const val BlendMinCells = 0.3f
         val EasingOut = CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
         val EasingRetract = EasingEmphasizedAccelerate

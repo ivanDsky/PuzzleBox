@@ -57,18 +57,21 @@ class ZipTraceDragRenderTest {
     }
 
     /**
-     * The board's pixel at the centre of cell ([row], [col]) of the 5 × 5 board, once the line
-     * has had time to grow: a frame is drawn every 16 ms for a quarter second, as a device would.
+     * The board's pixel [colCells], [rowCells] cell units from its top-left, once the line has
+     * had time to grow: a frame is drawn every 16 ms for a quarter second, as a device would.
      */
-    private fun cellPixel(row: Int, col: Int): Color {
+    private fun boardPixel(colCells: Float, rowCells: Float): Color {
         lateinit var image: androidx.compose.ui.graphics.ImageBitmap
         repeat(16) {
             composeRule.mainClock.advanceTimeBy(16)
             image = composeRule.onNodeWithTag("play.board").captureToImage()
         }
         val pixels = image.toPixelMap()
-        return pixels[(pixels.width * (col + 0.5f) / 5).toInt(), (pixels.height * (row + 0.5f) / 5).toInt()]
+        return pixels[(pixels.width * colCells / 5).toInt(), (pixels.height * rowCells / 5).toInt()]
     }
+
+    /** The board's pixel at the centre of cell ([row], [col]) of the 5 × 5 board. */
+    private fun cellPixel(row: Int, col: Int): Color = boardPixel(col + 0.5f, row + 0.5f)
 
     private fun cellAt(width: Float, height: Float, row: Int, col: Int) =
         Offset(width * (col + 0.5f) / 5, height * (row + 0.5f) / 5)
@@ -116,6 +119,38 @@ class ZipTraceDragRenderTest {
         composeRule.waitForIdle()
         assertEquals(LightBoardTokens.pathTrace, cellPixel(0, 1))
         assertNotEquals(LightBoardTokens.pathTrace, cellPixel(0, 3))
+
+        composeRule.onNodeWithTag("play.board").performTouchInput { up() }
+    }
+
+    @Test
+    fun `a held finger between cells leans the end at the next cell only`() {
+        show()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("play.board").performTouchInput {
+            down(cellAt(width.toFloat(), height.toFloat(), 0, 0))
+            moveTo(cellAt(width.toFloat(), height.toFloat(), 0, 1))
+        }
+        composeRule.waitForIdle()
+        assertEquals(LightBoardTokens.pathTrace, cellPixel(0, 1))
+
+        // Halfway to (0, 2): the end leans there without reaching its centre, and south of
+        // (0, 1) is walled, so nothing leans that way.
+        composeRule.onNodeWithTag("play.board").performTouchInput {
+            moveTo(Offset(width * 2.0f / 5, height * 0.5f / 5))
+        }
+        composeRule.waitForIdle()
+        assertEquals(LightBoardTokens.pathTrace, boardPixel(2.0f, 0.5f))
+        assertNotEquals(LightBoardTokens.pathTrace, cellPixel(0, 2))
+        assertNotEquals(LightBoardTokens.pathTrace, boardPixel(1.5f, 1.0f))
+
+        // The finger swung straight at the wall below (0, 1): the end rests on the cell.
+        composeRule.onNodeWithTag("play.board").performTouchInput {
+            moveTo(Offset(width * 1.5f / 5, height * 1.0f / 5))
+        }
+        composeRule.waitForIdle()
+        assertNotEquals(LightBoardTokens.pathTrace, boardPixel(1.5f, 1.0f))
+        assertEquals(LightBoardTokens.pathTrace, cellPixel(0, 1))
 
         composeRule.onNodeWithTag("play.board").performTouchInput { up() }
     }

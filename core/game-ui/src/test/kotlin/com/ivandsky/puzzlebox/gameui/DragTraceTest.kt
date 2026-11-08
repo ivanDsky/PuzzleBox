@@ -51,6 +51,7 @@ class DragTraceTest {
     }
 
     private val events = mutableListOf<DragEvent>()
+    private val pointers = mutableListOf<Offset?>()
 
     /** 5x5 board (see [setContent]); cell centers from the board's MEASURED size — no
      *  requiredSize crutch, so a sizing regression (e.g. lost aspectRatio collapsing
@@ -65,6 +66,7 @@ class DragTraceTest {
 
     private fun setContent(path: List<GridCell> = emptyList(), blocked: Set<GridCell> = emptySet()) {
         events.clear()
+        pointers.clear()
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 // Column + fillMaxWidth only: the board must derive its own height from
@@ -77,6 +79,7 @@ class DragTraceTest {
                         hooks = ZipLikeHooks(blocked = blocked),
                         onEvent = { events += it },
                         modifier = Modifier.fillMaxWidth().testTag("trace"),
+                        onPointer = { pointers += it },
                     )
                 }
             }
@@ -248,5 +251,34 @@ class DragTraceTest {
         }
         composeRule.waitForIdle()
         assertEquals(listOf(DragEvent.Retract(1)), events)
+    }
+
+    @Test
+    fun `a drag reports the live finger in board px and null on lift`() {
+        setContent(path = listOf(GridCell(0, 0)))
+        val target = cellCenter(1, 0) + Offset(0f, 7f)
+        composeRule.onNodeWithTag("trace").performTouchInput {
+            down(cellCenter(0, 0))
+            moveTo(target)
+        }
+        composeRule.waitForIdle()
+        val live = pointers.last()
+        assertEquals(target.x, live!!.x, 0.5f)
+        assertEquals(target.y, live.y, 0.5f)
+        composeRule.onNodeWithTag("trace").performTouchInput { up() }
+        composeRule.waitForIdle()
+        assertEquals(null, pointers.last())
+    }
+
+    @Test
+    fun `a tap never reports a pointer`() {
+        setContent(path = listOf(GridCell(0, 0), GridCell(0, 1)))
+        composeRule.onNodeWithTag("trace").performTouchInput {
+            down(cellCenter(0, 0))
+            moveBy(Offset(3f, 2f))
+            up()
+        }
+        composeRule.waitForIdle()
+        assertEquals(emptyList<Offset?>(), pointers)
     }
 }

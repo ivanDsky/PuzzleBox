@@ -37,6 +37,7 @@ import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.tracePop
 import com.ivandsky.puzzlebox.gameui.BoardGrid
+import com.ivandsky.puzzlebox.gameui.DragTraceHooks
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import kotlin.math.atan2
@@ -181,12 +182,15 @@ fun ZipCellDecor(
  * The trace, hoisted to ONE board-level layer (ticket 28, the user's layer-level
  * subtraction): one fat rounded stroke along the path, drawn UNDER all cell content as
  * the [BoardGrid] underlay, so each dot's surface hole punches the pipe globally. A head
- * disc sits on the line end, on the last committed cell. [animate] turns on grow-in and
- * retract between cells ([MotionTokens.Trace]).
+ * disc rides the line's end. In the live game [finger] (board px, read in the draw phase)
+ * leans the end toward cells [hooks] accepts, and [animate] turns on grow-in, retract and
+ * the tip's return home ([MotionTokens.Trace]); reduced motion keeps only the tip.
  */
 @Composable
 fun ZipPipes(
     model: ZipRendererModel,
+    finger: () -> Offset? = { null },
+    hooks: DragTraceHooks? = null,
     animate: Boolean = false,
 ) {
     val board = LocalBoardColors.current
@@ -196,7 +200,7 @@ fun ZipPipes(
     Canvas(Modifier.fillMaxSize()) {
         with(motion) {
             drawTrace(
-                path, model.n, board.pathTrace, board.pathTraceLip,
+                path, finger(), hooks, model.n, board.pathTrace, board.pathTraceLip,
                 ZipBoardSpec.pathTraceWidthFraction, ZipBoardSpec.pathTraceLipFraction, animate,
             )
         }

@@ -1,9 +1,5 @@
 package com.ivandsky.puzzlebox.games.strandsui.board
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Easing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -16,10 +12,11 @@ import kotlin.math.floor
 import kotlinx.coroutines.CoroutineScope
 
 /**
- * The live trace connector's frame state over the shared [TraceLineMotion]: Strands draws
- * the connector and the head disc on the visible end, which rests on the last letter
- * joined. Called from the draw phase only: the trace and the Animatables are read there,
- * so a running tween redraws the connector and recomposes nothing.
+ * The live trace connector's frame state over the shared [TraceLineMotion]: Strands draws the
+ * connector and the head disc on the visible end. [finger] (cell units, read in the draw
+ * phase) leans the end along one legal direction from the last letter while the drag runs.
+ * Called from the draw phase only: the finger, the trace and the Animatables are read there,
+ * so a moving finger or a running tween redraws the connector and recomposes nothing.
  */
 internal class StrandsLineMotion(scope: CoroutineScope) {
     private val motion = TraceLineMotion<Coord>(scope)
@@ -27,13 +24,16 @@ internal class StrandsLineMotion(scope: CoroutineScope) {
 
     fun DrawScope.drawTrace(
         path: List<Coord>,
+        finger: Offset?,
+        found: (cell: Coord) -> Boolean,
         rows: Int,
         cols: Int,
         color: Color,
         stroke: Stroke,
         animate: Boolean,
     ) {
-        val end = motion.step(path, animate)
+        val tip = finger?.let { strandsTip(path, it, rows, cols, found) }
+        val end = motion.step(path, tip, animate)
         if (path.isEmpty()) return
         val cells = motion.line
         val pitchX = size.width / cols

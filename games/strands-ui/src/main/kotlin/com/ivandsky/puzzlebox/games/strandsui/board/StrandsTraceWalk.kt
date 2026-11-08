@@ -27,7 +27,8 @@ internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, do
     private val trail = TravelTrail().apply { push(down) }
 
     /** Where the finger is: the last point walked to. */
-    private var at = down
+    var at = down
+        private set
 
     /** The tail the finger has come within [StrandsBoardSpec.ArriveCells] of since it joined. */
     private var reached: Coord? = null

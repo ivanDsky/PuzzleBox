@@ -55,18 +55,20 @@ class StrandsTraceDragRenderTest {
         }
     }
 
-    /** The board pixel halfway between letter [from] and its neighbour [to] on the 4 × 4 board, once frames have run. */
-    private fun between(from: Coord, to: Coord): Color {
+    /** The board pixel [colCells], [rowCells] cell units from its top-left, once frames have run. */
+    private fun at(colCells: Float, rowCells: Float): Color {
         lateinit var image: ImageBitmap
         repeat(16) {
             rule.mainClock.advanceTimeBy(16)
             image = rule.onNodeWithTag("strands.board").captureToImage()
         }
         val pixels = image.toPixelMap()
-        val col = (from.col + to.col) / 2f + 0.5f
-        val row = (from.row + to.row) / 2f + 0.5f
-        return pixels[(pixels.width * col / 4).toInt(), (pixels.height * row / 4).toInt()]
+        return pixels[(pixels.width * colCells / 4).toInt(), (pixels.height * rowCells / 4).toInt()]
     }
+
+    /** The board pixel halfway between letter [from] and its neighbour [to] on the 4 × 4 board. */
+    private fun between(from: Coord, to: Coord): Color =
+        at((from.col + to.col) / 2f + 0.5f, (from.row + to.row) / 2f + 0.5f)
 
     private fun move(vararg to: Coord) = rule.onNodeWithTag("strands.board").performTouchInput {
         to.forEach { moveTo(Offset(width * (it.col + 0.5f) / 4, height * (it.row + 0.5f) / 4)) }
@@ -107,6 +109,28 @@ class StrandsTraceDragRenderTest {
 
         move(Coord(1, 2))
         assertEquals(bare, between(Coord(1, 2), Coord(1, 3)))
+
+        rule.onNodeWithTag("strands.board").performTouchInput { up() }
+    }
+
+    @Test
+    fun `a held finger between letters leans the connector along the free diagonal`() {
+        show()
+        rule.waitForIdle()
+        val leanPoint = at(1.8f, 1.8f)
+        val beyond = at(3.0f, 3.0f)
+
+        rule.onNodeWithTag("strands.board").performTouchInput {
+            down(Offset(width * 0.5f / 4, height * 1.5f / 4))
+        }
+        move(Coord(1, 1))
+        // (1.8, 1.8) cell units: past the tail's dead zone, short of every join threshold,
+        // so nothing commits — the end only leans toward the free diagonal (2, 2).
+        rule.onNodeWithTag("strands.board").performTouchInput {
+            moveTo(Offset(width * 1.8f / 4, height * 1.8f / 4))
+        }
+        assertNotEquals(leanPoint, at(1.8f, 1.8f))
+        assertEquals("the lean reaches no further than the finger", beyond, at(3.0f, 3.0f))
 
         rule.onNodeWithTag("strands.board").performTouchInput { up() }
     }

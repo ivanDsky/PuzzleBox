@@ -70,9 +70,18 @@ class MotionTokensTest {
     }
 
     @Test
-    fun `trace retract is faster than grow-in`() {
+    fun `trace retract and home are faster than grow-in`() {
         assertTrue(MotionTokens.Trace.RetractDuration < MotionTokens.Trace.GrowDuration)
+        assertTrue(MotionTokens.Trace.HomeDuration < MotionTokens.Trace.GrowDuration)
         assertTrue(MotionTokens.Trace.PopDuration <= MotionTokens.DurationMedium)
+    }
+
+    @Test
+    fun `trace tip stays inside one cell`() {
+        with(MotionTokens.Trace) {
+            assertTrue(TipDeadCells < TipMaxCells)
+            assertTrue(TipMaxCells < 1f)
+        }
     }
 
     @Test
