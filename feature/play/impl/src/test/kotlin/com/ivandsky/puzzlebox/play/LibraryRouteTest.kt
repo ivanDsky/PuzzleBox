@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.common.di.commonModule
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
@@ -54,6 +55,8 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -108,6 +111,7 @@ class LibraryRouteTest {
                 commonModule,
                 module {
                     single<ReleaseFlags> { flags }
+                    single<CoroutineScope> { CoroutineScope(SupervisorJob() + get<DispatcherProvider>().main) }
                     single<DailyRepository> { daily }
                     single<CompletionRepository> { FakeCompletionRepository() }
                     single<GameRegistry> { fakes.games }

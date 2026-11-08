@@ -62,7 +62,7 @@ val playModule = module {
     }
     factory { ObserveFriendPuzzles(received = get(), saved = get(), completions = get(), registry = get()) }
     factory { DeleteReceivedPuzzle(received = get(), saved = get()) }
-    viewModel { LibraryViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { LibraryViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
     viewModel { (slot: PlaySlot) -> PlayStatsViewModel(slot, get(), get(), get(), get()) }
     viewModel { (key: ResultKey) -> ResultViewModel(key, get(), get(), get(), get(), get(), get(), get(), get()) }

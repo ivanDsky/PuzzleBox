@@ -17,6 +17,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.ivandsky.puzzlebox.common.di.commonModule
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -68,6 +69,8 @@ import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -124,6 +127,8 @@ class RealGamesPlayRouteTest {
                 module {
                     // Friend sharing off, as in release: the M2 library.
                     single<ReleaseFlags> { FakeReleaseFlags() }
+                    // The app scope the library's friend-removal delete runs in (AppModule).
+                    single<CoroutineScope> { CoroutineScope(SupervisorJob() + get<DispatcherProvider>().default) }
                     single { daily }
                     single<CompletionRepository> { FakeCompletionRepository() }
                     // The hub names games from the registry (A5), in the app's order.

@@ -9,6 +9,7 @@ import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import com.ivandsky.puzzlebox.common.di.commonModule
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
@@ -51,6 +52,8 @@ import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -111,6 +114,7 @@ class LibraryFromFriendsTest {
                 commonModule,
                 module {
                     single<ReleaseFlags> { flags }
+                    single<CoroutineScope> { CoroutineScope(SupervisorJob() + get<DispatcherProvider>().main) }
                     single<DailyRepository> { daily }
                     single<CompletionRepository> { completions }
                     single<GameRegistry> { fakes.games }
@@ -229,8 +233,8 @@ class LibraryFromFriendsTest {
 
         awaitTag("library.friends.removed")
         awaitGone("library.friends.row.${A.value}")
-        assertTrue("the row is deleted", received.rows.isEmpty())
-        assertTrue("its saved play is deleted", saved.rows.isEmpty())
+        assertNotNull("the row waits for the window", received.rows[A])
+        assertEquals("its saved play waits too", 1, saved.rows.size)
 
         composeRule.onNodeWithTag("library.friends.removed.undo").performClick()
 
