@@ -277,7 +277,7 @@ class ProcessDeathE2ETest {
         const val GAME = "route.game"
         const val RESULT = "route.result"
         const val PLAY_AGAIN = "result.playAgain"
-        const val RESULT_SCREEN = "result.screen"
+        const val RESULT_SCREEN = "result.hero.screen"
         const val NEXT = "result.next"
         const val DONE = "result.done"
         const val ZIP = "zip"
