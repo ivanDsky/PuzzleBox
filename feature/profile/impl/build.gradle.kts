@@ -10,7 +10,7 @@ dependencies {
     implementation(projects.feature.profile.api)
     // Identity + leaderboard contracts (IdentityService, LeaderboardEntry) in the VM/screen.
     implementation(projects.core.data)
-    // ObserveTodayLeaderboard (today's board) and ObserveGameStats/ObserveGameHistory (the record).
+    // ObserveLeaderboard.today (the featured game's board) and ObserveGameStats/ObserveGameHistory (the record).
     implementation(projects.core.domain)
     // Per-game brands (GamePlayRegistry) and GameGlyph for the game rows.
     implementation(projects.core.gameUi)

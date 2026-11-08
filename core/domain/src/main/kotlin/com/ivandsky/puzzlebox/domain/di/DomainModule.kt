@@ -15,13 +15,11 @@ import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
-import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import java.time.Instant
-import java.time.LocalDate
 import java.util.UUID
 import org.koin.dsl.module
 
@@ -62,15 +60,8 @@ val domainModule = module {
             sync = get(),
         )
     }
-    factory { ObserveLeaderboard(identity = get(), leaderboard = get(), registry = get()) }
+    factory { ObserveLeaderboard(identity = get(), leaderboard = get(), registry = get(), calendar = get()) }
     factory { ObserveResultRank(leaderboard = get()) }
-    factory {
-        ObserveTodayLeaderboard(
-            leaderboard = get(),
-            featured = get(),
-            today = { LocalDate.now() },
-        )
-    }
     factory {
         CreateDraft(
             registry = get(),

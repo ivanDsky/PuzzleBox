@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain
 
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -24,25 +25,30 @@ class ObserveLeaderboard(
     private val identity: IdentityService,
     private val leaderboard: LeaderboardRepository,
     private val registry: GameRegistry,
+    private val calendar: GameCalendar,
 ) {
 
-    operator fun invoke(game: GameId, day: LocalDate): Flow<TodayLeaderboard> = observe({ game }, { day })
+    /** One game's board for a fixed [day] (Result, tablet panel). */
+    operator fun invoke(game: GameId, day: LocalDate): Flow<TodayLeaderboard> = board(game, flowOf(day))
 
-    /** The board's game and day are read each time it (re)starts, so a restart after a rollover follows the new day. */
-    internal fun observe(game: () -> GameId, day: () -> LocalDate): Flow<TodayLeaderboard> =
+    /** The game's board for its calendar today; restarts at each cadence midnight (A4). */
+    fun today(game: GameId): Flow<TodayLeaderboard> = board(game, calendar.observeToday(game))
+
+    private fun board(game: GameId, days: Flow<LocalDate>): Flow<TodayLeaderboard> =
         identity.current.flatMapLatest { player ->
             if (player == null) {
                 flowOf(TodayLeaderboard.SignedOut)
             } else {
-                val id = game()
-                leaderboard.observe(LeaderboardRef(id.value, day()), registry.rankOrderOf(id))
-                    .map { snapshot ->
-                        TodayLeaderboard.SignedIn(
-                            identity = player,
-                            board = snapshot?.let(TodayLeaderboard.Board::Loaded) ?: TodayLeaderboard.Board.Unavailable,
-                        )
-                    }
-                    .onStart { emit(TodayLeaderboard.SignedIn(player, TodayLeaderboard.Board.Loading)) }
+                days.flatMapLatest { day ->
+                    leaderboard.observe(LeaderboardRef(game.value, day), registry.rankOrderOf(game))
+                        .map { snapshot ->
+                            TodayLeaderboard.SignedIn(
+                                identity = player,
+                                board = snapshot?.let(TodayLeaderboard.Board::Loaded) ?: TodayLeaderboard.Board.Unavailable,
+                            )
+                        }
+                        .onStart { emit(TodayLeaderboard.SignedIn(player, TodayLeaderboard.Board.Loading)) }
+                }
             }
         }
 }

@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
@@ -25,7 +26,7 @@ class ObserveResultRankTest {
         LeaderboardEntry(uid, uid, "tango/2026-11-07/12", seconds * 1_000L, 0, 1_700_000_000_000)
 
     private fun rank(identity: Identity?, repo: FakeLeaderboardRepository) =
-        ObserveResultRank(ObserveLeaderboard(FakeIdentityService(initial = identity), repo, TestGames.registry(listOf(tango))))(tango, day)
+        ObserveResultRank(ObserveLeaderboard(FakeIdentityService(initial = identity), repo, TestGames.registry(listOf(tango)), FakeGameCalendar(day)))(tango, day)
 
     @Test
     fun `a ranked player gets position count and top percent`() = runTest {

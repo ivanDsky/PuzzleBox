@@ -10,8 +10,9 @@ import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
-import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
+import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -38,14 +39,15 @@ private const val SIGN_IN_RETRY_MESSAGE = "Sign-in failed. Please try again."
 /**
  * Profile's state holder (A20): the lifetime record ([ObserveGameStats], all games and each
  * registered one, plus the days played off [ObserveGameHistory]), today's identity-gated
- * board ([ObserveTodayLeaderboard]), the sign-in flow's own progress/outcome while signed
+ * board ([ObserveLeaderboard.today] of the featured game), the sign-in flow's own progress/outcome while signed
  * out, and the app's theme ([UserPreferencesRepository], N4). The activity context the
  * credential sheet needs (I2) is passed per call and never stored.
  */
 class ProfileViewModel(
     private val identityService: IdentityService,
     private val idTokenProvider: GoogleIdTokenProvider,
-    observeTodayLeaderboard: ObserveTodayLeaderboard,
+    observeLeaderboard: ObserveLeaderboard,
+    getFeaturedGame: GetFeaturedGame,
     observeGameStats: ObserveGameStats,
     observeGameHistory: ObserveGameHistory,
     registry: GameRegistry,
@@ -64,7 +66,7 @@ class ProfileViewModel(
     }
 
     private val account: Flow<ProfileUiState.Account> =
-        combine(observeTodayLeaderboard(), signIn) { today, prompt ->
+        combine(observeLeaderboard.today(getFeaturedGame().id), signIn) { today, prompt ->
             when (today) {
                 TodayLeaderboard.SignedOut -> prompt
                 is TodayLeaderboard.SignedIn -> ProfileUiState.Account.SignedIn(today.identity, today.board)
