@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.create.importtext
 import com.ivandsky.puzzlebox.domain.ImportDraftFromText
 import com.ivandsky.puzzlebox.domain.ImportResult
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,6 +21,7 @@ class ImportTextState(
     private val onImported: (draftId: String) -> Unit,
 ) {
     private val state = MutableStateFlow(ImportSheetUi())
+    private var job: Job? = null
 
     val ui: StateFlow<ImportSheetUi> = state.asStateFlow()
 
@@ -32,25 +34,28 @@ class ImportTextState(
     }
 
     /**
-     * checking = true → importDraft(text) → Imported: hide + [onImported]; else visible with
-     * the error (text kept, cleared for TooLarge). A submit while one is running is dropped.
+     * checking = true → importDraft(text) → Imported: hide + [onImported]; else the error (text
+     * kept, cleared for TooLarge). A result never changes `visible`. A submit while one is
+     * running is dropped; [dismiss] cancels the running one, so a dismissed check never imports.
      */
     fun submit(text: String) {
         if (state.value.checking) return
         state.update { it.copy(text = text, checking = true, error = null) }
-        scope.launch {
+        job = scope.launch {
             when (val result = importDraft(text)) {
                 is ImportResult.Imported -> {
                     state.value = ImportSheetUi()
                     onImported(result.draftId)
                 }
-                is ImportResult.TooLarge -> state.value = ImportSheetUi(visible = true, error = result)
+                is ImportResult.TooLarge -> state.update { it.copy(text = "", checking = false, error = result) }
                 else -> state.update { it.copy(checking = false, error = result) }
             }
         }
     }
 
     fun dismiss() {
+        job?.cancel()
+        job = null
         state.value = ImportSheetUi()
     }
 }

@@ -45,6 +45,8 @@ class ImportTextStateTest {
             synchronized(queue) { queue.addLast(block) }
         }
 
+        fun hasQueued(): Boolean = synchronized(queue) { queue.isNotEmpty() }
+
         fun runQueued() {
             while (true) {
                 val block = synchronized(queue) { queue.removeFirstOrNull() } ?: return
@@ -57,7 +59,13 @@ class ImportTextStateTest {
     private var ids = 0
     private val gate = GateDispatcher()
 
-    private fun holder(onImported: (String) -> Unit = {}) = ImportTextState(
+    /** Where the parse runs: queued while [workGate] is used, so a check stays mid-flight. */
+    private val workGate = GateDispatcher()
+
+    private fun holder(
+        onImported: (String) -> Unit = {},
+        work: CoroutineDispatcher = InlineDispatcherProvider.main,
+    ) = ImportTextState(
         importDraft = ImportDraftFromText(
             registry = GameRegistry(listOf(regionsPlugin())),
             createDraft = CreateDraft(
@@ -67,7 +75,7 @@ class ImportTextStateTest {
                 clock = { Instant.parse("2026-11-08T10:00:00Z") },
             ),
             drafts = drafts,
-            dispatchers = InlineDispatcherProvider,
+            dispatchers = GatedDispatcherProvider(work),
         ),
         scope = CoroutineScope(gate),
         onImported = onImported,
@@ -117,6 +125,60 @@ class ImportTextStateTest {
         assertEquals("", holder.ui.value.text)
     }
 
+    /** Runs the parse on [default]; main and io are inline. */
+    private class GatedDispatcherProvider(override val default: CoroutineDispatcher) : DispatcherProvider {
+        override val main: CoroutineDispatcher = InlineDispatcherProvider.main
+        override val io: CoroutineDispatcher = InlineDispatcherProvider.io
+    }
+
+    @Test
+    fun `a TooLarge result that lands after a dismiss never reopens the sheet`() = runTest {
+        val holder = holder(work = workGate)
+        holder.open()
+        val huge = NotationHeader("regions", 1).line + "\n" + "0".repeat(64 * 1024 + 1) + "\n"
+        holder.edit(huge)
+        holder.submit(huge)
+        gate.runQueued()
+        assertTrue(holder.ui.value.checking)
+
+        holder.dismiss()
+        drain()
+
+        assertEquals(ImportSheetUi(), holder.ui.value)
+    }
+
+    @Test
+    fun `a dismissed check never imports`() = runTest {
+        val seen = mutableListOf<String>()
+        val holder = holder(onImported = seen::add, work = workGate)
+        holder.open()
+        holder.submit(fixture())
+        gate.runQueued()
+
+        holder.dismiss()
+        drain()
+
+        assertTrue(seen.isEmpty())
+        assertTrue(drafts.rows.isEmpty())
+    }
+
+    @Test
+    fun `reopening after a dismiss and submitting again makes one draft`() = runTest {
+        val seen = mutableListOf<String>()
+        val holder = holder(onImported = seen::add, work = workGate)
+        holder.open()
+        holder.submit(fixture())
+        gate.runQueued()
+        holder.dismiss()
+
+        holder.open()
+        holder.submit(fixture())
+        drain()
+
+        assertEquals(listOf("draft-1"), seen)
+        assertEquals(1, drafts.rows.size)
+    }
+
     /** Runs work inline so an import finishes inside [GateDispatcher.runQueued]. */
     private object InlineDispatcherProvider : DispatcherProvider {
         private val inline = object : CoroutineDispatcher() {
@@ -126,6 +188,14 @@ class ImportTextStateTest {
         override val main: CoroutineDispatcher = inline
         override val io: CoroutineDispatcher = inline
         override val default: CoroutineDispatcher = inline
+    }
+
+    /** Lets both gates run until neither has queued work. */
+    private fun drain() {
+        do {
+            gate.runQueued()
+            workGate.runQueued()
+        } while (gate.hasQueued() || workGate.hasQueued())
     }
 
     /** A painted 5x5 regions board with a final newline, as the notation prints it. */
