@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,13 +34,11 @@ import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
-import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
-import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
+import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGeometry
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuDraft
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuEditor
-import com.ivandsky.puzzlebox.games.sudoku.engine.rules.SudokuConflicts
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuBoardModel
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuCellModel
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuGrid
@@ -51,16 +51,28 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
  * The editor's board: the play [SudokuGrid] over the [controller]'s draft, every placed digit
  * drawn as a given. A tap on a cell selects it; below it sit the counted digit keys and the
  * tools row (Erase, Clear, Symmetry). Empty cells whose mirror holds a given are outlined
- * dashed; empty peers where the selected digit would clash are hatched. Sized by
- * [SudokuSizing] for the space [modifier] gives it.
+ * dashed; empty peers where the selected digit would clash are hatched. The
+ * [verdict] and the card's witness choice ([SudokuEditorController.overlay]) are drawn by
+ * [SudokuDiagnosticsLayer]. Sized by [SudokuSizing] for the space [modifier] gives it.
  */
 @Composable
-internal fun SudokuEditorBoard(controller: SudokuEditorController, geometry: SudokuGeometry, modifier: Modifier = Modifier) {
+internal fun SudokuEditorBoard(
+    controller: SudokuEditorController,
+    geometry: SudokuGeometry,
+    modifier: Modifier = Modifier,
+    verdict: Verdict = Verdict.Checking,
+) {
     val draft by controller.draft.collectAsState()
     val selected by controller.selected.collectAsState()
     val board = draft.state.draft as SudokuDraft
     val symmetry by controller.symmetry.collectAsState()
-    val model = remember(board, selected) { editorBoardModel(board, geometry, selected) }
+    val overlay by controller.overlay.collectAsState()
+    // The last settled verdict, so the witness digits hold while a new analysis runs.
+    val settled = remember { mutableStateOf<Verdict?>(null) }
+    SideEffect { if (verdict != Verdict.Checking) settled.value = verdict }
+    val held = if (verdict == Verdict.Checking) settled.value else verdict
+    val diagnostics = sudokuDiagnostics(board, geometry, verdict, held, overlay)
+    val model = remember(board, selected, diagnostics.clash) { editorBoardModel(board, geometry, selected, diagnostics.clash) }
     val unpaired = remember(board, symmetry) { symmetry.unpaired(board) }
     val hatched = remember(board, selected) { wouldClash(board, geometry, selected) }
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
@@ -81,6 +93,7 @@ internal fun SudokuEditorBoard(controller: SudokuEditorController, geometry: Sud
             Box(Modifier.size(layout.board)) {
                 SudokuGrid(model, controller::tap, Modifier.fillMaxSize())
                 SudokuEditorMarks(board.size, unpaired, hatched, Modifier.fillMaxSize())
+                SudokuDiagnosticsLayer(board.size, diagnostics, Modifier.fillMaxSize())
             }
             SudokuEditorKeypad(controller, board, layout)
             SudokuEditorTools(controller, board.givens.any { it != 0 }, unpaired.size, toolHeight)
@@ -98,9 +111,12 @@ private fun wouldClash(draft: SudokuDraft, geometry: SudokuGeometry, selected: I
  * Peers and same-digit cells of the selection are tinted like play's; a digit clashing with a
  * peer is flagged.
  */
-private fun editorBoardModel(draft: SudokuDraft, geometry: SudokuGeometry, selected: Int?): SudokuBoardModel {
-    val cells = draft.givens.map { if (it == 0) SudokuCell.Empty else SudokuCell.Given(it) }
-    val conflicts = SudokuConflicts.cellsIn(SudokuConflicts.find(SudokuBoard(geometry, cells)))
+private fun editorBoardModel(
+    draft: SudokuDraft,
+    geometry: SudokuGeometry,
+    selected: Int?,
+    conflicts: Set<Int>,
+): SudokuBoardModel {
     val peers = selected?.let { geometry.peersOf(it).toSet() }.orEmpty()
     val selectedDigit = selected?.let { draft.givens[it] } ?: 0
     val models = draft.givens.mapIndexed { idx, digit ->
