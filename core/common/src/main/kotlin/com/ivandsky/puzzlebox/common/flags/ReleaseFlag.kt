@@ -21,4 +21,10 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
 
     /** The Strands puzzle editor. */
     StrandsEditor(label = "Strands editor", releaseDefault = false),
+
+    /** Import from text: the Create header pill, empty-state button, New-puzzle row and Studio overflow item (spec A23). */
+    TextImport(label = "Import from text", releaseDefault = false),
+
+    /** PuzzleBox as an Android share target for plain text (spec A3, A28). */
+    ShareTarget(label = "Share text to PuzzleBox", releaseDefault = false),
 }
