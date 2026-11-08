@@ -35,9 +35,15 @@ internal data class ZipDiagnostics(
  * Diagnostics for a [verdict]. The card's [overlay] draws the witness of [held], the last
  * settled verdict, so the path stays while a new analysis runs.
  */
-internal fun zipDiagnostics(verdict: Verdict, held: Verdict?, overlay: EditorOverlay): ZipDiagnostics {
+internal fun zipDiagnostics(
+    verdict: Verdict,
+    held: Verdict?,
+    overlay: EditorOverlay,
+): ZipDiagnostics {
     val shown = (held as? Verdict.Multiple)?.takeIf { overlay.showOnBoard }
-    val answer = shown?.let { if (overlay.witness == EditorOverlay.Witness.B) it.solutionB else it.solutionA }
+    val answer = shown?.let {
+        if (overlay.witness == EditorOverlay.Witness.B) it.solutionB else it.solutionA
+    }
     return ZipDiagnostics(
         clash = (verdict as? Verdict.None)?.conflicts.orEmpty(),
         diff = (verdict as? Verdict.Multiple)?.differingCells.orEmpty(),
@@ -58,7 +64,9 @@ internal fun BoxScope.ZipDiagnosticsLayer(diagnostics: ZipDiagnostics, n: Int) {
         val pitch = maxWidth / n
         fun Modifier.cell(idx: Int) = offset(pitch * (idx % n), pitch * (idx / n)).size(pitch)
         diagnostics.clash.forEach { idx ->
-            Canvas(Modifier.cell(idx).testTag("zip.editor.cell.$idx.clash")) { drawRect(colors.editorClashFill) }
+            Canvas(Modifier.cell(idx).testTag("zip.editor.cell.$idx.clash")) {
+                drawRect(colors.editorClashFill)
+            }
         }
         diagnostics.diff.forEach { idx ->
             Canvas(Modifier.cell(idx).testTag("zip.editor.cell.$idx.diff")) {
@@ -82,7 +90,11 @@ internal fun BoxScope.ZipDiagnosticsLayer(diagnostics: ZipDiagnostics, n: Int) {
                 drawPath(
                     path,
                     line.copy(alpha = WITNESS_ALPHA),
-                    style = Stroke(step * WITNESS_WIDTH_FRACTION, cap = StrokeCap.Round, join = StrokeJoin.Round),
+                    style = Stroke(
+                        step * WITNESS_WIDTH_FRACTION,
+                        cap = StrokeCap.Round,
+                        join = StrokeJoin.Round,
+                    ),
                 )
             }
             diagnostics.witness.forEach { idx ->

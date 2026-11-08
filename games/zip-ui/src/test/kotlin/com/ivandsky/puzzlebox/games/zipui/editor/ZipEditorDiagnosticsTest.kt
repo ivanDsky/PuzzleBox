@@ -45,8 +45,9 @@ class ZipEditorDiagnosticsTest {
         }
     }
 
-    private fun tagged(suffix: String): Set<Int> =
-        (0 until CELLS).filter { rule.onAllNodesWithTag("zip.editor.cell.$it.$suffix").fetchSemanticsNodes().isNotEmpty() }.toSet()
+    private fun tagged(suffix: String): Set<Int> = (0 until CELLS).filter {
+        rule.onAllNodesWithTag("zip.editor.cell.$it.$suffix").fetchSemanticsNodes().isNotEmpty()
+    }.toSet()
 
     @Test
     fun `a None verdict marks exactly the blamed cells`() {
@@ -91,6 +92,18 @@ class ZipEditorDiagnosticsTest {
         controller.adoptOverlay(EditorOverlay(showOnBoard = false))
         rule.waitForIdle()
         assertEquals(emptySet<Int>(), tagged("witness"))
+    }
+
+    @Test
+    fun `the witness choice survives a replacement draft`() {
+        val controller = controller()
+        controller.adoptOverlay(EditorOverlay(EditorOverlay.Witness.B, showOnBoard = true))
+        show(controller, MULTIPLE)
+
+        controller.adopt(EditorDraft.fresh(ZipEditor, ZipEditor.variants.first()))
+        rule.waitForIdle()
+
+        assertEquals(B.values.toSet(), tagged("witness"))
     }
 
     private companion object {
