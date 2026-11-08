@@ -38,7 +38,8 @@ class FakeSharedPuzzleRepository : SharedPuzzleRepository {
         if (doc.authorUid != uid) return PublishResult.Rejected("authorUid is not the signed-in user")
         val existing = stored[doc.code]
         when {
-            existing != null && existing.authorUid == uid -> PublishResult.Published(doc.code)
+            existing != null && existing.authorUid == uid && !existing.unpublished &&
+                existing.sameContentAs(doc) -> PublishResult.Published(doc.code)
             existing != null -> PublishResult.CodeTaken
             publishesToday >= DAILY_CAP -> PublishResult.DailyCapReached
             else -> {
@@ -69,6 +70,14 @@ class FakeSharedPuzzleRepository : SharedPuzzleRepository {
         if (doc.formatVersion > SharedPuzzleDoc.FORMAT_VERSION) return SharedFetchResult.UnsupportedVersion(doc.formatVersion)
         SharedFetchResult.Found(doc.detached())
     }
+
+    /** What a friend sees or plays; `createdAtMs` and `unpublished` are judged apart. */
+    private fun SharedPuzzleDoc.sameContentAs(other: SharedPuzzleDoc) =
+        copy(createdAtMs = 0, unpublished = false).let { mine ->
+            val theirs = other.copy(createdAtMs = 0, unpublished = false)
+            mine.copy(payload = byteArrayOf()) == theirs.copy(payload = byteArrayOf()) &&
+                payload.contentEquals(other.payload)
+        }
 
     private fun SharedPuzzleDoc.detached() = copy(payload = payload.copyOf())
 

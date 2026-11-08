@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -36,10 +37,12 @@ import kotlin.random.Random
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 
@@ -67,8 +70,46 @@ class PublishReservedCodeTest {
     }
 
     @Test
-    fun `a save between a lost answer and the retry keeps the reserved code, so the retry leaves one doc`() = runTest(mainRule.testDispatcher) {
+    fun `a save that changes no published content keeps the reserved code, so the retry leaves one doc`() = runTest(mainRule.testDispatcher) {
         val board = editor.draft(marks = 1)
+        val vm = openStudio(board)
+        val verdict = Verdict.Unique(Solution(listOf(1)))
+        val committed = publishLosingTheAnswer(vm, board, verdict)
+
+        // The same board handed back: the whole row is saved again, but a friend sees nothing new.
+        ui.controllers.single().edit(board)
+        advanceTimeBy(WINDOW_MS + 1)
+        assertEquals("the reserved code survives the autosave", committed.value, drafts.rows.getValue(DRAFT_ID).reservedCode)
+
+        vm.publish.publish(board, verdict)
+        runCurrent()
+        assertEquals(PublishOutcome.Published(committed), vm.publish.state.value.outcome)
+        assertEquals("exactly one doc", setOf(committed), shared.docs.keys)
+    }
+
+    @Test
+    fun `a rename between a lost answer and the retry keeps the reserved code, and the retry publishes the new title under a new code`() = runTest(mainRule.testDispatcher) {
+        val board = editor.draft(marks = 1)
+        val vm = openStudio(board)
+        val verdict = Verdict.Unique(Solution(listOf(1)))
+        val committed = publishLosingTheAnswer(vm, board, verdict)
+
+        // Not published as far as the Studio knows, so a rename still saves the whole row.
+        vm.meta.rename("Renamed")
+        advanceTimeBy(WINDOW_MS + 1)
+        assertEquals("the reserved code survives the autosave", committed.value, drafts.rows.getValue(DRAFT_ID).reservedCode)
+
+        vm.publish.publish(board, verdict)
+        runCurrent()
+        val retried = (vm.publish.state.value.outcome as PublishOutcome.Published).code
+        assertNotEquals("the old code holds other content, so the retry takes a new one", committed, retried)
+        // The old doc stays until the author's republish retires it.
+        assertEquals(setOf(committed, retried), shared.docs.keys)
+        assertEquals("Castle", shared.docs.getValue(committed).title)
+        assertEquals("Renamed", shared.docs.getValue(retried).title)
+    }
+
+    private suspend fun TestScope.openStudio(board: EditorDraft<TestDraft>): EditorViewModel {
         val author = FakeIdentityService(Identity(uid = AUTHOR, displayName = "Ivan", photoUrl = null))
         drafts.upsert(storedRow(board))
         val vm = EditorViewModel(
@@ -90,23 +131,16 @@ class PublishReservedCodeTest {
             updatePublishState = signedOutUnpublishing(),
         )
         runCurrent()
-        val verdict = Verdict.Unique(Solution(listOf(1)))
-        shared.commitThenOffline = true
+        return vm
+    }
 
+    /** Publishes once; the doc commits but the answer is lost. Returns the code the doc holds. */
+    private fun TestScope.publishLosingTheAnswer(vm: EditorViewModel, board: EditorDraft<TestDraft>, verdict: Verdict): ShareCode {
+        shared.commitThenOffline = true
         vm.publish.publish(board, verdict)
         runCurrent()
         assertEquals(PublishOutcome.Offline, vm.publish.state.value.outcome)
-        val committed = shared.docs.keys.single()
-
-        // Not published as far as the Studio knows, so a rename still saves the whole row.
-        vm.meta.rename("Renamed")
-        advanceTimeBy(WINDOW_MS + 1)
-        assertEquals("the reserved code survives the autosave", committed.value, drafts.rows.getValue(DRAFT_ID).reservedCode)
-
-        vm.publish.publish(board, verdict)
-        runCurrent()
-        assertEquals(PublishOutcome.Published(committed), vm.publish.state.value.outcome)
-        assertEquals("exactly one doc", setOf(committed), shared.docs.keys)
+        return shared.docs.keys.single()
     }
 
     /** The stand-in board with sharing: a mark count travels as its one byte. */
