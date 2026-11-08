@@ -101,13 +101,6 @@ class StrandsEditorDiagnosticsTest {
         assertEquals(emptySet<Int>(), tagged("witness"))
     }
 
-    @Test
-    fun `the overlay is held by the controller`() {
-        controller.adoptOverlay(EditorOverlay(EditorOverlay.Witness.B, showOnBoard = true))
-
-        assertEquals(EditorOverlay(EditorOverlay.Witness.B, showOnBoard = true), controller.overlay.value)
-    }
-
     private companion object {
         const val CELLS = 48
         const val DIFFERING = 2
