@@ -79,7 +79,7 @@ class EditorViewModel(
     val meta = DraftMeta(key.draftId, copyDraft, viewModelScope, locked = { published }) { title -> lastStored?.let { write(it.copy(title = title)) } }
 
     /** The required test solve: its sandbox, the test valid for the board, and the clear toast. */
-    val testSolve = TestSolveSession(key.draftId, plays, games, viewModelScope) { test -> lastStored?.let { write(it.copy(testSolve = test)) } }
+    val testSolve = TestSolveSession(key.draftId, plays, games, dispatchers, viewModelScope) { test -> lastStored?.let { write(it.copy(testSolve = test)) } }
 
     /** Undo and Redo are enabled only when the open draft has a step to move. */
     val canUndo: StateFlow<Boolean> = history.canUndo
