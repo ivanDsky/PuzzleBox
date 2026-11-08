@@ -1,14 +1,22 @@
 package com.ivandsky.puzzlebox.games.queensui.editor
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -16,7 +24,9 @@ import com.ivandsky.puzzlebox.games.queens.QueensVariants
 import com.ivandsky.puzzlebox.games.queens.editor.QueensCrowns
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -96,25 +106,50 @@ class QueensCrownLayerTest {
     }
 
     @Test
-    fun `an auto x under the other answer's ghost crown is drawn dimmed`() {
+    fun `an auto x under the other answer's ghost crown is drawn fainter than a plain one`() {
         rule.setContent {
             PuzzleBoxTheme {
                 Column {
                     listOf(false, true).forEachIndexed { idx, ghosted ->
-                        QueensCrownLayer(idx, region = 0, crowned = false, crossed = true, ghosted = ghosted, clash = false, rejection = null, reducedMotion = true)
+                        Box(
+                            Modifier
+                                .size(CELL_DP.dp)
+                                .background(MaterialTheme.colorScheme.surface)
+                                .testTag("probe.$idx"),
+                        ) {
+                            QueensCrownLayer(idx, region = 0, crowned = false, crossed = true, ghosted = ghosted, clash = false, rejection = null, reducedMotion = true)
+                        }
                     }
                 }
             }
         }
 
-        rule.onAllNodesWithTag("queens.editor.cell.0.autoX", useUnmergedTree = true).assertCountEquals(1)
-        rule.onAllNodesWithTag("queens.editor.cell.0.autoX.dim", useUnmergedTree = true).assertCountEquals(0)
-        rule.onAllNodesWithTag("queens.editor.cell.1.autoX", useUnmergedTree = true).assertCountEquals(0)
-        rule.onAllNodesWithTag("queens.editor.cell.1.autoX.dim", useUnmergedTree = true).assertCountEquals(1)
+        val plain = ink("probe.0")
+        val ghosted = ink("probe.1")
+
+        assertTrue("the × is drawn", ghosted > 0)
+        assertTrue("ghosted ink $ghosted is fainter than plain ink $plain", ghosted < plain)
+    }
+
+    /** How far the cell's pixels sit from its empty corner: the × is the only thing drawn. */
+    private fun ink(tag: String): Long {
+        val image = rule.onNodeWithTag(tag).captureToImage().toPixelMap()
+        val empty = image[0, 0]
+        var total = 0L
+        for (x in 0 until image.width) {
+            for (y in 0 until image.height) {
+                val pixel = image[x, y]
+                total += (abs(pixel.red - empty.red) + abs(pixel.green - empty.green) + abs(pixel.blue - empty.blue) +
+                    abs(pixel.alpha - empty.alpha)).times(INK_SCALE).toLong()
+            }
+        }
+        return total
     }
 
     private companion object {
         const val SIZE = 6
+        const val CELL_DP = 60
+        const val INK_SCALE = 255f
         const val CROWN = 14 // row 2, column 2: an inner cell with all 8 neighbours
         const val CROWN_MODE = "queens.editor.mode.crown"
         const val PAINT_MODE = "queens.editor.mode.paint"

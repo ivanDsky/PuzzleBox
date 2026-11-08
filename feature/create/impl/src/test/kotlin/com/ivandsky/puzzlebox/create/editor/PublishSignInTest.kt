@@ -55,6 +55,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -135,6 +136,55 @@ class PublishSignInTest {
         assertNothingWritten()
         assertEquals("Google never asked", 0, idTokens.calls)
         assertNull(vm.publish.state.value.signInFailure)
+    }
+
+    @Test
+    fun `cancel while signing in drops the sign-in and publishes nothing`() {
+        idTokens.gate = CompletableDeferred()
+        open()
+        signInFromSheet()
+        awaitTrue { vm.publish.state.value.signIn?.signingIn == true }
+
+        composeRule.onNodeWithTag(CANCEL).performClick()
+        awaitGone(SHEET)
+        idTokens.gate?.complete(Unit)
+        awaitTrue { identity.signInCalls.isNotEmpty() }
+        ShadowLooper.idleMainLooper(FRAME_MS, TimeUnit.MILLISECONDS)
+
+        assertNothingWritten()
+        assertNull("no failure for a dropped sign-in", vm.publish.state.value.signInFailure)
+        assertTrue("not publishing", !vm.publish.state.value.busy)
+    }
+
+    @Test
+    fun `a backend SignedOut for a signed-in author reopens the sheet once`() {
+        identity.currentIdentity = AUTHOR
+        shared.signedInUid = null
+        open()
+
+        tapPublish()
+
+        awaitTag(SHEET)
+        assertTrue("signed in, so Publish asked the backend", vm.publish.state.value.signedIn)
+        assertEquals("the sheet only holds the request", 0, idTokens.calls)
+
+        composeRule.onNodeWithTag(GOOGLE).performClick()
+
+        awaitTrue { vm.publish.state.value.outcome == PublishOutcome.SignedOut }
+        awaitGone(SHEET)
+        assertEquals("one Google sign-in, no second sheet", 1, idTokens.calls)
+        assertTrue(shared.docs.isEmpty())
+    }
+
+    @Test
+    fun `the publish state is signed in only once an account is signed in`() {
+        open()
+        assertTrue("signed out before sign-in", !vm.publish.state.value.signedIn)
+
+        signInFromSheet()
+
+        awaitTrue { vm.publish.state.value.signedIn }
+        awaitTag(PUBLISHED_CODE)
     }
 
     @Test
@@ -273,11 +323,15 @@ class PublishSignInTest {
 
     /** Google's half of sign-in, scripted: every call answers [next]. */
     private class FakeGoogleIdTokenProvider(var next: GoogleIdToken) : GoogleIdTokenProvider {
+        /** When set, a call waits for it before answering. */
+        var gate: CompletableDeferred<Unit>? = null
+
         var calls = 0
             private set
 
         override suspend fun idToken(activityContext: Context): GoogleIdToken {
             calls++
+            gate?.await()
             return next
         }
     }
