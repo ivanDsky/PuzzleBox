@@ -68,4 +68,19 @@ class StrandsTraceEndTimelineTest {
         assertEquals(300, TraceEndTimeline.totalMs(TraceEndKind.Short, true))
         assertEquals(300, TraceEndTimeline.totalMs(TraceEndKind.Repeat, true))
     }
+
+    @Test
+    fun `the tiles of a repeated theme word pulse to 1_1 at 40 percent of 400 ms and are back at 1 when it ends`() {
+        assertEquals(1f, TraceEndTimeline.look(TraceEndKind.Repeat, 0, false, pulse = true)!!.scale, 1e-6f)
+        assertEquals(1.1f, TraceEndTimeline.look(TraceEndKind.Repeat, 160, false, pulse = true)!!.scale, 1e-3f)
+        assertEquals(1f, TraceEndTimeline.pulseScale(400), 1e-6f)
+        assertEquals(1f, TraceEndTimeline.pulseScale(500), 0f)
+        assertTrue(TraceEndTimeline.pulseScale(80) in 1.01f..1.09f)
+    }
+
+    @Test
+    fun `without the pulse, or under reduce motion, the tiles do not scale in the hold`() {
+        assertEquals(1f, TraceEndTimeline.look(TraceEndKind.Repeat, 160, false)!!.scale, 0f)
+        assertEquals(1f, TraceEndTimeline.look(TraceEndKind.Repeat, 160, true, pulse = true)!!.scale, 0f)
+    }
 }

@@ -139,7 +139,9 @@ class StrandsPlayController(
         val verdict = StrandsRules.validate(StrandsMove(path), current.state) as StrandsVerdict
         trace = Trace()
         slot = StrandsVerdictSlot.of(verdict, ++verdictSeq)
-        traceEnd = TraceEndKind.of(verdict)?.let { TraceEnd(path, it, verdictSeq) }
+        val repeatsFound = verdict == StrandsVerdict.AlreadyFound &&
+            path.map(current.state.puzzle::letterAt).joinToString("") in current.state.found
+        traceEnd = TraceEndKind.of(verdict)?.let { TraceEnd(path, it, verdictSeq, pulse = repeatsFound) }
         when (verdict) {
             is StrandsVerdict.ThemeWord -> lastFound = FoundEvent(verdict.word.cells, spangram = false, seq = ++foundSeq)
             is StrandsVerdict.Spangram -> lastFound = FoundEvent(verdict.word.cells, spangram = true, seq = ++foundSeq)

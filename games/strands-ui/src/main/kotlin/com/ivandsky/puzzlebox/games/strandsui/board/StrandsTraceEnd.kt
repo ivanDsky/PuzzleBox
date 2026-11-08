@@ -79,7 +79,7 @@ internal fun rememberTraceEndFrame(end: TraceEnd?, reduceMotion: Boolean, touchS
 }
 
 private fun frameOf(end: TraceEnd, elapsedMs: Int, reduceMotion: Boolean, amplitude: Float): TraceEndFrame? =
-    TraceEndTimeline.look(end.kind, elapsedMs, reduceMotion)?.let {
+    TraceEndTimeline.look(end.kind, elapsedMs, reduceMotion, end.pulse)?.let {
         TraceEndFrame(end.path, it.error, it.shake * amplitude, it.alpha, it.scale)
     }
 

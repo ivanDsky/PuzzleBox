@@ -183,6 +183,21 @@ class StrandsPlayControllerTest {
     }
 
     @Test
+    fun `only a repeated theme word pulses its tiles, a repeated non-theme word does not`() {
+        val c = adopted()
+        c.play(StrandsUiFixtures.row(0))
+        c.play(StrandsUiFixtures.row(0))
+        assertTrue(c.traceEnd?.pulse == true)
+
+        val bonus = StrandsUiFixtures.nonTheme.getValue("PIKE")
+        c.play(bonus)
+        assertFalse(c.traceEnd?.pulse == true)
+        c.play(bonus)
+        assertEquals(TraceEndKind.Repeat, c.traceEnd?.kind)
+        assertFalse(c.traceEnd?.pulse == true)
+    }
+
+    @Test
     fun `a new trace, an outside tap and a replay drop the trace end, and each verdict has its own seq`() {
         val c = adopted()
         c.play(listOf(Coord(0, 0), Coord(0, 1), Coord(0, 2)))

@@ -65,6 +65,10 @@ internal object StrandsMotion {
     const val ShortHoldMs = 200
     const val RepeatHoldMs = 260
 
+    /** A repeated theme word pulses its tiles once over [MotionTokens.DurationExpressive]: 1 at the start, [PulsePeak] at [PulseAt], 1 at the end. */
+    const val PulsePeak = 1.1f
+    const val PulseAt = 0.4f
+
     /** Reduced motion holds the neutral colour at least this long (a bonus word a little longer), then clears. */
     const val ReducedHoldMinMs = 300
     const val ReducedBonusHoldMs = 400

@@ -14,18 +14,19 @@ internal data class TraceEndLook(val error: Boolean, val shake: Float, val alpha
 /** The path's end as a pure timeline: the look at any elapsed time, null once it is gone, so tests read it without a clock. */
 internal object TraceEndTimeline {
 
-    fun look(kind: TraceEndKind, elapsedMs: Int, reduceMotion: Boolean): TraceEndLook? {
+    fun look(kind: TraceEndKind, elapsedMs: Int, reduceMotion: Boolean, pulse: Boolean = false): TraceEndLook? {
         val error = kind == TraceEndKind.Error
         if (elapsedMs >= totalMs(kind, reduceMotion)) return null
         if (reduceMotion) return TraceEndLook(error, shake = 0f, alpha = 1f, scale = 1f)
         val held = if (error) StrandsMotion.ErrorShakeMs else holdMs(kind)
+        val pulsed = if (pulse) pulseScale(elapsedMs) else 1f
         if (elapsedMs < held) {
             val shake = if (error) shakeAt(elapsedMs.toFloat() / StrandsMotion.ErrorShakeMs) else 0f
-            return TraceEndLook(error, shake, alpha = 1f, scale = 1f)
+            return TraceEndLook(error, shake, alpha = 1f, scale = pulsed)
         }
         val progress = (elapsedMs - held).toFloat() / dissolveMs(kind)
         val eased = MotionTokens.EasingEmphasizedAccelerate.transform(progress.coerceIn(0f, 1f))
-        return TraceEndLook(error, shake = 0f, alpha = 1f - eased, scale = 1f - (1f - MotionTokens.DissolveScale) * eased)
+        return TraceEndLook(error, shake = 0f, alpha = 1f - eased, scale = (1f - (1f - MotionTokens.DissolveScale) * eased) * pulsed)
     }
 
     fun totalMs(kind: TraceEndKind, reduceMotion: Boolean): Int = when {
@@ -48,6 +49,15 @@ internal object TraceEndTimeline {
         if (kind == TraceEndKind.Error) MotionTokens.ErrorDuration - StrandsMotion.ErrorShakeMs else MotionTokens.DissolveDuration
 
     private val ShakeAt = FloatArray(StrandsMotion.ShakeStops.size) { it.toFloat() / StrandsMotion.ShakeStops.lastIndex }
+
+    /** A repeated theme word's tiles: 1 → [StrandsMotion.PulsePeak] → 1 over the expressive duration, 1 once it is over. */
+    fun pulseScale(elapsedMs: Int): Float {
+        val progress = elapsedMs.toFloat() / MotionTokens.DurationExpressive
+        if (progress !in 0f..1f) return 1f
+        val peak = StrandsMotion.PulseAt
+        val rise = if (progress < peak) progress / peak else 1f - (progress - peak) / (1f - peak)
+        return 1f + (StrandsMotion.PulsePeak - 1f) * MotionTokens.EasingStandard.transform(rise)
+    }
 
     private fun shakeAt(progress: Float): Float = keyframes(progress, ShakeAt, StrandsMotion.ShakeStops, LinearEasing)
 }
