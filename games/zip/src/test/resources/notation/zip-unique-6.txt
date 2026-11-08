@@ -1,0 +1,12 @@
+# expect: unique
+puzzlebox zip v1
+1 . . . . .
+. . . . . .
+. . . . . .
+2 . . . . .
+. . . . . .
+4 . . . . 3
+wall 2,3 down
+wall 2,5 down
+wall 4,3 down
+wall 4,5 down
