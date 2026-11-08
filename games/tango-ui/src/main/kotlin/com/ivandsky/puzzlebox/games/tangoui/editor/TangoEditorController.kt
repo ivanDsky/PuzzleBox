@@ -16,9 +16,9 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * The Tango editor screen's live draft. Each committed step goes out through [onEdit]; the
- * VM hands replacement drafts back through [adopt]. A press over a square or an edge shows in [preview]; [release] commits
- * its cycle step (empty, sun, moon; or none, `=`, `×`) as one undoable command and
- * [cancelPress] drops it. Tango has no witness overlay, so [overlay] stays empty.
+ * VM hands replacement drafts back through [adopt]. A press over a square or an edge shows
+ * in [preview]; [release] commits its cycle step (empty, sun, moon; or none, `=`, `×`) as
+ * one undoable command and [cancelPress] drops it. Tango has no witness overlay, so [overlay] stays empty.
  */
 class TangoEditorController(
     initial: EditorDraft<*>,

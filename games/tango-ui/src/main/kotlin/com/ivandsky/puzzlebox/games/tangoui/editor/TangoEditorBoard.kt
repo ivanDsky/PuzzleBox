@@ -98,16 +98,17 @@ private fun BoxScope.PressWash(target: TangoEditorTarget) {
 }
 
 /**
- * Press previews, lift commits, and moving past the touch slop cancels. What is under the
+ * Press previews, lift commits, and moving past the touch slop cancels. The geometry is read
+ * per gesture so a resize or rotation never leaves it stale. What is under the
  * finger is the edge [GridGeometry.edgeAt] finds at the [TangoBoardSpec] band and inset,
  * else the square.
  */
 private fun Modifier.tangoEditorGestures(controller: TangoEditorController): Modifier =
     pointerInput(controller) {
         val n = TangoDraft.N
-        val geometry = GridGeometry(n, n, size.width.toFloat(), size.height.toFloat())
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false)
+            val geometry = GridGeometry(n, n, size.width.toFloat(), size.height.toFloat())
             val edge = geometry.edgeAt(
                 down.position,
                 TangoBoardSpec.editEdgeBandAcrossFraction,

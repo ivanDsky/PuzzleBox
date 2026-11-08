@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.games.tangoui.editor
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.TouchInjectionScope
@@ -9,6 +11,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.tango.TangoCell
@@ -91,6 +94,52 @@ class TangoEditorInputTest {
 
         assertTrue(board().givens.isEmpty())
         assertTrue(edits.isEmpty())
+    }
+
+    @Test
+    fun `a move under the touch slop still commits`() {
+        show()
+
+        rule.onNodeWithTag(BOARD).performTouchInput {
+            down(centre(5))
+            moveTo(centre(5) + Offset(viewConfiguration.touchSlop - 2f, 0f))
+            up()
+        }
+
+        assertEquals(mapOf(5 to TangoCell.SUN), board().givens)
+    }
+
+    @Test
+    fun `one move just past the touch slop inside the cell cancels`() {
+        show()
+
+        rule.onNodeWithTag(BOARD).performTouchInput {
+            down(centre(5))
+            moveTo(centre(5) + Offset(viewConfiguration.touchSlop + 2f, 0f))
+        }
+        rule.onAllNodesWithTag(squareTag(5), useUnmergedTree = true).assertCountEquals(0)
+        rule.onNodeWithTag(BOARD).performTouchInput { up() }
+
+        assertTrue(edits.isEmpty())
+    }
+
+    @Test
+    fun `after the board is resized taps still hit the right edge and cell`() {
+        val boardWidth = mutableStateOf(300.dp)
+        rule.setContent { PuzzleBoxTheme { TangoEditorBoard(controller, Modifier.width(boardWidth.value)) } }
+        rule.onNodeWithTag(BOARD).performTouchInput { down(centre(0)); up() }
+        boardWidth.value = 420.dp
+        rule.waitForIdle()
+
+        rule.onNodeWithTag(BOARD).performTouchInput { down(rightEdge(8)) }
+        rule.onAllNodesWithTag(edgeTag(8, "right"), useUnmergedTree = true).assertCountEquals(1)
+        rule.onNodeWithTag(BOARD).performTouchInput { up() }
+        rule.onNodeWithTag(BOARD).performTouchInput { down(centre(35)) }
+        rule.onAllNodesWithTag(squareTag(35), useUnmergedTree = true).assertCountEquals(1)
+        rule.onNodeWithTag(BOARD).performTouchInput { up() }
+
+        assertEquals(mapOf(0 to TangoCell.SUN, 35 to TangoCell.SUN), board().givens)
+        assertEquals(listOf(TangoMarker(8, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME)), board().markers)
     }
 
     @Test
