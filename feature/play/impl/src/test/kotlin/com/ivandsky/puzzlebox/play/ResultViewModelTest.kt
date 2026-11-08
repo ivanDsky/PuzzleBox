@@ -13,7 +13,6 @@ import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
-import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
@@ -67,8 +66,8 @@ import org.junit.Test
  * this solve) it shows the play's A10 verdict, previous best and write retry; once the
  * live play replays or re-solves it keeps the verdict it saw and hides retry; cold (after
  * process death) the verdict is unknown — the session-start baseline died with the play.
- * The read facts hold either way: the edition number (none = practice, no streak), the
- * streak, today's progress and the rollover. The primary action is Next (the next unsolved
+ * The read facts hold either way: the edition number (none = practice), today's progress
+ * and the rollover. The primary action is Next (the next unsolved
  * playable daily) or AllDone on today's slot only.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -140,7 +139,6 @@ class ResultViewModelTest {
             todaySet = if (games === fakes.games) todaySet else todaySet(games),
             calendar = calendar,
             history = history,
-            stats = ObserveGameStats(games, history, ComputeStreak(GetPuzzleDay(games, clock))),
             rollover = GetNextRollover(games, clock),
             ui = ui,
             games = games,
@@ -152,11 +150,8 @@ class ResultViewModelTest {
         )
     }
 
-    private fun heroOn() = FakeReleaseFlags(ReleaseFlag.ResultsHero)
-
     /** The hero flows run only while the page observes them. */
     private fun ResultViewModel.heroObserved() = apply {
-        screen.launch { hero.collect {} }
         screen.launch { heroInsights.collect {} }
         screen.launch { heroRank.collect {} }
         dispatcher.scheduler.runCurrent()
@@ -262,19 +257,11 @@ class ResultViewModelTest {
     }
 
     @Test
-    fun `a daily's streak counts today's solve`() {
-        completions.setRecords(listOf(record(FakeController.TIME_MS, 0)))
-        assertEquals(1, vm().observed().state.value.streak)
-    }
-
-    @Test
-    fun `a practice puzzle is practice and carries no streak`() {
+    fun `a practice puzzle is practice and has no edition number`() {
         daily.setHistory(alpha, listOf(DailyEntry(alpha, day, null, "alpha/v1", 0L)))
-        completions.setRecords(listOf(record(FakeController.TIME_MS, 0, date = day.minusDays(1))))
         val state = vm().observed().state.value
         assertTrue(state.practice)
         assertNull(state.puzzleNumber)
-        assertNull(state.streak)
     }
 
     @Test
@@ -321,20 +308,6 @@ class ResultViewModelTest {
     }
 
     @Test
-    fun `the hero page is off by default and on with the flag`() {
-        assertFalse(vm().heroObserved().hero.value)
-        assertTrue(vm(flags = heroOn()).heroObserved().hero.value)
-    }
-
-    @Test
-    fun `with the flag off the hero flows are never read`() {
-        val vm = vm(identity = ME).heroObserved()
-        assertNull(vm.heroInsights.value)
-        assertEquals(ResultRank.Hidden, vm.heroRank.value)
-        assertTrue(leaderboard.observedBoards.isEmpty())
-    }
-
-    @Test
     fun `a replay is a past day's result`() {
         assertFalse(vm().replay)
         assertTrue(vm(key.copy(day = day.minusDays(1).toString())).replay)
@@ -342,39 +315,39 @@ class ResultViewModelTest {
 
     @Test
     fun `today's insights count this solve before its write lands`() {
-        val insights = vm(flags = heroOn()).heroObserved().heroInsights.value
+        val insights = vm().heroObserved().heroInsights.value
         assertEquals(1, insights?.streak)
     }
 
     @Test
     fun `a past day's insights do not count the solve`() {
         val replay = key.copy(day = day.minusDays(1).toString())
-        assertEquals(0, vm(replay, flags = heroOn()).heroObserved().heroInsights.value?.streak)
+        assertEquals(0, vm(replay).heroObserved().heroInsights.value?.streak)
     }
 
     @Test
     fun `a practice puzzle has no insights`() {
         daily.setHistory(alpha, listOf(DailyEntry(alpha, day, null, "alpha/v1", 0L)))
-        assertNull(vm(flags = heroOn()).heroObserved().heroInsights.value)
+        assertNull(vm().heroObserved().heroInsights.value)
     }
 
     @Test
     fun `the rank reads this game's board for the slot's day`() {
         val board = LeaderboardRef(alpha.value, day)
         leaderboard.setEntries(board, listOf(entry("a", 30), entry(ME.uid, 40)))
-        val vm = vm(flags = heroOn(), identity = ME).heroObserved()
+        val vm = vm(identity = ME).heroObserved()
         assertEquals(ResultRank.Ranked(position = 2, count = 2, topPercent = 100), vm.heroRank.value)
     }
 
     @Test
     fun `signed out the rank offers sign in`() {
-        assertEquals(ResultRank.SignedOut, vm(flags = heroOn()).heroObserved().heroRank.value)
+        assertEquals(ResultRank.SignedOut, vm().heroObserved().heroRank.value)
     }
 
     @Test
     fun `a replay reads no board and shows no rank`() {
         val replay = key.copy(day = day.minusDays(1).toString())
-        val vm = vm(replay, flags = heroOn(), identity = ME).heroObserved()
+        val vm = vm(replay, identity = ME).heroObserved()
         assertEquals(ResultRank.Hidden, vm.heroRank.value)
         assertTrue(leaderboard.observedBoards.isEmpty())
     }

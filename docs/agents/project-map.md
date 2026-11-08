@@ -183,7 +183,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `Screen`), `GamePlayController` (+ `PlayClock`/`PlayHints`/`PlayUndo`), `GamePlayRegistry`
   (GameId → `GamePlayUi`; a duplicate id throws), `PlayBoardStatus` + `PlayBoardFallback`,
   `PlayCopy`, `BoardGrid` + `EdgeOverlay`, `DragTrace`, `GridGeometry`, `HintButton`,
-  `TimerBar` + `formatClock`, `PlayScaffold` (`playLayoutFor`), `PlayChrome`, `ResultScreen`,
+  `TimerBar` + `formatClock`, `PlayScaffold` (`playLayoutFor`), `PlayChrome`, `ResultHeroScreen` (daily result), `ResultScreen` (friend result),
   `CompletionRecordEmitter`. `editor/`: `GameEditorUi` (per-game `sizeLabel`,
   `createController`, `Board`), `GameEditorController` (draft `StateFlow`, `adopt`, overlay
   hooks), `GameEditorRegistry` (GameId → `GameEditorUi`), `EditorOverlay` (witness display).

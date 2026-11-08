@@ -31,7 +31,6 @@ import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.Stamp
 import com.ivandsky.puzzlebox.designsystem.colors
-import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -114,49 +113,18 @@ internal fun RecordTag(verdict: RecordVerdict?, brand: GameBrand, modifier: Modi
 }
 
 /**
- * The comparison to your best (tag `result.previous_best`), at the resolution the times
- * show: a new best says how much faster it was, in the game's accent; a slower solve names
- * the best to chase, calmly; a replay says it was one. A first solve has no best yet, and
- * a tie's hero time IS the best: no line. A hints-first game ranks by hints (A26), so its
- * new best names the score it beat and its best leads with the hints — "Your best is
- * Perfect · 1:42" ([bestScoreText]) — the way the pill beside it ranks; time-first shows the time alone.
+ * A replay's line (tag `result.previous_best`): "Replay", or "Replay · Best <score>" naming
+ * the best the replay left standing, in the way [bestScoreText] shows it for [rankOrder].
  */
 @Composable
-internal fun BestLine(
-    verdict: RecordVerdict?,
-    previousBest: BestScore?,
-    rankOrder: RankOrder,
-    timeMs: Long,
-    brand: GameBrand,
-) {
+internal fun ReplayLine(previousBest: BestScore?, rankOrder: RankOrder) {
     val best = previousBest?.let { bestScoreText(it, rankOrder) }
-    val line = when (verdict) {
-        RecordVerdict.NewBest -> previousBest?.let {
-            when (rankOrder) {
-                RankOrder.TimeThenHints -> "${gap(it.timeMs, timeMs)} faster than your best"
-                RankOrder.HintsThenTime -> "Previous best $best"
-            }
-        }
-        RecordVerdict.NotBest -> best?.let { "Your best is $it" }
-        RecordVerdict.Replay -> best?.let { "Replay · Best $it" } ?: "Replay"
-        RecordVerdict.TiedBest, RecordVerdict.FirstSolve, null -> null
-    } ?: return
     Text(
-        text = line,
+        text = best?.let { "Replay · Best $it" } ?: "Replay",
         style = MaterialTheme.typography.bodyLarge.tabular(),
-        color = if (verdict == RecordVerdict.NewBest) {
-            brand.accent.colors().accent
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        },
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.testTag("result.previous_best"),
     )
-}
-
-/** How much faster [timeMs] was than [bestMs] in whole shown seconds: "7s", or "1:05" from a minute. */
-private fun gap(bestMs: Long, timeMs: Long): String {
-    val seconds = bestMs / 1000 - timeMs / 1000
-    return if (seconds < 60) "${seconds}s" else formatDuration(seconds * 1000)
 }
 
 /**

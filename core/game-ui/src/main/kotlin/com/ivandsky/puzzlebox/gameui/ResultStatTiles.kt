@@ -21,20 +21,11 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 private val TileMinHeight = 64.dp
 
 /**
- * The result's three facts (spec A16, play.md §2b): Hints (tag `result.tile.hints`),
- * Streak in days (`result.tile.streak`) and today's progress "N of M"
- * (`result.tile.today`). A null [streak] hides its tile — unknown yet, or a practice
- * puzzle, which never moves the streak; a null [doneToday] or [total] hides Today. The
- * tiles share the row equally.
+ * The result's one fact (spec A16, play.md §2b): Hints (tag `result.tile.hints`), filling
+ * the row.
  */
 @Composable
-internal fun ResultStatTiles(
-    hintsUsed: Int,
-    streak: Int?,
-    doneToday: Int?,
-    total: Int?,
-    modifier: Modifier = Modifier,
-) {
+internal fun ResultStatTiles(hintsUsed: Int, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -44,12 +35,6 @@ internal fun ResultStatTiles(
             label = if (hintsUsed == 1) "Hint" else "Hints",
             tag = "result.tile.hints",
         )
-        streak?.let {
-            StatTile(value = if (it == 1) "1 day" else "$it days", label = "Streak", tag = "result.tile.streak")
-        }
-        if (doneToday != null && total != null && total > 0) {
-            StatTile(value = "$doneToday of $total", label = "Today", tag = "result.tile.today")
-        }
     }
 }
 
