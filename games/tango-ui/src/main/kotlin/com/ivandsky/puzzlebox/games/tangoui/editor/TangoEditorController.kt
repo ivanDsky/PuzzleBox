@@ -19,7 +19,8 @@ import kotlinx.coroutines.flow.asStateFlow
  * VM hands replacement drafts back through [adopt]. A press over a square or an edge shows
  * in [preview]; [release] commits its cycle step (empty, sun, moon; or none, `=`, `×`) as
  * one undoable command and [cancelPress] drops it. The verdict card's witness choice arrives
- * through [adoptOverlay] and the board draws it from [overlay].
+ * through [adoptOverlay] and the board draws it from [overlay]. [tapZones] outlines the edge
+ * bands while on.
  */
 class TangoEditorController(
     initial: EditorDraft<*>,
@@ -29,6 +30,7 @@ class TangoEditorController(
     private val current = MutableStateFlow(typed(initial))
     private val pressed = MutableStateFlow<TangoEditorTarget?>(null)
     private val chosen = MutableStateFlow(EditorOverlay())
+    private val zones = MutableStateFlow(false)
 
     override val draft: StateFlow<EditorDraft<*>> = current.asStateFlow()
 
@@ -36,6 +38,13 @@ class TangoEditorController(
 
     /** What the finger is down on, or null; the board shows [commandFor] of it applied. */
     val preview: StateFlow<TangoEditorTarget?> = pressed.asStateFlow()
+
+    /** Whether the board outlines where a tap lands. */
+    val tapZones: StateFlow<Boolean> = zones.asStateFlow()
+
+    fun toggleTapZones() {
+        zones.value = !zones.value
+    }
 
     override fun adopt(draft: EditorDraft<*>) {
         current.value = typed(draft)
