@@ -12,9 +12,19 @@ import com.ivandsky.puzzlebox.games.strandsui.TraceStep
  * joins another letter; that join turns it into a drag that starts at [start], and every
  * letter joined is a [TraceInput.dragTo]. Until then the walk grows [start] alone, not the
  * trace a tap left, so a drag never extends an earlier tap trace.
+ *
+ * With [snap] (flag SnapTrace) a plain [StrandsRadiusJoin] decides the joins instead of the
+ * walk, and there is no finger: [finger] is always null.
  */
-internal class StrandsDragSession(rows: Int, cols: Int, private val start: Coord, down: Offset) {
+internal class StrandsDragSession(
+    rows: Int,
+    cols: Int,
+    private val start: Coord,
+    down: Offset,
+    private val snap: Boolean = false,
+) {
     private val walk = StrandsTraceWalk(rows, cols, down)
+    private val radius = StrandsRadiusJoin(rows, cols, down)
     private val alone = listOf(start)
     private var dragging = false
 
@@ -26,19 +36,21 @@ internal class StrandsDragSession(rows: Int, cols: Int, private val start: Coord
             steps = steps + step
             if (step is TraceStep.Updated) live = step.trace
         }
-        walk.moveTo(at, { if (dragging) live.path else alone }) { over ->
+        val join = { over: Coord ->
             if (!dragging) {
                 dragging = true
                 emit(TraceInput.dragStart(start))
             }
             emit(TraceInput.dragTo(live, over))
         }
+        val path = { if (dragging) live.path else alone }
+        if (snap) radius.moveTo(at, path, join) else walk.moveTo(at, path, join)
         return steps
     }
 
-    /** The finger for the live tip over [trace], the live trace after the move; null until the touch is a drag. */
+    /** The finger for the live tip over [trace], the live trace after the move; null until the touch is a drag, and always in snap mode. */
     fun finger(trace: Trace): TraceFinger? =
-        if (dragging) TraceFinger(walk.at, walk.travel(), walk.armed(trace.path)) else null
+        if (dragging && !snap) TraceFinger(walk.at, walk.travel(), walk.armed(trace.path)) else null
 
     /** The lift: a drag ends with [trace]; a touch that joined nothing is a tap on [start]. */
     fun end(trace: Trace): TraceStep = if (dragging) TraceInput.dragEnd(trace) else TraceInput.tap(trace, start)
