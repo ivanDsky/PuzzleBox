@@ -9,7 +9,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Session transitions: the owner opens the timer on foreground, a move never starts it, pauses off-foreground, completes exactly once (A4). */
+/** Session transitions: the timer opens on foreground (a move never starts it), pauses off-foreground, completes once (A4). */
 class ZipSessionTest {
 
     private val t0: Instant = Instant.ofEpochMilli(1_000_000)
