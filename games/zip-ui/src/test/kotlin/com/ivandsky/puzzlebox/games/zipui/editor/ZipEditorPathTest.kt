@@ -5,9 +5,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.TouchInjectionScope
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -71,6 +73,11 @@ class ZipEditorPathTest {
             up()
         }
         rule.waitForIdle()
+    }
+
+    private fun assertCovered(count: Int) {
+        rule.onNodeWithTag("zip.editor.hint")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "$count/${SIZE * SIZE}"))
     }
 
     private fun board(draft: EditorDraft<*>) = draft.state.draft as ZipDraft
@@ -170,12 +177,11 @@ class ZipEditorPathTest {
     @Test
     fun `the hint shows the covered cell count`() {
         show(path = listOf(0, 1, 2))
-        rule.onNodeWithTag("zip.editor.hint").assertTextContains("3", substring = true)
-        rule.onNodeWithTag("zip.editor.hint").assertTextContains("${SIZE * SIZE}", substring = true)
+        assertCovered(3)
 
         drag(2, 7, 12)
 
-        rule.onNodeWithTag("zip.editor.hint").assertTextContains("5 of", substring = true)
+        assertCovered(5)
     }
 
     @Test

@@ -16,6 +16,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -67,7 +69,8 @@ internal fun ZipEditorTools(
 }
 
 /**
- * The context line beside the tool strip: how many cells the path covers (tag `zip.editor.hint`),
+ * The context line beside the tool strip: how many cells the path covers (tag `zip.editor.hint`,
+ * state description `<covered>/<cells>`),
  * and once it covers the board, the step to take next (tag `zip.editor.hint.next`).
  */
 @Composable
@@ -81,7 +84,7 @@ internal fun ZipEditorHint(covered: Int, cells: Int, modifier: Modifier = Modifi
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(
             "$covered of $cells cells",
-            Modifier.testTag("zip.editor.hint"),
+            Modifier.testTag("zip.editor.hint").semantics { stateDescription = "$covered/$cells" },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
