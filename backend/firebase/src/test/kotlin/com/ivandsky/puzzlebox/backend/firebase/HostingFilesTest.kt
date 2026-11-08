@@ -76,6 +76,19 @@ class HostingFilesTest {
     }
 
     @Test
+    fun landingPageLinksToTheLatestGitHubRelease() {
+        val page = read("hosting/p/index.html")
+        val hrefs = Regex("<a[^>]*\\bhref\\s*=\\s*\"([^\"]+)\"[^>]*>").findAll(page).map { it.groupValues[1] }.toList()
+        val link = hrefs.single { Regex("https://github\\.com/[^/]+/[^/]+/.*").matches(it) }
+        val url = java.net.URI(link)
+        assertEquals("github.com", url.host)
+        assertTrue(url.path.startsWith("/ivanDsky/PuzzleBox/"))
+        val tag = Regex("<a[^>]*\\bhref\\s*=\\s*\"[^\"]*github\\.com[^\"]*\"[^>]*>").find(page)!!.value
+        assertTrue(tag.contains("rel=\"noopener\""))
+        assertTrue(tag.contains("target=\"_blank\""))
+    }
+
+    @Test
     fun shareCodeParseAgreesWithEverySharedVector() {
         val vectors = read("hosting-test/share-code-vectors.json")
         val entries = Regex("\\{\"input\": \"((?:[^\"\\\\]|\\\\.)*)\", \"code\": (null|\"[^\"]*\")\\}")
