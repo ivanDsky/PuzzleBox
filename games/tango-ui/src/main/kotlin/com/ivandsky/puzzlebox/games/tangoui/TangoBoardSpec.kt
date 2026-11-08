@@ -77,6 +77,15 @@ object TangoBoardSpec {
     /** Guide ghost beside a wrong glyph: a corner badge, fraction of the cell box. */
     const val ghostBadgeFraction: Float = 0.4f
 
+    /** Editor edge hit band: half-width across a line, fraction of pitch. */
+    const val editEdgeBandAcrossFraction: Float = 0.22f
+
+    /** Editor edge hit inset: dead length at each end of a line, fraction of pitch. */
+    const val editEdgeBandInsetFraction: Float = 0.22f
+
+    /** Editor press wash over the square or edge under the finger. */
+    const val editPressWashAlpha: Float = 0.18f
+
     // ---- pitch-derived dp (call sites read these, never the raw fractions) ----
 
     /** Glyph box size at a given pitch and board size. */
