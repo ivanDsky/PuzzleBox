@@ -11,7 +11,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
@@ -33,7 +32,6 @@ import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -85,7 +83,6 @@ class PlayStatsPanelTest {
         identity: Identity? = me,
         completions: FakeCompletionRepository = this.completions,
         leaderboard: FakeLeaderboardRepository = this.leaderboard,
-        flags: FakeReleaseFlags = FakeReleaseFlags(),
         slotDay: LocalDate = day,
     ): PlayStatsViewModel {
         val history = ObserveGameHistory(fakes.games, daily, completions)
@@ -104,7 +101,6 @@ class PlayStatsPanelTest {
                 calendar = calendar,
                 leaderboard = ObserveLeaderboard(FakeIdentityService(identity), leaderboard, fakes.games, calendar),
             ),
-            releaseFlags = flags,
             posts = posts,
         )
     }
@@ -162,74 +158,62 @@ class PlayStatsPanelTest {
     }
 
     /** Solved, the own row not on the board, the watcher at [status]: the panel on Near you. */
-    private fun showNearYouAwaitingRow(status: SubmitStatus, flags: FakeReleaseFlags) {
+    private fun showNearYouAwaitingRow(status: SubmitStatus) {
         val solvedToday = FakeCompletionRepository().apply { setRecords(listOf(record(alpha, day, 40_000L))) }
         val othersOnly = FakeLeaderboardRepository(mapOf(board to (1..3).map { entry("p$it", "Player $it", it * 10_000L) }))
         posts.set(me.uid, "${alpha.value}/$day/7", status)
-        show(viewModel(completions = solvedToday, leaderboard = othersOnly, flags = flags))
+        show(viewModel(completions = solvedToday, leaderboard = othersOnly))
         composeRule.onNodeWithTag("play.stats.tab.near").performClick()
         composeRule.waitForIdle()
     }
 
-    private val boardOn = FakeReleaseFlags(ReleaseFlag.PerGameLeaderboards)
-
     @Test
-    fun `flag on, a post in flight says the time is posting`() {
-        showNearYouAwaitingRow(SubmitStatus.Posting, boardOn)
+    fun `a post in flight says the time is posting`() {
+        showNearYouAwaitingRow(SubmitStatus.Posting)
         composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Posting your time…")
     }
 
     @Test
-    fun `flag on, a deferred post says it is saved on this device`() {
-        showNearYouAwaitingRow(SubmitStatus.Deferred, boardOn)
+    fun `a deferred post says it is saved on this device`() {
+        showNearYouAwaitingRow(SubmitStatus.Deferred)
         composeRule.onNodeWithTag("play.stats.times.note")
             .assertTextEquals("Saved on this device — it'll post when you're online.")
     }
 
     @Test
-    fun `flag on, a rejected post says it could not post`() {
-        showNearYouAwaitingRow(SubmitStatus.Rejected, boardOn)
+    fun `a rejected post says it could not post`() {
+        showNearYouAwaitingRow(SubmitStatus.Rejected)
         composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Couldn't post this time.")
     }
 
     @Test
-    fun `flag on, a posted entry outside the rows says so`() {
-        showNearYouAwaitingRow(SubmitStatus.Posted, boardOn)
+    fun `a posted entry outside the rows says so`() {
+        showNearYouAwaitingRow(SubmitStatus.Posted)
         composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Your time is posted — outside the top 100.")
     }
 
     /** Solved on a day older than the game's yesterday (A7): the post can never leave, so it is not posting. */
-    private fun showPastDayAwaitingRow(flags: FakeReleaseFlags) {
+    private fun showPastDayAwaitingRow() {
         val past = day.minusDays(2)
         val solvedPast = FakeCompletionRepository().apply { setRecords(listOf(record(alpha, past, 40_000L))) }
         val othersPast = FakeLeaderboardRepository(
             mapOf(LeaderboardRef(alpha.value, past) to (1..3).map { entry("p$it", "Player $it", it * 10_000L) }),
         )
-        show(viewModel(completions = solvedPast, leaderboard = othersPast, flags = flags, slotDay = past))
+        show(viewModel(completions = solvedPast, leaderboard = othersPast, slotDay = past))
         composeRule.onNodeWithTag("play.stats.tab.near").performClick()
         composeRule.waitForIdle()
     }
 
     @Test
-    fun `flag on, a past day's near you says past days aren't ranked`() {
-        showPastDayAwaitingRow(boardOn)
+    fun `a past day's near you says past days aren't ranked`() {
+        showPastDayAwaitingRow()
         composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Past days aren't ranked.")
     }
 
-    @Test
-    fun `flag off, a past day's near you keeps the posting line`() {
-        showPastDayAwaitingRow(FakeReleaseFlags())
-        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Posting your time…")
-    }
 
-    @Test
-    fun `flag off, a deferred post keeps today's posting line`() {
-        showNearYouAwaitingRow(SubmitStatus.Deferred, FakeReleaseFlags())
-        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Posting your time…")
-    }
 
-    /** Solved, own row missing, order [order] and post [post]: the note frozen in place. */
-    private fun showNoteAwaitingRow(order: RankOrder?, post: SubmitStatus?) {
+    /** Solved, own row missing, post [post]: the note frozen in place. */
+    private fun showNoteAwaitingRow(post: SubmitStatus?) {
         showFrozen(
             PlayStatsState(
                 gameName = "Zip",
@@ -243,7 +227,7 @@ class PlayStatsPanelTest {
                 times = PlayTimes.Board(
                     (1..3).map { PlayTimeRow(it, "Player $it", it * 10_000L, hints = 0, you = false) },
                     solved = true,
-                    order = order,
+                    order = RankOrder.TimeThenHints,
                     post = post,
                 ),
             ),
@@ -252,15 +236,10 @@ class PlayStatsPanelTest {
         composeRule.waitForIdle()
     }
 
-    @Test
-    fun `flag off with no post read, near you keeps the plain posting line`() {
-        showNoteAwaitingRow(order = null, post = null)
-        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Posting your time…")
-    }
 
     @Test
-    fun `flag on with no post read, the post note path still says the time is posting`() {
-        showNoteAwaitingRow(order = RankOrder.TimeThenHints, post = null)
+    fun `with no post read, the post note path still says the time is posting`() {
+        showNoteAwaitingRow(post = null)
         composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Posting your time…")
     }
 
@@ -307,23 +286,13 @@ class PlayStatsPanelTest {
         composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Sign in on Profile to see today's times")
     }
 
-    @Test
-    fun `flag off, a hints-first game's board keeps its time-only rows and label`() {
-        val hinted = FakeLeaderboardRepository(mapOf(board to listOf(entry("p1", "Player 1", 10_000L, hints = 2))))
-        show(viewModel(leaderboard = hinted))
-
-        composeRule.onNodeWithText("Times today").assertExists()
-        composeRule.onNodeWithTag("play.stats.row").assertTextContains("0:10", substring = true)
-        composeRule.onNodeWithText("Fewest hints first, then time").assertDoesNotExist()
-        composeRule.onNodeWithText("2 hints", substring = true).assertDoesNotExist()
-    }
 
     @Test
-    fun `flag on, a hints-first game's rows lead with hints under its rule`() {
+    fun `a hints-first game's rows lead with hints under its rule`() {
         val hinted = FakeLeaderboardRepository(
             mapOf(board to listOf(entry("p1", "Player 1", 30_000L, hints = 0), entry("p2", "Player 2", 10_000L, hints = 2))),
         )
-        show(viewModel(leaderboard = hinted, flags = FakeReleaseFlags(ReleaseFlag.PerGameLeaderboards)))
+        show(viewModel(leaderboard = hinted))
 
         composeRule.onNodeWithText("Fewest hints first, then time").assertExists()
         composeRule.onNodeWithText("Perfect · 0:30").assertExists()

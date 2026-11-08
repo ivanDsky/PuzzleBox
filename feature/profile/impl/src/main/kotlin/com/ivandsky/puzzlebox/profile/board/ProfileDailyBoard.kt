@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import com.ivandsky.puzzlebox.app.screens.ProfileUiState
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -28,12 +27,12 @@ import com.ivandsky.puzzlebox.model.GameId
 /**
  * Flag-on Profile board (A2, A4): one [GameFilterChip] per game in game order over the shared
  * [DailyBoard] of the selected game; switching crossfades, and cuts under reduced motion (A18).
- * While [ProfileUiState.PerGameBoard.selected] is null the board is Loading under no chip.
+ * While [PerGameBoard.selected] is null the board is Loading under no chip.
  */
 @Composable
 internal fun ProfileDailyBoard(
-    games: List<ProfileUiState.GameRow>,
-    board: ProfileUiState.PerGameBoard,
+    games: List<GameRow>,
+    board: PerGameBoard,
     onSelect: (GameId) -> Unit,
     modifier: Modifier = Modifier,
 ) {

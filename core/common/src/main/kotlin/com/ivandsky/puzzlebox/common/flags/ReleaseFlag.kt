@@ -21,7 +21,4 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
 
     /** The Strands puzzle editor. */
     StrandsEditor(label = "Strands editor", releaseDefault = false),
-
-    /** Per-game daily leaderboards: Profile game switcher and board, Result board, tablet panel rows (spec A21). */
-    PerGameLeaderboards(label = "Per-game leaderboards", releaseDefault = true),
 }

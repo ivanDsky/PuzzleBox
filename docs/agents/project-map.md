@@ -282,12 +282,15 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   streak and stats, week/month calendar, every game's rows; any `HistoryKey` opens it); a
   history row pushes that day's `GameKey` on Home's stack, which resumes or replays the slot.
 - `feature/profile/impl/` (`:feature:profile:impl`) — packages kept from the app:
-  `app/screens/` (`ProfileRoute`, `ProfileScreen`, `ProfileLeaderboard`, `ProfileViewModel`
+  `app/screens/` (`ProfileRoute`, `ProfileScreen`, `ProfileViewModel`
   over `ObserveLeaderboard.today` + `ObserveGameStats`/`ObserveGameHistory` (the record) +
   `UserPreferencesRepository` (Appearance), `ProfileUiState`), `profile/ProfileRecord`
   (header, lifetime grid, per-game rows opening `HistoryKey(game)`), `profile/AppearanceRow`,
-  `app/auth/GoogleIdTokenProvider` (Credential Manager, typed `Unavailable.Reason`),
-  `profile/di/ProfileModule` (`profileModule(serverClientIdRes)`), `profile/navigation/ProfileEntry`.
+  `profile/board/` (`ProfileBoardState` `GameRow`/`PerGameBoard`, `ProfileBoardSelection`
+  `selectedBoardGame`/`LatestSolved`, `ProfileDailyBoard` + previews: the chip switcher over
+  the shared `DailyBoard`), `app/auth/GoogleIdTokenProvider` (Credential Manager, typed
+  `Unavailable.Reason`), `profile/di/ProfileModule` (`profileModule(serverClientIdRes)`),
+  `profile/navigation/ProfileEntry`.
 - `feature/create/impl/` (`:feature:create:impl`, ADR-0019; no `games:*` dependency) —
   `navigation/CreateEntries` (`CreateKey`, `EditorKey`), `CreateRoute`/`CreateScreen` +
   `CreateViewModel` (draft list over `DraftRepository`, `NewPuzzleSheet`, `DraftActionsSheet`),

@@ -6,8 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -25,7 +23,9 @@ import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.gameui.board.toDailyBoardState
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
+import com.ivandsky.puzzlebox.profile.board.GameRow
 import com.ivandsky.puzzlebox.profile.board.LatestSolved
+import com.ivandsky.puzzlebox.profile.board.PerGameBoard
 import com.ivandsky.puzzlebox.profile.board.selectedBoardGame
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -56,16 +56,15 @@ private const val SELECTED_GAME_KEY = "selectedGame"
  * Profile's state holder (A20): the lifetime record ([ObserveGameStats], all games and each
  * registered one, plus the days played off [ObserveGameHistory]), today's identity-gated
  * board ([ObserveLeaderboard.today] of the featured game), the sign-in flow's own progress/outcome while signed
- * out, and the app's theme ([UserPreferencesRepository], N4). The activity context the
+ * The activity context the
  * credential sheet needs (I2) is passed per call and never stored.
  *
- * With [ReleaseFlag.PerGameLeaderboards] on (collected, ADR-0022) the board is the selected
+ * The board is the selected
  * game's: an explicit [onSelectGame] pick, else [ObserveLatestSolvedToday], else the first game
  * (see `selectedBoardGame`); the board stays Loading until the first completions emission. The
  * pick lives in [savedStateHandle] under `selectedGame` (null = follow the default), so it
  * survives rotation and process death but not an app relaunch. This is the repo's first
  * `SavedStateHandle`: Koin injects it in `ProfileModule`, tests pass `SavedStateHandle()`.
- * Flag off, the state is the featured game's legacy board.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProfileViewModel(
@@ -78,16 +77,15 @@ class ProfileViewModel(
     registry: GameRegistry,
     brands: GamePlayRegistry,
     private val preferences: UserPreferencesRepository,
-    releaseFlags: ReleaseFlags,
     observeLatestSolvedToday: ObserveLatestSolvedToday,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val signIn = MutableStateFlow(ProfileUiState.Account.SignedOut())
 
-    private val seedRows: List<ProfileUiState.GameRow> = registry.all.map { plugin ->
+    private val seedRows: List<GameRow> = registry.all.map { plugin ->
         val id = plugin.definition.id
-        ProfileUiState.GameRow(
+        GameRow(
             id, plugin.definition.displayName, brands.brandOf(id), solved = 0,
             best = null, rankOrder = plugin.score.rankOrder,
         )
@@ -103,38 +101,29 @@ class ProfileViewModel(
     private val latestSolved: Flow<LatestSolved> =
         observeLatestSolvedToday().map<GameId?, LatestSolved> { LatestSolved.Known(it) }.onStart { emit(LatestSolved.Pending) }
 
-    private val perGameOn: Flow<Boolean> =
-        releaseFlags.enabled.map { ReleaseFlag.PerGameLeaderboards in it }.distinctUntilChanged()
-
-    /** The flag and, when on, the board's game (null while its default is pending). One emission per change. */
-    private val selection: Flow<Pair<Boolean, GameId?>> = perGameOn.flatMapLatest { on ->
-        if (on) {
-            combine(pick, latestSolved) { picked, latest -> true to selectedBoardGame(picked, latest, gameIds) }
-        } else {
-            flowOf(false to null)
-        }
-    }.distinctUntilChanged()
+    /** The board's game (null while its default is pending). One emission per change. */
+    private val selection: Flow<GameId?> =
+        combine(pick, latestSolved) { picked, latest -> selectedBoardGame(picked, latest, gameIds) }.distinctUntilChanged()
 
     /** The observed board paired with its game, so a switch never shows the previous game's rows under the new chip. */
-    private data class Feed(val perGame: Boolean, val selected: GameId?, val today: TodayLeaderboard)
+    private data class Feed(val selected: GameId?, val today: TodayLeaderboard)
 
-    private val feed: Flow<Feed> = selection.flatMapLatest { (on, selected) ->
-        observeLeaderboard.today(selected ?: featuredId).map { Feed(on, selected, it) }
+    private val feed: Flow<Feed> = selection.flatMapLatest { selected ->
+        observeLeaderboard.today(selected ?: featuredId).map { Feed(selected, it) }
     }
 
     private fun Feed.toAccount(prompt: ProfileUiState.Account.SignedOut): ProfileUiState.Account = when (today) {
         TodayLeaderboard.SignedOut -> prompt
-        is TodayLeaderboard.SignedIn -> ProfileUiState.Account.SignedIn(today.identity, today.board)
+        is TodayLeaderboard.SignedIn -> ProfileUiState.Account.SignedIn(today.identity)
     }
 
-    private fun Feed.toBoard(): ProfileUiState.PerGameBoard? {
-        if (!perGame) return null
+    private fun Feed.toBoard(): PerGameBoard {
         val state: DailyBoardState =
             if (selected == null && today is TodayLeaderboard.SignedIn) DailyBoardState.Loading else today.toDailyBoardState()
-        return ProfileUiState.PerGameBoard(selected, rankOrderOf(selected ?: featuredId), state)
+        return PerGameBoard(selected, rankOrderOf(selected ?: featuredId), state)
     }
 
-    private data class Session(val account: ProfileUiState.Account, val board: ProfileUiState.PerGameBoard?)
+    private data class Session(val account: ProfileUiState.Account, val board: PerGameBoard)
 
     private val session: Flow<Session> =
         combine(feed, signIn) { feed, prompt -> Session(feed.toAccount(prompt), feed.toBoard()) }
@@ -143,7 +132,7 @@ class ProfileViewModel(
         .map { days -> days.filter { it.record != null && it.puzzleNumber != null }.map { it.day }.distinct().size }
         .distinctUntilChanged()
 
-    private val gameRows: Flow<List<ProfileUiState.GameRow>> =
+    private val gameRows: Flow<List<GameRow>> =
         if (seedRows.isEmpty()) {
             flowOf(emptyList())
         } else {
@@ -154,21 +143,18 @@ class ProfileViewModel(
         }
 
     private val initialAccount: ProfileUiState.Account = identityService.current.value
-        ?.let { ProfileUiState.Account.SignedIn(it, TodayLeaderboard.Board.Loading) }
+        ?.let { ProfileUiState.Account.SignedIn(it) }
         ?: signIn.value
 
-    /** Flag on at construction: the pick (if any) with its board still Loading; null when off. */
-    private val initialBoard: ProfileUiState.PerGameBoard? =
-        if (ReleaseFlag.PerGameLeaderboards in releaseFlags.enabled.value) {
-            val picked = selectedBoardGame(savedStateHandle.get<String>(SELECTED_GAME_KEY)?.let(::GameId), LatestSolved.Pending, gameIds)
-            ProfileUiState.PerGameBoard(
-                picked,
-                rankOrderOf(picked ?: featuredId),
-                if (initialAccount is ProfileUiState.Account.SignedIn) DailyBoardState.Loading else DailyBoardState.SignedOut,
-            )
-        } else {
-            null
-        }
+    /** The pick (if any) with its board still Loading. */
+    private val initialBoard: PerGameBoard = run {
+        val picked = selectedBoardGame(savedStateHandle.get<String>(SELECTED_GAME_KEY)?.let(::GameId), LatestSolved.Pending, gameIds)
+        PerGameBoard(
+            picked,
+            rankOrderOf(picked ?: featuredId),
+            if (initialAccount is ProfileUiState.Account.SignedIn) DailyBoardState.Loading else DailyBoardState.SignedOut,
+        )
+    }
 
     val uiState: StateFlow<ProfileUiState> =
         combine(session, observeGameStats(), daysPlayed, gameRows, preferences.themeMode) { session, stats, days, games, theme ->

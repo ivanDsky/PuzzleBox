@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import com.ivandsky.puzzlebox.app.screens.ProfileUiState
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
@@ -25,6 +24,8 @@ import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.bestScoreText
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.profile.board.GameRow
+import com.ivandsky.puzzlebox.profile.board.PerGameBoard
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -98,7 +99,7 @@ private fun StatTile(value: String, label: String, tag: String, modifier: Modifi
  * History's timeline (N3).
  */
 @Composable
-internal fun GameRows(games: List<ProfileUiState.GameRow>, onOpenHistory: (GameId) -> Unit, modifier: Modifier = Modifier) {
+internal fun GameRows(games: List<GameRow>, onOpenHistory: (GameId) -> Unit, modifier: Modifier = Modifier) {
     OutlinedCard(
         modifier = modifier.fillMaxWidth().testTag("profile.games"),
         shape = MaterialTheme.shapes.large,
@@ -111,7 +112,7 @@ internal fun GameRows(games: List<ProfileUiState.GameRow>, onOpenHistory: (GameI
 }
 
 @Composable
-private fun GameRow(game: ProfileUiState.GameRow, onClick: () -> Unit) {
+private fun GameRow(game: GameRow, onClick: () -> Unit) {
     val id = game.gameId.value
     Row(
         modifier = Modifier
