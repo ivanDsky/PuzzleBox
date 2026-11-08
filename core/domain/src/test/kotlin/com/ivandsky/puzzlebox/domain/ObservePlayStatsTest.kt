@@ -67,7 +67,7 @@ class ObservePlayStatsTest {
             stats = ObserveGameStats(registry, history, ComputeStreak(GetPuzzleDay(registry, clock))),
             history = history,
             calendar = calendar,
-            leaderboard = ObserveLeaderboard(FakeIdentityService(initial = ann), leaderboard, registry),
+            leaderboard = ObserveLeaderboard(FakeIdentityService(initial = ann), leaderboard, registry, calendar),
         )(slot)
     }
 

@@ -93,7 +93,7 @@ class PlayStatsPanelTest {
                 stats = ObserveGameStats(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games))),
                 history = history,
                 calendar = calendar,
-                leaderboard = ObserveLeaderboard(FakeIdentityService(identity), leaderboard, fakes.games),
+                leaderboard = ObserveLeaderboard(FakeIdentityService(identity), leaderboard, fakes.games, calendar),
             ),
         )
     }

@@ -142,7 +142,7 @@ class ResultViewModelTest {
             games = games,
             flags = flags,
             insights = ObserveResultInsights(games, history, ComputeStreak(GetPuzzleDay(games, clock)), GetPuzzleDay(games, clock)),
-            rank = ObserveResultRank(ObserveLeaderboard(FakeIdentityService(initial = identity), leaderboard, games)),
+            rank = ObserveResultRank(ObserveLeaderboard(FakeIdentityService(initial = identity), leaderboard, games, calendar)),
             board = signedOutBoard(),
         )
     }

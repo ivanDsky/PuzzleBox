@@ -12,7 +12,6 @@ core/designsystem/src/main/kotlin/com/ivandsky/puzzlebox/designsystem/States.kt 
 core/designsystem/src/main/kotlin/com/ivandsky/puzzlebox/designsystem/TopBars.kt 2  # S1
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/GetFeaturedGame.kt 2  # S1
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveGameHistory.kt 2  # S1
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveTodayLeaderboard.kt 2  # S1
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/BoardGrid.kt 3  # S1
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/BoardStates.kt 3  # S1
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/DragTrace.kt 3  # S1

@@ -22,7 +22,6 @@ import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
-import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -35,6 +34,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ThemeMode
+import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -73,6 +73,7 @@ class ProfileViewModelTest {
     // Today's board is the featured game's: the registry's first, "zip". Tango ranks hints first.
     private val registry = GameRegistry(listOf(TestGames.plugin(zip), hintsFirst(TestGames.plugin(tango))))
     private val featured = GetFeaturedGame(registry)
+    private val calendar = FakeGameCalendar(day)
     private val clock = Clock.fixed(Instant.parse("2026-10-31T12:00:00Z"), ZoneOffset.UTC)
 
     @get:Rule
@@ -106,11 +107,8 @@ class ProfileViewModelTest {
         val vm = ProfileViewModel(
             identityService = identity,
             idTokenProvider = tokens,
-            observeTodayLeaderboard = ObserveTodayLeaderboard(
-                leaderboard = ObserveLeaderboard(identity, leaderboard, registry),
-                featured = featured,
-                today = { day },
-            ),
+            observeLeaderboard = ObserveLeaderboard(identity, leaderboard, registry, calendar),
+            getFeaturedGame = featured,
             observeGameStats = ObserveGameStats(registry, history, ComputeStreak(GetPuzzleDay(registry, clock))),
             observeGameHistory = history,
             registry = registry,
