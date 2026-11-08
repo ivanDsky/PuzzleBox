@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.ReplaceDraft
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuDraft
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuEditor
+import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuSymmetry
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import kotlinx.coroutines.channels.BufferOverflow
@@ -19,7 +20,8 @@ import kotlinx.coroutines.flow.asStateFlow
  * cell again clears it); a [digit] then places that digit on it, or erases with 0, as one
  * undoable `ReplaceDraft` step sent out through [onEdit]. The selection survives edits so
  * several digits can be tried on one cell. A digit or [erase] with nothing selected edits
- * nothing and fires [nudge]. The VM hands replacement drafts back through [adopt].
+ * nothing and fires [nudge]. With a [symmetry] on, a digit hops the selection to the cell's
+ * empty mirror; the symmetry is a help and constrains nothing. The VM hands replacement drafts back through [adopt].
  */
 class SudokuEditorController(
     initial: EditorDraft<*>,
@@ -28,6 +30,7 @@ class SudokuEditorController(
 
     private val current = MutableStateFlow(typed(initial))
     private val picked = MutableStateFlow<Int?>(null)
+    private val paired = MutableStateFlow(SudokuSymmetry.Off)
     private val nudges = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private val shownOverlay = MutableStateFlow(EditorOverlay())
 
@@ -37,6 +40,9 @@ class SudokuEditorController(
 
     /** The selected cell's row-major index; null when none. */
     val selected: StateFlow<Int?> = picked.asStateFlow()
+
+    /** How cells are paired for the hop and the unpaired outline; Off until cycled. */
+    val symmetry: StateFlow<SudokuSymmetry> = paired.asStateFlow()
 
     /**
      * One event per refused entry (a digit or Erase with no cell selected); the hint shakes
@@ -62,9 +68,16 @@ class SudokuEditorController(
         picked.value = if (picked.value == cell) null else cell
     }
 
+    /** Steps [symmetry] Off → Rotational → Mirror → Off. Not an edit. */
+    fun cycleSymmetry() {
+        val all = SudokuSymmetry.entries
+        paired.value = all[(paired.value.ordinal + 1) % all.size]
+    }
+
     /**
-     * Puts [d] (0 erases) on the selected cell as one `ReplaceDraft` step. Nothing selected:
-     * no edit and a [nudge]. The cell already holding [d]: no edit.
+     * Puts [d] (0 erases) on the selected cell as one `ReplaceDraft` step, then hops to the
+     * cell's mirror when [symmetry] is on and that cell is empty. Nothing selected: no edit
+     * and a [nudge]. The cell already holding [d]: no edit.
      */
     fun digit(d: Int) {
         val cell = picked.value
@@ -76,6 +89,12 @@ class SudokuEditorController(
         require(d in 0..before.size) { "digit $d outside 0..${before.size}" }
         if (before.givens[cell] == d) return
         replace(before, before.copy(givens = before.givens.toMutableList().also { it[cell] = d }))
+        if (d != 0) hopToMirror(cell, before)
+    }
+
+    private fun hopToMirror(cell: Int, board: SudokuDraft) {
+        val mirror = paired.value.mirrorOf(cell, board.size) ?: return
+        if (board.givens[mirror] == 0) picked.value = mirror
     }
 
     /** Empties the selected cell as one step: [digit] with 0. */

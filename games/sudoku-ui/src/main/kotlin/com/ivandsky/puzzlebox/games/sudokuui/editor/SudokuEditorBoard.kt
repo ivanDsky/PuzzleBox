@@ -1,9 +1,25 @@
 package com.ivandsky.puzzlebox.games.sudokuui.editor
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -33,14 +49,18 @@ import com.ivandsky.puzzlebox.games.sudokuui.SudokuSizing
 /**
  * The editor's board: the play [SudokuGrid] over the [controller]'s draft, every placed digit
  * drawn as a given. A tap on a cell selects it; below it sit the counted digit keys and the
- * tools row (Erase, Clear). Sized by [SudokuSizing] for the space [modifier] gives it.
+ * tools row (Erase, Clear, Symmetry). Empty cells whose mirror holds a given are outlined
+ * dashed; empty peers where the selected digit would clash are hatched. Sized by [SudokuSizing] for the space [modifier] gives it.
  */
 @Composable
 internal fun SudokuEditorBoard(controller: SudokuEditorController, geometry: SudokuGeometry, modifier: Modifier = Modifier) {
     val draft by controller.draft.collectAsState()
     val selected by controller.selected.collectAsState()
     val board = draft.state.draft as SudokuDraft
+    val symmetry by controller.symmetry.collectAsState()
     val model = remember(board, selected) { editorBoardModel(board, geometry, selected) }
+    val unpaired = remember(board, symmetry) { symmetry.unpaired(board) }
+    val hatched = remember(board, selected) { wouldClash(board, geometry, selected) }
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
         val roomy = SudokuSizing.layout(maxWidth, maxHeight, board.size, boardMax = PlayBoardMaxWidth)
         // A cramped pane budgets no action row; the tools row takes a minimum-height one.
@@ -56,11 +76,20 @@ internal fun SudokuEditorBoard(controller: SudokuEditorController, geometry: Sud
             verticalArrangement = Arrangement.spacedBy(layout.keyGap),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            SudokuGrid(model, controller::tap, Modifier.size(layout.board))
+            Box(Modifier.size(layout.board)) {
+                SudokuGrid(model, controller::tap, Modifier.fillMaxSize())
+                SudokuEditorMarks(board.size, unpaired, hatched, Modifier.fillMaxSize())
+            }
             SudokuEditorKeypad(controller, board, layout)
-            SudokuEditorTools(controller, board.givens.any { it != 0 }, toolHeight)
+            SudokuEditorTools(controller, board.givens.any { it != 0 }, unpaired.size, toolHeight)
         }
     }
+}
+
+/** The empty peers of a selected digit's cell: placing that digit on any of them would clash. */
+private fun wouldClash(draft: SudokuDraft, geometry: SudokuGeometry, selected: Int?): Set<Int> {
+    if (selected == null || draft.givens[selected] == 0) return emptySet()
+    return geometry.peersOf(selected).filterTo(mutableSetOf()) { draft.givens[it] == 0 }
 }
 
 /** Peers and same-digit cells of the selection are tinted like play's; a digit clashing with a peer is flagged. */
@@ -86,6 +115,62 @@ private fun editorBoardModel(draft: SudokuDraft, geometry: SudokuGeometry, selec
     }
     return SudokuBoardModel(geometry.size, geometry.boxRows, geometry.boxCols, models)
 }
+
+/**
+ * Dashed outlines on the [outlined] cells and 22% stripes on the [hatched] ones, laid over the
+ * grid inside its frame. Taps pass through to the grid.
+ */
+@Composable
+private fun SudokuEditorMarks(size: Int, outlined: Set<Int>, hatched: Set<Int>, modifier: Modifier = Modifier) {
+    // The grid insets its cells by its outer frame stroke; this overlay has to match it.
+    val frame = if (size > MINI_SIZE) 2.dp else 3.dp
+    val outline = MaterialTheme.colorScheme.onTertiaryContainer
+    val stripe = LocalBoardColors.current.editorSplitHatch.copy(alpha = HATCH_ALPHA)
+    Column(modifier.padding(frame)) {
+        for (row in 0 until size) {
+            Row(Modifier.weight(1f).fillMaxWidth()) {
+                for (col in 0 until size) {
+                    val idx = row * size + col
+                    val cell = Modifier.weight(1f).fillMaxHeight()
+                    when {
+                        idx in hatched -> Box(cell.testTag("sudoku.editor.hatch").drawBehind { drawStripes(stripe) })
+                        idx in outlined -> Box(cell.testTag("sudoku.editor.unpaired.cell").drawBehind { drawDashedOutline(outline) })
+                        else -> Box(cell)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private const val MINI_SIZE = 6
+private const val HATCH_ALPHA = 0.22f
+
+private fun DrawScope.drawStripes(color: Color) {
+    val pitch = size.minDimension / STRIPES_PER_CELL
+    clipRect {
+        var start = -size.height
+        while (start < size.width) {
+            drawLine(color, Offset(start, size.height), Offset(start + size.height, 0f), strokeWidth = pitch / 2)
+            start += pitch
+        }
+    }
+}
+
+private fun DrawScope.drawDashedOutline(color: Color) {
+    val width = OUTLINE_STROKE.toPx()
+    val dash = size.minDimension / DASHES_PER_SIDE
+    drawRect(
+        color,
+        topLeft = Offset(width, width),
+        size = Size(size.width - 2 * width, size.height - 2 * width),
+        style = Stroke(width, pathEffect = PathEffect.dashPathEffect(floatArrayOf(dash, dash))),
+    )
+}
+
+private const val STRIPES_PER_CELL = 4
+private const val DASHES_PER_SIDE = 6
+private val OUTLINE_STROKE = 2.dp
 
 @PuzzleBoxPreviews
 @Preview(name = "Compact width", widthDp = 360, heightDp = 480, showBackground = true)
