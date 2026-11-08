@@ -18,8 +18,8 @@ import kotlinx.coroutines.flow.asStateFlow
  * The Tango editor screen's live draft. Each committed step goes out through [onEdit]; the
  * VM hands replacement drafts back through [adopt]. A press over a square or an edge shows
  * in [preview]; [release] commits its cycle step (empty, sun, moon; or none, `=`, `×`) as
- * one undoable command and [cancelPress] drops it. Tango has no witness overlay, so
- * [overlay] stays empty.
+ * one undoable command and [cancelPress] drops it. The verdict card's witness choice arrives
+ * through [adoptOverlay] and the board draws it from [overlay].
  */
 class TangoEditorController(
     initial: EditorDraft<*>,
@@ -28,11 +28,11 @@ class TangoEditorController(
 
     private val current = MutableStateFlow(typed(initial))
     private val pressed = MutableStateFlow<TangoEditorTarget?>(null)
-    private val noOverlay = MutableStateFlow(EditorOverlay())
+    private val chosen = MutableStateFlow(EditorOverlay())
 
     override val draft: StateFlow<EditorDraft<*>> = current.asStateFlow()
 
-    override val overlay: StateFlow<EditorOverlay> = noOverlay.asStateFlow()
+    override val overlay: StateFlow<EditorOverlay> = chosen.asStateFlow()
 
     /** What the finger is down on, or null; the board shows [commandFor] of it applied. */
     val preview: StateFlow<TangoEditorTarget?> = pressed.asStateFlow()
@@ -41,7 +41,9 @@ class TangoEditorController(
         current.value = typed(draft)
     }
 
-    override fun adoptOverlay(overlay: EditorOverlay) = Unit
+    override fun adoptOverlay(overlay: EditorOverlay) {
+        chosen.value = overlay
+    }
 
     fun press(target: TangoEditorTarget) {
         pressed.value = target
