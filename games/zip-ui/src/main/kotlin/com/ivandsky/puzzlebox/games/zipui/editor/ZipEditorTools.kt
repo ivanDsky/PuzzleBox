@@ -27,12 +27,12 @@ import com.ivandsky.puzzlebox.games.zip.editor.ZipDraft
 /**
  * Under the grid: the step tabs (tags `zip.editor.step.<path|numbers|walls>`) and the current
  * step's actions. Path offers Reverse and Clear path (tags `zip.editor.reverse`,
- * `zip.editor.clearPath`).
+ * `zip.editor.clearPath`); Walls offers Clear walls (tag `zip.editor.clearWalls`).
  */
 @Composable
 internal fun ZipEditorTools(controller: ZipEditorController, modifier: Modifier = Modifier) {
     val step by controller.step.collectAsState()
-    ZipEditorTools(step, controller::select, controller::reverse, controller::clearPath, modifier)
+    ZipEditorTools(step, controller::select, controller::reverse, controller::clearPath, controller::clearWalls, modifier)
 }
 
 @Composable
@@ -41,6 +41,7 @@ internal fun ZipEditorTools(
     onSelect: (ZipEditorStep) -> Unit,
     onReverse: () -> Unit,
     onClearPath: () -> Unit,
+    onClearWalls: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth().padding(top = Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -63,6 +64,9 @@ internal fun ZipEditorTools(
                 TextButton(onReverse, Modifier.testTag("zip.editor.reverse")) { Text("Reverse") }
                 TextButton(onClearPath, Modifier.testTag("zip.editor.clearPath")) { Text("Clear path") }
             }
+        }
+        if (step == ZipEditorStep.Walls) {
+            TextButton(onClearWalls, Modifier.testTag("zip.editor.clearWalls")) { Text("Clear walls") }
         }
     }
 }
@@ -114,7 +118,7 @@ internal fun ZipEditorHint(state: ZipEditorHintState, modifier: Modifier = Modif
 private fun ZipEditorToolsPathPreview() {
     PuzzleBoxTheme {
         Column {
-            ZipEditorTools(ZipEditorStep.Path, {}, {}, {})
+            ZipEditorTools(ZipEditorStep.Path, {}, {}, {}, {})
             ZipEditorHint(ZipEditorHintState(covered = 18, total = 25))
         }
     }
@@ -126,8 +130,15 @@ private fun ZipEditorToolsPathPreview() {
 private fun ZipEditorToolsNumbersPreview() {
     PuzzleBoxTheme {
         Column {
-            ZipEditorTools(ZipEditorStep.Numbers, {}, {}, {})
+            ZipEditorTools(ZipEditorStep.Numbers, {}, {}, {}, {})
             ZipEditorHint(ZipEditorHintState(covered = 25, total = 25))
         }
     }
+}
+
+@PuzzleBoxPreviews
+@Preview(name = "Zip tools, Walls", widthDp = 360, showBackground = true, group = "Zip editor tools")
+@Composable
+private fun ZipEditorToolsWallsPreview() {
+    PuzzleBoxTheme { ZipEditorTools(ZipEditorStep.Walls, {}, {}, {}, {}) }
 }
