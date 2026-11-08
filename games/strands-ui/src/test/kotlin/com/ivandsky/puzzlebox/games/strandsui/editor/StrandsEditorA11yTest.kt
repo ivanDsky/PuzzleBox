@@ -62,6 +62,16 @@ class StrandsEditorA11yTest {
     }
 
     @Test
+    fun `a cell being traced loses its idle tile`() {
+        controller.traceTo(0)
+        show()
+        val traced = rule.onAllNodesWithTag("strands.editor.cell.empty", useUnmergedTree = true)
+            .fetchSemanticsNodes().count { node -> node.boundsInRoot.center == rule.onNodeWithTag("strands.editor.cell.0").fetchSemanticsNode().boundsInRoot.center }
+        assertEquals(0, traced)
+        assertEquals(StrandsDraft.ROWS * StrandsDraft.COLS - 1, rule.onAllNodesWithTag("strands.editor.cell.empty", useUnmergedTree = true).fetchSemanticsNodes().size)
+    }
+
+    @Test
     fun `every path row is a full touch target`() {
         path(0, 1)
         path(6, 7, 8)

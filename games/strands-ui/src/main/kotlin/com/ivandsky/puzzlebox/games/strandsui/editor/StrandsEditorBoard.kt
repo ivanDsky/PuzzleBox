@@ -20,6 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.invisibleToUser
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSpec
+import com.ivandsky.puzzlebox.games.strandsui.board.drawTokenSquare
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -101,7 +103,7 @@ internal fun StrandsEditorBoard(
                 val tail = selected?.let { board.paths[it] }
                 StrandsDiagnosticsLayer(diagnostics, Modifier.fillMaxSize())
                 val missing = (tail?.let { word.length - it.cells.size } ?: 0).coerceAtLeast(0)
-                val covered = remember(board.paths) { board.paths.flatMap { it.cells }.toSet() }
+                val covered = remember(board.paths, live) { board.paths.flatMap { it.cells }.toSet() + live.toSet() }
                 CellTaps(
                     onTap = controller::tapCell,
                     extendAt = tail?.cells?.last()?.takeIf { missing > 0 },
@@ -204,11 +206,11 @@ private fun CellTaps(
     }
 }
 
-/** A filled tile with an outline stroke: the empty look of a cell no word has claimed yet. */
+/** A filled tile in the play token's rounded square: the empty look of an unclaimed cell. */
 private fun DrawScope.drawEmptyTile(fill: Color, outline: Color) {
-    drawRect(color = fill)
-    val width = 1.dp.toPx()
-    drawRect(color = outline, style = Stroke(width))
+    val half = size.minDimension / 2f * StrandsBoardSpec.TokenFraction
+    drawTokenSquare(fill, half)
+    drawTokenSquare(outline, half, style = Stroke(1.dp.toPx()))
 }
 
 /** A dashed rectangle just inside the cell: the mark of a cell no word can fill. */
