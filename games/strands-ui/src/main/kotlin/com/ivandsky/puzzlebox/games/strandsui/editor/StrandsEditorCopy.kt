@@ -11,6 +11,12 @@ import com.ivandsky.puzzlebox.games.strands.editor.StrandsPublishGates
  */
 internal object StrandsEditorCopy {
 
+    /** The word field's label and resting placeholder, so the two boxes tell themselves apart. */
+    const val WORD_FIELD = "Word for this path…"
+
+    /** The clue field's label, so the two boxes tell themselves apart. */
+    const val CLUE_FIELD = "Theme clue"
+
     /**
      * The row for [id] with its [count] and the [word] a word block is about; null for an id
      * Strands has no copy for.
