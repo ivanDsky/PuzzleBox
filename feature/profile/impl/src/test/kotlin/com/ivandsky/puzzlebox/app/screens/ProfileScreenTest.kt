@@ -8,9 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -21,17 +18,15 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.data.identity.Identity
-import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
-import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
-import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.profile.board.GameRow
+import com.ivandsky.puzzlebox.profile.board.PerGameBoard
 import com.ivandsky.puzzlebox.model.ThemeMode
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -56,18 +51,13 @@ class ProfileScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val boardRef = LeaderboardRef("zip", LocalDate.of(2026, 10, 31))
     private val zip = GameId("zip")
     private val tango = GameId("tango")
     private val games = listOf(
-        ProfileUiState.GameRow(zip, "Zip", GameBrand.Neutral, solved = 4, BestScore(41_000, hints = 0), RankOrder.TimeThenHints),
-        ProfileUiState.GameRow(tango, "Tango", GameBrand.Neutral, solved = 0, best = null, RankOrder.TimeThenHints),
+        GameRow(zip, "Zip", GameBrand.Neutral, solved = 4, BestScore(41_000, hints = 0), RankOrder.TimeThenHints),
+        GameRow(tango, "Tango", GameBrand.Neutral, solved = 0, best = null, RankOrder.TimeThenHints),
     )
     private val me = Identity(uid = "u1", displayName = "Ann", photoUrl = null)
-    private val entries = listOf(
-        LeaderboardEntry("u2", "Bo", "zip/2026-10-31/592", 80_000, 0, 1_700_000_000_000),
-        LeaderboardEntry("u1", "Ann", "zip/2026-10-31/592", 95_000, 2, 1_700_000_000_000),
-    )
 
     private var signInClicks = 0
     private var signOutClicks = 0
@@ -76,7 +66,17 @@ class ProfileScreenTest {
     private val picked = mutableListOf<GameId>()
     private val themes = mutableListOf<ThemeMode>()
 
-    private fun setContent(account: ProfileUiState.Account) = setContent(ProfileUiState(account = account, games = games))
+    private fun setContent(account: ProfileUiState.Account) = setContent(
+        ProfileUiState(
+            account = account,
+            games = games,
+            perGameBoard = PerGameBoard(
+                null,
+                RankOrder.TimeThenHints,
+                if (account is ProfileUiState.Account.SignedIn) DailyBoardState.Loading else DailyBoardState.SignedOut,
+            ),
+        ),
+    )
 
     private fun setContent(state: ProfileUiState, showCatalog: Boolean = true) {
         signInClicks = 0
@@ -98,13 +98,13 @@ class ProfileScreenTest {
     }
 
     @Test
-    fun `signed out shows the sign-in prompt, no leaderboard (A7)`() {
+    fun `signed out shows the sign-in prompt (A7)`() {
         setContent(ProfileUiState.Account.SignedOut())
 
         composeRule.onNodeWithTag("profile-signed-out").assertExists()
         composeRule.onNodeWithText("Sign in with Google").assertExists()
         composeRule.onNodeWithTag("profile-signed-in").assertDoesNotExist()
-        composeRule.onNodeWithText("Today's leaderboard").assertDoesNotExist()
+        composeRule.onNodeWithText("Sign in with Google to put your times on the leaderboards.").assertExists()
 
         composeRule.onNodeWithText("Sign in with Google").performScrollTo().performClick()
         assertEquals(1, signInClicks)
@@ -133,15 +133,9 @@ class ProfileScreenTest {
 
     @Test
     fun `signed in shows the display name and sign-out`() {
-        setContent(
-            ProfileUiState.Account.SignedIn(
-                identity = me,
-                board = TodayLeaderboard.Board.Loaded(LeaderboardSnapshot(boardRef, entries)),
-            ),
-        )
+        setContent(ProfileUiState.Account.SignedIn(identity = me))
 
         composeRule.onNodeWithTag("profile-signed-in").assertExists()
-        // "Ann" appears both as the header display name and in the leaderboard row.
         composeRule.onAllNodesWithText("Ann").onFirst().assertExists()
         composeRule.onNodeWithText("Sign out").assertExists()
         composeRule.onNodeWithTag("profile-signed-out").assertDoesNotExist()
@@ -150,52 +144,7 @@ class ProfileScreenTest {
         assertEquals(1, signOutClicks)
     }
 
-    @Test
-    fun `leaderboard renders rank, name, time and hints`() {
-        setContent(
-            ProfileUiState.Account.SignedIn(
-                identity = me,
-                board = TodayLeaderboard.Board.Loaded(LeaderboardSnapshot(boardRef, entries)),
-            ),
-        )
-
-        composeRule.onNodeWithTag("leaderboard").assertExists()
-        composeRule.onNodeWithText("Bo").assertExists()
-        composeRule.onNodeWithText("1:20 · 0 hints").assertExists()
-        composeRule.onNodeWithText("1:35 · 2 hints").assertExists()
-        composeRule.onNodeWithTag("leaderboard-row-self").assertExists()
-    }
-
-    @Test
-    fun `empty board shows the first-entry invitation`() {
-        setContent(
-            ProfileUiState.Account.SignedIn(
-                identity = me,
-                board = TodayLeaderboard.Board.Loaded(LeaderboardSnapshot(boardRef, emptyList())),
-            ),
-        )
-
-        // The empty-board line names no game (A20).
-        games.forEach { game ->
-            composeRule
-                .onNode(hasAnyAncestor(hasTestTag("leaderboard")) and hasText(game.name, substring = true))
-                .assertDoesNotExist()
-        }
-        composeRule.onNodeWithTag("leaderboard-row-self").assertDoesNotExist()
-    }
-
-    @Test
-    fun `unobservable board degrades to a soft state, never an error (A7)`() {
-        setContent(
-            ProfileUiState.Account.SignedIn(
-                identity = me,
-                board = TodayLeaderboard.Board.Unavailable,
-            ),
-        )
-
-        composeRule.onNodeWithText("Leaderboard unavailable right now.").assertExists()
-        assertTrue(catalogClicks == 0)
-    }
+    private val signedIn = ProfileUiState.Account.SignedIn(me)
 
     @Test
     fun `a game row opens that game's history - N3`() {
@@ -213,6 +162,7 @@ class ProfileScreenTest {
                 stats = ProfileUiState.NO_STATS.copy(solved = 4, bestStreak = 3, hintFree = 2, playingSince = LocalDate.of(2026, 3, 9)),
                 daysPlayed = 5,
                 games = games,
+                perGameBoard = PerGameBoard(null, RankOrder.TimeThenHints, DailyBoardState.SignedOut),
             ),
         )
 
@@ -227,7 +177,7 @@ class ProfileScreenTest {
 
     @Test
     fun `playing since is hidden before the first solve`() {
-        setContent(ProfileUiState(games = games))
+        setContent(ProfileUiState(games = games, perGameBoard = PerGameBoard(null, RankOrder.TimeThenHints, DailyBoardState.SignedOut)))
 
         composeRule.onNodeWithTag("profile.header").assertExists()
         composeRule.onNodeWithTag("profile.playing_since").assertDoesNotExist()
@@ -235,7 +185,7 @@ class ProfileScreenTest {
 
     @Test
     fun `appearance shows the current mode and reports a choice - N4`() {
-        setContent(ProfileUiState(themeMode = ThemeMode.LIGHT, games = games))
+        setContent(ProfileUiState(themeMode = ThemeMode.LIGHT, games = games, perGameBoard = PerGameBoard(null, RankOrder.TimeThenHints, DailyBoardState.SignedOut)))
 
         composeRule.onNodeWithTag("profile.appearance.light").performScrollTo().assertIsSelected()
         composeRule.onNodeWithTag("profile.appearance.dark").performScrollTo().performClick()
@@ -245,21 +195,19 @@ class ProfileScreenTest {
 
     @Test
     fun `the catalog link shows only when offered`() {
-        setContent(ProfileUiState(games = games), showCatalog = false)
+        setContent(ProfileUiState(games = games, perGameBoard = PerGameBoard(null, RankOrder.TimeThenHints, DailyBoardState.SignedOut)), showCatalog = false)
 
         composeRule.onNodeWithTag("profile.catalog").assertDoesNotExist()
     }
 
-    private val signedIn = ProfileUiState.Account.SignedIn(me, TodayLeaderboard.Board.Unavailable)
-
     @Test
-    fun `flag on shows a chip per game over the shared board and reports a pick`() {
+    fun `shows a chip per game over the shared board and reports a pick`() {
         val rows = listOf(DailyBoardRowModel(1, "Bo", 80_000, 0, isSelf = false))
         setContent(
             ProfileUiState(
                 account = signedIn,
                 games = games,
-                perGameBoard = ProfileUiState.PerGameBoard(zip, RankOrder.TimeThenHints, DailyBoardState.Ranked(rows)),
+                perGameBoard = PerGameBoard(zip, RankOrder.TimeThenHints, DailyBoardState.Ranked(rows)),
             ),
         )
 
@@ -299,20 +247,20 @@ class ProfileScreenTest {
 
     /** A2: the chips render in the game order (zip, tango, queens, strands, minisudoku). */
     @Test
-    fun `flag on shows the chips in game order`() {
+    fun `shows the chips in game order`() {
         val queens = GameId("queens")
         val strands = GameId("strands")
         val minisudoku = GameId("minisudoku")
         val allGames = games + listOf(
-            ProfileUiState.GameRow(queens, "Queens", GameBrand.Neutral, solved = 0, best = null, RankOrder.TimeThenHints),
-            ProfileUiState.GameRow(strands, "Strands", GameBrand.Neutral, solved = 0, best = null, RankOrder.TimeThenHints),
-            ProfileUiState.GameRow(minisudoku, "MiniSudoku", GameBrand.Neutral, solved = 0, best = null, RankOrder.TimeThenHints),
+            GameRow(queens, "Queens", GameBrand.Neutral, solved = 0, best = null, RankOrder.TimeThenHints),
+            GameRow(strands, "Strands", GameBrand.Neutral, solved = 0, best = null, RankOrder.TimeThenHints),
+            GameRow(minisudoku, "MiniSudoku", GameBrand.Neutral, solved = 0, best = null, RankOrder.TimeThenHints),
         )
         setContentWide(
             ProfileUiState(
                 account = signedIn,
                 games = allGames,
-                perGameBoard = ProfileUiState.PerGameBoard(zip, RankOrder.TimeThenHints, DailyBoardState.Loading),
+                perGameBoard = PerGameBoard(zip, RankOrder.TimeThenHints, DailyBoardState.Loading),
             ),
         )
 
@@ -327,12 +275,12 @@ class ProfileScreenTest {
     }
 
     @Test
-    fun `flag on with the default pending shows Loading under no selected chip`() {
+    fun `with the default pending shows Loading under no selected chip`() {
         setContent(
             ProfileUiState(
                 account = signedIn,
                 games = games,
-                perGameBoard = ProfileUiState.PerGameBoard(null, RankOrder.TimeThenHints, DailyBoardState.Loading),
+                perGameBoard = PerGameBoard(null, RankOrder.TimeThenHints, DailyBoardState.Loading),
             ),
         )
 
@@ -341,11 +289,11 @@ class ProfileScreenTest {
     }
 
     @Test
-    fun `flag on signed out keeps the sign-in card, says leaderboards, no switcher`() {
+    fun `signed out keeps the sign-in card, says leaderboards, no switcher`() {
         setContent(
             ProfileUiState(
                 games = games,
-                perGameBoard = ProfileUiState.PerGameBoard(null, RankOrder.TimeThenHints, DailyBoardState.SignedOut),
+                perGameBoard = PerGameBoard(null, RankOrder.TimeThenHints, DailyBoardState.SignedOut),
             ),
         )
 
@@ -353,13 +301,4 @@ class ProfileScreenTest {
         composeRule.onNodeWithTag("profile-board-chip-zip").assertDoesNotExist()
     }
 
-    @Test
-    fun `flag off keeps the legacy board and no chips`() {
-        setContent(
-            ProfileUiState.Account.SignedIn(me, TodayLeaderboard.Board.Loaded(LeaderboardSnapshot(boardRef, entries))),
-        )
-
-        composeRule.onNodeWithTag("leaderboard").assertExists()
-        composeRule.onNodeWithTag("profile-board-chip-zip").assertDoesNotExist()
-    }
 }

@@ -2,8 +2,6 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
@@ -31,8 +29,8 @@ import kotlinx.coroutines.flow.stateIn
 
 /**
  * The tablet play side panel's state holder (A15) for one [slot]: maps [ObservePlayStats]
- * to what the panel draws, the week strip in this game's brand. With the per-game board on,
- * the player's post status from [posts] stands in for the plain Posting line.
+ * to what the panel draws, the week strip in this game's brand, rank-ordered by the game's
+ * rule. The player's post status from [posts] stands in for the plain Posting line.
  */
 class PlayStatsViewModel(
     private val slot: PlaySlot,
@@ -40,7 +38,6 @@ class PlayStatsViewModel(
     private val brands: GamePlayRegistry,
     private val calendar: GameCalendar,
     observePlayStats: ObservePlayStats,
-    releaseFlags: ReleaseFlags,
     private val posts: SubmitStatusTracker,
 ) : ViewModel() {
 
@@ -58,13 +55,11 @@ class PlayStatsViewModel(
     )
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    internal val state: StateFlow<PlayStatsState> = combine(observePlayStats(slot), releaseFlags.enabled) { stats, flags ->
-        stats to (ReleaseFlag.PerGameLeaderboards in flags)
-    }
-        .flatMapLatest { (stats, perGame) -> post(stats.board, perGame).map { post -> toState(stats, perGame, post) } }
+    internal val state: StateFlow<PlayStatsState> = observePlayStats(slot)
+        .flatMapLatest { stats -> post(stats.board).map { post -> toState(stats, post) } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), initial)
 
-    private fun toState(stats: PlayStats, perGame: Boolean, post: SubmitStatus?): PlayStatsState = initial.copy(
+    private fun toState(stats: PlayStats, post: SubmitStatus?): PlayStatsState = initial.copy(
         solvedToday = stats.solvedToday,
         gamesToday = stats.gamesToday,
         streak = stats.stats.currentStreak,
@@ -72,14 +67,14 @@ class PlayStatsViewModel(
         best = stats.stats.best,
         rankOrder = stats.stats.rankOrder,
         averageMs = stats.stats.averageTimeMs,
-        times = times(stats.board, stats.solved, perGame, post),
+        times = times(stats.board, stats.solved, post),
     )
 
-    /** The signed-in player's post to the slot's daily board; null with the per-game board off. */
-    private fun post(board: TodayLeaderboard?, perGame: Boolean): Flow<SubmitStatus?> {
+    /** The signed-in player's post to the slot's daily board; null when none is observed. */
+    private fun post(board: TodayLeaderboard?): Flow<SubmitStatus?> {
         val daily = slot as? PlaySlot.Daily
         val uid = (board as? TodayLeaderboard.SignedIn)?.identity?.uid
-        return if (!perGame || daily == null || uid == null) flowOf(null) else posts.observe(uid, LeaderboardRef(daily.gameId.value, daily.day))
+        return if (daily == null || uid == null) flowOf(null) else posts.observe(uid, LeaderboardRef(daily.gameId.value, daily.day))
     }
 
     /** The seven days ending [today], each ringed when it is one of this game's [streakDays]. */
@@ -91,24 +86,24 @@ class PlayStatsViewModel(
         }
     }
 
-    private fun times(board: TodayLeaderboard?, solved: Boolean, perGame: Boolean, post: SubmitStatus?): PlayTimes = when (board) {
+    private fun times(board: TodayLeaderboard?, solved: Boolean, post: SubmitStatus?): PlayTimes = when (board) {
         null -> PlayTimes.Unavailable
         TodayLeaderboard.SignedOut -> PlayTimes.SignedOut
         is TodayLeaderboard.SignedIn -> when (val state = board.board) {
             TodayLeaderboard.Board.Loading -> PlayTimes.Loading
             TodayLeaderboard.Board.Unavailable -> PlayTimes.Unavailable
-            is TodayLeaderboard.Board.Loaded -> rows(state.snapshot, board.identity.uid, solved, perGame, post)
+            is TodayLeaderboard.Board.Loaded -> rows(state.snapshot, board.identity.uid, solved, post)
         }
     }
 
-    private fun rows(snapshot: LeaderboardSnapshot, uid: String, solved: Boolean, perGame: Boolean, post: SubmitStatus?): PlayTimes.Board {
+    private fun rows(snapshot: LeaderboardSnapshot, uid: String, solved: Boolean, post: SubmitStatus?): PlayTimes.Board {
         val daily = slot as? PlaySlot.Daily
         return PlayTimes.Board(
             rows = snapshot.entries.mapIndexed { index, entry ->
                 PlayTimeRow(rank = index + 1, name = entry.displayName, timeMs = entry.timeMs, hints = entry.hints, you = entry.uid == uid)
             },
             solved = solved,
-            order = if (perGame) registry.rankOrderOf(slot.gameId) else null,
+            order = registry.rankOrderOf(slot.gameId),
             post = post,
             pastDay = daily != null && !calendar.inSubmitWindow(daily.gameId, daily.day),
         )

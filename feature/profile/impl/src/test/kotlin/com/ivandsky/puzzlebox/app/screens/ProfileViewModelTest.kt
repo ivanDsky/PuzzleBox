@@ -2,11 +2,8 @@ package com.ivandsky.puzzlebox.app.screens
 
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.domain.ObserveLatestSolvedToday
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdToken.Unavailable.Reason.CANCELLED
@@ -38,6 +35,7 @@ import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.profile.board.PerGameBoard
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -108,7 +106,6 @@ class ProfileViewModelTest {
         leaderboard: FakeLeaderboardRepository = FakeLeaderboardRepository(),
         completions: FakeCompletionRepository = FakeCompletionRepository(),
         preferences: FakeUserPreferencesRepository = FakeUserPreferencesRepository(),
-        flags: ReleaseFlags = FakeReleaseFlags(),
         savedState: SavedStateHandle = SavedStateHandle(),
         settle: Boolean = true,
     ): Deps {
@@ -123,7 +120,6 @@ class ProfileViewModelTest {
             registry = registry,
             brands = GamePlayRegistry(emptyList()),
             preferences = preferences,
-            releaseFlags = flags,
             observeLatestSolvedToday = ObserveLatestSolvedToday(completions, calendar, registry),
             savedStateHandle = savedState,
         )
@@ -388,32 +384,9 @@ class ProfileViewModelTest {
         assertEquals(1, deps.identity.signOutCalls.size)
     }
 
-    @Test
-    fun `board entries flow into the state`() = runTest(dispatcher) {
-        val deps = viewModel(
-            identity = FakeIdentityService(initial = Identity("u1", "Ann", null)),
-            leaderboard = FakeLeaderboardRepository(),
-        )
 
-        deps.leaderboard.setEntries(
-            boardRef,
-            listOf(
-                LeaderboardEntry("u1", "Ann", "zip/2026-10-31/592", 95_000, 2, 1_700_000_000_000),
-                LeaderboardEntry("u2", "Bo", "zip/2026-10-31/592", 80_000, 0, 1_700_000_000_000),
-            ),
-        )
-        advanceUntilIdle()
+    // ---- Per-game board (ticket 10): selection, SavedStateHandle ------------
 
-        val board = deps.signedIn.board
-        assertTrue(board is TodayLeaderboard.Board.Loaded)
-        val snapshot: LeaderboardSnapshot = (board as TodayLeaderboard.Board.Loaded).snapshot
-        assertEquals(LeaderboardSnapshot.FORMAT_VERSION, snapshot.formatVersion)
-        assertEquals(listOf("Bo", "Ann"), snapshot.entries.map { it.displayName })
-    }
-
-    // ---- Per-game board (ticket 10): selection, flag, SavedStateHandle ------------
-
-    private val on = FakeReleaseFlags(ReleaseFlag.PerGameLeaderboards)
     private val solvedTango = FakeCompletionRepository(
         listOf(record(zip, day, 90_000, 0), record(tango, day, 60_000, 0)).mapIndexed { i, r ->
             r.copy(firstCompletedAt = Instant.parse("2026-10-31T0${i + 8}:00:00Z"))
@@ -421,20 +394,13 @@ class ProfileViewModelTest {
     )
     private val signedInIdentity get() = FakeIdentityService(initial = Identity("u1", "Ann", null))
 
-    private val Deps.board: ProfileUiState.PerGameBoard
-        get() = requireNotNull(vm.uiState.value.perGameBoard)
+    private val Deps.board: PerGameBoard
+        get() = vm.uiState.value.perGameBoard
 
-    @Test
-    fun `flag off has no per-game board and observes the featured game`() = runTest(dispatcher) {
-        val deps = viewModel(identity = signedInIdentity, completions = solvedTango)
-
-        assertNull(deps.vm.uiState.value.perGameBoard)
-        assertEquals(listOf(boardRef), deps.leaderboard.observedBoards.distinct())
-    }
 
     @Test
     fun `default is the latest solved today and the board follows it`() = runTest(dispatcher) {
-        val deps = viewModel(identity = signedInIdentity, completions = solvedTango, flags = on)
+        val deps = viewModel(identity = signedInIdentity, completions = solvedTango)
 
         assertEquals(tango, deps.board.selected)
         assertEquals(RankOrder.HintsThenTime, deps.board.order)
@@ -443,14 +409,14 @@ class ProfileViewModelTest {
 
     @Test
     fun `default falls back to the first game when nothing was solved today`() = runTest(dispatcher) {
-        val deps = viewModel(identity = signedInIdentity, flags = on)
+        val deps = viewModel(identity = signedInIdentity)
 
         assertEquals(zip, deps.board.selected)
     }
 
     @Test
     fun `the board is Loading, not the first game, before completions first emit`() = runTest(dispatcher) {
-        val deps = viewModel(identity = signedInIdentity, completions = solvedTango, flags = on, settle = false)
+        val deps = viewModel(identity = signedInIdentity, completions = solvedTango, settle = false)
 
         // Initial value: the default is undecided, so no game is selected and the board loads.
         assertNull(deps.board.selected)
@@ -460,7 +426,7 @@ class ProfileViewModelTest {
     @Test
     fun `an explicit pick wins over the default and over a later one`() = runTest(dispatcher) {
         val completions = FakeCompletionRepository()
-        val deps = viewModel(identity = signedInIdentity, completions = completions, flags = on)
+        val deps = viewModel(identity = signedInIdentity, completions = completions)
         assertEquals(zip, deps.board.selected)
 
         deps.vm.onSelectGame(tango)
@@ -476,7 +442,7 @@ class ProfileViewModelTest {
     @Test
     fun `the pick is restored from the SavedStateHandle`() = runTest(dispatcher) {
         val handle = SavedStateHandle(mapOf("selectedGame" to "tango"))
-        val deps = viewModel(identity = signedInIdentity, flags = on, savedState = handle)
+        val deps = viewModel(identity = signedInIdentity, savedState = handle)
 
         assertEquals(tango, deps.board.selected)
 
@@ -487,8 +453,8 @@ class ProfileViewModelTest {
     }
 
     @Test
-    fun `signed out with the flag on has a SignedOut board and observes nothing`() = runTest(dispatcher) {
-        val deps = viewModel(flags = on)
+    fun `signed out has a SignedOut board and observes nothing`() = runTest(dispatcher) {
+        val deps = viewModel()
 
         assertEquals(DailyBoardState.SignedOut, deps.board.state)
         assertTrue(deps.leaderboard.observedBoards.isEmpty())
@@ -496,7 +462,7 @@ class ProfileViewModelTest {
 
     @Test
     fun `the selected game's entries reach the board state`() = runTest(dispatcher) {
-        val deps = viewModel(identity = signedInIdentity, flags = on)
+        val deps = viewModel(identity = signedInIdentity)
         deps.vm.onSelectGame(tango)
         deps.leaderboard.setEntries(
             LeaderboardRef("tango", day),

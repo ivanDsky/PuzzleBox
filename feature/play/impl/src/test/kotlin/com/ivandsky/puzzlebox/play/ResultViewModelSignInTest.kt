@@ -19,7 +19,6 @@ import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleBoard
 import com.ivandsky.puzzlebox.play.friend.oneGoogleAccount
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
@@ -86,7 +85,6 @@ class ResultViewModelSignInTest {
             rollover = GetNextRollover(fakes.games, clock),
             ui = fakes.registry,
             games = fakes.games,
-            flags = FakeReleaseFlags(),
             insights = ObserveResultInsights(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games, clock)), GetPuzzleDay(fakes.games, clock)),
             rank = ObserveResultRank(ObserveLeaderboard(identity, FakeLeaderboardRepository(), fakes.games, calendar)),
             leaderboard = ObserveLeaderboard(identity, FakeLeaderboardRepository(), fakes.games, calendar),
