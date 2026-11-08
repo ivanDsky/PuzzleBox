@@ -74,6 +74,10 @@ data class BoardColors(
     val strandsSpangramConnector: Color,
     val strandsHintConnector: Color,
 
+    // A refused word's traced path (prototype 03): red tokens and connector, letters in ink.
+    val strandsPathError: Color,
+    val strandsPathErrorInk: Color,
+
     // Editor diagnostics (editor spec S19, prototype 03 b): editor-only shading the play
     // board never draws. The "2+ solutions" ring deliberately avoids boardSelection (the
     // play hint tint): a saturated teal, light over dark fills and deep over pastel ones,
@@ -127,6 +131,8 @@ val DarkBoardTokens = BoardColors(
     strandsThemeAltConnector = Color(0xFFFF63E4),
     strandsSpangramConnector = SplashGold,
     strandsHintConnector = Color(0xFFFF77A0),
+    strandsPathError = Color(0xFFFF5449),
+    strandsPathErrorInk = Color.Black,
     editorDiffRing = Color(0xFF7FE3F0), // new: light teal, >= 7:1 over every dark region fill (L* 18–26)
     editorClashFill = DarkColorScheme.error.copy(alpha = 0.75f),
     editorSplitHatch = DarkColorScheme.error,
@@ -170,6 +176,8 @@ val LightBoardTokens = BoardColors(
     strandsThemeAltConnector = Color(0xFFFD00DF),
     strandsSpangramConnector = SplashGold,
     strandsHintConnector = Color(0xFFFF528F),
+    strandsPathError = Color(0xFFBA1A1A),
+    strandsPathErrorInk = Color.White,
     editorDiffRing = Color(0xFF004F58), // deep teal, >= 4.7:1 over every light Candy fill; >= 3.8:1 as the 85% ghost
     editorClashFill = Color(0xFF93000A).copy(alpha = 0.75f), // error tone 30: >= 3.4:1 washed over every light fill
     editorSplitHatch = LightColorScheme.error,

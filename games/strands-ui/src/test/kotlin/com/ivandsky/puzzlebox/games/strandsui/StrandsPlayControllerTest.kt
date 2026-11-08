@@ -19,6 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -141,8 +142,61 @@ class StrandsPlayControllerTest {
         c.play(StrandsUiFixtures.nonTheme.getValue("PIKE"))
 
         assertEquals(WordSlot.Verdict("PIKE", VerdictKind.NonTheme, 1), c.slot)
-        assertEquals(HintUi(available = false, meterThirds = 1), c.hint)
+        assertEquals(HintUi(count = 0, meterThirds = 1), c.hint)
         assertEquals(setOf("PIKE"), lastSaved().state.nonTheme)
+    }
+
+    @Test
+    fun `the hint model counts banked hints and dots toward the next`() {
+        val c = adopted()
+        assertEquals(HintUi(count = 0, meterThirds = 0), c.hint)
+        assertFalse(c.hint.available)
+        listOf("PIKE", "TAKE", "RAKE", "CART").forEach { c.play(StrandsUiFixtures.nonTheme.getValue(it)) }
+        assertEquals(HintUi(count = 1, meterThirds = 1), c.hint)
+        assertTrue(c.hint.available)
+    }
+
+    @Test
+    fun `a submitted word that finds no theme word stays as the trace end of its kind`() {
+        val cases = mapOf(
+            "refused" to (listOf(Coord(0, 0), Coord(1, 1), Coord(2, 2), Coord(3, 3)) to TraceEndKind.Error),
+            "short" to (listOf(Coord(0, 0), Coord(0, 1), Coord(0, 2)) to TraceEndKind.Short),
+            "bonus" to (StrandsUiFixtures.nonTheme.getValue("PIKE") to TraceEndKind.Bonus),
+        )
+        for ((name, case) in cases) {
+            val (path, kind) = case
+            val c = adopted()
+            c.play(path)
+            assertEquals(name, kind, c.traceEnd?.kind)
+            assertEquals(name, path, c.traceEnd?.path)
+            assertTrue(name, c.trace.path.isEmpty())
+        }
+    }
+
+    @Test
+    fun `a repeated word is the repeat kind, and a found word leaves no trace end`() {
+        val c = adopted()
+        c.play(StrandsUiFixtures.row(0))
+        assertNull(c.traceEnd)
+        c.play(StrandsUiFixtures.row(0))
+        assertEquals(TraceEndKind.Repeat, c.traceEnd?.kind)
+    }
+
+    @Test
+    fun `a new trace, an outside tap and a replay drop the trace end, and each verdict has its own seq`() {
+        val c = adopted()
+        c.play(listOf(Coord(0, 0), Coord(0, 1), Coord(0, 2)))
+        val first = c.traceEnd
+        c.play(listOf(Coord(0, 0), Coord(0, 1), Coord(0, 2)))
+        assertNotEquals(first?.seq, c.traceEnd?.seq)
+        c.tap(Coord(1, 0))
+        assertNull(c.traceEnd)
+
+        c.onTrace(TraceInput.outside())
+        c.play(listOf(Coord(0, 0), Coord(0, 1), Coord(0, 2)))
+        assertNotNull(c.traceEnd)
+        c.replay()
+        assertNull(c.traceEnd)
     }
 
     @Test
@@ -196,7 +250,7 @@ class StrandsPlayControllerTest {
         assertNull(c.hintDialog)
 
         listOf("PIKE", "TAKE", "RAKE").forEach { c.play(StrandsUiFixtures.nonTheme.getValue(it)) }
-        assertEquals(HintUi(available = true, meterThirds = 0), c.hint)
+        assertEquals(HintUi(count = 1, meterThirds = 0), c.hint)
 
         c.pressHint()
         assertEquals(1, lastSaved().state.hintsUsed)
