@@ -1,8 +1,11 @@
 package com.ivandsky.puzzlebox.gameui
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -218,4 +221,56 @@ internal fun ResultHeroAllDonePreview() {
         ),
         rolloverAt = previewRollover(),
     )
+}
+
+private val ScreenNewBest = heroSampleFacts(verdict = RecordVerdict.NewBest, timeMs = 58_000L, previous = BestScore(65_000L, 0))
+
+@Composable
+private fun ScreenPreview(facts: ResultHeroFacts = ScreenNewBest) {
+    PuzzleBoxTheme {
+        Surface(color = MaterialTheme.colorScheme.background) {
+            ResultHeroScreen(
+                facts = facts,
+                onPrimary = {},
+                onShare = {},
+                onPlayAgain = {},
+                onSignIn = {},
+                onRetryWrite = {},
+                brand = PreviewBrand,
+                rolloverAt = previewRollover(),
+            )
+        }
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ResultHeroScreenPhonePreview() {
+    PuzzleBoxTheme {
+        Surface(color = MaterialTheme.colorScheme.background) {
+            ResultHeroScreen(
+                facts = ScreenNewBest,
+                onPrimary = {},
+                onShare = {},
+                onPlayAgain = {},
+                onSignIn = {},
+                onRetryWrite = {},
+                brand = PreviewBrand,
+                rolloverAt = previewRollover(),
+            )
+        }
+    }
+}
+
+@Preview(name = "Tablet light", widthDp = 1280, heightDp = 800, uiMode = Configuration.UI_MODE_NIGHT_NO, showBackground = true)
+@Preview(name = "Tablet dark", widthDp = 1280, heightDp = 800, uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
+@Composable
+internal fun ResultHeroScreenTabletPreview() {
+    ScreenPreview()
+}
+
+@Preview(name = "Tablet all done", widthDp = 1280, heightDp = 800, showBackground = true)
+@Composable
+internal fun ResultHeroScreenTabletAllDonePreview() {
+    ScreenPreview(heroSampleFacts(doneToday = 3, primary = ResultPrimaryAction.AllDone))
 }
