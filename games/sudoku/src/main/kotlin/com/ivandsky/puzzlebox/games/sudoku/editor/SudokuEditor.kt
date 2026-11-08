@@ -7,8 +7,10 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.DraftExport
 import com.ivandsky.puzzlebox.game.editor.DraftState
+import com.ivandsky.puzzlebox.game.editor.EditorNotation
 import com.ivandsky.puzzlebox.game.editor.EditorShareCodec
 import com.ivandsky.puzzlebox.game.editor.GameEditor
+import com.ivandsky.puzzlebox.game.editor.NotationResult
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -24,6 +26,7 @@ import com.ivandsky.puzzlebox.model.GameId
 class SudokuEditor(private val definition: SudokuDefinition) :
     GameEditor<SudokuDraft>,
     DraftExport<SudokuDraft>,
+    EditorNotation<SudokuDraft>,
     EditorShareCodec<SudokuDraft> by SudokuShareCodec {
     private val variant = definition.variant
 
@@ -77,6 +80,16 @@ class SudokuEditor(private val definition: SudokuDefinition) :
                 }
             }
         }
+
+    override val notationVersion: Int get() = SudokuNotation.VERSION
+
+    /** Parses at this definition's own size: the header id already chose the editor. */
+    override fun parse(text: String): NotationResult<SudokuDraft> =
+        SudokuNotation.parse(variant.geometry.size, text)
+
+    override fun print(draft: SudokuDraft): String = SudokuNotation.print(draft)
+
+    override fun columns(draft: SudokuDraft): Int = draft.size
 
     override fun analyze(draft: SudokuDraft, budget: Budget): Verdict =
         SudokuDraftAnalyzer.analyze(draft, variant.geometry, budget)
