@@ -1,8 +1,9 @@
 package com.ivandsky.puzzlebox.games.strandsui.editor
 
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,8 +14,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
@@ -60,7 +59,8 @@ private const val BLANK_GLYPH = ' '
  * path, drawn outlined; uncovered areas too small for a word get a dashed outline
  * (`strands.editor.cell.<idx>.pocket`). Under the grid, the word field ([StrandsWordField])
  * names the selected path or, with none, the word the next lift writes; a "+N" handle at a
- * short path's end ([StrandsExtendHandle]) extends it.
+ * short path's end ([StrandsExtendHandle]) extends it. Below, [StrandsPathsPanel] lists the
+ * paths and holds the clue field.
  */
 @Composable
 internal fun StrandsEditorBoard(controller: StrandsEditorController, modifier: Modifier = Modifier) {
@@ -71,37 +71,47 @@ internal fun StrandsEditorBoard(controller: StrandsEditorController, modifier: M
     val board = draft.state.draft as StrandsDraft
     val model = remember(board, live, selected) { modelOf(board, live, selected) }
     val pockets = remember(board.paths) { StrandsPockets.of(board).flatten().toSet() }
-    Column(modifier) {
-        Box(Modifier.weight(1f)) {
-            StrandsBoardContent(
-                model = model,
-                found = null,
-                reduceMotion = rememberReducedMotion(),
-                trace = { Trace(controller.trace.value.map(::coordOf)) },
-                onTrace = controller::step,
-                modifier = Modifier.fillMaxSize().testTag("strands.editor.board"),
-            )
-            val tail = selected?.let { board.paths[it] }
-            val missing = (tail?.let { word.length - it.cells.size } ?: 0).coerceAtLeast(0)
-            CellTaps(
-                onTap = controller::tapCell,
-                extendAt = tail?.cells?.last()?.takeIf { missing > 0 },
-                missing = missing,
-                onExtend = controller::extend,
-                pockets = pockets,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-        PathChips(board, selected, controller::selectPath)
-        selected?.let { index ->
-            StrandsSpangramToggle(
-                index = index,
-                isSpangram = board.spangram == index,
-                onToggle = { controller.toggleSpangram(index) },
+    // The grid keeps its touch size and the column scrolls, so the panel never squeezes the board.
+    BoxWithConstraints(modifier) {
+        val cell = strandsCellSizeFor(maxWidth, Dp.Infinity, StrandsDraft.ROWS, StrandsDraft.COLS)
+        Column(Modifier.verticalScroll(rememberScrollState())) {
+            Box(Modifier.fillMaxWidth().height(cell * StrandsDraft.ROWS)) {
+                StrandsBoardContent(
+                    model = model,
+                    found = null,
+                    reduceMotion = rememberReducedMotion(),
+                    trace = { Trace(controller.trace.value.map(::coordOf)) },
+                    onTrace = controller::step,
+                    modifier = Modifier.fillMaxSize().testTag("strands.editor.board"),
+                )
+                val tail = selected?.let { board.paths[it] }
+                val missing = (tail?.let { word.length - it.cells.size } ?: 0).coerceAtLeast(0)
+                CellTaps(
+                    onTap = controller::tapCell,
+                    extendAt = tail?.cells?.last()?.takeIf { missing > 0 },
+                    missing = missing,
+                    onExtend = controller::extend,
+                    pockets = pockets,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            selected?.let { index ->
+                StrandsSpangramToggle(
+                    index = index,
+                    isSpangram = board.spangram == index,
+                    onToggle = { controller.toggleSpangram(index) },
+                    modifier = Modifier.padding(top = Spacing.sm),
+                )
+            }
+            StrandsWordField(controller)
+            StrandsPathsPanel(
+                board = board,
+                selected = selected,
+                onSelect = controller::selectPath,
+                onClue = controller::setClue,
                 modifier = Modifier.padding(top = Spacing.sm),
             )
         }
-        StrandsWordField(controller)
     }
 }
 
@@ -161,25 +171,6 @@ private fun CellTaps(
                     )
                 }
             }
-        }
-    }
-}
-
-/** One chip per path, `strands.editor.path.<i>`: a tap selects it, a second tap lets it go. */
-@Composable
-private fun PathChips(board: StrandsDraft, selected: Int?, onSelect: (Int?) -> Unit) {
-    if (board.paths.isEmpty()) return
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = Spacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        board.paths.forEachIndexed { index, path ->
-            FilterChip(
-                selected = index == selected,
-                onClick = { onSelect(index.takeUnless { it == selected }) },
-                label = { Text(path.word ?: path.cells.size.toString(), maxLines = 1) },
-                modifier = Modifier.testTag("strands.editor.path.$index"),
-            )
         }
     }
 }
