@@ -29,8 +29,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.maxContentWidth
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.gameui.GameGlyph
-import com.ivandsky.puzzlebox.gameui.GameGlyphSize
+import com.ivandsky.puzzlebox.gameui.GameFilterChip
 import com.ivandsky.puzzlebox.model.GameId
 
 /** FAB height plus its bottom gap: the last row scrolls clear of the button. */
@@ -162,12 +161,12 @@ private fun LazyListScope.searchItems(state: CreateUiState, onQuery: (String) ->
                 )
             }
             items(state.filters, key = { it.id.value }) { chip ->
-                FilterChip(
+                GameFilterChip(
+                    brand = chip.brand,
+                    label = "${chip.name} ${chip.count}",
                     selected = state.filter == chip.id,
                     onClick = { onFilter(chip.id) },
-                    label = { Text("${chip.name} ${chip.count}") },
                     modifier = Modifier.testTag("create.filter.${chip.id.value}"),
-                    leadingIcon = { GameGlyph(chip.brand, GameGlyphSize.Inline) },
                 )
             }
         }
