@@ -27,7 +27,9 @@ chrome. The Play tab opened Queens directly, skipping the game picker.
    a given window size (pinned by app's `PlayBoardPositionTest`).
    - `GamePlayUi.clearFor(controller): PlayClear?` is the Clear seam: Zip empties its
      trace as one undo step (`ZipTraceEdits`), Queens clears the whole board, and Tango
-     returns null, which hides the button.
+     wipes its placements (`TangoClear`, one undo unit). Clear is never disabled: on an
+     empty or finished board it is a no-op. Sudoku returns null because its Clear sits in
+     the keypad (and the TwoPane toolbar), equally never disabled.
    - `GamePlayUi.overflowFor(controller): List<PlayOverflowItem>` carries a game's
      toggles into the overflow menu; Queens' Auto-cross lives only there.
    - `PlaySolveFrame` wraps the board: a solve made in play runs `SolveSweep` in the

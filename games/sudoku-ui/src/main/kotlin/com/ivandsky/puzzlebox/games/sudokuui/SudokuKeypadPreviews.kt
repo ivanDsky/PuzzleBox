@@ -28,7 +28,7 @@ internal fun SudokuKeypadSixPreview() {
     val layout = paneLayout(6, TallPhonePane)
     PuzzleBoxTheme {
         SudokuKeypad(
-            model = SudokuKeypadModel(size = 6, remaining = SIX_REMAINING, notesMode = false, canClear = true, solved = false),
+            model = SudokuKeypadModel(size = 6, remaining = SIX_REMAINING, notesMode = false, solved = false),
             onDigit = {},
             onErase = {},
             onClear = {},
@@ -48,7 +48,7 @@ internal fun SudokuKeypadSixNotesPreview() {
     val layout = paneLayout(6, TallPhonePane)
     PuzzleBoxTheme {
         SudokuKeypad(
-            model = SudokuKeypadModel(size = 6, remaining = SIX_REMAINING, notesMode = true, canClear = true, solved = false),
+            model = SudokuKeypadModel(size = 6, remaining = SIX_REMAINING, notesMode = true, solved = false),
             onDigit = {},
             onErase = {},
             onClear = {},
@@ -68,7 +68,7 @@ internal fun SudokuKeypadNinePreview() {
     val layout = paneLayout(9, TallPhonePane)
     PuzzleBoxTheme {
         SudokuKeypad(
-            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = false, canClear = true, solved = false),
+            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = false, solved = false),
             onDigit = {},
             onErase = {},
             onClear = {},
@@ -88,7 +88,7 @@ internal fun SudokuKeypadNineNotesPreview() {
     val layout = paneLayout(9, TallPhonePane)
     PuzzleBoxTheme {
         SudokuKeypad(
-            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = true, canClear = true, solved = false),
+            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = true, solved = false),
             onDigit = {},
             onErase = {},
             onClear = {},
@@ -108,7 +108,7 @@ internal fun SudokuKeypadSixActionColumnPreview() {
     val layout = paneLayout(6, SmallPhonePane)
     PuzzleBoxTheme {
         SudokuKeypad(
-            model = SudokuKeypadModel(size = 6, remaining = SIX_REMAINING, notesMode = false, canClear = true, solved = false),
+            model = SudokuKeypadModel(size = 6, remaining = SIX_REMAINING, notesMode = false, solved = false),
             onDigit = {},
             onErase = {},
             onClear = {},
@@ -128,7 +128,7 @@ internal fun SudokuKeypadNineActionColumnPreview() {
     val layout = paneLayout(9, SmallPhonePane)
     PuzzleBoxTheme {
         SudokuKeypad(
-            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = false, canClear = true, solved = false),
+            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = false, solved = false),
             onDigit = {},
             onErase = {},
             onClear = {},
@@ -148,7 +148,7 @@ internal fun SudokuKeypadDigitDonePreview() {
     val layout = paneLayout(6, TallPhonePane)
     PuzzleBoxTheme {
         SudokuKeypad(
-            model = SudokuKeypadModel(size = 6, remaining = listOf(4, 0, 5, 2, 0, 3), notesMode = false, canClear = true, solved = false),
+            model = SudokuKeypadModel(size = 6, remaining = listOf(4, 0, 5, 2, 0, 3), notesMode = false, solved = false),
             onDigit = {},
             onErase = {},
             onClear = {},
@@ -168,7 +168,7 @@ internal fun SudokuKeypadSolvedPreview() {
     val layout = paneLayout(6, TallPhonePane)
     PuzzleBoxTheme {
         SudokuKeypad(
-            model = SudokuKeypadModel(size = 6, remaining = List(6) { 0 }, notesMode = false, canClear = true, solved = true),
+            model = SudokuKeypadModel(size = 6, remaining = List(6) { 0 }, notesMode = false, solved = true),
             onDigit = {},
             onErase = {},
             onClear = {},
@@ -188,7 +188,7 @@ internal fun SudokuKeypadNineInlinePreview() {
     val layout = paneLayout(9, TabletTwoPane, inlineNotes = true)
     PuzzleBoxTheme {
         SudokuKeypad(
-            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = false, canClear = true, solved = false),
+            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = false, solved = false),
             onDigit = {},
             onErase = {},
             onClear = {},
@@ -208,7 +208,7 @@ internal fun SudokuKeypadNineInlineNotesPreview() {
     val layout = paneLayout(9, TabletTwoPane, inlineNotes = true)
     PuzzleBoxTheme {
         SudokuKeypad(
-            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = true, canClear = true, solved = false),
+            model = SudokuKeypadModel(size = 9, remaining = NINE_REMAINING, notesMode = true, solved = false),
             onDigit = {},
             onErase = {},
             onClear = {},

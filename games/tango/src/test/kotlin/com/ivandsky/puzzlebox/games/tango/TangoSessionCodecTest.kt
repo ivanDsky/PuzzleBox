@@ -57,7 +57,7 @@ class TangoSessionCodecTest {
 
     // ---- v3: the ref carries a PuzzleKey ----
 
-    private val fixtureHistory = CommandHistory<TangoPlacements, TangoPlace>(
+    private val fixtureHistory = CommandHistory<TangoPlacements, TangoCommand>(
         done = listOf(TangoPlace(2, TangoCell.MOON, null), TangoPlace(15, TangoCell.SUN, null)),
         undone = listOf(TangoPlace(9, TangoCell.MOON, null)),
     )
@@ -154,7 +154,7 @@ class TangoSessionCodecTest {
 
     // ---- v2: undo/redo history ----
 
-    private val history = CommandHistory<TangoPlacements, TangoPlace>(
+    private val history = CommandHistory<TangoPlacements, TangoCommand>(
         done = listOf(
             TangoPlace(2, TangoCell.MOON, previous = null),
             TangoPlace(15, TangoCell.SUN, previous = null),
@@ -203,7 +203,7 @@ class TangoSessionCodecTest {
         val restored = (decode(v1) as DecodeResult.Ok).value
 
         assertEquals(session, restored)
-        assertEquals(CommandHistory<TangoPlacements, TangoPlace>(), restored.history)
+        assertEquals(CommandHistory<TangoPlacements, TangoCommand>(), restored.history)
     }
 
     @Test
@@ -262,6 +262,35 @@ class TangoSessionCodecTest {
         assertTrue("unknown cell byte", corrupt { it[cmd + 1] = 7 })
         assertTrue("no-op command", corrupt { it[cmd + 2] = it[cmd + 1] })
         assertTrue("truncated", decode(base.copyOf(base.size - 3)) is DecodeResult.Err)
+    }
+
+    // ---- Clear in the history ----
+
+    @Test
+    fun `a Clear command round-trips in both stacks`() {
+        val wiped = mapOf(2 to TangoCell.MOON, 15 to TangoCell.SUN)
+        val withClear = session.copy(
+            placements = emptyMap(),
+            history = CommandHistory(
+                done = listOf(TangoPlace(2, TangoCell.MOON, null), TangoClear(wiped)),
+                undone = listOf(TangoClear(mapOf(9 to TangoCell.MOON))),
+            ),
+        )
+
+        val restored = (decode(TangoSessionCodec.serialize(withClear)) as DecodeResult.Ok).value
+
+        assertEquals(withClear.copy(unknownTail = ByteArray(0)), restored)
+        assertEquals(wiped, restored.withUndo().placements)
+    }
+
+    @Test
+    fun `a Clear command with a bad cell is malformed`() {
+        val bad = session.copy(history = CommandHistory(done = listOf(TangoClear(mapOf(2 to TangoCell.MOON)))))
+        val bytes = TangoSessionCodec.serialize(bad)
+        // Tail: [0,1 count][0xFF, n=1, idx, value][0,0 undone count].
+        val idx = bytes.size - 4
+        assertTrue(decode(bytes.clone().also { it[idx] = 36 }) is DecodeResult.Err)
+        assertTrue(decode(bytes.clone().also { it[idx + 1] = 0 }) is DecodeResult.Err)
     }
 
     @Test

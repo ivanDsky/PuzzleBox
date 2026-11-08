@@ -40,6 +40,7 @@ import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -182,7 +183,9 @@ class SudokuPlayUiTest {
         hint().assertIsNotEnabled()
         composeRule.onNodeWithText("Notes").assertIsNotEnabled()
         composeRule.onNodeWithText("Erase").assertIsNotEnabled()
-        composeRule.onNodeWithTag("sudoku.clear").assertIsNotEnabled()
+        // Clear is never disabled; on a solved board it is a no-op (the win is final).
+        composeRule.onNodeWithTag("sudoku.clear").assertIsEnabled().performClick()
+        assertEquals(won, session(controller))
         composeRule.runOnIdle { assertEquals(null, controller.board!!.selected) }
         cell(0).performClick().assertIsNotSelected()
     }
@@ -241,11 +244,35 @@ class SudokuPlayUiTest {
     }
 
     @Test
+    fun `clear on an empty board stays enabled and changes nothing`() {
+        val controller = adopted()
+        setScreen(controller, PlayLayout.SinglePane)
+        val before = session(controller)
+
+        composeRule.onNodeWithTag("sudoku.clear").assertIsEnabled().performClick()
+
+        assertEquals(before, session(controller))
+        assertFalse(session(controller).history.canUndo)
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
+    fun `two pane toolbar clear is enabled on an empty board and a tap changes nothing`() {
+        val controller = adopted()
+        setScreen(controller, PlayLayout.TwoPane)
+        val before = session(controller)
+
+        composeRule.onNodeWithTag("sudoku.clear").assertIsEnabled().performClick()
+
+        assertEquals(before, session(controller))
+    }
+
+    @Test
     fun `clear wipes the board in one undoable step`() {
         val controller = adopted()
         setScreen(controller, PlayLayout.SinglePane)
         val clear = composeRule.onNodeWithTag("sudoku.clear")
-        clear.assertIsNotEnabled()
+        clear.assertIsEnabled()
 
         cell(0).performClick()
         key(4).performClick()

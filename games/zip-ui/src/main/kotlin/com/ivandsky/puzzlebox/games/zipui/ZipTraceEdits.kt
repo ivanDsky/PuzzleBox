@@ -24,9 +24,6 @@ internal class ZipTraceEdits(
     override val canRedo: Boolean
         get() = session()?.let { !it.isComplete && it.history.canRedo } == true
 
-    override val canClear: Boolean
-        get() = session()?.let { !it.isComplete && it.path.isNotEmpty() } == true
-
     override fun undo() = step(ZipSession::withUndo)
 
     override fun redo() = step(ZipSession::withRedo)

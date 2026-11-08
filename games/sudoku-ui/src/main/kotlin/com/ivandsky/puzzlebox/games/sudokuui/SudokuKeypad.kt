@@ -67,7 +67,7 @@ fun SudokuKeypad(
                     val action = Modifier.weight(1f).height(actionHeight)
                     NotesToggle(model.notesMode, editable, onToggleNotes, action)
                     EraseButton(editable, onErase, action)
-                    ClearButton(editable && model.canClear, onClear, action)
+                    ClearButton(onClear, action)
                 }
             }
         } else {
@@ -83,12 +83,12 @@ fun SudokuKeypad(
                         NotesToggle(model.notesMode, editable, onToggleNotes, tile, GameButtonSize.Compact)
                         if (rows >= DIGIT_COLUMNS) {
                             EraseButton(editable, onErase, tile, GameButtonSize.Compact)
-                            ClearButton(editable && model.canClear, onClear, tile, GameButtonSize.Compact)
+                            ClearButton(onClear, tile, GameButtonSize.Compact)
                         } else {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
                                 val half = Modifier.weight(1f).height(keyHeight)
                                 EraseButton(editable, onErase, half, GameButtonSize.Compact)
-                                ClearButton(editable && model.canClear, onClear, half, GameButtonSize.Compact)
+                                ClearButton(onClear, half, GameButtonSize.Compact)
                             }
                         }
                     }
@@ -145,13 +145,12 @@ private fun EraseButton(enabled: Boolean, onErase: () -> Unit, modifier: Modifie
 }
 
 @Composable
-private fun ClearButton(enabled: Boolean, onClear: () -> Unit, modifier: Modifier, size: GameButtonSize = GameButtonSize.Regular) {
+private fun ClearButton(onClear: () -> Unit, modifier: Modifier, size: GameButtonSize = GameButtonSize.Regular) {
     GameButton(
         onClick = onClear,
         icon = PuzzleIcons.Clear,
         label = "Clear",
         modifier = modifier.testTag("sudoku.clear"),
-        enabled = enabled,
         size = size,
     )
 }

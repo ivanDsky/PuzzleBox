@@ -122,6 +122,65 @@ class TangoUndoTest {
         assertEquals(now, s.withUndo().completedAt)
     }
 
+    // ---- Clear: every player placement in one undo unit ----
+
+    @Test
+    fun `clear wipes every placement, keeps the givens and undoes as one step`() {
+        val played = fresh.place(2, TangoCell.MOON).place(4, TangoCell.MOON).place(5, TangoCell.SUN)
+
+        val cleared = played.withCleared()
+
+        assertEquals(emptyMap<Int, TangoCell>(), cleared.placements)
+        assertEquals(TangoTestSupport.sample.givens, cleared.grid().withIndex().filter { it.value != null }.associate { it.index to it.value })
+        assertEquals(played.history.done.size + 1, cleared.history.done.size)
+
+        val restored = cleared.withUndo()
+        assertEquals(played.placements, restored.placements)
+        assertEquals(played.history.done, restored.history.done) // the Clear moved to redo
+        assertEquals(cleared, restored.withRedo())
+    }
+
+    @Test
+    fun `clear on an empty board records nothing and keeps redo`() {
+        assertEquals(fresh, fresh.withCleared())
+        val undone = fresh.place(2, TangoCell.MOON).withUndo()
+        assertEquals(undone, undone.withCleared())
+        assertTrue(undone.history.canRedo)
+        assertFalse(fresh.withCleared().history.canUndo)
+    }
+
+    @Test
+    fun `clear after a placement forks the timeline and drops redo`() {
+        val undone = fresh.place(2, TangoCell.MOON).place(4, TangoCell.MOON).withUndo()
+
+        val cleared = undone.withCleared()
+
+        assertFalse(cleared.history.canRedo)
+        assertEquals(emptyMap<Int, TangoCell>(), cleared.placements)
+    }
+
+    @Test
+    fun `clear is refused once the session is complete`() {
+        var s = fresh
+        TangoTestSupport.solution.forEachIndexed { idx, cell ->
+            if (idx !in TangoTestSupport.sample.givens) s = s.place(idx, cell)
+        }
+        assertTrue(s.isComplete)
+
+        assertEquals(s, s.withCleared())
+    }
+
+    @Test
+    fun `clear never touches counters or the clock`() {
+        val played = fresh.copy(hintsUsed = 2, mistakeCount = 1, elapsedMs = 5_000).place(2, TangoCell.MOON)
+
+        val cleared = played.withCleared()
+
+        assertEquals(2, cleared.hintsUsed)
+        assertEquals(1, cleared.mistakeCount)
+        assertEquals(5_000L, cleared.elapsedMs)
+    }
+
     @Test
     fun `history takes part in equality`() {
         val a = fresh.place(2, TangoCell.MOON)
