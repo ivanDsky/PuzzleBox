@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
@@ -39,6 +40,7 @@ import org.robolectric.annotation.Config
 class LeaderboardSubmitWatcherTest {
 
     private val day = LocalDate.of(2026, 10, 31)
+    private val calendar = FakeGameCalendar(day)
 
     private fun record(
         ref: PuzzleRef = ZipPuzzleRef(PuzzleKey.Daily(day, 592)),
@@ -65,7 +67,7 @@ class LeaderboardSubmitWatcherTest {
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
 
-        LeaderboardSubmitWatcher(records, identity, leaderboard, scope).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope).start()
         scheduler.advanceUntilIdle()
 
         assertEquals(1, leaderboard.submitted.size)
@@ -81,7 +83,7 @@ class LeaderboardSubmitWatcherTest {
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
-        LeaderboardSubmitWatcher(records, identity, leaderboard, scope).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope).start()
         scheduler.advanceUntilIdle()
         assertTrue(leaderboard.submitted.isEmpty()) // A7: signed out = local-only
 
@@ -98,7 +100,7 @@ class LeaderboardSubmitWatcherTest {
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
-        LeaderboardSubmitWatcher(records, identity, leaderboard, scope).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope).start()
         scheduler.advanceUntilIdle()
 
         // Room re-emits the whole records list on any write.
@@ -122,7 +124,7 @@ class LeaderboardSubmitWatcherTest {
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
 
-        LeaderboardSubmitWatcher(records, identity, leaderboard, scope).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope).start()
         scheduler.advanceUntilIdle()
 
         assertTrue(leaderboard.submitted.isEmpty())
@@ -138,7 +140,7 @@ class LeaderboardSubmitWatcherTest {
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
 
-        LeaderboardSubmitWatcher(records, identity, leaderboard, scope).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope).start()
         scheduler.advanceUntilIdle() // must not throw
 
         assertEquals(1, leaderboard.submitted.size)
@@ -151,7 +153,7 @@ class LeaderboardSubmitWatcherTest {
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
-        LeaderboardSubmitWatcher(records, identity, leaderboard, scope).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope).start()
         scheduler.advanceUntilIdle()
         assertEquals(1, leaderboard.submitted.size)
 
@@ -177,7 +179,7 @@ class LeaderboardSubmitWatcherTest {
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
 
-        LeaderboardSubmitWatcher(records, identity, leaderboard, scope).start()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope).start()
         scheduler.advanceUntilIdle()
         assertEquals(1, attempts) // attempted once, failed
 
@@ -191,6 +193,67 @@ class LeaderboardSubmitWatcherTest {
         assertEquals(
             listOf("zip/2026-10-31/592", "zip/2026-10-31/593"),
             leaderboard.submitted.drop(1).map { it.puzzleRef },
+        )
+    }
+
+    private fun zipRecord(d: LocalDate, n: Int) = record(ref = ZipPuzzleRef(PuzzleKey.Daily(d, n)))
+
+    @Test
+    fun `only the game's today and yesterday submit (A7)`() = runTest {
+        val records = FakeCompletionRepository(
+            listOf(zipRecord(day, 592), zipRecord(day.minusDays(1), 591), zipRecord(day.minusDays(2), 590)),
+        )
+        val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
+        val leaderboard = FakeLeaderboardRepository()
+        val scheduler = TestCoroutineScheduler()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler)).start()
+        scheduler.advanceUntilIdle()
+
+        assertEquals(
+            listOf("zip/2026-10-31/592", "zip/2026-10-30/591"),
+            leaderboard.submitted.map { it.puzzleRef },
+        )
+    }
+
+    @Test
+    fun `the window follows the calendar after a rollover`() = runTest {
+        val records = FakeCompletionRepository(listOf(zipRecord(day.minusDays(1), 591)))
+        val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
+        val leaderboard = FakeLeaderboardRepository()
+        val scheduler = TestCoroutineScheduler()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler)).start()
+        scheduler.advanceUntilIdle()
+        assertEquals(1, leaderboard.submitted.size)
+
+        calendar.setAll(day.plusDays(1))
+        records.setRecords(
+            listOf(zipRecord(day.minusDays(1), 591), zipRecord(day, 592), zipRecord(day.plusDays(1), 593)),
+        )
+        scheduler.advanceUntilIdle()
+
+        // 591 is now day-2 (and already marked); 592 yesterday and 593 today submit.
+        assertEquals(
+            listOf("zip/2026-10-30/591", "zip/2026-10-31/592", "zip/2026-11-01/593"),
+            leaderboard.submitted.map { it.puzzleRef },
+        )
+    }
+
+    @Test
+    fun `a rejected submit is not retried on the next emission`() = runTest {
+        val records = FakeCompletionRepository(listOf(zipRecord(day, 592)))
+        val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
+        val leaderboard = FakeLeaderboardRepository(
+            nextSubmitResult = { SubmitResult.Err(SubmitError.Rejected("denied")) },
+        )
+        val scheduler = TestCoroutineScheduler()
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler)).start()
+        scheduler.advanceUntilIdle()
+        records.setRecords(listOf(zipRecord(day, 592), zipRecord(day, 593)))
+        scheduler.advanceUntilIdle()
+
+        assertEquals(
+            listOf("zip/2026-10-31/592", "zip/2026-10-31/593"),
+            leaderboard.submitted.map { it.puzzleRef },
         )
     }
 }
