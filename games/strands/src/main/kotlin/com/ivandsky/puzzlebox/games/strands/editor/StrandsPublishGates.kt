@@ -26,8 +26,12 @@ object StrandsPublishGates {
         val words = draft.paths.mapIndexedNotNull { i, path -> path.word?.let { i to it } }
         val blocks = mutableListOf<PublishBlock>()
         if (draft.clue.isBlank() || draft.clue.length > MAX_CLUE) blocks += PublishBlock(CLUE_LENGTH)
-        draft.paths.getOrNull(draft.spangram)?.let { path ->
-            val coords = path.cells.map { listOf(it / StrandsDraft.COLS, it % StrandsDraft.COLS) }
+        // The published spangram comes from the unique tiling (toPuzzle), so the gate judges those
+        // cells; any other verdict already blocks publish.
+        (verdict as? Verdict.Unique)?.let { unique ->
+            val coords = unique.solution.values.indices
+                .filter { unique.solution.values[it] == draft.spangram }
+                .map { listOf(it / StrandsDraft.COLS, it % StrandsDraft.COLS) }
             if (!SpangramEdgesCheck.spans(coords, StrandsDraft.ROWS, StrandsDraft.COLS)) blocks += PublishBlock(SPANGRAM_EDGES)
         }
         words.filter { (_, w) -> !isShaped(w) }.mapTo(blocks) { (i, _) -> PublishBlock(WORD_SHAPE, subject = i) }

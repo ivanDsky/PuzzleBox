@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.strands.editor
 
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
+import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -15,7 +16,12 @@ class StrandsPublishGatesTest {
     private fun draft(clue: String = "Fruit", vararg words: String?) =
         StrandsDraft("", clue, words.mapIndexed(::path), spangram = 0)
 
-    private fun blocks(draft: StrandsDraft) = StrandsPublishGates.blocks(draft, verdict)
+    /** A unique tiling that spells each spangram trace cell, so the edge gate judges the trace. */
+    private fun tiled(draft: StrandsDraft): Verdict = Verdict.Unique(
+        Solution(List(StrandsDraft.ROWS * StrandsDraft.COLS) { cell -> if (cell in draft.paths[draft.spangram].cells) 0 else 1 }),
+    )
+
+    private fun blocks(draft: StrandsDraft) = StrandsPublishGates.blocks(draft, tiled(draft))
 
     private val clean = arrayOf<String?>("APPLE", "PEACH", "GRAPES")
 
@@ -93,10 +99,24 @@ class StrandsPublishGatesTest {
 
     @Test
     fun `a spangram touching top and bottom passes and left and right passes`() {
-        val topBottom = StrandsDraftPath(listOf(0, 5, 35, 41), "PEAR")
-        val leftRight = StrandsDraftPath(listOf(0, 5, 42, 47), "PEAR")
+        val leftRight = StrandsDraftPath(listOf(0, 5, 35, 41), "PEAR")
+        val topBottom = StrandsDraftPath(listOf(0, 5, 42, 47), "PEAR")
         assertEquals(emptyList<PublishBlock>(), blocks(StrandsDraft("", "Fruit", listOf(topBottom), spangram = 0)))
         assertEquals(emptyList<PublishBlock>(), blocks(StrandsDraft("", "Fruit", listOf(leftRight), spangram = 0)))
+    }
+
+    @Test
+    fun `the gate judges the unique tiling, not the spangram trace`() {
+        val draft = StrandsDraft(
+            "",
+            "Fruit",
+            listOf(StrandsDraftPath(listOf(0, 5, 35, 41), "PEAR"), StrandsDraftPath(listOf(7), "PLUM")),
+            spangram = 0,
+        )
+        val diverging = Verdict.Unique(Solution(List(48) { if (it == 7) 0 else 1 }))
+        assertEquals(listOf(PublishBlock("strands.spangram-edges")), StrandsPublishGates.blocks(draft, diverging))
+        val spanning = Verdict.Unique(Solution(List(48) { if (it % 2 == 0) 0 else 1 }))
+        assertEquals(emptyList<PublishBlock>(), StrandsPublishGates.blocks(draft, spanning))
     }
 
     @Test
