@@ -22,6 +22,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.GameFilterChip
 import com.ivandsky.puzzlebox.gameui.board.DailyBoard
+import com.ivandsky.puzzlebox.gameui.board.dailyBoardTitle
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
@@ -70,7 +71,7 @@ internal fun ProfileDailyBoard(
         ) { shown ->
             val name = games.firstOrNull { it.gameId == shown.selected }?.name
             DailyBoard(
-                title = if (name != null) "$name · today" else "Today",
+                title = dailyBoardTitle(name),
                 order = shown.order,
                 state = shown.state,
             )

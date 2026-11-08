@@ -116,6 +116,13 @@ class DailyBoardTest {
     }
 
     @Test
+    fun `title is game name plus today, Today when the name is unknown`() {
+        assertEquals("Queens · today", dailyBoardTitle("Queens"))
+        assertEquals("Strands · today", dailyBoardTitle("Strands"))
+        assertEquals("Today", dailyBoardTitle(null))
+    }
+
+    @Test
     fun `notes read their copy`() {
         show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList(), DailyBoardNote.Posting))
         composeRule.onNodeWithTag("daily_board.note").assertTextEquals("Posting your time…")
