@@ -2,20 +2,29 @@ package com.ivandsky.puzzlebox.games.sudoku.editor
 
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
+import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.game.editor.DraftExport
 import com.ivandsky.puzzlebox.game.editor.DraftState
+import com.ivandsky.puzzlebox.game.editor.EditorShareCodec
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
+import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.sudoku.SudokuDefinition
+import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
+import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The pure editor of one Sudoku game: its only variant is the [definition]'s, so a draft of
  * another size decodes to [DecodeError.VariantSizeMismatch] rather than opening under the wrong game.
  */
-class SudokuEditor(private val definition: SudokuDefinition) : GameEditor<SudokuDraft> {
+class SudokuEditor(private val definition: SudokuDefinition) :
+    GameEditor<SudokuDraft>,
+    DraftExport<SudokuDraft>,
+    EditorShareCodec<SudokuDraft> by SudokuShareCodec {
     private val variant = definition.variant
 
     override val gameId: GameId get() = definition.id
@@ -56,4 +65,15 @@ class SudokuEditor(private val definition: SudokuDefinition) : GameEditor<Sudoku
 
     override fun publishBlocks(draft: SudokuDraft, verdict: Verdict): List<PublishBlock> =
         SudokuPublishGates.blocks(draft, verdict)
+
+    /** SudokuCodec bytes of the givens with [solution]'s full grid embedded. */
+    override fun toPuzzle(draft: SudokuDraft, solution: Solution): Puzzle {
+        val puzzle = SudokuPuzzle(variant, draft.givens, solution.values)
+        return Puzzle(
+            gameId = gameId,
+            variant = variantOf(draft),
+            formatVersion = SudokuCodec.VERSION,
+            payload = SudokuCodec.encode(puzzle),
+        )
+    }
 }
