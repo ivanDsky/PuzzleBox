@@ -127,7 +127,7 @@ class FriendWinIsolationE2ETest {
             assertRoute(HOME)
             // Recent days list the days before the puzzle day.
             awaitTag("home.history_row_${puzzleDay.minusDays(1)}")
-            val homeBefore = shown(HOME)
+            val homeBefore = shownLoadedHome()
 
             // A fresh process opens on History; the submitters run in it, as the app starts them.
             relaunch()
@@ -161,7 +161,11 @@ class FriendWinIsolationE2ETest {
             assertEquals("History is unchanged", historyBefore, shown(HISTORY))
             back()
             assertRoute(HOME)
-            assertEquals("Home's Today, streak, bests and recent days are unchanged", homeBefore, shown(HOME))
+            assertEquals(
+                "Home's Today, streak, bests and recent days are unchanged",
+                homeBefore,
+                shownLoadedHome(),
+            )
 
             val readsAfter = dailyReads()
             assertEquals("Today, History and stats are unchanged", readsBefore, readsAfter)
@@ -239,6 +243,12 @@ class FriendWinIsolationE2ETest {
         }
     }
 
+    /** Home's snapshot once its first load landed; the skeleton shows no Today or streak. */
+    private fun ShellRobot.shownLoadedHome(): List<String> {
+        awaitTag(HOME_TODAY_SUMMARY)
+        return shown(HOME)
+    }
+
     /** Every tag, text, description and state under [route], in tree order: what the screen shows. */
     private fun ShellRobot.shown(route: String): List<String> {
         rule.waitForIdle()
@@ -304,6 +314,7 @@ class FriendWinIsolationE2ETest {
         val SOLUTION = listOf(5, 7, 16, 20, 24, 33)
 
         const val HOME = "route.home"
+        const val HOME_TODAY_SUMMARY = "home.today_summary"
         const val HISTORY = "route.history"
         const val GAME = "route.game"
         const val CUSTOM_RESULT = "route.custom_result"

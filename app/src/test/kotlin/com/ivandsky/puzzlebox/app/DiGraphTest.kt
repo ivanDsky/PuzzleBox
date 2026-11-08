@@ -46,6 +46,7 @@ import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.ResultViewModel
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertSame
@@ -80,6 +81,20 @@ class DiGraphTest : KoinTest {
         commonModule.verify()
     }
 
+    /** Nothing collects identity, so the real service builds without touching Firebase. */
+    @Test
+    fun `identity binds the Firebase service lazily`() {
+        val koinApp = startKoin {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(PuzzleBoxApplication.appModules)
+        }
+        try {
+            assertNotNull(koinApp.koin.get<IdentityService>())
+        } finally {
+            stopKoin()
+        }
+    }
+
     /**
      * The full graph resolves for real under Robolectric: Room, Retrofit, and the
      * DataStore-backed preferences all construct without touching the network.
@@ -88,7 +103,12 @@ class DiGraphTest : KoinTest {
     fun `app module graph resolves at runtime`() {
         val koinApp = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
-            modules(PuzzleBoxApplication.appModules)
+            // EditorViewModel collects identity; the real service would then reach
+            // FirebaseAuth, and the JVM has no FirebaseApp.
+            modules(
+                PuzzleBoxApplication.appModules +
+                    module { single<IdentityService> { FakeIdentityService() } },
+            )
         }
         try {
             val koin = koinApp.koin
@@ -105,6 +125,7 @@ class DiGraphTest : KoinTest {
             assertEquals("a gameId is bound to more than one DailySource", boundIds.distinct(), boundIds)
             assertNotNull(koin.get<UserPreferencesRepository>())
             // Ticket 16: backend bindings resolve against the app-provided scope.
+            // The real binding is pinned by `identity binds the Firebase service lazily`.
             assertNotNull(koin.get<IdentityService>())
             assertNotNull(koin.get<LeaderboardRepository>())
             assertNotNull(koin.get<SharedPuzzleRepository>())
