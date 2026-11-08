@@ -24,6 +24,9 @@ internal object StrandsShareCodec : EditorShareCodec<StrandsDraft> {
 
     private const val CELLS = StrandsDraft.ROWS * StrandsDraft.COLS
 
+    /** Same cap the author's publish gate enforces ([StrandsPublishGates]); a crafted clue is cut, not rejected. */
+    private const val MAX_CLUE = 40
+
     override fun encodeShare(draft: StrandsDraft): ByteArray {
         val out = ByteWriter()
         out.u8(shareFormatVersion)
@@ -44,7 +47,7 @@ internal object StrandsShareCodec : EditorShareCodec<StrandsDraft> {
         }
         if (version != shareFormatVersion) return malformed("share version $version was never written")
         val letters = cursor.string()?.takeIf { it.length == CELLS } ?: return malformed("letters are not $CELLS cells")
-        val clue = cursor.string() ?: return malformed("truncated clue")
+        val clue = cursor.string()?.take(MAX_CLUE) ?: return malformed("truncated clue")
         val count = cursor.count() ?: return malformed("truncated word count")
         val paths = List(count) {
             val word = cursor.string()?.takeIf { it.isNotBlank() } ?: return malformed("word $it missing or blank")
