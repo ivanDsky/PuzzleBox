@@ -15,11 +15,7 @@ import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
-import java.awt.image.BufferedImage
 import java.io.File
-import javax.imageio.ImageIO
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -48,9 +44,6 @@ class TangoBoardGoldenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val mode = System.getProperty("tango.golden.mode") ?: "compare"
-    private val pixelCompare = System.getProperty("goldens.pixelCompare") != "false"
-
     private fun goldenPath(name: String) =
         File("src/test/resources/goldens/$name")
 
@@ -72,53 +65,7 @@ class TangoBoardGoldenTest {
         composeRule.waitForIdle()
         val scratch = scratchPath(name).apply { parentFile?.mkdirs() }
         composeRule.onRoot().captureRoboImage(scratch)
-        val golden = goldenPath(name)
-        when (mode) {
-            "record" -> scratch.copyTo(golden, overwrite = true)
-            "verify" -> {
-                if (!golden.exists()) {
-                    throw AssertionError(
-                        "Golden $name is missing and verify mode forbids recording; " +
-                            "run with -Proborazzi.record=true once to record it, then re-verify.",
-                    )
-                }
-                assertGoldenMatches(golden, scratch, name)
-            }
-            // compare: the capture sits in build/roborecord for inspection; no golden is read or
-            // written, so drift never fails and the worktree stays clean.
-        }
-    }
-
-    /** Pixel-exact comparison (decoded, so PNG metadata noise cannot false-fail). */
-    private fun assertGoldenMatches(golden: File, scratch: File, name: String) {
-        val expected = ImageIO.read(golden)
-        val actual = ImageIO.read(scratch)
-        assertEquals(
-            "Golden $name drifted in size (geometry regression): " +
-                "committed ${expected?.width}x${expected?.height} vs actual ${actual?.width}x${actual?.height}",
-            expected?.width,
-            actual?.width,
-        )
-        assertEquals(expected?.height, actual?.height)
-        if (!pixelCompare) return
-        val width = expected.width
-        val height = expected.height
-        var firstDiff: String? = null
-        var diffCount = 0
-        outer@ for (y in 0 until height) {
-            for (x in 0 until width) {
-                if (expected.getRGB(x, y) != actual.getRGB(x, y)) {
-                    diffCount++
-                    if (firstDiff == null) firstDiff = "($x, $y)"
-                    if (diffCount > 512) break@outer
-                }
-            }
-        }
-        assertTrue(
-            "Golden $name drifted: $diffCount+ differing pixels (first at $firstDiff). " +
-                "If the change is intended, re-record with -Proborazzi.record=true.",
-            diffCount == 0,
-        )
+        GoldenCompare.check(goldenPath(name), scratch, name)
     }
 
     // ---- phone posture (w360dp): light + dark ----

@@ -11,15 +11,13 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
-import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.editor.TangoDraft
 import com.ivandsky.puzzlebox.games.tango.editor.TangoEditor
 import com.ivandsky.puzzlebox.games.tango.editor.TangoForcedCells
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlin.coroutines.CoroutineContext
+import com.ivandsky.puzzlebox.games.tangoui.TestInlineDispatcherProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -58,7 +56,7 @@ class TangoForcedLayerTest {
 
     private fun show() {
         rule.setContent {
-            CompositionLocalProvider(LocalForcedDispatchers provides InlineDispatcherProvider) {
+            CompositionLocalProvider(LocalForcedDispatchers provides TestInlineDispatcherProvider) {
                 PuzzleBoxTheme { TangoEditorBoard(controller, Modifier.fillMaxWidth()) }
             }
         }
@@ -132,15 +130,4 @@ class TangoForcedLayerTest {
         x = (cell % TangoDraft.N + 0.5f) * width / TangoDraft.N,
         y = (cell / TangoDraft.N + 0.5f) * height / TangoDraft.N,
     )
-}
-
-/** Runs the walk inline on the calling thread, so idling the compose rule settles it. */
-private object InlineDispatcherProvider : DispatcherProvider {
-    private val inline = object : CoroutineDispatcher() {
-        override fun isDispatchNeeded(context: CoroutineContext) = false
-        override fun dispatch(context: CoroutineContext, block: Runnable) = block.run()
-    }
-    override val main: CoroutineDispatcher = inline
-    override val io: CoroutineDispatcher = inline
-    override val default: CoroutineDispatcher = inline
 }
