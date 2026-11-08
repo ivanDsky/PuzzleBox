@@ -1,7 +1,10 @@
 package com.ivandsky.puzzlebox.app.screens
 
 import android.app.Application
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
@@ -16,6 +19,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
@@ -267,6 +271,59 @@ class ProfileScreenTest {
 
         composeRule.onNodeWithTag("profile-board-chip-tango").performSemanticsAction(SemanticsActions.OnClick)
         composeRule.runOnIdle { assertEquals(listOf(tango), picked) }
+    }
+
+    /** Like [setContent] but 2000dp wide, so every chip composes in the LazyRow. */
+    private fun setContentWide(state: ProfileUiState, showCatalog: Boolean = true) {
+        signInClicks = 0
+        signOutClicks = 0
+        catalogClicks = 0
+        composeRule.setContent {
+            PuzzleBoxTheme {
+                // Wider than any real window so every chip composes in the LazyRow
+                // and left-to-right x order is directly observable.
+                Box(Modifier.requiredWidth(2000.dp)) {
+                    ProfileContent(
+                        state = state,
+                        onSignIn = { signInClicks++ },
+                        onSignOut = { signOutClicks++ },
+                        onSetThemeMode = { themes += it },
+                        onOpenHistory = { openedHistory += it },
+                        onSelectGame = { picked += it },
+                        onOpenCatalog = if (showCatalog) ({ catalogClicks++ }) else null,
+                    )
+                }
+            }
+        }
+    }
+
+    /** A2: the chips render in the game order (zip, tango, queens, strands, minisudoku). */
+    @Test
+    fun `flag on shows the chips in game order`() {
+        val queens = GameId("queens")
+        val strands = GameId("strands")
+        val minisudoku = GameId("minisudoku")
+        val allGames = games + listOf(
+            ProfileUiState.GameRow(queens, "Queens", GameBrand.Neutral, solved = 0, best = null, RankOrder.TimeThenHints),
+            ProfileUiState.GameRow(strands, "Strands", GameBrand.Neutral, solved = 0, best = null, RankOrder.TimeThenHints),
+            ProfileUiState.GameRow(minisudoku, "MiniSudoku", GameBrand.Neutral, solved = 0, best = null, RankOrder.TimeThenHints),
+        )
+        setContentWide(
+            ProfileUiState(
+                account = signedIn,
+                games = allGames,
+                perGameBoard = ProfileUiState.PerGameBoard(zip, RankOrder.TimeThenHints, DailyBoardState.Loading),
+            ),
+        )
+
+        var lastX = Float.NEGATIVE_INFINITY
+        for (id in listOf("zip", "tango", "queens", "strands", "minisudoku")) {
+            val x = composeRule.onNodeWithTag("profile-board-chip-$id")
+                .fetchSemanticsNode()
+                .positionInRoot.x
+            assertTrue("chip $id (x=$x) must sit right of the previous chip (x=$lastX)", x > lastX)
+            lastX = x
+        }
     }
 
     @Test
