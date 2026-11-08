@@ -11,7 +11,7 @@ package com.ivandsky.puzzlebox.common.flags
  */
 enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     /** Publishing custom puzzles, friend puzzles by code or link, and their leaderboards. */
-    FriendSharing(label = "Friend sharing", releaseDefault = false),
+    FriendSharing(label = "Friend sharing", releaseDefault = true),
 
     /** The Zip puzzle editor. */
     ZipEditor(label = "Zip editor", releaseDefault = false),

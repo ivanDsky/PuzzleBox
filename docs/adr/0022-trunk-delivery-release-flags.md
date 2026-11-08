@@ -60,3 +60,8 @@ to merge without being reachable in a release build.
   `testDebug/DebugReleaseFlagsBindingTest` pins debug to the one `DebugReleaseFlags` the
   Catalog tab edits. A test for a gated screen takes `ReleaseFlags` as a parameter and
   covers both flag states.
+
+## Flip history
+- FriendSharing flipped to `releaseDefault = true` in 0.17.0 on 2026-11-07. The App Links
+  filter for `puzzlebox-f3356.web.app/p/` moved from the debug manifest to the main manifest
+  in the same PR.
