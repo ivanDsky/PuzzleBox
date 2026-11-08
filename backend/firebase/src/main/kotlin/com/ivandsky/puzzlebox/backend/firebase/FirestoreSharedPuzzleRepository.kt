@@ -35,9 +35,11 @@ internal class FirestoreSharedPuzzleRepository(
                 // A retry after a lost ack finds its own doc. Changed content would leave friends
                 // on the old one and an unpublished doc is closed to them: both count as taken.
                 is StoreWrite.Exists -> {
-                    val retry = write.authorUid == uid &&
-                        write.fields[SharedPuzzleDocCodec.FIELD_UNPUBLISHED] != true &&
-                        SharedPuzzleDocCodec.sameContent(fields, write.fields)
+                    val own = write.authorUid == uid &&
+                        write.fields[SharedPuzzleDocCodec.FIELD_UNPUBLISHED] != true
+                    val retry = own && SharedPuzzleDocCodec.sameContent(fields, write.fields)
+                    // The author's lost-reply doc is online under a code only their draft held.
+                    if (own && !retry) retire(doc.code)
                     if (retry) PublishResult.Published(doc.code) else PublishResult.CodeTaken
                 }
                 // The transaction read today's count at the cap, so it never sent the create.
@@ -47,6 +49,16 @@ internal class FirestoreSharedPuzzleRepository(
             throw e
         } catch (e: Exception) {
             if (e.isTransient()) PublishResult.Offline else PublishResult.Rejected(e.message)
+        }
+    }
+
+    /** Best effort: a failed write leaves the orphan, and never blocks the author's publish. */
+    private suspend fun retire(code: ShareCode) {
+        try {
+            store.unpublish(code.value)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
         }
     }
 
