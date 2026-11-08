@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.domain
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.data.model.Draft
+import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -20,7 +22,10 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import java.time.Instant
 import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -96,6 +101,46 @@ class ImportDraftFromTextTest {
 
         assertTrue(result is ImportResult.Malformed)
         assertTrue(drafts.rows.isEmpty())
+    }
+
+    @Test
+    fun `a cancel between the two writes never leaves a blank draft`() = runTest {
+        val gated = GatedDraftRepository(drafts)
+        val gatedImport = ImportDraftFromText(
+            registry = GameRegistry(listOf(queensPlugin())),
+            createDraft = CreateDraft(
+                registry = GameRegistry(listOf(queensPlugin())),
+                drafts = gated,
+                newId = { "draft-${++ids}" },
+                clock = { Instant.parse("2026-11-08T10:00:00Z") },
+            ),
+            drafts = gated,
+            dispatchers = TestInlineDispatcherProvider,
+        )
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) { gatedImport(queensFixture()) }
+        assertTrue(gated.secondWriteWaiting)
+
+        job.cancel()
+        gated.release.complete(Unit)
+        job.join()
+
+        assertTrue(drafts.rows.values.all { it.imported })
+    }
+
+    /** Lets the first write through and holds the second until [release], as a slow disk would. */
+    private class GatedDraftRepository(private val inner: FakeDraftRepository) : DraftRepository by inner {
+        val release = CompletableDeferred<Unit>()
+        var secondWriteWaiting = false
+            private set
+        private var writes = 0
+
+        override suspend fun upsert(draft: Draft) {
+            if (++writes == 2) {
+                secondWriteWaiting = true
+                release.await()
+            }
+            inner.upsert(draft)
+        }
     }
 
     /** A painted 5x5 regions board with a final newline, as the notation prints it. */
