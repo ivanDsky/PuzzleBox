@@ -28,6 +28,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -73,8 +74,10 @@ private const val SLOT_FILL = 0.92f
 private const val SLOT_SCALE_MAX = 0.62f
 
 /**
- * One digit key: the digit over its remaining count (the digit alone in a key under 40dp). A fully placed digit greys out
- * but stays clickable (A10), so a player can still overwrite a wrong cell with it. In notes
+ * One digit key: the digit over its remaining count, or over "×[placed]" when [placed] is set
+ * (the editor; the exhausted look still follows [remaining]). The digit alone in a key under
+ * 40dp. A fully placed digit greys out but stays clickable (A10), so a player can still
+ * overwrite a wrong cell with it. In notes
  * mode the key turns outlined and the digit shrinks into the slot its pencil mark takes in
  * a cell (slot `d - 1` of the box-shaped notes grid), a look no board tint shares (V7).
  * The morph runs on a graphics layer (no remeasure), [staggerOrder] keys after the one
@@ -90,6 +93,7 @@ internal fun SudokuDigitKey(
     staggerOrder: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    placed: Int? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     val exhausted = remaining == 0
@@ -119,7 +123,7 @@ internal fun SudokuDigitKey(
         },
         label = "digitKeyNotesMorph",
     )
-    val label = digitKeyLabel(digit, remaining, notesMode)
+    val label = if (placed == null) digitKeyLabel(digit, remaining, notesMode) else digit.toString()
     val shape = MaterialTheme.shapes.medium
 
     Box(
@@ -128,14 +132,17 @@ internal fun SudokuDigitKey(
             .background(container)
             .border(NOTES_BORDER, border, shape)
             .clickable(role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = label },
+            .semantics {
+                contentDescription = label
+                if (placed != null) stateDescription = digitKeyPlacedState(placed)
+            },
         contentAlignment = Alignment.Center,
     ) {
         DigitOverCount(
             digit = digit,
             noteGrid = remember(size) { noteGrid(size) },
             digitStyle = MaterialTheme.typography.titleLarge.copy(fontFeatureSettings = TABULAR_FIGURES),
-            count = remaining.toString(),
+            count = if (placed == null) remaining.toString() else "×$placed",
             countStyle = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = TABULAR_FIGURES),
             color = content,
             morph = { morph.value },
@@ -223,3 +230,6 @@ private fun noteGrid(size: Int): Pair<Int, Int> {
 
 private fun digitKeyLabel(digit: Int, remaining: Int, notesMode: Boolean): String =
     if (notesMode) "Note $digit, $remaining left" else "$digit, $remaining left"
+
+/** The state a placed-count key reports to TalkBack and tests. */
+internal fun digitKeyPlacedState(placed: Int): String = "$placed placed"

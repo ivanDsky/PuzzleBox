@@ -7,7 +7,6 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -106,7 +105,7 @@ class NewPuzzleSheetSudokuGateTest {
 
         awaitPill("Incomplete")
         rule.onNodeWithTag("sudoku.cell.0").performClick()
-        rule.onNodeWithContentDescription(DIGIT_ONE).performClick()
+        rule.onNodeWithTag(DIGIT_ONE).performClick()
         awaitPill("Multiple")
     }
 
@@ -198,8 +197,7 @@ class NewPuzzleSheetSudokuGateTest {
         const val SHEET = "create.new.sheet"
         const val GAME = "create.new.game."
         const val SIZE = "create.new.size."
-        /** The keypad key for 1 on a blank 6×6: six of it still to place. */
-        const val DIGIT_ONE = "1, 6 left"
+        const val DIGIT_ONE = "sudoku.editor.key.1"
         const val PILL = "create.editor.pill"
         const val TIMEOUT_MS = 5_000L
         const val FRAME_MS = 16L
