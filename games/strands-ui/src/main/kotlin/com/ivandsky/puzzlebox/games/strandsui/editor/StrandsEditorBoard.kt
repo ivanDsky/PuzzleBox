@@ -47,6 +47,9 @@ import com.ivandsky.puzzlebox.games.strands.render.StrandsLink
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 import com.ivandsky.puzzlebox.games.strandsui.StrandsBoardContent
 import com.ivandsky.puzzlebox.games.strandsui.Trace
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableStateOf
+import com.ivandsky.puzzlebox.game.editor.Verdict
 
 /** What a blank cell shows in place of a letter. */
 private const val BLANK_GLYPH = ' '
@@ -60,16 +63,27 @@ private const val BLANK_GLYPH = ' '
  * (`strands.editor.cell.<idx>.pocket`). Under the grid, the word field ([StrandsWordField])
  * names the selected path or, with none, the word the next lift writes; a "+N" handle at a
  * short path's end ([StrandsExtendHandle]) extends it. Below, [StrandsPathsPanel] lists the
- * paths and holds the clue field.
+ * paths and holds the clue field. The [verdict] and the card's witness choice
+ * ([StrandsEditorController.overlay]) are drawn by [StrandsDiagnosticsLayer].
  */
 @Composable
-internal fun StrandsEditorBoard(controller: StrandsEditorController, modifier: Modifier = Modifier) {
+internal fun StrandsEditorBoard(
+    controller: StrandsEditorController,
+    modifier: Modifier = Modifier,
+    verdict: Verdict = Verdict.Checking,
+) {
     val draft by controller.draft.collectAsState()
     val live by controller.trace.collectAsState()
     val word by controller.word.collectAsState()
     val selected by controller.selectedPath.collectAsState()
     val board = draft.state.draft as StrandsDraft
     val model = remember(board, live, selected) { modelOf(board, live, selected) }
+    val overlay by controller.overlay.collectAsState()
+    // The last settled verdict, so the witness paths hold while a new analysis runs.
+    val settled = remember { mutableStateOf<Verdict?>(null) }
+    SideEffect { if (verdict != Verdict.Checking) settled.value = verdict }
+    val held = if (verdict == Verdict.Checking) settled.value else verdict
+    val diagnostics = strandsDiagnostics(verdict, held, overlay)
     val pockets = remember(board.paths) { StrandsPockets.of(board).flatten().toSet() }
     // The grid keeps its touch size and the column scrolls, so the panel never squeezes the board.
     BoxWithConstraints(modifier) {
@@ -85,6 +99,7 @@ internal fun StrandsEditorBoard(controller: StrandsEditorController, modifier: M
                     modifier = Modifier.fillMaxSize().testTag("strands.editor.board"),
                 )
                 val tail = selected?.let { board.paths[it] }
+                StrandsDiagnosticsLayer(diagnostics, Modifier.fillMaxSize())
                 val missing = (tail?.let { word.length - it.cells.size } ?: 0).coerceAtLeast(0)
                 CellTaps(
                     onTap = controller::tapCell,
