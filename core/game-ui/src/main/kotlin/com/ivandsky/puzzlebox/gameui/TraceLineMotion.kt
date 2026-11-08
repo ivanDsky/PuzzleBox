@@ -5,25 +5,23 @@ import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.tracePop
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
  * A trace line's frame state (Zip and Strands, spec A1/A4): the committed path is instant; the
- * VISIBLE end is a fractional index along the path plus an optional [tipCell], blended over
- * [MotionTokens.Trace] durations whenever the path or the tip direction changes, with a head
- * that pops on every cell joined. Each game projects its tip and draws; [neighbour] is the cell
- * one step from a cell along a tip direction. Call [step] from the draw phase only, so a running
- * tween redraws the line and recomposes nothing.
+ * VISIBLE end is a fractional index along [line], blended over [MotionTokens.Trace]
+ * durations whenever the path changes. A live [TraceTip] ([TraceTip.extent] of a step past the
+ * last committed cell, or back toward the previous one) moves the end with the finger without
+ * a blend, resting on the tail whenever the tip is refused; let go, it returns home over
+ * [MotionTokens.Trace.HomeDuration]. A committed backtrack keeps the removed cells in [line]
+ * until the end has retracted past them. Each game projects its tip and draws [line] up to the
+ * end. Call [step] from the draw phase only, so a running tween redraws the line and
+ * recomposes nothing.
  */
-class TraceLineMotion<C : Any, D>(
-    private val scope: CoroutineScope,
-    private val neighbour: (cell: C, direction: D) -> C,
-) {
+class TraceLineMotion<C : Any>(private val scope: CoroutineScope) {
     private val blend = Animatable(1f)
-    private val head = Animatable(1f)
     private var blendFrom = 0f
     private var blendDuration = 0
     private var blendEasing: Easing = LinearEasing
@@ -32,64 +30,76 @@ class TraceLineMotion<C : Any, D>(
     private var blendPending = false
 
     private var drawnPath: List<C>? = null
-    private var drawnLine: List<C> = emptyList()
-    private var drawnTip: C? = null
     private var drawnEnd = 0f
     private var hadTip = false
 
-    /** The last cell the tip reached for; it stays on the line so the tip can retract home along it. */
-    var tipCell: C? = null
+    /** The cells to draw this frame: the path and its tip cell, plus the cells a backtrack is still retracting off. */
+    var line: List<C> = emptyList()
         private set
 
-    /** The head disc's scale this frame: 1 at rest, above it mid-pop. */
-    val headScale: Float get() = head.value
-
-    /** How far along path + [tipCell] the visible end sits this frame. */
-    fun step(path: List<C>, tip: TraceTip<D>?, animate: Boolean): Float {
+    /** How far along [line] the visible end sits this frame. */
+    fun step(path: List<C>, tip: TraceTip<C>? = null, animate: Boolean): Float {
         val previous = drawnPath
         drawnPath = path
         if (path.isEmpty()) {
-            drawnLine = path
-            drawnTip = null
+            line = path
             drawnEnd = 0f
-            tipCell = null
             hadTip = false
             return 0f
         }
-        val changed = previous != null && previous !== path && previous != path
-        if (changed && animate && path.size > commonPrefix(previous.orEmpty(), null, path, null)) pop()
+        val changed = previous != null && previous != path
 
-        var target = path.lastIndex.toFloat()
-        if (tip != null) {
-            if (tip.kind == TipKind.Back) {
-                target -= tip.extent
-            } else {
-                tipCell = neighbour(path.last(), tip.direction)
-                target += tip.extent
-            }
+        // A forward tip leans at a cell the game has not committed, so its cell rides the line's
+        // end; a back tip rides the committed line, which already runs through the previous cell.
+        val tipCell = tip?.takeIf { it.kind == TipKind.Forward }?.toward
+        val target = path.lastIndex.toFloat() + when (tip?.kind) {
+            TipKind.Forward -> tip.extent
+            TipKind.Back -> -tip.extent
+            null -> 0f
         }
+        val releasing = hadTip && tip == null
+        val arming = !hadTip && tip != null
+        hadTip = tip != null
 
-        val shared = commonPrefix(drawnLine, drawnTip, path, tipCell)
+        val nextLine = path + listOfNotNull(tipCell)
+        val shared = commonPrefix(line, nextLine)
+        // A dropped tip cell is a release, not a leftover to retract along.
+        val retracting = !releasing && shared == nextLine.size && line.size > nextLine.size
         val mapped = if (shared > 0) minOf(drawnEnd, (shared - 1).toFloat()) else target
         val truncated = shared > 0 && mapped < drawnEnd - 1e-6f
-        val releasing = hadTip && tip == null
-        hadTip = tip != null
-        val threshold = if (releasing) 0.01f else MotionTokens.Trace.BlendMinCells
         when {
-            !animate -> Unit
-            shared > 0 && (changed || truncated || releasing) && abs(target - mapped) > threshold -> {
-                val grow = target > mapped
-                startBlend(
-                    from = mapped,
-                    duration = when {
-                        grow -> MotionTokens.Trace.GrowDuration
-                        releasing -> MotionTokens.Trace.HomeDuration
-                        else -> MotionTokens.Trace.RetractDuration
-                    },
-                    easing = if (grow) MotionTokens.Trace.EasingOut else MotionTokens.Trace.EasingRetract,
-                )
+            !animate -> line = nextLine
+            retracting -> when {
+                // Off the old line along the removed cells; one short enough is not worth a blend.
+                changed && drawnEnd - target > MotionTokens.Trace.BlendMinCells ->
+                    startBlend(drawnEnd, MotionTokens.Trace.RetractDuration, MotionTokens.Trace.EasingRetract)
+                changed -> line = nextLine
+                !blending() -> line = nextLine
             }
-            blending() && (changed || truncated) -> startBlend(mapped, blendDuration, blendEasing)
+            else -> {
+                line = nextLine
+                when {
+                    // Let go mid-lean, or swung into a refused direction: home from wherever the
+                    // end is drawn, however short the way back.
+                    releasing && abs(target - drawnEnd) > 0.01f ->
+                        startBlend(drawnEnd, MotionTokens.Trace.HomeDuration, MotionTokens.Trace.EasingRetract)
+                    // A lean appearing far from the tail (a finger swung off a refused direction)
+                    // grows in rather than snapping.
+                    arming && abs(target - drawnEnd) > MotionTokens.Trace.BlendMinCells ->
+                        startBlend(
+                            drawnEnd,
+                            if (target > drawnEnd) MotionTokens.Trace.GrowDuration else MotionTokens.Trace.RetractDuration,
+                            if (target > drawnEnd) MotionTokens.Trace.EasingOut else MotionTokens.Trace.EasingRetract,
+                        )
+                    shared > 0 && (changed || truncated) && abs(target - mapped) > MotionTokens.Trace.BlendMinCells ->
+                        startBlend(
+                            mapped,
+                            if (target > mapped) MotionTokens.Trace.GrowDuration else MotionTokens.Trace.RetractDuration,
+                            if (target > mapped) MotionTokens.Trace.EasingOut else MotionTokens.Trace.EasingRetract,
+                        )
+                    blending() && (changed || truncated) -> startBlend(mapped, blendDuration, blendEasing)
+                }
+            }
         }
         val end = if (animate && blending()) {
             val progress = if (blendPending) 0f else blend.value
@@ -97,13 +107,14 @@ class TraceLineMotion<C : Any, D>(
         } else {
             target
         }
-        drawnLine = path
-        drawnTip = tipCell
         drawnEnd = end
         return end
     }
 
-    private fun blending() = blendPending || blend.value < 1f
+    // Reads blend.value first, every call: the draw that starts a blend sees blendPending and
+    // would otherwise read no state, so the tween's first snap and every frame after it would
+    // never redraw the line.
+    private fun blending() = blend.value < 1f || blendPending
 
     private fun startBlend(from: Float, duration: Int, easing: Easing) {
         blendFrom = from
@@ -116,20 +127,11 @@ class TraceLineMotion<C : Any, D>(
             blend.animateTo(1f, tween(duration, easing = LinearEasing))
         }
     }
-
-    private fun pop() {
-        scope.launch {
-            head.snapTo(1f)
-            head.tracePop()
-        }
-    }
 }
 
-/** The shared head of the lines [a] + [aTip] and [b] + [bTip], each tip optional; no list is built. */
-private fun <C> commonPrefix(a: List<C>, aTip: C?, b: List<C>, bTip: C?): Int {
-    val aSize = a.size + if (aTip == null) 0 else 1
-    val bSize = b.size + if (bTip == null) 0 else 1
+/** How many leading cells [a] and [b] share. */
+private fun <C> commonPrefix(a: List<C>, b: List<C>): Int {
     var k = 0
-    while (k < aSize && k < bSize && (if (k < a.size) a[k] else aTip) == (if (k < b.size) b[k] else bTip)) k++
+    while (k < a.size && k < b.size && a[k] == b[k]) k++
     return k
 }

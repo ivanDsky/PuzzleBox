@@ -77,12 +77,35 @@ class StrandsTraceWalkTest {
     }
 
     @Test
-    fun `a wrong diagonal holds there until the finger reaches it`() {
+    fun `a wrong diagonal the finger never came to gives way to the side letter it then draws on`() {
         // An east drag dipping 29° takes the diagonal (4, 2) while the finger is still in (3, 2);
-        // pulling up-right to correct heads north-east from (4, 2) at (3, 3), but the finger never
-        // came to (4, 2), so nothing grows from it.
+        // the finger never came to (4, 2), and now it draws on east through (3, 2) to (3, 3).
         val finger = polyline(listOf(centre(Coord(3, 1)), SLIP, Offset(2.6f, 3.3f), centre(Coord(3, 3))), FINE)
-        assertEquals(listOf(Coord(3, 1), Coord(4, 2)), drag(finger))
+        assertEquals(listOf(Coord(3, 1), Coord(3, 2), Coord(3, 3)), drag(finger))
+    }
+
+    @Test
+    fun `a diagonal the finger did come to stays, with the finger beside it`() {
+        // The finger reaches (4, 2)'s centre, then draws on east to (4, 3): a real turn, no reroute.
+        val finger = polyline(listOf(centre(Coord(3, 1)), centre(Coord(4, 2)), centre(Coord(4, 3))), FINE)
+        assertEquals(listOf(Coord(3, 1), Coord(4, 2), Coord(4, 3)), drag(finger))
+    }
+
+    @Test
+    fun `drawing back over an earlier letter joins nothing - the path is a wall the trace draws on from`() {
+        // East along row 2, down, back west along row 3, then up onto (2, 1): traced earlier, not
+        // the previous letter — the wall refuses, the U-turn stays, and the trace draws on south.
+        val finger = polyline(
+            listOf(
+                centre(Coord(2, 0)), centre(Coord(2, 2)), centre(Coord(3, 2)), centre(Coord(3, 1)),
+                centre(Coord(2, 1)), centre(Coord(4, 1)),
+            ),
+            FINE,
+        )
+        assertEquals(
+            listOf(Coord(2, 0), Coord(2, 1), Coord(2, 2), Coord(3, 2), Coord(3, 1), Coord(4, 1)),
+            drag(finger),
+        )
     }
 
     @Test
@@ -107,6 +130,14 @@ class StrandsTraceWalkTest {
         assertEquals(emptyList<Coord>(), drag(short))
         val past = polyline(listOf(start, start + Offset(0.42f, 0.42f)), FINE)
         assertEquals(listOf(Coord(2, 1), Coord(3, 2)), drag(past))
+    }
+
+    @Test
+    fun `a letter the finger comes to the heart of joins even when the heading reads diagonal`() {
+        // Cutting the corner from (2, 1) toward (2, 2) at 31° reads diagonal and would take (3, 2)
+        // past it; the finger is 0.11 from (2, 2)'s centre, so (2, 2) joins first.
+        val finger = polyline(listOf(Offset(1.9f, 2.15f), Offset(2.4f, 2.45f)), FINE)
+        assertEquals(listOf(Coord(2, 1), Coord(2, 2)), drag(finger))
     }
 
     @Test

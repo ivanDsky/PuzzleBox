@@ -34,7 +34,7 @@ internal fun BoxScope.StrandsGestureLayer(
     trace: () -> Trace,
     onTrace: (TraceStep) -> Unit,
     onTouch: () -> Unit,
-    onFinger: (TraceFinger?) -> Unit,
+    onFinger: (Offset?) -> Unit,
 ) {
     val currentTrace by rememberUpdatedState(trace)
     val currentBoardSize by rememberUpdatedState(boardSize)
@@ -73,7 +73,7 @@ internal fun BoxScope.StrandsGestureLayer(
                             val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
                             if (!change.pressed) break
                             session.move(inCells(change.position), currentTrace()).forEach { currentOnTrace(it) }
-                            session.finger(currentTrace())?.let { currentOnFinger(it) }
+                            session.finger()?.let { currentOnFinger(it) }
                             change.consume()
                         }
                     } finally {

@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.games.strandsui.board
 
 import androidx.compose.ui.geometry.Offset
-import com.ivandsky.puzzlebox.gameui.TipKind
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strandsui.Trace
 import com.ivandsky.puzzlebox.games.strandsui.TraceStep
@@ -46,27 +45,23 @@ class StrandsDragSessionTest {
     fun `the finger shows only once the touch is a drag`() {
         val session = session()
         session.move(centreOf(start) + Offset(0.1f, 0f), Trace())
-        assertNull(session.finger(Trace()))
-        val dragged = (session.move(centreOf(Coord(3, 2)), Trace()).last() as TraceStep.Updated).trace
-        assertEquals(centreOf(Coord(3, 2)), session.finger(dragged)?.at)
+        assertNull(session.finger())
+        session.move(centreOf(Coord(3, 2)), Trace())
+        assertEquals(centreOf(Coord(3, 2)), session.finger())
     }
 
     @Test
-    fun `a tail the walk will not grow from gives the tip no stretch`() {
+    fun `the finger tracks every move once the touch is a drag`() {
         // An east drag dipping 29° cuts into the diagonal (4, 2) from inside (3, 2), then
-        // pulls up-right toward (3, 3): the walk refuses it until the finger comes to (4, 2).
+        // wanders on toward it, short of (3, 2) and (4, 2) alike: the walk grows nothing,
+        // but the tip still leans where the finger is.
         val session = session()
         var trace = Trace()
-        for (point in listOf(Offset(2.05f, 3.8f), Offset(2.6f, 3.3f))) {
+        for (point in listOf(Offset(2.05f, 3.8f), Offset(2.2f, 3.95f))) {
             session.move(point, trace).forEach { trace = (it as TraceStep.Updated).trace }
         }
         assertEquals(listOf(start, Coord(4, 2)), trace.path)
-        val finger = checkNotNull(session.finger(trace))
-        assertEquals(false, finger.armed)
-        assertEquals(TipKind.Nudge, strandsTip(trace.path, finger, rows, cols, latch = null)?.kind)
-
-        session.move(centreOf(Coord(4, 2)), trace)
-        assertEquals(true, session.finger(trace)?.armed)
+        assertEquals(Offset(2.2f, 3.95f), session.finger())
     }
 
     @Test

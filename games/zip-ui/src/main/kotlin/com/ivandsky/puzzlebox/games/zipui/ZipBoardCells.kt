@@ -81,8 +81,8 @@ fun ZipCellDecor(
         ),
         label = "zipRejectionPulse",
     )
-    // Same pop as the line head (MotionTokens.Trace), so a dot the trace reaches reads as
-    // one beat with it; never on first composition, so restoring a board stays still.
+    // A dot the trace reaches pops (MotionTokens.Trace); never on first composition, so
+    // restoring a board stays still.
     val pop = remember { Animatable(1f) }
     var wasInPath by remember { mutableStateOf(inPath) }
     LaunchedEffect(inPath) {
@@ -182,9 +182,9 @@ fun ZipCellDecor(
  * The trace, hoisted to ONE board-level layer (ticket 28, the user's layer-level
  * subtraction): one fat rounded stroke along the path, drawn UNDER all cell content as
  * the [BoardGrid] underlay, so each dot's surface hole punches the pipe globally. A head
- * disc sits on the line end. In the live game [finger] (board px, read in the draw phase)
- * drives the tip toward cells [hooks] accepts, and [animate] turns on grow-in, retract,
- * tip-home and the head pop ([MotionTokens.Trace]); reduced motion keeps only the tip.
+ * disc rides the line's end. In the live game [finger] (board px, read in the draw phase)
+ * leans the end toward cells [hooks] accepts, and [animate] turns on grow-in, retract and
+ * the tip's return home ([MotionTokens.Trace]); reduced motion keeps only the tip.
  */
 @Composable
 fun ZipPipes(

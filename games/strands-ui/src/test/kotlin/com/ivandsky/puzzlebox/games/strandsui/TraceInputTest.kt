@@ -64,10 +64,15 @@ class TraceInputTest {
     }
 
     @Test
+    fun `dragging onto an earlier letter changes nothing - the path is a wall`() {
+        assertEquals(TraceStep.Updated(traceOf(a, b, c)), TraceInput.dragTo(traceOf(a, b, c), a))
+        assertEquals(TraceStep.Updated(traceOf(a, b, c, Coord(2, 2))), TraceInput.dragTo(traceOf(a, b, c, Coord(2, 2)), b))
+    }
+
+    @Test
     fun `dragging anywhere else leaves the trace unchanged`() {
         val trace = traceOf(a, b, c)
         assertEquals(TraceStep.Updated(trace), TraceInput.dragTo(trace, far))
-        assertEquals(TraceStep.Updated(trace), TraceInput.dragTo(trace, a))
         assertEquals(TraceStep.Updated(trace), TraceInput.dragTo(trace, c))
         assertEquals(TraceStep.Updated(Trace()), TraceInput.dragTo(Trace(), a))
     }
