@@ -6,8 +6,10 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.DraftExport
 import com.ivandsky.puzzlebox.game.editor.DraftState
+import com.ivandsky.puzzlebox.game.editor.EditorNotation
 import com.ivandsky.puzzlebox.game.editor.EditorShareCodec
 import com.ivandsky.puzzlebox.game.editor.GameEditor
+import com.ivandsky.puzzlebox.game.editor.NotationResult
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -27,6 +29,7 @@ import com.ivandsky.puzzlebox.model.GameId
 object StrandsEditor :
     GameEditor<StrandsDraft>,
     DraftExport<StrandsDraft>,
+    EditorNotation<StrandsDraft>,
     EditorShareCodec<StrandsDraft> by StrandsShareCodec {
     override val gameId: GameId get() = StrandsDefinition.id
 
@@ -44,6 +47,14 @@ object StrandsEditor :
     override fun encodeDraft(state: DraftState<StrandsDraft>): ByteArray = StrandsDraftCodec.encode(state)
 
     override fun decodeDraft(bytes: ByteArray): DecodeResult<DraftState<StrandsDraft>> = StrandsDraftCodec.decode(bytes)
+
+    override val notationVersion: Int get() = StrandsNotation.VERSION
+
+    override fun parse(text: String): NotationResult<StrandsDraft> = StrandsNotation.parse(text)
+
+    override fun print(draft: StrandsDraft): String = StrandsNotation.print(draft)
+
+    override fun columns(draft: StrandsDraft): Int = StrandsDraft.COLS
 
     override fun analyze(draft: StrandsDraft, budget: Budget): Verdict = StrandsDraftAnalyzer.analyze(draft, budget)
 

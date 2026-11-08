@@ -99,11 +99,15 @@ class StrandsEditorController(
         onEdit(next)
     }
 
-    /** Sets the theme clue as one undoable step; a no-op when [text] is the clue already. */
+    /**
+     * Sets the theme clue as one undoable step; a no-op when [text] is the clue already. Line
+     * breaks are dropped: the notation writes the clue on one line.
+     */
     fun setClue(text: String) {
+        val clue = text.filter { it != '\n' && it != '\r' }
         val before = current.value.state.draft.clue
-        if (text == before) return
-        val next = current.value.apply(StrandsDraftCommand.SetClue(text, before))
+        if (clue == before) return
+        val next = current.value.apply(StrandsDraftCommand.SetClue(clue, before))
         current.value = next
         onEdit(next)
     }
@@ -113,14 +117,15 @@ class StrandsEditorController(
     }
 
     /**
-     * Takes the word field's [text], letters only, upper case. With a path selected the letters
-     * go onto its blank cells (and over the ones an earlier typing wrote) as one undoable step;
-     * the path is named once the text is exactly as long as the path. Longer text keeps its
-     * overflow for [extend]. With none selected the text waits for the next lift.
+     * Takes the word field's [text], letters A-Z only (any case, anything else dropped), upper
+     * case. With a path selected the letters go onto its blank cells (and over the ones an
+     * earlier typing wrote) as one undoable step; the path is named once the text is exactly as
+     * long as the path. Longer text keeps its overflow for [extend]. With none selected the text
+     * waits for the next lift.
      */
     fun typeWord(text: String) {
         val previous = typedWord.value
-        val letters = text.filter(Char::isLetter).uppercase()
+        val letters = text.filter { it in 'A'..'Z' || it in 'a'..'z' }.uppercase()
         typedWord.value = letters
         val index = selected.value ?: return
         val before = current.value.state.draft
