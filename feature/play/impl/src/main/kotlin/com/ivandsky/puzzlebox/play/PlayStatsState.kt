@@ -35,8 +35,10 @@ internal sealed interface PlayTimes {
     /**
      * Every posted time in board order; [rows] is empty before anyone has posted. [solved]
      * is the player's own solve of the slot, whose time can trail it onto the board.
+     * [order] is the game's rank rule when the per-game board is on (rows then lead with
+     * its key and the label names the rule); null keeps the time-only rows.
      */
-    data class Board(val rows: List<PlayTimeRow>, val solved: Boolean) : PlayTimes {
+    data class Board(val rows: List<PlayTimeRow>, val solved: Boolean, val order: RankOrder? = null) : PlayTimes {
 
         private val you: Int = rows.indexOfFirst { it.you }
 
@@ -55,5 +57,5 @@ internal sealed interface PlayTimes {
     }
 }
 
-/** One posted time: its board [rank] (1-based), who, and whether it is the player's. */
-internal data class PlayTimeRow(val rank: Int, val name: String, val timeMs: Long, val you: Boolean)
+/** One posted time: its board [rank] (1-based), who, its [hints], and whether it is the player's. */
+internal data class PlayTimeRow(val rank: Int, val name: String, val timeMs: Long, val hints: Int, val you: Boolean)
