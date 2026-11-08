@@ -30,4 +30,10 @@ object ZipEditorUi : GameEditorUi {
     override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) {
         ZipEditorBoard(controller as ZipEditorController, modifier)
     }
+
+    /** The covered-cell count, and the next step once the path covers the board. */
+    @Composable
+    override fun ToolHint(controller: GameEditorController, modifier: Modifier) {
+        ZipEditorHint(controller as ZipEditorController, modifier)
+    }
 }
