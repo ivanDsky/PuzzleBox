@@ -161,7 +161,7 @@ class LibraryViewModel(
         }
         .onStart { emit(emptyMap()) }
 
-    private val removal = FriendRemoval(deleteReceivedPuzzle, appScope)
+    private val removal = FriendRemoval(deleteReceivedPuzzle, appScope, store::discard)
 
     internal val friends: StateFlow<List<FriendCardModel>> = combine(friendPuzzles(), removal.hidden) { rows, hidden ->
         rows.filter { it.code !in hidden }
@@ -233,7 +233,10 @@ class LibraryViewModel(
     }
 
     /** Hides [code]'s puzzle from From friends and offers Undo; it is deleted when that closes. */
-    internal fun removeFriend(code: ShareCode) = removal.remove(code)
+    internal fun removeFriend(code: ShareCode) {
+        val card = friends.value.firstOrNull { it.row.code == code } ?: return
+        removal.remove(code, card.row.gameId)
+    }
 
     /** Cancels the pending delete and brings the just-removed card back. */
     internal fun undoRemoveFriend() = removal.undo()

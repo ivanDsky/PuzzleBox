@@ -122,6 +122,7 @@ class LibraryViewModelTest {
         ).also { vm ->
             screen.launch { vm.uiState.collect {} }
             screen.launch { vm.page.collect {} }
+            screen.launch { vm.friends.collect {} }
             dispatcher.scheduler.runCurrent()
         }
     }

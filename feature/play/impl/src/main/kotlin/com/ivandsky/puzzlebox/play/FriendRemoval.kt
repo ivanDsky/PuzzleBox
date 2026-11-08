@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -17,14 +19,18 @@ import kotlinx.coroutines.launch
  * nothing; [removed] names it for [UNDO_WINDOW_MS]. The puzzle and its saved play are deleted
  * ([DeleteReceivedPuzzle]) when that window closes: on expiry, when a newer removal replaces
  * it, or on [clear]. [undo] cancels the delete, so both stay as they were. [scope] outlives
- * the screen, so a closed screen never drops a pending delete.
+ * the screen, so a closed screen never drops a pending delete. The delete first [discard]s the
+ * code's live play, so it cannot save again behind the delete; Undo leaves that play as it is.
  */
 internal class FriendRemoval(
     private val delete: DeleteReceivedPuzzle,
     private val scope: CoroutineScope,
+    private val discard: suspend (PlaySlot.Custom) -> Unit,
 ) {
     @Volatile
     private var window: Job? = null
+    @Volatile
+    private var slot: PlaySlot.Custom? = null
     private val _removed = MutableStateFlow<ShareCode?>(null)
     private val _hidden = MutableStateFlow<Set<ShareCode>>(emptySet())
 
@@ -34,10 +40,14 @@ internal class FriendRemoval(
     /** The codes the list leaves out: the offered one and any whose delete is still running. */
     val hidden: StateFlow<Set<ShareCode>> = _hidden.asStateFlow()
 
-    /** Hides [code] and opens its Undo window; a newer removal deletes the older one now. */
-    fun remove(code: ShareCode) {
+    /**
+     * Hides [code] of [game] and opens its Undo window; a newer removal deletes the older one
+     * now.
+     */
+    fun remove(code: ShareCode, game: GameId) {
         if (_removed.value == code) return
         close()
+        slot = PlaySlot.Custom(game, code.value)
         _hidden.update { it + code }
         _removed.value = code
         window = scope.launch {
@@ -63,8 +73,10 @@ internal class FriendRemoval(
     private fun close() {
         val code = _removed.getAndUpdate { null } ?: return
         window?.cancel()
+        val live = slot
         scope.launch {
             try {
+                live?.let { discard(it) }
                 delete(code)
             } finally {
                 _hidden.update { it - code }

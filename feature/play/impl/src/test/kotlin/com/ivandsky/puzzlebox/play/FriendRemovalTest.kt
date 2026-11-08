@@ -31,7 +31,7 @@ class FriendRemovalTest {
     private val received = FakeReceivedPuzzleRepository()
     private val saved = FakeSavedPlayRepository()
 
-    private fun TestScope.removal() = FriendRemoval(DeleteReceivedPuzzle(received, saved), this)
+    private fun TestScope.removal() = FriendRemoval(DeleteReceivedPuzzle(received, saved), this) {}
 
     private suspend fun store(code: ShareCode) {
         received.upsert(puzzle(code))
@@ -43,7 +43,7 @@ class FriendRemovalTest {
         store(A)
         val removal = removal()
 
-        removal.remove(A)
+        removal.remove(A, alpha)
         advanceTimeBy(FriendRemoval.UNDO_WINDOW_MS - 1)
 
         assertEquals(A, removal.removed.value)
@@ -56,7 +56,7 @@ class FriendRemovalTest {
         store(A)
         val removal = removal()
 
-        removal.remove(A)
+        removal.remove(A, alpha)
         advanceTimeBy(FriendRemoval.UNDO_WINDOW_MS - 1)
         removal.undo()
         advanceTimeBy(FriendRemoval.UNDO_WINDOW_MS)
@@ -72,7 +72,7 @@ class FriendRemovalTest {
         store(A)
         val removal = removal()
 
-        removal.remove(A)
+        removal.remove(A, alpha)
         advanceTimeBy(FriendRemoval.UNDO_WINDOW_MS + 1)
         runCurrent()
 
@@ -87,8 +87,8 @@ class FriendRemovalTest {
         store(B)
         val removal = removal()
 
-        removal.remove(A)
-        removal.remove(B)
+        removal.remove(A, alpha)
+        removal.remove(B, alpha)
         runCurrent()
 
         assertEquals(B, removal.removed.value)
@@ -100,7 +100,7 @@ class FriendRemovalTest {
         store(A)
         val removal = removal()
 
-        removal.remove(A)
+        removal.remove(A, alpha)
         removal.clear()
         runCurrent()
 
@@ -120,10 +120,10 @@ class FriendRemovalTest {
                 received.delete(code)
             }
         }
-        val removal = FriendRemoval(DeleteReceivedPuzzle(counting, saved), this)
+        val removal = FriendRemoval(DeleteReceivedPuzzle(counting, saved), this) {}
 
-        removal.remove(A)
-        removal.remove(B)
+        removal.remove(A, alpha)
+        removal.remove(B, alpha)
         advanceTimeBy(FriendRemoval.UNDO_WINDOW_MS + 1)
         removal.clear()
         runCurrent()

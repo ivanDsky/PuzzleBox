@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -153,6 +154,24 @@ class PlaySessionStoreSlotsTest {
         store.flush()
         runCurrent()
         assertTrue(saved.rows.isEmpty())
+    }
+
+    @Test
+    fun `discard drops a friend's live play without its pending save`() = runTest {
+        val friend = PlaySlot.Custom(alpha, "K7Q2MX")
+        val store = store()
+        store.open(CustomGameKey(alpha.value, friend.puzzleId))
+        runCurrent()
+        fakes[alpha].latest.move()
+
+        store.discard(friend)
+        advanceTimeBy(SAVE_WINDOW_MS)
+        runCurrent()
+        store.flush()
+        runCurrent()
+
+        assertNull(store.peek(friend))
+        assertFalse(friend in saved.rows)
     }
 
     @Test

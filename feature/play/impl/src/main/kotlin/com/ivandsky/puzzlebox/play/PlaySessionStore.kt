@@ -110,6 +110,13 @@ class PlaySessionStore internal constructor(
         }
     }
 
+    /** Drops [slot]'s live play without its final save and cancels its pending one; no-op when
+     *  none is live. Returns once the play is gone, so a delete queued after it cannot be
+     *  overtaken. Safe from any thread: the work runs on the store's own. */
+    suspend fun discard(slot: PlaySlot.Custom) {
+        scope.launch { slots.remove(slot)?.close(save = false) }.join()
+    }
+
     /** Folds every live play's clock and writes every pending save; the job ends when all are on disk. */
     fun flush(): Job {
         val saves = slots.values.map { play -> scope.launch(start = CoroutineStart.UNDISPATCHED) { play.save() } }
