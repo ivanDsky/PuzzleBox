@@ -65,5 +65,22 @@ val playModule = module {
     viewModel { LibraryViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
     viewModel { (slot: PlaySlot) -> PlayStatsViewModel(slot, get(), get(), get(), get(), get()) }
-    viewModel { (key: ResultKey) -> ResultViewModel(key, get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { (key: ResultKey) ->
+        ResultViewModel(
+            key = key,
+            store = get(),
+            todaySet = get(),
+            calendar = get(),
+            history = get(),
+            stats = get(),
+            rollover = get(),
+            ui = get(),
+            games = get(),
+            flags = get(),
+            insights = get(),
+            rank = get(),
+            leaderboard = get(),
+            board = get(),
+        )
+    }
 }
