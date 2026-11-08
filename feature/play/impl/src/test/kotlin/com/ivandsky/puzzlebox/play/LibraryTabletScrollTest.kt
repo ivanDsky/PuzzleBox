@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.common.di.commonModule
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
@@ -44,6 +45,8 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.Instant
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -91,6 +94,7 @@ class LibraryTabletScrollTest {
                 commonModule,
                 module {
                     single<ReleaseFlags> { flags }
+                    single<CoroutineScope> { CoroutineScope(SupervisorJob() + get<DispatcherProvider>().main) }
                     single<DailyRepository> { daily }
                     single<CompletionRepository> { completions }
                     single<GameRegistry> { fakes.games }
