@@ -51,6 +51,21 @@ private val Eyebrow = playful(FontWeight.Bold, 12, 16, 1.2)
 /** The Wordmark role: the "PuzzleBox" name in the top bar, nowhere else. */
 val WordmarkTextStyle: TextStyle = playful(FontWeight.ExtraBold, 24, 28, -0.5)
 
+/**
+ * The Results hero time: 76 sp on a phone, 96 sp when [wide], bold, tabular, line height
+ * equal to the size. A time of an hour or more ([hourPlus], "1:02:03") steps down one size
+ * (64 / 80 sp) so it fits one line. Display is unchanged; this is its own role.
+ */
+fun resultHeroTimeStyle(wide: Boolean, hourPlus: Boolean = false): TextStyle {
+    val size = when {
+        wide && hourPlus -> 80
+        wide -> 96
+        hourPlus -> 64
+        else -> 76
+    }
+    return playful(FontWeight.Bold, size, size, -0.5).tabular()
+}
+
 /** Primary button label (identity §2.4): Label at 16/20 weight 700. */
 internal val PrimaryButtonTextStyle: TextStyle = Label.copy(
     fontWeight = FontWeight.Bold,
