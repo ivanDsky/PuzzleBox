@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -39,13 +40,15 @@ private const val RuleMaxLines = 2
 /**
  * The first-time Create root (spec A3; 01 handoff "Empty (first time)", option C): with no
  * drafts at all it lists [games] inline, each with its glyph tile, one-line rule and default
- * size, so one tap on a game starts a draft of it at that size through [onStart].
+ * size, so one tap on a game starts a draft of it at that size through [onStart]. Under the
+ * games, "Import from text" ([onImport]) opens the Import sheet; null leaves it out.
  */
 @Composable
 fun CreateEmptyState(
     games: List<CreateUiState.NewGame>,
     onStart: (gameId: GameId, variant: VariantId) -> Unit,
     modifier: Modifier = Modifier,
+    onImport: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
@@ -75,6 +78,13 @@ fun CreateEmptyState(
                 tagRoot = "create.empty",
                 onClick = { onStart(game.id, game.defaultSize.variant) },
                 chevron = false,
+            )
+        }
+        onImport?.let {
+            AppTextButton(
+                text = "Import from text",
+                onClick = it,
+                modifier = Modifier.padding(horizontal = Spacing.xs, vertical = Spacing.sm).testTag("create.empty.import"),
             )
         }
     }
@@ -158,7 +168,7 @@ private fun previewGame(id: String, name: String, brand: GameBrand, sizes: List<
 private fun CreateEmptyStatePreview() {
     PuzzleBoxTheme {
         Surface {
-            CreateEmptyState(games = PreviewGames, onStart = { _, _ -> })
+            CreateEmptyState(games = PreviewGames, onStart = { _, _ -> }, onImport = {})
         }
     }
 }

@@ -66,6 +66,9 @@ private const val DELETED_TITLE_MAX = 28
  * While [importEnabled] the header carries a tonal Import pill ([onImportOpen]) that opens the
  * [ImportSheet] over [importSheet] ([onImportEdit], [onImportSubmit], [onImportDismiss]); its
  * clipboard banner uses [onImportClipboard], [onImportPaste] and [onImportClipboardDismiss].
+ * Two more entries open the same sheet through [onImportOpen], both only while [importEnabled]:
+ * the empty state's "Import from text" button, and the New puzzle sheet's last row, which
+ * closes the sheet first.
  *
  * Motion: rows **Fade in** / **Fade out** and slide to new places with a **Layout animation**
  * (MotionTokens medium, EasingStandard) as edits reorder them and the query narrows them; the
@@ -124,7 +127,11 @@ fun CreateScreen(
             )
             when {
                 state.loading -> Unit
-                state.isEmpty -> CreateEmptyState(games = state.games, onStart = onNew)
+                state.isEmpty -> CreateEmptyState(
+                    games = state.games,
+                    onStart = onNew,
+                    onImport = onImportOpen.takeIf { importEnabled },
+                )
                 else -> {
                     CreateTabs(state, onTab)
                     CreateTabContent(state, onOpen, onOpenPublished, onActions = { actionsId = it }, onQuery, onFilter)
@@ -156,6 +163,14 @@ fun CreateScreen(
                 onNew(gameId, variant)
             },
             onDismiss = { sheetOpen = false },
+            onImport = if (importEnabled) {
+                {
+                    sheetOpen = false
+                    onImportOpen()
+                }
+            } else {
+                null
+            },
         )
     }
     state.drafts.firstOrNull { it.id == actionsId }?.let { row ->

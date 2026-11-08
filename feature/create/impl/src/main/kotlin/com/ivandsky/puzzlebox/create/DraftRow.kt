@@ -37,9 +37,9 @@ private val DraftRowMinHeight = 72.dp
 
 /**
  * One draft on the Create root (01 handoff, "Draft row"): the game's glyph tile, the title,
- * "{Game} · {size}[ · imported]", "edited 2 h ago", the background verdict chip once the
- * row has one, and the ⋮ button. Tapping the row opens the draft's Studio through [onOpen];
- * ⋮ or a long press asks for its actions sheet through [onActions].
+ * "{Game} · {size}" and " · imported" for an imported draft, "edited 2 h ago", the background
+ * verdict chip once the row has one, and the ⋮ button. Tapping the row opens the draft's Studio
+ * through [onOpen]; ⋮ or a long press asks for its actions sheet through [onActions].
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -63,13 +63,7 @@ fun DraftRow(row: CreateUiState.DraftRow, onOpen: () -> Unit, onActions: () -> U
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = row.meta,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            DraftMetaLine(row.meta, row.imported)
             Text(
                 text = row.edited,
                 style = MaterialTheme.typography.bodySmall,
@@ -79,6 +73,36 @@ fun DraftRow(row: CreateUiState.DraftRow, onOpen: () -> Unit, onActions: () -> U
         row.verdict?.let { VerdictChip(it) }
         IconButton(onClick = onActions, modifier = Modifier.testTag("create.draft.more")) {
             Icon(PuzzleIcons.More, contentDescription = "Draft actions")
+        }
+    }
+}
+
+/** Shown after an imported draft's meta: the view model carries the fact, the UI owns the copy. */
+private const val IMPORTED_SUFFIX = " · imported"
+
+/**
+ * The meta line, with an imported draft's " · imported" kept apart as its own tagged text: a
+ * long "{Game} · {size}" ellipsizes first and the suffix always stays at the line's end.
+ */
+@Composable
+internal fun DraftMetaLine(meta: String, imported: Boolean) {
+    Row {
+        Text(
+            text = meta,
+            modifier = Modifier.weight(1f, fill = false),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (imported) {
+            Text(
+                text = IMPORTED_SUFFIX,
+                modifier = Modifier.testTag("create.draft.imported"),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
         }
     }
 }
@@ -108,9 +132,10 @@ private fun DraftRowPreview() {
                         gameId = GameId("zip"),
                         brand = GameBrand(AccentSlot.Blue, GameGlyphs.Zip),
                         title = "A very long draft title that runs past the end of the row",
-                        meta = "Zip · 7×7 · imported",
+                        meta = "Zip · 7×7",
                         edited = "edited 3 d ago",
                         verdict = Verdict.Checking,
+                        imported = true,
                     ),
                     onOpen = {},
                     onActions = {},
