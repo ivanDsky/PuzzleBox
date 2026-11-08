@@ -15,7 +15,9 @@ object TangoForcedCells {
      * givens break a rule. Places nothing.
      */
     fun of(draft: TangoDraft): Map<Int, TangoCell> {
-        val puzzle = TangoPuzzle(VariantId("tango/n${TangoDraft.N}"), TangoDraft.N, draft.givens, draft.markers)
+        val puzzle = TangoPuzzle(
+            VariantId("tango/n${TangoDraft.N}"), TangoDraft.N, draft.givens, draft.markers,
+        )
         if (TangoClashLocator.conflicts(puzzle).isNotEmpty()) return emptyMap()
         val grid = MutableList<TangoCell?>(puzzle.cellCount) { puzzle.givens[it] }
         val forced = linkedMapOf<Int, TangoCell>()
