@@ -43,6 +43,9 @@ private val ProgressRing = 2.5.dp
 private val SavedRing = 2.dp
 private val SelectedRing = 2.5.dp
 private val SelectedGap = 3.dp
+
+/** How far the selected ring's outer edge reaches past its disc on every side. */
+internal val SelectedRingRoom = SelectedGap + SelectedRing
 private val TodayBarWidth = 16.dp
 private val TodayBarHeight = 3.dp
 private val TodayBarGap = 7.dp

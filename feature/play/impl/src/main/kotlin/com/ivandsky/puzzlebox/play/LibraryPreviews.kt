@@ -59,7 +59,7 @@ private fun previewRow(
     )
 }
 
-private fun previewState(
+internal fun previewState(
     statuses: List<TodayStatus?> = listOf(
         TodayStatus.Solved(38_000L),
         TodayStatus.InProgress(72_000L),

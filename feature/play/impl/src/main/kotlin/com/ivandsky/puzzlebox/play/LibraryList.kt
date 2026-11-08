@@ -62,7 +62,7 @@ internal fun LibraryList(
         if (phone && state.offline) OfflinePill()
         friends()
         state.rows.forEachIndexed { index, row ->
-            EnterFade(index, reduced) {
+            EnterFade(index, reduced, bleed = if (phone) 0.dp else OutlineRoom) {
                 LibraryRow(
                     row = row,
                     selected = !phone && row.card.game == state.selected,

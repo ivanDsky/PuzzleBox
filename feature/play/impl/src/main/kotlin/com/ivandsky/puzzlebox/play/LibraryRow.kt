@@ -56,6 +56,9 @@ private val BarGap = 8.dp
 private val MarkSize = 14.dp
 private val OutlineWidth = 3.dp
 private val OutlineGap = 3.dp
+
+/** How far the selected outline's outer edge reaches past the card on every side. */
+internal val OutlineRoom = OutlineGap + OutlineWidth
 private const val MIN_BAR_FILL = 0.015f
 private const val TRACK_ALPHA = 0.24f
 internal const val SECONDARY_ALPHA = 0.82f
