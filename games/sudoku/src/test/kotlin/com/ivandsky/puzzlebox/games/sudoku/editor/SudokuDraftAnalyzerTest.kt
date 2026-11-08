@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.Solution
@@ -38,7 +39,8 @@ class SudokuDraftAnalyzerTest {
     @Test
     fun `a unique board carries its digit per cell at both sizes`() {
         for (puzzle in samples) {
-            assertEquals(Verdict.Unique(Solution(puzzle.solution)), analyze(puzzle.draft()))
+            val graded = Verdict.Unique(Solution(puzzle.solution), difficulty = Difficulty(SudokuRung.SINGLES))
+            assertEquals(graded, analyze(puzzle.draft()))
         }
     }
 
