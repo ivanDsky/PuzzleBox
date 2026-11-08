@@ -84,6 +84,12 @@ internal fun DailyBoardRejectedNotePreview() = Padded {
 
 @PuzzleBoxPreviews
 @Composable
+internal fun DailyBoardPostedOutsideTopPreview() = Padded {
+    DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows, DailyBoardNote.PostedOutsideTop))
+}
+
+@PuzzleBoxPreviews
+@Composable
 internal fun DailyBoardEmptyPreview() = Padded {
     DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList()))
 }

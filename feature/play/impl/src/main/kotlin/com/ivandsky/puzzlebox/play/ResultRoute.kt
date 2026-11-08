@@ -143,11 +143,13 @@ private fun resultBoard(key: ResultKey, viewModel: ResultViewModel, game: String
             order = viewModel.boardOrder,
             state = shown,
             signIn = {
+                // RG11: the hero rank row is the one sign-in action, so the board says text only.
                 SignInPrompt(
                     title = "Sign in to see today's board",
                     yourTimeMs = key.timeMs,
                     signIn = signIn,
                     onSignIn = { viewModel.signIn(context) },
+                    button = false,
                 )
             },
         )

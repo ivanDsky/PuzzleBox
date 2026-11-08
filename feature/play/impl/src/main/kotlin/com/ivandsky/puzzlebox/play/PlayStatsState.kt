@@ -39,13 +39,16 @@ internal sealed interface PlayTimes {
      * [order] is the game's rank rule when the per-game board is on (rows then lead with
      * its key and the label names the rule); null keeps the time-only rows. [post] is how
      * the player's own post stands while its row is missing, read only with the per-game
-     * board on; null keeps the plain Posting line.
+     * board on; null keeps the plain Posting line. [pastDay] says the slot's day is
+     * outside the submit window (A7), so its solve can never post — Near you then says
+     * so instead of any post status (RG10).
      */
     data class Board(
         val rows: List<PlayTimeRow>,
         val solved: Boolean,
         val order: RankOrder? = null,
         val post: SubmitStatus? = null,
+        val pastDay: Boolean = false,
     ) : PlayTimes {
 
         private val you: Int = rows.indexOfFirst { it.you }
