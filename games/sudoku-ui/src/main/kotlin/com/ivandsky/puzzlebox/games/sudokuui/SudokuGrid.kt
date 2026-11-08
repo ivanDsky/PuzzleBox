@@ -80,10 +80,10 @@ fun SudokuGrid(model: SudokuBoardModel, onSelect: (Int) -> Unit, modifier: Modif
     }
 }
 
-private class GridStrokes(val cell: Dp, val box: Dp)
+internal class GridStrokes(val cell: Dp, val box: Dp)
 
 /** The 9x9 has more lines in the same square, so its box stroke is lighter than the 6x6's. */
-private fun gridStrokes(size: Int): GridStrokes =
+internal fun gridStrokes(size: Int): GridStrokes =
     if (size > MINI_SIZE) GridStrokes(cell = 0.75.dp, box = 2.dp) else GridStrokes(cell = 1.dp, box = 3.dp)
 
 /** Lines sit on the cell edges inside the frame; the thin ones go first so box lines cover their ends. */
