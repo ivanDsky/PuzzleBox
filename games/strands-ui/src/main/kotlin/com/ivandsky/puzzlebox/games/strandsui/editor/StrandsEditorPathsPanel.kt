@@ -4,13 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -26,7 +23,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -36,8 +32,6 @@ import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraftPath
 private const val CREDIT =
     "Word list: ENABLE2K (Enhanced North American Benchmark LExicon) by Alan Beale and " +
         "M. Cooper, public domain. Source: enable2k.txt.gz, github.com/BartMassey/wordlists"
-
-private val ListMaxHeight = 160.dp
 
 /**
  * The clue field, one row per path and the word list credit. A row (`strands.editor.path.<i>`)
@@ -54,7 +48,7 @@ internal fun StrandsPathsPanel(
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         StrandsClueField(board.clue, onClue)
-        Column(Modifier.heightIn(max = ListMaxHeight).verticalScroll(rememberScrollState())) {
+        Column {
             board.paths.forEachIndexed { index, path ->
                 Row(
                     Modifier

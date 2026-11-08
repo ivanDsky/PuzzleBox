@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
@@ -75,10 +76,10 @@ class StrandsEditorPanelTest {
         path(0, 1)
         path(6, 7)
         show()
-        rule.onNodeWithTag("strands.editor.path.1").assertIsNotSelected().performClick()
+        rule.onNodeWithTag("strands.editor.path.1").performScrollTo().assertIsNotSelected().performClick()
         rule.onNodeWithTag("strands.editor.path.1").assertIsSelected()
         assertEquals(1, controller.selectedPath.value)
-        rule.onNodeWithTag("strands.editor.path.1").performClick()
+        rule.onNodeWithTag("strands.editor.path.1").performScrollTo().performClick()
         assertNull(controller.selectedPath.value)
     }
 

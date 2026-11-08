@@ -1,6 +1,9 @@
 package com.ivandsky.puzzlebox.games.strandsui.editor
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -68,43 +71,47 @@ internal fun StrandsEditorBoard(controller: StrandsEditorController, modifier: M
     val board = draft.state.draft as StrandsDraft
     val model = remember(board, live, selected) { modelOf(board, live, selected) }
     val pockets = remember(board.paths) { StrandsPockets.of(board).flatten().toSet() }
-    Column(modifier) {
-        Box(Modifier.weight(1f)) {
-            StrandsBoardContent(
-                model = model,
-                found = null,
-                reduceMotion = rememberReducedMotion(),
-                trace = { Trace(controller.trace.value.map(::coordOf)) },
-                onTrace = controller::step,
-                modifier = Modifier.fillMaxSize().testTag("strands.editor.board"),
-            )
-            val tail = selected?.let { board.paths[it] }
-            val missing = (tail?.let { word.length - it.cells.size } ?: 0).coerceAtLeast(0)
-            CellTaps(
-                onTap = controller::tapCell,
-                extendAt = tail?.cells?.last()?.takeIf { missing > 0 },
-                missing = missing,
-                onExtend = controller::extend,
-                pockets = pockets,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-        selected?.let { index ->
-            StrandsSpangramToggle(
-                index = index,
-                isSpangram = board.spangram == index,
-                onToggle = { controller.toggleSpangram(index) },
+    // The grid keeps its touch size and the column scrolls, so the panel never squeezes the board.
+    BoxWithConstraints(modifier) {
+        val cell = strandsCellSizeFor(maxWidth, Dp.Infinity, StrandsDraft.ROWS, StrandsDraft.COLS)
+        Column(Modifier.verticalScroll(rememberScrollState())) {
+            Box(Modifier.fillMaxWidth().height(cell * StrandsDraft.ROWS)) {
+                StrandsBoardContent(
+                    model = model,
+                    found = null,
+                    reduceMotion = rememberReducedMotion(),
+                    trace = { Trace(controller.trace.value.map(::coordOf)) },
+                    onTrace = controller::step,
+                    modifier = Modifier.fillMaxSize().testTag("strands.editor.board"),
+                )
+                val tail = selected?.let { board.paths[it] }
+                val missing = (tail?.let { word.length - it.cells.size } ?: 0).coerceAtLeast(0)
+                CellTaps(
+                    onTap = controller::tapCell,
+                    extendAt = tail?.cells?.last()?.takeIf { missing > 0 },
+                    missing = missing,
+                    onExtend = controller::extend,
+                    pockets = pockets,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            selected?.let { index ->
+                StrandsSpangramToggle(
+                    index = index,
+                    isSpangram = board.spangram == index,
+                    onToggle = { controller.toggleSpangram(index) },
+                    modifier = Modifier.padding(top = Spacing.sm),
+                )
+            }
+            StrandsWordField(controller)
+            StrandsPathsPanel(
+                board = board,
+                selected = selected,
+                onSelect = controller::selectPath,
+                onClue = controller::setClue,
                 modifier = Modifier.padding(top = Spacing.sm),
             )
         }
-        StrandsWordField(controller)
-        StrandsPathsPanel(
-            board = board,
-            selected = selected,
-            onSelect = controller::selectPath,
-            onClue = controller::setClue,
-            modifier = Modifier.padding(top = Spacing.sm),
-        )
     }
 }
 
