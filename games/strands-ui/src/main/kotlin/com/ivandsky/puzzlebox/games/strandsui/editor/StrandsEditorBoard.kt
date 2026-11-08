@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
@@ -20,15 +21,12 @@ import androidx.compose.ui.semantics.invisibleToUser
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.games.strands.Coord
@@ -49,8 +47,9 @@ private const val BLANK_GLYPH = ' '
  * traced path as a found word (the spangram's in its own look), blank cells empty, and the live
  * trace over them. Touch is the play board's: a drag or taps trace cells, a lift commits the
  * path ([StrandsEditorController.endTrace]); a tap on a traced cell or its chip selects that
- * path, drawn outlined. Under the grid, a plain field takes the word the
- * lift writes onto the path's blank cells.
+ * path, drawn outlined. Under the grid, the word field ([StrandsWordField]) names the selected
+ * path or, with none, the word the next lift writes; a "+N" handle at a short path's end
+ * ([StrandsExtendHandle]) extends it.
  */
 @Composable
 internal fun StrandsEditorBoard(controller: StrandsEditorController, modifier: Modifier = Modifier) {
@@ -70,16 +69,18 @@ internal fun StrandsEditorBoard(controller: StrandsEditorController, modifier: M
                 onTrace = controller::step,
                 modifier = Modifier.fillMaxSize().testTag("strands.editor.board"),
             )
-            CellTaps(controller::tapCell, Modifier.fillMaxSize())
+            val tail = selected?.let { board.paths[it] }
+            val missing = (tail?.let { word.length - it.cells.size } ?: 0).coerceAtLeast(0)
+            CellTaps(
+                onTap = controller::tapCell,
+                extendAt = tail?.cells?.last()?.takeIf { missing > 0 },
+                missing = missing,
+                onExtend = controller::extend,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
         PathChips(board, selected, controller::selectPath)
-        OutlinedTextField(
-            value = word,
-            onValueChange = controller::setWord,
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
-            modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm).testTag("strands.editor.word"),
-        )
+        StrandsWordField(controller)
     }
 }
 
@@ -88,26 +89,44 @@ internal fun StrandsEditorBoard(controller: StrandsEditorController, modifier: M
  * out, so the cell's tag (`strands.editor.cell.<idx>`) answers a click as the board's own tap.
  */
 @Composable
-private fun CellTaps(onTap: (Int) -> Unit, modifier: Modifier = Modifier) {
+private fun CellTaps(
+    onTap: (Int) -> Unit,
+    extendAt: Int?,
+    missing: Int,
+    onExtend: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     BoxWithConstraints(modifier) {
         val cell = strandsCellSizeFor(maxWidth, maxHeight, StrandsDraft.ROWS, StrandsDraft.COLS)
         Box(Modifier.fillMaxWidth().height(cell * StrandsDraft.ROWS), contentAlignment = Alignment.Center) {
-            Column(Modifier.requiredSize(cell * StrandsDraft.COLS, cell * StrandsDraft.ROWS)) {
-                repeat(StrandsDraft.ROWS) { row ->
-                    Row {
-                        repeat(StrandsDraft.COLS) { col ->
-                            val idx = row * StrandsDraft.COLS + col
-                            Box(
-                                Modifier
-                                    .size(cell)
-                                    .testTag("strands.editor.cell.$idx")
-                                    .semantics {
-                                        invisibleToUser()
-                                        onClick { onTap(idx); true }
-                                    },
-                            )
+            Box(Modifier.requiredSize(cell * StrandsDraft.COLS, cell * StrandsDraft.ROWS)) {
+                Column {
+                    repeat(StrandsDraft.ROWS) { row ->
+                        Row {
+                            repeat(StrandsDraft.COLS) { col ->
+                                val idx = row * StrandsDraft.COLS + col
+                                Box(
+                                    Modifier
+                                        .size(cell)
+                                        .testTag("strands.editor.cell.$idx")
+                                        .semantics {
+                                            invisibleToUser()
+                                            onClick { onTap(idx); true }
+                                        },
+                                )
+                            }
                         }
                     }
+                }
+                if (extendAt != null) {
+                    StrandsExtendHandle(
+                        count = missing,
+                        onExtend = onExtend,
+                        modifier = Modifier.offset(
+                            x = cell * (extendAt % StrandsDraft.COLS) + cell / 2,
+                            y = cell * (extendAt / StrandsDraft.COLS) - cell / 4,
+                        ),
+                    )
                 }
             }
         }
