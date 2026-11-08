@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * in [preview]; [release] commits its cycle step (empty, sun, moon; or none, `=`, `×`) as
  * one undoable command and [cancelPress] drops it. The verdict card's witness choice arrives
  * through [adoptOverlay] and the board draws it from [overlay]. [tapZones] outlines the edge
- * bands while on.
+ * bands while on; [forcedView] shows the cells the hint ladder forces from the givens.
  */
 class TangoEditorController(
     initial: EditorDraft<*>,
@@ -31,6 +31,7 @@ class TangoEditorController(
     private val pressed = MutableStateFlow<TangoEditorTarget?>(null)
     private val chosen = MutableStateFlow(EditorOverlay())
     private val zones = MutableStateFlow(false)
+    private val forced = MutableStateFlow(false)
 
     override val draft: StateFlow<EditorDraft<*>> = current.asStateFlow()
 
@@ -44,6 +45,13 @@ class TangoEditorController(
 
     fun toggleTapZones() {
         zones.value = !zones.value
+    }
+
+    /** Whether the board shows the cells the hint ladder forces; not persisted. */
+    val forcedView: StateFlow<Boolean> = forced.asStateFlow()
+
+    fun toggleForcedView() {
+        forced.value = !forced.value
     }
 
     override fun adopt(draft: EditorDraft<*>) {
