@@ -29,6 +29,7 @@ internal object StrandsEditorCopy {
         StrandsPublishGates.WORD_SHAPE -> "$word needs 4 to 24 letters, A to Z only"
         PublishBlock.BLOCKLISTED -> "$word can't be used"
         StrandsPublishGates.DUPLICATE_WORD -> "$word is in the puzzle twice"
+        StrandsPublishGates.SPANGRAM_EDGES -> "The spangram must touch two opposite edges"
         else -> null
     }
 }
