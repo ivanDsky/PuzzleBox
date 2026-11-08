@@ -43,5 +43,8 @@ internal fun CreateRoute(
         onImportEdit = viewModel.importText::edit,
         onImportSubmit = viewModel.importText::submit,
         onImportDismiss = viewModel.importText::dismiss,
+        onImportClipboard = viewModel.importText::offerClipboard,
+        onImportPaste = viewModel.importText::pasteClipboard,
+        onImportClipboardDismiss = viewModel.importText::dismissClipboard,
     )
 }

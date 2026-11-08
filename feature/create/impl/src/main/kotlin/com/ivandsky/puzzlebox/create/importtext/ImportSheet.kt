@@ -7,6 +7,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.ImportResult
 
@@ -31,6 +45,7 @@ private val BoxMinHeight = 160.dp
 /** The Import button's height (PrimaryButton's minimum), so the sheet does not jump. */
 private val CheckingMinHeight = 52.dp
 private val SpinnerStroke = 3.dp
+private const val TEXT_MIME = "text/*"
 
 /**
  * The Import from text sheet (spec A23): a monospace box for the pasted notation ([onEdit]),
@@ -39,6 +54,12 @@ private val SpinnerStroke = 3.dp
  * button gives way to a spinner row, the box turns read-only and a swipe cannot close the
  * sheet (back and scrim still close it). Draws nothing until [ImportSheetUi.visible];
  * [onDismiss] closes it.
+ *
+ * Once per open, from this user-opened surface only, the clipboard's text goes to [onClipboard]
+ * (null when it holds none). When [ImportSheetUi.clipboard] is set a banner above the box
+ * offers Paste ([onPaste]) and a close button ([onDismissClipboard]). The sheet grows upward,
+ * so the banner sits above the box: its arrival moves the title, never the box or the button.
+ * Hidden while a check runs.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,21 +68,51 @@ fun ImportSheet(
     onEdit: (String) -> Unit,
     onSubmit: (String) -> Unit,
     onDismiss: () -> Unit,
+    onClipboard: (String?) -> Unit,
+    onPaste: () -> Unit,
+    onDismissClipboard: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (!ui.visible) return
+    val clipboard = LocalClipboard.current
+    // Saved, so an activity recreation does not read again; dropped with the sheet when it closes.
+    var read by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!read) {
+            read = true
+            onClipboard(clipboard.textOrNull())
+        }
+    }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         modifier = modifier.testTag("create.import.sheet"),
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         sheetGesturesEnabled = !ui.checking,
     ) {
-        ImportSheetContent(ui, onEdit, onSubmit)
+        ImportSheetContent(ui, onEdit, onSubmit, onPaste, onDismissClipboard)
     }
 }
 
+/**
+ * The clipboard's first item as text, or null when it is empty or holds something else. The
+ * description is checked first: it carries no payload and shows no paste toast, so an image
+ * is never read.
+ */
+private suspend fun Clipboard.textOrNull(): String? {
+    if (nativeClipboard.primaryClipDescription?.hasMimeType(TEXT_MIME) != true) return null
+    val data = getClipEntry()?.clipData ?: return null
+    if (data.itemCount == 0) return null
+    return data.getItemAt(0).text?.toString()
+}
+
 @Composable
-private fun ImportSheetContent(ui: ImportSheetUi, onEdit: (String) -> Unit, onSubmit: (String) -> Unit) {
+private fun ImportSheetContent(
+    ui: ImportSheetUi,
+    onEdit: (String) -> Unit,
+    onSubmit: (String) -> Unit,
+    onPaste: () -> Unit,
+    onDismissClipboard: () -> Unit,
+) {
     Column(
         Modifier.fillMaxWidth().padding(horizontal = Spacing.lg).padding(bottom = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -71,6 +122,7 @@ private fun ImportSheetContent(ui: ImportSheetUi, onEdit: (String) -> Unit, onSu
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
+        ui.clipboard?.takeUnless { ui.checking }?.let { ClipboardBanner(it, onPaste, onDismissClipboard) }
         OutlinedTextField(
             value = ui.text,
             onValueChange = onEdit,
@@ -89,6 +141,41 @@ private fun ImportSheetContent(ui: ImportSheetUi, onEdit: (String) -> Unit, onSu
                 modifier = Modifier.fillMaxWidth().testTag("create.import.submit"),
                 enabled = ui.text.isNotEmpty(),
             )
+        }
+    }
+}
+
+/** "Clipboard has {Game} puzzle text ({n} line|lines)". */
+internal fun clipboardBannerText(clipboard: ImportSheetUi.ClipboardNotation): String {
+    val noun = if (clipboard.lines == 1) "line" else "lines"
+    return "Clipboard has ${clipboard.gameName} puzzle text (${clipboard.lines} $noun)"
+}
+
+/** "Clipboard has {Game} puzzle text ({n} lines)" with Paste and a close button. */
+@Composable
+private fun ClipboardBanner(clipboard: ImportSheetUi.ClipboardNotation, onPaste: () -> Unit, onDismiss: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().testTag("create.import.clipboard"),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    ) {
+        Row(
+            modifier = Modifier.padding(start = Spacing.md),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = clipboardBannerText(clipboard),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite },
+            )
+            TextButton(onClick = onPaste, modifier = Modifier.testTag("create.import.clipboard.paste")) {
+                Text("Paste")
+            }
+            IconButton(onClick = onDismiss, modifier = Modifier.testTag("create.import.clipboard.dismiss")) {
+                Icon(PuzzleIcons.Close, contentDescription = "Dismiss")
+            }
         }
     }
 }
@@ -130,6 +217,25 @@ private fun ImportSheetContentPreview() {
             ),
             onEdit = {},
             onSubmit = {},
+            onPaste = {},
+            onDismissClipboard = {},
+        )
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+private fun ImportSheetClipboardPreview() {
+    PuzzleBoxTheme {
+        ImportSheetContent(
+            ui = ImportSheetUi(
+                visible = true,
+                clipboard = ImportSheetUi.ClipboardNotation("Queens", lines = 6, text = "puzzlebox queens v1\n"),
+            ),
+            onEdit = {},
+            onSubmit = {},
+            onPaste = {},
+            onDismissClipboard = {},
         )
     }
 }
@@ -142,6 +248,8 @@ private fun ImportSheetCheckingPreview() {
             ui = ImportSheetUi(visible = true, text = "puzzlebox queens v1\n00111\n", checking = true),
             onEdit = {},
             onSubmit = {},
+            onPaste = {},
+            onDismissClipboard = {},
         )
     }
 }
@@ -150,6 +258,14 @@ private fun ImportSheetCheckingPreview() {
 @Composable
 private fun ImportSheetPreview() {
     PuzzleBoxTheme {
-        ImportSheet(ui = ImportSheetUi(visible = true), onEdit = {}, onSubmit = {}, onDismiss = {})
+        ImportSheet(
+            ui = ImportSheetUi(visible = true),
+            onEdit = {},
+            onSubmit = {},
+            onDismiss = {},
+            onClipboard = {},
+            onPaste = {},
+            onDismissClipboard = {},
+        )
     }
 }

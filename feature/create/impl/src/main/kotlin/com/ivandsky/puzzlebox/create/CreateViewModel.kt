@@ -155,6 +155,7 @@ class CreateViewModel(
     val importText = ImportTextState(
         importDraft = ImportDraftFromText(games, createDraft, drafts, dispatchers),
         scope = viewModelScope,
+        gameName = { games.displayName(GameId(it)) },
         onImported = { createdIds.trySend(it) },
     )
 
