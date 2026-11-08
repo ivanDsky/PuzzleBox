@@ -10,7 +10,7 @@ internal object ZipEditorCopy {
 
     private val fixes: Map<String, String> = mapOf(
         ZipDraftAnalyzer.UNCOVERED to "Extend the path until it covers every cell",
-        ZipDraftAnalyzer.WAYPOINTS to "Place at least two numbered waypoints, or draw the path",
+        ZipDraftAnalyzer.WAYPOINTS to "Draw the path through every cell",
     )
 
     /** The fix-list sentence for a reason [id]; null when it has no copy. */

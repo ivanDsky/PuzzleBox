@@ -47,9 +47,10 @@ import com.ivandsky.puzzlebox.games.zip.editor.ZipEditor
 import com.ivandsky.puzzlebox.games.zip.engine.ZipState
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import com.ivandsky.puzzlebox.games.zipui.ZipBoard
+import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.GridGeometry
-import kotlin.math.ceil
-import kotlin.math.max
+import com.ivandsky.puzzlebox.gameui.WalkStep
+import com.ivandsky.puzzlebox.gameui.walkCells
 
 /**
  * The Zip editor's board: the play board's look (dots, pipe, outline) over the controller's
@@ -179,6 +180,7 @@ private fun Modifier.strokeGestures(controller: ZipEditorController, n: Int): Mo
     pointerInput(controller, n) {
         awaitEachGesture {
             val geometry = GridGeometry(n, n, size.width.toFloat(), size.height.toFloat())
+            fun strokeTo(cell: GridCell) = controller.strokeTo(cell.row * n + cell.col)
             val down = awaitFirstDown(requireUnconsumed = false)
             controller.beginStroke(cellOf(geometry, down.position, n))
             var last = down.position
@@ -186,7 +188,18 @@ private fun Modifier.strokeGestures(controller: ZipEditorController, n: Int): Mo
                 val change = awaitPointerEvent().changes.firstOrNull() ?: break
                 val samples = change.historical.map { it.position } + change.position
                 samples.forEach { sample ->
-                    walk(geometry, last, sample).forEach { cell -> controller.strokeTo(cell.row * n + cell.col) }
+                    geometry.walkCells(last, sample).forEach { step ->
+                        when (step) {
+                            is WalkStep.Enter -> strokeTo(step.cell)
+                            // A corner cuts a grid vertex: try both side cells; the controller
+                            // ignores the ones the path cannot take, so the diagonal still lands.
+                            is WalkStep.Corner -> {
+                                strokeTo(step.first)
+                                strokeTo(step.second)
+                                strokeTo(step.diagonal)
+                            }
+                        }
+                    }
                     last = sample
                 }
                 change.consume()
@@ -197,13 +210,6 @@ private fun Modifier.strokeGestures(controller: ZipEditorController, n: Int): Mo
 
 private fun cellOf(geometry: GridGeometry, at: Offset, n: Int): Int =
     geometry.cellAt(at).let { it.row * n + it.col }
-
-/** Cells entered going from [from] to [to], sampled at under half a cell so a fast swipe leaves no gaps. */
-private fun walk(geometry: GridGeometry, from: Offset, to: Offset) =
-    (to - from).let { delta ->
-        val steps = max(1, ceil(delta.getDistance() / (minOf(geometry.cellWidth, geometry.cellHeight) / 2)).toInt())
-        (1..steps).map { geometry.cellAt(from + delta * (it / steps.toFloat())) }.distinct()
-    }
 
 @PuzzleBoxPreviews
 @Preview(name = "Zip editor, drawn path", widthDp = 360, heightDp = 420, showBackground = true)
