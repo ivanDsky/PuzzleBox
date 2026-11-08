@@ -75,3 +75,5 @@ document, and an author must not be able to flood the project.
 - An emulator-backed rules suite: the user chose the manual matrix (round 3).
 - Entries written by the author: the author's time is pinned from the test solve and never
   ranks.
+
+*(Amended 2026-11-07 by ADR-0024: daily boards are no longer Zip-only or time-first, and decision 8 "the daily block stays byte-identical" no longer holds. The `leaderboards` rules now take the five-id allow-list and a day window [server UTC date −2, +1]; first-write-stands, immutability, board-id consistency and the custom-board rules in this ADR are unchanged.)*
