@@ -35,6 +35,8 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.zip.Cell
+import com.ivandsky.puzzlebox.games.zip.Wall
+import com.ivandsky.puzzlebox.games.zip.WallDirection
 import com.ivandsky.puzzlebox.games.zip.ZipBoard as ZipBoardModel
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
 import com.ivandsky.puzzlebox.games.zip.editor.ZipDraft
@@ -69,7 +71,7 @@ fun ZipEditorBoard(controller: ZipEditorController, modifier: Modifier = Modifie
             when (step) {
                 ZipEditorStep.Path -> Box(Modifier.matchParentSize().strokeGestures(controller, board.n))
                 ZipEditorStep.Numbers -> Box(Modifier.matchParentSize().tapGestures(controller, board.n))
-                else -> Unit
+                ZipEditorStep.Walls -> Box(Modifier.matchParentSize().edgeGestures(controller, board.n))
             }
         }
         ZipEditorTools(controller)
@@ -78,7 +80,8 @@ fun ZipEditorBoard(controller: ZipEditorController, modifier: Modifier = Modifie
 
 /**
  * An invisible grid of cells, each tagged `zip.editor.cell.<idx>`, over the drawn board. A numbered
- * cell holds a child tagged `zip.editor.cell.<idx>.number` that reads its label.
+ * cell holds a child tagged `zip.editor.cell.<idx>.number` that reads its label, and a cell with
+ * a wall on its right or bottom side a child tagged `zip.editor.edge.<idx>.<right|bottom>`.
  */
 @Composable
 private fun CellTags(board: ZipDraft) {
@@ -96,6 +99,12 @@ private fun CellTags(board: ZipDraft) {
                                     .semantics { text = AnnotatedString(label.toString()) }
                                     .testTag("zip.editor.cell.$cell.number"),
                             )
+                        }
+                        WallDirection.entries.forEach { direction ->
+                            if (Wall(Cell(cell), direction) in board.walls) {
+                                val side = direction.name.lowercase().replace("down", "bottom")
+                                Box(Modifier.matchParentSize().testTag("zip.editor.edge.$cell.$side"))
+                            }
                         }
                     }
                 }
@@ -133,6 +142,15 @@ private fun Modifier.tapGestures(controller: ZipEditorController, n: Int): Modif
     pointerInput(controller, n) {
         val geometry = GridGeometry(n, n, size.width.toFloat(), size.height.toFloat())
         detectTapGestures { controller.tapNumber(cellOf(geometry, it, n)) }
+    }
+
+/** A tap near the line between two cells toggles the wall there. */
+private fun Modifier.edgeGestures(controller: ZipEditorController, n: Int): Modifier =
+    pointerInput(controller, n) {
+        val geometry = GridGeometry(n, n, size.width.toFloat(), size.height.toFloat())
+        detectTapGestures {
+            geometry.edgeAt(it, ZipEditorDefaults.EDGE_BAND, ZipEditorDefaults.EDGE_INSET)?.let(controller::tapEdge)
+        }
     }
 
 private fun rendererModel(board: ZipDraft): ZipRendererModel {

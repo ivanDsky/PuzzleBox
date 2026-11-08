@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.games.zipui.editor
 
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.zip.Cell
+import com.ivandsky.puzzlebox.games.zip.Wall
+import com.ivandsky.puzzlebox.games.zip.WallDirection
 import com.ivandsky.puzzlebox.games.zip.ZipBoard
 import com.ivandsky.puzzlebox.games.zip.editor.ZipDraft
 import com.ivandsky.puzzlebox.games.zip.editor.ZipDraftCommand
@@ -9,7 +11,9 @@ import com.ivandsky.puzzlebox.games.zip.editor.ZipEditor
 import com.ivandsky.puzzlebox.games.zip.editor.reversed
 import com.ivandsky.puzzlebox.games.zip.editor.stroke
 import com.ivandsky.puzzlebox.games.zip.editor.toggleMark
+import com.ivandsky.puzzlebox.games.zip.editor.toggleWall
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
+import com.ivandsky.puzzlebox.gameui.GridEdge
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,8 +27,9 @@ import kotlinx.coroutines.flow.asStateFlow
  * [shown]; lifting the finger commits it as one `PathEdit` step through [onEdit], as do
  * [reverse] and [clearPath]. The first and last cells of the path are always waypoints 1 and
  * last. [tapNumber] numbers a path cell or removes its number as one `ToggleMark` step; a tap
- * on an end, which cannot lose its number, sets [shaken]. The VM hands replacement drafts back
- * through [adopt].
+ * on an end, which cannot lose its number, sets [shaken]. [tapEdge] toggles a wall as one
+ * `ToggleWall` step and [clearWalls] removes them all as one step; a wall across the path sets
+ * [shaken] instead. The VM hands replacement drafts back through [adopt].
  */
 class ZipEditorController(
     initial: EditorDraft<*>,
@@ -47,7 +52,10 @@ class ZipEditorController(
     /** The step whose tools the row shows; the stroke draws in [ZipEditorStep.Path] only. */
     val step: StateFlow<ZipEditorStep> = selected.asStateFlow()
 
-    /** The end cell the last refused [tapNumber] landed on; each refusal is a new value. */
+    /**
+     * The cell the last refused [tapNumber] or [tapEdge] landed on; each refusal is a new
+     * value.
+     */
     internal val shaken: StateFlow<Shake?> = shaking.asStateFlow()
 
     /** A refused tap on [cell]; a fresh instance per tap so a repeat tap re-triggers. */
@@ -121,6 +129,23 @@ class ZipEditorController(
             toggle != null -> commit(toggle)
             cell in board.path -> shaking.value = Shake(cell)
         }
+    }
+
+    /**
+     * Toggles the wall on [edge], one `ToggleWall` step; a wall that would cut between two
+     * consecutive path cells is refused and sets [shaken] on the edge's cell.
+     */
+    fun tapEdge(edge: GridEdge) {
+        val cell = edge.cell.row * current.value.state.draft.n + edge.cell.col
+        val direction = if (edge.side == GridEdge.Side.Right) WallDirection.RIGHT else WallDirection.DOWN
+        val toggle = current.value.state.draft.toggleWall(Wall(Cell(cell), direction))
+        if (toggle != null) commit(toggle) else shaking.value = Shake(cell)
+    }
+
+    /** Removes every wall as one edit. */
+    fun clearWalls() {
+        val walls = current.value.state.draft.walls
+        if (walls.isNotEmpty()) commit(ZipDraftCommand.ClearWalls(walls))
     }
 
     private fun commit(edit: ZipDraftCommand) {
