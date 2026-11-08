@@ -51,9 +51,9 @@ data class CreateUiState(
     )
 
     /**
-     * One draft's row: its game's [brand] tile, [title], "{Game} · {size}[ · imported]" [meta],
-     * "edited 2 h ago" [edited], and the background [verdict]; Checking until it lands, null
-     * when this build cannot open the draft.
+     * One draft's row: its game's [brand] tile, [title], "{Game} · {size}" [meta], [imported]
+     * when the text importer made it, "edited 2 h ago" [edited], and the background [verdict];
+     * Checking until it lands, null when this build cannot open the draft.
      */
     data class DraftRow(
         val id: String,
@@ -63,6 +63,7 @@ data class CreateUiState(
         val meta: String,
         val edited: String,
         val verdict: Verdict?,
+        val imported: Boolean = false,
     )
 
     /**

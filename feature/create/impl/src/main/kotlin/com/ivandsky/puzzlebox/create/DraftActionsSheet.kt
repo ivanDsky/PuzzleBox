@@ -100,13 +100,7 @@ private fun Header(row: CreateUiState.DraftRow) {
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = row.meta,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            DraftMetaLine(row.meta, row.imported)
         }
         row.verdict?.let { VerdictChip(it) }
     }
