@@ -22,7 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
  * more cells becomes one path, the [word] typed so far written onto the path's blank cells,
  * as one undoable step: an [StrandsDraftCommand.AddPath], or a [ReplaceDraft] when the word
  * also wrote letters. A tap on a traced cell selects its path ([selectedPath]); [removePath]
- * drops it as one [StrandsDraftCommand.RemovePath]; [toggleSpangram] marks or unmarks one. Every edit goes out through `onEdit`; the
+ * drops it as one [StrandsDraftCommand.RemovePath]; [toggleSpangram] marks or unmarks one.
+ * Every edit goes out through `onEdit`; the
  * VM hands replacement drafts back through [adopt].
  */
 class StrandsEditorController(

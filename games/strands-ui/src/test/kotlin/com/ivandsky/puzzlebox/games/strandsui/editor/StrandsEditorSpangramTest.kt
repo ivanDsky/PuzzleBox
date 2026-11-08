@@ -75,6 +75,11 @@ class StrandsEditorSpangramTest {
         assertEquals(before, edits.size)
         controller.toggleSpangram(0)
         assertEquals(before + 1, edits.size)
+
+        controller.adopt(checkNotNull(controller.draft.value.undo()))
+        assertEquals(StrandsDraft.NO_SPANGRAM, board().spangram)
+        controller.adopt(checkNotNull(controller.draft.value.redo()))
+        assertEquals(0, board().spangram)
     }
 
     @Test

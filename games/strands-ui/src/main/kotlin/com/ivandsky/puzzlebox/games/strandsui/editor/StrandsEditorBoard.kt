@@ -58,9 +58,9 @@ private const val BLANK_GLYPH = ' '
  * trace over them. Touch is the play board's: a drag or taps trace cells, a lift commits the
  * path ([StrandsEditorController.endTrace]); a tap on a traced cell or its chip selects that
  * path, drawn outlined; uncovered areas too small for a word get a dashed outline
- * (`strands.editor.cell.<idx>.pocket`). Under the grid, the word field ([StrandsWordField]) names the selected
- * path or, with none, the word the next lift writes; a "+N" handle at a short path's end
- * ([StrandsExtendHandle]) extends it.
+ * (`strands.editor.cell.<idx>.pocket`). Under the grid, the word field ([StrandsWordField])
+ * names the selected path or, with none, the word the next lift writes; a "+N" handle at a
+ * short path's end ([StrandsExtendHandle]) extends it.
  */
 @Composable
 internal fun StrandsEditorBoard(controller: StrandsEditorController, modifier: Modifier = Modifier) {
@@ -70,7 +70,7 @@ internal fun StrandsEditorBoard(controller: StrandsEditorController, modifier: M
     val selected by controller.selectedPath.collectAsState()
     val board = draft.state.draft as StrandsDraft
     val model = remember(board, live, selected) { modelOf(board, live, selected) }
-    val pockets = remember(board) { StrandsPockets.of(board).flatten().toSet() }
+    val pockets = remember(board.paths) { StrandsPockets.of(board).flatten().toSet() }
     Column(modifier) {
         Box(Modifier.weight(1f)) {
             StrandsBoardContent(
