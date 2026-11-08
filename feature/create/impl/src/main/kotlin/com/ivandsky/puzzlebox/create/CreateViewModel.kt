@@ -7,7 +7,6 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.importtext.ImportTextState
 import com.ivandsky.puzzlebox.data.model.Draft
-import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
 import com.ivandsky.puzzlebox.domain.CreateDraft
@@ -16,9 +15,6 @@ import com.ivandsky.puzzlebox.domain.ImportDraftFromText
 import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.VariantId
-import com.ivandsky.puzzlebox.game.editor.Budget
-import com.ivandsky.puzzlebox.game.editor.EditorDraft
-import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.model.GameId
@@ -35,10 +31,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * The Create root: lists the stored drafts and starts new ones. The New puzzle sheet and the
@@ -100,8 +93,7 @@ class CreateViewModel(
     private val filter = MutableStateFlow<GameId?>(null)
     private val tab = MutableStateFlow(CreateUiState.Tab.Drafts)
 
-    /** Settled chips by (id, updatedAt); a null verdict is a draft this build cannot open. */
-    private val verdicts = MutableStateFlow<Map<DraftStamp, Verdict?>>(emptyMap())
+    private val analysis = DraftAnalysis(viewModelScope, games, dispatchers, nanoTime)
 
     /** The last deleted draft while its Undo is offered. */
     private val deleted = MutableStateFlow<Draft?>(null)
@@ -109,18 +101,16 @@ class CreateViewModel(
     private var creating: Job? = null
     private var syncing: Job? = null
 
-    /** Stamps already analysed or in flight; touched on the main thread only. */
-    private val requested = mutableSetOf<DraftStamp>()
-
     val uiState: StateFlow<CreateUiState> =
         combine(
             listed(),
-            verdicts,
+            analysis.verdicts,
             combine(query, filter, tab.onEach(::syncWhenPublished), ::View),
             deleted,
             releaseFlags.enabled.map(::offered),
-            ::stateOf,
-        ).stateIn(
+        ) { listed, settled, view, removed, newGames ->
+            stateOf(listed, settled, view, removed, newGames, clock(), games, editors, plays)
+        }.stateIn(
             viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CreateUiState(games = offered(releaseFlags.enabled.value)),
         )
 
@@ -212,89 +202,10 @@ class CreateViewModel(
         combine(drafts.observeAll(), published.observeAll()) { stored, rows ->
             val codes = rows.mapTo(HashSet()) { it.code.value }
             Listed(stored.filterNot { it.reservedCode in codes }, rows)
-        }.onEach { analyzeNew(it.drafts) }
-
-    private fun analyzeNew(stored: List<Draft>) {
-        val current = stored.mapTo(HashSet()) { DraftStamp(it.id, it.updatedAt) }
-        requested.retainAll(current)
-        verdicts.update { cached -> cached.filterKeys(current::contains) }
-        stored.forEach { draft ->
-            val stamp = DraftStamp(draft.id, draft.updatedAt)
-            if (requested.add(stamp)) analyze(stamp, draft)
-        }
-    }
-
-    private fun analyze(stamp: DraftStamp, draft: Draft) {
-        val editor = games[draft.gameId]?.editor
-        if (editor == null) {
-            verdicts.update { it + (stamp to null) }
-            return
-        }
-        viewModelScope.launch {
-            val verdict = withContext(dispatchers.default) {
-                EditorDraft.open(editor, draft.blob).getOrNull()
-                    ?.analyze(Budget.within(BUDGET_MS, nanoTime) { !isActive })
-            }
-            if (stamp in requested) verdicts.update { it + (stamp to verdict) }
-        }
-    }
-
-    private fun stateOf(listed: Listed, settled: Map<DraftStamp, Verdict?>, view: View, removed: Draft?, newGames: List<CreateUiState.NewGame>): CreateUiState {
-        val stored = listed.drafts
-        val text = view.query
-        val game = view.filter
-        val searchVisible = stored.size > SEARCH_THRESHOLD
-        val needle = text.trim()
-        val shownGame = game?.takeIf { searchVisible && stored.any { it.gameId == game } }
-        val shown = if (!searchVisible) {
-            stored
-        } else {
-            stored.filter { draft ->
-                (shownGame == null || draft.gameId == shownGame) &&
-                    (needle.isEmpty() || draft.title.contains(needle, ignoreCase = true))
-            }
-        }
-        val now = clock()
-        return CreateUiState(
-            loading = false,
-            drafts = shown.map { rowOf(it, settled, now) },
-            draftCount = stored.size,
-            games = newGames,
-            searchVisible = searchVisible,
-            query = text,
-            filters = if (searchVisible) filtersOf(stored, games, plays) else emptyList(),
-            filter = shownGame,
-            deleted = removed?.let { CreateUiState.Deleted(it.id, it.title) },
-            tab = view.tab,
-            published = listed.published.map { publishedRowOf(it, plays, now) },
-        )
-    }
-
-    private fun rowOf(draft: Draft, settled: Map<DraftStamp, Verdict?>, now: Instant): CreateUiState.DraftRow {
-        val stamp = DraftStamp(draft.id, draft.updatedAt)
-        val size = editors[draft.gameId]?.sizeLabel(draft.variant) ?: draft.variant.value
-        val imported = if (draft.imported) " · imported" else ""
-        return CreateUiState.DraftRow(
-            id = draft.id,
-            gameId = draft.gameId,
-            brand = plays.brandOf(draft.gameId),
-            title = draft.title,
-            meta = "${games.displayName(draft.gameId)} · $size$imported",
-            edited = ageLabel("edited", draft.updatedAt, now),
-            verdict = if (stamp in settled) settled[stamp] else Verdict.Checking,
-        )
-    }
-
-    private data class DraftStamp(val id: String, val updatedAt: Instant)
-
-    private data class Listed(val drafts: List<Draft>, val published: List<PublishedPuzzle>)
-
-    private data class View(val query: String, val filter: GameId?, val tab: CreateUiState.Tab)
+        }.onEach { analysis.analyzeNew(it.drafts) }
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
-        const val SEARCH_THRESHOLD = 8
-        const val BUDGET_MS = 1_500L
         const val UNDO_WINDOW_MS = 5_000L
     }
 }
