@@ -15,8 +15,6 @@ import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.FakeGameEditor
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
 import com.ivandsky.puzzlebox.create.TestDraft
@@ -47,7 +45,6 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -108,18 +105,6 @@ class ToolSlotSwapTest {
         awaitTag(DETAILS)
         awaitGone(STRIP)
         awaitTag(EDIT_BOARD)
-    }
-
-    @Test
-    fun `with friend sharing off a passed test keeps the tools and opens no details`() {
-        open(PlayLayout.SinglePane, flags = FakeReleaseFlags())
-        awaitTrue { vm.testSolve.passed.value != null }
-        composeRule.waitForIdle()
-
-        awaitTag(STRIP)
-        awaitGone(DETAILS)
-        awaitGone(EDIT_BOARD)
-        awaitGone(SUMMARY)
     }
 
     @Test
@@ -190,19 +175,6 @@ class ToolSlotSwapTest {
         awaitTag(SUMMARY)
     }
 
-    @Test
-    @Config(qualifiers = "w1280dp-h800dp-land")
-    fun `on a tablet with friend sharing off a passed test keeps the tools in the side pane`() {
-        open(PlayLayout.TwoPane, flags = FakeReleaseFlags())
-        awaitTrue { vm.testSolve.passed.value != null }
-        composeRule.waitForIdle()
-
-        awaitTag(STRIP)
-        awaitGone(DETAILS)
-        awaitGone(EDIT_BOARD)
-        awaitGone(SUMMARY)
-    }
-
     private fun assertBoardKeepsItsSize() {
         open(PlayLayout.SinglePane)
         awaitTag(EDIT_BOARD)
@@ -237,12 +209,11 @@ class ToolSlotSwapTest {
         updatePublishState = signedOutUnpublishing(),
     )
 
-    /** Opens the stored, test-passed draft; Studio tests run with friend sharing on unless [flags] say otherwise (ADR-0022). */
-    private fun open(layout: PlayLayout, flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FriendSharing)) {
+    /** Opens the stored, test-passed draft in [layout]. */
+    private fun open(layout: PlayLayout) {
         val board = editor.draft(marks = 1)
         runBlocking { drafts.upsert(storedRow(board)) }
         startKoin {
-            modules(module { single<ReleaseFlags> { flags } })
             modules(module { viewModel { (_: EditorKey) -> editorViewModel().also { vm = it } } })
         }
         val entries = entryProvider<NavKey> { editorEntry(navigator, layout) }

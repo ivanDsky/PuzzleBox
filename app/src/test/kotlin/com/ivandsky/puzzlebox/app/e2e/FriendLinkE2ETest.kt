@@ -16,7 +16,6 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.platform.app.InstrumentationRegistry
 import com.ivandsky.puzzlebox.app.MainActivity
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
@@ -24,7 +23,6 @@ import com.ivandsky.puzzlebox.games.queens.QueensVariants
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.model.ShareCode
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import kotlinx.coroutines.runBlocking
@@ -60,7 +58,6 @@ class FriendLinkE2ETest {
             single<SharedPuzzleRepository> { shared }
             single<ReceivedPuzzleRepository> { received }
         },
-        releaseFlags = FakeReleaseFlags(ReleaseFlag.FriendSharing),
     )
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 

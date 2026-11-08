@@ -50,13 +50,6 @@ class CreateHeaderCountsTest {
     }
 
     @Test
-    fun `without the Published tab the subtitle counts drafts alone`() {
-        show(CreateUiState(loading = false, drafts = drafts, draftCount = drafts.size, games = PreviewGames), showPublished = false)
-        header().onChildren()[1].assert(hasText("${drafts.size} drafts"))
-        rule.onNodeWithTag("create.tab.published").assertDoesNotExist()
-    }
-
-    @Test
     fun `with nothing made yet the title stands alone`() {
         show(CreateUiState(loading = false, games = PreviewGames))
         header().onChildren().assertCountEquals(1)
@@ -70,10 +63,10 @@ class CreateHeaderCountsTest {
 
     private fun header() = rule.onNodeWithTag("create.header", useUnmergedTree = true)
 
-    private fun show(state: CreateUiState, showPublished: Boolean = true) {
+    private fun show(state: CreateUiState) {
         rule.setContent {
             PuzzleBoxTheme {
-                CreateScreen(state, onNew = { _, _ -> }, onOpen = {}, onQuery = {}, onFilter = {}, onTab = {}, onOpenPublished = {}, onDuplicate = {}, onDelete = {}, onUndoDelete = {}, showPublished = showPublished)
+                CreateScreen(state, onNew = { _, _ -> }, onOpen = {}, onQuery = {}, onFilter = {}, onTab = {}, onOpenPublished = {}, onDuplicate = {}, onDelete = {}, onUndoDelete = {})
             }
         }
     }

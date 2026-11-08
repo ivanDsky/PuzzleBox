@@ -27,8 +27,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -54,8 +52,8 @@ import org.koin.compose.koinInject
  * day card's day and pages months ([LibraryViewModel.page]). A row whose today can't load also retries; each start prefetches
  * today's uncached puzzles ([LibraryViewModel.syncToday], A12). "Open the lesson" runs
  * the game's tutorial over the library. The header's Enter code opens the code sheet, whose
- * Open is [onOpenCode]. Enter code and From friends show only while [ReleaseFlag.FriendSharing] is
- * on (ADR-0022). A From friends card's Remove shows "Removed <code>" with Undo. A [codeDraft] opens
+ * Open is [onOpenCode]. A From friends card's Remove shows "Removed <code>" with Undo. A
+ * [codeDraft] opens
  * the sheet with that text already in the field, then is taken ([onCodeDraftTaken]).
  */
 @Composable
@@ -73,7 +71,6 @@ internal fun LibraryRoute(
     val lesson by viewModel.lesson.collectAsStateWithLifecycle()
     val page by viewModel.page.collectAsStateWithLifecycle()
     val month by viewModel.shownMonth.collectAsStateWithLifecycle()
-    val flags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
     val friends by viewModel.friends.collectAsStateWithLifecycle()
     val removedFriend by viewModel.removedFriend.collectAsStateWithLifecycle()
     var enteringCode by rememberSaveable { mutableStateOf(false) }
@@ -107,8 +104,8 @@ internal fun LibraryRoute(
                 onPick = viewModel::pick,
                 onBackToToday = viewModel::backToToday,
             ),
-            onEnterCode = { enteringCode = true }.takeIf { ReleaseFlag.FriendSharing in flags },
-            friends = friends.takeIf { ReleaseFlag.FriendSharing in flags }.orEmpty(),
+            onEnterCode = { enteringCode = true },
+            friends = friends,
             onOpenFriend = onOpenCode,
             onRemoveFriend = viewModel::removeFriend,
         )
