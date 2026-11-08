@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.domain.AuthorPin
 import com.ivandsky.puzzlebox.domain.CustomBoardView
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.gameui.rankRuleText
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 
 // My row below the cut pops in from a little smaller, on the stamp's spring.
@@ -78,7 +79,7 @@ internal fun CustomBoard(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text("Leaderboard", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-            Text(ruleOf(rankOrder), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(rankRuleText(rankOrder) + " · only this puzzle", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         (board?.author ?: author)?.let { AuthorLine(it) }
         AnimatedContent(
@@ -106,11 +107,6 @@ internal fun CustomBoard(
         }
         if (closed) ClosedNote()
     }
-}
-
-private fun ruleOf(order: RankOrder) = when (order) {
-    RankOrder.TimeThenHints -> "Fastest first, then fewer hints · only this puzzle"
-    RankOrder.HintsThenTime -> "Fewest hints first, then time · only this puzzle"
 }
 
 @Composable
