@@ -199,7 +199,7 @@ class ResultViewModel internal constructor(
     val boardOrder: RankOrder = games.rankOrderOf(slot.gameId)
 
     /** How the last Google sign-in went, for the board's sign-in prompt. */
-    val signInStatus: StateFlow<BoardSignIn> = board.signInStatus
+    internal val signInStatus: StateFlow<BoardSignIn> = board.signInStatus
 
     /** The daily board for this result; null when none shows. Read only while [ReleaseFlag.PerGameLeaderboards] is on. */
     @OptIn(ExperimentalCoroutinesApi::class)
