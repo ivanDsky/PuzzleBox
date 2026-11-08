@@ -1,0 +1,4 @@
+<resources>
+    <string name="publish_clock_title">This phone\'s date looks wrong</string>
+    <string name="publish_clock_body">Publishing needs the right date and time. Turn on automatic date and time in Settings, then retry. Your draft is saved.</string>
+</resources>

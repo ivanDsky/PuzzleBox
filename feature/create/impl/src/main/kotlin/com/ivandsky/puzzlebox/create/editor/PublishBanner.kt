@@ -19,9 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import com.ivandsky.puzzlebox.create.R
 import com.ivandsky.puzzlebox.data.repository.DAILY_PUBLISH_CAP
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
@@ -33,8 +35,8 @@ import com.ivandsky.puzzlebox.domain.PublishOutcome
 import java.util.Locale
 
 /**
- * Why the last publish didn't land, above Publish: offline or refused in the error container
- * (Publish then reads Retry), the day's cap in the tertiary one. Any other [outcome] shows
+ * Why the last publish didn't land, above Publish: offline, a wrong device clock or refused in
+ * the error container (Publish then reads Retry), the day's cap in the tertiary one. Any other [outcome] shows
  * nothing; shown, it keeps its own gap above Publish. The banner opens and closes in place (expand + fade on the enter curve); reduced
  * motion fades it.
  */
@@ -55,8 +57,9 @@ private fun Banner(banner: Kind) {
     val colors = MaterialTheme.colorScheme
     val (container, content) = when (banner) {
         Kind.Cap -> colors.tertiaryContainer to colors.onTertiaryContainer
-        Kind.Offline, Kind.Rejected -> colors.errorContainer to colors.onErrorContainer
+        Kind.Offline, Kind.Clock, Kind.Rejected -> colors.errorContainer to colors.onErrorContainer
     }
+    val (title, body) = banner.copy()
     Surface(
         color = container,
         contentColor = content,
@@ -68,34 +71,34 @@ private fun Banner(banner: Kind) {
             .semantics { liveRegion = LiveRegionMode.Polite },
     ) {
         Column(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text(banner.title.format(Locale.ROOT, DAILY_PUBLISH_CAP), style = MaterialTheme.typography.titleSmall)
-            Text(banner.body, style = MaterialTheme.typography.bodyMedium)
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(body, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
 
-/** Each title takes the day's publish cap as its one format argument; only [Cap] shows it. */
-private enum class Kind(val tag: String, val title: String, val body: String) {
-    Offline(
-        tag = "create.publish.banner.offline",
-        title = "You're offline — publishing needs a connection",
-        body = "Your draft and test solve are saved on this phone. Retry when you're back online.",
-    ),
-    Cap(
-        tag = "create.publish.banner.cap",
-        title = "You've published %d today",
-        body = "That's today's limit; publishing opens again tomorrow. You can still test solve, and the draft waits here.",
-    ),
-    Rejected(
-        tag = "create.publish.banner.rejected",
-        title = "Couldn't publish",
-        body = "The puzzle wasn't accepted this time. Your draft is saved; try again.",
-    ),
+private enum class Kind(val tag: String) {
+    Offline("create.publish.banner.offline"),
+    Cap("create.publish.banner.cap"),
+    Clock("create.publish.banner.clock"),
+    Rejected("create.publish.banner.rejected"),
+}
+
+/** A banner's title and body; the cap's title takes the day's publish cap as its format argument. */
+@Composable
+private fun Kind.copy(): Pair<String, String> = when (this) {
+    Kind.Offline -> "You're offline — publishing needs a connection" to
+        "Your draft and test solve are saved on this phone. Retry when you're back online."
+    Kind.Cap -> "You've published %d today".format(Locale.ROOT, DAILY_PUBLISH_CAP) to
+        "That's today's limit; publishing opens again tomorrow. You can still test solve, and the draft waits here."
+    Kind.Clock -> stringResource(R.string.publish_clock_title) to stringResource(R.string.publish_clock_body)
+    Kind.Rejected -> "Couldn't publish" to "The puzzle wasn't accepted this time. Your draft is saved; try again."
 }
 
 private fun bannerOf(outcome: PublishOutcome?): Kind? = when (outcome) {
     PublishOutcome.Offline -> Kind.Offline
     PublishOutcome.DailyCapReached -> Kind.Cap
+    PublishOutcome.ClockSkew -> Kind.Clock
     is PublishOutcome.Rejected -> Kind.Rejected
     else -> null
 }
@@ -121,6 +124,12 @@ private fun PublishBannerOfflinePreview() {
 @Composable
 private fun PublishBannerCapPreview() {
     PuzzleBoxTheme { PublishBanner(PublishOutcome.DailyCapReached) }
+}
+
+@PuzzleBoxPreviews
+@Composable
+private fun PublishBannerClockPreview() {
+    PuzzleBoxTheme { PublishBanner(PublishOutcome.ClockSkew) }
 }
 
 @PuzzleBoxPreviews
