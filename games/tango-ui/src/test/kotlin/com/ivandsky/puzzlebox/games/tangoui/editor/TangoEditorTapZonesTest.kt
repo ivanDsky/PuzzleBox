@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
+import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.tango.editor.TangoDraftAnalyzer
 import com.ivandsky.puzzlebox.games.tango.editor.TangoEditor
@@ -89,7 +90,10 @@ class TangoEditorTapZonesTest {
 
     @Test
     fun `a needs-guessing block lists as a fix row`() {
-        showIssues(Verdict.Unique(com.ivandsky.puzzlebox.game.editor.Solution(emptyList()), needsGuessing = true), listOf(PublishBlock(PublishBlock.NEEDS_GUESSING)))
+        showIssues(
+            Verdict.Unique(Solution(emptyList()), needsGuessing = true),
+            listOf(PublishBlock(PublishBlock.NEEDS_GUESSING)),
+        )
 
         assertEquals1("tango.editor.fix.${PublishBlock.NEEDS_GUESSING}")
     }

@@ -15,7 +15,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.VariantId
@@ -53,7 +52,11 @@ object TangoEditorUi : GameEditorUi {
     override fun ToolHint(controller: GameEditorController, modifier: Modifier) {
         val tango = controller as TangoEditorController
         val zones by tango.tapZones.collectAsState()
-        Row(modifier, horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
                 TangoEditorCopy.TOOL_HINT,
                 style = MaterialTheme.typography.bodySmall,
@@ -92,8 +95,7 @@ object TangoEditorUi : GameEditorUi {
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = FixRowMinHeight)
-                        .testTag("tango.editor.fix.$id")
-                        .semantics {},
+                        .testTag("tango.editor.fix.$id"),
                 )
             }
         }
