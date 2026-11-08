@@ -14,8 +14,6 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.FakeGameEditor
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
@@ -161,8 +159,6 @@ class StudioTopBarTest {
         val editors = GameEditorRegistry(listOf(ui))
         val copyDraft = CreateDraftCopy(drafts, newId = { COPY_ID }, clock = { NOW })
         startKoin {
-            // Every Studio test runs with friend sharing on (ADR-0022).
-            modules(module { single<ReleaseFlags> { FakeReleaseFlags(ReleaseFlag.FriendSharing) } })
             modules(
                 module {
                     viewModel { (key: EditorKey) ->
@@ -179,7 +175,7 @@ class StudioTopBarTest {
                             copyDraft,
                             DefaultDispatcherProvider(),
                             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
-                            releaseFlags = get(),
+                            releaseFlags = FakeReleaseFlags(),
                             clock = { NOW },
                         )
                     }

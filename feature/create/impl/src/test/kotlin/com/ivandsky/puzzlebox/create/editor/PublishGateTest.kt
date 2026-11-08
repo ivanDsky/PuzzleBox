@@ -6,8 +6,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.FakeGameEditor
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
 import com.ivandsky.puzzlebox.create.api.CreateKey
@@ -23,7 +21,6 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
@@ -44,9 +41,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Publish is the Studio's friend-sharing entry (ADR-0022): with [ReleaseFlag.FriendSharing] off
- * the action area is M2's, Test solve and the readiness line without Publish; with it on,
- * Publish follows them.
+ * Publish is the Studio's friend-sharing entry (ADR-0022): the action area has Test solve,
+ * and Publish follows it.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -66,28 +62,19 @@ class PublishGateTest {
     }
 
     @Test
-    fun `with friend sharing off the action area has Test solve and no Publish`() {
-        open(FakeReleaseFlags())
-        composeRule.onNodeWithTag(TEST_SOLVE).assertExists()
-        composeRule.onNodeWithTag(READINESS).assertExists()
-        composeRule.onNodeWithTag(PUBLISH).assertDoesNotExist()
-    }
-
-    @Test
-    fun `with friend sharing on Publish follows Test solve`() {
-        open(FakeReleaseFlags(ReleaseFlag.FriendSharing))
+    fun `Publish follows Test solve`() {
+        open()
         composeRule.onNodeWithTag(TEST_SOLVE).assertExists()
         composeRule.onNodeWithTag(PUBLISH).assertExists()
     }
 
-    private fun open(flags: ReleaseFlags) {
+    private fun open() {
         runBlocking { drafts.upsert(storedRow(editor.draft(0).encode())) }
         val games = GameRegistry(listOf(withEditor(editor)))
         val editors = GameEditorRegistry(listOf(ui))
         startKoin {
             modules(
                 module {
-                    single { flags }
                     viewModel { (key: EditorKey) ->
                         val copyDraft = CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW })
                         EditorViewModel(key, drafts, games, editors, GamePlayRegistry(emptyList()), copyDraft, DefaultDispatcherProvider(), saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW }, createShared = signedOutPublishing(drafts), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(), idTokens = noGoogleAccount, updatePublishState = signedOutUnpublishing())
@@ -108,7 +95,6 @@ class PublishGateTest {
         val NOW: Instant = Instant.parse("2026-11-06T10:00:00Z")
         const val DRAFT_ID = "draft-1"
         const val TEST_SOLVE = "create.action.testSolve"
-        const val READINESS = "create.readiness"
         const val PUBLISH = "create.action.publish"
 
         fun storedRow(blob: ByteArray) = Draft(

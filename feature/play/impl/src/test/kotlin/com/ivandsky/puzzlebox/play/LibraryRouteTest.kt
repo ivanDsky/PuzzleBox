@@ -12,8 +12,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -46,7 +44,6 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -78,7 +75,7 @@ import org.robolectric.annotation.Config
  * library fetches today once, and an offline row's tap retries. "Open the lesson" runs
  * the game's tutorial. Stats before any solve show the empty layout. The page's calendar
  * reaches any day from #1 to today (‹ › and the jumps) and the day card then plays it. The
- * header's Enter code shows only while friend sharing is on.
+ * header's Enter code opens the code sheet.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w1280dp-h900dp")
@@ -98,9 +95,6 @@ class LibraryRouteTest {
 
     private var koin: KoinApplication? = null
 
-    /** Friend sharing on unless a test turns it off before [setContent]. */
-    private var flags = FakeReleaseFlags(ReleaseFlag.FriendSharing)
-
     @Before
     fun setUp() {
         stopKoin() // tests share the JVM-global Koin context
@@ -110,7 +104,6 @@ class LibraryRouteTest {
             modules(
                 commonModule,
                 module {
-                    single<ReleaseFlags> { flags }
                     single<CoroutineScope> { CoroutineScope(SupervisorJob() + get<DispatcherProvider>().main) }
                     single<DailyRepository> { daily }
                     single<CompletionRepository> { FakeCompletionRepository() }
@@ -177,15 +170,7 @@ class LibraryRouteTest {
     }
 
     @Test
-    fun `with friend sharing off the header has no Enter code`() {
-        flags = FakeReleaseFlags()
-        setContent(PlayLayout.SinglePane)
-        awaitTag("library.row.zip")
-        composeRule.onNodeWithTag("library.enterCode").assertDoesNotExist()
-    }
-
-    @Test
-    fun `with friend sharing on the header's Enter code opens the code sheet`() {
+    fun `the header's Enter code opens the code sheet`() {
         setContent(PlayLayout.SinglePane)
         awaitTag("library.enterCode")
         tap("library.enterCode")
