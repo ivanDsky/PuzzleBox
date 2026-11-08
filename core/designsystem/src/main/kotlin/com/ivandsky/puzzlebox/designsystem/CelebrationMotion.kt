@@ -2,7 +2,7 @@ package com.ivandsky.puzzlebox.designsystem
 
 /**
  * Long celebration and feedback motion (Strands spec A33). [MotionTokens] keeps feedback
- * under ~160 ms; a found word's bounce, a hint's attention pulse and a meter fill are
+ * under ~160 ms; a found word's bounce and a hint's attention pulse are
  * deliberate moments that run longer, so they get their own names instead of stretching
  * those. Game-agnostic: a game composes its staggers from these.
  */
@@ -18,7 +18,4 @@ object CelebrationMotion {
      * runs once, so the ring draws the eye and then holds still.
      */
     const val HintPulseMs = 1000
-
-    /** The hint meter filling a third. */
-    val MeterFillMs: Int = MotionTokens.DurationMedium
 }

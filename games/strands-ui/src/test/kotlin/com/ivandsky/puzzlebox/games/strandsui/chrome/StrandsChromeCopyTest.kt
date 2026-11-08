@@ -1,14 +1,11 @@
 package com.ivandsky.puzzlebox.games.strandsui.chrome
 
 import com.ivandsky.puzzlebox.games.strands.StrandsRating
-import com.ivandsky.puzzlebox.games.strandsui.HintUi
 import com.ivandsky.puzzlebox.games.strandsui.StrandsCopy
-import com.ivandsky.puzzlebox.games.strandsui.StrandsMotion
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** The chrome's pure parts: A7 and A36 copy, the header line, the announcement, the meter and the shake curve. */
+/** The chrome's pure parts: A7 and A36 copy, the header line, the announcement and the hint state. */
 class StrandsChromeCopyTest {
 
     @Test
@@ -49,21 +46,8 @@ class StrandsChromeCopyTest {
     }
 
     @Test
-    fun `the meter fills in thirds and reads full while a hint waits`() {
-        assertEquals(0f, hintMeterFraction(HintUi(available = false, meterThirds = 0)))
-        assertEquals(1f / 3, hintMeterFraction(HintUi(available = false, meterThirds = 1)), 1e-6f)
-        assertEquals(2f / 3, hintMeterFraction(HintUi(available = false, meterThirds = 2)), 1e-6f)
-        assertEquals(1f, hintMeterFraction(HintUi(available = true, meterThirds = 1)))
-    }
-
-    @Test
-    fun `the shake runs NYT's keyframes for one and a half cycles, then rests`() {
-        val cycle = StrandsMotion.ShakeMs
-        assertEquals(0f, StrandsMotion.shakeOffset(0))
-        assertEquals(-1f, StrandsMotion.shakeOffset(cycle / 3 + 1), 0.05f)
-        assertEquals(1f, StrandsMotion.shakeOffset(2 * cycle / 3 + 1), 0.05f)
-        assertEquals(-1f, StrandsMotion.shakeOffset(cycle + cycle / 3 + 1), 0.05f)
-        assertEquals(0f, StrandsMotion.shakeOffset(StrandsMotion.ShakeTotalMs))
-        for (ms in 0..StrandsMotion.ShakeTotalMs) assertTrue(StrandsMotion.shakeOffset(ms) in -1f..1f)
+    fun `an available hint reads its count first, then progress`() {
+        assertEquals("1 hint available, 0 of 3 words toward the next hint", StrandsCopy.hintAvailable(1, 0))
+        assertEquals("3 hints available, 2 of 3 words toward the next hint", StrandsCopy.hintAvailable(3, 2))
     }
 }

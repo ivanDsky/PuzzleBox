@@ -60,6 +60,10 @@ class StrandsPlayController(
     /** The word just found, until the board takes it with [takeFound]; then null, so a re-entered board rests. */
     var lastFound by mutableStateOf<FoundEvent?>(null)
         private set
+
+    /** The word just submitted, still on the board while it plays out; null once a new trace starts or the board resets. */
+    internal var traceEnd by mutableStateOf<TraceEnd?>(null)
+        private set
     var hintDialog by mutableStateOf<HintDialog?>(null)
         private set
     var nowMs by mutableStateOf(0L)
@@ -87,8 +91,8 @@ class StrandsPlayController(
         }
 
     val hint: HintUi
-        get() = session?.state?.let { HintUi(StrandsHints.available(it) > 0, StrandsHints.meterThirds(it)) }
-            ?: HintUi(available = false, meterThirds = 0)
+        get() = session?.state?.let { HintUi(StrandsHints.available(it), StrandsHints.meterThirds(it)) }
+            ?: HintUi(count = 0, meterThirds = 0)
 
     /** The words found so far, in the order found, for the tablet side panel's list. */
     val foundWords: List<FoundWord>
@@ -113,6 +117,7 @@ class StrandsPlayController(
         when (step) {
             is TraceStep.Updated -> {
                 trace = step.trace
+                if (step.trace.path.isNotEmpty()) traceEnd = null
                 slot = if (step.trace.path.isEmpty()) {
                     WordSlot.Empty
                 } else {
@@ -122,6 +127,7 @@ class StrandsPlayController(
 
             TraceStep.Cleared -> {
                 trace = Trace()
+                traceEnd = null
                 slot = WordSlot.Empty
             }
 
@@ -133,6 +139,9 @@ class StrandsPlayController(
         val verdict = StrandsRules.validate(StrandsMove(path), current.state) as StrandsVerdict
         trace = Trace()
         slot = StrandsVerdictSlot.of(verdict, ++verdictSeq)
+        val repeatsFound = verdict == StrandsVerdict.AlreadyFound &&
+            path.map(current.state.puzzle::letterAt).joinToString("") in current.state.found
+        traceEnd = TraceEndKind.of(verdict)?.let { TraceEnd(path, it, verdictSeq, pulse = repeatsFound) }
         when (verdict) {
             is StrandsVerdict.ThemeWord -> lastFound = FoundEvent(verdict.word.cells, spangram = false, seq = ++foundSeq)
             is StrandsVerdict.Spangram -> lastFound = FoundEvent(verdict.word.cells, spangram = true, seq = ++foundSeq)
@@ -204,6 +213,7 @@ class StrandsPlayController(
 
     private fun resetTransient() {
         trace = Trace()
+        traceEnd = null
         slot = WordSlot.Empty
         lastFound = null
         hintDialog = null

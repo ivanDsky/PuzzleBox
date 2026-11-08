@@ -189,6 +189,16 @@ class BoardTokensTest {
         }
     }
 
+    // A refused word's path: its ink is text on the red token (4.5:1), the red itself is a
+    // non-text connector on the bare board (3:1).
+    @Test
+    fun `strands refused path ink and connector clear their bars in both themes`() {
+        for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
+            assertTrue(contrast(tokens.strandsPathErrorInk, tokens.strandsPathError) >= 4.5f)
+            assertTrue(contrast(tokens.strandsPathError, tokens.boardSurface) >= 3f)
+        }
+    }
+
     private fun contrast(foreground: Color, background: Color): Float {
         val fg = foreground.luminance() + 0.05f
         val bg = background.luminance() + 0.05f
