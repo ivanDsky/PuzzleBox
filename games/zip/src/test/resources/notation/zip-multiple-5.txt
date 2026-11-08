@@ -1,0 +1,7 @@
+# expect: multiple
+puzzlebox zip v1
+1 . . . .
+. . . . .
+. . . . .
+. . . . .
+. . . . 2
