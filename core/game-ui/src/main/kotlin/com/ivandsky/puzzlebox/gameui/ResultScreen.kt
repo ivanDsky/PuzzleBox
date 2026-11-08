@@ -155,7 +155,7 @@ fun ResultScreen(
 
 /** The record write's standard error row — surfaced where the player is, retryable, never blocking (F2 §7). */
 @Composable
-private fun WriteFailedRow(onRetryWrite: () -> Unit) {
+internal fun WriteFailedRow(onRetryWrite: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
