@@ -55,10 +55,12 @@ class QueensPlayUi : GamePlayUi {
     }
 
     /**
-     * Clear wipes the whole board as one command (fix round 6). Round-7 ruling: it is live
-     * when ANYTHING can be wiped, any queen OR any mark (a crosses-only board clears).
+     * Clear wipes the whole board as one command (fix round 6). It is ALWAYS enabled: a
+     * button that flipped disabled->enabled on the first queen read as jumpy, and clearing
+     * an empty or solved board is a no-op (no undo entry, no session write).
      */
-    override fun clearFor(controller: GamePlayController): PlayClear = QueensClear(controller as QueensPlayController)
+    override fun clearFor(controller: GamePlayController): PlayClear =
+        PlayClear { (controller as QueensPlayController).board?.clearBoard() }
 
     /** A14: the Auto-cross setting (ON auto-fills exclusion marks, OFF places queens bare). */
     override fun overflowFor(controller: GamePlayController): List<PlayOverflowItem> {
@@ -77,16 +79,6 @@ class QueensPlayUi : GamePlayUi {
         modifier: Modifier,
     ) {
         QueensPlayScreen(controller as QueensPlayController, status, layout, sidePanel, onRetry, onSolved, modifier)
-    }
-}
-
-/** Queens' Clear over whatever board [controller] holds now. */
-private class QueensClear(private val controller: QueensPlayController) : PlayClear {
-    override val canClear: Boolean
-        get() = controller.board?.session?.let { !it.isComplete && (it.queens.isNotEmpty() || it.marks.isNotEmpty()) } == true
-
-    override fun clear() {
-        controller.board?.clearBoard()
     }
 }
 
@@ -123,7 +115,7 @@ fun QueensPlayScreen(
                 )
             },
             actions = {
-                PlayActionBar(controller, controller, remember(controller) { QueensClear(controller) }, QueensBrand.accent)
+                PlayActionBar(controller, controller, remember(controller) { PlayClear { controller.board?.clearBoard() } }, QueensBrand.accent)
             },
             sidePanel = sidePanel,
         )

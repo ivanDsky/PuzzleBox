@@ -133,7 +133,8 @@ internal fun SudokuStackedBoard(
 
 /**
  * TwoPane's Erase and Clear, beside the action bar in the toolbar and the same tall
- * chunky buttons; off until a board is ready and once it is solved.
+ * chunky buttons. Erase is off until a board is ready and once it is solved; Clear is
+ * never off (a no-op on an empty or solved board), like every other game's Clear.
  */
 @Composable
 private fun SudokuEditControls(state: SudokuBoardState?, modifier: Modifier = Modifier) {
@@ -153,7 +154,6 @@ private fun SudokuEditControls(state: SudokuBoardState?, modifier: Modifier = Mo
             icon = PuzzleIcons.Clear,
             label = "Clear",
             modifier = Modifier.weight(1f).testTag("sudoku.clear"),
-            enabled = editable && model?.canClear == true,
             size = GameButtonSize.Tall,
         )
     }

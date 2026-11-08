@@ -12,7 +12,7 @@ import java.time.Instant
  * set): puzzle + player placements, the counters the record path needs, and [completedAt]
  * as the one-completion guard (A4). Givens live only on [puzzle]; [placements] is the
  * player-authored overlay keyed by row-major index. [history] is the undo/redo stack of
- * [TangoPlace] commands over [placements]; it never touches the counters or the clock.
+ * [TangoCommand]s over [placements]; it never touches the counters or the clock.
  */
 data class TangoSession(
     val ref: TangoPuzzleRef?,
@@ -22,7 +22,7 @@ data class TangoSession(
     val mistakeCount: Int = 0,
     val elapsedMs: Long = 0,
     val completedAt: Instant? = null,
-    val history: CommandHistory<TangoPlacements, TangoPlace> = CommandHistory(),
+    val history: CommandHistory<TangoPlacements, TangoCommand> = CommandHistory(),
     /** Bytes a newer codec version appended (A19), re-emitted verbatim by [TangoSessionCodec]. */
     val unknownTail: ByteArray = ByteArray(0),
 ) : GameSession {
@@ -69,6 +69,16 @@ data class TangoSession(
             return next.copy(completedAt = now)
         }
         return next
+    }
+
+    /**
+     * Clear: wipes every player placement (givens stay) as ONE recorded [TangoClear], so a
+     * single undo restores the whole board. Nothing to wipe, or a completed session (the
+     * win is final), is a no-op that records nothing and keeps redo.
+     */
+    fun withCleared(): TangoSession {
+        if (completedAt != null || placements.isEmpty()) return this
+        return copy(placements = emptyMap(), history = history.record(TangoClear(placements)))
     }
 
     /**

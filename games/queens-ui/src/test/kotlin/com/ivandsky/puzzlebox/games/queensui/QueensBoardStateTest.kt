@@ -119,6 +119,15 @@ class QueensBoardStateTest {
     }
 
     @Test
+    fun `clearing an empty board is a no-op - no undo entry, session unchanged`() {
+        val state = fresh()
+        val before = state.session
+        state.clearBoard()
+        assertEquals(before, state.session)
+        assertFalse(state.canUndo)
+    }
+
+    @Test
     fun `hint caption names the region the engine points at`() {
         val state = fresh()
         state.requestHint()

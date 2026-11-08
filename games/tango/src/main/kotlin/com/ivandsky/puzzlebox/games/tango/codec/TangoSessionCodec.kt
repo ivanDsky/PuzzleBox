@@ -6,6 +6,8 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameSessionCodec
 import com.ivandsky.puzzlebox.game.PuzzleKeyTag
 import com.ivandsky.puzzlebox.games.tango.TangoCell
+import com.ivandsky.puzzlebox.games.tango.TangoClear
+import com.ivandsky.puzzlebox.games.tango.TangoCommand
 import com.ivandsky.puzzlebox.games.tango.TangoPlace
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.TangoSession
@@ -28,12 +30,15 @@ import java.time.Instant
  *     u8    hintsUsed; u8 mistakeCount
  *     i64   elapsedMs
  *     [bit0] i64 completedAt epochMilli
- *     u16   doneCount;   doneCount   x (u8 idx, u8 value, u8 previous)   oldest first
- *     u16   undoneCount; undoneCount x (u8 idx, u8 value, u8 previous)   last = next redo
+ *     u16   doneCount;   doneCount   x command   oldest first
+ *     u16   undoneCount; undoneCount x command   last = next redo
+ *       command = Place (u8 idx, u8 value, u8 previous)
+ *               | Clear (u8 0xFF, u8 n, n x (u8 idx, u8 value))   the wiped placements
  *     ...   unknown tail carried verbatim (A19)
  * ```
  * i64 fields are little-endian. A history cell byte is 0 for "empty", else the [TangoCell]
- * wire byte. v2 is the same layout without the key tag (a ref is always a Daily); v1 is v2
+ * wire byte. 0xFF can never be a cell index (boards are at most 11x11, so indices stop at 120),
+ * so it marks a Clear; saves without one are byte-identical to before it existed. v2 is the same layout without the key tag (a ref is always a Daily); v1 is v2
  * without the two history lists. Both still decode, so saves and archived replays written
  * before custom boards and before undo keep working.
  */
@@ -125,8 +130,8 @@ object TangoSessionCodec : GameSessionCodec<TangoSession> {
             null
         }
 
-        var done = emptyList<TangoPlace>()
-        var undone = emptyList<TangoPlace>()
+        var done = emptyList<TangoCommand>()
+        var undone = emptyList<TangoCommand>()
         if (version >= 2) {
             done = readHistory(cursor, puzzle.cellCount) ?: return malformed("bad done history")
             undone = readHistory(cursor, puzzle.cellCount) ?: return malformed("bad undone history")
@@ -148,24 +153,42 @@ object TangoSessionCodec : GameSessionCodec<TangoSession> {
         )
     }
 
-    private fun writeHistory(out: ByteArrayOutputStream, commands: List<TangoPlace>) {
+    private fun writeHistory(out: ByteArrayOutputStream, commands: List<TangoCommand>) {
         val kept = commands.takeLast(MAX_HISTORY) // oldest fall off: undo depth shrinks, state never changes
         out.write((kept.size shr 8) and 0xFF)
         out.write(kept.size and 0xFF)
         kept.forEach { cmd ->
-            out.write(cmd.idx)
-            out.write(cmd.value?.toByte() ?: 0)
-            out.write(cmd.previous?.toByte() ?: 0)
+            when (cmd) {
+                is TangoPlace -> {
+                    out.write(cmd.idx)
+                    out.write(cmd.value?.toByte() ?: 0)
+                    out.write(cmd.previous?.toByte() ?: 0)
+                }
+
+                is TangoClear -> {
+                    val wiped = cmd.wiped.entries.sortedBy { it.key }
+                    out.write(CLEAR_MARK)
+                    out.write(wiped.size)
+                    wiped.forEach { (idx, cell) ->
+                        out.write(idx)
+                        out.write(cell.toByte())
+                    }
+                }
+            }
         }
     }
 
     /** Null on truncation, an out-of-range index, an unknown cell byte, a no-op command or an over-long list. */
-    private fun readHistory(cursor: Cursor, cellCount: Int): List<TangoPlace>? {
+    private fun readHistory(cursor: Cursor, cellCount: Int): List<TangoCommand>? {
         val count = cursor.u16() ?: return null
         if (count > MAX_HISTORY) return null
-        val commands = ArrayList<TangoPlace>(count)
+        val commands = ArrayList<TangoCommand>(count)
         repeat(count) {
             val idx = cursor.u8() ?: return null
+            if (idx == CLEAR_MARK) {
+                commands += readClear(cursor, cellCount) ?: return null
+                return@repeat
+            }
             if (idx >= cellCount) return null
             val valueByte = cursor.u8() ?: return null
             val previousByte = cursor.u8() ?: return null
@@ -178,8 +201,24 @@ object TangoSessionCodec : GameSessionCodec<TangoSession> {
         return commands
     }
 
+    /** A Clear's body after its mark: null on truncation, an index out of range or repeated, an empty or non-cell entry. */
+    private fun readClear(cursor: Cursor, cellCount: Int): TangoClear? {
+        val n = cursor.u8() ?: return null
+        if (n == 0 || n > cellCount) return null // clearing nothing is never recorded: corrupt
+        val wiped = LinkedHashMap<Int, TangoCell>(n)
+        repeat(n) {
+            val idx = cursor.u8() ?: return null
+            if (idx >= cellCount || idx in wiped) return null
+            wiped[idx] = cursor.u8()?.let(TangoCell::fromByte) ?: return null
+        }
+        return TangoClear(wiped)
+    }
+
     /** 0 = empty cell; otherwise a known [TangoCell] wire byte. */
     private fun isCellOrEmpty(byte: Int): Boolean = byte == 0 || TangoCell.fromByte(byte) != null
+
+    /** History entry first byte that marks a Clear; never a cell index. */
+    private const val CLEAR_MARK = 0xFF
 
     private const val FLAG_COMPLETED = 1
     private const val FLAG_REF = 2

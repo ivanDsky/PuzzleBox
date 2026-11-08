@@ -110,7 +110,7 @@ internal fun SudokuEditorKeypad(
     val placed = (1..draft.size).map { digit -> draft.givens.count { it == digit } }
     val remaining = placed.map { (draft.size - it).coerceAtLeast(0) }
     SudokuKeypad(
-        model = SudokuKeypadModel(draft.size, remaining, notesMode = false, canClear = false, solved = false),
+        model = SudokuKeypadModel(draft.size, remaining, notesMode = false, solved = false),
         onDigit = controller::digit,
         onErase = {},
         onClear = {},
