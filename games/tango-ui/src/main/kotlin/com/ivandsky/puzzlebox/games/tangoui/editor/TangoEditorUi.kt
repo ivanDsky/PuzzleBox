@@ -25,6 +25,6 @@ object TangoEditorUi : GameEditorUi {
 
     @Composable
     override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) {
-        TangoEditorBoard(controller as TangoEditorController, modifier)
+        TangoEditorBoard(controller as TangoEditorController, modifier, verdict)
     }
 }
