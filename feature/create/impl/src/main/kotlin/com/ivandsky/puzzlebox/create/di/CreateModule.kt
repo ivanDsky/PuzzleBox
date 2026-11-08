@@ -58,5 +58,17 @@ val createModule: Module = module {
             validatePublish = get(),
         )
     }
-    viewModel { (key: PublishedPuzzleKey) -> PublishedPuzzleViewModel(key, get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { (key: PublishedPuzzleKey) ->
+        PublishedPuzzleViewModel(
+            key = key,
+            published = get(),
+            drafts = get(),
+            games = get(),
+            editors = get(),
+            plays = get(),
+            copyDraft = get(),
+            dispatchers = get(),
+            updatePublishState = get(),
+        )
+    }
 }

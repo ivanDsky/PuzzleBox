@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.testing.repository
 
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
+import com.ivandsky.puzzlebox.data.repository.DAILY_PUBLISH_CAP
 import com.ivandsky.puzzlebox.data.repository.SharedFetchResult
 import com.ivandsky.puzzlebox.data.repository.PublishResult
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
@@ -10,7 +11,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 /**
  * In-memory [SharedPuzzleRepository] that passes the same contract as the Firestore adapter, plus
  * knobs for what a device cannot force on demand. Writes follow the server rules: only the
- * signed-in author creates or unpublishes a doc, and creates count against [DAILY_CAP].
+ * signed-in author creates or unpublishes a doc, and creates count against [DAILY_PUBLISH_CAP].
  * Payloads are copied in and out, so callers can never mutate a stored doc.
  */
 class FakeSharedPuzzleRepository : SharedPuzzleRepository {
@@ -29,7 +30,7 @@ class FakeSharedPuzzleRepository : SharedPuzzleRepository {
     /** The next publish writes its doc, then reports Offline, like a timeout after the commit. */
     @Volatile var commitThenOffline: Boolean = false
 
-    /** Docs created today; a create that would exceed [DAILY_CAP] is [PublishResult.DailyCapReached]. */
+    /** Docs created today; a create past [DAILY_PUBLISH_CAP] is [PublishResult.DailyCapReached]. */
     @Volatile var publishesToday: Int = 0
 
     override suspend fun publish(doc: SharedPuzzleDoc): PublishResult = synchronized(stored) {
@@ -48,7 +49,7 @@ class FakeSharedPuzzleRepository : SharedPuzzleRepository {
                 }
             }
             existing != null -> PublishResult.CodeTaken
-            publishesToday >= DAILY_CAP -> PublishResult.DailyCapReached
+            publishesToday >= DAILY_PUBLISH_CAP -> PublishResult.DailyCapReached
             else -> {
                 stored[doc.code] = doc.detached()
                 publishesToday++
@@ -87,8 +88,4 @@ class FakeSharedPuzzleRepository : SharedPuzzleRepository {
         }
 
     private fun SharedPuzzleDoc.detached() = copy(payload = payload.copyOf())
-
-    private companion object {
-        const val DAILY_CAP = 20
-    }
 }

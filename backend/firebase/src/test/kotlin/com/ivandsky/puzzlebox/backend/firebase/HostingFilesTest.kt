@@ -45,6 +45,16 @@ class HostingFilesTest {
     }
 
     @Test
+    fun hostingIgnoresDsStoreButKeepsWellKnownDeployable() {
+        val ignore = Regex("\"ignore\":\\[([^\\]]*)\\]")
+            .find(read("firebase.json").filterNot { it.isWhitespace() })!!.groupValues[1]
+        val patterns = Regex("\"([^\"]*)\"").findAll(ignore).map { it.groupValues[1] }.toList()
+        assertTrue(patterns.contains("**/.DS_Store"))
+        assertTrue(patterns.none { it.contains(".well-known") || it == "**/.*" })
+        assertTrue(File("hosting/.well-known/assetlinks.json").isFile)
+    }
+
+    @Test
     fun landingPageHasNoExternalScripts() {
         val page = read("hosting/p/index.html")
         assertTrue(page.contains("<script>"))
