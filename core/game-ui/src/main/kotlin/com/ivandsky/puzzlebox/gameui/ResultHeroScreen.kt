@@ -79,7 +79,7 @@ fun ResultHeroScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .testTag("result.screen")
+                .testTag("result.hero.screen")
                 .padding(
                     if (compact) PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm) else PaddingValues(pagePadding),
                 ),

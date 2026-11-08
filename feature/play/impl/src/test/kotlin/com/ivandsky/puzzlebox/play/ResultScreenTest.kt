@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -52,6 +53,8 @@ import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.Instant
+import java.time.LocalDate
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -369,6 +372,59 @@ class ResultScreenTest {
         } finally {
             koin.close()
         }
+    }
+
+    @Test
+    fun `result route with ResultsHero off draws the old page and no hero tag`() {
+        val koin = startGraph(FakeGames(listOf(game)), FakeDailyRepository())
+        try {
+            composeRule.setContent {
+                PuzzleBoxTheme(darkTheme = false) {
+                    ResultRoute(key = ResultKey(game.value, day.toString(), 12_340, 0), onPlayAgain = {}, onNext = {}, onDone = {})
+                }
+            }
+            composeRule.onNodeWithTag("result.screen").assertExists()
+            composeRule.onNodeWithTag("result.hero.screen").assertDoesNotExist()
+            composeRule.onNodeWithTag("result.hero.time").assertDoesNotExist()
+        } finally {
+            koin.close()
+        }
+    }
+
+    @Test
+    fun `result route with ResultsHero on draws the hero page and not the old one`() {
+        val koin = startGraph(FakeGames(listOf(game, TestGames.beta)), FakeDailyRepository(), FakeReleaseFlags(ReleaseFlag.ResultsHero))
+        try {
+            var next: GameId? = null
+            var done = 0
+            composeRule.setContent {
+                PuzzleBoxTheme(darkTheme = false) {
+                    ResultRoute(
+                        key = ResultKey(game.value, day.toString(), 12_340, 0),
+                        onPlayAgain = {},
+                        onNext = { next = it },
+                        onDone = { done++ },
+                    )
+                }
+            }
+            composeRule.onNodeWithTag("result.hero.screen").assertExists()
+            composeRule.onNodeWithTag("result.hero.time").assertExists()
+            composeRule.onNodeWithTag("result.screen").assertDoesNotExist()
+
+            composeRule.onNodeWithTag("result.up").performClick()
+            composeRule.runOnIdle { assertEquals(1, done) }
+            composeRule.onNodeWithTag("result.next").performClick()
+            composeRule.runOnIdle { assertEquals(TestGames.beta, next) }
+        } finally {
+            koin.close()
+        }
+    }
+
+    @Test
+    fun `the hero page's date line leads today's result with Today`() {
+        val saturday = LocalDate.of(2026, 11, 7)
+        assertEquals("Today · Sat 7 Nov", resultDateLine(saturday, today = true, locale = Locale.US))
+        assertEquals("Sat 7 Nov", resultDateLine(saturday, today = false, locale = Locale.US))
     }
 
     @Test

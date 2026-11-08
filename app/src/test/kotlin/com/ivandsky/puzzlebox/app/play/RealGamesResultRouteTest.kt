@@ -7,6 +7,7 @@ import android.content.Context
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -130,6 +131,32 @@ class RealGamesResultRouteTest {
             }
         } finally {
             stopKoin() // close() alone leaves the JVM-global context registered for later tests
+        }
+    }
+
+    @Test
+    fun `result route with ResultsHero on draws the hero page`() {
+        val today = ZipDefinition.cadence.today()
+        val daily = freshDailyForAllGames().apply {
+            setHistory(ZipDefinition.id, listOf(ZipPlayFixture.entry(today)))
+        }
+        startGraph(daily, today, FakeReleaseFlags(ReleaseFlag.ResultsHero))
+        try {
+            composeRule.setContent {
+                PuzzleBoxTheme(darkTheme = false) {
+                    ResultRoute(
+                        key = ResultKey(ZipDefinition.id.value, today.toString(), 95_000L, 0),
+                        onPlayAgain = {},
+                        onNext = {},
+                        onDone = {},
+                    )
+                }
+            }
+            composeRule.onNodeWithTag("result.hero.screen").assertExists()
+            composeRule.onNodeWithTag("result.hero.time").assertExists()
+            composeRule.onNodeWithTag("result.screen").assertDoesNotExist()
+        } finally {
+            stopKoin()
         }
     }
 
