@@ -1,11 +1,17 @@
 package com.ivandsky.puzzlebox.tools.puzzlecli
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
-/** The one JSON line `puzzle-cli validate` prints (§9.2). */
+/**
+ * The one JSON line `puzzle-cli validate` prints (§9.2). `schema` is a default, so it is
+ * marked [EncodeDefault] to always print; `solution` stays omitted while null.
+ */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class CliVerdict(
-    val schema: Int = SCHEMA,
+    @EncodeDefault val schema: Int = SCHEMA,
     val game: String, // header game id; "" when the header is missing
     val verdict: String, // "unique" | "multiple" | "none" | "incomplete" | "undetermined" | "malformed"
     val difficulty: String?, // Difficulty.Level lower-case; null when none

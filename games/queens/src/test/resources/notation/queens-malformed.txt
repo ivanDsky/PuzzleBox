@@ -1,0 +1,9 @@
+# expect: malformed
+# a comment and a blank line still count as lines
+
+puzzlebox queens v1
+00001
+00031
+42x33
+43333
+43333

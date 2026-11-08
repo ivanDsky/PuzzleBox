@@ -151,6 +151,28 @@ class PuzzleCliTest {
     }
 
     @Test
+    fun `validate prints schema 1 on the raw line and no solution key`() {
+        val io = Io()
+        PuzzleCli.run(listOf("validate", "board.txt"), { fixture("queens-unique-5.txt") }, io.out, io.err)
+        val raw = io.outLines.single()
+        assertTrue("raw line must carry \"schema\":1: $raw", raw.contains("\"schema\":1"))
+        assertTrue("validate must not print a solution key: $raw", !raw.contains("\"solution\""))
+    }
+
+    @Test
+    fun `solve prints schema 1 and the solution on the raw line, a multiple board no solution key`() {
+        val unique = Io()
+        PuzzleCli.run(listOf("solve", "board.txt"), { fixture("queens-unique-5.txt") }, unique.out, unique.err)
+        val uniqueRaw = unique.outLines.single()
+        assertTrue("raw line must carry \"schema\":1: $uniqueRaw", uniqueRaw.contains("\"schema\":1"))
+        assertTrue("solve on unique prints the solution: $uniqueRaw", uniqueRaw.contains("\"solution\":["))
+
+        val multiple = Io()
+        PuzzleCli.run(listOf("solve", "board.txt"), { fixture("queens-multiple-5.txt") }, multiple.out, multiple.err)
+        assertTrue(!multiple.outLines.single().contains("\"solution\""))
+    }
+
+    @Test
     fun `unique fixture with no blocks is publishable`() {
         val io = Io()
         val exit = PuzzleCli.run(
