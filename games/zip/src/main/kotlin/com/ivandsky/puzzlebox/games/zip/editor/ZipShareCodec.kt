@@ -13,8 +13,9 @@ import com.ivandsky.puzzlebox.games.zip.engine.ZipVariants
  * Versioned board-only Zip share bytes (ADR-0005, ADR-0020), cells row-major (n ≤ 8, one byte):
  *
  * ```
- * v1: [u8 version][u8 n][u8 w][w × (u8 cell, u8 dir 0=RIGHT|1=DOWN)]   (walls ascending by cell, dir)
- *     [u8 k][k × u8 cell]                                              (waypoints, label order)
+ * v1: [u8 version][u8 n]
+ *     [u8 w][w × (u8 cell, u8 dir 0=RIGHT|1=DOWN)]   (walls ascending by cell, dir)
+ *     [u8 k][k × u8 cell]                            (waypoints, label order, no repeats)
  * ```
  *
  * The path never travels: the recipient decodes a path-less draft and re-solves it from the
@@ -39,7 +40,10 @@ internal object ZipShareCodec : EditorShareCodec<ZipDraft> {
         return out
     }
 
-    /** version > 1 ⇒ UnsupportedVersion(found, 1); unknown size ⇒ UnknownVariant; else bad bytes ⇒ Malformed. */
+    /**
+     * version > 1 ⇒ UnsupportedVersion(found, 1); unknown size ⇒ UnknownVariant;
+     * anything else invalid (incl. repeated waypoints) ⇒ Malformed.
+     */
     override fun decodeShare(bytes: ByteArray): DecodeResult<ZipDraft> {
         val cursor = ZipSessionCursor(bytes)
         val version = cursor.u8() ?: return malformed("empty share bytes")
@@ -52,6 +56,7 @@ internal object ZipShareCodec : EditorShareCodec<ZipDraft> {
         if (ZipVariants.byId(VariantId(variant)) == null) return DecodeResult.Err(DecodeError.UnknownVariant(variant))
         val walls = readWalls(cursor, n) ?: return malformed("malformed walls")
         val waypoints = cursor.cells(n * n) ?: return malformed("malformed waypoints")
+        if (waypoints.toSet().size != waypoints.size) return malformed("repeated waypoint cell")
         if (cursor.pos != bytes.size) return malformed("${bytes.size - cursor.pos} trailing bytes")
         return DecodeResult.Ok(ZipDraft(n, walls, emptyList(), waypoints.map { it.idx }))
     }

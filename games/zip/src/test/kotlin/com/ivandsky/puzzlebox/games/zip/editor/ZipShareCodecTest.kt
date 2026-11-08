@@ -142,6 +142,12 @@ class ZipShareCodecTest {
     }
 
     @Test
+    fun `a repeated waypoint cell is malformed`() {
+        assertMalformed(byteArrayOf(1, 5, 0, 2, 0, 0))
+        assertMalformed(byteArrayOf(1, 5, 0, 3, 0, 12, 0))
+    }
+
+    @Test
     fun `a Zip draft can share and encodes its current board`() {
         val draft = EditorDraft(ZipEditor, DraftState(corridor))
 
