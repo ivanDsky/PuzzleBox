@@ -10,7 +10,6 @@ import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.editor.EditorViewModel
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
-import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -47,6 +46,7 @@ import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.ResultViewModel
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertSame
@@ -105,7 +105,10 @@ class DiGraphTest : KoinTest {
             androidContext(RuntimeEnvironment.getApplication())
             // EditorViewModel collects identity; the real service would then reach
             // FirebaseAuth, and the JVM has no FirebaseApp.
-            modules(PuzzleBoxApplication.appModules + module { single<IdentityService> { FakeIdentityService() } })
+            modules(
+                PuzzleBoxApplication.appModules +
+                    module { single<IdentityService> { FakeIdentityService() } },
+            )
         }
         try {
             val koin = koinApp.koin

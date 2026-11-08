@@ -161,7 +161,11 @@ class FriendWinIsolationE2ETest {
             assertEquals("History is unchanged", historyBefore, shown(HISTORY))
             back()
             assertRoute(HOME)
-            assertEquals("Home's Today, streak, bests and recent days are unchanged", homeBefore, shownLoadedHome())
+            assertEquals(
+                "Home's Today, streak, bests and recent days are unchanged",
+                homeBefore,
+                shownLoadedHome(),
+            )
 
             val readsAfter = dailyReads()
             assertEquals("Today, History and stats are unchanged", readsBefore, readsAfter)
@@ -239,7 +243,7 @@ class FriendWinIsolationE2ETest {
         }
     }
 
-    /** Home's snapshot once its first load landed: the skeleton shows no Today, streak or recent days. */
+    /** Home's snapshot once its first load landed; the skeleton shows no Today or streak. */
     private fun ShellRobot.shownLoadedHome(): List<String> {
         awaitTag(HOME_TODAY_SUMMARY)
         return shown(HOME)
