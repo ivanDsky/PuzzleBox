@@ -203,7 +203,10 @@ private class MarkedDispatcher(private val delegate: CoroutineDispatcher) : Coro
         delegate.dispatch(context, Runnable { drainOne() })
     }
 
-    /** Runs what this dispatcher has queued so far; the scheduler's own wake-ups then find nothing. */
+    /**
+     * Runs what this dispatcher has queued so far; the scheduler's own wake-ups then find
+     * nothing.
+     */
     fun drain() {
         while (queue.isNotEmpty()) drainOne()
     }

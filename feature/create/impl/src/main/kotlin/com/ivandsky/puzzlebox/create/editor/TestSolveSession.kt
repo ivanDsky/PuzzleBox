@@ -133,7 +133,10 @@ class TestSolveSession(
         mutableSandbox.value = Sandbox(ui, controller)
     }
 
-    /** Back to the editor: the sandbox, an export still running and unsolved progress are dropped. */
+    /**
+     * Back to the editor: the sandbox, an export still running and unsolved progress are
+     * dropped.
+     */
     fun close() {
         exporting?.cancel()
         exporting = null
