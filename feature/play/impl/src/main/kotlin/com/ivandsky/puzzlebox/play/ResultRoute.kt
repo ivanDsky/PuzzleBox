@@ -19,9 +19,11 @@ import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
 import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.ResultScreen
+import com.ivandsky.puzzlebox.gameui.board.DailyBoard
 import com.ivandsky.puzzlebox.gameui.resultShareText
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.play.friend.SignInPrompt
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -101,6 +103,7 @@ fun ResultRoute(
                 rolloverAt = state.rolloverAt,
                 writeFailed = state.writeFailed,
                 onRetryWrite = viewModel::retryRecordWrite,
+                details = resultBoard(key, viewModel, state.game, context),
             )
         }
     }
@@ -147,7 +150,35 @@ private fun ColumnScope.HeroPage(
         brand = viewModel.brand,
         rolloverAt = state.rolloverAt,
         writeFailed = state.writeFailed,
+        board = resultBoard(key, viewModel, state.game, context),
     )
+}
+
+/**
+ * The daily board block for this result, or null when none shows (flag off, a past day, a
+ * practice play: [ResultViewModel.dailyBoard]). Signed out it carries the friend board's
+ * sign-in offer, which routes through the view model's one sign-in holder.
+ */
+@Composable
+private fun resultBoard(key: ResultKey, viewModel: ResultViewModel, game: String, context: Context): (@Composable () -> Unit)? {
+    val board by viewModel.dailyBoard.collectAsStateWithLifecycle()
+    val signIn by viewModel.signInStatus.collectAsStateWithLifecycle()
+    val shown = board ?: return null
+    return {
+        DailyBoard(
+            title = "$game · today",
+            order = viewModel.boardOrder,
+            state = shown,
+            signIn = {
+                SignInPrompt(
+                    title = "Sign in to see today's board",
+                    yourTimeMs = key.timeMs,
+                    signIn = signIn,
+                    onSignIn = { viewModel.signIn(context) },
+                )
+            },
+        )
+    }
 }
 
 /** The hero page's date line: the slot's day as "Sat 7 Nov", led by "Today · " on today's result. */

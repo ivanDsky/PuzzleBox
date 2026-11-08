@@ -27,10 +27,13 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardNote
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.friend.signedOutBoard
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
@@ -130,6 +133,7 @@ class ResultViewModelTest {
         identity: Identity? = null,
     ): ResultViewModel {
         val history = ObserveGameHistory(games, daily, completions)
+        val observeBoard = ObserveLeaderboard(FakeIdentityService(initial = identity), leaderboard, games, calendar)
         return ResultViewModel(
             key = key,
             store = store,
@@ -142,7 +146,8 @@ class ResultViewModelTest {
             games = games,
             flags = flags,
             insights = ObserveResultInsights(games, history, ComputeStreak(GetPuzzleDay(games, clock)), GetPuzzleDay(games, clock)),
-            rank = ObserveResultRank(ObserveLeaderboard(FakeIdentityService(initial = identity), leaderboard, games, calendar)),
+            rank = ObserveResultRank(observeBoard),
+            leaderboard = observeBoard,
             board = signedOutBoard(),
         )
     }
@@ -371,6 +376,79 @@ class ResultViewModelTest {
         val replay = key.copy(day = day.minusDays(1).toString())
         val vm = vm(replay, flags = heroOn(), identity = ME).heroObserved()
         assertEquals(ResultRank.Hidden, vm.heroRank.value)
+        assertTrue(leaderboard.observedBoards.isEmpty())
+    }
+
+    private fun boardOn() = FakeReleaseFlags(ReleaseFlag.PerGameLeaderboards)
+
+    /** The board flow runs only while the screen observes it. */
+    private fun ResultViewModel.boardObserved() = apply {
+        screen.launch { dailyBoard.collect {} }
+        dispatcher.scheduler.runCurrent()
+    }
+
+    private fun ranked(board: DailyBoardState?) = board as DailyBoardState.Ranked
+
+    @Test
+    fun `flag on, today's numbered daily is the board with Posting until the own entry lands`() {
+        val ref = LeaderboardRef(alpha.value, day)
+        leaderboard.setEntries(ref, listOf(entry("a", 30)))
+        val vm = vm(flags = boardOn(), identity = ME).boardObserved()
+        val posting = ranked(vm.dailyBoard.value)
+        assertEquals(listOf("a"), posting.rows.map { it.name })
+        assertEquals(DailyBoardNote.Posting, posting.note)
+
+        leaderboard.setEntries(ref, listOf(entry("a", 30), entry(ME.uid, 40)))
+        dispatcher.scheduler.runCurrent()
+        val landed = ranked(vm.dailyBoard.value)
+        assertEquals(listOf(false, true), landed.rows.map { it.isSelf })
+        assertNull(landed.note)
+        assertEquals(fakes.games.rankOrderOf(alpha), vm.boardOrder)
+    }
+
+    @Test
+    fun `flag on, a replay finish says the first time stands`() {
+        completions.setRecords(listOf(record(FakeController.TIME_MS, 0)))
+        solveLive()
+        leaderboard.setEntries(LeaderboardRef(alpha.value, day), listOf(entry(ME.uid, 40)))
+        val vm = vm(flags = boardOn(), identity = ME).boardObserved().observed()
+        assertEquals(RecordVerdict.Replay, vm.state.value.verdict)
+        assertEquals(DailyBoardNote.ReplayFirstTimeStands, ranked(vm.dailyBoard.value).note)
+    }
+
+    @Test
+    fun `flag on, signed out the board is SignedOut and sign-in is idle`() {
+        val vm = vm(flags = boardOn()).boardObserved()
+        assertEquals(DailyBoardState.SignedOut, vm.dailyBoard.value)
+        assertEquals(BoardSignIn.Idle, vm.signInStatus.value)
+    }
+
+    @Test
+    fun `flag on, an unreadable board is the soft unavailable state`() {
+        val vm = vm(flags = boardOn(), identity = ME).boardObserved()
+        assertEquals(DailyBoardState.Unavailable, vm.dailyBoard.value)
+    }
+
+    @Test
+    fun `flag on, a past day shows no board`() {
+        val past = key.copy(day = day.minusDays(1).toString())
+        val vm = vm(past, flags = boardOn(), identity = ME).boardObserved()
+        assertNull(vm.dailyBoard.value)
+        assertTrue(leaderboard.observedBoards.isEmpty())
+    }
+
+    @Test
+    fun `flag on, a practice puzzle shows no board`() {
+        daily.setHistory(alpha, listOf(DailyEntry(alpha, day, null, "alpha/v1", 0L)))
+        val vm = vm(flags = boardOn(), identity = ME).boardObserved()
+        assertNull(vm.dailyBoard.value)
+        assertTrue(leaderboard.observedBoards.isEmpty())
+    }
+
+    @Test
+    fun `flag off shows no board and reads none`() {
+        val vm = vm(identity = ME).boardObserved()
+        assertNull(vm.dailyBoard.value)
         assertTrue(leaderboard.observedBoards.isEmpty())
     }
 

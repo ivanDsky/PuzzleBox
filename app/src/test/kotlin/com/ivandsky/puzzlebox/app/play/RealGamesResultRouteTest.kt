@@ -160,6 +160,53 @@ class RealGamesResultRouteTest {
         }
     }
 
+    @Test
+    fun `the daily board shows in the legacy layout with the leaderboard flag on`() {
+        assertBoard(shown = true, hero = false, ReleaseFlag.PerGameLeaderboards)
+    }
+
+    @Test
+    fun `the daily board shows in the hero layout with the leaderboard flag on`() {
+        assertBoard(shown = true, hero = true, ReleaseFlag.PerGameLeaderboards, ReleaseFlag.ResultsHero)
+    }
+
+    @Test
+    fun `no daily board in the legacy layout with the leaderboard flag off`() {
+        assertBoard(shown = false, hero = false)
+    }
+
+    @Test
+    fun `no daily board in the hero layout with the leaderboard flag off`() {
+        assertBoard(shown = false, hero = true, ReleaseFlag.ResultsHero)
+    }
+
+    /** Today's numbered Zip result under [flags]: the layout follows ResultsHero, the board only PerGameLeaderboards. */
+    private fun assertBoard(shown: Boolean, hero: Boolean, vararg flags: ReleaseFlag) {
+        val today = ZipDefinition.cadence.today()
+        val daily = freshDailyForAllGames().apply {
+            setHistory(ZipDefinition.id, listOf(ZipPlayFixture.entry(today)))
+        }
+        startGraph(daily, today, FakeReleaseFlags(*flags))
+        try {
+            composeRule.setContent {
+                PuzzleBoxTheme(darkTheme = false) {
+                    ResultRoute(
+                        key = ResultKey(ZipDefinition.id.value, today.toString(), 95_000L, 0),
+                        onPlayAgain = {},
+                        onNext = {},
+                        onDone = {},
+                    )
+                }
+            }
+            composeRule.waitForIdle()
+            composeRule.onNodeWithTag(if (hero) "result.hero.screen" else "result.screen").assertExists()
+            val board = composeRule.onNodeWithTag("daily_board.title")
+            if (shown) board.assertExists() else board.assertDoesNotExist()
+        } finally {
+            stopKoin()
+        }
+    }
+
     private object DismissedGoogleIdTokenProvider : GoogleIdTokenProvider {
         override suspend fun idToken(activityContext: Context): GoogleIdToken =
             GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.CANCELLED)

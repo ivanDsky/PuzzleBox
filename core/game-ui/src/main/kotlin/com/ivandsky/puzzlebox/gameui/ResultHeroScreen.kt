@@ -51,6 +51,7 @@ private const val SIDE_WEIGHT = 1f
  * While `facts.primary` is null the hero's actions stay in place, invisible and inert. A
  * failed record write ([writeFailed]) shows above the cards and retries through
  * [onRetryWrite]. [onSignIn] is the rank row's sign-in when the player is signed out.
+ * [board], when given, is a board block drawn below the cards (the daily board, behind its own flag).
  */
 @Composable
 fun ResultHeroScreen(
@@ -64,6 +65,7 @@ fun ResultHeroScreen(
     brand: GameBrand = GameBrand.Neutral,
     rolloverAt: Instant? = null,
     writeFailed: Boolean = false,
+    board: (@Composable () -> Unit)? = null,
 ) {
     val model = remember(facts) { resultHeroModel(facts) }
     val hasSide = model.streak != null || model.spread != null || model.rank != null
@@ -100,6 +102,7 @@ fun ResultHeroScreen(
                     ResultHeroCard(model, brand, onPrimary, onShare, onPlayAgain, rolloverAt, Modifier, wide)
                     ResultSideCard(model, brand, onSignIn, Modifier, wide)
                 }
+                board?.invoke()
             }
         }
     }
