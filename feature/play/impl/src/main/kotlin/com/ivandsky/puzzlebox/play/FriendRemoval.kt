@@ -1,10 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
-import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
-import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
-import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
-import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -12,71 +8,52 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
 
 /**
- * Remove with Undo for From friends (spec A19): [remove] deletes the puzzle and its saved play
- * at once ([DeleteReceivedPuzzle]) and keeps their copies in memory; [undo] writes them back
- * while [removed] still names the code, which it does for [UNDO_WINDOW_MS]. The window lives
- * in [scope], so a closed snackbar never decides what is kept.
+ * Remove with Undo for From friends (spec A19): [remove] hides the code at once and deletes
+ * nothing; [removed] names it for [UNDO_WINDOW_MS]. The puzzle and its saved play are deleted
+ * ([DeleteReceivedPuzzle]) when that window closes: on expiry, when a newer removal replaces
+ * it, or on [clear]. [undo] cancels the delete, so both stay as they were. [scope] outlives
+ * the screen, so a closed screen never drops a pending delete.
  */
 internal class FriendRemoval(
-    private val received: ReceivedPuzzleRepository,
-    private val saved: SavedPlayRepository,
     private val delete: DeleteReceivedPuzzle,
     private val scope: CoroutineScope,
 ) {
-    private class SavedCopy(val blob: ByteArray, val elapsedMs: Long)
-
-    private class Removed(val puzzle: ReceivedPuzzle, val play: SavedCopy?) {
-        val slot get() = PlaySlot.Custom(puzzle.gameId, puzzle.code.value)
-    }
-
-    private var last: Removed? = null
+    @Volatile
     private var window: Job? = null
     private val _removed = MutableStateFlow<ShareCode?>(null)
 
-    /** The code whose Undo is offered, null once it is restored or its window closed. */
+    /** The code hidden while its Undo is offered, null once restored or deleted. */
     val removed: StateFlow<ShareCode?> = _removed.asStateFlow()
 
-    /**
-     * Deletes [code]'s puzzle and saved play now and offers Undo for them; a newer removal
-     * replaces the older one's Undo. A code with no stored puzzle (a repeat tap) leaves the
-     * open window as it is.
-     */
+    /** Hides [code] and opens its Undo window; a newer removal deletes the older one now. */
     fun remove(code: ShareCode) {
-        scope.launch {
-            val puzzle = received.get(code) ?: return@launch
-            val slot = PlaySlot.Custom(puzzle.gameId, code.value)
-            val blob = saved.load(slot)
-            val elapsed = saved.observeInProgress().first()[slot]
-            delete(code)
-            window?.cancel()
-            last = Removed(puzzle, if (blob != null && elapsed != null) SavedCopy(blob, elapsed) else null)
-            _removed.value = code
-            window = scope.launch {
-                delay(UNDO_WINDOW_MS)
-                forget()
-            }
+        if (_removed.value == code) return
+        close()
+        _removed.value = code
+        window = scope.launch {
+            delay(UNDO_WINDOW_MS)
+            close()
         }
     }
 
-    /** Puts the last removed puzzle back with its saved play, its elapsed time included. */
+    /** Cancels the pending delete; the puzzle and its saved play stay untouched. */
     fun undo() {
-        val shown = last ?: return
         window?.cancel()
-        forget()
-        scope.launch {
-            // The play first, so the card comes back already reading In progress.
-            shown.play?.let { saved.save(shown.slot, it.blob, it.elapsedMs) }
-            received.upsert(shown.puzzle)
-        }
+        _removed.value = null
     }
 
-    private fun forget() {
-        last = null
-        _removed.value = null
+    /** Runs the pending delete now, for the owner going away. */
+    fun clear() = close()
+
+    /** Ends the open window and deletes its code; taking the code first makes it run once. */
+    private fun close() {
+        val code = _removed.getAndUpdate { null } ?: return
+        window?.cancel()
+        scope.launch { delete(code) }
     }
 
     companion object {
