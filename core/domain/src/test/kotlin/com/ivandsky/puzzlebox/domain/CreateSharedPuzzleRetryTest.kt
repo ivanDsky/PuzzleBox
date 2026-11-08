@@ -44,6 +44,11 @@ class CreateSharedPuzzleRetryTest {
     private val board = EditorDraft.fresh(ShareEditor, SMALL)
     private val unique = Verdict.Unique(Solution(listOf(1, 2, 3)))
 
+    /** Stands in for the Studio's one writer: the draft row takes the code. */
+    private val reserve: suspend (ShareCode) -> Unit = { code ->
+        drafts.upsert(drafts.rows.getValue(DRAFT_ID).copy(reservedCode = code.value))
+    }
+
     private fun createShared(shared: SharedPuzzleRepository = backend, seed: Int = 7) = CreateSharedPuzzle(
         drafts = drafts,
         shared = shared,
@@ -60,14 +65,14 @@ class CreateSharedPuzzleRetryTest {
         backend.commitThenOffline = true
         val publish = createShared()
 
-        val first = publish(DRAFT_ID, board, unique)
+        val first = publish(DRAFT_ID, board, unique, reserve)
 
         assertEquals(PublishOutcome.Offline, first)
         val reserved = checkNotNull(drafts.rows.getValue(DRAFT_ID).reservedCode)
         assertEquals("the doc landed before the answer was lost", setOf(reserved), backend.docs.keys.map { it.value }.toSet())
         assertTrue("not listed as published yet", published.rows.isEmpty())
 
-        val retry = publish(DRAFT_ID, board, unique)
+        val retry = publish(DRAFT_ID, board, unique, reserve)
 
         val code = checkNotNull(ShareCode.parse(reserved))
         assertEquals(PublishOutcome.Published(code), retry)
@@ -81,11 +86,11 @@ class CreateSharedPuzzleRetryTest {
         drafts.upsert(ready())
         backend.commitThenOffline = true
         val publish = createShared()
-        assertEquals(PublishOutcome.Offline, publish(DRAFT_ID, board, unique))
+        assertEquals(PublishOutcome.Offline, publish(DRAFT_ID, board, unique, reserve))
         val lost = checkNotNull(ShareCode.parse(checkNotNull(drafts.rows.getValue(DRAFT_ID).reservedCode)))
         drafts.upsert(drafts.rows.getValue(DRAFT_ID).copy(title = "Fortress"))
 
-        val outcome = publish(DRAFT_ID, board, unique)
+        val outcome = publish(DRAFT_ID, board, unique, reserve)
 
         val code = (outcome as PublishOutcome.Published).code
         assertTrue("a different code than the lost one", code != lost)
@@ -102,13 +107,13 @@ class CreateSharedPuzzleRetryTest {
     fun `a draft killed after its code was reserved publishes later under that code`() = runTest {
         drafts.upsert(ready())
         backend.online = false
-        assertEquals(PublishOutcome.Offline, createShared(seed = 7)(DRAFT_ID, board, unique))
+        assertEquals(PublishOutcome.Offline, createShared(seed = 7)(DRAFT_ID, board, unique, reserve))
         val reserved = checkNotNull(drafts.rows.getValue(DRAFT_ID).reservedCode)
         assertTrue("nothing written offline", backend.docs.isEmpty())
 
         // A fresh process: new use case, new random, the stored row as it was left.
         backend.online = true
-        val outcome = createShared(seed = 99)(DRAFT_ID, board, unique)
+        val outcome = createShared(seed = 99)(DRAFT_ID, board, unique, reserve)
 
         val code = checkNotNull(ShareCode.parse(reserved))
         assertEquals(PublishOutcome.Published(code), outcome)
@@ -127,7 +132,7 @@ class CreateSharedPuzzleRetryTest {
             }
         }
 
-        val outcome = createShared(shared = alwaysTaken)(DRAFT_ID, board, unique)
+        val outcome = createShared(shared = alwaysTaken)(DRAFT_ID, board, unique, reserve)
 
         assertTrue("rejected, got $outcome", outcome is PublishOutcome.Rejected)
         assertEquals("the first code and three regenerations, no fifth try", 4, tried.size)
@@ -135,6 +140,26 @@ class CreateSharedPuzzleRetryTest {
         assertEquals("the last tried code stays reserved", tried.last().value, drafts.rows.getValue(DRAFT_ID).reservedCode)
         assertTrue(backend.docs.isEmpty())
         assertTrue(published.rows.isEmpty())
+    }
+
+    @Test
+    fun `every code is handed to the caller's writer before its try, and the draft is written by no one else`() = runTest {
+        drafts.upsert(ready())
+        val handed = mutableListOf<ShareCode>()
+        val tried = mutableListOf<ShareCode>()
+        val twiceTaken = object : SharedPuzzleRepository by backend {
+            override suspend fun publish(doc: SharedPuzzleDoc): PublishResult {
+                assertEquals("handed over before its try", handed.size, tried.size + 1)
+                tried += doc.code
+                return if (tried.size < 3) PublishResult.CodeTaken else backend.publish(doc)
+            }
+        }
+
+        val outcome = createShared(shared = twiceTaken)(DRAFT_ID, board, unique) { code -> handed += code }
+
+        assertEquals(PublishOutcome.Published(tried.last()), outcome)
+        assertEquals("the first code and two regenerations", tried, handed)
+        assertEquals("the use case leaves the draft to its writer", null, drafts.rows.getValue(DRAFT_ID).reservedCode)
     }
 
     private fun ready() = Draft(
