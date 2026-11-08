@@ -20,7 +20,7 @@ class StrandsEditorControllerTest {
 
     @Test
     fun `lifting a two-cell trace commits one path with the typed word on its blank cells`() {
-        controller.setWord("go")
+        controller.typeWord("go")
         trace(0, 1)
         controller.endTrace()
 
@@ -34,7 +34,7 @@ class StrandsEditorControllerTest {
 
     @Test
     fun `a word shorter than the trace leaves the path unnamed`() {
-        controller.setWord("g")
+        controller.typeWord("g")
         trace(0, 1)
         controller.endTrace()
 
