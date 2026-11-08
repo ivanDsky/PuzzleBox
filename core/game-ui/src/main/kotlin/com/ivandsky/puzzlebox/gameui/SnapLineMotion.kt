@@ -76,7 +76,9 @@ class SnapLineMotion<C : Any>(private val scope: CoroutineScope) {
         }
         val animating = animate && blending()
         val end = if (animating) {
-            val progress = if (blendPending) 0f else blend.value
+            // Read even while pending: the draw must observe the tween, or nothing redraws it.
+            val value = blend.value
+            val progress = if (blendPending) 0f else value
             blendFrom + (target - blendFrom) * MotionTokens.Trace.EasingOut.transform(progress)
         } else {
             target
