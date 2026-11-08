@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.strandsui.editor
 
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.NotationResult
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
@@ -73,5 +74,31 @@ class StrandsEditorControllerTest {
 
         val undone = controller.draft.value.undo()
         assertTrue(undone != null && (undone.state.draft as StrandsDraft).paths.isEmpty())
+    }
+
+    @Test
+    fun `typed word keeps only letters A to Z, upper case`() {
+        controller.typeWord("c-a\u00E9f\u00C9e1")
+
+        assertEquals("CAFE", controller.word.value)
+    }
+
+    @Test
+    fun `a committed clue loses its line breaks`() {
+        controller.setClue("a\nb\r\nc\rd")
+
+        assertEquals("abcd", board().clue)
+    }
+
+    @Test
+    fun `a draft built from typed CAFE-acute and a pasted clue prints text that parses back`() {
+        controller.typeWord("CAF\u00C9")
+        trace(0, 1, 2)
+        controller.endTrace()
+        controller.setClue("a\nb")
+
+        val draft = board()
+        val body = StrandsEditor.print(draft).lines().drop(1).joinToString("\n")
+        assertEquals(NotationResult.Ok(draft), StrandsEditor.parse(body))
     }
 }
