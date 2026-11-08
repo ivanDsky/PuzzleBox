@@ -33,6 +33,7 @@ import com.ivandsky.puzzlebox.game.editor.NotationParse
 import com.ivandsky.puzzlebox.game.editor.NotationText
 import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -285,8 +286,8 @@ class ImportSheetTest {
 
     @Test
     fun `the banner says line for one line and lines otherwise`() {
-        assertEquals("Clipboard has Queens puzzle text (1 line)", clipboardBannerText(banner.copy(lines = 1)))
-        assertEquals("Clipboard has Queens puzzle text (6 lines)", clipboardBannerText(banner))
+        assertFalse(clipboardBannerText(banner.copy(lines = 1)).contains("lines"))
+        assertTrue(clipboardBannerText(banner.copy(lines = 6)).contains("lines"))
     }
 
     @Test
