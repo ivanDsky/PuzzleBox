@@ -55,28 +55,29 @@ object TangoEditorUi : GameEditorUi {
         val tango = controller as TangoEditorController
         val zones by tango.tapZones.collectAsState()
         val forced by tango.forcedView.collectAsState()
-        Row(
-            modifier,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(
                 TangoEditorCopy.TOOL_HINT,
                 style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.weight(1f).testTag("tango.editor.hint"),
+                modifier = Modifier.fillMaxWidth().testTag("tango.editor.hint"),
             )
-            FilterChip(
-                selected = zones,
-                onClick = tango::toggleTapZones,
-                label = { Text(TangoEditorCopy.TAP_ZONES, maxLines = 1) },
-                modifier = Modifier.testTag("tango.editor.tapZones"),
-            )
-            FilterChip(
-                selected = forced,
-                onClick = tango::toggleForcedView,
-                label = { Text(FORCED_CELLS, maxLines = 1) },
-                modifier = Modifier.testTag("tango.editor.forced.toggle"),
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FilterChip(
+                    selected = zones,
+                    onClick = tango::toggleTapZones,
+                    label = { Text(TangoEditorCopy.TAP_ZONES, maxLines = 1) },
+                    modifier = Modifier.testTag("tango.editor.tapZones"),
+                )
+                FilterChip(
+                    selected = forced,
+                    onClick = tango::toggleForcedView,
+                    label = { Text(FORCED_CELLS, maxLines = 1) },
+                    modifier = Modifier.testTag("tango.editor.forced.toggle"),
+                )
+            }
         }
     }
 
