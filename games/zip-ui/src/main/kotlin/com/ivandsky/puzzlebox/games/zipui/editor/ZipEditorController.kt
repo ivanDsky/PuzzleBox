@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.games.zip.editor.ZipDraftCommand
 import com.ivandsky.puzzlebox.games.zip.editor.ZipEditor
 import com.ivandsky.puzzlebox.games.zip.editor.reversed
 import com.ivandsky.puzzlebox.games.zip.editor.stroke
+import com.ivandsky.puzzlebox.games.zip.editor.toggleMark
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
@@ -21,7 +22,9 @@ import kotlinx.coroutines.flow.asStateFlow
  * drawing back onto the previous cell retracts by one. The board follows the stroke through
  * [shown]; lifting the finger commits it as one `PathEdit` step through [onEdit], as do
  * [reverse] and [clearPath]. The first and last cells of the path are always waypoints 1 and
- * last. The VM hands replacement drafts back through [adopt].
+ * last. [tapNumber] numbers a path cell or removes its number as one `ToggleMark` step; a tap
+ * on an end, which cannot lose its number, sets [shaken]. The VM hands replacement drafts back
+ * through [adopt].
  */
 class ZipEditorController(
     initial: EditorDraft<*>,
@@ -32,6 +35,7 @@ class ZipEditorController(
     private val showing = MutableStateFlow(current.value.state.draft)
     private val shownOverlay = MutableStateFlow(EditorOverlay())
     private val selected = MutableStateFlow(ZipEditorStep.Path)
+    private val shaking = MutableStateFlow<Shake?>(null)
     private var anchor: Int? = null
     private var fromHead = false
 
@@ -42,6 +46,12 @@ class ZipEditorController(
 
     /** The step whose tools the row shows; the stroke draws in [ZipEditorStep.Path] only. */
     val step: StateFlow<ZipEditorStep> = selected.asStateFlow()
+
+    /** The end cell the last refused [tapNumber] landed on; each refusal is a new value. */
+    internal val shaken: StateFlow<Shake?> = shaking.asStateFlow()
+
+    /** A refused tap on [cell]; a fresh instance per tap so a repeat tap re-triggers. */
+    internal class Shake(val cell: Int)
 
     override val overlay: StateFlow<EditorOverlay> = shownOverlay.asStateFlow()
 
@@ -103,7 +113,17 @@ class ZipEditorController(
         if (board.path.isNotEmpty()) commit(board.stroke(emptyList()))
     }
 
-    private fun commit(edit: ZipDraftCommand.PathEdit) {
+    /** Numbers [cell], or removes its number; off the path it does nothing, on an end it shakes. */
+    fun tapNumber(cell: Int) {
+        val board = current.value.state.draft
+        val toggle = board.toggleMark(cell)
+        when {
+            toggle != null -> commit(toggle)
+            cell in board.path -> shaking.value = Shake(cell)
+        }
+    }
+
+    private fun commit(edit: ZipDraftCommand) {
         val next = current.value.apply(edit)
         current.value = next
         showing.value = next.state.draft
