@@ -80,7 +80,7 @@ class ResultHeroScreenTest {
     @Test
     fun no_notice_shows_while_the_write_is_fine() {
         setContent(300, 460)
-        composeRule.onNodeWithTag("result.screen").assertIsDisplayed()
+        composeRule.onNodeWithTag("result.hero.screen").assertIsDisplayed()
         composeRule.onNodeWithTag("result.write_failed").assertDoesNotExist()
     }
 }
