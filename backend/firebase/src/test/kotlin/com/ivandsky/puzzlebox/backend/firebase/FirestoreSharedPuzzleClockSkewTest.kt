@@ -4,6 +4,7 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.PublishResult
 import com.ivandsky.puzzlebox.model.ShareCode
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -40,6 +41,7 @@ class FirestoreSharedPuzzleClockSkewTest {
     private val store = DayCheckingSharedPuzzleStore(serverDay = SERVER_DAY)
     private var deviceDay = SERVER_DAY
     private var readableServerDay: String? = SERVER_DAY
+    private var serverDayHangs = false
     private var serverDayReads = 0
 
     private val repository = FirestoreSharedPuzzleRepository(
@@ -48,6 +50,7 @@ class FirestoreSharedPuzzleClockSkewTest {
         utcDay = { deviceDay },
         serverDay = {
             serverDayReads++
+            if (serverDayHangs) awaitCancellation()
             readableServerDay
         },
     )
@@ -80,6 +83,15 @@ class FirestoreSharedPuzzleClockSkewTest {
         readableServerDay = null
 
         assertTrue(repository.publish(doc()) is PublishResult.Rejected)
+    }
+
+    @Test
+    fun `a server day that never answers is Rejected once the bound passes`() = runTest {
+        deviceDay = BEHIND_DAY
+        serverDayHangs = true
+
+        assertTrue(repository.publish(doc()) is PublishResult.Rejected)
+        assertEquals(SERVER_DAY_TIMEOUT.inWholeMilliseconds, testScheduler.currentTime)
     }
 
     @Test

@@ -19,11 +19,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import com.ivandsky.puzzlebox.create.R
 import com.ivandsky.puzzlebox.data.repository.DAILY_PUBLISH_CAP
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
@@ -36,9 +34,9 @@ import java.util.Locale
 
 /**
  * Why the last publish didn't land, above Publish: offline, a wrong device clock or refused in
- * the error container (Publish then reads Retry), the day's cap in the tertiary one. Any other [outcome] shows
- * nothing; shown, it keeps its own gap above Publish. The banner opens and closes in place (expand + fade on the enter curve); reduced
- * motion fades it.
+ * the error container (Publish then reads Retry), the day's cap in the tertiary one. Any other
+ * [outcome] shows nothing; shown, it keeps its own gap above Publish. The banner opens and closes
+ * in place (expand + fade on the enter curve); reduced motion fades it.
  */
 @Composable
 internal fun PublishBanner(outcome: PublishOutcome?, modifier: Modifier = Modifier) {
@@ -85,13 +83,14 @@ private enum class Kind(val tag: String) {
 }
 
 /** A banner's title and body; the cap's title takes the day's publish cap as its format argument. */
-@Composable
 private fun Kind.copy(): Pair<String, String> = when (this) {
     Kind.Offline -> "You're offline — publishing needs a connection" to
         "Your draft and test solve are saved on this phone. Retry when you're back online."
     Kind.Cap -> "You've published %d today".format(Locale.ROOT, DAILY_PUBLISH_CAP) to
         "That's today's limit; publishing opens again tomorrow. You can still test solve, and the draft waits here."
-    Kind.Clock -> stringResource(R.string.publish_clock_title) to stringResource(R.string.publish_clock_body)
+    Kind.Clock -> "This phone's date looks wrong" to
+        "Publishing needs the right date and time. Turn on automatic date and time in Settings, " +
+        "then retry. Your draft is saved."
     Kind.Rejected -> "Couldn't publish" to "The puzzle wasn't accepted this time. Your draft is saved; try again."
 }
 

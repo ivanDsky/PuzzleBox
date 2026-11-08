@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Firestore implementation of the shared-puzzle seam over `puzzles/{code}` and `authors/{uid}`
@@ -59,9 +60,12 @@ internal class FirestoreSharedPuzzleRepository(
         }
     }
 
-    /** True only when the server's day was read and differs from [day]; unreadable means unknown. */
+    /**
+     * True only when the server's day was read within [SERVER_DAY_TIMEOUT] and differs from [day];
+     * unreadable or too slow means unknown.
+     */
     private suspend fun deviceDayIsWrong(day: String): Boolean = try {
-        serverDay()?.let { it != day } ?: false
+        withTimeoutOrNull(SERVER_DAY_TIMEOUT) { serverDay() }?.let { it != day } ?: false
     } catch (e: CancellationException) {
         throw e
     } catch (_: Exception) {
