@@ -145,51 +145,78 @@ class QueensPlayControllerTest {
         assertEquals(60_000L, board.session.elapsedMs)
     }
 
-    @Test
-    fun `the clock opens on the first action and background banks the running window`() {
-        val state = readyBoard()
-        assertNull("no action yet, no running window", state.clockWindow)
-        assertEquals(0L, state.displayedElapsedMs())
-
-        clockMs = 10_000L
-        state.board!!.onTap(0)
-        assertNotNull(state.clockWindow)
-        clockMs = 14_000L
-        state.tick()
-        assertEquals(4_000L, state.displayedElapsedMs())
-
-        clockMs = 15_000L
-        state.onBackground()
-        assertNull(state.clockWindow)
-        assertEquals(5_000L, state.board!!.session.elapsedMs)
-        clockMs = 60_000L
-        state.tick()
-        assertEquals("a stopped clock does not drift", 5_000L, state.displayedElapsedMs())
+    /** What the timer bar reads after the loop's next tick. */
+    private fun QueensPlayController.shown(): Long {
+        tick()
+        return displayedElapsedMs()
     }
 
     @Test
-    fun `foreground reopens the window only for a started unfinished session`() {
+    fun `a fresh puzzle's timer runs with no move made`() {
         val state = readyBoard()
-        state.onForeground()
-        assertNull("nothing played yet", state.clockWindow)
+        assertNotNull("the window opens with the puzzle", state.clockWindow)
 
-        state.board!!.onTap(0)
+        clockMs += 4_000L
+
+        assertFalse(state.board!!.session.history.canUndo)
+        assertEquals(4_000L, state.shown())
+    }
+
+    @Test
+    fun `background banks the running window and foreground reopens it without a move`() {
+        val state = readyBoard()
+        clockMs += 5_000L
+
         state.onBackground()
         assertNull(state.clockWindow)
+        assertEquals(5_000L, state.board!!.session.elapsedMs)
+        clockMs += 45_000L
+        assertEquals("a stopped clock does not drift", 5_000L, state.shown())
+
         state.onForeground()
         assertNotNull(state.clockWindow)
+        clockMs += 1_000L
+        assertEquals(6_000L, state.shown())
+    }
 
-        // Cell 0 already carries its X from the first tap: one more tap crowns it, the
-        // rest take the usual two.
-        state.board!!.onTap(QueensPlayFixtures.solution.first().idx)
-        for (cell in QueensPlayFixtures.solution.drop(1)) {
-            state.board!!.onTap(cell.idx)
-            state.board!!.onTap(cell.idx)
-        }
+    @Test
+    fun `a finished session stops the clock and never restarts it`() {
+        val state = readyBoard()
+        clockMs += 8_000L
+        solve(state.board!!)
+
         assertTrue(state.board!!.session.isComplete)
         assertNull("the win stops the clock", state.clockWindow)
+        assertEquals(8_000L, state.board!!.session.elapsedMs)
         state.onForeground()
         assertNull("a finished session never restarts it", state.clockWindow)
+    }
+
+    @Test
+    fun `a restored untouched session's timer runs too`() {
+        val state = readyBoard()
+        state.onBackground()
+        val bytes = QueensSessionCodec.serialize(state.board!!.session)
+
+        val restored = controller()
+        assertNotNull(restored.adoptRestored(bytes))
+        clockMs += 1_500L
+
+        assertEquals(1_500L, restored.shown())
+    }
+
+    @Test
+    fun `replay restarts from zero and advances at once`() {
+        val state = readyBoard()
+        clockMs += 8_000L
+        solve(state.board!!)
+
+        state.replay()
+        assertNotNull(state.clockWindow)
+        assertEquals(0L, state.shown())
+        clockMs += 700L
+
+        assertEquals(700L, state.shown())
     }
 
     @Test

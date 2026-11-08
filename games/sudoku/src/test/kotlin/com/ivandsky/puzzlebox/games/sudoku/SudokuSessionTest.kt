@@ -155,14 +155,4 @@ class SudokuSessionTest {
         assertSame(noting, noting.withNotesMode(true))
         assertFalse(noting.withNotesMode(false).notesMode)
     }
-
-    @Test
-    fun `a session has started once a command is done or a hint is counted`() {
-        assertFalse(start.hasStarted)
-        assertTrue(start.withHintUsed().hasStarted)
-        val placed = start.play(SudokuMoves.place(start.board, open[0], 4))
-        assertTrue(placed.hasStarted)
-        assertFalse(placed.withUndo().hasStarted)
-        assertFalse(start.withNotesMode(true).hasStarted)
-    }
 }

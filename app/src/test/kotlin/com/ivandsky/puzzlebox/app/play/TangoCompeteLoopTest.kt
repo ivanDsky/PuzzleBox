@@ -89,7 +89,7 @@ class TangoCompeteLoopTest {
 
         fakeNow = fakeNow.plusMillis(90_000)
         val (first, firstValue) = TangoPlayFixture.placements.first()
-        s.onPlacement(TangoPlacement(first, firstValue)) // window opens at T+90s
+        s.onPlacement(TangoPlacement(first, firstValue)) // the window opened with the puzzle at T
         fakeNow = fakeNow.plusMillis(45_000)
         for ((idx, value) in TangoPlayFixture.placements.drop(1)) {
             s.onPlacement(TangoPlacement(idx, value)) // completes at T+135s
@@ -100,7 +100,7 @@ class TangoCompeteLoopTest {
         // The A4 stamp (isRecord + firstCompletedAt) is Room's onCompleted job; the fake
         // skips it, so emulate the stamp from the session's completedAt exactly as the
         // store derives it.
-        assertEquals(45_000L, record.time)
+        assertEquals(135_000L, record.time)
         val stamped = record.copy(isRecord = true, firstCompletedAt = s.session?.completedAt)
         assertNotNull(LeaderboardEntries.fromRecord(stamped, uid = "uid-1", displayName = "Ivan"))
     }

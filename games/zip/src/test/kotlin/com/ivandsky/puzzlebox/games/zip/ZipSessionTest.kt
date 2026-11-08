@@ -22,12 +22,13 @@ class ZipSessionTest {
     )
 
     @Test
-    fun `first extend starts the timer exactly once`() {
+    fun `a move never starts or moves the clock window`() {
         val s1 = session().withMove(ZipMove.Extend(Cell(0)), t0)
-        assertTrue(s1.timerStarted)
-        assertEquals(t0, s1.runningSince)
-        val s2 = s1.withMove(ZipMove.Extend(Cell(1)), t0.plusSeconds(5))
-        assertEquals(t0, s2.runningSince) // anchor unchanged by later moves
+        assertTrue(s1.timerStarted) // the persisted first-Extend bit, no longer a gate
+        assertNull(s1.runningSince)
+        val open = s1.onForeground(t0)
+        val s2 = open.withMove(ZipMove.Extend(Cell(1)), t0.plusSeconds(5))
+        assertEquals(t0, s2.runningSince) // the owner's anchor is unchanged by later moves
         assertTrue(s1.path.last() == Cell(0))
     }
 
@@ -72,7 +73,7 @@ class ZipSessionTest {
 
     @Test
     fun `completion folds the timer and stamps completedAt once`() {
-        var s = session().withMove(ZipMove.Extend(Cell(0)), t0)
+        var s = session().onForeground(t0).withMove(ZipMove.Extend(Cell(0)), t0)
         // walk the forced solution; pretend 2s elapsed between moves
         var now = t0
         ZipTestSupport.n5Solution.drop(1).forEach { cell ->
@@ -90,7 +91,7 @@ class ZipSessionTest {
 
     @Test
     fun `background gaps never count toward elapsed`() {
-        var s = session().withMove(ZipMove.Extend(Cell(0)), t0) // timer starts
+        var s = session().onForeground(t0).withMove(ZipMove.Extend(Cell(0)), t0) // window opened by the owner
         s = s.withMove(ZipMove.Extend(Cell(1)), t0.plusSeconds(10))
         s = s.onBackground(t0.plusSeconds(60)) // banks the full running window (anchor = t0)
         assertEquals(60_000, s.elapsedMs)
@@ -101,11 +102,18 @@ class ZipSessionTest {
     }
 
     @Test
-    fun `foreground does not start an untouched timer`() {
+    fun `foreground opens an untouched timer`() {
         val s = session().onForeground(t0)
         assertFalse(s.timerStarted)
-        assertNull(s.runningSince)
-        assertEquals(0, s.displayedElapsedMs(t0.plusSeconds(100)))
+        assertEquals(t0, s.runningSince)
+        assertEquals(100_000, s.displayedElapsedMs(t0.plusSeconds(100)))
+    }
+
+    @Test
+    fun `foreground never reopens a completed session`() {
+        var s = session().onForeground(t0)
+        ZipTestSupport.n5Solution.forEach { s = s.withMove(ZipMove.Extend(it), t0.plusSeconds(2)) }
+        assertNull(s.onForeground(t0.plusSeconds(9)).runningSince)
     }
 
     @Test

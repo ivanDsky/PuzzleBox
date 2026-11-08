@@ -166,6 +166,23 @@ class GameTutorialTest {
     }
 
     @Test
+    fun `the clock stays folded behind the first-play lessons and runs once the board shows`() {
+        fakes[alpha].teach(1)
+        start(FakeUserPreferencesRepository())
+        val play = live().controller as FakeController
+
+        composeRule.onNodeWithTag("tutorial.host").assertExists()
+        assertNull("lesson time never counts", play.clockWindow)
+        composeRule.runOnIdle { play.advance(10_000L) }
+        assertEquals(0L, play.displayedElapsedMs())
+
+        click("tutorial.skip")
+
+        composeRule.onNodeWithText("alpha board 0").assertExists()
+        assertNotNull("the board's clock runs without a move", play.clockWindow)
+    }
+
+    @Test
     fun `skip marks the game seen and shows its board`() {
         fakes[alpha].teach(3)
         val prefs = FakeUserPreferencesRepository()

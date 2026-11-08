@@ -19,6 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -221,28 +222,81 @@ class StrandsPlayControllerTest {
         assertEquals(2, lastSaved().state.hintsUsed)
     }
 
+    /** What the timer bar reads after the loop's next tick. */
+    private fun StrandsPlayController.shown(): Long {
+        tick()
+        return displayedElapsedMs()
+    }
+
     @Test
-    fun `the clock opens on the first word and banks on background and on the win`() {
+    fun `a fresh puzzle's timer runs with no word found`() {
         clockMs = 1_000
         val c = adopted()
-        assertNull(c.clockWindow)
+        assertNotNull(c.clockWindow)
+
+        clockMs = 5_000
+
+        assertEquals(0, c.model.foundCount)
+        assertEquals(4_000, c.shown())
+    }
+
+    @Test
+    fun `a restored in-progress session continues from its saved time and advances`() {
+        clockMs = 1_000
+        val first = adopted()
+        first.play(StrandsUiFixtures.row(0))
+        clockMs = 4_000
+        first.onBackground()
+
+        clockMs = 90_000 // process-death gap: never counted
+        val c = controller()
+        assertNotNull(c.adoptRestored(saved.last()))
+        assertEquals(3_000, c.shown())
+        clockMs = 92_000
+        assertEquals(5_000, c.shown())
+    }
+
+    @Test
+    fun `a restored untouched session's timer runs too`() {
+        clockMs = 1_000
+        val first = adopted()
+        first.onBackground()
+
+        clockMs = 50_000
+        val c = controller()
+        assertNotNull(c.adoptRestored(saved.last()))
+        clockMs = 51_500
+
+        assertEquals(1_500, c.shown())
+    }
+
+    @Test
+    fun `the clock banks on background, resumes without a word, and banks on the win`() {
+        clockMs = 1_000
+        val c = adopted()
 
         clockMs = 2_000
         c.play(StrandsUiFixtures.row(0))
         clockMs = 6_000
-        c.tick()
-        assertEquals(4_000, c.displayedElapsedMs())
+        assertEquals(5_000, c.shown())
 
         c.onBackground()
-        assertEquals(4_000, lastSaved().elapsedMs)
+        assertEquals(5_000, lastSaved().elapsedMs)
         assertNull(c.clockWindow)
+        clockMs = 8_000
+        assertEquals(5_000, c.shown())
 
         clockMs = 10_000
         c.onForeground()
+        assertNotNull(c.clockWindow)
         clockMs = 11_000
+        assertEquals(6_000, c.shown())
         (1 until 4).forEach { c.play(StrandsUiFixtures.row(it)) }
-        assertEquals(5_000, lastSaved().elapsedMs)
-        assertEquals(5_000, won.single().time)
+        assertNull(c.clockWindow)
+        assertEquals(6_000, lastSaved().elapsedMs)
+        assertEquals(6_000, won.single().time)
+        c.onForeground()
+        assertNull("a finished session never restarts it", c.clockWindow)
     }
 
     @Test
@@ -256,5 +310,21 @@ class StrandsPlayControllerTest {
         assertEquals(0L, lastSaved().elapsedMs)
         c.solve()
         assertEquals(2, won.size)
+    }
+
+    @Test
+    fun `replay restarts the clock from zero and advances at once`() {
+        clockMs = 1_000
+        val c = adopted()
+        clockMs = 9_000
+        c.solve()
+        assertNull(c.clockWindow)
+
+        c.replay()
+        assertNotNull(c.clockWindow)
+        assertEquals(0L, c.shown())
+        clockMs = 9_700
+
+        assertEquals(700L, c.shown())
     }
 }
