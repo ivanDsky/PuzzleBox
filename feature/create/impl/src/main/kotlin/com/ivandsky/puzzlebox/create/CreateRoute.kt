@@ -3,10 +3,12 @@ package com.ivandsky.puzzlebox.create
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.create.importtext.ImportSheetActions
 
 /**
  * The Create root's entry point over the activity-scoped [viewModel] (CreateEntries); [onOpen]
@@ -40,11 +42,6 @@ internal fun CreateRoute(
         importEnabled = importEnabled,
         importSheet = importSheet,
         onImportOpen = viewModel.importText::open,
-        onImportEdit = viewModel.importText::edit,
-        onImportSubmit = viewModel.importText::submit,
-        onImportDismiss = viewModel.importText::dismiss,
-        onImportClipboard = viewModel.importText::offerClipboard,
-        onImportPaste = viewModel.importText::pasteClipboard,
-        onImportClipboardDismiss = viewModel.importText::dismissClipboard,
+        importActions = remember(viewModel) { ImportSheetActions.of(viewModel.importText) },
     )
 }

@@ -29,6 +29,7 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.create.importtext.ImportSheet
+import com.ivandsky.puzzlebox.create.importtext.ImportSheetActions
 import com.ivandsky.puzzlebox.create.importtext.ImportSheetUi
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.LargeTopBar
@@ -64,8 +65,8 @@ private const val DELETED_TITLE_MAX = 28
  * Undo ([onUndoDelete]); it leaves when the state clears it (the 5 s window is the ViewModel's).
  *
  * While [importEnabled] the header carries a tonal Import pill ([onImportOpen]) that opens the
- * [ImportSheet] over [importSheet] ([onImportEdit], [onImportSubmit], [onImportDismiss]); its
- * clipboard banner uses [onImportClipboard], [onImportPaste] and [onImportClipboardDismiss].
+ * [ImportSheet] over [importSheet], which reports through [importActions] (its clipboard banner
+ * included).
  * Two more entries open the same sheet through [onImportOpen], both only while [importEnabled]:
  * the empty state's "Import from text" button, and the New puzzle sheet's last row, which
  * closes the sheet first.
@@ -91,12 +92,7 @@ fun CreateScreen(
     importEnabled: Boolean = false,
     importSheet: ImportSheetUi = ImportSheetUi(),
     onImportOpen: () -> Unit = {},
-    onImportEdit: (String) -> Unit = {},
-    onImportSubmit: (String) -> Unit = {},
-    onImportDismiss: () -> Unit = {},
-    onImportClipboard: (String?) -> Unit = {},
-    onImportPaste: () -> Unit = {},
-    onImportClipboardDismiss: () -> Unit = {},
+    importActions: ImportSheetActions = ImportSheetActions(),
 ) {
     var sheetOpen by rememberSaveable { mutableStateOf(false) }
     var actionsId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -146,15 +142,7 @@ fun CreateScreen(
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).testTag("create.snackbar"))
     }
-    ImportSheet(
-        ui = importSheet,
-        onEdit = onImportEdit,
-        onSubmit = onImportSubmit,
-        onDismiss = onImportDismiss,
-        onClipboard = onImportClipboard,
-        onPaste = onImportPaste,
-        onDismissClipboard = onImportClipboardDismiss,
-    )
+    ImportSheet(ui = importSheet, actions = importActions)
     if (sheetOpen) {
         NewPuzzleSheet(
             games = state.games,

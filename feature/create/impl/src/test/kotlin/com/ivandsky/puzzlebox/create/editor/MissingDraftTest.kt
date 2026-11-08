@@ -73,7 +73,7 @@ class MissingDraftTest {
         var backs = 0
         composeRule.setContent {
             PuzzleBoxTheme {
-                EditorRoute(EditorKey("gone"), PlayLayout.SinglePane, onBack = { backs++ }, onOpen = {}, onDelete = {})
+                EditorRoute(EditorKey("gone"), PlayLayout.SinglePane, onBack = { backs++ }, onOpen = {}, onDelete = {}, onImported = {})
             }
         }
         composeRule.waitUntil(TIMEOUT_MS) {

@@ -30,6 +30,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.create.importtext.ImportSheet
+import com.ivandsky.puzzlebox.create.importtext.ImportSheetActions
+import com.ivandsky.puzzlebox.create.importtext.ImportSheetUi
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
@@ -71,7 +74,9 @@ private const val GlyphPillBelowDp = 360
  * ([readOnly]) the board takes no touch or accessibility action, the bar offers no Rename or
  * Delete but Unpublish… ([onUnpublish], null once [unpublished]), and the tools give way to the
  * "Published · read-only" chip ("Unpublished · read-only" once taken down) with Duplicate
- * ([onDuplicate]).
+ * ([onDuplicate]). The overflow's Import from text ([onImport], null draws no item) opens the
+ * [ImportSheet] over [importSheet], which reports through [importActions]; an [imported] draft
+ * carries the Imported chip.
  */
 @Composable
 fun StudioScreen(
@@ -102,6 +107,10 @@ fun StudioScreen(
     readOnly: Boolean = false,
     unpublished: Boolean = false,
     onUnpublish: (() -> Unit)? = null,
+    imported: Boolean = false,
+    onImport: (() -> Unit)? = null,
+    importSheet: ImportSheetUi = ImportSheetUi(),
+    importActions: ImportSheetActions = ImportSheetActions(),
 ) {
     var renaming by rememberSaveable { mutableStateOf(false) }
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
@@ -119,6 +128,8 @@ fun StudioScreen(
                 onDelete = onDelete,
                 readOnly = readOnly,
                 onUnpublish = onUnpublish,
+                onImport = onImport,
+                imported = imported,
                 pill = {
                     if (layout == PlayLayout.SinglePane) {
                         PillWithCard(
@@ -165,6 +176,7 @@ fun StudioScreen(
             onDismiss = { renaming = false },
         )
     }
+    ImportSheet(ui = importSheet, actions = importActions)
 }
 
 /**

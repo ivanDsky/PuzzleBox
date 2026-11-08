@@ -1,9 +1,12 @@
 package com.ivandsky.puzzlebox.create.navigation
 
+import android.content.Context
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.create.CreateRoute
@@ -35,11 +38,13 @@ fun EntryProviderScope<NavKey>.createEntry(navigator: Navigator) {
 
 /**
  * The Studio for one draft; back pops to the Create root. Duplicate opens the copy in the
- * Studio's place; Delete pops to the Create root, which deletes the draft and offers Undo.
+ * Studio's place; so does Import from text, with a toast, so back goes to the Create root, not
+ * the draft imported from; Delete pops to the Create root, which deletes the draft and offers Undo.
  */
 fun EntryProviderScope<NavKey>.editorEntry(navigator: Navigator, layout: PlayLayout) {
     entry<EditorKey> { key ->
         val activity = createOwner()
+        val context = LocalContext.current
         EditorRoute(
             key = key,
             layout = layout,
@@ -48,6 +53,10 @@ fun EntryProviderScope<NavKey>.editorEntry(navigator: Navigator, layout: PlayLay
             onDelete = { draftId ->
                 navigator.pop()
                 activity.createViewModel().delete(draftId)
+            },
+            onImported = { draftId ->
+                navigator.replaceTop(EditorKey(draftId))
+                toastImported(context)
             },
         )
     }
@@ -63,6 +72,11 @@ fun EntryProviderScope<NavKey>.publishedPuzzleEntry(navigator: Navigator, layout
             onOpen = { draftId -> navigator.replaceTop(EditorKey(draftId)) },
         )
     }
+}
+
+/** The "Imported as a new draft." toast: a system one, as it must outlive the Studio it follows. */
+private fun toastImported(context: Context) {
+    Toast.makeText(context, "Imported as a new draft.", Toast.LENGTH_SHORT).show()
 }
 
 @Composable
