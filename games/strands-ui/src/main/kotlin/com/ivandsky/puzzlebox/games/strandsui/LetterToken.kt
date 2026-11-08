@@ -38,7 +38,6 @@ import com.ivandsky.puzzlebox.games.strandsui.board.StrandsMotionCue
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsMotionTrigger
 import com.ivandsky.puzzlebox.games.strandsui.board.TraceEndFrame
 import com.ivandsky.puzzlebox.games.strandsui.board.TraceOverlaySpec
-import com.ivandsky.puzzlebox.games.strandsui.board.traceOverlaySpec
 import com.ivandsky.puzzlebox.games.strandsui.board.at
 import com.ivandsky.puzzlebox.games.strandsui.board.drawTokenSquare
 import com.ivandsky.puzzlebox.games.strandsui.board.tokenColor
@@ -57,7 +56,6 @@ internal fun LetterToken(
     found: FoundEvent?,
     reduceMotion: Boolean,
     touchSeq: IntState,
-    snap: Boolean,
     end: State<TraceEndFrame?>,
     colors: BoardColors,
     altTheme: Boolean,
@@ -77,7 +75,7 @@ internal fun LetterToken(
     val composed = remember { ComposedOnce() }
     SideEffect { composed.done = true }
     val joinTrigger = remember(traced) { JoinTrigger.takeIf { traced && composed.done } }
-    val join = rememberCellFrame(traceOverlaySpec(snap), joinTrigger, reduceMotion, touchSeq)
+    val join = rememberCellFrame(TraceOverlaySpec, joinTrigger, reduceMotion, touchSeq)
     val tokenSize = pitch * StrandsBoardSpec.TokenFraction
     // Pitch-proportional and immune to font scale, like the token it sits in.
     val letterSize = with(LocalDensity.current) { (pitch * StrandsBoardSpec.LetterFraction).toSp() }

@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.designsystem
 
 import androidx.compose.animation.core.FloatSpringSpec
 import kotlin.math.abs
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -75,19 +74,6 @@ class MotionTokensTest {
         assertTrue(MotionTokens.Trace.RetractDuration < MotionTokens.Trace.GrowDuration)
         assertTrue(MotionTokens.Trace.HomeDuration < MotionTokens.Trace.GrowDuration)
         assertTrue(MotionTokens.Trace.PopDuration <= MotionTokens.DurationMedium)
-    }
-
-    @Test
-    fun `snap trace retracts at 60 percent of grow, blends from a hair and hits inside half a cell`() {
-        with(MotionTokens.Trace) {
-            assertEquals(70, SnapGrowDuration)
-            assertEquals(42, SnapRetractDuration)
-            assertEquals(0.6f, SnapRetractDuration.toFloat() / SnapGrowDuration, 1e-6f)
-            assertTrue(SnapBlendMinCells in 0f..BlendMinCells)
-            // Under half a cell, so two neighbours' hit discs never overlap.
-            assertTrue(SnapHitRadiusCells in 0.3f..0.5f)
-            assertEquals(0.40f, SnapHitRadiusCells, 0f)
-        }
     }
 
     @Test
