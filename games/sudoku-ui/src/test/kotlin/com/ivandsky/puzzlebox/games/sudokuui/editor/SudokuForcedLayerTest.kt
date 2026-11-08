@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.sudokuui.editor
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -7,6 +8,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.sudoku.SudokuDefinition
@@ -14,6 +16,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuDraft
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuEditor
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuForcedCells
+import kotlinx.coroutines.CoroutineDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -22,6 +25,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.coroutines.CoroutineContext
 
 /** The Forced cells toggle shows what logic places from the givens and edits nothing. */
 @RunWith(RobolectricTestRunner::class)
@@ -33,6 +37,7 @@ class SudokuForcedLayerTest {
     val rule = createComposeRule()
 
     private val edits = ArrayList<EditorDraft<*>>()
+    private val queue = QueueDispatcher()
 
     private fun grid(text: String): List<Int> = text.map { if (it == '.') 0 else it.digitToInt() }
 
@@ -42,9 +47,20 @@ class SudokuForcedLayerTest {
         val draft = blank.state.draft.copy(givens = grid(givens))
         val controller = SudokuEditorController(EditorDraft(editor, blank.state.copy(draft = draft))) { edits += it }
         rule.setContent {
-            PuzzleBoxTheme { SudokuEditorBoard(controller, game.variant.geometry) }
+            PuzzleBoxTheme {
+                CompositionLocalProvider(LocalSudokuEditorDispatchers provides QueueDispatcherProvider(queue)) {
+                    SudokuEditorBoard(controller, game.variant.geometry)
+                }
+            }
         }
         return controller to draft
+    }
+
+    /** Lets the queued walks run, then the recomposition they cause. */
+    private fun answerWalks() {
+        rule.waitForIdle()
+        queue.runAll()
+        rule.waitForIdle()
     }
 
     private fun forcedTags(size: Int): Set<Int> = (0 until size * size)
@@ -65,11 +81,13 @@ class SudokuForcedLayerTest {
         assertEquals(emptySet<Int>(), forcedTags(size))
 
         controller.toggleForcedView()
-        rule.waitUntil { forcedTags(size) == expected }
+        answerWalks()
+        assertEquals(expected, forcedTags(size))
         assertToggle(on = true)
 
         controller.toggleForcedView()
-        rule.waitUntil { forcedTags(size).isEmpty() }
+        answerWalks()
+        assertEquals(emptySet<Int>(), forcedTags(size))
         assertToggle(on = false)
     }
 
@@ -98,7 +116,7 @@ class SudokuForcedLayerTest {
         val (controller, _) = open(SudokuGames.MINI, "3....3" + ".".repeat(30))
 
         controller.toggleForcedView()
-        rule.waitForIdle()
+        answerWalks()
 
         assertEquals(emptySet<Int>(), forcedTags(6))
     }
@@ -108,7 +126,8 @@ class SudokuForcedLayerTest {
         val (controller, draft) = open(SudokuGames.MINI, MINI_GIVENS)
         val (cell, digit) = SudokuForcedCells.of(draft).entries.first()
         controller.toggleForcedView()
-        rule.waitUntil { cell in forcedTags(6) }
+        answerWalks()
+        assertTrue(cell in forcedTags(6))
 
         rule.onNodeWithTag("sudoku.cell.$cell").performClick()
         rule.onNodeWithTag("sudoku.editor.key.$digit").performClick()
@@ -122,7 +141,7 @@ class SudokuForcedLayerTest {
         val (controller, _) = open(SudokuGames.MINI, MINI_GIVENS)
 
         controller.toggleForcedView()
-        rule.waitForIdle()
+        answerWalks()
 
         assertTrue(edits.isEmpty())
     }
@@ -132,4 +151,24 @@ class SudokuForcedLayerTest {
         const val CLASSIC_GIVENS =
             "53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79"
     }
+}
+
+/** A dispatcher that holds its work until [runAll]; nothing runs behind the test's back. */
+private class QueueDispatcher : CoroutineDispatcher() {
+    private val queue = ArrayDeque<Runnable>()
+
+    override fun dispatch(context: CoroutineContext, block: Runnable) {
+        queue.addLast(block)
+    }
+
+    /** Runs queued work, including work it queues, until none is left. */
+    fun runAll() {
+        while (queue.isNotEmpty()) queue.removeFirst().run()
+    }
+}
+
+private class QueueDispatcherProvider(queue: QueueDispatcher) : DispatcherProvider {
+    override val main: CoroutineDispatcher = queue
+    override val io: CoroutineDispatcher = queue
+    override val default: CoroutineDispatcher = queue
 }

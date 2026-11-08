@@ -34,10 +34,10 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 
 /**
  * The tools row under the grid, [height] tall: Erase, Clear, the Symmetry toggle and the
- * Forced cells toggle (on shows the digits logic places from the givens). Erase
- * stays on with nothing selected (it then nudges); Clear is off while the board holds no
- * digit. Symmetry shows its mode as state and, while [unpaired] cells wait for a partner,
- * their count in a badge.
+ * Forced cells toggle (on shows the digits logic places from the givens). Erase stays on
+ * with nothing selected (it then nudges); Clear is off while the board holds no digit.
+ * Symmetry shows its mode as state and, while [unpaired] cells wait for a partner, their
+ * count in a badge.
  */
 @Composable
 internal fun SudokuEditorTools(

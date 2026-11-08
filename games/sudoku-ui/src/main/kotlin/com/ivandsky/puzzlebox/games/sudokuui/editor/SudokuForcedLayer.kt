@@ -37,10 +37,18 @@ internal val LocalSudokuEditorDispatchers = staticCompositionLocalOf<DispatcherP
  * cell that has since been filled draws nothing. Taps pass through to the grid.
  */
 @Composable
-internal fun SudokuForcedLayer(draft: SudokuDraft, visible: Boolean, modifier: Modifier = Modifier) {
+internal fun SudokuForcedLayer(
+    draft: SudokuDraft,
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+) {
     val dispatchers = LocalSudokuEditorDispatchers.current
     val forced by produceState(emptyMap<Int, Int>(), draft, visible) {
-        value = if (visible) withContext(dispatchers.default) { SudokuForcedCells.of(draft) } else emptyMap()
+        value = if (visible) {
+            withContext(dispatchers.default) { SudokuForcedCells.of(draft) }
+        } else {
+            emptyMap()
+        }
     }
     if (!visible) return
     val size = draft.size
@@ -51,10 +59,15 @@ internal fun SudokuForcedLayer(draft: SudokuDraft, visible: Boolean, modifier: M
             Row(Modifier.weight(1f).fillMaxWidth()) {
                 for (col in 0 until size) {
                     val idx = row * size + col
-                    BoxWithConstraints(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                    BoxWithConstraints(
+                        Modifier.weight(1f).fillMaxHeight(),
+                        contentAlignment = Alignment.Center,
+                    ) {
                         val digit = forced[idx]
                         if (digit != null && draft.givens[idx] == 0) {
-                            val fontSize = with(LocalDensity.current) { (min(maxWidth, maxHeight) * DIGIT_FRACTION).toSp() }
+                            val fontSize = with(LocalDensity.current) {
+                                (min(maxWidth, maxHeight) * DIGIT_FRACTION).toSp()
+                            }
                             Text(
                                 text = digit.toString(),
                                 color = faint,
