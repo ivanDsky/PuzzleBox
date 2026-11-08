@@ -72,7 +72,12 @@ private fun PublishNotice(outcome: PublishOutcome, modifier: Modifier) {
     val text = when (outcome) {
         PublishOutcome.SignedOut -> "Sign in to publish."
         is PublishOutcome.Blocked -> "This draft isn't ready to publish."
-        is PublishOutcome.Published, PublishOutcome.Offline, PublishOutcome.DailyCapReached, is PublishOutcome.Rejected -> return
+        is PublishOutcome.Published,
+        PublishOutcome.Offline,
+        PublishOutcome.DailyCapReached,
+        PublishOutcome.ClockSkew,
+        is PublishOutcome.Rejected,
+        -> return
     }
     Text(
         text = text,

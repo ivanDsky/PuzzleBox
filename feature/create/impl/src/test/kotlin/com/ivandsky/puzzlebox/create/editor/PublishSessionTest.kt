@@ -226,6 +226,19 @@ class PublishSessionTest {
     }
 
     @Test
+    fun `a wrong device clock shows the clock banner and Retry`() {
+        gated.forced = PublishResult.ClockSkew
+        open()
+
+        tapPublish()
+
+        awaitTag(CLOCK)
+        assertEquals(PublishOutcome.ClockSkew, vm.publish.state.value.outcome)
+        assertTrue(vm.publish.state.value.retry)
+        assertTrue(shared.docs.isEmpty())
+    }
+
+    @Test
     fun `while a publish runs the call-to-action is a busy spinner that takes no taps`() {
         var taps = 0
         composeRule.setContent {
@@ -307,15 +320,19 @@ class PublishSessionTest {
         composeRule.waitForIdle()
     }
 
-    /** The fake store, holding [publish] at [gate] when one is set: the call is in flight until the gate opens. */
+    /**
+     * The fake store, holding [publish] at [gate] when one is set: the call is in flight until the
+     * gate opens. A [forced] result is the store's answer instead of the fake's own.
+     */
     private class GatedSharedPuzzleRepository(private val delegate: SharedPuzzleRepository) : SharedPuzzleRepository by delegate {
         @Volatile var gate: CompletableDeferred<Unit>? = null
         @Volatile var entered = false
+        @Volatile var forced: PublishResult? = null
 
         override suspend fun publish(doc: SharedPuzzleDoc): PublishResult {
             entered = true
             gate?.await()
-            return delegate.publish(doc)
+            return forced ?: delegate.publish(doc)
         }
     }
 
@@ -345,6 +362,7 @@ class PublishSessionTest {
         const val OFFLINE = "create.publish.banner.offline"
         const val CAP = "create.publish.banner.cap"
         const val REJECTED = "create.publish.banner.rejected"
+        const val CLOCK = "create.publish.banner.clock"
         const val CAP_READINESS = "create.readiness.${PublishBlock.DAILY_CAP}"
 
         fun storedRow(board: EditorDraft<TestDraft>) = Draft(

@@ -67,6 +67,7 @@ class CreateSharedPuzzle(
                     row = row.reserved(reserve)
                 }
                 PublishResult.DailyCapReached -> return PublishOutcome.DailyCapReached
+                PublishResult.ClockSkew -> return PublishOutcome.ClockSkew
                 PublishResult.Offline -> return PublishOutcome.Offline
                 PublishResult.SignedOut -> return PublishOutcome.SignedOut
                 is PublishResult.Rejected -> return PublishOutcome.Rejected(result.message)
