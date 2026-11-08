@@ -31,7 +31,7 @@ object PuzzleCli {
     /** Analysis budget per run: past it the verdict is "undetermined". */
     const val BUDGET_MS: Long = 30_000
 
-    private const val USAGE_MESSAGE = "usage: puzzle-cli validate <file>"
+    private const val USAGE_MESSAGE = "usage: puzzle-cli validate <file> | puzzle-cli solve <file>"
 
     private val json = Json
 
@@ -42,7 +42,8 @@ object PuzzleCli {
     fun run(args: List<String>, read: (path: String) -> String, out: (String) -> Unit, err: (String) -> Unit): Int {
         val command = args.getOrNull(0)
         val path = args.getOrNull(1)
-        if (command != "validate" || path == null || args.size != 2) {
+        val withSolution = command == "solve"
+        if ((command != "validate" && command != "solve") || path == null || args.size != 2) {
             err(USAGE_MESSAGE)
             return CliExit.USAGE
         }
@@ -53,7 +54,7 @@ object PuzzleCli {
             return CliExit.USAGE
         }
         val parse = NotationText.parse(text, registry)
-        val verdict = CliVerdicts.of(parse, Budget.within(BUDGET_MS, System::nanoTime), withSolution = false)
+        val verdict = CliVerdicts.of(parse, Budget.within(BUDGET_MS, System::nanoTime), withSolution = withSolution)
         out(json.encodeToString(CliVerdict.serializer(), verdict))
         return exitCode(verdict)
     }
