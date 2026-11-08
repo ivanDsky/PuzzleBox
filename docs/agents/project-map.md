@@ -235,8 +235,11 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   composables, and `*UiModule` (the game's `GamePlayUi`). Strands: `StrandsPlayController`,
   `StrandsScreen`, `board/` (`StrandsCellDrawing` maps each `CellState` to its
   `StrandsBoardSpec` — `IdleSpec`, `FoundThemeSpec`, `FoundSpangramSpec`, `HintOutlinedSpec`,
-  `HintOrderRevealedSpec` — plus `TraceOverlaySpec`, gesture/hit-test/sizing), `chrome/`
-  (`StrandsHintRow`, `StrandsHintControl`, `HintMeter`, `ThemeCard`, `WordSlotLine`,
+  `HintOrderRevealedSpec` — plus `TraceOverlaySpec`, gesture/hit-test/sizing;
+  `StrandsTraceEnd` + `StrandsTraceEndTimeline` play the path-local refusal and the neutral
+  trace fade-out from the controller's `traceEnd`), `chrome/` (`StrandsHintRow`,
+  `StrandsHintControl` with `HintDots`/`HintBadge`/`HintBonus`/`HintFace`, `ThemeCard`,
+  `WordSlotLine`,
   `FoundCounter`, `HintModal`). `queens-ui/editor/`: `QueensEditorUi : GameEditorUi` +
   `QueensEditorController`, `QueensEditorBoard` (crown/ghost/selection layers, gestures),
   mode toggle, coach line, fix list, probe strip, diagnostics; `QueensUiModule` binds both

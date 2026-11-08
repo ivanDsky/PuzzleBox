@@ -1,4 +1,6 @@
 package com.ivandsky.puzzlebox.games.strandsui
 
-/** The hint control: whether a hint can be spent, and the meter's thirds toward the next one. */
-data class HintUi(val available: Boolean, val meterThirds: Int)
+/** The hint control: the hints banked to spend ([count]) and the dots filled toward the next ([meterThirds] of 3). */
+data class HintUi(val count: Int, val meterThirds: Int) {
+    val available: Boolean get() = count > 0
+}

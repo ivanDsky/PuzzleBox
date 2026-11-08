@@ -12,11 +12,6 @@ internal object StrandsMotion {
     /** The hint pulse's dip (NYT `Pulse`). A letter joining the trace pops instead, on [MotionTokens.Trace]. */
     const val PressScale = 0.85f
 
-    /** A rejected word shakes sideways (NYT `shake`, ease-in): amplitude, one cycle, cycles. */
-    const val ShakePx = 5f
-    const val ShakeMs = 200
-    const val ShakeCycles = 1.5f
-
     /** Per-letter delays: theme settle, spangram sweep, hint order reveal. */
     const val SettleStaggerMs = 50
     const val SweepStaggerMs = 75
@@ -31,15 +26,6 @@ internal object StrandsMotion {
     const val HintSwellScale = 1.1f
     const val HintDipAt = 0.15f
     const val HintSwellAt = 0.38f
-
-    val RejectShake = MotionPattern(
-        name = "RejectShake",
-        description = "A rejected word shakes $ShakePx px side to side, $ShakeCycles cycles.",
-        enterDurationMillis = ShakeMs,
-        enterEasing = MotionTokens.EasingEmphasizedAccelerate,
-        exitDurationMillis = ShakeMs,
-        exitEasing = MotionTokens.EasingEmphasizedAccelerate,
-    )
 
     val FoundSettle = MotionPattern(
         name = "FoundSettle",
@@ -68,32 +54,39 @@ internal object StrandsMotion {
         exitEasing = MotionTokens.EasingStandard,
     )
 
-    val HintMeterFill = MotionPattern(
-        name = "HintMeterFill",
-        description = "The hint button fills a third for each non-theme word, left to right.",
-        enterDurationMillis = CelebrationMotion.MeterFillMs,
-        enterEasing = MotionTokens.EasingStandard,
-        exitDurationMillis = CelebrationMotion.MeterFillMs,
-        exitEasing = MotionTokens.EasingStandard,
-    )
+    /** The refused path's shake: [ErrorShakeMs] of the error's total, the dissolve takes the rest. */
+    val ErrorShakeMs: Int = Math.round(MotionTokens.ErrorDuration * MotionTokens.ErrorShakeShare)
 
-    /** The whole shake: [ShakeCycles] cycles of [ShakeMs]; CSS stops 1.5 iterations mid-cycle, back at rest. */
-    val ShakeTotalMs: Int = (ShakeMs * ShakeCycles).toInt()
+    /** The shake's stops in units of [MotionTokens.ErrorShake], evenly spaced and Linear between them. */
+    val ShakeStops = floatArrayOf(0f, -1f, 1f, -0.66f, 0.66f, -0.33f, 0.33f, 0f)
 
-    /**
-     * The shake's sideways offset [elapsedMs] into it, in units of [ShakePx]: each cycle runs
-     * NYT's keyframes 0 → −1 → +1 → 0, every segment eased in; zero outside the shake.
-     */
-    fun shakeOffset(elapsedMs: Int): Float {
-        if (elapsedMs <= 0 || elapsedMs >= ShakeTotalMs) return 0f
-        val segments = (elapsedMs % ShakeMs).toFloat() / ShakeMs * SHAKE_KEYFRAMES.lastIndex
-        val segment = segments.toInt()
-        val eased = RejectShake.enterEasing.transform(segments - segment)
-        val from = SHAKE_KEYFRAMES[segment]
-        return from + (SHAKE_KEYFRAMES[segment + 1] - from) * eased
-    }
+    /** A set-aside word's traced path holds neutral this long before it dissolves, by kind. */
+    const val BonusHoldMs = 60
+    const val ShortHoldMs = 200
+    const val RepeatHoldMs = 260
 
-    private val SHAKE_KEYFRAMES = floatArrayOf(0f, -1f, 1f, 0f)
+    /** A repeated theme word pulses its tiles once over [MotionTokens.DurationExpressive]: 1 at the start, [PulsePeak] at [PulseAt], 1 at the end. */
+    const val PulsePeak = 1.1f
+    const val PulseAt = 0.4f
+
+    /** Reduced motion holds the neutral colour at least this long (a bonus word a little longer), then clears. */
+    const val ReducedHoldMinMs = 300
+    const val ReducedBonusHoldMs = 400
+
+    /** The Hint button lights this long after its last dot has filled, then swells: 1 → .95 → 1.09 → 1, evenly spaced. */
+    const val LightDelayMs = 80
+    const val SwellMs = 500
+    val SwellStops = floatArrayOf(1f, 0.95f, 1.09f, 1f)
+
+    /** The count badge pops when its number changes: .5 → 1.25 → 1 over [MotionTokens.DurationMedium], eased out. */
+    const val BadgePopFrom = 0.5f
+    const val BadgePopPeak = 1.25f
+
+    /** The "+1" pill's keyframes over [MotionTokens.BonusRiseDuration]: where in it, and its lift (a fraction of the rise), scale and alpha. */
+    val BonusAt = floatArrayOf(0f, 0.2f, 0.65f, 1f)
+    val BonusLift = floatArrayOf(-0.33f, 0.3f, 0.7f, 1f)
+    val BonusScale = floatArrayOf(0.8f, 1f, 1f, 1f)
+    val BonusAlpha = floatArrayOf(0f, 1f, 1f, 0f)
 
     /** Letter n of the spangram starts at n × [SweepStaggerMs], squeezed so the last starts within the cap. */
     fun sweepDelayMs(index: Int, letters: Int): Int {

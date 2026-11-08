@@ -180,7 +180,7 @@ class StrandsChromeScreenTest {
     }
 
     @Test
-    fun `three non-theme words fill the meter and make a hint available, whose press outlines a word`() {
+    fun `three non-theme words fill the dots and make a hint available, whose press outlines a word`() {
         val controller = adopted()
         show(controller, PlayLayout.SinglePane)
         rule.onNodeWithTag("strands.hint").assert(hasStateDescription(unavailable(0)))
@@ -190,7 +190,7 @@ class StrandsChromeScreenTest {
         rule.onNodeWithTag("strands.hint").assert(hasStateDescription(unavailable(1)))
         controller.play(words[1])
         controller.play(words[2])
-        rule.onNodeWithTag("strands.hint").assertIsEnabled().assert(hasStateDescription("available"))
+        rule.onNodeWithTag("strands.hint").assertIsEnabled().assert(hasStateDescription(StrandsCopy.hintAvailable(1, 0)))
 
         rule.onNodeWithTag("strands.hint").performClick()
         assertEquals(HintStage.Outlined, controller.session?.state?.activeHint?.stage)

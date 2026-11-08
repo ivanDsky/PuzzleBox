@@ -30,9 +30,13 @@ internal object StrandsCopy {
     const val RATING_PERFECT = "Perfect!"
     const val RATING_GREAT = "Great!"
     const val RATING_WELL_DONE = "Well done!"
-    const val HINT_AVAILABLE = "available"
+    const val HINT_BONUS = "+1"
 
     fun hintProgress(thirds: Int): String = "$thirds of 3 words toward the next hint"
+
+    /** The count is read first, since the badge that shows it is not on the accessibility tree. */
+    fun hintAvailable(count: Int, thirds: Int): String =
+        "${if (count == 1) "1 hint" else "$count hints"} available, ${hintProgress(thirds)}"
 
     /** The unavailable pill stays pressable (it opens "Need a hint?"), so TalkBack must say no hint is waiting. */
     fun hintUnavailable(thirds: Int): String = "No hint available, ${hintProgress(thirds)}"

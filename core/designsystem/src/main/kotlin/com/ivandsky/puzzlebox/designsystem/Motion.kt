@@ -167,6 +167,25 @@ object MotionTokens {
     // Settle: newly introduced rule violations wait this long before they show.
     const val SettleMillis = 500L
 
+    // Word feedback (Strands, prototype 03): a refused word's traced path turns red and
+    // shakes for ErrorShakeShare of ErrorDuration, then dissolves in the rest; a word that
+    // is only set aside clears neutral, dissolving over DissolveDuration to DissolveScale.
+    // Reduced: the colour holds with no shake or dissolve, then clears.
+    const val ErrorDuration = 320
+    const val ErrorShakeShare = 0.72f
+    val ErrorShake: Dp = 6.dp
+    const val DissolveDuration = 160
+    const val DissolveScale = 0.95f
+    const val ErrorReducedHold = 600
+
+    // Hint dot and "+1": a counter dot fills over DotFillDuration; a gained hint's "+1"
+    // rises BonusRise over BonusRiseDuration. Reduced: the dot lands at once, the "+1" holds
+    // still for BonusReducedHold.
+    const val DotFillDuration = 240
+    val BonusRise: Dp = 12.dp
+    const val BonusRiseDuration = 640
+    const val BonusReducedHold = 700
+
     // Trace (Zip + Strands, spec A1/A4): the line end follows the finger along one grid
     // direction, but only toward a cell the game would accept; anywhere else it gives a
     // short nudge and rubber-bands back. A head disc rides the line end and pops on every

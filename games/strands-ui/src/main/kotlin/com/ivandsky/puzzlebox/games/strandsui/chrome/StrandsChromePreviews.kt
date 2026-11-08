@@ -55,7 +55,7 @@ internal fun StrandsChromeInPlayPreview() = ChromePane {
     StrandsHintRow(
         found = 1,
         total = 4,
-        hint = HintUi(available = false, meterThirds = 1),
+        hint = HintUi(count = 0, meterThirds = 1),
         onHint = {},
         reduceMotion = true,
         modifier = Modifier.width(PreviewBoardWidth),
@@ -68,7 +68,7 @@ internal fun StrandsHintRowPreview() = ChromePane {
     StrandsHintRow(
         found = 3,
         total = 4,
-        hint = HintUi(available = true, meterThirds = 0),
+        hint = HintUi(count = 1, meterThirds = 0),
         onHint = {},
         reduceMotion = true,
         modifier = Modifier.width(PreviewBoardWidth),
@@ -121,11 +121,8 @@ internal fun StrandsWordSlotPreview() = ChromePane {
 @PuzzleBoxPreviews
 @Composable
 internal fun StrandsHintControlPreview() = ChromePane {
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        for (thirds in 0..2) {
-            StrandsHintControl(HintUi(available = false, meterThirds = thirds), onHint = {}, reduceMotion = true)
-        }
-        StrandsHintControl(HintUi(available = true, meterThirds = 1), onHint = {}, reduceMotion = true)
+    for (hint in listOf(HintUi(0, 0), HintUi(0, 1), HintUi(0, 2), HintUi(1, 0), HintUi(1, 2), HintUi(3, 1))) {
+        StrandsHintControl(hint, onHint = {}, reduceMotion = true)
     }
 }
 
