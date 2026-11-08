@@ -85,7 +85,7 @@ class ResumeSolveE2ETest {
 
         background()
         // The flush is launched on stop; Room commits on its own executor, so wait for the row.
-        rule.waitUntil(TIMEOUT_MS) { runBlocking { saves.load(todaySlot) } != null }
+        awaitIdling { runBlocking { saves.load(todaySlot) } != null }
         val killed = checkNotNull(zip().session)
         // The app is gone: none of this is play time. Wait while stopped (the clock is folded),
         // and foreground only to hand the activity to relaunch().

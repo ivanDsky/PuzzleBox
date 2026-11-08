@@ -50,6 +50,7 @@ import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import java.time.Duration
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -197,6 +198,19 @@ class ShellRobot internal constructor(
     fun awaitTag(tag: String) {
         rule.waitUntil(TIMEOUT_MS) {
             rule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    /**
+     * [awaitTag] for state behind a coroutine hop to the main looper, such as a Room commit
+     * handed back to the play store or a throttle window. The compose rule's wait only
+     * advances frames, and a stopped activity draws none, so that hop would never run.
+     * Each poll idles the main looper first.
+     */
+    fun awaitIdling(condition: () -> Boolean) {
+        rule.waitUntil(TIMEOUT_MS) {
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(IDLE_STEP_MS))
+            condition()
         }
     }
 
@@ -379,6 +393,7 @@ class ShellRobot internal constructor(
 
     private companion object {
         const val TIMEOUT_MS = 5_000L
+        const val IDLE_STEP_MS = 100L
         const val GAME_ROUTE = "route.game"
         val isRoute = SemanticsMatcher("test tag route.*") {
             it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("route.") == true
