@@ -1,16 +1,23 @@
 package com.ivandsky.puzzlebox.games.tango
 
+import com.ivandsky.puzzlebox.game.DecodeResult
+import com.ivandsky.puzzlebox.games.tango.codec.LotkaWireParser
 import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
+import com.ivandsky.puzzlebox.games.tango.engine.TangoLineRule
 import com.ivandsky.puzzlebox.games.tango.engine.TangoMove
 import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
+import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
+import com.ivandsky.puzzlebox.games.tango.feed.TangoGameExtractor
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** The forced-move hint ladder (spec hints bullet): marker propagation → triple → count. */
+/** The forced-move hint ladder (spec hints bullet): marker → triple → count → line fills. */
 class TangoHintLadderTest {
 
     private fun state(grid: List<TangoCell?>) = TangoState(TangoTestSupport.sample, grid)
@@ -103,5 +110,103 @@ class TangoHintLadderTest {
             grid = grid.toMutableList().also { it[hint.idx] = hint.value }
         }
         assertNotNull(grid)
+    }
+
+    // ---- line completion rung: real dailies the first three rungs cannot finish ----
+
+    private fun blank(givens: Map<Int, TangoCell>, markers: List<TangoMarker> = emptyList()) =
+        TangoPuzzle(TangoTestSupport.variant, n = 6, givens = givens, markers = markers)
+
+    private fun lineFills(row: Int?, col: Int?, fills: Int) = TangoHint.Why.LineFills(row, col, fills)
+
+    @Test
+    fun `a column needing counts and triples together hints its bottom cell`() {
+        // Daily 758 column 1 reads M M S _ _ _: both fills left end in a sun; no one rung sees it.
+        val puzzle = blank(mapOf(1 to TangoCell.MOON, 7 to TangoCell.MOON, 13 to TangoCell.SUN))
+
+        val hint = TangoRules.hint(TangoState(puzzle, TangoTestSupport.gridOf(puzzle)))
+
+        assertEquals(TangoHint.Forced(31, TangoCell.SUN, lineFills(row = null, col = 1, fills = 2)), hint)
+    }
+
+    @Test
+    fun `chained opposite markers in a row hint the equal pair`() {
+        // Daily 759 row 0: S S M _ x _ x _ — cells 3 and 5 equal, so both moons and cell 4 a sun.
+        val puzzle = blank(
+            mapOf(0 to TangoCell.SUN, 1 to TangoCell.SUN, 2 to TangoCell.MOON),
+            listOf(
+                TangoMarker(3, TangoEdgeSide.RIGHT, TangoMarkerKind.OPPOSITE),
+                TangoMarker(4, TangoEdgeSide.RIGHT, TangoMarkerKind.OPPOSITE),
+            ),
+        )
+
+        val hint = TangoRules.hint(TangoState(puzzle, TangoTestSupport.gridOf(puzzle)))
+
+        assertEquals(TangoHint.Forced(3, TangoCell.MOON, lineFills(row = 0, col = null, fills = 1)), hint)
+    }
+
+    @Test
+    fun `the sample's stuck row hints its marker pair`() {
+        val puzzle = TangoTestSupport.sample
+        var grid = TangoTestSupport.gridOf(puzzle)
+        var hint = TangoRules.hint(TangoState(puzzle, grid))
+        while (hint is TangoHint.Forced && hint.why !is TangoHint.Why.LineFills) {
+            grid = grid.toMutableList().also { it[hint.idx] = hint.value }
+            hint = TangoRules.hint(TangoState(puzzle, grid))
+        }
+
+        assertEquals(TangoHint.Forced(18, TangoCell.SUN, lineFills(row = 3, col = null, fills = 1)), hint)
+    }
+
+    @Test
+    fun `a line with no legal fill hints nothing`() {
+        // Row 0 holds three suns and a gap-free triple: no fill exists, the rule stays silent.
+        val puzzle = blank(mapOf(0 to TangoCell.SUN, 1 to TangoCell.SUN, 2 to TangoCell.SUN))
+
+        assertNull(TangoLineRule.deduction(puzzle, TangoTestSupport.gridOf(puzzle)))
+    }
+
+    @Test
+    fun `hints walk each stuck daily and the sample to the solution without a wrong hint`() {
+        listOf(
+            dailyOf("linkedin-tango-byid-758.json"),
+            dailyOf("01-tango-stream-today.txt"),
+            TangoTestSupport.sample,
+        ).forEach { puzzle -> assertWalkSolves(puzzle) }
+    }
+
+    @Test
+    fun `the dailies that never got stuck keep their hints and still solve`() {
+        listOf("linkedin-tango-byid-1.json", "linkedin-tango-byid-301.json").forEach { name ->
+            val puzzle = dailyOf(name)
+            val rungs = assertWalkSolves(puzzle)
+            assertTrue(name, rungs.none { it is TangoHint.Why.LineFills })
+        }
+    }
+
+    private fun fixture(name: String) =
+        requireNotNull(javaClass.getResource("/fixtures/$name")) { name }.readText()
+
+    private fun dailyOf(name: String): TangoPuzzle {
+        val match = requireNotNull(TangoGameExtractor.extract(fixture(name))) { name }
+        val parsed = LotkaWireParser.parse(match.lotkaGamePuzzleJson, LocalDate.of(2026, 11, 5), match.editionText)
+        return (parsed as DecodeResult.Ok).value.puzzle
+    }
+
+    /** Applies the ladder from the givens to the end; returns the `why` of every hint. */
+    private fun assertWalkSolves(puzzle: TangoPuzzle): List<TangoHint.Why> {
+        val solution = TangoUniqueness.solve(puzzle)!!
+        var grid = TangoTestSupport.gridOf(puzzle)
+        val whys = mutableListOf<TangoHint.Why>()
+        while (grid.any { it == null }) {
+            val hint = TangoRules.hint(TangoState(puzzle, grid)) as? TangoHint.Forced
+                ?: error("ladder stuck with ${grid.count { it == null }} cells left")
+            assertEquals("hint at ${hint.idx} contradicts the solution", solution[hint.idx], hint.value)
+            whys += hint.why
+            grid = grid.toMutableList().also { it[hint.idx] = hint.value }
+        }
+        assertTrue(TangoRules.isComplete(TangoState(puzzle, grid)))
+        assertEquals(solution, grid)
+        return whys
     }
 }

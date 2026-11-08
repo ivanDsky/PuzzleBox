@@ -7,7 +7,8 @@ import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 /**
  * Tango hint (F3 marker): a forced move plus WHY it is forced (spec hints bullet — the hint
  * reveals the rule and evidence, never just a cell). Produced by the deduction ladder in
- * [TangoRules]; usage is counted by the caller (A3).
+ * [TangoRules] (marker → triple → count → line completion); usage is counted by the caller
+ * (A3).
  */
 sealed interface TangoHint : Hint {
 
@@ -30,5 +31,11 @@ sealed interface TangoHint : Hint {
          * the hinted cell must take the other value.
          */
         data class LineFull(val row: Int?, val col: Int?, val fullOf: TangoCell) : Why
+
+        /**
+         * The line (row [row] when non-null, else column [col]) has [fills] legal completions
+         * and every one of them gives the hinted cell the same value.
+         */
+        data class LineFills(val row: Int?, val col: Int?, val fills: Int) : Why
     }
 }

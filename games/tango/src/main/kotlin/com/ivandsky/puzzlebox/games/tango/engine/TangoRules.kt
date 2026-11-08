@@ -18,11 +18,11 @@ data class TangoState(
 /**
  * Tango rules — exactly the three constraint classes at any size (A3). [TangoRules] is the
  * dispatcher; each class is a self-contained unit ([TangoMarkerRule], [TangoTripleRule],
- * [TangoCountRule]). Move-time verdicts name the violated rule (spec §2); [isComplete]
- * requires every cell filled and every constraint satisfied. [hint] walks the forced-move
- * ladder (spec hints bullet): marker propagation → three-in-a-row → count-completion, each
- * hint revealing WHY. Uniqueness (A15) is [TangoUniqueness.isUniquelySolvable], beside the
- * rules as a solver.
+ * [TangoCountRule]); [TangoLineRule] combines them inside one line for [hint]. Move-time
+ * verdicts name the violated rule (spec §2); [isComplete] requires every cell filled and
+ * every constraint satisfied. [hint] walks the forced-move ladder (spec hints bullet): marker
+ * propagation → three-in-a-row → count-completion → line completion, each hint revealing WHY.
+ * Uniqueness (A15) is [TangoUniqueness.isUniquelySolvable], beside the rules as a solver.
  */
 object TangoRules : GameRules<TangoState> {
 
@@ -65,6 +65,7 @@ object TangoRules : GameRules<TangoState> {
         TangoMarkerRule.deduction(state.puzzle, state.grid)
             ?: TangoTripleRule.deduction(state.puzzle, state.grid)
             ?: TangoCountRule.deduction(state.puzzle, state.grid)
+            ?: TangoLineRule.deduction(state.puzzle, state.grid)
             ?: TangoHint.Stuck
 }
 
