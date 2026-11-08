@@ -16,7 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
@@ -24,6 +26,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
+import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -31,6 +35,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDictionary
+import kotlinx.coroutines.withContext
 
 /** What the dictionary says of the text typed so far. */
 internal enum class WordCheck { Empty, Prefix, Word, Unknown }
@@ -41,6 +46,11 @@ internal fun wordCheck(text: String): WordCheck = when {
     StrandsDictionary.contains(text) -> WordCheck.Word
     StrandsDictionary.hasPrefix(text) -> WordCheck.Prefix
     else -> WordCheck.Unknown
+}
+
+/** The dispatchers the editor tools work on; tests swap in their own. */
+internal val LocalEditorDispatchers = staticCompositionLocalOf<DispatcherProvider> {
+    DefaultDispatcherProvider()
 }
 
 /** The extend handle's entrance: one finite pass when it appears, never a loop. */
@@ -60,7 +70,11 @@ internal object ExtendHandleMotion {
 @Composable
 internal fun StrandsWordField(controller: StrandsEditorController, modifier: Modifier = Modifier) {
     val word by controller.word.collectAsState()
-    val check = remember(word) { wordCheck(word) }
+    val dispatchers = LocalEditorDispatchers.current
+    // The first lookup loads the word set; it runs off the main thread, Empty until it answers.
+    val check by produceState(WordCheck.Empty, word) {
+        value = withContext(dispatchers.default) { wordCheck(word) }
+    }
     OutlinedTextField(
         value = word,
         onValueChange = controller::typeWord,

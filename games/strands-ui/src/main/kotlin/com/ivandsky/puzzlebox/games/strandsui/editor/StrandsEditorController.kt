@@ -101,8 +101,9 @@ class StrandsEditorController(
         val board = before.letters.toCharArray()
         path.cells.forEachIndexed { i, cell ->
             val written = previous.getOrNull(i)
+            val mine = board[cell] == StrandsDraft.BLANK || board[cell] == written
             when {
-                i < letters.length && (board[cell] == StrandsDraft.BLANK || board[cell] == written) -> board[cell] = letters[i]
+                i < letters.length && mine -> board[cell] = letters[i]
                 i >= letters.length && board[cell] == written -> board[cell] = StrandsDraft.BLANK
             }
         }
@@ -131,7 +132,10 @@ class StrandsEditorController(
         edit(index, cells + next, String(board), typedWord.value)
     }
 
-    /** Replaces the path at [index] with one over [cells] and the board [letters], when anything changed. */
+    /**
+     * Replaces the path at [index] with one over [cells] and the board [letters], when anything
+     * changed.
+     */
     private fun edit(index: Int, cells: List<Int>, letters: String, text: String) {
         val before = current.value.state.draft
         val path = before.paths[index]
@@ -143,7 +147,10 @@ class StrandsEditorController(
         onEdit(next)
     }
 
-    /** Starts the trace at [cell], backs up over the previous cell, or appends an adjacent free [cell]; else nothing changes. */
+    /**
+     * Starts the trace at [cell], backs up over the previous cell, or appends an adjacent free
+     * [cell]; else nothing changes.
+     */
     fun traceTo(cell: Int) {
         val coord = coordOf(cell)
         val path = tracing.value.map(::coordOf)

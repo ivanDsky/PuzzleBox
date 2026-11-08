@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.games.strandsui.editor
 import androidx.compose.animation.core.InfiniteRepeatableSpec
 import androidx.compose.animation.core.RepeatableSpec
 import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -45,10 +46,21 @@ class StrandsEditorWordTest {
 
     private fun board() = controller.draft.value.state.draft as StrandsDraft
 
+    private val queue = QueueDispatcher()
+
     private fun show() = rule.setContent {
         PuzzleBoxTheme {
-            Column { StrandsEditorUi.Board(controller, Verdict.Checking, Modifier.weight(1f)) }
+            CompositionLocalProvider(LocalEditorDispatchers provides QueueDispatcherProvider(queue)) {
+                Column { StrandsEditorUi.Board(controller, Verdict.Checking, Modifier.weight(1f)) }
+            }
         }
+    }
+
+    /** Lets the queued dictionary lookups run, then the recomposition they cause. */
+    private fun answerLookups() {
+        rule.waitForIdle()
+        queue.runAll()
+        rule.waitForIdle()
     }
 
     private fun tap(vararg cells: Int) = cells.forEach {
@@ -109,15 +121,28 @@ class StrandsEditorWordTest {
     }
 
     @Test
+    fun `the dictionary check waits for its dispatcher and never blocks typing`() {
+        selectedPath()
+        rule.onNodeWithTag("strands.editor.word").performTextInput("star")
+
+        assertEquals("STAR", board().paths.single().word)
+        assertEquals(WordCheck.Empty.name, rule.onNodeWithTag("strands.editor.word.check", useUnmergedTree = true).state())
+        assertTrue(queue.pending > 0)
+        answerLookups()
+        assertEquals(WordCheck.Word.name, rule.onNodeWithTag("strands.editor.word.check", useUnmergedTree = true).state())
+    }
+
+    @Test
     fun `the dictionary check follows the text`() {
         selectedPath()
         rule.onNodeWithTag("strands.editor.word").performTextInput("sta")
+        answerLookups()
         assertEquals(WordCheck.Prefix.name, rule.onNodeWithTag("strands.editor.word.check", useUnmergedTree = true).state())
         controller.typeWord("star")
-        rule.waitForIdle()
+        answerLookups()
         assertEquals(WordCheck.Word.name, rule.onNodeWithTag("strands.editor.word.check", useUnmergedTree = true).state())
         controller.typeWord("xqzv")
-        rule.waitForIdle()
+        answerLookups()
         assertEquals(WordCheck.Unknown.name, rule.onNodeWithTag("strands.editor.word.check", useUnmergedTree = true).state())
     }
 
