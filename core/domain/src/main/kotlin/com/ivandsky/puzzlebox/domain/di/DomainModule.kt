@@ -62,7 +62,7 @@ val domainModule = module {
             sync = get(),
         )
     }
-    factory { ObserveLeaderboard(identity = get(), leaderboard = get()) }
+    factory { ObserveLeaderboard(identity = get(), leaderboard = get(), registry = get()) }
     factory { ObserveResultRank(leaderboard = get()) }
     factory {
         ObserveTodayLeaderboard(

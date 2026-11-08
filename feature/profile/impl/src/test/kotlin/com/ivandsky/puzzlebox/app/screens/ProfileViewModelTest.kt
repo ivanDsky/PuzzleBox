@@ -107,7 +107,7 @@ class ProfileViewModelTest {
             identityService = identity,
             idTokenProvider = tokens,
             observeTodayLeaderboard = ObserveTodayLeaderboard(
-                leaderboard = ObserveLeaderboard(identity, leaderboard),
+                leaderboard = ObserveLeaderboard(identity, leaderboard, registry),
                 featured = featured,
                 today = { day },
             ),

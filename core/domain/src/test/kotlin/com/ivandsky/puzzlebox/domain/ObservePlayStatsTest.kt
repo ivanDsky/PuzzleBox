@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
@@ -66,7 +67,7 @@ class ObservePlayStatsTest {
             stats = ObserveGameStats(registry, history, ComputeStreak(GetPuzzleDay(registry, clock))),
             history = history,
             calendar = calendar,
-            leaderboard = ObserveLeaderboard(FakeIdentityService(initial = ann), leaderboard),
+            leaderboard = ObserveLeaderboard(FakeIdentityService(initial = ann), leaderboard, registry),
         )(slot)
     }
 
@@ -82,7 +83,7 @@ class ObservePlayStatsTest {
     fun `the local stats arrive while the board is still loading`() = runTest {
         completions.setRecords(listOf(solve(alpha, daysAgo = 1), solve(alpha, daysAgo = 2), solve(beta, daysAgo = 0)))
         val silent = object : LeaderboardRepository {
-            override fun observe(board: LeaderboardRef): Flow<LeaderboardSnapshot?> = emptyFlow()
+            override fun observe(board: LeaderboardRef, order: RankOrder): Flow<LeaderboardSnapshot?> = emptyFlow()
             override suspend fun submit(entry: LeaderboardEntry): SubmitResult = error("unused")
         }
 
