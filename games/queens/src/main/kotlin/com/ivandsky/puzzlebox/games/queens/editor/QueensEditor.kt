@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.DraftExport
 import com.ivandsky.puzzlebox.game.editor.DraftState
+import com.ivandsky.puzzlebox.game.editor.EditorNotation
 import com.ivandsky.puzzlebox.game.editor.EditorShareCodec
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
@@ -29,7 +30,8 @@ import com.ivandsky.puzzlebox.model.GameId
 object QueensEditor :
     GameEditor<QueensDraft>,
     DraftExport<QueensDraft>,
-    EditorShareCodec<QueensDraft> by QueensShareCodec {
+    EditorShareCodec<QueensDraft> by QueensShareCodec,
+    EditorNotation<QueensDraft> by QueensNotation {
     override val gameId: GameId get() = QueensDefinition.id
 
     override val variants: List<VariantId> = QueensVariants.all.map { it.id }
