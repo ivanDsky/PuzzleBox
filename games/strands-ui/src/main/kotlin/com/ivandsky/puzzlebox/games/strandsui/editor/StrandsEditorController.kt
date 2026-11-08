@@ -51,13 +51,26 @@ class StrandsEditorController(
     override fun adopt(draft: EditorDraft<*>) {
         current.value = typed(draft)
         tracing.value = emptyList()
-        selected.value = selected.value?.takeIf { it in current.value.state.draft.paths.indices }
+        select(selected.value)
     }
 
-    /** Selects the path at [index], or none for null or an index no path has. */
+    /**
+     * Selects the path at [index], or none for null or an index no path has. The [word] then
+     * shows the letters the path holds; dropping the selection clears it.
+     */
     fun selectPath(index: Int?) {
-        selected.value = index?.takeIf { it in current.value.state.draft.paths.indices }
+        select(index)
         if (selected.value != null) tracing.value = emptyList()
+    }
+
+    private fun select(index: Int?) {
+        val valid = index?.takeIf { it in current.value.state.draft.paths.indices }
+        if (valid == null) {
+            if (selected.value != null) typedWord.value = ""
+        } else {
+            typedWord.value = current.value.state.draft.spelled(valid)
+        }
+        selected.value = valid
     }
 
     /** Removes the path at [index] as one undoable step; a no-op for an index no path has. */
@@ -66,14 +79,68 @@ class StrandsEditorController(
         val path = before.paths.getOrNull(index) ?: return
         val next = current.value.apply(StrandsDraftCommand.RemovePath(index, path, before.spangram))
         current.value = next
-        selected.value = null
+        select(null)
         onEdit(next)
     }
 
     override fun adoptOverlay(overlay: EditorOverlay) = Unit
 
-    fun setWord(text: String) {
-        typedWord.value = text.filter(Char::isLetter).uppercase()
+    /**
+     * Takes the word field's [text], letters only, upper case. With a path selected the letters
+     * go onto its blank cells (and over the ones an earlier typing wrote) as one undoable step;
+     * the path is named once the text is exactly as long as the path. Longer text keeps its
+     * overflow for [extend]. With none selected the text waits for the next lift.
+     */
+    fun typeWord(text: String) {
+        val previous = typedWord.value
+        val letters = text.filter(Char::isLetter).uppercase()
+        typedWord.value = letters
+        val index = selected.value ?: return
+        val before = current.value.state.draft
+        val path = before.paths[index]
+        val board = before.letters.toCharArray()
+        path.cells.forEachIndexed { i, cell ->
+            val written = previous.getOrNull(i)
+            when {
+                i < letters.length && (board[cell] == StrandsDraft.BLANK || board[cell] == written) -> board[cell] = letters[i]
+                i >= letters.length && board[cell] == written -> board[cell] = StrandsDraft.BLANK
+            }
+        }
+        edit(index, path.cells, String(board), letters)
+    }
+
+    /**
+     * Grows the selected path by one cell at its end, into the first free neighbour (row-major)
+     * that is blank or already holds the next letter of the [word]; a no-op when the word is
+     * not longer than the path or no neighbour fits. One undoable step.
+     */
+    fun extend() {
+        val index = selected.value ?: return
+        val before = current.value.state.draft
+        val cells = before.paths[index].cells
+        val letter = typedWord.value.getOrNull(cells.size) ?: return
+        val tail = cells.last()
+        val taken = held()
+        val next = (0 until StrandsDraft.ROWS * StrandsDraft.COLS).firstOrNull { cell ->
+            cell !in taken &&
+                kotlin.math.abs(cell / StrandsDraft.COLS - tail / StrandsDraft.COLS) <= 1 &&
+                kotlin.math.abs(cell % StrandsDraft.COLS - tail % StrandsDraft.COLS) <= 1 &&
+                before.letters[cell].let { it == StrandsDraft.BLANK || it == letter }
+        } ?: return
+        val board = before.letters.toCharArray().also { it[next] = letter }
+        edit(index, cells + next, String(board), typedWord.value)
+    }
+
+    /** Replaces the path at [index] with one over [cells] and the board [letters], when anything changed. */
+    private fun edit(index: Int, cells: List<Int>, letters: String, text: String) {
+        val before = current.value.state.draft
+        val path = before.paths[index]
+        val spelled = cells.map { letters[it] }.joinToString("")
+        val after = StrandsDraftPath(cells, spelled.takeIf { it == text })
+        if (after == path && letters == before.letters) return
+        val next = current.value.apply(StrandsDraftCommand.EditPath(index, path, after, before.letters, letters))
+        current.value = next
+        onEdit(next)
     }
 
     /** Starts the trace at [cell], backs up over the previous cell, or appends an adjacent free [cell]; else nothing changes. */
@@ -89,7 +156,7 @@ class StrandsEditorController(
         val cells = path.map { it.row * StrandsDraft.COLS + it.col }
         if (cells.any { it in held() }) return
         tracing.value = cells
-        if (cells.isNotEmpty()) selected.value = null
+        if (cells.isNotEmpty()) select(null)
     }
 
     /** One step of the play board's touch: a lone traced cell a path holds selects that path. */
@@ -139,6 +206,9 @@ class StrandsEditorController(
         typedWord.value = ""
         onEdit(next)
     }
+
+    private fun StrandsDraft.spelled(index: Int): String =
+        paths[index].cells.map { letters[it] }.takeWhile { it != StrandsDraft.BLANK }.joinToString("")
 
     private fun held(): Set<Int> = current.value.state.draft.paths.flatMapTo(HashSet()) { it.cells }
 
