@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -35,7 +36,7 @@ val E2E_TODAY: LocalDate = LocalDate.of(2026, 11, 4)
  * The one Koin graph every E2E test runs on: the production modules
  * ([PuzzleBoxApplication.appModules]) with core:testing fakes on the edges — daily
  * (every game's fixture fresh, so no LinkedIn call), records, saved plays, calendar,
- * preferences, identity, leaderboards and [releaseFlags] (none on, as in release; a run of an
+ * preferences, identity, leaderboards and [releaseFlags] (the shipped set: ResultsHero on; a run of an
  * unreleased feature passes its flag). [overrides] load last and win (Koin allows
  * overriding by default), e.g. a file-backed database for process-death rows.
  *
@@ -46,7 +47,7 @@ val E2E_TODAY: LocalDate = LocalDate.of(2026, 11, 4)
 class E2eKoinGraph(
     today: LocalDate,
     private val overrides: Module = module {},
-    private val releaseFlags: ReleaseFlags = FakeReleaseFlags(),
+    private val releaseFlags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.ResultsHero),
 ) {
     val daily: FakeDailyRepository = freshDailyForAllGames()
     val records = FakeCompletionRepository()

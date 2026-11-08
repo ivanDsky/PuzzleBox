@@ -115,7 +115,7 @@ class StrandsPlayE2ETest {
 
             awaitTag(RESULT_SCREEN)
             assertRoute(RESULT)
-            rule.onNode(hasTestTag("result.tile.hints") and hasAnyDescendant(hasText("2"))).assertExists()
+            rule.onNode(hasTestTag("result.hero.chip.hints") and hasAnyDescendant(hasText("2"))).assertExists()
             assertTrue(
                 "the result shows the play time",
                 rule.onAllNodes(clockText, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty(),
@@ -265,7 +265,7 @@ class StrandsPlayE2ETest {
         const val HINT_DIALOG = "strands.hint_dialog"
         const val HINT_DIALOG_DISMISS = "strands.hint_dialog_dismiss"
         const val RESULT = "route.result"
-        const val RESULT_SCREEN = "result.screen"
+        const val RESULT_SCREEN = "result.hero.screen"
         val HISTORY_ROW = "history.row.$STRANDS/$TODAY"
 
         fun path(vararg cells: Pair<Int, Int>) = cells.map { (r, c) -> Coord(r, c) }

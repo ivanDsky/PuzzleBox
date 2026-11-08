@@ -66,3 +66,5 @@ to merge without being reachable in a release build.
   filter for `puzzlebox-f3356.web.app/p/` moved from the debug manifest to the main manifest
   in the same PR.
 - The FriendSharing flag was removed, with every branch on it, on 2026-11-07.
+- ResultsHero flipped to `releaseDefault = true` in 0.18.0 on 2026-11-08. The e2e graph turns it on by
+  default, so the shell tests wait on the hero page (`result.hero.screen`).

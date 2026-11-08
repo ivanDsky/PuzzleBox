@@ -108,7 +108,7 @@ class ResultIsolationE2ETest {
     private companion object {
         const val GAME = "route.game"
         const val RESULT = "route.result"
-        const val BADGE = "result.record_badge"
+        const val BADGE = "result.hero.pill"
         const val HOME_PLAY = "home.today_play"
         const val ZIP = "zip"
         const val SLOWER_MS = 100L
