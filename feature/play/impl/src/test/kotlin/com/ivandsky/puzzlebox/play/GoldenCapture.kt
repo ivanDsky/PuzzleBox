@@ -23,13 +23,18 @@ internal const val GOLDEN_TABLET = "w1280dp-h800dp-land-mdpi"
 
 /**
  * Shows [content] the way the app's root Scaffold does (background colour, onBackground content
- * colour) in the [dark] or light theme, with system animations off. While [frozen] the clock
- * only moves through [settleAndCapture]; a screen whose view model loads on the main looper
- * runs unfrozen until it has loaded.
+ * colour) in the [dark] or light theme, with system animations off (reduced motion) unless
+ * [animated]. While [frozen] the clock only moves through [settleAndCapture]; a screen whose
+ * view model loads on the main looper runs unfrozen until it has loaded.
  */
-internal fun ComposeContentTestRule.showGolden(dark: Boolean, frozen: Boolean = true, content: @Composable () -> Unit) {
+internal fun ComposeContentTestRule.showGolden(
+    dark: Boolean,
+    frozen: Boolean = true,
+    animated: Boolean = false,
+    content: @Composable () -> Unit,
+) {
     val context = ApplicationProvider.getApplicationContext<Context>()
-    Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+    Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, if (animated) 1f else 0f)
     mainClock.autoAdvance = !frozen
     setContent {
         val config = Configuration(LocalConfiguration.current).apply {
