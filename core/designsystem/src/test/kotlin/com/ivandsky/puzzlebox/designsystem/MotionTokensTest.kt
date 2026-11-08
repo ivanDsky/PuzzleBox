@@ -77,17 +77,15 @@ class MotionTokensTest {
     }
 
     @Test
-    fun `trace tip stays inside one cell and the nudge is the shortest reach`() {
+    fun `trace tip stays inside one cell`() {
         with(MotionTokens.Trace) {
-            assertTrue(TipDeadCells < TipNudgeCells)
-            assertTrue(TipNudgeCells < TipFollowCells)
-            assertTrue(TipFollowCells < TipReachCells)
-            assertTrue(TipReachCells < 1f)
+            assertTrue(TipDeadCells < TipMaxCells)
+            assertTrue(TipMaxCells < 1f)
         }
     }
 
     @Test
-    fun `trace head is wider than the line and pops subtler than the pulse`() {
+    fun `trace head is wider than the line and a cell pops subtler than the pulse`() {
         assertTrue(MotionTokens.Trace.HeadScale > 1f)
         assertTrue(MotionTokens.Trace.PopScale > 1f)
         assertTrue(MotionTokens.Trace.PopScale < MotionTokens.PulseScale)

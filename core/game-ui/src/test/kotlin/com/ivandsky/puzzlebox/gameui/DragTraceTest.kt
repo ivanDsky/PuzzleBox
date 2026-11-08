@@ -167,32 +167,40 @@ class DragTraceTest {
     }
 
     @Test
-    fun `drawing across an earlier traced cell never slashes the path`() {
+    fun `dragging onto an earlier traced cell is refused like a wall and never cuts`() {
         setContent(path = listOf(GridCell(0, 0), GridCell(0, 1), GridCell(0, 2), GridCell(1, 2)))
         composeRule.onNodeWithTag("trace").performTouchInput {
             down(cellCenter(1, 0)) // untraced, non-adjacent to the tail → refused
-            moveTo(cellCenter(1, 1)) // adjacent to the tail → the only extend of the stroke
-            moveTo(cellCenter(0, 1)) // traced, but not the previous cell → ignored (R1)
-            moveTo(cellCenter(1, 1)) // tail re-entry → no-op
+            moveTo(cellCenter(1, 1)) // adjacent to the tail → extends
+            moveTo(cellCenter(0, 1)) // traced, not the previous cell → the wall refuses
+            moveTo(cellCenter(1, 0)) // free again beside the tail → extends
             up()
         }
         composeRule.waitForIdle()
-        assertEquals(listOf(DragEvent.Refused(GridCell(1, 0)), DragEvent.Extend(GridCell(1, 1))), events)
+        assertEquals(
+            listOf(
+                DragEvent.Refused(GridCell(1, 0)),
+                DragEvent.Extend(GridCell(1, 1)),
+                DragEvent.Refused(GridCell(0, 1)),
+                DragEvent.Extend(GridCell(1, 0)),
+            ),
+            events,
+        )
     }
 
     @Test
-    fun `a stroke starting on an earlier traced cell retracts only through previous cells`() {
+    fun `a stroke starting on an earlier traced cell is refused there and never picks the line up`() {
         setContent(path = listOf(GridCell(2, 1), GridCell(2, 2), GridCell(1, 2), GridCell(0, 2)))
         composeRule.onNodeWithTag("trace").performTouchInput {
-            down(cellCenter(2, 2)) // traced, NOT the previous cell — touch-down retracts nothing
-            moveTo(cellCenter(2, 1)) // traced, not the previous cell → ignored
-            moveTo(cellCenter(1, 1)) // untraced, hook-rejected → refused, trace untouched
-            moveTo(cellCenter(1, 2)) // previous → retract one
-            moveTo(cellCenter(2, 2)) // previous again → retract one
+            down(cellCenter(2, 2)) // traced, not the tail → the wall refuses, no pickup
+            moveTo(cellCenter(3, 2)) // adjacent to (2, 2) but not to the tail (0, 2) → refused
             up()
         }
         composeRule.waitForIdle()
-        assertEquals(listOf(DragEvent.Refused(GridCell(1, 1)), DragEvent.Retract(2), DragEvent.Retract(1)), events)
+        assertEquals(
+            listOf(DragEvent.Refused(GridCell(2, 2)), DragEvent.Refused(GridCell(3, 2))),
+            events,
+        )
     }
 
     @Test

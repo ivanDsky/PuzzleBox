@@ -186,41 +186,31 @@ object MotionTokens {
     const val BonusRiseDuration = 640
     const val BonusReducedHold = 700
 
-    // Trace (Zip + Strands, spec A1/A4): the line end follows the finger along one grid
-    // direction, but only toward a cell the game would accept; anywhere else it gives a
-    // short nudge and rubber-bands back. A head disc rides the line end and pops on every
-    // entered cell. Reduced: the tip still follows; no grow, retract, home or pop.
+    // Trace (Zip + Strands, spec A1/A4): the line end leans from the last committed cell along
+    // ONE legal direction toward the finger (never freehand, never into a refused cell) and
+    // rests on the cell when the finger points anywhere else; a head disc rides the end.
+    // Cells added grow in along the path and a backtrack retracts along it. Reduced: the tip
+    // still leans; no grow, retract or home.
     object Trace {
         // Closer than this to the tail centre there is no tip, so a resting finger never jitters.
         const val TipDeadCells = 0.06f
 
-        // Toward a legal cell the tip tracks the finger 1:1 up to TipFollowCells, then eases
-        // toward TipReachCells: the cell walk commits the cell long before the cap.
-        const val TipFollowCells = 0.5f
-        const val TipReachCells = 0.9f
-
-        // Toward a wall, the edge, a used cell or an out-of-order target: at most this far,
-        // reaching ~63% of it after TipNudgeRiseCells of push.
-        const val TipNudgeCells = 0.1f
-        const val TipNudgeRiseCells = 0.25f
-
-        // Angular hysteresis past a sector edge before the tip switches direction, so a
-        // finger near the diagonal doesn't flicker (4-way Zip, 8-way Strands).
-        const val TipLatchDegrees4Way = 10f
-        const val TipLatchDegrees8Way = 8f
+        // The tip tracks the finger's push along its axis 1:1, never past this fraction of the
+        // step: it can not reach the next centre before the cell commits.
+        const val TipMaxCells = 0.9f
 
         // Head Ø as a multiple of the line width.
         const val HeadScale = 1.2f
 
-        // Pop: 1 → PopScale → 1 over PopDuration; the rise takes PopRiseFraction on EasingOut,
-        // the settle EasingStandard.
+        // Cell pop: 1 → PopScale → 1 over PopDuration; the rise takes PopRiseFraction on
+        // EasingOut, the settle EasingStandard.
         const val PopScale = 1.08f
         const val PopDuration = 200
         const val PopRiseFraction = 0.4f
 
         // Cells added in one event grow in along the path; a backtrack retracts faster than it
-        // grew (exit < enter); on lift the tip returns to the tail centre. Length changes under
-        // BlendMinCells (the finger dragging the tip) follow instantly.
+        // grew (exit < enter); a tip let go returns to the tail centre faster still. Length
+        // changes under BlendMinCells (the finger dragging the tip) follow instantly.
         const val GrowDuration = 100
         const val RetractDuration = 60
         const val HomeDuration = 60
