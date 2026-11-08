@@ -1,8 +1,10 @@
 package com.ivandsky.puzzlebox.backend.firebase
 
+import com.ivandsky.puzzlebox.model.ShareCode
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -55,10 +57,37 @@ class HostingFilesTest {
     }
 
     @Test
-    fun landingPageHasNoExternalScripts() {
+    fun landingPageHasOnlySameOriginModuleScript() {
         val page = read("hosting/p/index.html")
-        assertTrue(page.contains("<script>"))
-        assertFalse(Regex("<script[^>]*\\bsrc\\s*=", RegexOption.IGNORE_CASE).containsMatchIn(page))
+        val srcs = Regex("<script[^>]*\\bsrc\\s*=\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE)
+            .findAll(page).map { it.groupValues[1] }.toList()
+        assertEquals(listOf("/p/code.js"), srcs)
         assertFalse(Regex("<link[^>]*stylesheet", RegexOption.IGNORE_CASE).containsMatchIn(page))
+    }
+
+    @Test
+    fun landingPageHasOgCardDarkModeAndNoScriptSteps() {
+        val page = read("hosting/p/index.html")
+        assertTrue(page.contains("<meta property=\"og:title\" content=\"A PuzzleBox puzzle from a friend\">"))
+        assertTrue(page.contains("<meta property=\"og:description\""))
+        assertTrue(page.contains("@media (prefers-color-scheme: dark)"))
+        assertTrue(Regex("<noscript>[\\s\\S]*?Enter a code[\\s\\S]*?</noscript>").containsMatchIn(page))
+        assertTrue(page.contains("This link doesn't contain a valid PuzzleBox code"))
+    }
+
+    @Test
+    fun shareCodeParseAgreesWithEverySharedVector() {
+        val vectors = read("hosting-test/share-code-vectors.json")
+        val entries = Regex("\\{\"input\": \"((?:[^\"\\\\]|\\\\.)*)\", \"code\": (null|\"[^\"]*\")\\}")
+            .findAll(vectors).map { it.groupValues[1] to it.groupValues[2] }.toList()
+        assertTrue(entries.isNotEmpty())
+        entries.forEach { (input, expected) ->
+            val parsed = ShareCode.parse(input)
+            if (expected == "null") {
+                assertNull("expected null for $input", parsed)
+            } else {
+                assertEquals(expected.trim('"'), parsed?.value)
+            }
+        }
     }
 }
