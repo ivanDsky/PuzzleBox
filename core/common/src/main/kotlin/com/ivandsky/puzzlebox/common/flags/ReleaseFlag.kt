@@ -27,4 +27,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
 
     /** The hero Results page after a daily solve: counting-up time, streak, week, time spread, rank. */
     ResultsHero(label = "Results hero", releaseDefault = false),
+
+    /** Per-game daily leaderboards: Profile game switcher and board, Result board, tablet panel rows (spec A21). */
+    PerGameLeaderboards(label = "Per-game leaderboards", releaseDefault = false),
 }
