@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.create.importtext
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.create.importtext.ImportSheetUi.ClipboardNotation
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.ImportDraftFromText
 import com.ivandsky.puzzlebox.domain.ImportResult
@@ -26,6 +27,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -78,6 +81,7 @@ class ImportTextStateTest {
             dispatchers = GatedDispatcherProvider(work),
         ),
         scope = CoroutineScope(gate),
+        gameName = { if (it == "regions") "Regions" else it },
         onImported = onImported,
     )
 
@@ -123,6 +127,132 @@ class ImportTextStateTest {
         assertTrue(holder.ui.value.visible)
         assertTrue(holder.ui.value.error is ImportResult.TooLarge)
         assertEquals("", holder.ui.value.text)
+    }
+
+    @Test
+    fun `a clipboard that starts with a header sets the banner with the game name and line count`() = runTest {
+        val holder = holder()
+        holder.open()
+
+        holder.offerClipboard(fixture())
+
+        assertEquals(ClipboardNotation("Regions", lines = 6, text = fixture()), holder.ui.value.clipboard)
+    }
+
+    @Test
+    fun `a clipboard with leading comments and blank lines still counts as notation`() = runTest {
+        val holder = holder()
+        holder.open()
+
+        holder.offerClipboard("# from an agent\n\n" + fixture())
+
+        assertEquals("Regions", holder.ui.value.clipboard?.gameName)
+    }
+
+    @Test
+    fun `a clipboard that is not notation or is missing sets no banner`() = runTest {
+        val holder = holder()
+        holder.open()
+
+        holder.offerClipboard("hello")
+        assertNull(holder.ui.value.clipboard)
+        holder.offerClipboard(null)
+        assertNull(holder.ui.value.clipboard)
+        holder.offerClipboard("puzzlebox regions\n00111\n")
+        assertNull(holder.ui.value.clipboard)
+    }
+
+    @Test
+    fun `the clipboard is offered once per open, so a recomposed sheet does not bring a dismissed banner back`() =
+        runTest {
+            val holder = holder()
+            holder.open()
+            holder.offerClipboard(fixture())
+            holder.dismissClipboard()
+
+            holder.offerClipboard(fixture())
+            assertNull(holder.ui.value.clipboard)
+
+            holder.open()
+            holder.offerClipboard(fixture())
+            assertNotNull(holder.ui.value.clipboard)
+        }
+
+    @Test
+    fun `an offer before the sheet opens or after it closes is ignored`() = runTest {
+        val holder = holder()
+        holder.offerClipboard(fixture())
+        assertNull(holder.ui.value.clipboard)
+
+        holder.open()
+        holder.dismiss()
+        holder.offerClipboard(fixture())
+        assertNull(holder.ui.value.clipboard)
+    }
+
+    @Test
+    fun `paste copies the clipboard into the box, clears the banner and the old error`() = runTest {
+        val holder = holder()
+        holder.open()
+        holder.submit("no header here")
+        gate.runQueued()
+        holder.offerClipboard(fixture())
+
+        holder.pasteClipboard()
+
+        assertEquals(fixture(), holder.ui.value.text)
+        assertNull(holder.ui.value.clipboard)
+        assertNull(holder.ui.value.error)
+    }
+
+    @Test
+    fun `paste with no banner changes nothing`() = runTest {
+        val holder = holder()
+        holder.open()
+        holder.edit("typed")
+
+        holder.pasteClipboard()
+
+        assertEquals("typed", holder.ui.value.text)
+    }
+
+    @Test
+    fun `paste while a check runs is ignored`() = runTest {
+        val holder = holder(work = workGate)
+        holder.open()
+        holder.offerClipboard(fixture())
+        holder.submit("typed")
+        gate.runQueued()
+        assertTrue(holder.ui.value.checking)
+
+        holder.pasteClipboard()
+
+        assertEquals("typed", holder.ui.value.text)
+        drain()
+    }
+
+    @Test
+    fun `dismissClipboard hides the banner and keeps the box`() = runTest {
+        val holder = holder()
+        holder.open()
+        holder.edit("typed")
+        holder.offerClipboard(fixture())
+
+        holder.dismissClipboard()
+
+        assertNull(holder.ui.value.clipboard)
+        assertEquals("typed", holder.ui.value.text)
+    }
+
+    @Test
+    fun `dismiss drops the banner`() = runTest {
+        val holder = holder()
+        holder.open()
+        holder.offerClipboard(fixture())
+
+        holder.dismiss()
+
+        assertEquals(ImportSheetUi(), holder.ui.value)
     }
 
     /** Runs the parse on [default]; main and io are inline. */

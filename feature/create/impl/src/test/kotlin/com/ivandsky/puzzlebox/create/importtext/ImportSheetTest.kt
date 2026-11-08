@@ -1,5 +1,8 @@
 package com.ivandsky.puzzlebox.create.importtext
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -11,8 +14,11 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
+import androidx.test.core.app.ApplicationProvider
+import com.ivandsky.puzzlebox.create.importtext.ImportSheetUi.ClipboardNotation
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ImportResult
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -29,7 +35,8 @@ import org.robolectric.annotation.Config
 /**
  * The Import sheet's states: while a check runs the Import button is replaced by the checking
  * row, the box is read-only and a swipe does not close the sheet; each failure kind shows its
- * own `create.import.error.<kind>` line. Tags and state only, never copy text.
+ * own `create.import.error.<kind>` line; the clipboard banner shows only for offered notation
+ * and its arrival leaves the box in place. Tags and state only, never copy text.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -39,17 +46,36 @@ class ImportSheetTest {
     val composeRule = createComposeRule()
 
     private var dismissed = 0
+    private var pasted = 0
+    private var bannerDismissed = 0
+    private val offers = mutableListOf<String?>()
 
     /** Shows [ui] and lets the sheet slide in; the spinner never idles, so the clock is manual. */
     private fun show(ui: ImportSheetUi) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             PuzzleBoxTheme {
-                ImportSheet(ui = ui, onEdit = {}, onSubmit = {}, onDismiss = { dismissed++ })
+                ImportSheet(
+                    ui = ui,
+                    onEdit = {},
+                    onSubmit = {},
+                    onDismiss = { dismissed++ },
+                    onClipboard = { offers += it },
+                    onPaste = { pasted++ },
+                    onDismissClipboard = { bannerDismissed++ },
+                )
             }
         }
         composeRule.mainClock.advanceTimeBy(SHEET_SETTLE_MS)
     }
+
+    private fun putOnClipboard(text: String) {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        manager.setPrimaryClip(ClipData.newPlainText("test", text))
+    }
+
+    private val banner = ClipboardNotation(gameName = "Queens", lines = 6, text = "puzzlebox queens v1\n")
 
     private fun swipeSheetDown() {
         // Starts inside the sheet (not on the scrim) and ends below it: a drag, never a scrim tap.
@@ -98,6 +124,91 @@ class ImportSheetTest {
     }
 
     @Test
+    fun `the banner shows only when the clipboard holds notation`() {
+        show(ImportSheetUi(visible = true))
+        composeRule.onNodeWithTag("create.import.clipboard").assertDoesNotExist()
+        composeRule.onNodeWithTag("create.import.clipboard.paste").assertDoesNotExist()
+    }
+
+    @Test
+    fun `with notation on the clipboard the banner offers Paste and Dismiss and the box stays editable`() {
+        show(ImportSheetUi(visible = true, clipboard = banner))
+
+        composeRule.onNodeWithTag("create.import.clipboard").assertIsDisplayed()
+        composeRule.onNodeWithTag("create.import.clipboard.paste").assertIsDisplayed()
+        composeRule.onNodeWithTag("create.import.clipboard.dismiss").assertIsDisplayed()
+        composeRule.onNodeWithTag("create.import.text").assert(SemanticsMatcher.keyIsDefined(SemanticsActions.SetText))
+    }
+
+    @Test
+    fun `Paste and Dismiss on the banner call their callbacks once`() {
+        show(ImportSheetUi(visible = true, clipboard = banner))
+
+        composeRule.onNodeWithTag("create.import.clipboard.paste").performClick()
+        assertEquals(1, pasted)
+        assertEquals(0, bannerDismissed)
+
+        composeRule.onNodeWithTag("create.import.clipboard.dismiss").performClick()
+        assertEquals(1, bannerDismissed)
+        assertEquals(1, pasted)
+    }
+
+    @Test
+    fun `the banner is not drawn while a check runs`() {
+        show(ImportSheetUi(visible = true, text = "x", checking = true, clipboard = banner))
+
+        composeRule.onNodeWithTag("create.import.clipboard").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the banner's arrival never moves the box`() {
+        var ui by mutableStateOf(ImportSheetUi(visible = true))
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            PuzzleBoxTheme {
+                ImportSheet(
+                    ui = ui,
+                    onEdit = {},
+                    onSubmit = {},
+                    onDismiss = {},
+                    onClipboard = {},
+                    onPaste = {},
+                    onDismissClipboard = {},
+                )
+            }
+        }
+        composeRule.mainClock.advanceTimeBy(SHEET_SETTLE_MS)
+        val before = composeRule.onNodeWithTag("create.import.text").fetchSemanticsNode().boundsInRoot
+
+        ui = ui.copy(clipboard = banner)
+        composeRule.mainClock.advanceTimeBy(SHEET_SETTLE_MS)
+        val after = composeRule.onNodeWithTag("create.import.text").fetchSemanticsNode().boundsInRoot
+
+        assertEquals(before.top, after.top, 0.5f)
+        composeRule.onNodeWithTag("create.import.clipboard").assertIsDisplayed()
+    }
+
+    @Test
+    fun `opening the sheet offers the clipboard's text once`() {
+        putOnClipboard("puzzlebox queens v1\n0011\n")
+
+        show(ImportSheetUi(visible = true))
+        composeRule.mainClock.advanceTimeBy(SHEET_SETTLE_MS)
+
+        assertEquals(listOf<String?>("puzzlebox queens v1\n0011\n"), offers)
+    }
+
+    @Test
+    fun `a hidden sheet reads nothing from the clipboard`() {
+        putOnClipboard("puzzlebox queens v1\n")
+
+        show(ImportSheetUi(visible = false))
+        composeRule.mainClock.advanceTimeBy(SHEET_SETTLE_MS)
+
+        assertTrue(offers.isEmpty())
+    }
+
+    @Test
     fun `each failure kind renders its own non-empty line`() {
         val kinds = mapOf(
             "malformed" to ImportResult.Malformed(line = 3, col = 2, message = "expected 5 rows"),
@@ -109,7 +220,15 @@ class ImportSheetTest {
         var shown by mutableStateOf<ImportResult?>(null)
         composeRule.setContent {
             PuzzleBoxTheme {
-                ImportSheet(ui = ImportSheetUi(visible = true, error = shown), onEdit = {}, onSubmit = {}, onDismiss = {})
+                ImportSheet(
+                    ui = ImportSheetUi(visible = true, error = shown),
+                    onEdit = {},
+                    onSubmit = {},
+                    onDismiss = {},
+                    onClipboard = {},
+                    onPaste = {},
+                    onDismissClipboard = {},
+                )
             }
         }
         kinds.forEach { (kind, error) ->
