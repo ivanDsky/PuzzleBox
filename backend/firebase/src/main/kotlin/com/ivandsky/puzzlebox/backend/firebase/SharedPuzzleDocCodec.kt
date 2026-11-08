@@ -47,6 +47,29 @@ internal object SharedPuzzleDocCodec {
     )
 
     /**
+     * Whether [stored] holds what [sent] would publish: every field a friend sees or plays.
+     * The per-attempt `createdAt` and the `unpublished` flag are left out, and the author is
+     * compared by the caller. Numbers compare by value, as the server returns them as longs.
+     */
+    fun sameContent(sent: Map<String, Any?>, stored: Map<String, Any?>): Boolean =
+        CONTENT_FIELDS.all { comparable(sent[it]) == comparable(stored[it]) }
+
+    private val CONTENT_FIELDS = listOf(
+        FIELD_FORMAT_VERSION,
+        FIELD_GAME_ID,
+        FIELD_VARIANT,
+        FIELD_SHARE_CODEC_VERSION,
+        FIELD_PAYLOAD,
+        FIELD_TITLE,
+        FIELD_AUTHOR_NAME,
+        FIELD_NOTE,
+        FIELD_AUTHOR_TIME,
+        FIELD_AUTHOR_HINTS,
+    )
+
+    private fun comparable(value: Any?): Any? = if (value is Number) value.toLong() else value
+
+    /**
      * Any version but [FORMAT_VERSION] is [SharedFetchResult.UnsupportedVersion]: a newer format
      * may reinterpret known fields. A doc of this version that does not parse is
      * [SharedFetchResult.NotFound], since there is nothing a player could open.

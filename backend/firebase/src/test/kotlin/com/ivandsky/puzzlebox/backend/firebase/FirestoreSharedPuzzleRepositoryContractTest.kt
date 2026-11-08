@@ -47,7 +47,7 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContra
 
         override suspend fun publish(code: String, fields: Map<String, Any?>, uid: String, utcDay: String): StoreWrite {
             failure?.let { throw it }
-            puzzles[code]?.let { return StoreWrite.Exists(it[SharedPuzzleDocCodec.FIELD_AUTHOR_UID] as String) }
+            puzzles[code]?.let { return StoreWrite.Exists(it[SharedPuzzleDocCodec.FIELD_AUTHOR_UID] as String, it) }
             val count = nextPublishCount(authors[uid], utcDay) ?: return StoreWrite.CapReached
             write(code, fields)
             authors[uid] = authorFields(utcDay, count)
@@ -151,6 +151,33 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContra
 
         assertEquals(PublishResult.Published(code()), repository.publish(doc()))
         assertEquals(authorFields(DAY, 1), store.authors[AUTHOR])
+    }
+
+    @Test
+    fun `an existing own code with different content is CodeTaken and the stored doc is untouched`() = runTest {
+        signInAs(AUTHOR)
+        repository.publish(doc())
+        val edits = listOf(
+            doc().copy(title = "Edited"),
+            doc().copy(note = "Edited note"),
+            doc().copy(authorName = "Edited name"),
+            doc().copy(authorTimeMs = doc().authorTimeMs + 1),
+            doc().copy(payload = doc().payload + 1),
+            doc().copy(variant = "other"),
+            doc().copy(gameId = "other"),
+            doc().copy(shareCodecVersion = doc().shareCodecVersion + 1),
+        )
+
+        edits.forEach { assertEquals(PublishResult.CodeTaken, repository.publish(it)) }
+        assertEquals(SharedFetchResult.Found(doc()), repository.fetch(code()))
+    }
+
+    @Test
+    fun `an existing own code with equal content and a later createdAt is Published`() = runTest {
+        signInAs(AUTHOR)
+        repository.publish(doc())
+
+        assertEquals(PublishResult.Published(code()), repository.publish(doc().copy(createdAtMs = doc().createdAtMs + 1)))
     }
 
     @Test
