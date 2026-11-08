@@ -489,15 +489,6 @@ class QueensSessionTest {
     }
 
     @Test
-    fun `hasStarted - false only for an untouched session`() {
-        assertFalse(session().hasStarted)
-        assertTrue(session().withHintUsed().hasStarted)
-        assertTrue(session().withCrossToggled(cell(0, 0), now).hasStarted)
-        assertTrue(session().copy(elapsedMs = 1L).hasStarted)
-        assertTrue(session().withQueenPlaced(cell(0, 0), now).withUndo().hasStarted) // redo pending
-    }
-
-    @Test
     fun `hints - count once per presentation and are not undo units`() {
         val s = session().withQueenPlaced(cell(0, 0), now)
         assertEquals(0, s.hintsUsed)

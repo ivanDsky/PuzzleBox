@@ -25,6 +25,7 @@ import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -96,7 +97,7 @@ class ZipPlayControllerTest {
     //region moves (F2 §7 authoritative validation)
 
     @Test
-    fun `valid drag extends the trace and starts the timer`() {
+    fun `valid drag extends the trace`() {
         val c = readyController()
         c.onDragEvent(DragEvent.Extend(GridCell(0, 0)))
         c.onDragEvent(DragEvent.Extend(GridCell(0, 1)))
@@ -447,30 +448,122 @@ class ZipPlayControllerTest {
 
     //region timer (F2 §2)
 
-    @Test
-    fun `background folds the running timer`() {
-        val tick = AtomicLong(1_000)
-        val c = readyController(now = { Instant.ofEpochMilli(tick.getAndAdd(100)) })
-        c.onDragEvent(DragEvent.Extend(GridCell(0, 0)))
+    /** A controller on a hand-wound clock; [ms] is the wall time every `now()` reads. */
+    private class Wall(var ms: Long = 1_000) {
+        val now: () -> Instant = { Instant.ofEpochMilli(ms) }
+    }
 
-        c.onBackground()
-        val banked = c.session?.elapsedMs ?: 0
-        assertNotEquals(0L, banked)
-        assertEquals(banked, c.session?.elapsedMs) // stable while backgrounded
-
-        c.onForeground()
-        assertEquals(banked, c.session?.elapsedMs) // the running window folds on the next tick/move
+    /** What the timer bar reads after the loop's next tick. */
+    private fun ZipPlayController.shown(): Long {
+        tick()
+        return displayedElapsedMs()
     }
 
     @Test
-    fun `an untouched board's fold publishes nothing`() {
-        val c = readyController()
-        val before = saved.size
+    fun `a fresh puzzle's timer runs with no move made`() {
+        val wall = Wall()
+        val c = readyController(now = wall.now)
+
+        wall.ms += 4_000
+
+        assertTrue(c.session!!.path.isEmpty())
+        assertEquals(4_000L, c.shown())
+    }
+
+    @Test
+    fun `a restored in-progress session continues from its saved time and advances`() {
+        val wall = Wall()
+        val first = readyController(now = wall.now)
+        extend(first, 0, 1)
+        wall.ms += 3_000
+        first.onBackground()
+        val bytes = first.persist()!!
+
+        wall.ms += 60_000 // process-death gap: never counted
+        val restored = controller(wall.now)
+        restored.adoptRestored(bytes)
+        assertEquals(3_000L, restored.shown())
+
+        wall.ms += 2_000
+        assertEquals(5_000L, restored.shown())
+    }
+
+    @Test
+    fun `a restored untouched session's timer runs too`() {
+        val wall = Wall()
+        val first = readyController(now = wall.now)
+        first.onBackground()
+        val bytes = first.persist()!!
+
+        val restored = controller(wall.now)
+        restored.adoptRestored(bytes)
+        wall.ms += 1_500
+
+        assertEquals(1_500L, restored.shown())
+    }
+
+    @Test
+    fun `background banks the window and foreground resumes it without a move`() {
+        val wall = Wall()
+        val c = readyController(now = wall.now)
+        extend(c, 0)
+        wall.ms += 2_000
 
         c.onBackground()
+        assertNull(c.clockWindow)
+        assertEquals(2_000L, c.session?.elapsedMs)
+        wall.ms += 30_000 // away: never counted
+        assertEquals(2_000L, c.shown())
 
-        assertEquals(before, saved.size)
-        assertEquals(0L, c.session?.elapsedMs)
+        c.onForeground()
+        assertNotNull(c.clockWindow)
+        wall.ms += 1_000
+        assertEquals(3_000L, c.shown())
+    }
+
+    @Test
+    fun `foreground on an untouched board reopens the window`() {
+        val wall = Wall()
+        val c = readyController(now = wall.now)
+        wall.ms += 1_000
+        c.onBackground()
+        assertEquals(1_000L, c.session?.elapsedMs)
+
+        c.onForeground()
+        wall.ms += 500
+
+        assertEquals(1_500L, c.shown())
+    }
+
+    @Test
+    fun `completing the board stops the clock`() {
+        val wall = Wall()
+        val c = readyController(now = wall.now)
+        wall.ms += 2_000
+        playSolution(c)
+        val frozen = c.session!!.elapsedMs
+
+        assertTrue(c.isComplete)
+        assertNull(c.clockWindow)
+        assertEquals(2_000L, frozen)
+        wall.ms += 9_000
+        c.onForeground() // a completed play never reopens
+        assertNull(c.clockWindow)
+        assertEquals(frozen, c.shown())
+    }
+
+    @Test
+    fun `replay restarts from zero and advances at once`() {
+        val wall = Wall()
+        val c = readyController(now = wall.now)
+        wall.ms += 2_000
+        playSolution(c)
+
+        c.replay()
+        assertEquals(0L, c.shown())
+        wall.ms += 700
+
+        assertEquals(700L, c.shown())
     }
 
     //endregion

@@ -78,11 +78,6 @@ data class QueensSession(
     val board: QueensBoard
         get() = QueensBoard(queens, marks.filterValues { it.kind == MarkKind.MANUAL }.keys.toSet())
 
-    /** Whether play has begun — the clock's restart rule after a restore/foreground. */
-    val hasStarted: Boolean
-        get() = elapsedMs > 0L || hintsUsed > 0 || history.canUndo || history.canRedo ||
-            queens.isNotEmpty() || marks.isNotEmpty()
-
     val canUndo: Boolean get() = !isComplete && history.canUndo
     val canRedo: Boolean get() = !isComplete && history.canRedo
 

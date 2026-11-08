@@ -137,7 +137,6 @@ class TangoPlayController(
         if (next == current) return // nothing changed (e.g. a hinted-equal placement)
         // Suppress only the NEW violations this move introduced (after − before).
         suppressedSets = violatingSets(current.puzzle, next.grid()) - before
-        if (runningSince == null && !next.isComplete) runningSince = placedAt
         updateSession(if (next.isComplete) foldRunning(next) else next)
         if (mistake != null) lastRejection = TangoVerdict.Rejected(mistake, move.idx)
     }
@@ -145,8 +144,7 @@ class TangoPlayController(
     /**
      * Undo/redo is a board change like a placement, so it follows the same input rules:
      * transient reveals clear, and violations it NEWLY creates (a redo can restore one) wait
-     * out the settle window while ones it removes vanish at once. The clock is not rewound;
-     * a stopped one reopens, since undoing/redoing is play.
+     * out the settle window while ones it removes vanish at once. The clock is not rewound.
      */
     private fun stepHistory(step: (TangoSession) -> TangoSession) {
         val current = session ?: return
@@ -155,7 +153,6 @@ class TangoPlayController(
         lastRejection = null
         armSettle()
         suppressedSets = violatingSets(current.puzzle, next.grid()) - violatingSets(current.puzzle, current.grid())
-        if (runningSince == null) runningSince = now()
         commit(next)
     }
 
@@ -188,6 +185,7 @@ class TangoPlayController(
         // Round-trip the initial session through the callback too: the route's saveable
         // must exist from load, not first placement (C1 process-death window).
         updateSession(TangoSession(ref = ref as TangoPuzzleRef, puzzle = tango))
+        runningSince = now() // the clock runs from the moment the puzzle opens
         return Adopt.Adopted
     }
 
@@ -201,8 +199,8 @@ class TangoPlayController(
                 session = s
                 // The running clock is process-local (runningSince ≠ session state): a
                 // restored in-progress session restarts its window now, or the timer
-                // reads 0 forever (user QA 2026-11-02).
-                if (!s.isComplete && hasPlayed(s)) runningSince = now()
+                // reads frozen forever (user QA 2026-11-02).
+                runningSince = if (s.isComplete) null else now()
                 Restored(s.ref)
             }
 
@@ -249,9 +247,7 @@ class TangoPlayController(
 
     override fun onForeground() {
         val current = session ?: return
-        if (runningSince == null && !current.isComplete && hasPlayed(current)) {
-            runningSince = now()
-        }
+        if (runningSince == null && !current.isComplete) runningSince = now()
     }
 
     /** The running window's identity — the loop restarts each time it (re)opens. */
@@ -274,10 +270,6 @@ class TangoPlayController(
 
     //endregion
 
-    /** Whether this session has been played — an emptied board with history still counts. */
-    private fun hasPlayed(s: TangoSession): Boolean =
-        s.placements.isNotEmpty() || s.history.canUndo || s.history.canRedo
-
     //region PlayHints + PlayFeedback + PlayGuide
     override val hintsUsed: Int get() = session?.hintsUsed ?: 0
     override val hintEnabled: Boolean get() = session?.isComplete == false
@@ -298,13 +290,13 @@ class TangoPlayController(
     //endregion
 
     /** Result's "Play again": a fresh session of the same puzzle, every transient reveal
-     *  cleared and the clock stopped — the next win is a new transition and emits again. */
+     *  cleared and a fresh clock window open — the next win is a new transition and emits again. */
     override fun replay() {
         val current = session ?: return
         hintCell = null
         hintWhy = null
         lastRejection = null
-        runningSince = null
+        runningSince = now()
         commit(TangoSession(ref = current.ref, puzzle = current.puzzle))
     }
 

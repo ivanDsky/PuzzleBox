@@ -119,45 +119,103 @@ class SudokuPlayControllerTest {
         assertEquals(SudokuCell.Empty, savedSession().board.cells[0])
     }
 
+    /** What the timer bar reads after the loop's next tick. */
+    private fun SudokuPlayController.shown(): Long {
+        tick()
+        return displayedElapsedMs()
+    }
+
     @Test
-    fun `selecting and the notes toggle leave the clock stopped, a placement starts it`() {
+    fun `a fresh puzzle's timer runs with no move made`() {
+        val c = adopted()
+        assertNotNull(c.clockWindow)
+
+        clockMs += 3_000
+
+        assertEquals(3_000L, c.shown())
+    }
+
+    @Test
+    fun `selecting and the notes toggle leave the running clock alone`() {
         val c = adopted()
         c.board!!.select(0)
         c.board!!.toggleNotesMode()
         clockMs += 3_000
-        c.tick()
-        assertNull(c.clockWindow)
-        assertEquals(0L, c.displayedElapsedMs())
+        assertEquals(3_000L, c.shown())
         c.board!!.toggleNotesMode()
         c.board!!.input(4)
-        assertNotNull(c.clockWindow)
         clockMs += 2_000
-        c.tick()
-        assertEquals(2_000L, c.displayedElapsedMs())
+        assertEquals(5_000L, c.shown()) // a move neither restarts nor shifts the window
     }
 
     @Test
-    fun `a counted hint starts the clock`() {
+    fun `a restored in-progress session continues from its saved time and advances`() {
+        val first = adopted()
+        first.board!!.select(0)
+        first.board!!.input(4)
+        clockMs += 1_500
+        first.onBackground()
+        val bytes = saved.last()
+
+        clockMs += 60_000 // process-death gap: never counted
+        val c = controller()
+        assertNotNull(c.adoptRestored(bytes))
+        assertEquals(1_500L, c.shown())
+        clockMs += 2_000
+        assertEquals(3_500L, c.shown())
+    }
+
+    @Test
+    fun `a restored untouched session's timer runs too`() {
+        val first = adopted()
+        first.onBackground()
+        val c = controller()
+        assertNotNull(c.adoptRestored(saved.last()))
+        clockMs += 1_000
+        assertEquals(1_000L, c.shown())
+    }
+
+    @Test
+    fun `background folds the running window and foreground reopens it without a move`() {
+        val c = adopted()
+        clockMs += 1_500
+        c.onBackground()
+        assertNull(c.clockWindow)
+        assertEquals(1_500L, savedSession().elapsedMs)
+        clockMs += 60_000
+        assertEquals(1_500L, c.shown())
+        c.onForeground()
+        assertNotNull(c.clockWindow)
+        clockMs += 500
+        assertEquals(2_000L, c.shown())
+    }
+
+    @Test
+    fun `replay restarts from zero and advances at once`() {
+        val c = adopted()
+        val open = givens.indices.filter { givens[it] == 0 }
+        clockMs += 4_000
+        for (idx in open) {
+            c.board!!.select(idx)
+            c.board!!.input(solution[idx])
+        }
+        assertTrue(c.isComplete)
+        assertNull(c.clockWindow)
+
+        c.replay()
+        assertEquals(0L, c.shown())
+        clockMs += 700
+        assertEquals(700L, c.shown())
+    }
+
+    @Test
+    fun `a counted hint is counted and the clock keeps running`() {
         val c = adopted()
         assertTrue(c.hintEnabled)
         c.requestHint()
         assertEquals(1, c.hintsUsed)
         assertNotNull(c.hintCaption)
         assertNotNull(c.clockWindow)
-    }
-
-    @Test
-    fun `background folds the running window and foreground reopens it`() {
-        val c = adopted()
-        c.board!!.select(0)
-        c.board!!.input(4)
-        clockMs += 1_500
-        c.onBackground()
-        assertNull(c.clockWindow)
-        clockMs += 60_000
-        c.onForeground()
-        assertNotNull(c.clockWindow)
-        assertEquals(1_500L, c.displayedElapsedMs())
     }
 
     @Test

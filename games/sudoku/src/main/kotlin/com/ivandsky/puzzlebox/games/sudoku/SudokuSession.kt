@@ -26,8 +26,6 @@ data class SudokuSession(
 
     val isComplete: Boolean get() = completedAt != null
 
-    val hasStarted: Boolean get() = history.done.isNotEmpty() || hintsUsed > 0
-
     val canUndo: Boolean get() = !isComplete && history.canUndo
 
     val canRedo: Boolean get() = !isComplete && history.canRedo

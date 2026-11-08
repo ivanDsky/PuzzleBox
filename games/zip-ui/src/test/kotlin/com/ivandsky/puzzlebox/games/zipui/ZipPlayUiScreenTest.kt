@@ -233,7 +233,10 @@ class ZipPlayUiScreenTest {
         check(solvedFacts != null) { "first solve did not hand off" }
         composeRule.runOnIdle { controller.replay() }
         composeRule.waitForIdle()
-        composeRule.runOnIdle { check(controller.displayedElapsedMs() == 0L) { "replay kept the old time" } }
+        composeRule.runOnIdle {
+            check(controller.session?.elapsedMs == 0L) { "replay kept the old time" }
+            check(controller.clockWindow != null) { "replay's clock is not running" }
+        }
         composeRule.runOnIdle { check(controller.session?.path?.isEmpty() == true) }
 
         solve(controller)

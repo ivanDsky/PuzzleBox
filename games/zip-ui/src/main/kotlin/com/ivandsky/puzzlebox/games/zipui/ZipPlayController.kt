@@ -123,17 +123,17 @@ class ZipPlayController(
             is DecodeResult.Ok -> decoded.value
             is DecodeResult.Err -> return Adopt.Rejected(BROKEN_PUZZLE_MESSAGE)
         }
-        session = ZipSession(ref = ref as ZipPuzzleRef, puzzle = zip)
+        session = ZipSession(ref = ref as ZipPuzzleRef, puzzle = zip).onForeground(now())
         return Adopt.Adopted
     }
 
-    /** Rotation/process-death restore: the session codec carries the puzzle BY VALUE; a
-     *  restored COMPLETED session shows the win without re-emitting (emission happens on
-     *  the transition only). */
+    /** Rotation/process-death restore: the codec carries the puzzle BY VALUE; a COMPLETED
+     *  session shows the win without re-emitting. The window is process-local, so an
+     *  in-progress session reopens it now. */
     override fun adoptRestored(bytes: ByteArray): Restored? =
         when (val restored = ZipSessionCodec.deserialize(bytes)) {
             is DecodeResult.Ok -> {
-                session = restored.value
+                session = restored.value.onForeground(now())
                 Restored(restored.value.ref)
             }
 
@@ -223,13 +223,13 @@ class ZipPlayController(
     }
 
     override fun onBackground() {
-        val current = session?.takeIf { it.timerStarted } ?: return // untouched: no save (A14)
+        val current = session?.takeIf { it.runningSince != null } ?: return
         updateSession(current.onBackground(now()))
     }
 
     override fun onForeground() {
         val current = session ?: return
-        updateSession(current.onForeground(now()))
+        current.onForeground(now()).takeIf { it !== current }?.let(::updateSession)
     }
 
     /** The running window's identity — the loop restarts each time it (re)opens. */
@@ -245,7 +245,7 @@ class ZipPlayController(
     //endregion
 
     /** Result's "Play again": a fresh session of the same puzzle, every transient reveal
-     *  and the hint log cleared (F9) — the next win is a new transition and emits again. */
+     *  and the hint log cleared (F9), clock running at once; the next win emits again. */
     override fun replay() {
         val current = session ?: return
         hintCell = null
@@ -253,7 +253,7 @@ class ZipPlayController(
         feedback.clear()
         lastHintAtMs = null
         hintHistory.clear()
-        commit(ZipSession(ref = current.ref, puzzle = current.puzzle))
+        commit(ZipSession(ref = current.ref, puzzle = current.puzzle).onForeground(now()))
     }
 
     //region derived + persistence
