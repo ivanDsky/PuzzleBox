@@ -6,15 +6,20 @@ import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuDraft
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuEditor
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * The Sudoku editor screen's live draft and selected cell. A [tap] selects a cell (the same
  * cell again clears it); a [digit] then places that digit on it, or erases with 0, as one
  * undoable `ReplaceDraft` step sent out through [onEdit]. The selection survives edits so
- * several digits can be tried on one cell. The VM hands replacement drafts back through [adopt].
+ * several digits can be tried on one cell. A digit or [erase] with nothing selected edits
+ * nothing and fires [nudge]. The VM hands replacement drafts back through [adopt].
  */
 class SudokuEditorController(
     initial: EditorDraft<*>,
@@ -23,6 +28,7 @@ class SudokuEditorController(
 
     private val current = MutableStateFlow(typed(initial))
     private val picked = MutableStateFlow<Int?>(null)
+    private val nudges = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private val shownOverlay = MutableStateFlow(EditorOverlay())
 
     override val draft: StateFlow<EditorDraft<*>> = current.asStateFlow()
@@ -31,6 +37,12 @@ class SudokuEditorController(
 
     /** The selected cell's row-major index; null when none. */
     val selected: StateFlow<Int?> = picked.asStateFlow()
+
+    /**
+     * One event per refused entry (a digit or Erase with no cell selected); the hint shakes
+     * on it.
+     */
+    val nudge: SharedFlow<Unit> = nudges.asSharedFlow()
 
     override fun adopt(draft: EditorDraft<*>) {
         val next = typed(draft)
@@ -51,15 +63,32 @@ class SudokuEditorController(
     }
 
     /**
-     * Puts [d] (0 erases) on the selected cell as one `ReplaceDraft` step. Nothing selected, or
-     * the cell already holding [d]: no edit.
+     * Puts [d] (0 erases) on the selected cell as one `ReplaceDraft` step. Nothing selected:
+     * no edit and a [nudge]. The cell already holding [d]: no edit.
      */
     fun digit(d: Int) {
-        val cell = picked.value ?: return
+        val cell = picked.value
+        if (cell == null) {
+            nudges.tryEmit(Unit)
+            return
+        }
         val before = current.value.state.draft
         require(d in 0..before.size) { "digit $d outside 0..${before.size}" }
         if (before.givens[cell] == d) return
-        val after = before.copy(givens = before.givens.toMutableList().also { it[cell] = d })
+        replace(before, before.copy(givens = before.givens.toMutableList().also { it[cell] = d }))
+    }
+
+    /** Empties the selected cell as one step: [digit] with 0. */
+    fun erase() = digit(0)
+
+    /** Empties every cell as one step; a board already empty is no edit. */
+    internal fun clear() {
+        val before = current.value.state.draft
+        if (before.givens.all { it == 0 }) return
+        replace(before, before.copy(givens = List(before.givens.size) { 0 }))
+    }
+
+    private fun replace(before: SudokuDraft, after: SudokuDraft) {
         val next = current.value.apply(ReplaceDraft(before, after))
         current.value = next
         onEdit(next)

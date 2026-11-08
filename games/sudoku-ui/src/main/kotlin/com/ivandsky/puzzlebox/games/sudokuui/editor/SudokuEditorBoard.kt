@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -13,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
@@ -27,16 +27,13 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.rules.SudokuConflicts
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuBoardModel
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuCellModel
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuGrid
-import com.ivandsky.puzzlebox.games.sudokuui.SudokuKeypad
-import com.ivandsky.puzzlebox.games.sudokuui.SudokuKeypadModel
+import com.ivandsky.puzzlebox.games.sudokuui.SudokuKeypadActions
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuSizing
 
 /**
  * The editor's board: the play [SudokuGrid] over the [controller]'s draft, every placed digit
- * drawn as a given, with the play keypad below it. A tap on a cell selects it; a digit key
- * places on it and Erase empties it. Notes and Clear have no meaning for givens: Clear is off
- * (the Studio's own Clear covers it) and Notes is left inert. Sized by [SudokuSizing] for the
- * space [modifier] gives it.
+ * drawn as a given. A tap on a cell selects it; below it sit the counted digit keys and the
+ * tools row (Erase, Clear). Sized by [SudokuSizing] for the space [modifier] gives it.
  */
 @Composable
 internal fun SudokuEditorBoard(controller: SudokuEditorController, geometry: SudokuGeometry, modifier: Modifier = Modifier) {
@@ -44,26 +41,24 @@ internal fun SudokuEditorBoard(controller: SudokuEditorController, geometry: Sud
     val selected by controller.selected.collectAsState()
     val board = draft.state.draft as SudokuDraft
     val model = remember(board, selected) { editorBoardModel(board, geometry, selected) }
-    val keypad = remember(board) { editorKeypadModel(board) }
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
-        val layout = SudokuSizing.layout(maxWidth, maxHeight, board.size, boardMax = PlayBoardMaxWidth)
+        val roomy = SudokuSizing.layout(maxWidth, maxHeight, board.size, boardMax = PlayBoardMaxWidth)
+        // A cramped pane budgets no action row; the tools row takes a minimum-height one.
+        val layout = if (roomy.actions == SudokuKeypadActions.Row) {
+            roomy
+        } else {
+            val reserved = SudokuSizing.keyMin + roomy.keyGap
+            SudokuSizing.layout(maxWidth, (maxHeight - reserved).coerceAtLeast(0.dp), board.size, boardMax = PlayBoardMaxWidth)
+        }
+        val toolHeight = if (layout.actions == SudokuKeypadActions.Row) layout.actionKey else SudokuSizing.keyMin
         Column(
             modifier = Modifier.testTag("sudoku.editor.board"),
             verticalArrangement = Arrangement.spacedBy(layout.keyGap),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             SudokuGrid(model, controller::tap, Modifier.size(layout.board))
-            SudokuKeypad(
-                model = keypad,
-                onDigit = controller::digit,
-                onErase = { controller.digit(0) },
-                onClear = {},
-                onToggleNotes = {},
-                modifier = Modifier.widthIn(max = PlayBoardMaxWidth).testTag("sudoku.editor.keypad"),
-                keyHeight = layout.key,
-                actionHeight = layout.actionKey,
-                actions = layout.actions,
-            )
+            SudokuEditorKeypad(controller, board, layout)
+            SudokuEditorTools(controller, board.givens.any { it != 0 }, toolHeight)
         }
     }
 }
@@ -90,11 +85,6 @@ private fun editorBoardModel(draft: SudokuDraft, geometry: SudokuGeometry, selec
         )
     }
     return SudokuBoardModel(geometry.size, geometry.boxRows, geometry.boxCols, models)
-}
-
-private fun editorKeypadModel(draft: SudokuDraft): SudokuKeypadModel {
-    val remaining = (1..draft.size).map { digit -> (draft.size - draft.givens.count { it == digit }).coerceAtLeast(0) }
-    return SudokuKeypadModel(draft.size, remaining, notesMode = false, canClear = false, solved = false)
 }
 
 @PuzzleBoxPreviews
