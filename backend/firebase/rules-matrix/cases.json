@@ -416,6 +416,68 @@
     },
     {
       "group": "puzzles",
+      "name": "first create of a new UTC day with last restarts at 1",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-06",
+            "count": 20
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 1,
+            "last": "K7Q2MX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
+      "name": "first-ever create with last starts the authors doc at 1",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": false
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 1,
+            "last": "K7Q2MX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles",
       "name": "create whose authors doc is stamped with another day",
       "expect": "deny",
       "method": "create",
@@ -1350,6 +1412,23 @@
         "count": 5,
         "last": "K7Q2MX",
         "plan": "pro"
+      }
+    },
+    {
+      "group": "authors",
+      "name": "author writes a last that is not a string",
+      "expect": "deny",
+      "method": "update",
+      "path": "authors/alice",
+      "auth": "alice",
+      "resource": {
+        "day": "2026-11-07",
+        "count": 4
+      },
+      "data": {
+        "day": "2026-11-07",
+        "count": 5,
+        "last": 123
       }
     },
     {

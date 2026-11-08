@@ -46,7 +46,9 @@ internal fun nextPublishCount(author: Map<String, Any?>?, utcDay: String): Long?
     return if (count >= DAILY_PUBLISH_CAP) null else count + 1
 }
 
-/** The `authors/{uid}` doc after a create of [code]: the rules let one bump cover only that code. */
+/**
+ * The `authors/{uid}` doc after a create of [code]: the rules let one bump cover only that code.
+ */
 internal fun authorFields(utcDay: String, count: Long, code: String): Map<String, Any?> =
     mapOf(FIELD_AUTHOR_DAY to utcDay, FIELD_AUTHOR_COUNT to count, FIELD_AUTHOR_LAST to code)
 

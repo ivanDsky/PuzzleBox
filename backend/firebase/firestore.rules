@@ -106,7 +106,7 @@ service cloud.firestore {
           'createdAt', 'unpublished'];
         return puzzle.keys().hasAll(fields)
           && puzzle.keys().hasOnly(fields)
-          && code.matches('^[0-9A-HJKMNP-TV-Z]{6}$')
+          && isShareCode(code)
           && puzzle.formatVersion == 1
           && puzzle.gameId is string
           && puzzle.gameId.size() > 0
@@ -201,8 +201,11 @@ service cloud.firestore {
         && after.count is int
         && after.count == (before != null && before.day == today ? before.count + 1 : 1)
         && after.count <= 20
-        && (!('last' in after)
-          || (after.last is string && after.last.matches('^[0-9A-HJKMNP-TV-Z]{6}$')));
+        && (!('last' in after) || isShareCode(after.last));
+    }
+
+    function isShareCode(s) {
+      return s is string && s.matches('^[0-9A-HJKMNP-TV-Z]{6}$');
     }
 
     function utcDay(time) {
