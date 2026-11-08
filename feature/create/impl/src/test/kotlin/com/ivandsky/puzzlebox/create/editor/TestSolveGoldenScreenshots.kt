@@ -40,7 +40,8 @@ import java.io.File
  * m:ss" stamp has landed; then the Studio after the pass, with the publish details in the tools'
  * slot, and after Edit board, with the tools back, the details folded to their summary line and
  * the passed status over Publish. The board is the Studio preview's placeholder square.
- * Recorded by default, verified with `-Proborazzi.verify=true`; goldens in `snapshots/test-solve/`.
+ * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`;
+ * goldens in `snapshots/test-solve/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

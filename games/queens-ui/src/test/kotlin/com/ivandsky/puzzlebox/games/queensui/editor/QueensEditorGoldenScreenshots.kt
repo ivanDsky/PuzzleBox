@@ -45,7 +45,8 @@ import java.io.File
  * line (place k/N, paint, 2 answers, unique), the probe strip Kept and Broken, the ghost
  * crowns with the movable-cell ring, witness A and B on the board, the 75% clash wash under
  * a crown, split stripes and the fix list. Every board is a real 6×6 draft whose verdict
- * comes from [QueensDraftAnalyzer], asserted before the capture. Recorded by default,
+ * comes from [QueensDraftAnalyzer], asserted before the capture.
+ * Recorded with `-Proborazzi.record=true`,
  * verified with `-Proborazzi.verify=true`; goldens in `snapshots/editor/`.
  */
 @RunWith(RobolectricTestRunner::class)
