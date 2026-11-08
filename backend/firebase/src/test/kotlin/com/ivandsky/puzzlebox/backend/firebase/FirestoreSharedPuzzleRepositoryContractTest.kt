@@ -40,6 +40,7 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContra
         val puzzles = LinkedHashMap<String, Map<String, Any?>>()
         val authors = HashMap<String, Map<String, Any?>>()
         var failure: Exception? = null
+        var unpublishFailure: Exception? = null
 
         fun write(code: String, fields: Map<String, Any?>) {
             puzzles[code] = fields.mapValues { (_, value) -> if (value == FieldValue.serverTimestamp()) serverNow else value }
@@ -56,6 +57,7 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContra
 
         override suspend fun unpublish(code: String) {
             failure?.let { throw it }
+            unpublishFailure?.let { throw it }
             val existing = puzzles[code]
                 ?: throw FirebaseFirestoreException("no puzzle $code", FirebaseFirestoreException.Code.NOT_FOUND)
             if (existing[SharedPuzzleDocCodec.FIELD_AUTHOR_UID] != auth()) {
@@ -154,9 +156,8 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContra
     }
 
     @Test
-    fun `an existing own code with different content is CodeTaken and the stored doc is untouched`() = runTest {
+    fun `an existing own code with different content is CodeTaken and its doc is unpublished`() = runTest {
         signInAs(AUTHOR)
-        repository.publish(doc())
         val edits = listOf(
             doc().copy(title = "Edited"),
             doc().copy(note = "Edited note"),
@@ -168,8 +169,24 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContra
             doc().copy(shareCodecVersion = doc().shareCodecVersion + 1),
         )
 
-        edits.forEach { assertEquals(PublishResult.CodeTaken, repository.publish(it)) }
+        edits.forEach {
+            repository.publish(doc())
+            assertEquals(PublishResult.CodeTaken, repository.publish(it))
+            assertEquals(SharedFetchResult.Found(doc(unpublished = true)), repository.fetch(code()))
+            store.puzzles.clear()
+        }
+    }
+
+    @Test
+    fun `a failed unpublish still answers CodeTaken, leaves the doc and lets a fresh code publish`() = runTest {
+        signInAs(AUTHOR)
+        repository.publish(doc())
+        val fresh = code("ZZZ999")
+        store.unpublishFailure = FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED)
+
+        assertEquals(PublishResult.CodeTaken, repository.publish(doc(title = "Retry")))
         assertEquals(SharedFetchResult.Found(doc()), repository.fetch(code()))
+        assertEquals(PublishResult.Published(fresh), repository.publish(doc(code = fresh, title = "Retry")))
     }
 
     @Test

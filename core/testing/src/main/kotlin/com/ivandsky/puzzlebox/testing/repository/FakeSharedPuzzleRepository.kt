@@ -38,8 +38,15 @@ class FakeSharedPuzzleRepository : SharedPuzzleRepository {
         if (doc.authorUid != uid) return PublishResult.Rejected("authorUid is not the signed-in user")
         val existing = stored[doc.code]
         when {
-            existing != null && existing.authorUid == uid && !existing.unpublished &&
-                existing.sameContentAs(doc) -> PublishResult.Published(doc.code)
+            existing != null && existing.authorUid == uid && !existing.unpublished -> {
+                if (existing.sameContentAs(doc)) {
+                    PublishResult.Published(doc.code)
+                } else {
+                    // The author's lost-reply doc is retired, so it is not left online unreachable.
+                    stored[doc.code] = existing.copy(unpublished = true)
+                    PublishResult.CodeTaken
+                }
+            }
             existing != null -> PublishResult.CodeTaken
             publishesToday >= DAILY_CAP -> PublishResult.DailyCapReached
             else -> {

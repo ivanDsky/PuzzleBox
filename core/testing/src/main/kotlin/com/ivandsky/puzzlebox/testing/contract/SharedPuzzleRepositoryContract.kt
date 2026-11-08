@@ -77,12 +77,12 @@ abstract class SharedPuzzleRepositoryContract {
     }
 
     @Test
-    fun republishingDifferentContentAsTheSameAuthorIsCodeTakenAndKeepsTheFirstDoc() = runTest {
+    fun republishingDifferentContentAsTheSameAuthorIsCodeTakenAndUnpublishesTheFirstDoc() = runTest {
         signInAs(AUTHOR)
         repository.publish(doc())
 
         assertEquals(PublishResult.CodeTaken, repository.publish(doc(title = "Retry")))
-        assertEquals(SharedFetchResult.Found(doc()), repository.fetch(code()))
+        assertEquals(SharedFetchResult.Found(doc(unpublished = true)), repository.fetch(code()))
     }
 
     @Test
