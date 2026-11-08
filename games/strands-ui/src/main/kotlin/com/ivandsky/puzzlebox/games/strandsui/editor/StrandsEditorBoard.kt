@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.invisibleToUser
@@ -26,11 +27,20 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
+import com.ivandsky.puzzlebox.games.strands.editor.StrandsPockets
 import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.games.strands.render.LinkKind
 import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
@@ -47,9 +57,10 @@ private const val BLANK_GLYPH = ' '
  * traced path as a found word (the spangram's in its own look), blank cells empty, and the live
  * trace over them. Touch is the play board's: a drag or taps trace cells, a lift commits the
  * path ([StrandsEditorController.endTrace]); a tap on a traced cell or its chip selects that
- * path, drawn outlined. Under the grid, the word field ([StrandsWordField]) names the selected
- * path or, with none, the word the next lift writes; a "+N" handle at a short path's end
- * ([StrandsExtendHandle]) extends it.
+ * path, drawn outlined; uncovered areas too small for a word get a dashed outline
+ * (`strands.editor.cell.<idx>.pocket`). Under the grid, the word field ([StrandsWordField])
+ * names the selected path or, with none, the word the next lift writes; a "+N" handle at a
+ * short path's end ([StrandsExtendHandle]) extends it.
  */
 @Composable
 internal fun StrandsEditorBoard(controller: StrandsEditorController, modifier: Modifier = Modifier) {
@@ -59,6 +70,7 @@ internal fun StrandsEditorBoard(controller: StrandsEditorController, modifier: M
     val selected by controller.selectedPath.collectAsState()
     val board = draft.state.draft as StrandsDraft
     val model = remember(board, live, selected) { modelOf(board, live, selected) }
+    val pockets = remember(board.paths) { StrandsPockets.of(board).flatten().toSet() }
     Column(modifier) {
         Box(Modifier.weight(1f)) {
             StrandsBoardContent(
@@ -76,10 +88,19 @@ internal fun StrandsEditorBoard(controller: StrandsEditorController, modifier: M
                 extendAt = tail?.cells?.last()?.takeIf { missing > 0 },
                 missing = missing,
                 onExtend = controller::extend,
+                pockets = pockets,
                 modifier = Modifier.fillMaxSize(),
             )
         }
         PathChips(board, selected, controller::selectPath)
+        selected?.let { index ->
+            StrandsSpangramToggle(
+                index = index,
+                isSpangram = board.spangram == index,
+                onToggle = { controller.toggleSpangram(index) },
+                modifier = Modifier.padding(top = Spacing.sm),
+            )
+        }
         StrandsWordField(controller)
     }
 }
@@ -94,8 +115,10 @@ private fun CellTaps(
     extendAt: Int?,
     missing: Int,
     onExtend: () -> Unit,
+    pockets: Set<Int>,
     modifier: Modifier = Modifier,
 ) {
+    val outline = MaterialTheme.colorScheme.error
     BoxWithConstraints(modifier) {
         val cell = strandsCellSizeFor(maxWidth, maxHeight, StrandsDraft.ROWS, StrandsDraft.COLS)
         Box(Modifier.fillMaxWidth().height(cell * StrandsDraft.ROWS), contentAlignment = Alignment.Center) {
@@ -113,7 +136,16 @@ private fun CellTaps(
                                             invisibleToUser()
                                             onClick { onTap(idx); true }
                                         },
-                                )
+                                ) {
+                                    if (idx in pockets) {
+                                        Box(
+                                            Modifier
+                                                .fillMaxSize()
+                                                .drawBehind { drawPocketOutline(outline) }
+                                                .testTag("strands.editor.cell.$idx.pocket"),
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -150,6 +182,18 @@ private fun PathChips(board: StrandsDraft, selected: Int?, onSelect: (Int?) -> U
             )
         }
     }
+}
+
+/** A dashed rectangle just inside the cell: the mark of a cell no word can fill. */
+private fun DrawScope.drawPocketOutline(color: Color) {
+    val width = 2.dp.toPx()
+    val dash = 4.dp.toPx()
+    drawRect(
+        color = color,
+        topLeft = Offset(width, width),
+        size = Size(size.width - 2 * width, size.height - 2 * width),
+        style = Stroke(width, pathEffect = PathEffect.dashPathEffect(floatArrayOf(dash, dash))),
+    )
 }
 
 private fun coordOf(cell: Int) = Coord(cell / StrandsDraft.COLS, cell % StrandsDraft.COLS)

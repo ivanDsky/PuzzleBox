@@ -22,7 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
  * more cells becomes one path, the [word] typed so far written onto the path's blank cells,
  * as one undoable step: an [StrandsDraftCommand.AddPath], or a [ReplaceDraft] when the word
  * also wrote letters. A tap on a traced cell selects its path ([selectedPath]); [removePath]
- * drops it as one [StrandsDraftCommand.RemovePath]. Every edit goes out through `onEdit`; the
+ * drops it as one [StrandsDraftCommand.RemovePath]; [toggleSpangram] marks or unmarks one.
+ * Every edit goes out through `onEdit`; the
  * VM hands replacement drafts back through [adopt].
  */
 class StrandsEditorController(
@@ -80,6 +81,20 @@ class StrandsEditorController(
         val next = current.value.apply(StrandsDraftCommand.RemovePath(index, path, before.spangram))
         current.value = next
         select(null)
+        onEdit(next)
+    }
+
+    /**
+     * Marks the path at [index] as the spangram, moving the mark off the path that held it, or
+     * clears it when [index] already is the spangram; one undoable step, a no-op for an index no
+     * path has.
+     */
+    fun toggleSpangram(index: Int) {
+        val before = current.value.state.draft
+        if (index !in before.paths.indices) return
+        val target = if (before.spangram == index) StrandsDraft.NO_SPANGRAM else index
+        val next = current.value.apply(StrandsDraftCommand.SetSpangram(target, before.spangram))
+        current.value = next
         onEdit(next)
     }
 
