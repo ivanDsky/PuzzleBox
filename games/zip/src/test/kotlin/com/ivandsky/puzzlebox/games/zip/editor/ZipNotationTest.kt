@@ -318,6 +318,42 @@ class ZipNotationTest {
     }
 
     @Test
+    fun `wall after the path line blocking it errors at the wall token`() {
+        assertEquals(
+            NotationResult.Err(9, 6, "a wall blocks the path"),
+            err(
+                board(
+                    "1 . . . . .", ". . . . . .", ". . . . . .",
+                    ". . . . . .", ". . . . . .", ". . . . . 2",
+                    extra = listOf("path 1,1 1,2", "wall 1,1 right"),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `path with no labels errors at the path line`() {
+        assertEquals(
+            NotationResult.Err(8, 1, "labels disagree with the path"),
+            err(
+                board(
+                    ". . . . . .", ". . . . . .", ". . . . . .",
+                    ". . . . . .", ". . . . . .", ". . . . . .",
+                    extra = listOf("path 1,1 1,2"),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `signed label errors`() {
+        assertEquals(
+            NotationResult.Err(2, 1, "unexpected token '+5'"),
+            err(board("+5 . . . . .", ". . . . . .", ". . . . . .", ". . . . . .", ". . . . . .", ". . . . . .")),
+        )
+    }
+
+    @Test
     fun `malformed wall cell token errors at its column`() {
         assertEquals(
             NotationResult.Err(8, 6, "unexpected token '2;3'"),

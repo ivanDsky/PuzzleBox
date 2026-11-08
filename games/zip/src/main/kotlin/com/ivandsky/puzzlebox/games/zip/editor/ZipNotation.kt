@@ -78,20 +78,32 @@ internal object ZipNotation : EditorNotation<ZipDraft> {
         val waypoints = List(labels.size) { labels.getValue(it + 1) }
 
         val walls = HashSet<Wall>()
+        val wallPos = HashMap<Wall, Token>()
         val path = ArrayList<Int>()
         var pathLine = 0
         for (entry in commands) {
             val tokens = tokenize(entry)
             when (firstToken(entry)) {
-                WALL -> parseWall(tokens, n, walls)?.let { return it }
+                WALL -> parseWall(tokens, n, walls, wallPos)?.let { return it }
                 PATH -> parsePath(tokens, entry, n, walls, path)?.let { return it }
                 else -> return NotationResult.Err(entry.line, 1, "rows must come before wall and path lines")
             }
             if (tokens.isNotEmpty() && tokens[0].text == PATH) pathLine = entry.line
         }
 
-        if (path.isNotEmpty() && !reachableWaypoints(waypoints, path)) {
-            return NotationResult.Err(pathLine, 1, "labels disagree with the path")
+        if (path.isNotEmpty()) {
+            for ((a, b) in path.zipWithNext()) {
+                val wallBetween = when {
+                    b == a + 1 -> Wall(Cell(a), WallDirection.RIGHT)
+                    b == a - 1 -> Wall(Cell(b), WallDirection.RIGHT)
+                    b == a + n -> Wall(Cell(a), WallDirection.DOWN)
+                    else -> Wall(Cell(b), WallDirection.DOWN)
+                }
+                wallPos[wallBetween]?.let { return err(it, "a wall blocks the path") }
+            }
+            if (!reachableWaypoints(waypoints, path)) {
+                return NotationResult.Err(pathLine, 1, "labels disagree with the path")
+            }
         }
         return NotationResult.Ok(ZipDraft(n, walls, path, waypoints))
     }
@@ -125,10 +137,10 @@ internal object ZipNotation : EditorNotation<ZipDraft> {
 
     override fun columns(draft: ZipDraft): Int = draft.n
 
-    /** The editor's own invariant ([ZipDraft.stroke]): distinct labels on the path, ends first
-     * and last, in path order. */
+    /** The editor's own invariant ([ZipDraft.stroke]): a path-less board may carry no labels;
+     * with a path the ends are labels 1 and k and the other labels sit on it in path order. */
     private fun reachableWaypoints(waypoints: List<Int>, path: List<Int>): Boolean {
-        if (waypoints.isEmpty()) return true
+        if (waypoints.isEmpty()) return false
         val position = path.withIndex().associate { (i, cell) -> cell to i }
         return waypoints.size == waypoints.toSet().size &&
             waypoints.all { it in position } &&
@@ -137,8 +149,13 @@ internal object ZipNotation : EditorNotation<ZipDraft> {
             waypoints.last() == path.last()
     }
 
-    /** A `wall r,c right|down` line; adds to [walls], or returns its error. */
-    private fun parseWall(tokens: List<Token>, n: Int, walls: HashSet<Wall>): NotationResult.Err? {
+    /** A `wall r,c right|down` line; adds to [walls] and [wallPos], or returns its error. */
+    private fun parseWall(
+        tokens: List<Token>,
+        n: Int,
+        walls: HashSet<Wall>,
+        wallPos: HashMap<Wall, Token>,
+    ): NotationResult.Err? {
         if (tokens.size != 3) return err(tokens[0], "wall needs a cell and a direction")
         val cell = when (val parsed = parseCell(tokens[1], n)) {
             is CellParse.Ok -> parsed.cell
@@ -158,6 +175,7 @@ internal object ZipNotation : EditorNotation<ZipDraft> {
         val wall = Wall(Cell(cell), direction)
         if (wall in walls) return NotationResult.Err(tokens[1].line, tokens[1].col, "duplicate wall")
         walls += wall
+        wallPos[wall] = tokens[1]
         return null
     }
 
@@ -214,22 +232,20 @@ internal object ZipNotation : EditorNotation<ZipDraft> {
     private fun number(text: String): Int? =
         text.toIntOrNull()?.takeIf { it > 0 && text.length == it.toString().length }
 
-    /** A waypoint label: a positive integer with no leading zeros. */
+    /** A waypoint label: a positive integer with no sign and no leading zeros. */
     private fun labelOf(text: String): Int? =
-        text.toIntOrNull()?.takeIf { it > 0 && text[0] != '0' }
+        text.toIntOrNull()?.takeIf { it > 0 && text[0] in '1'..'9' }
 
-    private fun firstToken(entry: IndexedLine): String = entry.text.substringBefore(' ')
+    private val TOKEN = Regex("\\S+")
+
+    private fun firstToken(entry: IndexedLine): String = TOKEN.find(entry.text)?.value.orEmpty()
 
     private fun err(token: Token, message: String): NotationResult.Err =
         NotationResult.Err(token.line, token.col, message)
 
-    private fun tokenize(entry: IndexedLine): List<Token> = buildList {
-        var col = 1
-        for (token in entry.text.split(' ')) {
-            if (token.isNotEmpty()) add(Token(entry.line, col, token))
-            col += token.length + 1
-        }
-    }
+    /** Tokens are whitespace-separated runs (§2.8); the column is the run's 1-based start. */
+    private fun tokenize(entry: IndexedLine): List<Token> =
+        TOKEN.findAll(entry.text).map { Token(entry.line, it.range.first + 1, it.value) }.toList()
 
     private data class IndexedLine(val line: Int, val text: String)
     private data class Token(val line: Int, val col: Int, val text: String)
