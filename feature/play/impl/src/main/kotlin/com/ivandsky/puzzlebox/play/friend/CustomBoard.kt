@@ -94,7 +94,7 @@ internal fun CustomBoard(
                     is CustomBoardView.Ranked -> RankedLines(shown, yours, post, reduced)
                     is CustomBoardView.SignedOut -> {
                         YouLine(yours, statusOf(post, shown))
-                        if (!closed) SignInPrompt(yours.timeMs, signIn, onSignIn)
+                        if (!closed) SignInPrompt("Sign in to see how friends did", yours.timeMs, signIn, onSignIn)
                     }
                     is CustomBoardView.Unavailable -> {
                         YouLine(yours, statusOf(post, shown))

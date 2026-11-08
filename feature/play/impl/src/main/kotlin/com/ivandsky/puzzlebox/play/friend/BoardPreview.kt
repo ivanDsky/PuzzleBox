@@ -72,7 +72,7 @@ internal fun BoardPreview(
                     is CustomBoardView.Ranked -> if (shown.top.isEmpty()) EmptyBoardLine() else shown.top.forEach { RankedLine(it) }
                     is CustomBoardView.SignedOut -> {
                         yours?.let { YouLine(it, statusOf(postOn(postState, closed), shown)) }
-                        if (!closed) SignInPrompt(yours?.timeMs, signIn, onSignIn)
+                        if (!closed) SignInPrompt("Sign in to see how friends did", yours?.timeMs, signIn, onSignIn)
                     }
                     is CustomBoardView.Unavailable, null -> Unit
                 }
