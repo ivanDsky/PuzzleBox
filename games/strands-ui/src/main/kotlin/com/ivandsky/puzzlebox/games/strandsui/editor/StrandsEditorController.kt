@@ -22,9 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
  * more cells becomes one path, the [word] typed so far written onto the path's blank cells,
  * as one undoable step: an [StrandsDraftCommand.AddPath], or a [ReplaceDraft] when the word
  * also wrote letters. A tap on a traced cell selects its path ([selectedPath]); [removePath]
- * drops it as one [StrandsDraftCommand.RemovePath]; [toggleSpangram] marks or unmarks one.
- * Every edit goes out through `onEdit`; the
- * VM hands replacement drafts back through [adopt].
+ * drops it as one [StrandsDraftCommand.RemovePath]; [toggleSpangram] marks or unmarks one;
+ * [setClue] sets the theme clue. Every edit goes out through `onEdit`; the VM hands replacement drafts back through [adopt].
  */
 class StrandsEditorController(
     initial: EditorDraft<*>,
@@ -94,6 +93,15 @@ class StrandsEditorController(
         if (index !in before.paths.indices) return
         val target = if (before.spangram == index) StrandsDraft.NO_SPANGRAM else index
         val next = current.value.apply(StrandsDraftCommand.SetSpangram(target, before.spangram))
+        current.value = next
+        onEdit(next)
+    }
+
+    /** Sets the theme clue as one undoable step; a no-op when [text] is the clue already. */
+    fun setClue(text: String) {
+        val before = current.value.state.draft.clue
+        if (text == before) return
+        val next = current.value.apply(StrandsDraftCommand.SetClue(text, before))
         current.value = next
         onEdit(next)
     }

@@ -1,7 +1,5 @@
 package com.ivandsky.puzzlebox.games.strandsui.editor
 
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -13,8 +11,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
@@ -60,7 +56,8 @@ private const val BLANK_GLYPH = ' '
  * path, drawn outlined; uncovered areas too small for a word get a dashed outline
  * (`strands.editor.cell.<idx>.pocket`). Under the grid, the word field ([StrandsWordField])
  * names the selected path or, with none, the word the next lift writes; a "+N" handle at a
- * short path's end ([StrandsExtendHandle]) extends it.
+ * short path's end ([StrandsExtendHandle]) extends it. Below, [StrandsPathsPanel] lists the
+ * paths and holds the clue field.
  */
 @Composable
 internal fun StrandsEditorBoard(controller: StrandsEditorController, modifier: Modifier = Modifier) {
@@ -92,7 +89,6 @@ internal fun StrandsEditorBoard(controller: StrandsEditorController, modifier: M
                 modifier = Modifier.fillMaxSize(),
             )
         }
-        PathChips(board, selected, controller::selectPath)
         selected?.let { index ->
             StrandsSpangramToggle(
                 index = index,
@@ -102,6 +98,13 @@ internal fun StrandsEditorBoard(controller: StrandsEditorController, modifier: M
             )
         }
         StrandsWordField(controller)
+        StrandsPathsPanel(
+            board = board,
+            selected = selected,
+            onSelect = controller::selectPath,
+            onClue = controller::setClue,
+            modifier = Modifier.padding(top = Spacing.sm),
+        )
     }
 }
 
@@ -161,25 +164,6 @@ private fun CellTaps(
                     )
                 }
             }
-        }
-    }
-}
-
-/** One chip per path, `strands.editor.path.<i>`: a tap selects it, a second tap lets it go. */
-@Composable
-private fun PathChips(board: StrandsDraft, selected: Int?, onSelect: (Int?) -> Unit) {
-    if (board.paths.isEmpty()) return
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = Spacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        board.paths.forEachIndexed { index, path ->
-            FilterChip(
-                selected = index == selected,
-                onClick = { onSelect(index.takeUnless { it == selected }) },
-                label = { Text(path.word ?: path.cells.size.toString(), maxLines = 1) },
-                modifier = Modifier.testTag("strands.editor.path.$index"),
-            )
         }
     }
 }
