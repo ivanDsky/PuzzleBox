@@ -64,9 +64,9 @@ class TraceInputTest {
     }
 
     @Test
-    fun `dragging back onto an earlier letter cuts the trace back to it`() {
-        assertEquals(TraceStep.Updated(traceOf(a)), TraceInput.dragTo(traceOf(a, b, c), a))
-        assertEquals(TraceStep.Updated(traceOf(a, b)), TraceInput.dragTo(traceOf(a, b, c, Coord(2, 2)), b))
+    fun `dragging onto an earlier letter changes nothing - the path is a wall`() {
+        assertEquals(TraceStep.Updated(traceOf(a, b, c)), TraceInput.dragTo(traceOf(a, b, c), a))
+        assertEquals(TraceStep.Updated(traceOf(a, b, c, Coord(2, 2))), TraceInput.dragTo(traceOf(a, b, c, Coord(2, 2)), b))
     }
 
     @Test

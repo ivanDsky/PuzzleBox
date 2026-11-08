@@ -58,7 +58,7 @@ internal object StrandsBoardSpec {
     /** A joined letter grows the trace only once the finger comes this close to its centre. */
     const val ArriveCells: Float = 0.55f
 
-    /** Within this of an earlier letter's centre the drag backs up onto it, cutting the trace back there. */
+    /** Within this of the letter before the tail the drag steps back onto it; earlier letters are a wall and join nothing. */
     const val BackJoinCells: Float = 0.30f
 
     /** A free letter beside the tail joins, heading or not, once the finger is this close to its centre. */

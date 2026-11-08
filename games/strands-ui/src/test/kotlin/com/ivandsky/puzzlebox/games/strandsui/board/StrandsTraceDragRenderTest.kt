@@ -134,4 +134,46 @@ class StrandsTraceDragRenderTest {
 
         rule.onNodeWithTag("strands.board").performTouchInput { up() }
     }
+
+    @Test
+    fun `a released finger takes the lean off the board`() {
+        show()
+        rule.waitForIdle()
+        val bare = at(1.8f, 1.8f)
+
+        rule.onNodeWithTag("strands.board").performTouchInput {
+            down(Offset(width * 0.5f / 4, height * 1.5f / 4))
+        }
+        move(Coord(1, 1))
+        rule.onNodeWithTag("strands.board").performTouchInput {
+            moveTo(Offset(width * 1.8f / 4, height * 1.8f / 4))
+        }
+        assertNotEquals(bare, at(1.8f, 1.8f))
+
+        // Lift: the lean goes with the drag — nothing stays leaning past the last letter.
+        rule.onNodeWithTag("strands.board").performTouchInput { up() }
+        rule.waitForIdle()
+        assertEquals(bare, at(1.8f, 1.8f))
+    }
+
+    @Test
+    fun `a held drag onto an earlier letter keeps the line - the path is a wall`() {
+        show()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("strands.board").performTouchInput {
+            down(Offset(width * 0.5f / 4, height * 1.5f / 4))
+        }
+        move(Coord(1, 1), Coord(1, 2), Coord(2, 2), Coord(2, 1))
+        val joined = between(Coord(2, 2), Coord(2, 1))
+        assertNotEquals(at(1.5f, 2.0f), joined)
+
+        // Back up over (1, 1): traced earlier, not the previous letter — the wall refuses,
+        // the U-turn stays, the connector never cuts back to it and nothing leans at it.
+        move(Coord(1, 1))
+        assertEquals(joined, between(Coord(2, 2), Coord(2, 1)))
+        assertEquals("no lean into the traced letter", at(1.5f, 2.0f), between(Coord(2, 1), Coord(1, 1)))
+
+        rule.onNodeWithTag("strands.board").performTouchInput { up() }
+    }
 }

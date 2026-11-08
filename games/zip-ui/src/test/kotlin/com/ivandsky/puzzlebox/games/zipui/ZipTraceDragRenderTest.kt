@@ -154,4 +154,66 @@ class ZipTraceDragRenderTest {
 
         composeRule.onNodeWithTag("play.board").performTouchInput { up() }
     }
+
+    @Test
+    fun `a released finger returns the end to the tail centre`() {
+        show()
+        composeRule.waitForIdle()
+        val bare = boardPixel(2.0f, 0.5f)
+
+        composeRule.onNodeWithTag("play.board").performTouchInput {
+            down(cellAt(width.toFloat(), height.toFloat(), 0, 0))
+            moveTo(cellAt(width.toFloat(), height.toFloat(), 0, 1))
+        }
+        composeRule.waitForIdle()
+        assertEquals(LightBoardTokens.pathTrace, cellPixel(0, 1))
+
+        // Halfway to (0, 2): the end leans there without reaching its centre.
+        composeRule.onNodeWithTag("play.board").performTouchInput {
+            moveTo(Offset(width * 2.0f / 5, height * 0.5f / 5))
+        }
+        composeRule.waitForIdle()
+        assertEquals(LightBoardTokens.pathTrace, boardPixel(2.0f, 0.5f))
+
+        // Lift: over the home tween the end comes back to (0, 1)'s centre, lean and all.
+        composeRule.onNodeWithTag("play.board").performTouchInput { up() }
+        composeRule.waitForIdle()
+        assertNotEquals(LightBoardTokens.pathTrace, boardPixel(2.0f, 0.5f))
+        assertEquals(LightBoardTokens.pathTrace, cellPixel(0, 1))
+    }
+
+    @Test
+    fun `a held drag onto the traced line is refused - neither cut nor crossed`() {
+        show()
+        composeRule.waitForIdle()
+
+        // East to (0, 4), down and back west to (1, 2), lifted: the U-shaped trace stays.
+        composeRule.onNodeWithTag("play.board").performTouchInput {
+            down(cellAt(width.toFloat(), height.toFloat(), 0, 0))
+            moveTo(cellAt(width.toFloat(), height.toFloat(), 0, 1))
+            moveTo(cellAt(width.toFloat(), height.toFloat(), 0, 2))
+            moveTo(cellAt(width.toFloat(), height.toFloat(), 0, 3))
+            moveTo(cellAt(width.toFloat(), height.toFloat(), 0, 4))
+            moveTo(cellAt(width.toFloat(), height.toFloat(), 1, 4))
+            moveTo(cellAt(width.toFloat(), height.toFloat(), 1, 3))
+            moveTo(cellAt(width.toFloat(), height.toFloat(), 1, 2))
+            up()
+        }
+        composeRule.waitForIdle()
+        assertEquals(LightBoardTokens.pathTrace, cellPixel(1, 2))
+
+        // North from the tail (1, 2) at the traced (0, 2): a path cell is a wall — the tip
+        // leans nowhere into it and the line is never cut back to it.
+        composeRule.onNodeWithTag("play.board").performTouchInput {
+            down(cellAt(width.toFloat(), height.toFloat(), 1, 2))
+            moveTo(Offset(width * 2.5f / 5, height * 0.9f / 5))
+            moveTo(cellAt(width.toFloat(), height.toFloat(), 0, 2))
+        }
+        composeRule.waitForIdle()
+        assertNotEquals(LightBoardTokens.pathTrace, boardPixel(2.5f, 1.05f))
+        assertEquals(LightBoardTokens.pathTrace, cellPixel(1, 2))
+        assertEquals(LightBoardTokens.pathTrace, cellPixel(1, 3))
+
+        composeRule.onNodeWithTag("play.board").performTouchInput { up() }
+    }
 }

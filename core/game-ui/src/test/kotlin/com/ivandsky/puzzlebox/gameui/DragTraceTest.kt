@@ -167,13 +167,13 @@ class DragTraceTest {
     }
 
     @Test
-    fun `drawing onto an earlier traced cell cuts the trace back to it`() {
+    fun `dragging onto an earlier traced cell is refused like a wall and never cuts`() {
         setContent(path = listOf(GridCell(0, 0), GridCell(0, 1), GridCell(0, 2), GridCell(1, 2)))
         composeRule.onNodeWithTag("trace").performTouchInput {
             down(cellCenter(1, 0)) // untraced, non-adjacent to the tail → refused
             moveTo(cellCenter(1, 1)) // adjacent to the tail → extends
-            moveTo(cellCenter(0, 1)) // traced, not the previous cell → cuts back to it
-            moveTo(cellCenter(1, 1)) // the cut cell is free again → extends
+            moveTo(cellCenter(0, 1)) // traced, not the previous cell → the wall refuses
+            moveTo(cellCenter(1, 0)) // free again beside the tail → extends
             up()
         }
         composeRule.waitForIdle()
@@ -181,23 +181,26 @@ class DragTraceTest {
             listOf(
                 DragEvent.Refused(GridCell(1, 0)),
                 DragEvent.Extend(GridCell(1, 1)),
-                DragEvent.Retract(1),
-                DragEvent.Extend(GridCell(1, 1)),
+                DragEvent.Refused(GridCell(0, 1)),
+                DragEvent.Extend(GridCell(1, 0)),
             ),
             events,
         )
     }
 
     @Test
-    fun `a stroke starting on an earlier traced cell cuts back to it, then draws on from there`() {
+    fun `a stroke starting on an earlier traced cell is refused there and never picks the line up`() {
         setContent(path = listOf(GridCell(2, 1), GridCell(2, 2), GridCell(1, 2), GridCell(0, 2)))
         composeRule.onNodeWithTag("trace").performTouchInput {
-            down(cellCenter(2, 2)) // traced, not the tail
-            moveTo(cellCenter(3, 2)) // the stroke picked the line up at (2, 2) → extends from there
+            down(cellCenter(2, 2)) // traced, not the tail → the wall refuses, no pickup
+            moveTo(cellCenter(3, 2)) // adjacent to (2, 2) but not to the tail (0, 2) → refused
             up()
         }
         composeRule.waitForIdle()
-        assertEquals(listOf(DragEvent.Retract(1), DragEvent.Extend(GridCell(3, 2))), events)
+        assertEquals(
+            listOf(DragEvent.Refused(GridCell(2, 2)), DragEvent.Refused(GridCell(3, 2))),
+            events,
+        )
     }
 
     @Test

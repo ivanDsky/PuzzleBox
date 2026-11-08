@@ -16,9 +16,8 @@ import androidx.compose.ui.input.pointer.pointerInput
  * Game events out of the trace gesture (user gate feedback R1 — ticket 26): a stroke
  * never cancels or penalizes wholesale. Valid next-cell steps extend; invalid cells leave
  * the trace untouched (reported as [DragEvent.Refused]) so the finger may wander without
- * penalty; lifting the finger keeps the trace
- * exactly as drawn. Retraction is deliberate: a tap on a traced cell, or drawing back over
- * the line (any traced cell, see [DragTraceBoard]).
+ * penalty; lifting the finger keeps the trace exactly as drawn. Retraction is deliberate:
+ * a tap on a traced cell, or drawing back over the previous cell (see [DragTraceBoard]).
  */
 sealed interface DragEvent {
     /** Finger dragged onto [cell] and the game's canExtend predicate allowed it. */
@@ -52,13 +51,13 @@ fun interface DragTraceHooks {
 /**
  * Board + drag-trace gesture surface: the Zip/Strands input component. The working trace
  * is anchored at the committed [path]'s end. Gesture contract (R1):
- *
  * - **Drawing never cancels.** Past the touch slop the stroke is a drag: hook-approved
- *   cells extend, everything else (wrong/non-adjacent) is reported Refused. Drawing onto
- *   a traced cell cuts the trace back to it: the previous cell undoes one cell, an earlier
- *   one undoes down to it, and a stroke that starts on a traced cell picks the line up there.
- *   Cells take effect by the finger's catch shape, not their bare rect ([DragTraceStroke]).
- *   Releasing keeps the trace exactly as drawn; no event fires on release.
+ *   cells extend, everything else is reported Refused. The drawn path is a wall: dragging
+ *   onto the cell before the tail steps back one cell ([DragEvent.Retract]), the only way
+ *   onto the line, and every other traced cell is refused — never cut back to, crossed or
+ *   picked up. Cells take effect by the finger's catch shape, not their bare rect
+ *   ([DragTraceStroke]). Releasing keeps the trace exactly as drawn; no event fires on
+ *   release.
  * - **Tap retracts.** Down+up within the touch slop on a traced cell trims the path back
  *   through it ([DragEvent.Retract]); on the first traced cell it empties the trace to
  *   the start state ([DragEvent.Clear]); a tap anywhere else is a no-op. A tap never

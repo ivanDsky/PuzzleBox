@@ -80,18 +80,31 @@ class DragTraceStrokeTest {
     }
 
     @Test
-    fun `a stroke that starts on an earlier traced cell cuts the trace back to it, then carries on from there`() {
-        val s = stroke(listOf(GridCell(2, 1), GridCell(2, 2), GridCell(1, 2), GridCell(0, 2)), centre(2, 2))
-        s.feed(segment(centre(2, 2), centre(3, 2), steps = 6))
-        assertEquals(listOf<DragEvent>(DragEvent.Retract(1), DragEvent.Extend(GridCell(3, 2))), s.second)
+    fun `a stroke that starts on an earlier traced cell is refused there and never picks the line up`() {
+        val traced = listOf(GridCell(0, 0), GridCell(0, 1), GridCell(0, 2), GridCell(0, 3), GridCell(0, 4))
+        val s = stroke(traced, centre(0, 1))
+        s.feed(segment(centre(0, 1), centre(1, 1), steps = 6))
+        assertEquals(
+            listOf(DragEvent.Refused(GridCell(0, 1)), DragEvent.Refused(GridCell(1, 1))),
+            s.second,
+        )
+        assertEquals("the line is neither cut nor picked up", traced, s.first.path)
     }
 
     @Test
-    fun `drawing onto an earlier traced cell, not just the previous one, cuts the trace back to it`() {
+    fun `an earlier traced cell is a wall - refused, never cut, and the stroke draws on from the tail`() {
         val s = stroke(listOf(GridCell(0, 0), GridCell(0, 1), GridCell(0, 2), GridCell(1, 2)), centre(1, 2))
         s.feed(segment(centre(1, 2), centre(1, 1), steps = 6)) // extends (1, 1)
-        s.feed(segment(centre(1, 1), centre(0, 1), steps = 6)) // adjacent to the tail, but traced earlier
-        assertEquals(listOf<DragEvent>(DragEvent.Extend(GridCell(1, 1)), DragEvent.Retract(1)), s.second)
+        s.feed(segment(centre(1, 1), centre(0, 1), steps = 6)) // traced earlier, not the previous cell: the wall refuses
+        s.feed(segment(centre(0, 1), centre(1, 0), steps = 6)) // free again beside the tail: the stroke draws on
+        assertEquals(
+            listOf(
+                DragEvent.Extend(GridCell(1, 1)),
+                DragEvent.Refused(GridCell(0, 1)),
+                DragEvent.Extend(GridCell(1, 0)),
+            ),
+            s.second,
+        )
     }
 
     @Test

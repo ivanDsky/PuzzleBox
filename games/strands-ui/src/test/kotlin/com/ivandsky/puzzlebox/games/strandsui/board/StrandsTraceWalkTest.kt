@@ -92,14 +92,20 @@ class StrandsTraceWalkTest {
     }
 
     @Test
-    fun `drawing back over an earlier letter, not just the previous one, cuts the trace back to it`() {
-        // East along row 2, down, back west along row 3: (3, 1) lies under (2, 1), and drawing
-        // up onto (2, 1) cuts the U-turn off.
+    fun `drawing back over an earlier letter joins nothing - the path is a wall the trace draws on from`() {
+        // East along row 2, down, back west along row 3, then up onto (2, 1): traced earlier, not
+        // the previous letter — the wall refuses, the U-turn stays, and the trace draws on south.
         val finger = polyline(
-            listOf(centre(Coord(2, 0)), centre(Coord(2, 2)), centre(Coord(3, 2)), centre(Coord(3, 1)), centre(Coord(2, 1))),
+            listOf(
+                centre(Coord(2, 0)), centre(Coord(2, 2)), centre(Coord(3, 2)), centre(Coord(3, 1)),
+                centre(Coord(2, 1)), centre(Coord(4, 1)),
+            ),
             FINE,
         )
-        assertEquals(listOf(Coord(2, 0), Coord(2, 1)), drag(finger))
+        assertEquals(
+            listOf(Coord(2, 0), Coord(2, 1), Coord(2, 2), Coord(3, 2), Coord(3, 1), Coord(4, 1)),
+            drag(finger),
+        )
     }
 
     @Test

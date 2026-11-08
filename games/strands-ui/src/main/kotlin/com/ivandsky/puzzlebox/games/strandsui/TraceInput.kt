@@ -26,11 +26,10 @@ object TraceInput {
 
     fun dragStart(at: Coord): TraceStep = startAt(at)
 
-    /** Over an earlier cell: cut back to it. Over an adjacent unused cell: append. Else nothing changes. */
+    /** Over the previous letter: step back one. Over an adjacent unused letter: append. Over any other traced letter: the path is a wall — nothing changes. Else nothing changes. */
     fun dragTo(trace: Trace, at: Coord): TraceStep {
         val path = trace.path
-        val earlier = path.indexOf(at)
-        if (earlier in 0 until path.lastIndex) return TraceStep.Updated(Trace(path.subList(0, earlier + 1).toList()))
+        if (path.size >= 2 && at == path[path.size - 2]) return TraceStep.Updated(Trace(path.dropLast(1)))
         if (path.isNotEmpty() && extends(path, at)) return TraceStep.Updated(Trace(path + at))
         return TraceStep.Updated(trace)
     }

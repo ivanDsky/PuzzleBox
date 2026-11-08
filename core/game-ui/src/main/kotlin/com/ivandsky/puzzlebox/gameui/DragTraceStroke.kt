@@ -13,8 +13,10 @@ import kotlin.math.floor
  * and a cell takes effect when the finger first comes into its catch shape ([DragTraceCatch]),
  * not its bare rect: a finger that grazes a cell's corner on its way to another never touches it.
  *
- * - The tail again: nothing. Any earlier traced cell: the trace cuts back to it ([DragEvent.Retract]),
- *   so drawing back over the line undoes it one cell at a time, and touching mid-line picks it up there.
+ * - The tail again: nothing. The cell before the tail: the trace steps back one cell
+ *   ([DragEvent.Retract]) — the only way onto the drawn line, so backing along it undoes it
+ *   one cell at a time. Any other traced cell is a wall ([DragEvent.Refused]): never cut
+ *   back to, never crossed, never picked up.
  * - A cell the hooks accept: extends. A diagonal neighbour of the tail the hooks refuse, a 4-way
  *   game's corner cut: extends through whichever side cell the finger passed closer to, when
  *   the hooks accept both steps.
@@ -81,9 +83,9 @@ internal class DragTraceStroke(
         at = to
     }
 
-    /** An earlier traced cell is caught across its whole width, so backing up is quick; a new one only deep in, so a cell just left is not taken straight back. */
+    /** The cell before the tail is caught right to its edge: stepping back is never the hard part. */
     private fun reachOf(cell: GridCell): Float =
-        if (cell in path) DragTraceCatch.RetractReach else DragTraceCatch.ExtendReach
+        if (cell == path.getOrNull(path.lastIndex - 1)) DragTraceCatch.RetractReach else DragTraceCatch.ExtendReach
 
     private fun record(point: Offset) {
         if (trail.size == TRAIL_CAPACITY) trail.removeFirst()
@@ -92,24 +94,31 @@ internal class DragTraceStroke(
 
     private fun enter(cell: GridCell) {
         visited = cell
-        val index = path.indexOf(cell)
         when {
-            index >= 0 -> if (index < path.lastIndex) {
-                path = path.take(index + 1)
+            cell == path.getOrNull(path.lastIndex - 1) -> {
+                path = path.dropLast(1)
                 trail.clear()
-                emit(DragEvent.Retract(index))
+                emit(DragEvent.Retract(path.lastIndex))
             }
+            cell == path.lastOrNull() -> Unit // the tail: where the tip already rests
+            cell in path -> refuse(cell) // the drawn line is a wall
             hooks.canExtend(path, cell) -> extend(cell)
             else -> {
                 val bridge = bridgeTo(cell)
                 if (bridge != null) {
                     extend(bridge)
                     extend(cell)
-                } else if (!refused) {
-                    refused = true
-                    emit(DragEvent.Refused(cell))
+                } else {
+                    refuse(cell)
                 }
             }
+        }
+    }
+
+    private fun refuse(cell: GridCell) {
+        if (!refused) {
+            refused = true
+            emit(DragEvent.Refused(cell))
         }
     }
 
@@ -158,9 +167,10 @@ internal class DragTraceStroke(
 
 /**
  * Which part of a cell the finger must be in for the cell to count, in cell pitches from its
- * centre: a plus shape. Along either axis the cell is caught out to [ExtendReach] (new cell) or
- * [RetractReach] (earlier traced cell), but only while the other offset is within [Arm]; the four
- * corners are dead, so a finger skirting a cell's corner on its way to the next one never takes it.
+ * centre: a plus shape. Along either axis the cell is caught out to [ExtendReach] (any cell
+ * the stroke refuses or extends) or [RetractReach] (the cell before the tail, the one step
+ * back), but only while the other offset is within [Arm]; the four corners are dead, so a
+ * finger skirting a cell's corner on its way to the next one never takes it.
  */
 internal object DragTraceCatch {
     /** A move is walked in steps no longer than this (cell pitches), so a fast swipe skips no cell. */
@@ -172,7 +182,7 @@ internal object DragTraceCatch {
     /** How far from its centre a new cell is caught; the rest of the half-pitch is a dead rim that keeps a just-retracted cell from re-extending at once. */
     const val ExtendReach: Float = 0.42f
 
-    /** An earlier traced cell is caught right to its edge: undoing is never the hard part. */
+    /** The cell before the tail is caught right to its edge: stepping back is never the hard part. */
     const val RetractReach: Float = 0.5f
 
     fun catches(u: Float, v: Float, reach: Float): Boolean {

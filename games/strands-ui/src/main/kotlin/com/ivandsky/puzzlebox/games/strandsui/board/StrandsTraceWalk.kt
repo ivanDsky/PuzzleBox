@@ -11,9 +11,11 @@ import kotlin.math.ceil
  * angle from the last centre, so a diagonal drawn beside the centre line stays diagonal and a
  * finger resting off-centre, in a token's corner, decides nothing.
  *
- * From the tail: nothing joins within [StrandsBoardSpec.StillCells]; an earlier letter
- * joins (a backtrack, cutting the trace back to it) inside [StrandsBoardSpec.BackJoinCells]
- * of its centre; any other letter only once the travel has decided a heading: a diagonal letter once the finger has come
+ * From the tail: nothing joins within [StrandsBoardSpec.StillCells]; the letter before the
+ * tail joins (a backtrack of one) inside [StrandsBoardSpec.BackJoinCells] of its centre —
+ * the only way onto the drawn path, which is otherwise a wall: an earlier letter joins
+ * nothing, never cuts and never re-joins; any other letter only once the travel has decided
+ * a heading: a diagonal letter once the finger has come
  * [StrandsBoardSpec.DiagonalJoinFraction] of the diagonal step, a side letter only inside
  * [StrandsBoardSpec.SideJoinCells] of its centre; a free neighbour whose heart
  * ([StrandsBoardSpec.HeartCells]) the finger has come to joins whatever the heading, so a
@@ -62,8 +64,7 @@ internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, do
         val fromTail = point - centreOf(tail)
         if (reaches(point, path)) reached = tail
         if (fromTail.getDistance() < StrandsBoardSpec.StillCells) return null
-        val earlier = path.dropLast(1).firstOrNull { (point - centreOf(it)).getDistance() <= StrandsBoardSpec.BackJoinCells }
-        if (earlier != null) return earlier
+        if (back != null && (point - centreOf(back)).getDistance() <= StrandsBoardSpec.BackJoinCells) return back
         if (reached != tail) return back?.let { reroute(point, path, tail, it) }
         return heartOf(point, path, tail) ?: joinFrom(point, path, tail)
     }
