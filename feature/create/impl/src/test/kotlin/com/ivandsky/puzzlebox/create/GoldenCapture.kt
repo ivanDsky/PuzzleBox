@@ -46,7 +46,8 @@ internal fun ComposeContentTestRule.showGolden(dark: Boolean, frozen: Boolean = 
 
 /**
  * Lets entrances settle, then captures the whole screen, dialogs and sheets included, to
- * `snapshots/<group>/<name>-<device>-<light|dark>.png`. Recorded by default, verified with
+ * `snapshots/<group>/<name>-<device>-<light|dark>.png`.
+ * Recorded with `-Proborazzi.record=true`, verified with
  * `-Proborazzi.verify=true`.
  */
 @OptIn(ExperimentalRoborazziApi::class)

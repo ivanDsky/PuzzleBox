@@ -136,7 +136,8 @@ Tests:
 ./gradlew check                        # tests, lint and the module-graph guard (checkModuleGraph)
 ```
 
-Without `-Proborazzi.verify=true` the screenshot tests re-record their goldens.
+By default the screenshot tests only compare (diffs go under `build/`; they never fail on drift or
+write a tracked file). `-Proborazzi.verify=true` fails on drift; `-Proborazzi.record=true` records.
 
 ## Contributing
 

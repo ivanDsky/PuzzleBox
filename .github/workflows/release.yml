@@ -39,9 +39,8 @@ jobs:
       # JVM modules, every Android module's debug unit tests, :app's release host tests
       # (ReleaseGameModulesTest, ReleaseUpdateChecksTest, ReleaseFlagsBindingTest) and :konsist (ADR-0009).
       # Screenshot goldens are recorded on macOS: Linux fonts drift, so pixels are not
-      # verified here (roborazzi stays in record mode, and goldens.pixelCompare=false makes
-      # the Tango harness skip its always-on pixel diff); verify them locally with
-      # -Proborazzi.verify=true.
+      # verified here (the default golden mode only compares: it never fails on drift and never
+      # writes a tracked golden); verify them locally with -Proborazzi.verify=true.
       - name: Build and unit tests
         run: ./gradlew assembleDebug test --continue -Pgoldens.pixelCompare=false
 

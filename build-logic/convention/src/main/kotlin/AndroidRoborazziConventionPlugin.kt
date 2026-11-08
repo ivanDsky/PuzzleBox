@@ -19,30 +19,42 @@ import org.gradle.process.CommandLineArgumentProvider
  * TestedExtension), so there are no `recordRoborazzi*`/`verifyRoborazzi*` tasks: the plain
  * unit-test task captures, and this plugin selects the mode through system properties.
  *
- * Golden policy — one flag for every module:
- * - default (no flag, or `-Proborazzi.verify=false`): RECORD — captures (re)write the
- *   goldens.
- * - `-Proborazzi.verify=true` (bare `-Proborazzi.verify` counts as true): VERIFY —
- *   re-capture and fail on any pixel drift against the committed goldens.
+ * Golden policy — one flag for every module, three modes:
+ * - default (no flag): COMPARE — re-capture, write the diff images under `build/` and never
+ *   fail on drift or touch a golden. A plain `test` run (the merge gate, on any OS) leaves
+ *   the worktree clean.
+ * - `-Proborazzi.verify=true` (bare `-Proborazzi.verify` counts as true): VERIFY — fail on
+ *   any pixel drift against the committed goldens. The strict local check.
+ * - `-Proborazzi.record=true` (bare `-Proborazzi.record` counts as true): RECORD — captures
+ *   (re)write the goldens. Only this flag writes into a tracked golden directory.
  *
  * Golden locations are owned by each test (e.g. `app/snapshots`, `games/<id>-ui/snapshots`,
  * `games/tango-ui/src/test/resources/goldens`), never by this plugin.
  *
- * Modules whose test harness owns the compare set [RoborazziGoldensExtension.harnessVerifyProperty]:
- * Roborazzi then always records (to the harness's scratch file) and the unified flag is
- * forwarded to the harness as that system property instead. `-Pgoldens.pixelCompare=false`
- * (CI on Linux, where the macOS-recorded goldens cannot match) reaches those harnesses as
- * the `goldens.pixelCompare` system property: they skip the pixel diff, nothing else.
+ * Modules whose test harness owns the compare set [RoborazziGoldensExtension.harnessModeProperty]:
+ * Roborazzi then always records (to the harness's scratch file) and the unified mode
+ * (`record`, `verify` or `compare`) is forwarded to the harness as that system property.
+ * `-Pgoldens.pixelCompare=false`
+ * (verify on Linux, where the macOS-recorded goldens cannot match) reaches those harnesses
+ * as the `goldens.pixelCompare` system property: they skip the pixel diff, nothing else.
  */
 class AndroidRoborazziConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
             val goldens = extensions.create<RoborazziGoldensExtension>("roborazziGoldens")
             val modeArgs = objects.newInstance<RoborazziModeArguments>().apply {
-                verify.set(
-                    providers.gradleProperty("roborazzi.verify").map { it != "false" }.orElse(false),
+                val record = providers.gradleProperty("roborazzi.record")
+                val verify = providers.gradleProperty("roborazzi.verify")
+                mode.set(
+                    providers.provider {
+                        when {
+                            record.orNull?.let { it != "false" } == true -> "record"
+                            verify.orNull?.let { it != "false" } == true -> "verify"
+                            else -> "compare"
+                        }
+                    },
                 )
-                harnessVerifyProperty.set(goldens.harnessVerifyProperty)
+                harnessModeProperty.set(goldens.harnessModeProperty)
                 pixelCompare.set(
                     providers.gradleProperty("goldens.pixelCompare").map { it != "false" }.orElse(true),
                 )
@@ -68,32 +80,37 @@ class AndroidRoborazziConventionPlugin : Plugin<Project> {
 
 abstract class RoborazziGoldensExtension {
     /**
-     * System property the module's own golden harness reads to decide verify vs record.
-     * Unset (default): Roborazzi itself records or verifies per the unified flag.
+     * System property the module's own golden harness reads for the mode (`record`,
+     * `verify` or `compare`). Unset (default): Roborazzi itself acts per the unified flag.
      */
-    abstract val harnessVerifyProperty: Property<String>
+    abstract val harnessModeProperty: Property<String>
 }
 
 abstract class RoborazziModeArguments : CommandLineArgumentProvider {
+    /** `record`, `verify` or `compare`. */
     @get:Input
-    abstract val verify: Property<Boolean>
+    abstract val mode: Property<String>
 
     @get:Input
     @get:Optional
-    abstract val harnessVerifyProperty: Property<String>
+    abstract val harnessModeProperty: Property<String>
 
     @get:Input
     abstract val pixelCompare: Property<Boolean>
 
     override fun asArguments(): Iterable<String> {
-        val verify = verify.get()
-        val harnessProperty = harnessVerifyProperty.orNull
+        val mode = mode.get()
+        val harnessProperty = harnessModeProperty.orNull
         return if (harnessProperty == null) {
-            listOf("-Droborazzi.test.record=${!verify}", "-Droborazzi.test.verify=$verify")
+            listOf(
+                "-Droborazzi.test.record=${mode == "record"}",
+                "-Droborazzi.test.verify=${mode == "verify"}",
+                "-Droborazzi.test.compare=${mode == "compare"}",
+            )
         } else {
             listOf(
                 "-Droborazzi.test.record=true",
-                "-D$harnessProperty=$verify",
+                "-D$harnessProperty=$mode",
                 "-Dgoldens.pixelCompare=${pixelCompare.get()}",
             )
         }
