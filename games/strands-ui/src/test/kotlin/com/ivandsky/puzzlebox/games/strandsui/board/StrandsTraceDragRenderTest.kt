@@ -1,0 +1,113 @@
+package com.ivandsky.puzzlebox.games.strandsui.board
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.games.strands.Coord
+import com.ivandsky.puzzlebox.games.strandsui.StrandsBoard
+import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayController
+import com.ivandsky.puzzlebox.games.strandsui.StrandsUiFixtures
+import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+
+/**
+ * The live trace connector on the real board, mid-gesture (the finger stays down): every
+ * letter the finger joins shows its connector in the rendered board. Frames are drawn every
+ * 16 ms for a quarter second after each move, as a device would, so a line whose end never
+ * advances to the last letter stays bare here.
+ */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], qualifiers = "w400dp-h700dp")
+class StrandsTraceDragRenderTest {
+
+    @get:Rule
+    val rule = createComposeRule()
+
+    private val controller = StrandsPlayController(
+        PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}),
+    ).also { assertEquals(Adopt.Adopted, it.adoptToday(StrandsUiFixtures.envelope(), StrandsUiFixtures.ref)) }
+
+    private fun show() = rule.setContent {
+        PuzzleBoxTheme(darkTheme = false) {
+            Box(Modifier.size(400.dp, 300.dp).testTag("host")) { StrandsBoard(controller) }
+        }
+    }
+
+    /** The board pixel halfway between letter [from] and its neighbour [to] on the 4 × 4 board, once frames have run. */
+    private fun between(from: Coord, to: Coord): Color {
+        lateinit var image: ImageBitmap
+        repeat(16) {
+            rule.mainClock.advanceTimeBy(16)
+            image = rule.onNodeWithTag("strands.board").captureToImage()
+        }
+        val pixels = image.toPixelMap()
+        val col = (from.col + to.col) / 2f + 0.5f
+        val row = (from.row + to.row) / 2f + 0.5f
+        return pixels[(pixels.width * col / 4).toInt(), (pixels.height * row / 4).toInt()]
+    }
+
+    private fun move(vararg to: Coord) = rule.onNodeWithTag("strands.board").performTouchInput {
+        to.forEach { moveTo(Offset(width * (it.col + 0.5f) / 4, height * (it.row + 0.5f) / 4)) }
+    }
+
+    @Test
+    fun `a held drag draws each connector it joins`() {
+        show()
+        rule.waitForIdle()
+        val bare = between(Coord(1, 1), Coord(1, 2))
+
+        rule.onNodeWithTag("strands.board").performTouchInput {
+            down(Offset(width * 0.5f / 4, height * 1.5f / 4))
+        }
+        move(Coord(1, 1))
+        val first = between(Coord(1, 0), Coord(1, 1))
+        assertNotEquals(bare, first)
+
+        move(Coord(1, 2))
+        assertEquals(first, between(Coord(1, 1), Coord(1, 2)))
+        move(Coord(1, 3))
+        assertEquals(first, between(Coord(1, 2), Coord(1, 3)))
+        assertEquals(first, between(Coord(1, 0), Coord(1, 1)))
+
+        rule.onNodeWithTag("strands.board").performTouchInput { up() }
+    }
+
+    @Test
+    fun `a held backtrack takes the last connector off`() {
+        show()
+        rule.waitForIdle()
+        val bare = between(Coord(1, 2), Coord(1, 3))
+        rule.onNodeWithTag("strands.board").performTouchInput {
+            down(Offset(width * 0.5f / 4, height * 1.5f / 4))
+        }
+        move(Coord(1, 1), Coord(1, 2), Coord(1, 3))
+        assertNotEquals(bare, between(Coord(1, 2), Coord(1, 3)))
+
+        move(Coord(1, 2))
+        assertEquals(bare, between(Coord(1, 2), Coord(1, 3)))
+
+        rule.onNodeWithTag("strands.board").performTouchInput { up() }
+    }
+}

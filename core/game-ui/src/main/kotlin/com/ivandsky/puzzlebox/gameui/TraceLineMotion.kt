@@ -78,7 +78,10 @@ class TraceLineMotion<C : Any>(private val scope: CoroutineScope) {
         return end
     }
 
-    private fun blending() = blendPending || blend.value < 1f
+    // Reads blend.value first, every call: the draw that starts a blend sees blendPending and
+    // would otherwise read no state, so the tween's first snap and every frame after it would
+    // never redraw the line.
+    private fun blending() = blend.value < 1f || blendPending
 
     private fun startBlend(from: Float, duration: Int, easing: Easing) {
         blendFrom = from

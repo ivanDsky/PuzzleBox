@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.runtime.MonotonicFrameClock
+import androidx.compose.runtime.snapshots.Snapshot
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -78,6 +79,32 @@ class TraceLineMotionTest {
         val motion = motion()
         motion.step(listOf(0, 1), animate = false)
         assertEquals(0f, motion.step(emptyList(), animate = true))
+    }
+
+    @Test
+    fun `the frame that starts a blend reads the blend state, so the tween redraws the line`() = runTest {
+        // A draw reruns only when state it read changes. The frame that grows the line starts a
+        // blend and draws its first frame before the tween's coroutine runs; if that frame read
+        // no state, the tween's snap and every frame after it would never redraw, and the end
+        // would stay where the previous frame left it.
+        val motion = motion()
+        fun reads(path: List<Int>): Int {
+            var count = 0
+            val snapshot = Snapshot.takeSnapshot(readObserver = { count++ })
+            try {
+                snapshot.enter { motion.step(path, animate = true) }
+            } finally {
+                snapshot.dispose()
+            }
+            return count
+        }
+
+        reads(listOf(0, 1))
+        assertTrue("growing frame reads state", reads(listOf(0, 1, 2)) > 0)
+        assertTrue("pending frame reads state", reads(listOf(0, 1, 2)) > 0)
+        frames(MotionTokens.Trace.GrowDuration / 2L) { reads(listOf(0, 1, 2)) }.forEach { assertTrue("mid-blend frame reads state", it > 0) }
+        val backtrack = reads(listOf(0, 1))
+        assertTrue("retracting frame reads state: $backtrack", backtrack > 0)
     }
 
     private fun TestScope.motion(): TraceLineMotion<Int> =
