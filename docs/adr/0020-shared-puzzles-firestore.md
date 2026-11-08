@@ -24,9 +24,11 @@ document, and an author must not be able to flood the project.
    `create` requires the author's uid, a valid shape, the text caps and the quota.
    `update` is author-only and can only flip `unpublished` from false to true. `delete` is
    false. A code is never reused.
-3. **Quota in rules.** `authors/{uid}` = `{day (UTC yyyy-MM-dd), count}`, written in the same
-   transaction as the create. The rule checks `getAfter` with `count ≤ 20`, and the count
-   resets when `day` changes.
+3. **Quota in rules.** `authors/{uid}` = `{day (UTC yyyy-MM-dd), count, last?}`, written in the
+   same transaction as the create. The rule checks `getAfter` with `count ≤ 20`, and the count
+   resets when `day` changes. `last` is the code the bump is for; when present, the create must
+   be for that code, so one bump covers one create. It is optional until a later rules-only
+   change requires it.
 4. **One board per puzzle.** `puzzles/{code}/entries/{uid}` mirrors the daily `validEntry`
    shape [ev: firestore.rules:33-43] with `ref == 'custom/' + gameId + '/' + code`. Only a
    signed-in non-author may create an entry, and only while the puzzle is published.

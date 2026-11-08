@@ -51,7 +51,7 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContra
             puzzles[code]?.let { return StoreWrite.Exists(it[SharedPuzzleDocCodec.FIELD_AUTHOR_UID] as String, it) }
             val count = nextPublishCount(authors[uid], utcDay) ?: return StoreWrite.CapReached
             write(code, fields)
-            authors[uid] = authorFields(utcDay, count)
+            authors[uid] = authorFields(utcDay, count, code)
             return StoreWrite.Created
         }
 
@@ -143,7 +143,7 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContra
 
         today = NEXT_DAY
         assertEquals(PublishResult.Published(codes.last()), repository.publish(doc(code = codes.last())))
-        assertEquals(authorFields(NEXT_DAY, 1), store.authors[AUTHOR])
+        assertEquals(authorFields(NEXT_DAY, 1, codes.last().value), store.authors[AUTHOR])
     }
 
     @Test
@@ -152,7 +152,26 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContra
         repository.publish(doc())
 
         assertEquals(PublishResult.Published(code()), repository.publish(doc()))
-        assertEquals(authorFields(DAY, 1), store.authors[AUTHOR])
+        assertEquals(authorFields(DAY, 1, code().value), store.authors[AUTHOR])
+    }
+
+    @Test
+    fun `a publish writes the author's bump naming the code it created`() = runTest {
+        signInAs(AUTHOR)
+        val first = code("K7Q2MA")
+        val second = code("K7Q2MB")
+
+        repository.publish(doc(code = first))
+        assertEquals(
+            mapOf("day" to DAY, "count" to 1L, "last" to first.value),
+            store.authors[AUTHOR],
+        )
+
+        repository.publish(doc(code = second))
+        assertEquals(
+            mapOf("day" to DAY, "count" to 2L, "last" to second.value),
+            store.authors[AUTHOR],
+        )
     }
 
     @Test

@@ -29,6 +29,11 @@ It exits non-zero when any verdict differs from the expected one. Request time i
 | deny | create | `puzzles/K7Q2MX` | alice | 21st create in a day (20 -> 21) |
 | deny | create | `puzzles/K7Q2MX` | alice | create without bumping the authors doc |
 | deny | create | `puzzles/K7Q2MX` | alice | create bumping the authors doc by two |
+| allow | create | `puzzles/K7Q2MX` | alice | create whose authors bump names its code (4 -> 5, last set) |
+| allow | create | `puzzles/K7Q2MX` | alice | old authors doc without last, then a create that writes last |
+| deny | create | `puzzles/K7Q2MX` | alice | two creates under one bump (last names the other code) |
+| allow | create | `puzzles/K7Q2MX` | alice | first create of a new UTC day with last restarts at 1 |
+| allow | create | `puzzles/K7Q2MX` | alice | first-ever create with last starts the authors doc at 1 |
 | deny | create | `puzzles/K7Q2MX` | alice | create whose authors doc is stamped with another day |
 | deny | create | `puzzles/K7Q2MX` | — | signed-out create |
 | deny | create | `puzzles/K7Q2MX` | bob | create as another uid |
@@ -70,6 +75,11 @@ It exits non-zero when any verdict differs from the expected one. Request time i
 | deny | update | `authors/alice` | alice | author resets the count the same day |
 | deny | update | `authors/alice` | alice | author stamps another day |
 | deny | create | `authors/alice` | alice | author starts the authors doc above 1 |
+| allow | update | `authors/alice` | alice | author writes the bump with last (4 -> 5) |
+| allow | create | `authors/alice` | alice | author starts the authors doc at 1 with last |
+| deny | update | `authors/alice` | alice | author writes a last that is no share code |
+| deny | update | `authors/alice` | alice | author writes an extra field beside last |
+| deny | update | `authors/alice` | alice | author writes a last that is not a string |
 | deny | update | `authors/alice` | bob | another user writes an authors doc |
 | deny | delete | `authors/alice` | alice | author deletes the authors doc |
 
@@ -151,9 +161,8 @@ the ref and the day always agree, so each row's path day is the ref day.
 
 ## Last run
 
-2026-11-07, rules at the commit that added the daily allow-list and day window (ticket 03, not deployed;
-the run uses the local source on the Rules Test API): **100 cases, 100/100 passed**, exit 0. The 80 cases
-before this ticket all still pass.
+2026-11-08, local `firestore.rules` after the daily-board rules and the optional `last` field (not deployed;
+the run uses the local source on the Rules Test API): **110 cases, 110/110 passed**, exit 0.
 
 ```
 PASS  ALLOW  [puzzles] anonymous get of a puzzle
@@ -167,6 +176,11 @@ PASS  ALLOW  [puzzles] 20th create in a day (19 -> 20)
 PASS  DENY  [puzzles] 21st create in a day (20 -> 21)
 PASS  DENY  [puzzles] create without bumping the authors doc
 PASS  DENY  [puzzles] create bumping the authors doc by two
+PASS  ALLOW  [puzzles] create whose authors bump names its code (4 -> 5, last set)
+PASS  ALLOW  [puzzles] old authors doc without last, then a create that writes last
+PASS  DENY  [puzzles] two creates under one bump (last names the other code)
+PASS  ALLOW  [puzzles] first create of a new UTC day with last restarts at 1
+PASS  ALLOW  [puzzles] first-ever create with last starts the authors doc at 1
 PASS  DENY  [puzzles] create whose authors doc is stamped with another day
 PASS  DENY  [puzzles] signed-out create
 PASS  DENY  [puzzles] create as another uid
@@ -203,6 +217,11 @@ PASS  DENY  [authors] author writes the 21st bump (20 -> 21)
 PASS  DENY  [authors] author resets the count the same day
 PASS  DENY  [authors] author stamps another day
 PASS  DENY  [authors] author starts the authors doc above 1
+PASS  ALLOW  [authors] author writes the bump with last (4 -> 5)
+PASS  ALLOW  [authors] author starts the authors doc at 1 with last
+PASS  DENY  [authors] author writes a last that is no share code
+PASS  DENY  [authors] author writes an extra field beside last
+PASS  DENY  [authors] author writes a last that is not a string
 PASS  DENY  [authors] another user writes an authors doc
 PASS  DENY  [authors] author deletes the authors doc
 PASS  ALLOW  [puzzle entries] signed-in friend writes a first entry
@@ -256,5 +275,5 @@ PASS  DENY  [daily leaderboards (allow-list and day window)] queens entry for a 
 PASS  DENY  [deny-all] signed-in read of an unmatched path
 PASS  DENY  [deny-all] signed-in write of an unmatched path
 PASS  DENY  [deny-all] signed-in read of a puzzle's unknown subcollection
-100/100 passed
+110/110 passed
 ```
