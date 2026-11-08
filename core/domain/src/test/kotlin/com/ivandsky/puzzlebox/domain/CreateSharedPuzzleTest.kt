@@ -160,6 +160,38 @@ class CreateSharedPuzzleTest {
         assertEquals("Start top left", doc.note)
     }
 
+    @Test
+    fun `a backend SignedOut reaches the caller and lists nothing`() = runTest {
+        backend.signedInUid = null
+        drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)))
+
+        assertEquals(PublishOutcome.SignedOut, createShared()(DRAFT_ID, board, unique))
+        assertNothingPublished()
+    }
+
+    @Test
+    fun `an Offline backend reaches the caller and lists nothing`() = runTest {
+        backend.online = false
+        drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)))
+
+        assertEquals(PublishOutcome.Offline, createShared()(DRAFT_ID, board, unique))
+        assertNothingPublished()
+    }
+
+    @Test
+    fun `a reached daily cap reaches the caller and lists nothing`() = runTest {
+        backend.publishesToday = Int.MAX_VALUE
+        drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)))
+
+        assertEquals(PublishOutcome.DailyCapReached, createShared()(DRAFT_ID, board, unique))
+        assertNothingPublished()
+    }
+
+    private fun assertNothingPublished() {
+        assertTrue("no shared doc", backend.docs.isEmpty())
+        assertTrue("no published row", published.rows.isEmpty())
+    }
+
     private fun stored(testSolve: TestSolve?, reservedCode: String? = null) = Draft(
         id = DRAFT_ID,
         gameId = GameId("list"),
