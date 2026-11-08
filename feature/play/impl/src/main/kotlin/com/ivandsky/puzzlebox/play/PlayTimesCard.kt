@@ -33,6 +33,10 @@ import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
+import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.gameui.bestScoreText
+import com.ivandsky.puzzlebox.gameui.rankRuleText
 
 private enum class TimesTab(val label: String, val tag: String) {
     Top("Top", "play.stats.tab.top"),
@@ -57,7 +61,7 @@ private const val LIST_ROWS = 6
 internal fun PlayTimesCard(times: PlayTimes, modifier: Modifier = Modifier) {
     var tab by rememberSaveable { mutableStateOf(TimesTab.Top) }
     StatsCard(modifier.testTag("play.stats.times")) {
-        CardLabel("Times today", Modifier.padding(bottom = Spacing.sm))
+        CardLabel((times as? PlayTimes.Board)?.order?.let(::rankRuleText) ?: "Times today", Modifier.padding(bottom = Spacing.sm))
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             TimesTab.entries.forEachIndexed { index, entry ->
                 SegmentedButton(
@@ -81,7 +85,7 @@ internal fun PlayTimesCard(times: PlayTimes, modifier: Modifier = Modifier) {
                     modifier = Modifier.align(Alignment.Center).padding(horizontal = Spacing.lg).testTag("play.stats.times.note"),
                 )
             } else if (rows != null) {
-                Column { rows.forEach { TimeRow(it) } }
+                Column { rows.forEach { TimeRow(it, (times as PlayTimes.Board).order) } }
             }
         }
     }
@@ -99,7 +103,7 @@ private fun noteFor(times: PlayTimes, rows: List<PlayTimeRow>?): String? = when 
 }
 
 @Composable
-private fun TimeRow(row: PlayTimeRow) {
+private fun TimeRow(row: PlayTimeRow, order: RankOrder?) {
     val colors = MaterialTheme.colorScheme
     val ink = if (row.you) colors.onPrimaryContainer else colors.onSurface
     val name = if (row.you) "You" else row.name
@@ -132,6 +136,11 @@ private fun TimeRow(row: PlayTimeRow) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        Text(formatDuration(row.timeMs), style = MaterialTheme.typography.titleSmall.tabular(), fontWeight = FontWeight.Bold, color = ink)
+        Text(
+            order?.let { bestScoreText(BestScore(row.timeMs, row.hints), it) } ?: formatDuration(row.timeMs),
+            style = MaterialTheme.typography.titleSmall.tabular(),
+            fontWeight = FontWeight.Bold,
+            color = ink,
+        )
     }
 }

@@ -39,7 +39,7 @@ private val Loaded = PlayStatsState(
     averageMs = 58_000L,
     times = PlayTimes.Board(
         listOf("Mia", "Jonas", "Priya", "Alexandria-Charlotte Whitfield", "Tom", "Sam", "Ivan", "Lee")
-            .mapIndexed { index, name -> PlayTimeRow(index + 1, name, 30_000L + index * 9_000L, you = name == "Ivan") },
+            .mapIndexed { index, name -> PlayTimeRow(index + 1, name, 30_000L + index * 9_000L, hints = 0, you = name == "Ivan") },
         solved = true,
     ),
 )
@@ -95,3 +95,19 @@ internal fun PlayStatsPanelPostingPreview() = PanelPreview(
 @Composable
 internal fun PlayStatsPanelEmptyBoardPreview() =
     PanelPreview(Loaded.copy(times = PlayTimes.Board(emptyList(), solved = false)), elapsedMs = 4_000L)
+
+/** Per-game board on, hints-first game: rows lead with hints and the label names the rule. */
+@PuzzleBoxPreviews
+@Composable
+internal fun PlayStatsPanelHintsFirstPreview() = PanelPreview(
+    Loaded.copy(
+        rankOrder = RankOrder.HintsThenTime,
+        times = (Loaded.times as PlayTimes.Board).let { board ->
+            board.copy(
+                rows = board.rows.mapIndexed { index, row -> row.copy(hints = index / 2) },
+                order = RankOrder.HintsThenTime,
+            )
+        },
+    ),
+    elapsedMs = 31_000L,
+)
