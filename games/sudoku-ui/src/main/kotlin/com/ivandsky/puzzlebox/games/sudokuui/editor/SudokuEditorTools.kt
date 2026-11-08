@@ -22,8 +22,8 @@ import com.ivandsky.puzzlebox.games.sudokuui.SudokuSizing
 
 /**
  * The tools row under the grid, [height] tall: Erase, Clear, and a third slot kept free for
- * the symmetry toggle. Erase stays on with nothing selected (it then nudges); Clear is off while the
- * board holds no digit.
+ * the symmetry toggle. Erase stays on with nothing selected (it then nudges); Clear is off
+ * while the board holds no digit.
  */
 @Composable
 internal fun SudokuEditorTools(

@@ -46,7 +46,10 @@ class SudokuEditorUi(private val definition: SudokuDefinition) : GameEditorUi {
         SudokuEditorBoard(controller as SudokuEditorController, definition.variant.geometry, modifier)
     }
 
-    /** "Tap a cell, then a digit", or the selected cell's position; it shakes on a refused entry. */
+    /**
+     * "Tap a cell, then a digit", or the selected cell's position; it shakes on a refused
+     * entry.
+     */
     @Composable
     override fun ToolHint(controller: GameEditorController, modifier: Modifier) {
         SudokuToolHint(controller as SudokuEditorController, definition.variant.geometry, modifier)

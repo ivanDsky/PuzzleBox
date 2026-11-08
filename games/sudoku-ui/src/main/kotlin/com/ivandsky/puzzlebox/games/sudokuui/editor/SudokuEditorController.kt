@@ -38,7 +38,10 @@ class SudokuEditorController(
     /** The selected cell's row-major index; null when none. */
     val selected: StateFlow<Int?> = picked.asStateFlow()
 
-    /** One event per refused entry (a digit or Erase with no cell selected); the hint shakes on it. */
+    /**
+     * One event per refused entry (a digit or Erase with no cell selected); the hint shakes
+     * on it.
+     */
     val nudge: SharedFlow<Unit> = nudges.asSharedFlow()
 
     override fun adopt(draft: EditorDraft<*>) {
