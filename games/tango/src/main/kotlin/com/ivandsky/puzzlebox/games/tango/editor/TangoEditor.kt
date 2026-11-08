@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.DraftExport
 import com.ivandsky.puzzlebox.game.editor.DraftState
+import com.ivandsky.puzzlebox.game.editor.EditorNotation
 import com.ivandsky.puzzlebox.game.editor.EditorShareCodec
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
@@ -20,12 +21,14 @@ import com.ivandsky.puzzlebox.model.GameId
  * Tango's pure editor (ADR-0019): one 6×6 variant, a new board has no givens and no markers,
  * drafts persist through [TangoDraftCodec], analysis is [TangoDraftAnalyzer] and publishing
  * is gated by [TangoPublishGates]. A unique draft exports through [TangoCodec] so test solve
- * plays a real puzzle, and shares as givens-and-markers [TangoShareCodec] bytes.
+ * plays a real puzzle, and shares as givens-and-markers [TangoShareCodec] bytes. Its text form
+ * is [TangoNotation] (M5-12-a).
  */
 object TangoEditor :
     GameEditor<TangoDraft>,
     DraftExport<TangoDraft>,
-    EditorShareCodec<TangoDraft> by TangoShareCodec {
+    EditorShareCodec<TangoDraft> by TangoShareCodec,
+    EditorNotation<TangoDraft> by TangoNotation {
     private val N6 = VariantId("tango/n${TangoDraft.N}")
 
     override val gameId: GameId get() = TangoDefinition.id
