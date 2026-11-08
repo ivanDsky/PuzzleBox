@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.play.friend
+package com.ivandsky.puzzlebox.play.board
 
 import android.content.Context
 import com.ivandsky.puzzlebox.auth.GoogleIdToken

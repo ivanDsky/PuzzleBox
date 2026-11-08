@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.domain.AuthorPin
 import com.ivandsky.puzzlebox.domain.CustomBoardView
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
 
 // My row below the cut pops in from a little smaller, on the stamp's spring.
 private const val MINE_POP_FROM_SCALE = 0.9f

@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.domain.AuthorPin
 import com.ivandsky.puzzlebox.domain.CustomBoardView
 import com.ivandsky.puzzlebox.domain.RankedEntry
 import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
 
 // The rows a friend puzzle's board is drawn from, shared by the result's board and the card's preview.
 

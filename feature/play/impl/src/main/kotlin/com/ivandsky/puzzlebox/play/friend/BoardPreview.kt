@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.AuthorPin
 import com.ivandsky.puzzlebox.domain.CustomBoardView
 import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
 
 /**
  * The card's look at the puzzle's board before playing: the [author] pinned as on the result,

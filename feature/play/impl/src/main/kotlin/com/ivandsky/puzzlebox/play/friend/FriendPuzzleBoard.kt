@@ -9,6 +9,8 @@ import com.ivandsky.puzzlebox.domain.AuthorPin
 import com.ivandsky.puzzlebox.domain.ComputeCustomBoard
 import com.ivandsky.puzzlebox.domain.CustomBoardView
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
+import com.ivandsky.puzzlebox.play.board.BoardSignInHolder
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,10 +35,10 @@ internal class FriendPuzzleBoard(
     private val compute: ComputeCustomBoard,
 ) {
 
-    private val signIn = BoardSignInHolder(identity, idTokens)
+    private val signInHolder = BoardSignInHolder(identity, idTokens)
 
     /** How this screen's last sign-in went. */
-    val signInStatus: StateFlow<BoardSignIn> = signIn.status
+    val signInStatus: StateFlow<BoardSignIn> = signInHolder.status
 
     /**
      * [puzzle]'s board ranked by [order], pinning its author: the first [top] rows, read [read]
@@ -57,5 +59,5 @@ internal class FriendPuzzleBoard(
     }
 
     /** The board's Google button: [activityContext] hosts Google's account picker, and is not kept. A try under way is not repeated. */
-    suspend fun signIn(activityContext: Context) = signIn.signIn(activityContext)
+    suspend fun signIn(activityContext: Context) = signInHolder.signIn(activityContext)
 }
