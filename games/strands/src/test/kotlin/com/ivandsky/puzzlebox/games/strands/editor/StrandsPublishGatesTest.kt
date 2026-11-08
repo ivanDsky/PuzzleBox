@@ -9,10 +9,11 @@ import org.junit.Test
 class StrandsPublishGatesTest {
     private val verdict = Verdict.Undetermined
 
-    private fun path(word: String?) = StrandsDraftPath(listOf(0), word)
+    private fun path(index: Int, word: String?) =
+        StrandsDraftPath(if (index == 0) listOf(0, 5, 35, 41) else listOf(0), word)
 
     private fun draft(clue: String = "Fruit", vararg words: String?) =
-        StrandsDraft("", clue, words.map(::path), spangram = 0)
+        StrandsDraft("", clue, words.mapIndexed(::path), spangram = 0)
 
     private fun blocks(draft: StrandsDraft) = StrandsPublishGates.blocks(draft, verdict)
 
@@ -85,9 +86,29 @@ class StrandsPublishGatesTest {
     }
 
     @Test
+    fun `a spangram touching no opposite edge blocks`() {
+        val draft = StrandsDraft("", "Fruit", listOf(StrandsDraftPath(listOf(7), "PEAR")), spangram = 0)
+        assertEquals(listOf(PublishBlock("strands.spangram-edges")), blocks(draft))
+    }
+
+    @Test
+    fun `a spangram touching top and bottom passes and left and right passes`() {
+        val topBottom = StrandsDraftPath(listOf(0, 5, 35, 41), "PEAR")
+        val leftRight = StrandsDraftPath(listOf(0, 5, 42, 47), "PEAR")
+        assertEquals(emptyList<PublishBlock>(), blocks(StrandsDraft("", "Fruit", listOf(topBottom), spangram = 0)))
+        assertEquals(emptyList<PublishBlock>(), blocks(StrandsDraft("", "Fruit", listOf(leftRight), spangram = 0)))
+    }
+
+    @Test
     fun `blockIds lists every emitted id`() {
         assertEquals(
-            setOf(PublishBlock.BLOCKLISTED, StrandsPublishGates.CLUE_LENGTH, StrandsPublishGates.WORD_SHAPE, StrandsPublishGates.DUPLICATE_WORD),
+            setOf(
+                PublishBlock.BLOCKLISTED,
+                StrandsPublishGates.CLUE_LENGTH,
+                StrandsPublishGates.WORD_SHAPE,
+                StrandsPublishGates.DUPLICATE_WORD,
+                StrandsPublishGates.SPANGRAM_EDGES,
+            ),
             StrandsPublishGates.blockIds,
         )
     }
