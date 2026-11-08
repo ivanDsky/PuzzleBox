@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
@@ -35,6 +36,7 @@ val appModule = module {
             records = get<CompletionRepository>(),
             identityService = get<IdentityService>(),
             leaderboard = get<LeaderboardRepository>(),
+            calendar = get<GameCalendar>(),
             scope = get<CoroutineScope>(),
         )
     }

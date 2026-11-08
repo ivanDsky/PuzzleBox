@@ -8,6 +8,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.PostState
@@ -134,10 +136,23 @@ class FriendWinIsolationE2ETest {
             val readsBefore = dailyReads()
             graph.koin.get<LeaderboardSubmitWatcher>().start()
             graph.koin.get<CustomBoardSubmitter>().start()
-            rule.waitUntil(TIMEOUT_MS) { graph.leaderboard.submitted.size >= dailies.size }
+            // A7: only the game's today and yesterday reach the board; older dailies stay local.
+            val window = setOf(E2E_TODAY, E2E_TODAY.minusDays(1))
+            val refKey = { r: CompletionRecord -> PuzzleRefKeys.encode(r.puzzleRef) }
+            val (inWindow, outOfWindow) =
+                dailies.partition { LeaderboardRef.fromPuzzleRefKey(refKey(it))!!.day in window }
+            rule.waitUntil(TIMEOUT_MS) { graph.leaderboard.submitted.size >= inWindow.size }
             // A duplicate daily submit would land during the friend play and fail the final check.
             val dailySubmits = graph.leaderboard.submitted.toList()
-            assertEquals("each daily record reached its daily board once", dailies.size, dailySubmits.size)
+            assertEquals(
+                "each in-window daily record reached its daily board once",
+                inWindow.map(refKey).sorted(),
+                dailySubmits.map { it.puzzleRef }.sorted(),
+            )
+            assertTrue(
+                "out-of-window dailies are not submitted",
+                dailySubmits.none { it.puzzleRef in outOfWindow.map(refKey) },
+            )
 
             tapTab(PlayKey)
             openCard()
