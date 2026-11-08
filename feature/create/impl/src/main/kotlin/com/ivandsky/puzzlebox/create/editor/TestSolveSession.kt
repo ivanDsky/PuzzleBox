@@ -1,7 +1,10 @@
 package com.ivandsky.puzzlebox.create.editor
 
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.model.TestSolve
+import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.Adopt
@@ -17,6 +20,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * The draft's required test solve (spec A10, 00 §3): [start] opens the board as a sandbox on the
@@ -37,6 +42,7 @@ class TestSolveSession(
     private val draftId: String,
     private val plays: GamePlayRegistry,
     private val games: GameRegistry,
+    private val dispatchers: DispatcherProvider,
     private val scope: CoroutineScope,
     private val store: (TestSolve) -> Unit,
 ) {
@@ -68,6 +74,9 @@ class TestSolveSession(
     /** The sandbox's own scope, a child of [scope]; cancelled when the sandbox closes. */
     private var sandboxScope: CoroutineScope? = null
 
+    /** The export [start] is running off the main thread; null when none is. */
+    private var exporting: Job? = null
+
     /** The loaded draft and its stored [test]; no toast. */
     fun open(test: TestSolve?, draft: EditorDraft<*>) {
         tested = test
@@ -94,14 +103,24 @@ class TestSolveSession(
     /**
      * Opens [draft] as a sandbox when the [verdict] is Unique and the game exports puzzles: the
      * plain puzzle from [EditorDraft.toPuzzle] (author aids never reach it) under the draft's
-     * custom key. Ignored while a sandbox is open or when the game can't play the puzzle.
+     * custom key. The export runs on `dispatchers.default` and the sandbox opens back on [scope]'s
+     * dispatcher. Ignored while a sandbox is open or an export is running, or when the game can't
+     * play the puzzle; [close] or the end of [scope] during the export drops its result.
      */
     fun start(draft: EditorDraft<*>, verdict: Verdict) {
-        if (mutableSandbox.value != null || verdict !is Verdict.Unique) return
-        val puzzle = draft.toPuzzle(verdict.solution) ?: return
+        if (mutableSandbox.value != null || exporting != null || verdict !is Verdict.Unique) return
         val ui = plays[draft.gameId] ?: return
         val plugin = games[draft.gameId] ?: return
         val tested = draft.layoutKey
+        val job = scope.launch {
+            val puzzle = withContext(dispatchers.default) { draft.toPuzzle(verdict.solution) }
+            if (puzzle != null) openSandbox(ui, plugin, puzzle, tested)
+        }
+        exporting = job.takeIf { it.isActive }
+        job.invokeOnCompletion { if (exporting === job) exporting = null }
+    }
+
+    private fun openSandbox(ui: GamePlayUi, plugin: GamePlugin<*, *, *>, puzzle: Puzzle, tested: String) {
         val lifetime = CoroutineScope(scope.coroutineContext + SupervisorJob(scope.coroutineContext[Job]))
         val controller = ui.createController(
             PlayEnvironment(lifetime, onSessionChanged = {}, onWon = { record -> finish(tested, record.time, record.hints) }),
@@ -114,8 +133,10 @@ class TestSolveSession(
         mutableSandbox.value = Sandbox(ui, controller)
     }
 
-    /** Back to the editor: the sandbox and any unsolved progress are dropped. */
+    /** Back to the editor: the sandbox, an export still running and unsolved progress are dropped. */
     fun close() {
+        exporting?.cancel()
+        exporting = null
         sandboxScope?.cancel()
         sandboxScope = null
         mutableSandbox.value = null
