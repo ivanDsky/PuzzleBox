@@ -77,6 +77,26 @@ class CreateSharedPuzzleRetryTest {
     }
 
     @Test
+    fun `an edited title after a lost answer publishes under a fresh code with the new title`() = runTest {
+        drafts.upsert(ready())
+        backend.commitThenOffline = true
+        val publish = createShared()
+        assertEquals(PublishOutcome.Offline, publish(DRAFT_ID, board, unique))
+        val lost = checkNotNull(ShareCode.parse(checkNotNull(drafts.rows.getValue(DRAFT_ID).reservedCode)))
+        drafts.upsert(drafts.rows.getValue(DRAFT_ID).copy(title = "Fortress"))
+
+        val outcome = publish(DRAFT_ID, board, unique)
+
+        val code = (outcome as PublishOutcome.Published).code
+        assertTrue("a different code than the lost one", code != lost)
+        assertEquals("the new code is the reserved one", code.value, drafts.rows.getValue(DRAFT_ID).reservedCode)
+        assertEquals("friends get the new title", "Fortress", backend.docs.getValue(code).title)
+        assertEquals("the lost doc keeps its old title", "Castle", backend.docs.getValue(lost).title)
+        assertEquals("the row carries the new title", "Fortress", published.rows.getValue(code).title)
+        assertEquals("only the new code is listed", setOf(code), published.rows.keys)
+    }
+
+    @Test
     fun `a draft killed after its code was reserved publishes later under that code`() = runTest {
         drafts.upsert(ready())
         backend.online = false

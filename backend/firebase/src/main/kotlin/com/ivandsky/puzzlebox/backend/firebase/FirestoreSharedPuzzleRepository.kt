@@ -14,8 +14,10 @@ import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Firestore implementation of the shared-puzzle seam over `puzzles/{code}` and `authors/{uid}`
- * (ADR-0020). Publish is create-if-absent, so a retry with the same code after a lost ack is
- * [PublishResult.Published]. Every Firebase exception is mapped to a typed result here.
+ * (ADR-0020). Publish is create-if-absent, so a retry with the same code and content after a lost
+ * ack is [PublishResult.Published]; the same code with other content, or one the author has since
+ * unpublished, is [PublishResult.CodeTaken]. Every Firebase exception is mapped to a typed result
+ * here.
  */
 internal class FirestoreSharedPuzzleRepository(
     private val store: SharedPuzzleStore,
@@ -27,10 +29,17 @@ internal class FirestoreSharedPuzzleRepository(
         val uid = currentUid() ?: return PublishResult.SignedOut
         if (doc.authorUid != uid) return PublishResult.Rejected("authorUid is not the signed-in user")
         return try {
-            when (val write = store.publish(doc.code.value, SharedPuzzleDocCodec.encode(doc), uid, utcDay())) {
+            val fields = SharedPuzzleDocCodec.encode(doc)
+            when (val write = store.publish(doc.code.value, fields, uid, utcDay())) {
                 StoreWrite.Created -> PublishResult.Published(doc.code)
-                is StoreWrite.Exists ->
-                    if (write.authorUid == uid) PublishResult.Published(doc.code) else PublishResult.CodeTaken
+                // A retry after a lost ack finds its own doc. Changed content would leave friends
+                // on the old one and an unpublished doc is closed to them: both count as taken.
+                is StoreWrite.Exists -> {
+                    val retry = write.authorUid == uid &&
+                        write.fields[SharedPuzzleDocCodec.FIELD_UNPUBLISHED] != true &&
+                        SharedPuzzleDocCodec.sameContent(fields, write.fields)
+                    if (retry) PublishResult.Published(doc.code) else PublishResult.CodeTaken
+                }
                 // The transaction read today's count at the cap, so it never sent the create.
                 StoreWrite.CapReached -> PublishResult.DailyCapReached
             }

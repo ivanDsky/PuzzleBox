@@ -15,8 +15,8 @@ import kotlinx.coroutines.tasks.await
 internal interface SharedPuzzleStore {
 
     /**
-     * In one transaction: reports an existing `puzzles/{code}`, or stops at the cap, or creates
-     * the doc from [fields] and bumps the author's count for [utcDay].
+     * In one transaction: reports an existing `puzzles/{code}` with its fields, or stops at the
+     * cap, or creates the doc from [fields] and bumps the author's count for [utcDay].
      */
     suspend fun publish(code: String, fields: Map<String, Any?>, uid: String, utcDay: String): StoreWrite
 
@@ -30,7 +30,7 @@ internal interface SharedPuzzleStore {
 /** What a [SharedPuzzleStore.publish] transaction did. */
 internal sealed interface StoreWrite {
     data object Created : StoreWrite
-    data class Exists(val authorUid: String) : StoreWrite
+    data class Exists(val authorUid: String, val fields: Map<String, Any?>) : StoreWrite
     data object CapReached : StoreWrite
 }
 
@@ -66,7 +66,10 @@ internal class FirestoreSharedPuzzleStore : SharedPuzzleStore {
         return firestore.runTransaction<StoreWrite>(SINGLE_ATTEMPT) { tx ->
             val existing = tx.get(puzzleDoc)
             if (existing.exists()) {
-                return@runTransaction StoreWrite.Exists(existing.getString(SharedPuzzleDocCodec.FIELD_AUTHOR_UID).orEmpty())
+                return@runTransaction StoreWrite.Exists(
+                    authorUid = existing.getString(SharedPuzzleDocCodec.FIELD_AUTHOR_UID).orEmpty(),
+                    fields = existing.data.orEmpty(),
+                )
             }
             val count = nextPublishCount(tx.get(authorDoc).data, utcDay)
                 ?: return@runTransaction StoreWrite.CapReached
