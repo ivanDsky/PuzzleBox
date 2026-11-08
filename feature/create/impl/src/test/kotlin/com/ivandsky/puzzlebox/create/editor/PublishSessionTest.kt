@@ -43,6 +43,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
+import com.ivandsky.puzzlebox.data.repository.DAILY_PUBLISH_CAP
 import com.ivandsky.puzzlebox.data.repository.PublishResult
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -196,7 +197,7 @@ class PublishSessionTest {
 
     @Test
     fun `at the day's cap the cap block and banner show, Publish stays off and test solving stays on`() {
-        shared.publishesToday = DAILY_CAP
+        shared.publishesToday = DAILY_PUBLISH_CAP
         open()
 
         tapPublish()
@@ -335,7 +336,6 @@ class PublishSessionTest {
         val NOW: Instant = Instant.parse("2026-11-06T10:00:00Z")
         val AUTHOR = Identity(uid = "author", displayName = "Ivan", photoUrl = null)
         const val DRAFT_ID = "draft-1"
-        const val DAILY_CAP = 20
         const val TIMEOUT_MS = 5_000L
         const val FRAME_MS = 16L
         const val QUEUE_WAIT_MS = 2_000L
