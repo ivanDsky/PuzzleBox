@@ -45,6 +45,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.LocalDate
 
 /**
  * The tablet play side panel (A15) over fake repositories: the live timer, today's set
@@ -85,10 +86,11 @@ class PlayStatsPanelTest {
         completions: FakeCompletionRepository = this.completions,
         leaderboard: FakeLeaderboardRepository = this.leaderboard,
         flags: FakeReleaseFlags = FakeReleaseFlags(),
+        slotDay: LocalDate = day,
     ): PlayStatsViewModel {
         val history = ObserveGameHistory(fakes.games, daily, completions)
         return PlayStatsViewModel(
-            slot = PlaySlot.Daily(alpha, day),
+            slot = PlaySlot.Daily(alpha, slotDay),
             registry = fakes.games,
             brands = fakes.registry,
             calendar = calendar,
@@ -191,9 +193,33 @@ class PlayStatsPanelTest {
     }
 
     @Test
-    fun `flag on, a posted entry ends the posting line`() {
+    fun `flag on, a posted entry outside the rows says so`() {
         showNearYouAwaitingRow(SubmitStatus.Posted, boardOn)
-        composeRule.onNodeWithTag("play.stats.times.note").assertDoesNotExist()
+        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Your time is posted — outside the top 100.")
+    }
+
+    /** Solved on a day older than the game's yesterday (A7): the post can never leave, so it is not posting. */
+    private fun showPastDayAwaitingRow(flags: FakeReleaseFlags) {
+        val past = day.minusDays(2)
+        val solvedPast = FakeCompletionRepository().apply { setRecords(listOf(record(alpha, past, 40_000L))) }
+        val othersPast = FakeLeaderboardRepository(
+            mapOf(LeaderboardRef(alpha.value, past) to (1..3).map { entry("p$it", "Player $it", it * 10_000L) }),
+        )
+        show(viewModel(completions = solvedPast, leaderboard = othersPast, flags = flags, slotDay = past))
+        composeRule.onNodeWithTag("play.stats.tab.near").performClick()
+        composeRule.waitForIdle()
+    }
+
+    @Test
+    fun `flag on, a past day's near you says past days aren't ranked`() {
+        showPastDayAwaitingRow(boardOn)
+        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Past days aren't ranked.")
+    }
+
+    @Test
+    fun `flag off, a past day's near you keeps the posting line`() {
+        showPastDayAwaitingRow(FakeReleaseFlags())
+        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Posting your time…")
     }
 
     @Test

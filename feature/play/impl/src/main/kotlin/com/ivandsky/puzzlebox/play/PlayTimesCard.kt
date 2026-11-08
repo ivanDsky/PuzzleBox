@@ -104,6 +104,8 @@ private fun noteFor(times: PlayTimes, rows: List<PlayTimeRow>?): String? = when 
             !times.solved -> "Finish to see who's near you"
             // Flag off (order null, no per-game board): the plain Posting line, as before.
             times.order == null -> DailyBoardNote.Posting.text
+            // A7 (RG10): a day older than the game's yesterday can never post, so it is not posting.
+            times.pastDay -> "Past days aren't ranked."
             else -> when (times.post) {
                 // Flag on, no post read (unreachable today): the post-note path says Posting.
                 null -> DailyBoardNote.Posting.text
