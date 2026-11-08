@@ -29,16 +29,16 @@ object NotationFixtures {
 
     /** Every fixture under `notation.fixtures`: `games/<g>/src/test/resources/notation/<name>.txt`. */
     fun all(): List<NotationFixture> {
-        val root = root()
-        return root.walkTopDown()
-            .filter { it.isFile && it.parentFile.name == "notation" && it.extension == "txt" }
-            .filter { it.readText().lineSequence().any { line -> line.startsWith("# expect:") } }
-            .map { file ->
-                val game = file.toRelativeString(root).split("/").getOrNull(1) ?: file.parentFile.name
-                NotationFixture(game, file)
+        val games = File(root(), "games").listFiles { f -> f.isDirectory }.orEmpty()
+        return games
+            .flatMap { g ->
+                File(g, "src/test/resources/notation")
+                    .listFiles { f -> f.isFile && f.extension == "txt" }
+                    .orEmpty()
+                    .map { NotationFixture(g.name, it) }
             }
+            .filter { it.text.lineSequence().any { line -> line.startsWith("# expect:") } }
             .sortedBy { it.file.path }
-            .toList()
     }
 
     /** Every fixture of one game, e.g. `queens`. */
