@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.domain.di
 
 import com.ivandsky.puzzlebox.domain.GetAppUpdate
+import com.ivandsky.puzzlebox.domain.ImportDraftFromText
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
@@ -73,6 +74,7 @@ val domainModule = module {
         )
     }
     factory { CreateDraftCopy(drafts = get(), newId = { UUID.randomUUID().toString() }, clock = { Instant.now() }) }
+    factory { ImportDraftFromText(registry = get(), createDraft = get(), drafts = get(), dispatchers = get()) }
     factory { ValidatePublish() }
     factory {
         ObservePlayStats(
