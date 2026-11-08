@@ -22,14 +22,21 @@ object StrandsTilingSearch {
         return Cover(board.cells, placements, first, limit, budget).run()
     }
 
-    /** Cells no placement of any word can cover. */
-    fun uncoverable(rows: Int, cols: Int, letters: String, words: List<String>): Set<Int> {
+    /** Cells no placement of any word can cover, or null once [budget] ran out mid-walk. */
+    fun uncoverable(
+        rows: Int,
+        cols: Int,
+        letters: String,
+        words: List<String>,
+        budget: Budget = Budget.Unlimited,
+    ): Set<Int>? {
         val board = Board(rows, cols, letters)
         val texts = words.distinct().filter(board::hasLettersFor)
         var covered = 0L
         for (cell in 0 until board.cells) {
             if (covered.has(cell)) continue
-            covered = covered or (texts.firstNotNullOfOrNull { board.pathThrough(it, cell) } ?: 0L)
+            covered = covered or (texts.firstNotNullOfOrNull { board.pathThrough(it, cell, budget) } ?: 0L)
+            if (budget.exhausted()) return null
         }
         return (0 until board.cells).filterNot(covered::has).toSet()
     }
@@ -62,26 +69,35 @@ private class Board(rows: Int, cols: Int, val letters: String) {
     fun hasLettersFor(word: String): Boolean =
         word.groupingBy { it }.eachCount().all { (letter, count) -> count <= (letterCounts[letter] ?: 0) }
 
-    /** Cells of some path of [word] through [cell], or null when there is none. */
-    fun pathThrough(word: String, cell: Int): Long? =
+    /** Cells of some path of [word] through [cell], or null when there is none or it spends. */
+    fun pathThrough(word: String, cell: Int, budget: Budget): Long? =
         word.indices.filter { word[it] == letters[cell] }
-            .firstNotNullOfOrNull { index -> extend(word, cell, bit(cell), cell, index, forward = true) }
+            .firstNotNullOfOrNull { index -> extend(word, cell, bit(cell), cell, index, forward = true, budget) }
 
     /** Grows the path forwards from [start] to the word's end, then backwards from [start] to its first letter. */
-    private fun extend(word: String, start: Int, visited: Long, at: Int, index: Int, forward: Boolean): Long? {
-        if (forward && index == word.lastIndex) return extendBack(word, start, visited)
+    private fun extend(
+        word: String,
+        start: Int,
+        visited: Long,
+        at: Int,
+        index: Int,
+        forward: Boolean,
+        budget: Budget,
+    ): Long? {
+        if (budget.exhausted()) return null
+        if (forward && index == word.lastIndex) return extendBack(word, start, visited, budget)
         if (!forward && index == 0) return visited
         val next = if (forward) index + 1 else index - 1
         for (neighbour in neighbours[at]) {
             if (visited.has(neighbour) || letters[neighbour] != word[next]) continue
-            extend(word, start, visited or bit(neighbour), neighbour, next, forward)?.let { return it }
+            extend(word, start, visited or bit(neighbour), neighbour, next, forward, budget)?.let { return it }
         }
         return null
     }
 
     /** The forward leg covered [start]'s letter through the last one, so the path length gives [start]'s index. */
-    private fun extendBack(word: String, start: Int, visited: Long): Long? =
-        extend(word, start, visited, start, word.length - visited.countOneBits(), forward = false)
+    private fun extendBack(word: String, start: Int, visited: Long, budget: Budget): Long? =
+        extend(word, start, visited, start, word.length - visited.countOneBits(), forward = false, budget)
 }
 
 /** Every distinct placement of one word, or null once the budget runs out mid-walk. */

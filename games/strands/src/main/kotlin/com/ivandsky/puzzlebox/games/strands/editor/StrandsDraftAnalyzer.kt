@@ -36,7 +36,12 @@ object StrandsDraftAnalyzer {
         )
         if (outcome !is StrandsTilingOutcome.Done) return Verdict.Undetermined
         return when (outcome.tilings.size) {
-            0 -> Verdict.None(StrandsTilingSearch.uncoverable(StrandsDraft.ROWS, StrandsDraft.COLS, draft.letters, words))
+            0 -> {
+                val conflicts =
+                    StrandsTilingSearch.uncoverable(StrandsDraft.ROWS, StrandsDraft.COLS, draft.letters, words, budget)
+                        ?: return Verdict.Undetermined
+                Verdict.None(conflicts)
+            }
             1 -> Verdict.Unique(Solution(outcome.tilings[0]))
             else -> {
                 val (a, b) = outcome.tilings
