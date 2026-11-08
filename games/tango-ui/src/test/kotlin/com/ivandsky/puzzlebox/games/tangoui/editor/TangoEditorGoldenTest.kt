@@ -1,0 +1,312 @@
+package com.ivandsky.puzzlebox.games.tangoui.editor
+
+import android.content.res.Configuration
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.unit.dp
+import com.github.takahirom.roborazzi.captureRoboImage
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.game.editor.DraftState
+import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.games.tango.TangoCell
+import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
+import com.ivandsky.puzzlebox.games.tango.TangoMarker
+import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
+import com.ivandsky.puzzlebox.games.tango.editor.TangoDraft
+import com.ivandsky.puzzlebox.games.tango.editor.TangoDraftAnalyzer
+import com.ivandsky.puzzlebox.games.tango.editor.TangoEditor
+import com.ivandsky.puzzlebox.games.tango.editor.TangoForcedCells
+import com.ivandsky.puzzlebox.games.tango.editor.TangoPublishGates
+import com.ivandsky.puzzlebox.gameui.GridCell
+import com.ivandsky.puzzlebox.gameui.GridEdge
+import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
+import kotlinx.coroutines.CoroutineDispatcher
+import java.awt.image.BufferedImage
+import java.io.File
+import javax.imageio.ImageIO
+import kotlin.coroutines.CoroutineContext
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+
+/**
+ * The Tango editor's looks on a 411 dp phone and in the 1280 dp tablet landscape, light and
+ * dark: empty, the press preview on a square and on an edge, Tap zones, Forced cells over a
+ * partly forced board, Unique with its label, Unique needing guessing, Multiple with the
+ * differ shade, None with its clashes and the witness drawn on the board. Each board is a
+ * real draft whose verdict comes from [TangoDraftAnalyzer], asserted before the capture.
+ *
+ * Every run captures to a scratch file. `-Proborazzi.verify=true` pixel-compares it with the
+ * committed image in `src/test/resources/goldens/editor/`; drift or a missing image fails.
+ * `-Proborazzi.record=true` rewrites the images; the default run reads and writes none.
+ */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
+class TangoEditorGoldenTestPhone : TangoEditorGoldenTest("phone")
+
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], qualifiers = "w1280dp-h800dp-land-mdpi")
+class TangoEditorGoldenTestTablet : TangoEditorGoldenTest("tablet")
+
+abstract class TangoEditorGoldenTest(private val device: String) {
+
+    @get:Rule
+    val rule = createComposeRule()
+
+    private val mode = System.getProperty("tango.golden.mode") ?: "compare"
+    private val pixelCompare = System.getProperty("goldens.pixelCompare") != "false"
+
+    @Test fun `empty light`() = empty(dark = false)
+    @Test fun `empty dark`() = empty(dark = true)
+
+    @Test fun `press on a square light`() = pressSquare(dark = false)
+    @Test fun `press on a square dark`() = pressSquare(dark = true)
+
+    @Test fun `press on an edge light`() = pressEdge(dark = false)
+    @Test fun `press on an edge dark`() = pressEdge(dark = true)
+
+    @Test fun `tap zones light`() = tapZones(dark = false)
+    @Test fun `tap zones dark`() = tapZones(dark = true)
+
+    @Test fun `forced cells light`() = forcedCells(dark = false)
+    @Test fun `forced cells dark`() = forcedCells(dark = true)
+
+    @Test fun `unique with label light`() = unique(dark = false)
+    @Test fun `unique with label dark`() = unique(dark = true)
+
+    @Test fun `needs guessing light`() = needsGuessing(dark = false)
+    @Test fun `needs guessing dark`() = needsGuessing(dark = true)
+
+    @Test fun `multiple differ shade light`() = multiple(dark = false)
+    @Test fun `multiple differ shade dark`() = multiple(dark = true)
+
+    @Test fun `none clashes light`() = none(dark = false)
+    @Test fun `none clashes dark`() = none(dark = true)
+
+    @Test fun `witness on board light`() = witness(dark = false)
+    @Test fun `witness on board dark`() = witness(dark = true)
+
+    private fun empty(dark: Boolean) {
+        val draft = TangoDraft(emptyMap(), emptyList())
+        capture("empty", dark, draft, analyzed<Verdict.Incomplete>(draft))
+    }
+
+    private fun pressSquare(dark: Boolean) {
+        val draft = SAMPLE
+        capture("press-square", dark, draft, analyzed<Verdict.Unique>(draft)) {
+            press(TangoEditorTarget.Square(20))
+        }
+    }
+
+    private fun pressEdge(dark: Boolean) {
+        val draft = SAMPLE
+        val edge = GridEdge(GridCell(row = 2, col = 3), GridEdge.Side.Right)
+        capture("press-edge", dark, draft, analyzed<Verdict.Unique>(draft)) {
+            press(TangoEditorTarget.Edge(edge))
+        }
+    }
+
+    private fun tapZones(dark: Boolean) {
+        capture("tap-zones", dark, SAMPLE, analyzed<Verdict.Unique>(SAMPLE)) { toggleTapZones() }
+    }
+
+    /** Two suns side by side force the cell after them, and more follows; the board stays partly empty. */
+    private fun forcedCells(dark: Boolean) {
+        val draft = TangoDraft(mapOf(0 to TangoCell.SUN, 1 to TangoCell.SUN), emptyList())
+        val forced = TangoForcedCells.of(draft)
+        assertTrue("the board forces some cells", forced.isNotEmpty())
+        assertTrue("the board is not forced whole", forced.size + draft.givens.size < CELLS)
+        capture("forced-cells", dark, draft, analyzed<Verdict.Multiple>(draft)) { toggleForcedView() }
+    }
+
+    private fun unique(dark: Boolean) {
+        val verdict = analyzed<Verdict.Unique>(SAMPLE)
+        assertTrue("the board carries its label", verdict.difficulty != null && !verdict.needsGuessing)
+        capture("unique-label", dark, SAMPLE, verdict)
+    }
+
+    private fun needsGuessing(dark: Boolean) {
+        val verdict = analyzed<Verdict.Unique>(STUCK)
+        assertTrue("no rung finishes the board", verdict.needsGuessing && verdict.difficulty == null)
+        capture("needs-guessing", dark, STUCK, verdict)
+    }
+
+    private fun multiple(dark: Boolean) {
+        val draft = TangoDraft(mapOf(0 to TangoCell.SUN), emptyList())
+        capture("multiple-differ", dark, draft, analyzed<Verdict.Multiple>(draft))
+    }
+
+    private fun none(dark: Boolean) {
+        val draft = TangoDraft((0..2).associateWith { TangoCell.SUN }, emptyList())
+        val verdict = analyzed<Verdict.None>(draft)
+        assertEquals("the three suns clash", setOf(0, 1, 2), verdict.conflicts)
+        capture("none-clashes", dark, draft, verdict)
+    }
+
+    private fun witness(dark: Boolean) {
+        val draft = TangoDraft(mapOf(0 to TangoCell.SUN), emptyList())
+        capture("witness-on-board", dark, draft, analyzed<Verdict.Multiple>(draft)) {
+            adoptOverlay(EditorOverlay(EditorOverlay.Witness.B, showOnBoard = true))
+        }
+    }
+
+    private inline fun <reified V : Verdict> analyzed(draft: TangoDraft): V {
+        val verdict = TangoDraftAnalyzer.analyze(draft, Budget.Unlimited)
+        assertTrue("expected ${V::class.simpleName}, got $verdict", verdict is V)
+        return verdict as V
+    }
+
+    private fun capture(
+        name: String,
+        dark: Boolean,
+        draft: TangoDraft,
+        verdict: Verdict,
+        setUp: TangoEditorController.() -> Unit = {},
+    ) {
+        val controller = TangoEditorController(EditorDraft(TangoEditor, DraftState(draft))) {}
+        controller.setUp()
+        val blocks = TangoPublishGates.blocks(draft, verdict)
+        rule.setContent {
+            val config = Configuration(LocalConfiguration.current).apply {
+                uiMode = (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
+                    if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
+            }
+            CompositionLocalProvider(
+                LocalConfiguration provides config,
+                LocalForcedDispatchers provides GoldenInlineDispatcherProvider,
+            ) {
+                PuzzleBoxTheme(darkTheme = dark) {
+                    Surface(Modifier.testTag(GOLDEN)) {
+                        Column(Modifier.padding(Spacing.md).then(frame())) {
+                            TangoEditorUi.Board(controller, verdict, Modifier.fillMaxWidth())
+                            TangoEditorUi.ToolHint(controller, Modifier.fillMaxWidth())
+                            TangoEditorUi.Issues(controller, verdict, blocks, onSelect = {}, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                }
+            }
+        }
+        rule.waitForIdle()
+        val scratch = File("build/roborecord/editor/${stem(name, dark)}.png").apply { parentFile?.mkdirs() }
+        rule.onNodeWithTag(GOLDEN).captureRoboImage(scratch)
+        verify(stem(name, dark), scratch)
+    }
+
+    private fun frame(): Modifier =
+        if (device == "tablet") Modifier.size(TabletPaneWidth, TabletPaneHeight) else Modifier.width(PhoneWidth)
+
+    private fun stem(name: String, dark: Boolean) = "$name-$device-${if (dark) "dark" else "light"}"
+
+    private fun verify(stem: String, scratch: File) {
+        val golden = File("src/test/resources/goldens/editor/$stem.png")
+        when (mode) {
+            "record" -> {
+                golden.parentFile?.mkdirs()
+                scratch.copyTo(golden, overwrite = true)
+            }
+            "verify" -> {
+                if (!golden.exists()) {
+                    throw AssertionError(
+                        "Golden $stem is missing and verify mode forbids recording; " +
+                            "run with -Proborazzi.record=true once to record it, then re-verify.",
+                    )
+                }
+                assertMatches(golden, scratch, stem)
+            }
+            // compare: the capture stays in build/roborecord; no golden is read or written.
+        }
+    }
+
+    private fun assertMatches(golden: File, scratch: File, stem: String) {
+        val expected = ImageIO.read(golden)
+        val actual = ImageIO.read(scratch)
+        assertEquals("Golden $stem drifted in width", expected.width, actual.width)
+        assertEquals("Golden $stem drifted in height", expected.height, actual.height)
+        if (!pixelCompare) return
+        val differing = differingPixels(expected, actual)
+        assertTrue(
+            "Golden $stem drifted: $differing differing pixels. If intended, re-record " +
+                "with -Proborazzi.record=true.",
+            differing == 0,
+        )
+    }
+
+    /** Pixel-exact on decoded colours, so PNG metadata noise cannot fail a run. */
+    private fun differingPixels(expected: BufferedImage, actual: BufferedImage): Int =
+        (0 until expected.height).sumOf { y ->
+            (0 until expected.width).count { x -> expected.getRGB(x, y) != actual.getRGB(x, y) }
+        }
+
+    private companion object {
+        const val GOLDEN = "golden"
+        const val CELLS = TangoDraft.N * TangoDraft.N
+
+        /** The 411 dp phone less the capture's padding. */
+        val PhoneWidth = 379.dp
+
+        /** The tablet Studio's left pane (1280 − the 372 dp side pane) less the padding. */
+        val TabletPaneWidth = 876.dp
+        val TabletPaneHeight = 720.dp
+
+        /** The bundled sample: unique, graded by its hardest rung. */
+        val SAMPLE = TangoDraft(
+            givens = listOf(0, 1, 6, 7, 14, 16, 22, 29, 32).associateWith { TangoCell.SUN } +
+                (33 to TangoCell.MOON),
+            markers = listOf(
+                TangoMarker(3, TangoEdgeSide.DOWN, TangoMarkerKind.SAME),
+                TangoMarker(18, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME),
+                TangoMarker(18, TangoEdgeSide.DOWN, TangoMarkerKind.OPPOSITE),
+                TangoMarker(34, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME),
+            ),
+        )
+
+        /** A unique board no hint rung forces. */
+        val STUCK = TangoDraft(
+            givens = mapOf(
+                0 to TangoCell.SUN, 7 to TangoCell.SUN, 15 to TangoCell.MOON,
+                23 to TangoCell.MOON, 34 to TangoCell.SUN, 35 to TangoCell.SUN,
+            ),
+            markers = listOf(
+                TangoMarker(1, TangoEdgeSide.DOWN, TangoMarkerKind.SAME),
+                TangoMarker(3, TangoEdgeSide.DOWN, TangoMarkerKind.SAME),
+                TangoMarker(5, TangoEdgeSide.DOWN, TangoMarkerKind.SAME),
+                TangoMarker(12, TangoEdgeSide.DOWN, TangoMarkerKind.OPPOSITE),
+                TangoMarker(13, TangoEdgeSide.DOWN, TangoMarkerKind.OPPOSITE),
+                TangoMarker(16, TangoEdgeSide.DOWN, TangoMarkerKind.SAME),
+                TangoMarker(19, TangoEdgeSide.RIGHT, TangoMarkerKind.OPPOSITE),
+            ),
+        )
+    }
+}
+
+/** Runs the forced-cells walk inline, so idling the compose rule settles it. */
+private object GoldenInlineDispatcherProvider : DispatcherProvider {
+    private val inline = object : CoroutineDispatcher() {
+        override fun isDispatchNeeded(context: CoroutineContext) = false
+        override fun dispatch(context: CoroutineContext, block: Runnable) = block.run()
+    }
+    override val main: CoroutineDispatcher = inline
+    override val io: CoroutineDispatcher = inline
+    override val default: CoroutineDispatcher = inline
+}
