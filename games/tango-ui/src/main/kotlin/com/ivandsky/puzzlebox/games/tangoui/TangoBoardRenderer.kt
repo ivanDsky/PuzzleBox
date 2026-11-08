@@ -208,9 +208,11 @@ private fun Cell(
         }
 
         // Per-cell TalkBack semantics (§9): one focusable node per cell, row-major;
-        // givens distinguished by words ("given sun"), not visuals (§2), and givens
-        // expose NO custom actions (§2: inert surface must not fake success — M4).
-        val actionLabels = if (render?.isGiven == true) emptyList() else TangoSemantics.customActions
+        // givens distinguished by words ("given sun"), not visuals (§2), and neither
+        // givens nor an inert surface (no placement callback) expose custom actions —
+        // an action that does nothing lies about the surface (§2).
+        val actionLabels =
+            if (render?.isGiven == true || onPlacement == null) emptyList() else TangoSemantics.customActions
         Box(
             Modifier
                 .fillMaxSize()
@@ -221,13 +223,10 @@ private fun Cell(
                             .joinToString(separator = "; ")
                     stateDescription = TangoSemantics.cellStateDescription(model, idx)
                     customActions = actionLabels.map { label ->
+                        // Non-empty only with a live placement callback (above).
                         CustomAccessibilityAction(label) {
-                            if (onPlacement == null) {
-                                false
-                            } else {
-                                TangoTapPolicy.onCustomAction(model, idx, label).forEach(onPlacement)
-                                true
-                            }
+                            TangoTapPolicy.onCustomAction(model, idx, label).forEach(onPlacement!!)
+                            true
                         }
                     }
                 },
