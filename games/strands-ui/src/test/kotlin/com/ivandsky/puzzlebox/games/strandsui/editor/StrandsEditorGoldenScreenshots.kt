@@ -30,6 +30,7 @@ import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraftPath
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -47,7 +48,7 @@ import java.io.File
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
+@Config(sdk = [34], qualifiers = "w411dp-h1400dp-420dpi")
 class StrandsEditorGoldenScreenshotsPhone : StrandsEditorGoldenScreenshots("phone")
 
 @RunWith(RobolectricTestRunner::class)
@@ -125,7 +126,9 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
         capture("pockets", dark, draft, analyzed<Verdict.Incomplete>(draft))
     }
 
+    /** Phone only: on the tablet the board is all the capture holds, the same as Unique. */
     private fun panel(dark: Boolean) {
+        assumeTrue(device == "phone")
         val draft = board(WORDS, startRow = 0).copy(clue = "Around the house", spangram = SPANGRAM)
         capture("paths-panel", dark, draft, analyzed<Verdict.Unique>(draft))
     }
@@ -209,7 +212,8 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
                 }
             }
         }
-        // The word check runs on the queue, so its line is there before the capture, never racing it.
+        // The word check runs on the queue, so its line is there before the capture,
+        // never racing it.
         rule.mainClock.advanceTimeBy(FRAME_MS)
         queue.runAll()
         // Past the handle's and every mark's settle.
