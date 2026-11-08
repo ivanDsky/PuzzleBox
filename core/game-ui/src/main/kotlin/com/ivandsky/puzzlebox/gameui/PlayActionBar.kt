@@ -23,8 +23,8 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
  * chunky [GameButton] sharing the row equally. Hint fills with the game's [accent]; the
  * rest stay neutral. The hint half is CORE only as far as the button and the running
  * count ([hintsUsed], the session's A3 count); what a press does is the game's.
- * [onClear] null hides Clear (Tango has none); the rest are always shown, disabled when
- * they cannot act. Games pass it as [AdaptivePlayScaffold]'s actions: under the caption on
+ * [onClear] null hides Clear (Sudoku keeps its own in the keypad); Clear is never disabled,
+ * the rest are always shown, disabled when they cannot act. Games pass it as [AdaptivePlayScaffold]'s actions: under the caption on
  * a phone, a toolbar above the board on a landscape tablet.
  */
 @Composable
@@ -39,7 +39,6 @@ internal fun PlayActionBar(
     accent: AccentSlot,
     modifier: Modifier = Modifier,
     hintsUsed: Int = 0,
-    canClear: Boolean = true,
 ) {
     Row(
         modifier.fillMaxWidth().testTag("play.action_bar"),
@@ -59,7 +58,7 @@ internal fun PlayActionBar(
             size = GameButtonSize.Tall,
         )
         if (onClear != null) {
-            GameButton(onClear, PuzzleIcons.Clear, "Clear", action.testTag("play.clear"), canClear, size = GameButtonSize.Tall)
+            GameButton(onClear, PuzzleIcons.Clear, "Clear", action.testTag("play.clear"), size = GameButtonSize.Tall)
         }
     }
 }
@@ -78,7 +77,6 @@ fun PlayActionBar(undo: PlayUndo, hints: PlayHints, clear: PlayClear?, accent: A
         accent = accent,
         modifier = modifier,
         hintsUsed = hints.hintsUsed,
-        canClear = clear?.canClear ?: false,
     )
 }
 
