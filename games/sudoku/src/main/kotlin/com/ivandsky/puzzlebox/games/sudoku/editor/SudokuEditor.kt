@@ -60,6 +60,24 @@ class SudokuEditor(private val definition: SudokuDefinition) :
             }
         }
 
+    /**
+     * A share payload of another size decodes to [DecodeError.VariantSizeMismatch], like
+     * [decodeDraft]: the raw codec serves both games, a friend's editor holds only this one.
+     */
+    override fun decodeShare(bytes: ByteArray): DecodeResult<SudokuDraft> =
+        when (val decoded = SudokuShareCodec.decodeShare(bytes)) {
+            is DecodeResult.Err -> decoded
+            is DecodeResult.Ok -> {
+                val size = decoded.value.size
+                val expected = variant.geometry.size
+                if (size == expected) {
+                    decoded
+                } else {
+                    DecodeResult.Err(DecodeError.VariantSizeMismatch(variant.id.value, expected, size))
+                }
+            }
+        }
+
     override fun analyze(draft: SudokuDraft, budget: Budget): Verdict =
         SudokuDraftAnalyzer.analyze(draft, variant.geometry, budget)
 

@@ -13,11 +13,14 @@ import com.ivandsky.puzzlebox.game.editor.SharedOpenResult
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Opens a friend's puzzle by its share code (spec A13, A19). The board is re-verified on this
  * device, as the sender's solution never travels, and the verified puzzle is kept locally, so
- * a puzzle once opened still plays offline or after its author withdraws it.
+ * a puzzle once opened still plays offline or after its author withdraws it. A payload is
+ * remote input: an exception its decode or analysis throws reads as the failed check, while
+ * cancellation still propagates.
  */
 class LoadSharedPuzzle(
     private val registry: GameRegistry,
@@ -40,7 +43,14 @@ class LoadSharedPuzzle(
         val gameId = GameId(doc.gameId)
         val plugin = registry[gameId] ?: return OpenOutcome.UnknownGame(doc.gameId)
         val editor = plugin.editor ?: return OpenOutcome.FailedCheck
-        return when (val verified = SharedOpen.verify(editor, doc.shareCodecVersion, doc.payload, budget())) {
+        val verified = try {
+            SharedOpen.verify(editor, doc.shareCodecVersion, doc.payload, budget())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            return OpenOutcome.FailedCheck
+        }
+        return when (verified) {
             is SharedOpenResult.Verified -> {
                 val row = doc.toReceived(gameId, verified)
                 received.upsert(row)
