@@ -496,4 +496,67 @@ class TangoPlayControllerTest {
         restored.redo()
         assertEquals(TangoCell.MOON, restored.session?.placements?.get(3))
     }
+
+    // ---- Clear ----
+
+    @Test
+    fun `clear wipes the player cells, keeps the givens, persists once and undoes in one step`() {
+        val s = loaded()
+        s.onPlacement(TangoPlacement(2, TangoCell.MOON))
+        s.onPlacement(TangoPlacement(3, TangoCell.MOON))
+        s.onPlacement(TangoPlacement(4, TangoCell.MOON)) // violating: lands
+        val saves = saved.size
+
+        s.clearBoard()
+
+        assertEquals(emptyMap<Int, TangoCell>(), s.session?.placements)
+        assertEquals(TangoPlayFixture.puzzle.givens.size, s.session!!.grid().count { it != null })
+        assertEquals(saves + 1, saved.size)
+        assertEquals(s.persist()!!.toList(), saved.last().toList())
+        assertNull(s.violation) // the wiped violation caption goes with it
+        assertEquals(emptySet<Set<Int>>(), s.suppressedSets)
+
+        s.undo()
+
+        assertEquals(mapOf(2 to TangoCell.MOON, 3 to TangoCell.MOON, 4 to TangoCell.MOON), s.session?.placements)
+    }
+
+    @Test
+    fun `clear on a board with no placements changes and saves nothing`() {
+        val s = loaded()
+        val before = s.session
+        val saves = saved.size
+
+        s.clearBoard()
+
+        assertEquals(before, s.session)
+        assertEquals(saves, saved.size)
+        assertFalse(s.canUndo)
+    }
+
+    @Test
+    fun `clear drops the hint reveal and keeps the counted hint`() {
+        val s = loaded()
+        s.requestHint()
+        assertNotNull(s.hintCell)
+
+        s.clearBoard()
+
+        assertNull(s.hintCell)
+        assertNull(s.hintCaption)
+        assertEquals(1, s.session?.hintsUsed)
+    }
+
+    @Test
+    fun `clear is refused once the board is solved`() {
+        val s = loaded()
+        playAll(s)
+        val solved = s.session
+        val saves = saved.size
+
+        s.clearBoard()
+
+        assertEquals(solved, s.session)
+        assertEquals(saves, saved.size)
+    }
 }

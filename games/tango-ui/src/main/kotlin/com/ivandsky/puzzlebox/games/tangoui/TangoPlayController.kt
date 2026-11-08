@@ -17,7 +17,6 @@ import com.ivandsky.puzzlebox.gameui.PlayGuide
 import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
-import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.TangoSession
@@ -95,11 +94,6 @@ class TangoPlayController(
         private set
     private var settleJob: Job? = null
 
-    /** The violating cell-sets of a grid, via the shared scan (no suppression applied). */
-    private fun violatingSets(puzzle: TangoPuzzle, grid: List<TangoCell?>): Set<Set<Int>> =
-        TangoSemantics.violations(TangoRendererModel.of(state = TangoState(puzzle, grid), hint = null))
-            .mapTo(mutableSetOf()) { it.cells }
-
     fun onPlacement(placement: TangoPlacement) {
         lastRejection = null // next input clears the violation verdict (Zip hintArrow discipline)
         hintCell = null
@@ -142,7 +136,7 @@ class TangoPlayController(
     }
 
     /**
-     * Undo/redo is a board change like a placement, so it follows the same input rules:
+     * Undo/redo/clear is a board change like a placement, so it follows the same input rules:
      * transient reveals clear, and violations it NEWLY creates (a redo can restore one) wait
      * out the settle window while ones it removes vanish at once. The clock is not rewound.
      */
@@ -170,6 +164,9 @@ class TangoPlayController(
     override fun undo() = stepHistory(TangoSession::withUndo)
 
     override fun redo() = stepHistory(TangoSession::withRedo)
+
+    /** Clear: every player placement in ONE undo unit, givens stay; a no-op on an empty or solved board. */
+    fun clearBoard() = stepHistory(TangoSession::withCleared)
 
     //endregion
 

@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
+import com.ivandsky.puzzlebox.gameui.PlayClear
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.PlaySolveFrame
@@ -38,6 +39,9 @@ class TangoPlayUi : GamePlayUi {
     override val brand: GameBrand get() = TangoBrand
 
     override fun createController(env: PlayEnvironment): GamePlayController = TangoPlayController(env)
+
+    /** Clear wipes the player's cells as one undo unit; always enabled (an empty or solved board ignores it). */
+    override fun clearFor(controller: GamePlayController): PlayClear = tangoClear(controller as TangoPlayController)
 
     override val tutorial: List<TutorialStep> get() = TangoTutorial.steps
 
@@ -65,7 +69,7 @@ class TangoPlayUi : GamePlayUi {
  * The Tango play screen (tango-05, A14): the Zip play shell (ticket 13/23 semantics) with
  * 04's board renderer. Tap placements land through [TangoBoardRenderer]'s placement
  * callback; the caption is the shared [PlayChrome] and the controls the shared
- * [PlayActionBar], with no Clear (Tango has none). Design §6: the win moment is the same
+ * [PlayActionBar], whose Clear wipes the player's cells. Design §6: the win moment is the same
  * [PlaySolveFrame] then route handoff; this screen never renders win content.
  */
 @Composable
@@ -92,11 +96,15 @@ fun TangoPlayScreen(
                     feedback = controller,
                 )
             },
-            actions = { PlayActionBar(controller, controller, clear = null, accent = TangoBrand.accent) },
+            actions = {
+                PlayActionBar(controller, controller, remember(controller) { tangoClear(controller) }, TangoBrand.accent)
+            },
             sidePanel = sidePanel,
         )
     }
 }
+
+private fun tangoClear(controller: TangoPlayController): PlayClear = PlayClear(controller::clearBoard)
 
 /** The board pane: Tango's one board once a puzzle is ready, the shared fallback otherwise. */
 @Composable
