@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
+import com.ivandsky.puzzlebox.designsystem.LocalDarkTheme
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 
 /**
@@ -43,7 +44,7 @@ internal fun QueensCell(
     staggerFrom: Int? = null,
 ) {
     val n = model.n
-    val dark = currentIsDarkTheme()
+    val dark = LocalDarkTheme.current
     val fill = QueensRegionPalette.fill(model.regions[idx], dark)
     val onSurface = MaterialTheme.colorScheme.onSurface
     val scrim = MaterialTheme.colorScheme.scrim
@@ -249,12 +250,3 @@ private const val GHOST_DESCRIPTION = "A queen goes here"
 
 /** TalkBack's line for a guided lesson's queen off the answer. */
 private const val STRAY_DESCRIPTION = "No queen here. Tap to take it away."
-
-@Composable
-private fun currentIsDarkTheme(): Boolean {
-    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    return androidx.compose.runtime.remember(configuration) {
-        (configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
-            android.content.res.Configuration.UI_MODE_NIGHT_YES
-    }
-}

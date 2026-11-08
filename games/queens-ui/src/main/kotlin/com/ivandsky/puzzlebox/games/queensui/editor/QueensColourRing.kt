@@ -8,7 +8,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -41,6 +40,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
+import com.ivandsky.puzzlebox.designsystem.LocalDarkTheme
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -109,7 +109,7 @@ private fun RingPetal(
     onPick: (Int) -> Unit,
     modifier: Modifier,
 ) {
-    val fill = QueensRegionPalette.fill(region, isSystemInDarkTheme())
+    val fill = QueensRegionPalette.fill(region, LocalDarkTheme.current)
     val ink = QueensRegionPalette.onInkFor(fill, MaterialTheme.colorScheme.onSurface, MaterialTheme.colorScheme.scrim)
     val outline = MaterialTheme.colorScheme.outline
     val accent = QueensBrand.accent.colors()

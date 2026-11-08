@@ -94,7 +94,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `RuleCheck`, `CensusTest`), `rules/` one `<ID><Name>.kt` + test per rule, resources
   `allowlists/<ID>.txt` and `fixtures/<ID>/` (incl. `add-a-game`). Rules (no S3, ADR-0009):
   S0 no `@Suppress`, S1 one top-level type per file, S2 file length, S4 composable previews,
-  S5 no colour literals, S6 no infinite animation; P1 package root, P2 dispatchers location,
+  S5 no colour literals, S6 no infinite animation, S7 no system night flag outside theme resolution; P1 package root, P2 dispatchers location,
   P3 ViewModel shape, P4 use-case shape, P5 naming, P6 Koin module location, P7 Android-free
   pure modules, P8 NavKey payload.
 - `core/navigation/` (`:core:navigation`) — `NavigationState` (immutable `@Serializable` tab +
@@ -389,7 +389,7 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   adds drafts, custom_saved_plays, published_puzzles, received_puzzles); no destructive fallback.
 - **Module graph guard** — `checkModuleGraph` (ADR-0008, see Layout) fails the build on a
   forbidden edge; `feature:create:impl` reaches games only through the registries.
-- **Structure rules** — `:konsist` S0–S6 / P1–P8 (see Layout); allowlists only shrink.
+- **Structure rules** — `:konsist` S0–S7 / P1–P8 (see Layout); allowlists only shrink.
 - **Roborazzi** — plugin `puzzlebox.android.roborazzi` (app, designsystem, zip-ui, tango-ui,
   queens-ui, strands-ui, sudoku-ui) unifies the switch: default compares (never fails on drift, never writes goldens),
   `-Proborazzi.verify=true` fails on drift, `-Proborazzi.record=true` records.
@@ -413,7 +413,7 @@ modules run `test`. Full suite:
 :games:tango:test :games:strands:test :games:sudoku:test :core:model:test :core:network:test -Proborazzi.verify=true --continue` —
 the 0.13.0 gate.
 
-Structure rules (ADR-0009): `./gradlew :konsist:test` — runs the 14 in-module rules (S0–S6 without S3, P1–P8; 124 tests), the
+Structure rules (ADR-0009): `./gradlew :konsist:test` — runs the 15 in-module rules (S0–S7 without S3, P1–P8; 127 tests), the
 census and the engine tests over the whole repo's sources (not in the count above; reruns
 when any source, build script or allowlist changes).
 
