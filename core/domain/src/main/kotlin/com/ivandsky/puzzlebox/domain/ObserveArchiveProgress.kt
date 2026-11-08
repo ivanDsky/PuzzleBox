@@ -25,7 +25,7 @@ class ObserveArchiveProgress(
         if (daily.archiveRange(game) == null) return flowOf(null)
         return combine(calendar.observeToday(game), observeGameHistory()) { _, days ->
             val range = daily.archiveRange(game) ?: return@combine null
-            val solved = days.filter { it.gameId == game && it.record != null && it.puzzleNumber != null }
+            val solved = days.filter { it.gameId == game && it.isSolvedDaily() }
             ArchiveProgress(
                 range = range,
                 total = ChronoUnit.DAYS.between(range.start, range.endInclusive).toInt() + 1,
