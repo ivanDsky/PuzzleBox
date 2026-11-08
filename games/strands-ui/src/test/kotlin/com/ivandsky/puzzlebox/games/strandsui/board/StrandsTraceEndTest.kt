@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.strandsui.board
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.Snapshot
@@ -16,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.gameui.LocalSnapTrace
 import com.ivandsky.puzzlebox.games.strands.StrandsState
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 import com.ivandsky.puzzlebox.games.strandsui.StrandsBoardContent
@@ -48,20 +50,22 @@ class StrandsTraceEndTest {
 
     private val end = mutableStateOf<TraceEnd?>(null)
 
-    private fun show(reduceMotion: Boolean) {
+    private fun show(reduceMotion: Boolean, snap: Boolean = false) {
         rule.mainClock.autoAdvance = false
         val state = StrandsState(StrandsUiFixtures.puzzle)
         rule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                Box(Modifier.size(256.dp)) {
-                    StrandsBoardContent(
-                        model = StrandsRendererModel.of(state, emptyList()),
-                        found = null,
-                        reduceMotion = reduceMotion,
-                        trace = { Trace() },
-                        onTrace = {},
-                        traceEnd = { end.value },
-                    )
+                CompositionLocalProvider(LocalSnapTrace provides snap) {
+                    Box(Modifier.size(256.dp)) {
+                        StrandsBoardContent(
+                            model = StrandsRendererModel.of(state, emptyList()),
+                            found = null,
+                            reduceMotion = reduceMotion,
+                            trace = { Trace() },
+                            onTrace = {},
+                            traceEnd = { end.value },
+                        )
+                    }
                 }
             }
         }
@@ -137,6 +141,46 @@ class StrandsTraceEndTest {
     @Test
     fun `a touch on the board ends the red at once`() {
         show(reduceMotion = false)
+        end.post(refused())
+        rule.mainClock.advanceTimeBy(60)
+        assertTrue(redOnBoard())
+
+        rule.onNodeWithTag("strands.board").performTouchInput { down(Offset(width * 0.9f, height * 0.9f)) }
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+        assertFalse(redOnBoard())
+    }
+
+    @Test
+    fun `with SnapTrace on a refused word still turns red, shakes and leaves when the 320 ms are up`() {
+        show(reduceMotion = false, snap = true)
+        assertFalse(redOnBoard())
+
+        end.post(refused())
+        rule.mainClock.advanceTimeBy(100)
+        assertTrue(redOnBoard())
+
+        rule.mainClock.advanceTimeBy(100)
+        assertTrue(redOnBoard())
+
+        rule.mainClock.advanceTimeBy(300)
+        assertFalse(redOnBoard())
+    }
+
+    @Test
+    fun `with SnapTrace on reduce motion holds the red for 600 ms, then clears`() {
+        show(reduceMotion = true, snap = true)
+        end.post(refused())
+        rule.mainClock.advanceTimeBy(500)
+        assertTrue(redOnBoard())
+
+        rule.mainClock.advanceTimeBy(250)
+        assertFalse(redOnBoard())
+    }
+
+    @Test
+    fun `with SnapTrace on a touch on the board ends the red at once`() {
+        show(reduceMotion = false, snap = true)
         end.post(refused())
         rule.mainClock.advanceTimeBy(60)
         assertTrue(redOnBoard())

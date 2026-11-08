@@ -33,9 +33,7 @@ import com.ivandsky.puzzlebox.games.strandsui.board.altThemeCells
 import com.ivandsky.puzzlebox.games.strandsui.board.altThemeLinks
 import com.ivandsky.puzzlebox.games.strandsui.board.rememberTraceEndFrame
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
-import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.LocalSnapTrace
-import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
 /**
  * Strands' one board, chrome-free ([com.ivandsky.puzzlebox.gameui.GamePlayUi.Board]): the
