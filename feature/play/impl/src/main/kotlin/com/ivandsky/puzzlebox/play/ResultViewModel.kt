@@ -9,12 +9,14 @@ import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.ResultInsights
 import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.TodayEntry
+import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.nextUnsolved
 import com.ivandsky.puzzlebox.game.BestScore
@@ -24,9 +26,13 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardNote
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
+import com.ivandsky.puzzlebox.gameui.board.toDailyBoardState
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleBoard
 import java.time.Instant
 import java.time.LocalDate
@@ -92,6 +98,12 @@ data class ResultUiState(
  *
  * Behind [ReleaseFlag.ResultsHero]: [hero] says which page to draw, and [heroInsights],
  * [heroRank] and [replay] feed the hero page. With the flag off they are never read.
+ *
+ * Behind [ReleaseFlag.PerGameLeaderboards], independent of the hero flag: [dailyBoard] is
+ * today's board of this game for an official daily whose day is the game's today, null
+ * otherwise (a past day, a practice play) and with the flag off. It reads Posting until the
+ * player's own entry lands, and the first-time-stands note when this finish is a replay.
+ * Sign-in goes through [board]'s holder, so one screen has one sign-in flow ([signInStatus]).
  */
 class ResultViewModel internal constructor(
     key: ResultKey,
@@ -106,6 +118,7 @@ class ResultViewModel internal constructor(
     flags: ReleaseFlags,
     insights: ObserveResultInsights,
     rank: ObserveResultRank,
+    leaderboard: ObserveLeaderboard,
     private val board: FriendPuzzleBoard,
 ) : ViewModel() {
 
@@ -182,9 +195,40 @@ class ResultViewModel internal constructor(
         .flatMapLatest { on -> if (on && today) rank(slot.gameId, slot.day) else flowOf(ResultRank.Hidden) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ResultRank.Hidden)
 
+    /** The rank order [dailyBoard] is ranked by. */
+    val boardOrder: RankOrder = games.rankOrderOf(slot.gameId)
+
+    /** How the last Google sign-in went, for the board's sign-in prompt. */
+    internal val signInStatus: StateFlow<BoardSignIn> = board.signInStatus
+
+    /** The daily board for this result; null when none shows. Read only while [ReleaseFlag.PerGameLeaderboards] is on. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val dailyBoard: StateFlow<DailyBoardState?> = flags.enabled
+        .map { ReleaseFlag.PerGameLeaderboards in it }
+        .distinctUntilChanged()
+        .flatMapLatest { on ->
+            if (!on || !today) {
+                flowOf(null)
+            } else {
+                val official = state.map { it.puzzleNumber != null }.distinctUntilChanged()
+                val replayed = state.map { it.verdict == RecordVerdict.Replay }.distinctUntilChanged()
+                val boards = official.flatMapLatest { yes -> if (yes) leaderboard(slot.gameId, slot.day) else flowOf(null) }
+                combine(boards, replayed) { board, replay -> board?.toDailyBoardState(boardNote(board, replay)) }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
     /** The rank row's Google button: [activityContext] hosts Google's account picker, and is not kept. */
     fun signIn(activityContext: Context) {
         viewModelScope.launch { board.signIn(activityContext) }
+    }
+
+    /** A12: the replay note on a replay; Posting while the player's own entry has not landed; else none. */
+    private fun boardNote(today: TodayLeaderboard, replay: Boolean): DailyBoardNote? {
+        if (replay) return DailyBoardNote.ReplayFirstTimeStands
+        val signedIn = today as? TodayLeaderboard.SignedIn ?: return null
+        val loaded = signedIn.board as? TodayLeaderboard.Board.Loaded ?: return null
+        return DailyBoardNote.Posting.takeIf { loaded.snapshot.entries.none { it.uid == signedIn.identity.uid } }
     }
 
     fun retryRecordWrite() {
