@@ -1,0 +1,7 @@
+# expect: unique
+puzzlebox queens v1
+00001
+00031
+42033
+43333
+43333

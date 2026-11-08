@@ -1,0 +1,7 @@
+# expect: multiple split-region
+puzzlebox queens v1
+00111
+02211
+02333
+44433
+44442
