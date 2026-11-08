@@ -72,7 +72,7 @@ class SudokuPlayController(
                 runningSince = null
                 board = boardFor(s)
                 // The running clock is process-local: a restored game in progress reopens it now.
-                if (!s.isComplete && s.hasProgress()) openWindow()
+                if (!s.isComplete) openWindow()
                 Restored(s.ref)
             }
             is DecodeResult.Err -> null
@@ -83,11 +83,13 @@ class SudokuPlayController(
         start(SudokuSession(ref = current.ref, puzzle = current.puzzle))
     }
 
+    /** Binds [fresh] and opens its clock window: the clock runs from the moment the puzzle opens. */
     private fun start(fresh: SudokuSession) {
         runningSince = null
         board = boardFor(fresh)
         // Published before the first move so a process death right after adopt still restores.
         publish(fresh)
+        openWindow()
     }
 
     private fun boardFor(session: SudokuSession) = SudokuBoardState(
@@ -110,12 +112,9 @@ class SudokuPlayController(
 
     //region PlayClock
 
-    /** Opens the window on the first committed command or counted hint; a win folds it in. */
-    private fun settle(next: SudokuSession): SudokuSession {
-        if (next.isComplete) return foldRunning(next)
-        if (runningSince == null) openWindow()
-        return next
-    }
+    /** A win folds the running window in; the window itself is opened by adopt/restore/replay/foreground. */
+    private fun settle(next: SudokuSession): SudokuSession =
+        if (next.isComplete) foldRunning(next) else next
 
     private fun openWindow() {
         val start = now()
@@ -141,7 +140,7 @@ class SudokuPlayController(
 
     override fun onForeground() {
         val current = session ?: return
-        if (runningSince == null && !current.isComplete && current.hasProgress()) openWindow()
+        if (runningSince == null && !current.isComplete) openWindow()
     }
 
     override val clockWindow: Any? get() = runningSince
@@ -183,7 +182,4 @@ class SudokuPlayController(
     override val rejection: String? get() = board?.rejection
 
     //endregion
-
-    // Undoing every move empties the history but keeps the banked time, so that counts too.
-    private fun SudokuSession.hasProgress(): Boolean = hasStarted || elapsedMs > 0
 }

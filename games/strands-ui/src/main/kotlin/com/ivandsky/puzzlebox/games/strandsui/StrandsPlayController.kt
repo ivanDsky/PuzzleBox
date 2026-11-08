@@ -139,7 +139,6 @@ class StrandsPlayController(
             else -> Unit
         }
         val next = current.state.accept(verdict)
-        openClock()
         if (next != current.state) commit(current.copy(state = next))
     }
 
@@ -148,7 +147,6 @@ class StrandsPlayController(
         if (current.state.isComplete) return
         when (val hint = StrandsRules.hint(current.state) as StrandsHint) {
             is StrandsHint.Reveal -> {
-                openClock()
                 commit(current.copy(state = current.state.spend(hint)))
             }
 
@@ -175,6 +173,7 @@ class StrandsPlayController(
         runningSince = null
         // Persist from load, not from the first word: the saved play must exist at once.
         commit(StrandsSession(ref = ref as StrandsPuzzleRef, state = StrandsState(strands)))
+        openClock() // the clock runs from the moment the puzzle opens
         return Adopt.Adopted
     }
 
@@ -186,19 +185,21 @@ class StrandsPlayController(
                 resetTransient()
                 session = s
                 // The running window is process-local: a restored game in progress reopens it now.
-                runningSince = if (!s.state.isComplete && hasPlayed(s.state)) now() else null
+                runningSince = null
+                if (!s.state.isComplete) openClock()
                 Restored(s.ref)
             }
 
             is DecodeResult.Err -> null
         }
 
-    /** Result's "Play again": the same puzzle from scratch; its next win is a new transition. */
+    /** Result's "Play again": the same puzzle from scratch with a fresh clock window; its next win is a new transition. */
     override fun replay() {
         val current = session ?: return
         resetTransient()
         runningSince = null
         commit(StrandsSession(ref = current.ref, state = StrandsState(current.state.puzzle)))
+        openClock()
     }
 
     private fun resetTransient() {
@@ -225,7 +226,7 @@ class StrandsPlayController(
 
     override fun onForeground() {
         val current = session ?: return
-        if (runningSince == null && !current.state.isComplete && hasPlayed(current.state)) runningSince = now()
+        if (runningSince == null && !current.state.isComplete) openClock()
     }
 
     /** Banked time plus the running window. Never negative. */
@@ -235,7 +236,7 @@ class StrandsPlayController(
         return (current.elapsedMs + window).coerceAtLeast(0L)
     }
 
-    /** The first submitted word or spent hint starts the clock; looking at the board does not. */
+    /** Opens the running window now, unless one is already open. */
     private fun openClock() {
         if (runningSince != null) return
         val start = now()
@@ -248,9 +249,6 @@ class StrandsPlayController(
         runningSince = null
         return target.copy(elapsedMs = target.elapsedMs + Duration.between(since, now()).toMillis())
     }
-
-    private fun hasPlayed(state: StrandsState): Boolean =
-        state.found.isNotEmpty() || state.nonTheme.isNotEmpty() || state.hintsUsed > 0
 
     //endregion
 

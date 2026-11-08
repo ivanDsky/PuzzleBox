@@ -75,6 +75,7 @@ class QueensPlayController(
         val fresh = QueensSession(ref = ref as QueensPuzzleRef, puzzle = queens)
         board = boardFor(fresh)
         publish(fresh)
+        openWindow() // the clock runs from the moment the puzzle opens
         return Adopt.Adopted
     }
 
@@ -90,7 +91,7 @@ class QueensPlayController(
                 // The running clock is process-local (runningSince is not session state):
                 // a restored in-progress session restarts its window now, or the timer
                 // reads frozen forever (Tango parity, user QA 2026-11-02).
-                if (!s.isComplete && s.hasStarted) openWindow()
+                if (!s.isComplete) openWindow()
                 Restored(s.ref)
             }
 
@@ -111,13 +112,14 @@ class QueensPlayController(
     }
 
     /** Result's "Play again" parity (zip replay): a fresh session of the same puzzle with
-     *  the clock stopped — the next win is a new transition and emits again (A4). */
+     *  a fresh clock window open — the next win is a new transition and emits again (A4). */
     override fun replay() {
         val current = board?.session ?: return
         runningSince = null
         val fresh = QueensSession(ref = current.ref, puzzle = current.puzzle)
         board = boardFor(fresh)
         publish(fresh)
+        openWindow()
     }
 
     /** Spec A12: the adopted board shows its answer and no rule caption (tutorial only). */
@@ -131,15 +133,12 @@ class QueensPlayController(
 
     /**
      * The board's hook on every committed session, BEFORE it is stored and the win record
-     * built: the first committed action (or counted hint) opens the running window, and
-     * the win folds it into the banked [QueensSession.elapsedMs] so the frozen result and
-     * the record carry the real duration.
+     * built: the win folds the running window into the banked [QueensSession.elapsedMs]
+     * so the frozen result and the record carry the real duration. The window itself is
+     * opened by adopt/restore/replay/foreground, never by a move.
      */
-    private fun settle(next: QueensSession): QueensSession {
-        if (next.isComplete) return foldRunning(next)
-        if (runningSince == null) openWindow()
-        return next
-    }
+    private fun settle(next: QueensSession): QueensSession =
+        if (next.isComplete) foldRunning(next) else next
 
     private fun openWindow() {
         val start = now()
@@ -166,7 +165,7 @@ class QueensPlayController(
 
     override fun onForeground() {
         val current = board?.session ?: return
-        if (runningSince == null && !current.isComplete && current.hasStarted) openWindow()
+        if (runningSince == null && !current.isComplete) openWindow()
     }
 
     /** The running window's identity — the loop restarts each time it (re)opens. */

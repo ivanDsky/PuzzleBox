@@ -148,7 +148,7 @@ class FakeController(
     }
 
     override fun onForeground() {
-        if (windowMs == null && moves > 0 && !isComplete) openWindow()
+        if (windowMs == null && !isComplete) openWindow()
     }
 
     override fun displayedElapsedMs(): Long = bankedMs + (windowMs ?: 0L)
@@ -168,6 +168,7 @@ class FakeController(
         this.puzzle = puzzle
         this.ref = ref
         if (ui.publishesAdoptedSession) publish()
+        openWindow() // the clock runs from the moment the puzzle opens
         return Adopt.Adopted
     }
 
@@ -179,6 +180,7 @@ class FakeController(
         ref = TestGames.Ref(game, PuzzleKey.Daily(LocalDate.parse(parts[3]), parts[4].toIntOrNull()))
         bankedMs = parts.getOrNull(5)?.toLong() ?: 0L
         windowMs = null
+        if (!isComplete) openWindow()
         return Restored(ref)
     }
 
@@ -189,12 +191,12 @@ class FakeController(
         bankedMs = 0L
         windowMs = null
         publish()
+        openWindow()
     }
 
-    /** One committed move: opens the clock on the first, published like every game's change. */
+    /** One committed move: published like every game's change; it never touches the clock. */
     fun move() {
         moves++
-        if (windowMs == null) openWindow()
         publish()
     }
 

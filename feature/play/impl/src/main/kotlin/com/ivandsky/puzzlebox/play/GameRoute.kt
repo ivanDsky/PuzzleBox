@@ -12,6 +12,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -125,6 +126,11 @@ private fun GameBoard(
         val record by play.record.collectAsStateWithLifecycle()
         val board by play.board.collectAsStateWithLifecycle()
         val playing = tutorial == TutorialGate.Closed
+        // A game's clock opens the moment its puzzle is adopted, which can be behind the
+        // first-open tutorial: fold that window so lesson time never counts. The board's
+        // chrome reopens it when the tutorial gives way to the Screen.
+        val clockBehindTutorial = if (playing) null else board.controller as? PlayClock
+        LaunchedEffect(clockBehindTutorial, board.status) { clockBehindTutorial?.onBackground() }
         PlayTopBar(
             title = if (pastDay) PAST_DAY else record.label,
             pastDay = pastDay,

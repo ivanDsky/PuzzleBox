@@ -71,7 +71,7 @@ class ResultIsolationE2ETest {
 
     /**
      * Waits for a fresh board on today's live Zip (a replay starts empty), then solves it with
-     * at least [takingMs] on Zip's wall clock between the first move (which starts it) and the last.
+     * at least [takingMs] on Zip's wall clock between the board opening (which starts it) and the last move.
      */
     private fun ShellRobot.solveZip(takingMs: Long = 0L) {
         rule.waitUntil(TIMEOUT_MS) {

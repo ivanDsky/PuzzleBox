@@ -222,36 +222,115 @@ class TangoPlayControllerTest {
         assertNull(s.session)
     }
 
+    /** What the timer bar reads after the loop's next tick. */
+    private fun TangoPlayController.shown(): Long {
+        tick()
+        return displayedElapsedMs()
+    }
+
     @Test
-    fun `background folds the running window into elapsed and stops the clock`() {
+    fun `a fresh puzzle's timer runs with no move made`() {
         val s = loaded()
 
-        val (first, value) = TangoPlayFixture.placements.first()
-        s.onPlacement(TangoPlacement(first, value)) // opens the window at fakeNow
-        assertNotNull(s.clockWindow)
+        fakeNow = fakeNow.plusMillis(4_000)
 
+        assertTrue(s.session!!.placements.isEmpty())
+        assertNotNull(s.clockWindow)
+        assertEquals(4_000L, s.shown())
+    }
+
+    @Test
+    fun `a restored in-progress session continues from its saved time and advances`() {
+        val first = loaded()
+        first.onPlacement(TangoPlacement(TangoPlayFixture.placements.first().first, TangoPlayFixture.placements.first().second))
+        fakeNow = fakeNow.plusMillis(3_000)
+        first.onBackground()
+        val bytes = first.persist()!!
+
+        fakeNow = fakeNow.plusMillis(60_000) // process-death gap: never counted
+        val restored = controller()
+        assertNotNull(restored.adoptRestored(bytes))
+        assertEquals(3_000L, restored.shown())
+
+        fakeNow = fakeNow.plusMillis(2_000)
+        assertEquals(5_000L, restored.shown())
+    }
+
+    @Test
+    fun `a restored untouched session's timer runs too`() {
+        val first = loaded()
+        first.onBackground()
+        val bytes = first.persist()!!
+
+        val restored = controller()
+        assertNotNull(restored.adoptRestored(bytes))
+        fakeNow = fakeNow.plusMillis(1_500)
+
+        assertEquals(1_500L, restored.shown())
+    }
+
+    @Test
+    fun `background banks the window and foreground resumes it without a move`() {
+        val s = loaded()
         fakeNow = fakeNow.plusMillis(5_000)
+
         s.onBackground()
 
         assertEquals(5_000L, s.session?.elapsedMs)
         assertNull(s.clockWindow)
-        assertEquals(5_000L, s.displayedElapsedMs())
+        fakeNow = fakeNow.plusMillis(30_000) // away: never counted
+        assertEquals(5_000L, s.shown())
+
+        s.onForeground()
+        fakeNow = fakeNow.plusMillis(1_000)
+
+        assertNotNull(s.clockWindow)
+        assertEquals(6_000L, s.shown())
     }
 
     @Test
-    fun `the win record carries the active-play time (compete loop, game half)`() {
+    fun `completing the board stops the clock`() {
+        val s = loaded()
+        fakeNow = fakeNow.plusMillis(7_000)
+
+        playAll(s)
+
+        assertTrue(s.isComplete)
+        assertNull(s.clockWindow)
+        assertEquals(7_000L, s.session?.elapsedMs)
+        fakeNow = fakeNow.plusMillis(9_000)
+        s.onForeground() // a finished play never reopens
+        assertNull(s.clockWindow)
+        assertEquals(7_000L, s.shown())
+    }
+
+    @Test
+    fun `replay restarts from zero and advances at once`() {
+        val s = loaded()
+        fakeNow = fakeNow.plusMillis(7_000)
+        playAll(s)
+
+        s.replay()
+        assertEquals(0L, s.shown())
+        fakeNow = fakeNow.plusMillis(700)
+
+        assertEquals(700L, s.shown())
+    }
+
+    @Test
+    fun `the win record carries the active-play time from the open (compete loop, game half)`() {
         val s = loaded()
 
-        fakeNow = fakeNow.plusMillis(90_000)
+        fakeNow = fakeNow.plusMillis(90_000) // thinking before the first move counts now
         val (first, firstValue) = TangoPlayFixture.placements.first()
-        s.onPlacement(TangoPlacement(first, firstValue)) // window opens at T+90s
+        s.onPlacement(TangoPlacement(first, firstValue))
         fakeNow = fakeNow.plusMillis(45_000)
         for ((idx, value) in TangoPlayFixture.placements.drop(1)) {
             s.onPlacement(TangoPlacement(idx, value)) // completes at T+135s
         }
 
         assertEquals(1, won.size)
-        assertEquals(45_000L, won[0].time)
+        assertEquals(135_000L, won[0].time)
         assertNotNull(s.session?.completedAt)
     }
 
@@ -302,6 +381,7 @@ class TangoPlayControllerTest {
         fakeNow = fakeNow.plusMillis(5_000)
         s.onBackground() // banks 5 s and stops the clock
         assertNull(s.clockWindow)
+        s.onForeground() // the board is back on screen: the window reopens
 
         s.undo()
 
@@ -309,7 +389,7 @@ class TangoPlayControllerTest {
         assertEquals(1, s.session?.mistakeCount)
         assertEquals(0, s.session?.hintsUsed)
         assertEquals(5_000L, s.session?.elapsedMs)
-        assertNotNull(s.clockWindow) // undoing is play: a stopped clock reopens, never rewinds
+        assertNotNull(s.clockWindow) // undo never rewinds the clock
         assertEquals(s.persist()!!.toList(), saved.last().toList())
         assertTrue(s.canRedo)
 
