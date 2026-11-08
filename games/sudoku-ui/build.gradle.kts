@@ -10,6 +10,7 @@ android {
 
 dependencies {
     implementation(projects.games.sudoku)
+    implementation(projects.core.common)
     implementation(projects.core.game)
     implementation(projects.core.gameUi)
     implementation(projects.core.designsystem)
