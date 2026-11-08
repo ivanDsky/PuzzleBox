@@ -32,6 +32,7 @@ class SudokuEditorController(
     private val current = MutableStateFlow(typed(initial))
     private val picked = MutableStateFlow<Int?>(null)
     private val paired = MutableStateFlow(SudokuSymmetry.Off)
+    private val shownForced = MutableStateFlow(false)
     private val nudges = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private val shownOverlay = MutableStateFlow(EditorOverlay())
 
@@ -44,6 +45,9 @@ class SudokuEditorController(
 
     /** How cells are paired for the hop and the unpaired outline; Off until cycled. */
     val symmetry: StateFlow<SudokuSymmetry> = paired.asStateFlow()
+
+    /** Whether the digits logic alone places from the givens are shown; off until toggled. */
+    val forcedView: StateFlow<Boolean> = shownForced.asStateFlow()
 
     /**
      * One event per refused entry (a digit or Erase with no cell selected); the hint shakes
@@ -73,6 +77,11 @@ class SudokuEditorController(
     fun cycleSymmetry() {
         val all = SudokuSymmetry.entries
         paired.value = all[(paired.value.ordinal + 1) % all.size]
+    }
+
+    /** Flips [forcedView]. Not an edit. */
+    fun toggleForcedView() {
+        shownForced.value = !shownForced.value
     }
 
     /**

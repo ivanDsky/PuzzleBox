@@ -33,10 +33,11 @@ import com.ivandsky.puzzlebox.games.sudokuui.SudokuSizing
 import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 
 /**
- * The tools row under the grid, [height] tall: Erase, Clear and the Symmetry toggle. Erase
- * stays on with nothing selected (it then nudges); Clear is off while the board holds no
- * digit. Symmetry shows its mode as state and, while [unpaired] cells wait for a partner,
- * their count in a badge.
+ * The tools row under the grid, [height] tall: Erase, Clear, the Symmetry toggle and the
+ * Forced cells toggle (on shows the digits logic places from the givens). Erase stays on
+ * with nothing selected (it then nudges); Clear is off while the board holds no digit.
+ * Symmetry shows its mode as state and, while [unpaired] cells wait for a partner, their
+ * count in a badge.
  */
 @Composable
 internal fun SudokuEditorTools(
@@ -65,7 +66,21 @@ internal fun SudokuEditorTools(
             enabled = canClear,
         )
         SymmetryButton(controller, unpaired, tool)
+        ForcedButton(controller, tool)
     }
+}
+
+@Composable
+private fun ForcedButton(controller: SudokuEditorController, modifier: Modifier) {
+    val on by controller.forcedView.collectAsState()
+    GameButton(
+        onClick = controller::toggleForcedView,
+        icon = PuzzleIcons.Hint,
+        label = "Forced",
+        modifier = modifier.testTag("sudoku.editor.forced").semantics {
+            stateDescription = if (on) "On" else "Off"
+        },
+    )
 }
 
 @Composable
