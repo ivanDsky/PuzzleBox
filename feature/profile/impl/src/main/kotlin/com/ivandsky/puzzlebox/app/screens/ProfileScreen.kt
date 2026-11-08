@@ -36,6 +36,7 @@ import com.ivandsky.puzzlebox.profile.AppearanceRow
 import com.ivandsky.puzzlebox.profile.GameRows
 import com.ivandsky.puzzlebox.profile.LifetimeGrid
 import com.ivandsky.puzzlebox.profile.ProfileHeader
+import com.ivandsky.puzzlebox.profile.board.ProfileDailyBoard
 import java.time.LocalDate
 
 /**
@@ -50,6 +51,7 @@ internal fun ProfileContent(
     onSignOut: () -> Unit,
     onSetThemeMode: (ThemeMode) -> Unit,
     onOpenHistory: (GameId) -> Unit,
+    onSelectGame: (GameId) -> Unit,
     onOpenCatalog: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
@@ -73,8 +75,8 @@ internal fun ProfileContent(
         }
         HorizontalDivider()
         when (account) {
-            is ProfileUiState.Account.SignedOut -> SignedOutSection(account, onSignIn)
-            is ProfileUiState.Account.SignedIn -> SignedInSection(account, onSignOut)
+            is ProfileUiState.Account.SignedOut -> SignedOutSection(account, onSignIn, perGame = state.perGameBoard != null)
+            is ProfileUiState.Account.SignedIn -> SignedInSection(account, onSignOut, state.games, state.perGameBoard, onSelectGame)
         }
         HorizontalDivider()
         AppearanceRow(current = state.themeMode, onSelect = onSetThemeMode)
@@ -89,14 +91,18 @@ internal fun ProfileContent(
 }
 
 @Composable
-private fun SignedOutSection(account: ProfileUiState.Account.SignedOut, onSignIn: () -> Unit) {
+private fun SignedOutSection(account: ProfileUiState.Account.SignedOut, onSignIn: () -> Unit, perGame: Boolean) {
     Column(
         modifier = Modifier.fillMaxWidth().testTag("profile-signed-out"),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Text(
-            text = "Sign in with Google to put your times on the daily leaderboard.",
+            text = if (perGame) {
+                "Sign in with Google to put your times on the leaderboards."
+            } else {
+                "Sign in with Google to put your times on the daily leaderboard."
+            },
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -116,7 +122,13 @@ private fun SignedOutSection(account: ProfileUiState.Account.SignedOut, onSignIn
 }
 
 @Composable
-private fun SignedInSection(account: ProfileUiState.Account.SignedIn, onSignOut: () -> Unit) {
+private fun SignedInSection(
+    account: ProfileUiState.Account.SignedIn,
+    onSignOut: () -> Unit,
+    games: List<ProfileUiState.GameRow>,
+    perGameBoard: ProfileUiState.PerGameBoard?,
+    onSelectGame: (GameId) -> Unit,
+) {
     Column(
         modifier = Modifier.fillMaxWidth().testTag("profile-signed-in"),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -133,7 +145,11 @@ private fun SignedInSection(account: ProfileUiState.Account.SignedIn, onSignOut:
             )
             AppTextButton(text = "Sign out", onClick = onSignOut)
         }
-        LeaderboardSection(account.board, myUid = account.identity.uid)
+        if (perGameBoard != null) {
+            ProfileDailyBoard(games = games, board = perGameBoard, onSelect = onSelectGame)
+        } else {
+            LeaderboardSection(account.board, myUid = account.identity.uid)
+        }
     }
 }
 
@@ -174,6 +190,7 @@ internal fun ProfileContentPreview() {
             onSignOut = {},
             onSetThemeMode = {},
             onOpenHistory = {},
+            onSelectGame = {},
             onOpenCatalog = {},
         )
     }
