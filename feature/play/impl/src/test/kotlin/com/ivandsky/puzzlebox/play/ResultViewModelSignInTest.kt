@@ -9,7 +9,6 @@ import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
-import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
@@ -83,7 +82,6 @@ class ResultViewModelSignInTest {
             todaySet = ObserveTodaySet(fakes.games, saved, completions, calendar, daily, SyncTodayPuzzles(fakes.games, daily, calendar)),
             calendar = calendar,
             history = history,
-            stats = ObserveGameStats(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games, clock))),
             rollover = GetNextRollover(fakes.games, clock),
             ui = fakes.registry,
             games = fakes.games,

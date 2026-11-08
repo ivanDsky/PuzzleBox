@@ -40,7 +40,7 @@ private const val HERO_WEIGHT = 1.1f
 private const val SIDE_WEIGHT = 1f
 
 /**
- * The Results page behind the `ResultsHero` flag: the hero card and the side card, built
+ * The daily Results page: the hero card and the side card, built
  * from one [facts] value so the cards only paint.
  *
  * Layout by measured width: under 760 dp one column, hero then side; from 760 dp two

@@ -72,7 +72,6 @@ val playModule = module {
             todaySet = get(),
             calendar = get(),
             history = get(),
-            stats = get(),
             rollover = get(),
             ui = get(),
             games = get(),

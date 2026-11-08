@@ -8,8 +8,7 @@ import kotlin.math.abs
 /**
  * Every sentence the Results hero page shows, one pure function each, so the strings live
  * (and are tested) in one place and the screens only draw. Times compare at the resolution
- * [formatDuration] shows, in whole seconds, as [RecordVerdict.of] does. These win over the
- * wording of [BestLine], which the old result page keeps until its cleanup.
+ * [formatDuration] shows, in whole seconds, as [RecordVerdict.of] does.
  */
 
 /** The pill: "New best", "Tied your best!" or "First solve"; null for the other verdicts. */
