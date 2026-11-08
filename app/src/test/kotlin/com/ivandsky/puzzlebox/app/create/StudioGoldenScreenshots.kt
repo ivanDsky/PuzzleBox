@@ -50,7 +50,8 @@ import java.io.File
  * solutions with witness A on the board and the fix list (the phone's card open in its
  * bottom sheet); No solution with a crowned clash cell; Unique with its difficulty, the readiness
  * line and the "test solve cleared" toast. Readiness is the domain's [ValidatePublish].
- * Recorded with `-Proborazzi.record=true`, verified by default; goldens in `snapshots/studio/`.
+ * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`;
+ * goldens in `snapshots/studio/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

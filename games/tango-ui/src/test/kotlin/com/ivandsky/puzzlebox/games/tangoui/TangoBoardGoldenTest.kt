@@ -33,14 +33,12 @@ import org.robolectric.annotation.GraphicsMode
  * (caption slot) must reflow while the board geometry stays pitch-exact. Plus the
  * tablet-landscape posture (w1280dp-h800dp, §10.8's second posture) in light.
  *
- * Committed goldens live in `src/test/resources/goldens/`. This class is a REAL
- * floor (review I6): every run captures to a scratch file and pixel-compares against
- * the committed golden — drift fails the test. The default run verifies (the module
- * build wires `tango.golden.verify`), so a missing golden is a FAILURE; with
- * `-Proborazzi.record=true` a missing golden is recorded in place. To regenerate a drifted
- * golden, delete it and rerun with that flag. CI on Linux passes
- * `-Pgoldens.pixelCompare=false` (the goldens are macOS-rendered): size is still checked,
- * the pixel diff is skipped.
+ * Committed goldens live in `src/test/resources/goldens/`. The module build wires
+ * `tango.golden.mode`: the default run (compare) captures to a scratch file and neither reads
+ * nor writes a golden, so it never fails on drift and leaves the worktree clean.
+ * `-Proborazzi.verify=true` pixel-compares against the committed golden — drift or a missing
+ * golden fails the test (a REAL floor, review I6); `-Pgoldens.pixelCompare=false` keeps the
+ * size check and skips the pixel diff. `-Proborazzi.record=true` rewrites the goldens.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -50,7 +48,7 @@ class TangoBoardGoldenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val strictVerify = System.getProperty("tango.golden.verify") == "true"
+    private val mode = System.getProperty("tango.golden.mode") ?: "compare"
     private val pixelCompare = System.getProperty("goldens.pixelCompare") != "false"
 
     private fun goldenPath(name: String) =
@@ -75,18 +73,20 @@ class TangoBoardGoldenTest {
         val scratch = scratchPath(name).apply { parentFile?.mkdirs() }
         composeRule.onRoot().captureRoboImage(scratch)
         val golden = goldenPath(name)
-        if (!golden.exists()) {
-            // Record path: first run (or golden intentionally deleted to regenerate).
-            if (strictVerify) {
-                throw AssertionError(
-                    "Golden $name is missing and verify mode forbids recording; " +
-                        "run with -Proborazzi.record=true once to record it, then re-verify.",
-                )
+        when (mode) {
+            "record" -> scratch.copyTo(golden, overwrite = true)
+            "verify" -> {
+                if (!golden.exists()) {
+                    throw AssertionError(
+                        "Golden $name is missing and verify mode forbids recording; " +
+                            "run with -Proborazzi.record=true once to record it, then re-verify.",
+                    )
+                }
+                assertGoldenMatches(golden, scratch, name)
             }
-            scratch.copyTo(golden)
-            return
+            // compare: the capture sits in build/roborecord for inspection; no golden is read or
+            // written, so drift never fails and the worktree stays clean.
         }
-        assertGoldenMatches(golden, scratch, name)
     }
 
     /** Pixel-exact comparison (decoded, so PNG metadata noise cannot false-fail). */
@@ -116,7 +116,7 @@ class TangoBoardGoldenTest {
         }
         assertTrue(
             "Golden $name drifted: $diffCount+ differing pixels (first at $firstDiff). " +
-                "If the change is intended, delete src/test/resources/goldens/$name and rerun to re-record.",
+                "If the change is intended, re-record with -Proborazzi.record=true.",
             diffCount == 0,
         )
     }

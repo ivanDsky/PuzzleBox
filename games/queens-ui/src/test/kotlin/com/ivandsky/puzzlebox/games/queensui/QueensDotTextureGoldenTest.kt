@@ -27,7 +27,8 @@ import java.io.File
 /**
  * Ticket 20: on 11×11 and 12×12 boards region ids 10 and 11 (K/L) reuse the hues of
  * A/B, so they carry a four-dot texture. Goldens of the densest board (the 03 prototype's
- * 12×12 layout) on a compact phone, light and dark; recorded by default, verified with
+ * 12×12 layout) on a compact phone, light and dark;
+ * recorded with `-Proborazzi.record=true`, verified with
  * `-Proborazzi.verify=true`. Same `snapshots/` directory as QueensGoldenScreenshots.
  */
 @RunWith(RobolectricTestRunner::class)

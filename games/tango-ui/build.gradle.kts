@@ -10,10 +10,10 @@ android {
 }
 
 // TangoBoardGoldenTest owns the compare (review I6): Roborazzi always records to its
-// scratch file and the unified -Proborazzi.verify flag reaches the harness as
-// `tango.golden.verify` (a MISSING golden then fails instead of being recorded).
+// scratch file and the unified mode (record, verify or compare) reaches the harness as
+// `tango.golden.mode`.
 roborazziGoldens {
-    harnessVerifyProperty = "tango.golden.verify"
+    harnessModeProperty = "tango.golden.mode"
 }
 
 dependencies {
