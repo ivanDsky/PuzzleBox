@@ -67,6 +67,7 @@ internal fun SudokuEditorBoard(
     val board = draft.state.draft as SudokuDraft
     val symmetry by controller.symmetry.collectAsState()
     val overlay by controller.overlay.collectAsState()
+    val forcedView by controller.forcedView.collectAsState()
     // The last settled verdict, so the witness digits hold while a new analysis runs.
     val settled = remember { mutableStateOf<Verdict?>(null) }
     SideEffect { if (verdict != Verdict.Checking) settled.value = verdict }
@@ -94,6 +95,7 @@ internal fun SudokuEditorBoard(
                 SudokuGrid(model, controller::tap, Modifier.fillMaxSize())
                 SudokuEditorMarks(board.size, unpaired, hatched, Modifier.fillMaxSize())
                 SudokuDiagnosticsLayer(board.size, diagnostics, Modifier.fillMaxSize())
+                SudokuForcedLayer(board, forcedView, Modifier.fillMaxSize())
             }
             SudokuEditorKeypad(controller, board, layout)
             SudokuEditorTools(controller, board.givens.any { it != 0 }, unpaired.size, toolHeight)
