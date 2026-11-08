@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app
 
 import android.app.Application
+import androidx.lifecycle.SavedStateHandle
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
 import com.ivandsky.puzzlebox.common.di.commonModule
@@ -134,7 +135,7 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<GoogleIdTokenProvider>())
             // C1 regression: ProfileRoute's koinViewModel() needs this definition —
             // without it the first Profile composition throws NoDefinitionFound.
-            assertNotNull(koin.get<ProfileViewModel>())
+            assertNotNull(koin.get<ProfileViewModel> { parametersOf(SavedStateHandle()) })
             // Home/History routes' koinViewModel() and their domain use cases.
             assertNotNull(koin.get<HomeViewModel>())
             assertNotNull(koin.get<HistoryViewModel> { parametersOf(HistoryKey()) })

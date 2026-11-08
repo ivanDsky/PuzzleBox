@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.app.screens
 
 import android.app.Application
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
@@ -13,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
@@ -22,6 +25,8 @@ import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
 import java.time.LocalDate
@@ -64,6 +69,7 @@ class ProfileScreenTest {
     private var signOutClicks = 0
     private var catalogClicks = 0
     private val openedHistory = mutableListOf<GameId>()
+    private val picked = mutableListOf<GameId>()
     private val themes = mutableListOf<ThemeMode>()
 
     private fun setContent(account: ProfileUiState.Account) = setContent(ProfileUiState(account = account, games = games))
@@ -80,6 +86,7 @@ class ProfileScreenTest {
                     onSignOut = { signOutClicks++ },
                     onSetThemeMode = { themes += it },
                     onOpenHistory = { openedHistory += it },
+                    onSelectGame = { picked += it },
                     onOpenCatalog = if (showCatalog) ({ catalogClicks++ }) else null,
                 )
             }
@@ -237,5 +244,65 @@ class ProfileScreenTest {
         setContent(ProfileUiState(games = games), showCatalog = false)
 
         composeRule.onNodeWithTag("profile.catalog").assertDoesNotExist()
+    }
+
+    private val signedIn = ProfileUiState.Account.SignedIn(me, TodayLeaderboard.Board.Unavailable)
+
+    @Test
+    fun `flag on shows a chip per game over the shared board and reports a pick`() {
+        val rows = listOf(DailyBoardRowModel(1, "Bo", 80_000, 0, isSelf = false))
+        setContent(
+            ProfileUiState(
+                account = signedIn,
+                games = games,
+                perGameBoard = ProfileUiState.PerGameBoard(zip, RankOrder.TimeThenHints, DailyBoardState.Ranked(rows)),
+            ),
+        )
+
+        composeRule.onNodeWithTag("profile-board-chip-zip").performScrollTo().assertIsSelected()
+        composeRule.onNodeWithTag("profile-board-chip-tango").assertExists()
+        composeRule.onNodeWithText("Zip · today", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithText("Bo").assertExists()
+        composeRule.onNodeWithTag("leaderboard").assertDoesNotExist()
+
+        composeRule.onNodeWithTag("profile-board-chip-tango").performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.runOnIdle { assertEquals(listOf(tango), picked) }
+    }
+
+    @Test
+    fun `flag on with the default pending shows Loading under no selected chip`() {
+        setContent(
+            ProfileUiState(
+                account = signedIn,
+                games = games,
+                perGameBoard = ProfileUiState.PerGameBoard(null, RankOrder.TimeThenHints, DailyBoardState.Loading),
+            ),
+        )
+
+        composeRule.onNodeWithText("Loading…").assertExists()
+        composeRule.onNodeWithTag("profile-board-chip-zip").performScrollTo().assertIsNotSelected()
+    }
+
+    @Test
+    fun `flag on signed out keeps the sign-in card, says leaderboards, no switcher`() {
+        setContent(
+            ProfileUiState(
+                games = games,
+                perGameBoard = ProfileUiState.PerGameBoard(null, RankOrder.TimeThenHints, DailyBoardState.SignedOut),
+            ),
+        )
+
+        composeRule.onNodeWithText("Sign in with Google to put your times on the leaderboards.").assertExists()
+        composeRule.onNodeWithTag("profile-board-chip-zip").assertDoesNotExist()
+    }
+
+    @Test
+    fun `flag off keeps the legacy board and no chips`() {
+        setContent(
+            ProfileUiState.Account.SignedIn(me, TodayLeaderboard.Board.Loaded(LeaderboardSnapshot(boardRef, entries))),
+        )
+
+        composeRule.onNodeWithTag("leaderboard").assertExists()
+        composeRule.onNodeWithTag("profile-board-chip-zip").assertDoesNotExist()
     }
 }

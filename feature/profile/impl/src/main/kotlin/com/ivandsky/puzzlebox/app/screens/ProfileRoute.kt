@@ -32,6 +32,7 @@ fun ProfileRoute(
         onSignOut = viewModel::onSignOut,
         onSetThemeMode = viewModel::onSetThemeMode,
         onOpenHistory = onOpenHistory,
+        onSelectGame = viewModel::onSelectGame,
         onOpenCatalog = onOpenCatalog.takeIf { debuggable },
         modifier = modifier.testTag("route.profile"),
     )
