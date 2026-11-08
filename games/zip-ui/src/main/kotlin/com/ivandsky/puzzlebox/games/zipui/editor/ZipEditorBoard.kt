@@ -1,7 +1,10 @@
 package com.ivandsky.puzzlebox.games.zipui.editor
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.keyframes
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,15 +13,23 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
@@ -45,26 +56,82 @@ fun ZipEditorBoard(controller: ZipEditorController, modifier: Modifier = Modifie
     val model = remember(board) { rendererModel(board) }
     val step by controller.step.collectAsState()
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.weight(1f, fill = false).aspectRatio(1f, matchHeightConstraintsFirst = true).testTag("zip.editor.board")) {
+        val shake = shakeOffset(controller)
+        Box(
+            Modifier.weight(1f, fill = false)
+                .aspectRatio(1f, matchHeightConstraintsFirst = true)
+                .graphicsLayer { translationX = shake.value }
+                .testTag("zip.editor.board"),
+        ) {
             ZipBoard(model, Modifier.fillMaxSize())
-            CellTags(board.n)
-            if (step == ZipEditorStep.Path) Box(Modifier.matchParentSize().strokeGestures(controller, board.n))
+            CellTags(board)
+            when (step) {
+                ZipEditorStep.Path -> Box(Modifier.matchParentSize().strokeGestures(controller, board.n))
+                ZipEditorStep.Numbers -> Box(Modifier.matchParentSize().tapGestures(controller, board.n))
+                else -> Unit
+            }
         }
         ZipEditorTools(controller)
     }
 }
 
-/** An invisible grid of cells, each tagged `zip.editor.cell.<idx>`, over the drawn board. */
+/**
+ * An invisible grid of cells, each tagged `zip.editor.cell.<idx>`, over the drawn board. A numbered
+ * cell holds a child tagged `zip.editor.cell.<idx>.number` that reads its label.
+ */
 @Composable
-private fun CellTags(n: Int) {
+private fun CellTags(board: ZipDraft) {
+    val n = board.n
     Column(Modifier.fillMaxSize()) {
         repeat(n) { row ->
             Row(Modifier.weight(1f).fillMaxWidth()) {
-                repeat(n) { col -> Box(Modifier.weight(1f).fillMaxHeight().testTag("zip.editor.cell.${row * n + col}")) }
+                repeat(n) { col ->
+                    val cell = row * n + col
+                    Box(Modifier.weight(1f).fillMaxHeight().testTag("zip.editor.cell.$cell")) {
+                        val label = board.waypoints.indexOf(cell) + 1
+                        if (label > 0) {
+                            Box(
+                                Modifier.matchParentSize()
+                                    .semantics { text = AnnotatedString(label.toString()) }
+                                    .testTag("zip.editor.cell.$cell.number"),
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
+
+/** A sideways jolt that settles, replayed for each refused number tap. */
+@Composable
+private fun shakeOffset(controller: ZipEditorController): Animatable<Float, *> {
+    val shaken by controller.shaken.collectAsState()
+    val offset = remember { Animatable(0f) }
+    val reach = with(LocalDensity.current) { SHAKE_DP.dp.toPx() }
+    LaunchedEffect(shaken) {
+        if (shaken == null) return@LaunchedEffect
+        offset.animateTo(
+            0f,
+            keyframes {
+                durationMillis = MotionTokens.DurationMedium
+                -reach at MotionTokens.DurationMedium / 4
+                reach * 0.8f at MotionTokens.DurationMedium / 2
+                -reach * 0.4f at MotionTokens.DurationMedium * 3 / 4
+            },
+        )
+    }
+    return offset
+}
+
+private const val SHAKE_DP = 5f
+
+/** A tap numbers the cell it lands on. */
+private fun Modifier.tapGestures(controller: ZipEditorController, n: Int): Modifier =
+    pointerInput(controller, n) {
+        val geometry = GridGeometry(n, n, size.width.toFloat(), size.height.toFloat())
+        detectTapGestures { controller.tapNumber(cellOf(geometry, it, n)) }
+    }
 
 private fun rendererModel(board: ZipDraft): ZipRendererModel {
     val cells = board.waypoints.map(::Cell)
