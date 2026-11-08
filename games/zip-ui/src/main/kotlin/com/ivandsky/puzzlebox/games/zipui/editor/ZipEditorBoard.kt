@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,6 +36,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.Wall
 import com.ivandsky.puzzlebox.games.zip.WallDirection
@@ -51,13 +54,24 @@ import kotlin.math.max
 /**
  * The Zip editor's board: the play board's look (dots, pipe, outline) over the controller's
  * [ZipEditorController.shown] draft, with a stroke gesture that draws the author's path in the
- * Path step, and the step tabs and actions ([ZipEditorTools]) below the grid.
+ * Path step, and the step tabs and actions ([ZipEditorTools]) below the grid. The [verdict] and
+ * the card's witness choice ([ZipEditorController.overlay]) are drawn by [ZipDiagnosticsLayer].
  */
 @Composable
-fun ZipEditorBoard(controller: ZipEditorController, modifier: Modifier = Modifier) {
+fun ZipEditorBoard(
+    controller: ZipEditorController,
+    modifier: Modifier = Modifier,
+    verdict: Verdict = Verdict.Checking,
+) {
     val board by controller.shown.collectAsState()
     val model = remember(board) { rendererModel(board) }
     val step by controller.step.collectAsState()
+    val overlay by controller.overlay.collectAsState()
+    // The last settled verdict, so the witness holds while a new analysis runs.
+    val settled = remember { mutableStateOf<Verdict?>(null) }
+    SideEffect { if (verdict != Verdict.Checking) settled.value = verdict }
+    val held = if (verdict == Verdict.Checking) settled.value else verdict
+    val diagnostics = zipDiagnostics(verdict, held, overlay)
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         val shake = shakeOffset(controller)
         Box(
@@ -67,6 +81,7 @@ fun ZipEditorBoard(controller: ZipEditorController, modifier: Modifier = Modifie
                 .testTag("zip.editor.board"),
         ) {
             ZipBoard(model, Modifier.fillMaxSize())
+            ZipDiagnosticsLayer(diagnostics, board.n)
             CellTags(board)
             when (step) {
                 ZipEditorStep.Path -> Box(Modifier.matchParentSize().strokeGestures(controller, board.n))
