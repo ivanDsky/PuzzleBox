@@ -26,19 +26,28 @@ class SudokuHints internal constructor(private val steps: List<EliminationStep>)
         if (wrong.isNotEmpty()) return SudokuHint.Wrong(wrong)
         if (board.isFull) return SudokuHint.None
 
-        val geometry = puzzle.geometry
         val candidates = SudokuCandidates.of(puzzle, board)
+        return place(puzzle.geometry, candidates) ?: reveal(puzzle, board, candidates)
+    }
+
+    /**
+     * The next technique placement over [known] digits (0 = open), solution-free: null where only
+     * a reveal is left. Conflicts are the caller's to rule out.
+     */
+    internal fun placement(geometry: SudokuGeometry, known: IntArray): SudokuHint.Place? =
+        place(geometry, SudokuCandidates.ofKnown(geometry, known))
+
+    private fun place(geometry: SudokuGeometry, candidates: IntArray): SudokuHint.Place? {
         var before: IntArray? = null
         var via: SudokuTechnique? = null
         var struck = emptyList<Int>()
         while (true) {
             single(geometry, candidates, via, struck)?.let { return it }
             val start = before ?: candidates.copyOf().also { before = it }
-            val step = steps.firstOrNull { it.eliminate(geometry, candidates) } ?: break
+            val step = steps.firstOrNull { it.eliminate(geometry, candidates) } ?: return null
             if (via == null || step.technique > via) via = step.technique
             struck = candidates.indices.filter { candidates[it] != start[it] }
         }
-        return reveal(puzzle, board, candidates)
     }
 
     private fun single(

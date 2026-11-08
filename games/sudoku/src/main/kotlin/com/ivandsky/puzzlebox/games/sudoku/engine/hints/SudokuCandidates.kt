@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.sudoku.engine.hints
 
 import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
+import com.ivandsky.puzzlebox.games.sudoku.SudokuGeometry
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 
 /**
@@ -11,9 +12,11 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 internal object SudokuCandidates {
 
     /** A mask per cell: every digit no known peer holds, or 0 for a cell whose digit is known. */
-    fun of(puzzle: SudokuPuzzle, board: SudokuBoard): IntArray {
-        val geometry = puzzle.geometry
-        val known = IntArray(geometry.cellCount) { idx -> knownDigit(puzzle, board.cells[idx], idx) }
+    fun of(puzzle: SudokuPuzzle, board: SudokuBoard): IntArray =
+        ofKnown(puzzle.geometry, IntArray(puzzle.geometry.cellCount) { idx -> knownDigit(puzzle, board.cells[idx], idx) })
+
+    /** [of] over digits already known per cell (0 = open), with no solution to check against. */
+    fun ofKnown(geometry: SudokuGeometry, known: IntArray): IntArray {
         val full = (1 shl geometry.size) - 1
         return IntArray(geometry.cellCount) { idx ->
             if (known[idx] != 0) {
