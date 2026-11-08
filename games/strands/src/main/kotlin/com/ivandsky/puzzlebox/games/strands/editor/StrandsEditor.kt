@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.GameEditor
+import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.model.GameId
@@ -32,4 +33,7 @@ object StrandsEditor : GameEditor<StrandsDraft> {
     override fun decodeDraft(bytes: ByteArray): DecodeResult<DraftState<StrandsDraft>> = StrandsDraftCodec.decode(bytes)
 
     override fun analyze(draft: StrandsDraft, budget: Budget): Verdict = StrandsDraftAnalyzer.analyze(draft, budget)
+
+    override fun publishBlocks(draft: StrandsDraft, verdict: Verdict): List<PublishBlock> =
+        StrandsPublishGates.blocks(draft, verdict)
 }
