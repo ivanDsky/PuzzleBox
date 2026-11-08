@@ -22,10 +22,12 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 /**
@@ -151,6 +153,62 @@ class LoadSharedPuzzleTest {
         assertTrue(received.rows.isEmpty())
     }
 
+    @Test
+    fun `a codec that throws on a crafted payload fails its check`() = runTest {
+        shared.publish(doc(payload = byteArrayOf(1, 0)))
+        val throwing = loadWith(ThrowingEditor(onDecode = true, IllegalArgumentException("crafted")))
+
+        assertEquals(OpenOutcome.FailedCheck, throwing(CODE))
+    }
+
+    @Test
+    fun `an analyzer that throws on a crafted payload fails its check`() = runTest {
+        shared.publish(doc(payload = byteArrayOf(1, 0)))
+        val throwing = loadWith(ThrowingEditor(onDecode = false, IllegalStateException("crafted")))
+
+        assertEquals(OpenOutcome.FailedCheck, throwing(CODE))
+    }
+
+    @Test
+    fun `cancellation still propagates out of the open`() = runTest {
+        shared.publish(doc(payload = byteArrayOf(1, 0)))
+        val throwing = loadWith(ThrowingEditor(onDecode = true, CancellationException()))
+
+        try {
+            throwing(CODE)
+            fail("expected CancellationException to propagate")
+        } catch (expected: CancellationException) {
+            // the open was cancelled, not failed
+        }
+    }
+
+    private fun loadWith(editor: GameEditor<List<Int>>): LoadSharedPuzzle =
+        LoadSharedPuzzle(
+            registry = GameRegistry(listOf(withEditor(PAIR, editor))),
+            shared = shared,
+            received = received,
+            budget = { Budget.within(BUDGET_MS, System::nanoTime) },
+            clock = { NOW },
+        )
+
+    /** A [PairEditor] whose decode or analyze throws, standing in for a game's codec bug. */
+    private class ThrowingEditor(
+        private val onDecode: Boolean,
+        private val boom: RuntimeException,
+    ) : GameEditor<List<Int>> by PairEditor,
+        EditorShareCodec<List<Int>> by PairEditor,
+        DraftExport<List<Int>> by PairEditor {
+        override fun decodeShare(bytes: ByteArray): DecodeResult<List<Int>> {
+            if (onDecode) throw boom
+            return PairEditor.decodeShare(bytes)
+        }
+
+        override fun analyze(draft: List<Int>, budget: Budget): Verdict {
+            if (!onDecode) throw boom
+            return PairEditor.analyze(draft, budget)
+        }
+    }
+
     private fun doc(
         payload: ByteArray,
         gameId: String = PAIR.value,
@@ -217,7 +275,7 @@ class LoadSharedPuzzleTest {
         const val BUDGET_MS = 1_000L
         val NOW: Instant = Instant.parse("2026-11-07T10:00:00Z")
 
-        fun withEditor(game: GameId): GamePlugin<*, *, *> {
+        fun withEditor(game: GameId, editor: GameEditor<*> = PairEditor): GamePlugin<*, *, *> {
             val base = TestGames.plugin(game)
             return GamePlugin(
                 definition = base.definition,
@@ -229,7 +287,7 @@ class LoadSharedPuzzleTest {
                 refOf = base.refOf,
                 replaySession = base.replaySession,
                 rendererModel = base.rendererModel,
-                editor = PairEditor,
+                editor = editor,
             )
         }
     }

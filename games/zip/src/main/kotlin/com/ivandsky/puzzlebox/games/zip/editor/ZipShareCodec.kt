@@ -41,8 +41,9 @@ internal object ZipShareCodec : EditorShareCodec<ZipDraft> {
     }
 
     /**
-     * version > 1 ⇒ UnsupportedVersion(found, 1); unknown size ⇒ UnknownVariant;
-     * anything else invalid (incl. repeated waypoints) ⇒ Malformed.
+     * version > 1 ⇒ UnsupportedVersion(found, 1); a size the editor does not offer (the tutorial
+     * boards n3/n4 included) ⇒ UnknownVariant; anything else invalid (incl. repeated waypoints)
+     * ⇒ Malformed.
      */
     override fun decodeShare(bytes: ByteArray): DecodeResult<ZipDraft> {
         val cursor = ZipSessionCursor(bytes)
@@ -53,7 +54,9 @@ internal object ZipShareCodec : EditorShareCodec<ZipDraft> {
         if (version != shareFormatVersion) return malformed("share version $version was never written")
         val n = cursor.u8() ?: return malformed("truncated board size")
         val variant = "zip/n$n"
-        if (ZipVariants.byId(VariantId(variant)) == null) return DecodeResult.Err(DecodeError.UnknownVariant(variant))
+        if (ZipVariants.dailyById(VariantId(variant)) == null) {
+            return DecodeResult.Err(DecodeError.UnknownVariant(variant))
+        }
         val walls = readWalls(cursor, n) ?: return malformed("malformed walls")
         val waypoints = cursor.cells(n * n) ?: return malformed("malformed waypoints")
         if (waypoints.toSet().size != waypoints.size) return malformed("repeated waypoint cell")
