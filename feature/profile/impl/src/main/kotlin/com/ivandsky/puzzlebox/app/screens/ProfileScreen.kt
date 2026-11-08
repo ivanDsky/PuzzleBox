@@ -26,13 +26,15 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.TodayLeaderboard
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.profile.AppearanceRow
+import com.ivandsky.puzzlebox.profile.board.GameRow
+import com.ivandsky.puzzlebox.profile.board.PerGameBoard
 import com.ivandsky.puzzlebox.profile.GameRows
 import com.ivandsky.puzzlebox.profile.LifetimeGrid
 import com.ivandsky.puzzlebox.profile.ProfileHeader
@@ -75,7 +77,7 @@ internal fun ProfileContent(
         }
         HorizontalDivider()
         when (account) {
-            is ProfileUiState.Account.SignedOut -> SignedOutSection(account, onSignIn, perGame = state.perGameBoard != null)
+            is ProfileUiState.Account.SignedOut -> SignedOutSection(account, onSignIn)
             is ProfileUiState.Account.SignedIn -> SignedInSection(account, onSignOut, state.games, state.perGameBoard, onSelectGame)
         }
         HorizontalDivider()
@@ -91,18 +93,14 @@ internal fun ProfileContent(
 }
 
 @Composable
-private fun SignedOutSection(account: ProfileUiState.Account.SignedOut, onSignIn: () -> Unit, perGame: Boolean) {
+private fun SignedOutSection(account: ProfileUiState.Account.SignedOut, onSignIn: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth().testTag("profile-signed-out"),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Text(
-            text = if (perGame) {
-                "Sign in with Google to put your times on the leaderboards."
-            } else {
-                "Sign in with Google to put your times on the daily leaderboard."
-            },
+            text = "Sign in with Google to put your times on the leaderboards.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -125,8 +123,8 @@ private fun SignedOutSection(account: ProfileUiState.Account.SignedOut, onSignIn
 private fun SignedInSection(
     account: ProfileUiState.Account.SignedIn,
     onSignOut: () -> Unit,
-    games: List<ProfileUiState.GameRow>,
-    perGameBoard: ProfileUiState.PerGameBoard?,
+    games: List<GameRow>,
+    perGameBoard: PerGameBoard,
     onSelectGame: (GameId) -> Unit,
 ) {
     Column(
@@ -145,11 +143,7 @@ private fun SignedInSection(
             )
             AppTextButton(text = "Sign out", onClick = onSignOut)
         }
-        if (perGameBoard != null) {
-            ProfileDailyBoard(games = games, board = perGameBoard, onSelect = onSelectGame)
-        } else {
-            LeaderboardSection(account.board, myUid = account.identity.uid)
-        }
+        ProfileDailyBoard(games = games, board = perGameBoard, onSelect = onSelectGame)
     }
 }
 
@@ -161,7 +155,6 @@ internal fun ProfileContentPreview() {
             state = ProfileUiState(
                 account = ProfileUiState.Account.SignedIn(
                     identity = Identity(uid = "u1", displayName = "Ann", photoUrl = null),
-                    board = TodayLeaderboard.Board.Unavailable,
                 ),
                 stats = ProfileUiState.NO_STATS.copy(
                     solved = 42,
@@ -171,20 +164,25 @@ internal fun ProfileContentPreview() {
                 ),
                 daysPlayed = 21,
                 games = listOf(
-                    ProfileUiState.GameRow(
+                    GameRow(
                         GameId("zip"), "Zip", GameBrand(AccentSlot.Blue, GameGlyphs.Zip), solved = 20,
                         best = BestScore(41_000, hints = 0), rankOrder = RankOrder.TimeThenHints,
                     ),
-                    ProfileUiState.GameRow(
+                    GameRow(
                         GameId("strands"), "Strands", GameBrand(AccentSlot.Pink, GameGlyphs.Strands), solved = 22,
                         best = BestScore(185_000, hints = 1), rankOrder = RankOrder.HintsThenTime,
                     ),
-                    ProfileUiState.GameRow(
+                    GameRow(
                         GameId("tango"), "Tango", GameBrand(AccentSlot.Orange, GameGlyphs.Tango), solved = 0,
                         best = null, rankOrder = RankOrder.TimeThenHints,
                     ),
                 ),
                 themeMode = ThemeMode.DARK,
+                perGameBoard = PerGameBoard(
+                    GameId("zip"),
+                    RankOrder.TimeThenHints,
+                    DailyBoardState.Unavailable,
+                ),
             ),
             onSignIn = {},
             onSignOut = {},

@@ -3,8 +3,6 @@ package com.ivandsky.puzzlebox.play
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
@@ -98,9 +96,9 @@ data class ResultUiState(
  *
  * [heroInsights], [heroRank] and [replay] feed the hero page.
  *
- * Behind [ReleaseFlag.PerGameLeaderboards]: [dailyBoard] is
+ * [dailyBoard] is
  * today's board of this game for an official daily whose day is the game's today, null
- * otherwise (a past day, a practice play) and with the flag off. Until the player's own
+ * otherwise (a past day, a practice play). Until the player's own
  * entry lands its note tells how the post stands in [posts] (Posting, Deferred, Rejected;
  * none once Posted); a landed row clears it, the board being the truth. A replay keeps the
  * first-time-stands note. Sign-in goes through [board]'s holder, so one screen has one
@@ -115,7 +113,6 @@ class ResultViewModel internal constructor(
     rollover: GetNextRollover,
     ui: GamePlayRegistry,
     games: GameRegistry,
-    flags: ReleaseFlags,
     insights: ObserveResultInsights,
     rank: ObserveResultRank,
     leaderboard: ObserveLeaderboard,
@@ -192,27 +189,22 @@ class ResultViewModel internal constructor(
     /** How the last Google sign-in went, for the board's sign-in prompt. */
     internal val signInStatus: StateFlow<BoardSignIn> = board.signInStatus
 
-    /** The daily board for this result; null when none shows. Read only while [ReleaseFlag.PerGameLeaderboards] is on. */
+    /** The daily board for this result; null when none shows (a past day or a practice play). */
     @OptIn(ExperimentalCoroutinesApi::class)
-    val dailyBoard: StateFlow<DailyBoardState?> = flags.enabled
-        .map { ReleaseFlag.PerGameLeaderboards in it }
-        .distinctUntilChanged()
-        .flatMapLatest { on ->
-            if (!on || !today) {
-                flowOf(null)
-            } else {
-                val official = state.map { it.puzzleNumber != null }.distinctUntilChanged()
-                val replayed = state.map { it.verdict == RecordVerdict.Replay }.distinctUntilChanged()
-                val boards = official.flatMapLatest { yes -> if (yes) leaderboard(slot.gameId, slot.day) else flowOf(null) }
-                val ref = LeaderboardRef(slot.gameId.value, slot.day)
-                boards.flatMapLatest { board ->
-                    val uid = (board as? TodayLeaderboard.SignedIn)?.identity?.uid
-                    val post = if (uid == null) flowOf(null) else posts.observe(uid, ref)
-                    combine(post, replayed) { status, replay -> board?.toDailyBoardState(boardNote(board, replay, status)) }
-                }
-            }
+    val dailyBoard: StateFlow<DailyBoardState?> =
+        if (today) {
+            val official = state.map { it.puzzleNumber != null }.distinctUntilChanged()
+            val replayed = state.map { it.verdict == RecordVerdict.Replay }.distinctUntilChanged()
+            val boards = official.flatMapLatest { yes -> if (yes) leaderboard(slot.gameId, slot.day) else flowOf(null) }
+            val ref = LeaderboardRef(slot.gameId.value, slot.day)
+            boards.flatMapLatest { board ->
+                val uid = (board as? TodayLeaderboard.SignedIn)?.identity?.uid
+                val post = if (uid == null) flowOf(null) else posts.observe(uid, ref)
+                combine(post, replayed) { status, replay -> board?.toDailyBoardState(boardNote(board, replay, status)) }
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+        } else {
+            MutableStateFlow<DailyBoardState?>(null)
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     /** The rank row's Google button: [activityContext] hosts Google's account picker, and is not kept. */
     fun signIn(activityContext: Context) {

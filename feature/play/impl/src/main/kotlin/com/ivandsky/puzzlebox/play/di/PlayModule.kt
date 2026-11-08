@@ -64,7 +64,7 @@ val playModule = module {
     factory { DeleteReceivedPuzzle(received = get(), saved = get()) }
     viewModel { LibraryViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
-    viewModel { (slot: PlaySlot) -> PlayStatsViewModel(slot, get(), get(), get(), get(), get(), get()) }
+    viewModel { (slot: PlaySlot) -> PlayStatsViewModel(slot, get(), get(), get(), get(), get()) }
     viewModel { (key: ResultKey) ->
         ResultViewModel(
             key = key,
@@ -75,7 +75,6 @@ val playModule = module {
             rollover = get(),
             ui = get(),
             games = get(),
-            flags = get(),
             insights = get(),
             rank = get(),
             leaderboard = get(),

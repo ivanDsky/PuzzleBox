@@ -2,13 +2,10 @@ package com.ivandsky.puzzlebox.app.screens
 
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.domain.GameStats
-import com.ivandsky.puzzlebox.domain.TodayLeaderboard
-import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
-import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
+import com.ivandsky.puzzlebox.profile.board.GameRow
+import com.ivandsky.puzzlebox.profile.board.PerGameBoard
 
 /**
  * Profile (A20): the player's record — lifetime [stats] with [daysPlayed], one [games] row
@@ -23,8 +20,8 @@ data class ProfileUiState(
     val daysPlayed: Int = 0,
     val games: List<GameRow> = emptyList(),
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    /** The per-game board (A2); null while `PerGameLeaderboards` is off, which keeps the legacy board. */
-    val perGameBoard: PerGameBoard? = null,
+    /** The per-game board (A2): the selected game's board. */
+    val perGameBoard: PerGameBoard,
 ) {
     sealed interface Account {
         /** The sign-in prompt; [signingIn] while the credential flow runs, then its outcome copy. */
@@ -33,32 +30,11 @@ data class ProfileUiState(
             val signInMessage: String? = null,
         ) : Account
 
-        /** The player and today's board ([TodayLeaderboard.Board]: loading, loaded, or unavailable). */
+        /** The player, signed in. */
         data class SignedIn(
             val identity: Identity,
-            val board: TodayLeaderboard.Board,
         ) : Account
     }
-
-    /**
-     * The flag-on board: [selected] is the game it shows (null while the default is still being
-     * resolved, so [state] is Loading), ranked by [order]; [state] is the signed-in board or SignedOut.
-     */
-    data class PerGameBoard(
-        val selected: GameId?,
-        val order: RankOrder,
-        val state: DailyBoardState,
-    )
-
-    /** One game's lifetime line, its [best] ranked by [rankOrder]; a tap opens History's timeline (N3). */
-    data class GameRow(
-        val gameId: GameId,
-        val name: String,
-        val brand: GameBrand,
-        val solved: Int,
-        val best: BestScore?,
-        val rankOrder: RankOrder,
-    )
 
     companion object {
         val NO_STATS = GameStats(

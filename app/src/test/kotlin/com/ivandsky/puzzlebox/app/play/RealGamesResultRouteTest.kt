@@ -9,8 +9,6 @@ import android.content.Context
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
@@ -50,7 +48,6 @@ import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -138,14 +135,10 @@ class RealGamesResultRouteTest {
     }
 
     @Test
-    fun `the daily board shows with the leaderboard flag on`() {
-        assertBoard(shown = true, ReleaseFlag.PerGameLeaderboards)
+    fun `the daily board shows on today's result`() {
+        assertBoard(shown = true)
     }
 
-    @Test
-    fun `no daily board with the leaderboard flag off`() {
-        assertBoard(shown = false)
-    }
 
     @Test
     fun `signed out on the hero page the rank row is the one sign-in action`() {
@@ -153,7 +146,7 @@ class RealGamesResultRouteTest {
         val daily = freshDailyForAllGames().apply {
             setHistory(ZipDefinition.id, listOf(ZipPlayFixture.entry(today)))
         }
-        startGraph(daily, today, FakeReleaseFlags(ReleaseFlag.PerGameLeaderboards))
+        startGraph(daily, today)
         try {
             composeRule.setContent {
                 PuzzleBoxTheme(darkTheme = false) {
@@ -176,13 +169,13 @@ class RealGamesResultRouteTest {
         }
     }
 
-    /** Today's numbered Zip result under [flags]: the board shows only with PerGameLeaderboards. */
-    private fun assertBoard(shown: Boolean, vararg flags: ReleaseFlag) {
+    /** Today's numbered Zip result: the board shows. */
+    private fun assertBoard(shown: Boolean) {
         val today = ZipDefinition.cadence.today()
         val daily = freshDailyForAllGames().apply {
             setHistory(ZipDefinition.id, listOf(ZipPlayFixture.entry(today)))
         }
-        startGraph(daily, today, FakeReleaseFlags(*flags))
+        startGraph(daily, today)
         try {
             composeRule.setContent {
                 PuzzleBoxTheme(darkTheme = false) {
@@ -208,7 +201,7 @@ class RealGamesResultRouteTest {
             GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.CANCELLED)
     }
 
-    private fun startGraph(daily: FakeDailyRepository, today: LocalDate, flags: ReleaseFlags = FakeReleaseFlags()): KoinApplication {
+    private fun startGraph(daily: FakeDailyRepository, today: LocalDate): KoinApplication {
         stopKoin() // tests share the JVM-global Koin context
         return startKoin {
             modules(
@@ -229,7 +222,6 @@ class RealGamesResultRouteTest {
                     factory { ComputeStreak(get()) }
                     factory { ObserveGameStats(get(), get(), get()) }
                     factory { GetNextRollover(get()) }
-                    single { flags }
                     single<IdentityService> { FakeIdentityService() }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
                     single { SubmitStatusTracker() }
