@@ -34,16 +34,19 @@ class QueensParityTest {
 
             assertEquals("$path: one JSON line expected, got err=$err", 1, out.size)
             val cli = json.decodeFromString(CliVerdict.serializer(), out.single())
-            assertEquals("$path: malformed", emptyList<String>(), cli.errors)
+            val malformed = fixture.expectVerdict == "malformed"
+            assertEquals("$path: errors present iff malformed", malformed, cli.errors.isNotEmpty())
 
             // 1. CLI JSON ≡ `# expect:` line.
             assertEquals("$path: expect verdict", fixture.expectVerdict, cli.verdict)
             assertEquals("$path: expect blocks", fixture.expectBlocks, cli.blocks)
 
-            // 2. CLI JSON ≡ the app's persisted-round-trip verdict.
-            val app = appPath(fixture.text)
-            assertEquals("$path: app verdict name", cli.verdict, app.verdictName)
-            assertEquals("$path: app blocks", cli.blocks, app.blockIds)
+            // 2. CLI JSON ≡ the app's persisted-round-trip verdict (a text that does not parse has none).
+            if (!malformed) {
+                val app = appPath(fixture.text)
+                assertEquals("$path: app verdict name", cli.verdict, app.verdictName)
+                assertEquals("$path: app blocks", cli.blocks, app.blockIds)
+            }
 
             // 3. §9.2 exit rule.
             val wantedExit = when {
