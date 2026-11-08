@@ -59,6 +59,14 @@ internal fun forbiddenEdgeReason(from: String, to: String, configuration: String
 
         toPath[0] == "konsist" -> "nothing may depend on the verification module :konsist"
 
+        // tools:* (ADR-0021): runnable pure-JVM developer tools that ship nowhere.
+        toPath[0] == "tools" && fromPath[0] != "tools" ->
+            "nothing may depend on a tools:* module (ADR-0021)"
+        fromPath[0] == "tools" && !(to == ":core:game" ||
+            (toPath[0] == "games" && !toPath[1].endsWith("-ui")) ||
+            (to == ":core:testing" && configuration.contains("test", ignoreCase = true))) ->
+            "tools may depend on :core:game, non-UI games:* and test-only :core:testing (ADR-0021)"
+
         to == ":app" -> "nothing may depend on the composition root :app"
 
         to == ":core:testing" && !configuration.contains("test", ignoreCase = true) ->

@@ -122,6 +122,7 @@ class ModuleParsingTest {
         assertEquals("com.ivandsky.puzzlebox.foobar", PackageRootFallback.forJvmModule(":core:foo-bar"))
         assertEquals("com.ivandsky.puzzlebox.games.zip", PackageRootFallback.forJvmModule(":games:zip"))
         assertEquals("com.ivandsky.puzzlebox.games.zipui", PackageRootFallback.forJvmModule(":games:zip-ui"))
+        assertEquals("com.ivandsky.puzzlebox.tools.puzzlecli", PackageRootFallback.forJvmModule(":tools:puzzle-cli"))
     }
 
     @Test
