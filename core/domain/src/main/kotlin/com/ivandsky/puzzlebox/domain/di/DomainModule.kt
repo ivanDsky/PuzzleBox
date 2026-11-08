@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveResultInsights
+import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
@@ -62,6 +63,7 @@ val domainModule = module {
         )
     }
     factory { ObserveLeaderboard(identity = get(), leaderboard = get()) }
+    factory { ObserveResultRank(leaderboard = get()) }
     factory {
         ObserveTodayLeaderboard(
             leaderboard = get(),
