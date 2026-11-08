@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitError
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
+import com.ivandsky.puzzlebox.game.RankOrder
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -41,21 +42,23 @@ class FirestoreLeaderboardRepositoryTest {
         var observeFailuresLeft = 0
         var submitError: Exception? = null
         val observed = mutableListOf<String>()
+        val observedOrders = mutableListOf<RankOrder>()
 
-        override fun observeEntries(boardId: String): Flow<List<Map<String, Any?>>> {
+        override fun observeEntries(boardId: String, order: RankOrder): Flow<List<Map<String, Any?>>> {
             observed += boardId
+            observedOrders += order
             // Errors surface IN the flow, like the real snapshot listener — never eagerly.
             return flow {
                 if (observeFailuresLeft > 0) {
                     observeFailuresLeft--
                     throw observeError ?: error("no error configured")
                 }
-                // The real store orders server-side by (timeMs, hints); malformed rows
-                // must survive the sort (nulls first) so decode can drop them.
+                // The real store orders server-side by the order's query fields; malformed
+                // rows must survive the sort (nulls first) so decode can drop them.
                 val sorted = docs.value[boardId].orEmpty().sortedWith(
                     compareBy(
-                        { (it["timeMs"] as? Number)?.toLong() ?: 0L },
-                        { (it["hints"] as? Number)?.toInt() ?: 0 },
+                        { (it[order.boardQueryFields()[0]] as? Number)?.toLong() ?: 0L },
+                        { (it[order.boardQueryFields()[1]] as? Number)?.toLong() ?: 0L },
                     ),
                 )
                 emit(sorted)
@@ -105,7 +108,7 @@ class FirestoreLeaderboardRepositoryTest {
         val store = FakeStore()
         val repository = FirestoreLeaderboardRepository(store, currentUid = { null })
 
-        assertNull(repository.observe(board).first())
+        assertNull(repository.observe(board, RankOrder.TimeThenHints).first())
         assertTrue(store.observed.isEmpty())
     }
 
@@ -115,11 +118,31 @@ class FirestoreLeaderboardRepositoryTest {
         store.docs.value = mapOf(board.boardId to listOf(doc(entry(uid = "u1")), doc(entry(uid = "u2", timeMs = 80_000))))
         val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
 
-        val snapshot = repository.observe(board).first()!!
+        val snapshot = repository.observe(board, RankOrder.TimeThenHints).first()!!
 
         assertEquals(board, snapshot.board)
         assertEquals(LeaderboardSnapshot.FORMAT_VERSION, snapshot.formatVersion)
         assertEquals(listOf("u2", "u1"), snapshot.entries.map { it.uid }) // store-ordered
+    }
+
+    @Test
+    fun `observe asks the store for the given order and delivers hints-first boards hints first`() = runTest {
+        val store = FakeStore()
+        store.docs.value = mapOf(
+            board.boardId to listOf(
+                doc(entry(uid = "slow", timeMs = 200_000, hints = 0)),
+                doc(entry(uid = "fast", timeMs = 50_000, hints = 3)),
+                doc(entry(uid = "quick", timeMs = 100_000, hints = 0)),
+            ),
+        )
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
+
+        val snapshot = repository.observe(board, RankOrder.HintsThenTime).first()!!
+
+        assertEquals(listOf(RankOrder.HintsThenTime), store.observedOrders)
+        assertEquals(listOf("quick", "slow", "fast"), snapshot.entries.map { it.uid })
+        assertEquals(listOf("hints", "timeMs"), RankOrder.HintsThenTime.boardQueryFields())
+        assertEquals(listOf("timeMs", "hints"), RankOrder.TimeThenHints.boardQueryFields())
     }
 
     @Test
@@ -140,7 +163,7 @@ class FirestoreLeaderboardRepositoryTest {
         )
         val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
 
-        val snapshot = repository.observe(board).first()!!
+        val snapshot = repository.observe(board, RankOrder.TimeThenHints).first()!!
 
         assertEquals(listOf("u1", "u5"), snapshot.entries.map { it.uid })
     }
@@ -156,7 +179,7 @@ class FirestoreLeaderboardRepositoryTest {
         // Persistent errors exhaust the retries, then terminate at the soft null —
         // never a thrown error across the seam. runTest's virtual time skips the
         // retry backoff instantly.
-        assertNull(repository.observe(board).first())
+        assertNull(repository.observe(board, RankOrder.TimeThenHints).first())
     }
 
     @Test
@@ -166,7 +189,7 @@ class FirestoreLeaderboardRepositoryTest {
         store.docs.value = mapOf(board.boardId to listOf(doc(entry())))
         val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
 
-        val snapshot = repository.observe(board).first()
+        val snapshot = repository.observe(board, RankOrder.TimeThenHints).first()
         assertTrue(snapshot != null)
         assertEquals(listOf("u1"), snapshot!!.entries.map { it.uid })
     }

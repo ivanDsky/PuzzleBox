@@ -5,7 +5,12 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
+import com.ivandsky.puzzlebox.game.GamePlugin
+import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import java.time.LocalDate
@@ -21,13 +26,60 @@ class ObserveLeaderboardTest {
     private val day = LocalDate.of(2026, 10, 30)
     private val boardRef = LeaderboardRef("tango", day)
     private val ann = Identity("u1", "Ann", null)
+    private val registry = TestGames.registry(listOf(tango))
+
+    private fun entry(uid: String, timeMs: Long, hints: Int) =
+        LeaderboardEntry(uid, uid, "tango/2026-10-30/12", timeMs, hints, 1_700_000_000_000)
+
+    private fun hintsFirst(plugin: GamePlugin<Unit, TestGames.Session, TestGames.Model>) = GamePlugin(
+        definition = plugin.definition,
+        rules = plugin.rules,
+        session = plugin.session,
+        score = object : ScoreModel<TestGames.Session> {
+            override fun completion(session: TestGames.Session) = plugin.score.completion(session)
+            override val rankOrder = RankOrder.HintsThenTime
+        },
+        stateOf = plugin.stateOf,
+        initialSession = plugin.initialSession,
+        refOf = plugin.refOf,
+        replaySession = plugin.replaySession,
+        rendererModel = plugin.rendererModel,
+    )
+
+    private suspend fun boardOrder(plugin: GamePlugin<Unit, TestGames.Session, TestGames.Model>): List<String> {
+        val entries = listOf(entry("slow", 200_000, 0), entry("fast", 50_000, 3), entry("quick", 100_000, 0))
+        val leaderboard = FakeLeaderboardRepository(mapOf(boardRef to entries))
+        var uids = emptyList<String>()
+        ObserveLeaderboard(FakeIdentityService(initial = ann), leaderboard, GameRegistry(listOf(plugin)))(tango, day).test {
+            awaitItem()
+            val loaded = awaitItem() as TodayLeaderboard.SignedIn
+            uids = (loaded.board as TodayLeaderboard.Board.Loaded).snapshot.entries.map { it.uid }
+        }
+        return uids
+    }
+
+    @Test
+    fun `a hints-first game's board arrives fewest hints first, ties by time`() = runTest {
+        assertEquals(
+            listOf("quick", "slow", "fast"),
+            boardOrder(hintsFirst(TestGames.plugin(tango))),
+        )
+    }
+
+    @Test
+    fun `a time-first game's board arrives fastest first, ties by hints`() = runTest {
+        assertEquals(
+            listOf("fast", "quick", "slow"),
+            boardOrder(TestGames.plugin(tango)),
+        )
+    }
 
     @Test
     fun `signed in loads the given game's board for the given day`() = runTest {
         val entries = listOf(LeaderboardEntry("u2", "Bo", "tango/2026-10-30/12", 80_000, 0, 1_700_000_000_000))
         val leaderboard = FakeLeaderboardRepository(mapOf(boardRef to entries))
 
-        ObserveLeaderboard(FakeIdentityService(initial = ann), leaderboard)(tango, day).test {
+        ObserveLeaderboard(FakeIdentityService(initial = ann), leaderboard, registry)(tango, day).test {
             assertEquals(TodayLeaderboard.SignedIn(ann, TodayLeaderboard.Board.Loading), awaitItem())
             assertEquals(
                 TodayLeaderboard.SignedIn(ann, TodayLeaderboard.Board.Loaded(LeaderboardSnapshot(boardRef, entries))),
@@ -41,7 +93,7 @@ class ObserveLeaderboardTest {
     fun `signed out observes no board`() = runTest {
         val leaderboard = FakeLeaderboardRepository()
 
-        ObserveLeaderboard(FakeIdentityService(initial = null), leaderboard)(tango, day).test {
+        ObserveLeaderboard(FakeIdentityService(initial = null), leaderboard, registry)(tango, day).test {
             assertEquals(TodayLeaderboard.SignedOut, awaitItem())
         }
         assertTrue(leaderboard.observedBoards.isEmpty())
@@ -52,7 +104,7 @@ class ObserveLeaderboardTest {
         val identity = FakeIdentityService(initial = ann)
         val leaderboard = FakeLeaderboardRepository()
 
-        ObserveLeaderboard(identity, leaderboard)(tango, day).test {
+        ObserveLeaderboard(identity, leaderboard, registry)(tango, day).test {
             assertEquals(TodayLeaderboard.SignedIn(ann, TodayLeaderboard.Board.Loading), awaitItem())
             assertEquals(TodayLeaderboard.SignedIn(ann, TodayLeaderboard.Board.Unavailable), awaitItem())
 

@@ -3,8 +3,8 @@ package com.ivandsky.puzzlebox.testing.repository
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitError
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
+import com.ivandsky.puzzlebox.data.leaderboard.entryComparator
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
-import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -50,7 +50,9 @@ class FakeCustomBoardRepository : CustomBoardRepository {
             if (!current.online || !current.signedIn) {
                 null
             } else {
-                current.boards[code].orEmpty().sortedWith(rankedBy(order)).take(limit)
+                current.boards[code].orEmpty()
+                    .sortedWith(order.entryComparator().thenBy { it.completedAtMs }.thenBy { it.uid })
+                    .take(limit)
             }
         }.distinctUntilChanged()
 
@@ -76,10 +78,4 @@ class FakeCustomBoardRepository : CustomBoardRepository {
         if (!current.online || !current.signedIn) return null
         return current.boards[code].orEmpty().size
     }
-
-    /** The game's [RankOrder] first; earlier completion, then uid, keep ties stable. */
-    private fun rankedBy(order: RankOrder): Comparator<LeaderboardEntry> =
-        compareBy<LeaderboardEntry, BestScore>(order.comparator) { BestScore(it.timeMs, it.hints) }
-            .thenBy { it.completedAtMs }
-            .thenBy { it.uid }
 }

@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -26,10 +27,12 @@ class ObserveTodayLeaderboardTest {
     private val boardRef = LeaderboardRef("zip", day)
     private val ann = Identity("u1", "Ann", null)
 
+    private val registry = TestGames.registry(listOf(GameId("zip"), GameId("tango")))
+
     private fun observe(identity: FakeIdentityService, leaderboard: LeaderboardRepository) =
         ObserveTodayLeaderboard(
-            leaderboard = ObserveLeaderboard(identity, leaderboard),
-            featured = GetFeaturedGame(TestGames.registry(listOf(GameId("zip"), GameId("tango")))),
+            leaderboard = ObserveLeaderboard(identity, leaderboard, registry),
+            featured = GetFeaturedGame(registry),
             today = { day },
         )()
 
@@ -63,7 +66,7 @@ class ObserveTodayLeaderboardTest {
     @Test
     fun `a null snapshot is the soft unavailable state (A7)`() = runTest {
         val unavailable = object : LeaderboardRepository {
-            override fun observe(board: LeaderboardRef): Flow<LeaderboardSnapshot?> = flowOf(null)
+            override fun observe(board: LeaderboardRef, order: RankOrder): Flow<LeaderboardSnapshot?> = flowOf(null)
             override suspend fun submit(entry: LeaderboardEntry): SubmitResult = error("unused")
         }
 

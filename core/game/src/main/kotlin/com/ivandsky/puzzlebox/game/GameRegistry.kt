@@ -38,4 +38,7 @@ class GameRegistry(
 
     /** [id]'s display name; the raw id for a game this build does not ship. */
     fun displayName(id: GameId): String = this[id]?.definition?.displayName ?: id.value
+
+    /** The game's ranking rule; [RankOrder.TimeThenHints] for an unknown id. */
+    fun rankOrderOf(id: GameId): RankOrder = this[id]?.score?.rankOrder ?: RankOrder.TimeThenHints
 }
