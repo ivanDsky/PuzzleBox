@@ -102,7 +102,7 @@ internal fun ArchiveMonthCalendar(
         val cell = if (compact) 50.dp else 56.dp
         val disc = if (compact) 42.dp else 46.dp
         key(month) {
-            EnterFade(0, reduced) {
+            EnterFade(0, reduced, bleed = SelectedRingRoom) {
                 Column {
                     nav.grid(month).chunked(WEEK).forEach { week ->
                         Row(Modifier.fillMaxWidth()) {
