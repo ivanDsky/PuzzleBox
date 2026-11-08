@@ -4,35 +4,34 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
-import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
@@ -45,12 +44,15 @@ import com.ivandsky.puzzlebox.games.sudokuui.SudokuCellModel
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuGrid
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuKeypadActions
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuSizing
+import com.ivandsky.puzzlebox.games.sudokuui.gridStrokes
+import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 
 /**
  * The editor's board: the play [SudokuGrid] over the [controller]'s draft, every placed digit
  * drawn as a given. A tap on a cell selects it; below it sit the counted digit keys and the
  * tools row (Erase, Clear, Symmetry). Empty cells whose mirror holds a given are outlined
- * dashed; empty peers where the selected digit would clash are hatched. Sized by [SudokuSizing] for the space [modifier] gives it.
+ * dashed; empty peers where the selected digit would clash are hatched. Sized by
+ * [SudokuSizing] for the space [modifier] gives it.
  */
 @Composable
 internal fun SudokuEditorBoard(controller: SudokuEditorController, geometry: SudokuGeometry, modifier: Modifier = Modifier) {
@@ -92,7 +94,10 @@ private fun wouldClash(draft: SudokuDraft, geometry: SudokuGeometry, selected: I
     return geometry.peersOf(selected).filterTo(mutableSetOf()) { draft.givens[it] == 0 }
 }
 
-/** Peers and same-digit cells of the selection are tinted like play's; a digit clashing with a peer is flagged. */
+/**
+ * Peers and same-digit cells of the selection are tinted like play's; a digit clashing with a
+ * peer is flagged.
+ */
 private fun editorBoardModel(draft: SudokuDraft, geometry: SudokuGeometry, selected: Int?): SudokuBoardModel {
     val cells = draft.givens.map { if (it == 0) SudokuCell.Empty else SudokuCell.Given(it) }
     val conflicts = SudokuConflicts.cellsIn(SudokuConflicts.find(SudokuBoard(geometry, cells)))
@@ -122,8 +127,7 @@ private fun editorBoardModel(draft: SudokuDraft, geometry: SudokuGeometry, selec
  */
 @Composable
 private fun SudokuEditorMarks(size: Int, outlined: Set<Int>, hatched: Set<Int>, modifier: Modifier = Modifier) {
-    // The grid insets its cells by its outer frame stroke; this overlay has to match it.
-    val frame = if (size > MINI_SIZE) 2.dp else 3.dp
+    val frame = gridStrokes(size).box
     val outline = MaterialTheme.colorScheme.onTertiaryContainer
     val stripe = LocalBoardColors.current.editorSplitHatch.copy(alpha = HATCH_ALPHA)
     Column(modifier.padding(frame)) {
@@ -143,7 +147,6 @@ private fun SudokuEditorMarks(size: Int, outlined: Set<Int>, hatched: Set<Int>, 
     }
 }
 
-private const val MINI_SIZE = 6
 private const val HATCH_ALPHA = 0.22f
 
 private fun DrawScope.drawStripes(color: Color) {

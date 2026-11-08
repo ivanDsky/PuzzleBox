@@ -1,13 +1,19 @@
 package com.ivandsky.puzzlebox.games.sudoku.editor
 
-/** How the editor pairs cells across the board. A help while placing givens, never a rule; default Off. */
+/**
+ * How the editor pairs cells across the board. A help while placing givens, never a rule;
+ * default Off.
+ */
 enum class SudokuSymmetry {
     Off,
     Rotational,
     Mirror,
     ;
 
-    /** The cell paired with [cell] on a [size] × [size] board; null when Off or [cell] is its own pair. */
+    /**
+     * The cell paired with [cell] on a [size] × [size] board; null when Off or [cell] is its
+     * own pair.
+     */
     fun mirrorOf(cell: Int, size: Int): Int? {
         val other = when (this) {
             Off -> return null

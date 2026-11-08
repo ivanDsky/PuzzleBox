@@ -13,12 +13,6 @@ class SudokuSymmetryTest {
     }
 
     @Test
-    fun off_pairs_nothing() {
-        assertNull(SudokuSymmetry.Off.mirrorOf(0, 6))
-        assertNull(SudokuSymmetry.Off.mirrorOf(40, 9))
-    }
-
-    @Test
     fun rotational_is_the_half_turn_at_both_sizes() {
         assertEquals(35, SudokuSymmetry.Rotational.mirrorOf(0, 6))
         assertEquals(0, SudokuSymmetry.Rotational.mirrorOf(35, 6))
@@ -27,8 +21,10 @@ class SudokuSymmetryTest {
     }
 
     @Test
-    fun rotational_centre_of_the_nine_board_is_its_own_mirror() {
+    fun self_mirrored_and_off_cells_have_no_mirror() {
         assertNull(SudokuSymmetry.Rotational.mirrorOf(40, 9))
+        assertNull(SudokuSymmetry.Mirror.mirrorOf(40, 9))
+        assertNull(SudokuSymmetry.Off.mirrorOf(0, 6))
     }
 
     @Test
@@ -37,12 +33,6 @@ class SudokuSymmetryTest {
         assertEquals(6, SudokuSymmetry.Mirror.mirrorOf(11, 6))
         assertEquals(8, SudokuSymmetry.Mirror.mirrorOf(0, 9))
         assertEquals(17, SudokuSymmetry.Mirror.mirrorOf(9, 9))
-    }
-
-    @Test
-    fun mirror_middle_column_of_the_nine_board_is_its_own_mirror() {
-        assertNull(SudokuSymmetry.Mirror.mirrorOf(4, 9))
-        assertNull(SudokuSymmetry.Mirror.mirrorOf(40, 9))
     }
 
     @Test

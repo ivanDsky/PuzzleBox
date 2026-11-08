@@ -2,8 +2,8 @@ package com.ivandsky.puzzlebox.games.sudokuui.editor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,13 +24,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.GameButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
-import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuDraft
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuKeypad
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuKeypadActions
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuKeypadModel
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuLayout
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuSizing
+import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 
 /**
  * The tools row under the grid, [height] tall: Erase, Clear and the Symmetry toggle. Erase

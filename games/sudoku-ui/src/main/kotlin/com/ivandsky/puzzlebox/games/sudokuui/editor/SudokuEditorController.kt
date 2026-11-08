@@ -21,7 +21,8 @@ import kotlinx.coroutines.flow.asStateFlow
  * undoable `ReplaceDraft` step sent out through [onEdit]. The selection survives edits so
  * several digits can be tried on one cell. A digit or [erase] with nothing selected edits
  * nothing and fires [nudge]. With a [symmetry] on, a digit hops the selection to the cell's
- * empty mirror; the symmetry is a help and constrains nothing. The VM hands replacement drafts back through [adopt].
+ * empty mirror; the symmetry is a help and constrains nothing. The VM hands replacement
+ * drafts back through [adopt].
  */
 class SudokuEditorController(
     initial: EditorDraft<*>,
