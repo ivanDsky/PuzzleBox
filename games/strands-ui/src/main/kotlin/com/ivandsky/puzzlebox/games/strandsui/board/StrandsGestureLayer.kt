@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.games.strandsui.Trace
 import com.ivandsky.puzzlebox.games.strandsui.TraceInput
 import com.ivandsky.puzzlebox.games.strandsui.TraceStep
 import com.ivandsky.puzzlebox.gameui.GridGeometry
+import com.ivandsky.puzzlebox.gameui.LocalSnapTrace
 
 /**
  * Strands' own input (A12), laid over the whole board area with the [boardSize] board
@@ -41,6 +42,7 @@ internal fun BoxScope.StrandsGestureLayer(
     val currentOnTrace by rememberUpdatedState(onTrace)
     val currentOnTouch by rememberUpdatedState(onTouch)
     val currentOnFinger by rememberUpdatedState(onFinger)
+    val snap = LocalSnapTrace.current
     Box(
         Modifier
             .matchParentSize()
@@ -67,7 +69,7 @@ internal fun BoxScope.StrandsGestureLayer(
                         return@awaitEachGesture
                     }
                     down.consume()
-                    val session = StrandsDragSession(rows, cols, start, inCells(down.position))
+                    val session = StrandsDragSession(rows, cols, start, inCells(down.position), snap)
                     try {
                         while (true) {
                             val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
