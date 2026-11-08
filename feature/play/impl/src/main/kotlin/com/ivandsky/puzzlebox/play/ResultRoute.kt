@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -14,11 +15,16 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
+import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.ResultScreen
 import com.ivandsky.puzzlebox.gameui.resultShareText
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -32,6 +38,10 @@ import org.koin.core.parameter.parametersOf
  * the solved live play to a fresh attempt. "Next: <game>" hands back [onNext] with the
  * next unsolved daily (A7, SC10). Share (A17) opens the system share sheet with the
  * plain [resultShareText] — no screen of our own.
+ *
+ * While [ResultViewModel.hero] is on (`ResultsHero`) the hero page replaces the old
+ * [ResultScreen], fed by the same state plus the view model's insights and rank, with the
+ * same callbacks and a sign in; off, the old page draws exactly as before.
  */
 @Composable
 fun ResultRoute(
@@ -44,7 +54,16 @@ fun ResultRoute(
     val viewModel: ResultViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val state by viewModel.state.collectAsStateWithLifecycle()
     val primary by viewModel.primary.collectAsStateWithLifecycle()
+    val hero by viewModel.hero.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val onPrimary = {
+        when (val action = primary) {
+            is ResultPrimaryAction.Next -> onNext(action.gameId)
+            ResultPrimaryAction.AllDone, ResultPrimaryAction.Done -> onDone()
+            null -> Unit
+        }
+    }
+    val onShare = { context.shareText(resultShareText(state.game, state.puzzleNumber, key.timeMs, key.hintsUsed)) }
     Column(modifier = modifier.testTag("route.result")) {
         CompactTopBar(
             // The result card already names the puzzle; the bar only carries Up.
@@ -59,36 +78,82 @@ fun ResultRoute(
                 }
             },
         )
-        ResultScreen(
+        if (hero) {
+            HeroPage(key, viewModel, state, primary, onPrimary, onShare, onPlayAgain, context)
+        } else {
+            ResultScreen(
+                timeMs = key.timeMs,
+                hintsUsed = key.hintsUsed,
+                primary = primary,
+                onPrimary = onPrimary,
+                onShare = onShare,
+                onPlayAgain = onPlayAgain,
+                brand = viewModel.brand,
+                game = state.game,
+                puzzleNumber = state.puzzleNumber,
+                practice = state.practice,
+                verdict = state.verdict,
+                previousBest = state.previousBest,
+                rankOrder = state.rankOrder,
+                streak = state.streak,
+                doneToday = state.doneToday,
+                total = state.total,
+                rolloverAt = state.rolloverAt,
+                writeFailed = state.writeFailed,
+                onRetryWrite = viewModel::retryRecordWrite,
+            )
+        }
+    }
+}
+
+/** The hero page behind `ResultsHero`; its insights and rank are read only while it is drawn. */
+@Composable
+private fun ColumnScope.HeroPage(
+    key: ResultKey,
+    viewModel: ResultViewModel,
+    state: ResultUiState,
+    primary: ResultPrimaryAction?,
+    onPrimary: () -> Unit,
+    onShare: () -> Unit,
+    onPlayAgain: () -> Unit,
+    context: Context,
+) {
+    val insights by viewModel.heroInsights.collectAsStateWithLifecycle()
+    val rank by viewModel.heroRank.collectAsStateWithLifecycle()
+    ResultHeroScreen(
+        facts = ResultHeroFacts(
             timeMs = key.timeMs,
             hintsUsed = key.hintsUsed,
-            primary = primary,
-            onPrimary = {
-                when (val action = primary) {
-                    is ResultPrimaryAction.Next -> onNext(action.gameId)
-                    ResultPrimaryAction.AllDone, ResultPrimaryAction.Done -> onDone()
-                    null -> Unit
-                }
-            },
-            onShare = {
-                context.shareText(resultShareText(state.game, state.puzzleNumber, key.timeMs, key.hintsUsed))
-            },
-            onPlayAgain = onPlayAgain,
-            brand = viewModel.brand,
-            game = state.game,
-            puzzleNumber = state.puzzleNumber,
-            practice = state.practice,
             verdict = state.verdict,
             previousBest = state.previousBest,
             rankOrder = state.rankOrder,
-            streak = state.streak,
+            game = state.game,
+            puzzleNumber = state.puzzleNumber,
+            practice = state.practice,
+            replay = viewModel.replay,
+            dateLine = resultDateLine(LocalDate.parse(key.day), today = !viewModel.replay),
             doneToday = state.doneToday,
             total = state.total,
-            rolloverAt = state.rolloverAt,
-            writeFailed = state.writeFailed,
-            onRetryWrite = viewModel::retryRecordWrite,
-        )
-    }
+            insights = insights,
+            rank = rank,
+            primary = primary,
+        ),
+        onPrimary = onPrimary,
+        onShare = onShare,
+        onPlayAgain = onPlayAgain,
+        onSignIn = { viewModel.signIn(context) },
+        onRetryWrite = viewModel::retryRecordWrite,
+        modifier = Modifier.weight(1f),
+        brand = viewModel.brand,
+        rolloverAt = state.rolloverAt,
+        writeFailed = state.writeFailed,
+    )
+}
+
+/** The hero page's date line: the slot's day as "Sat 7 Nov", led by "Today · " on today's result. */
+internal fun resultDateLine(day: LocalDate, today: Boolean, locale: Locale = Locale.getDefault()): String {
+    val date = DateTimeFormatter.ofPattern("EEE d MMM", locale).format(day)
+    return if (today) "Today · $date" else date
 }
 
 /** Hands [text] to the system share sheet as plain text (ACTION_SEND). */
