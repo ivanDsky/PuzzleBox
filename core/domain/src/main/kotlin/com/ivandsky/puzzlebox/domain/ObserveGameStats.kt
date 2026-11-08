@@ -4,6 +4,8 @@ import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
+import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -44,7 +46,15 @@ class ObserveGameStats(
 }
 
 /** A day that counts as a solve: its record row, on a numbered daily (practice never counts). */
-internal fun GameHistoryDay.isSolvedDaily(): Boolean = record != null && puzzleNumber != null
+internal fun GameHistoryDay.isSolvedDaily(): Boolean =
+    record != null && PuzzleKey.Daily(day, puzzleNumber).isOfficialDaily()
+
+/**
+ * The one "official daily" predicate: a numbered [PuzzleKey.Daily] (practice has no number; custom
+ * is never daily), optionally pinned to [on] (a game's today).
+ */
+internal fun PuzzleKey.isOfficialDaily(on: LocalDate? = null): Boolean =
+    this is PuzzleKey.Daily && puzzleNumber != null && (on == null || date == on)
 
 /** A solve that moves a streak: archived days (A23) count as solves but never as streak days. */
 internal fun GameHistoryDay.isStreakDay(): Boolean = isSolvedDaily() && !archived
