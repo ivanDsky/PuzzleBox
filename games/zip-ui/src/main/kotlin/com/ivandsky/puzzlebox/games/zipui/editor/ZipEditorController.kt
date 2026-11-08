@@ -29,7 +29,8 @@ import kotlinx.coroutines.flow.asStateFlow
  * last. [tapNumber] numbers a path cell or removes its number as one `ToggleMark` step; a tap
  * on an end, which cannot lose its number, sets [shaken]. [tapEdge] toggles a wall as one
  * `ToggleWall` step and [clearWalls] removes them all as one step; a wall across the path sets
- * [shaken] instead. The VM hands replacement drafts back through [adopt].
+ * [shaken] instead. The verdict card's witness choice arrives through [adoptOverlay] and the
+ * board draws it from [overlay]. The VM hands replacement drafts back through [adopt].
  */
 class ZipEditorController(
     initial: EditorDraft<*>,
