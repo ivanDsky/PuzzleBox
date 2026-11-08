@@ -35,10 +35,11 @@ class StrandsEditorController(
     private val tracing = MutableStateFlow<List<Int>>(emptyList())
     private val typedWord = MutableStateFlow("")
     private val selected = MutableStateFlow<Int?>(null)
+    private val shownOverlay = MutableStateFlow(EditorOverlay())
 
     override val draft: StateFlow<EditorDraft<*>> = current.asStateFlow()
 
-    override val overlay: StateFlow<EditorOverlay> = MutableStateFlow(EditorOverlay()).asStateFlow()
+    override val overlay: StateFlow<EditorOverlay> = shownOverlay.asStateFlow()
 
     /** The cells of the trace under the finger, row-major, in trace order; never persisted. */
     val trace: StateFlow<List<Int>> = tracing.asStateFlow()
@@ -107,7 +108,9 @@ class StrandsEditorController(
         onEdit(next)
     }
 
-    override fun adoptOverlay(overlay: EditorOverlay) = Unit
+    override fun adoptOverlay(overlay: EditorOverlay) {
+        shownOverlay.value = overlay
+    }
 
     /**
      * Takes the word field's [text], letters only, upper case. With a path selected the letters

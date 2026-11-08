@@ -35,7 +35,7 @@ object StrandsEditorUi : GameEditorUi {
 
     @Composable
     override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) {
-        StrandsEditorBoard(controller as StrandsEditorController, modifier)
+        StrandsEditorBoard(controller as StrandsEditorController, modifier, verdict)
     }
 
     /** "Trace a word", or the selected path's word and length with a Remove action. */
