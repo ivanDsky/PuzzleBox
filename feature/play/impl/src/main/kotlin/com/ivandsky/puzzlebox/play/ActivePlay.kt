@@ -181,10 +181,10 @@ class ActivePlay internal constructor(
         writer.flush()
     }
 
-    /** Release: the final save is written, then the play's own work stops. The record
-     *  write runs on [recordScope] and outlives it. */
-    internal suspend fun close() {
-        save()
+    /** Release: the final save is written, then the play's own work stops; [save] false
+     *  drops it instead (pending save cancelled). The record write on [recordScope] outlives it. */
+    internal suspend fun close(save: Boolean = true) {
+        if (save) save() else writer.discard()
         scope.cancel()
     }
 
