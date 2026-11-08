@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.queensui.editor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +27,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.AppShapes
+import com.ivandsky.puzzlebox.designsystem.LocalDarkTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -174,7 +174,7 @@ private fun Swatch(region: Int) {
         Box(base.border(FixSwatchDash, MaterialTheme.colorScheme.outline, AppShapes.extraSmall))
         return
     }
-    val fill = QueensRegionPalette.fill(region, isSystemInDarkTheme())
+    val fill = QueensRegionPalette.fill(region, LocalDarkTheme.current)
     val ink = QueensRegionPalette.onInkFor(fill, MaterialTheme.colorScheme.onSurface, MaterialTheme.colorScheme.scrim)
     Box(base.background(fill, AppShapes.extraSmall), contentAlignment = Alignment.Center) {
         Text(letterOf(region), color = ink, style = MaterialTheme.typography.titleSmall)

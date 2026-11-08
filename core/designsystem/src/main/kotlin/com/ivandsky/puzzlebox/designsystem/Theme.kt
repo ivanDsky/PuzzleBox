@@ -57,6 +57,14 @@ val LocalBoardColors = staticCompositionLocalOf { LightBoardTokens }
 val LocalAccentPalette = staticCompositionLocalOf { LightAccentTokens }
 
 /**
+ * The RESOLVED app theme — [PuzzleBoxTheme]'s `darkTheme`, which Settings > Appearance can
+ * force opposite the device night flag. Read this, never `isSystemInDarkTheme()` or the
+ * configuration's uiMode, when picking theme-specific colours (e.g. a module-local palette
+ * keyed on light/dark).
+ */
+val LocalDarkTheme = staticCompositionLocalOf { false }
+
+/**
  * Theme composition root (ticket 10): the promoted style IS the token set — Baloo 2
  * typography, C3 light scheme, C6 dark scheme. The [darkTheme] request picks the
  * scheme. The debug design settings' [DesignVariantsStore] switches the open variants
@@ -71,6 +79,7 @@ fun PuzzleBoxTheme(
     val variants = DesignVariantsStore.current
     CompositionLocalProvider(
         LocalDesignVariants provides variants,
+        LocalDarkTheme provides darkTheme,
         LocalPrimaryText provides if (darkTheme) DarkPrimaryText else LightPrimaryText,
         LocalTimerFill provides if (darkTheme) DarkTimerFill else LightTimerFill,
         LocalOnFill provides if (darkTheme) DarkOnFill else LightOnFill,

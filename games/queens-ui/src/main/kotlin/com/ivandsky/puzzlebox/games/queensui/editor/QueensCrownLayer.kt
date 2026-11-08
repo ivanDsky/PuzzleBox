@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.games.queensui.editor
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -20,6 +19,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
+import com.ivandsky.puzzlebox.designsystem.LocalDarkTheme
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queensui.QueensBoardDefaults
@@ -74,7 +74,7 @@ internal fun QueensCrownLayer(
     reducedMotion: Boolean,
 ) {
     if (!crowned && !crossed) return
-    val dark = isSystemInDarkTheme()
+    val dark = LocalDarkTheme.current
     val scheme = MaterialTheme.colorScheme
     val clashWash = LocalBoardColors.current.editorClashFill.takeIf { clash }
     val ink = remember(region, dark, scheme, clashWash) {
