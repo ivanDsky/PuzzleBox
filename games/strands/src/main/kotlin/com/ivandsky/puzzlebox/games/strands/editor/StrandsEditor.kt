@@ -6,8 +6,10 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.DraftExport
 import com.ivandsky.puzzlebox.game.editor.DraftState
+import com.ivandsky.puzzlebox.game.editor.EditorNotation
 import com.ivandsky.puzzlebox.game.editor.EditorShareCodec
 import com.ivandsky.puzzlebox.game.editor.GameEditor
+import com.ivandsky.puzzlebox.game.editor.NotationResult
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -27,6 +29,7 @@ import com.ivandsky.puzzlebox.model.GameId
 object StrandsEditor :
     GameEditor<StrandsDraft>,
     DraftExport<StrandsDraft>,
+    EditorNotation<StrandsDraft>,
     EditorShareCodec<StrandsDraft> by StrandsShareCodec {
     override val gameId: GameId get() = StrandsDefinition.id
 
@@ -44,6 +47,40 @@ object StrandsEditor :
     override fun encodeDraft(state: DraftState<StrandsDraft>): ByteArray = StrandsDraftCodec.encode(state)
 
     override fun decodeDraft(bytes: ByteArray): DecodeResult<DraftState<StrandsDraft>> = StrandsDraftCodec.decode(bytes)
+
+    override val notationVersion: Int get() = StrandsNotation.VERSION
+
+    override fun parse(text: String): NotationResult<StrandsDraft> = StrandsNotation.parse(text)
+
+    /**
+     * Text [parse] accepts for every draft the editor or a share can build, so it is lossy where
+     * the grammar cannot say it: a clue's line breaks become a space, a letter outside A-Z a
+     * blank, a word its cells no longer spell goes unnamed, and a path with no cells (share-opened
+     * drafts have none) is dropped, with [StrandsDraft.spangram] following its path.
+     */
+    override fun print(draft: StrandsDraft): String = StrandsNotation.print(printable(draft))
+
+    private fun printable(draft: StrandsDraft): StrandsDraft {
+        val letters = draft.letters.map { ch ->
+            when (ch) {
+                in 'A'..'Z' -> ch
+                in 'a'..'z' -> ch.uppercaseChar()
+                else -> StrandsDraft.BLANK
+            }
+        }.joinToString("")
+        val kept = draft.paths.withIndex().filter { it.value.cells.isNotEmpty() }
+        return StrandsDraft(
+            letters = letters,
+            clue = draft.clue.replace(LINE_BREAKS, " "),
+            paths = kept.map { (_, path) ->
+                val spelled = path.cells.map { letters[it] }.joinToString("")
+                path.copy(word = path.word?.takeIf { it.uppercase() == spelled })
+            },
+            spangram = kept.indexOfFirst { it.index == draft.spangram },
+        )
+    }
+
+    override fun columns(draft: StrandsDraft): Int = StrandsDraft.COLS
 
     override fun analyze(draft: StrandsDraft, budget: Budget): Verdict = StrandsDraftAnalyzer.analyze(draft, budget)
 
@@ -96,4 +133,6 @@ object StrandsEditor :
         check(extend()) { "no path spells $text over its tiled cells" }
         return order
     }
+
+    private val LINE_BREAKS = Regex("[\r\n]+")
 }
