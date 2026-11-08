@@ -36,10 +36,6 @@ internal class StrandsDragSession(rows: Int, cols: Int, private val start: Coord
         return steps
     }
 
-    /** The finger for the live tip over [trace], the live trace after the move; null until the touch is a drag. */
-    fun finger(trace: Trace): TraceFinger? =
-        if (dragging) TraceFinger(walk.at, walk.travel(), walk.armed(trace.path)) else null
-
     /** The lift: a drag ends with [trace]; a touch that joined nothing is a tap on [start]. */
     fun end(trace: Trace): TraceStep = if (dragging) TraceInput.dragEnd(trace) else TraceInput.tap(trace, start)
 }

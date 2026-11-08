@@ -37,7 +37,6 @@ import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.tracePop
 import com.ivandsky.puzzlebox.gameui.BoardGrid
-import com.ivandsky.puzzlebox.gameui.DragTraceHooks
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import kotlin.math.atan2
@@ -81,8 +80,8 @@ fun ZipCellDecor(
         ),
         label = "zipRejectionPulse",
     )
-    // Same pop as the line head (MotionTokens.Trace), so a dot the trace reaches reads as
-    // one beat with it; never on first composition, so restoring a board stays still.
+    // A dot the trace reaches pops (MotionTokens.Trace); never on first composition, so
+    // restoring a board stays still.
     val pop = remember { Animatable(1f) }
     var wasInPath by remember { mutableStateOf(inPath) }
     LaunchedEffect(inPath) {
@@ -182,15 +181,12 @@ fun ZipCellDecor(
  * The trace, hoisted to ONE board-level layer (ticket 28, the user's layer-level
  * subtraction): one fat rounded stroke along the path, drawn UNDER all cell content as
  * the [BoardGrid] underlay, so each dot's surface hole punches the pipe globally. A head
- * disc sits on the line end. In the live game [finger] (board px, read in the draw phase)
- * drives the tip toward cells [hooks] accepts, and [animate] turns on grow-in, retract,
- * tip-home and the head pop ([MotionTokens.Trace]); reduced motion keeps only the tip.
+ * disc sits on the line end, on the last committed cell. [animate] turns on grow-in and
+ * retract between cells ([MotionTokens.Trace]).
  */
 @Composable
 fun ZipPipes(
     model: ZipRendererModel,
-    finger: () -> Offset? = { null },
-    hooks: DragTraceHooks? = null,
     animate: Boolean = false,
 ) {
     val board = LocalBoardColors.current
@@ -200,7 +196,7 @@ fun ZipPipes(
     Canvas(Modifier.fillMaxSize()) {
         with(motion) {
             drawTrace(
-                path, finger(), hooks, model.n, board.pathTrace, board.pathTraceLip,
+                path, model.n, board.pathTrace, board.pathTraceLip,
                 ZipBoardSpec.pathTraceWidthFraction, ZipBoardSpec.pathTraceLipFraction, animate,
             )
         }

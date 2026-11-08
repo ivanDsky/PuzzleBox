@@ -22,8 +22,7 @@ import com.ivandsky.puzzlebox.gameui.GridGeometry
  * trace is [StrandsDragSession]'s, what each step does is [TraceInput]'s.
  *
  * A down beside the board clears the trace. [onTouch] fires on every down, before any
- * step, so the board can retire running motion: input never waits on an animation. While a
- * drag runs, [onFinger] gets the finger for the live tip, and null once it lifts. A size
+ * step, so the board can retire running motion: input never waits on an animation. A size
  * change mid-gesture does not restart it; positions map with the size in force.
  */
 @Composable
@@ -34,13 +33,11 @@ internal fun BoxScope.StrandsGestureLayer(
     trace: () -> Trace,
     onTrace: (TraceStep) -> Unit,
     onTouch: () -> Unit,
-    onFinger: (TraceFinger?) -> Unit,
 ) {
     val currentTrace by rememberUpdatedState(trace)
     val currentBoardSize by rememberUpdatedState(boardSize)
     val currentOnTrace by rememberUpdatedState(onTrace)
     val currentOnTouch by rememberUpdatedState(onTouch)
-    val currentOnFinger by rememberUpdatedState(onFinger)
     Box(
         Modifier
             .matchParentSize()
@@ -68,16 +65,11 @@ internal fun BoxScope.StrandsGestureLayer(
                     }
                     down.consume()
                     val session = StrandsDragSession(rows, cols, start, inCells(down.position))
-                    try {
-                        while (true) {
-                            val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
-                            if (!change.pressed) break
-                            session.move(inCells(change.position), currentTrace()).forEach { currentOnTrace(it) }
-                            session.finger(currentTrace())?.let { currentOnFinger(it) }
-                            change.consume()
-                        }
-                    } finally {
-                        currentOnFinger(null)
+                    while (true) {
+                        val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+                        if (!change.pressed) break
+                        session.move(inCells(change.position), currentTrace()).forEach { currentOnTrace(it) }
+                        change.consume()
                     }
                     currentOnTrace(session.end(currentTrace()))
                 }

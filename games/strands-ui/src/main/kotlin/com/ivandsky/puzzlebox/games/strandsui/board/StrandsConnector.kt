@@ -32,10 +32,9 @@ import com.ivandsky.puzzlebox.gameui.GridGeometry
  * from token edge to token edge, joining the dashed rings and never crossing a letter
  * (an idle letter keeps its >= 4.5:1 on the bare board, A32).
  *
- * The live trace is [StrandsLineMotion]'s: while a drag runs, [finger] (read in the draw
- * phase) stretches its end toward a free letter (A4), and [animate] turns on grow-in,
- * retract, tip-home and the head pop; reduced motion keeps only the tip. [links] are built
- * in a draw cache, rebuilt only on a size or link change.
+ * The live trace is [StrandsLineMotion]'s: its head sits on the last letter joined, and
+ * [animate] turns on grow-in and retract between letters. [links] are built in a draw
+ * cache, rebuilt only on a size or link change.
  */
 @Composable
 internal fun StrandsConnectors(
@@ -44,7 +43,6 @@ internal fun StrandsConnectors(
     links: List<StrandsLink>,
     trace: () -> Trace,
     colors: BoardColors,
-    finger: () -> TraceFinger? = { null },
     animate: Boolean = false,
 ) {
     val scope = rememberCoroutineScope()
@@ -62,7 +60,7 @@ internal fun StrandsConnectors(
                 val color = connectorColor(LinkKind.Trace, colors)
                 val stroke = roundStroke(LinkKind.Trace)
                 onDrawBehind {
-                    with(motion) { drawTrace(trace().path, finger(), rows, cols, color, stroke, animate) }
+                    with(motion) { drawTrace(trace().path, rows, cols, color, stroke, animate) }
                 }
             },
     )

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -28,7 +27,6 @@ import com.ivandsky.puzzlebox.games.strandsui.board.StrandsConnectors
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsGestureLayer
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsHaptics
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsTraceEndConnector
-import com.ivandsky.puzzlebox.games.strandsui.board.TraceFinger
 import com.ivandsky.puzzlebox.games.strandsui.board.altThemeCells
 import com.ivandsky.puzzlebox.games.strandsui.board.altThemeLinks
 import com.ivandsky.puzzlebox.games.strandsui.board.rememberTraceEndFrame
@@ -85,23 +83,6 @@ internal fun StrandsBoardContent(
     onTrace: (TraceStep) -> Unit,
     traceEnd: () -> TraceEnd? = { null },
     modifier: Modifier = Modifier,
-) = StrandsBoardLayout(model, found, reduceMotion, trace, onTrace, remember { mutableStateOf<TraceFinger?>(null) }, traceEnd, modifier)
-
-/**
- * [StrandsBoardContent] with the drag's [finger] handed in: the drag writes it and only the
- * connector's draw reads it, so a moving finger redraws the tip and recomposes nothing. A
- * preview holds a drag still by handing in the finger its session ended on.
- */
-@Composable
-internal fun StrandsBoardLayout(
-    model: StrandsRendererModel,
-    found: FoundEvent?,
-    reduceMotion: Boolean,
-    trace: () -> Trace,
-    onTrace: (TraceStep) -> Unit,
-    finger: MutableState<TraceFinger?>,
-    traceEnd: () -> TraceEnd? = { null },
-    modifier: Modifier = Modifier,
 ) {
     val colors = LocalBoardColors.current
     val altCells = remember(model.links) { altThemeLinks(model.links).altThemeCells() }
@@ -120,7 +101,7 @@ internal fun StrandsBoardLayout(
                 // Strands has no grid: the letters float on the bare board.
                 colors = colors.copy(boardGridLine = Color.Transparent),
                 underlay = {
-                    StrandsConnectors(model.rows, model.cols, model.links, trace, colors, { finger.value }, animate = !reduceMotion)
+                    StrandsConnectors(model.rows, model.cols, model.links, trace, colors, animate = !reduceMotion)
                     StrandsTraceEndConnector(model.rows, model.cols, { end.value }, colors)
                 },
                 cellContent = { row, col ->
@@ -145,7 +126,6 @@ internal fun StrandsBoardLayout(
                 trace = trace,
                 onTrace = onTrace,
                 onTouch = { touchSeq.intValue++ },
-                onFinger = { finger.value = it },
             )
         }
     }

@@ -49,7 +49,6 @@ class StrandsGestureResizeTest {
                 trace = { Trace() },
                 onTrace = { steps += it },
                 onTouch = {},
-                onFinger = {},
             )
         }
     }

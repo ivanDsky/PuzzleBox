@@ -16,38 +16,33 @@ import kotlin.math.floor
 import kotlinx.coroutines.CoroutineScope
 
 /**
- * The live trace connector's frame state (prototype 02 variant E) over the shared
- * [TraceLineMotion]: Strands projects its 8-way tip and draws the connector and the head
- * disc, which pops on every letter joined. Called from the draw phase only: the finger, the
- * trace and the Animatables are read there, so a moving finger or a running tween redraws
- * the connector and recomposes nothing.
+ * The live trace connector's frame state over the shared [TraceLineMotion]: Strands draws
+ * the connector and the head disc on the visible end, which rests on the last letter
+ * joined. Called from the draw phase only: the trace and the Animatables are read there,
+ * so a running tween redraws the connector and recomposes nothing.
  */
 internal class StrandsLineMotion(scope: CoroutineScope) {
-    private val motion = TraceLineMotion<Coord, TraceDirection>(scope) { cell, direction -> Coord(cell.row + direction.dRow, cell.col + direction.dCol) }
-    private var latch: TraceDirection? = null
+    private val motion = TraceLineMotion<Coord>(scope)
     private val line = Path()
 
     fun DrawScope.drawTrace(
         path: List<Coord>,
-        finger: TraceFinger?,
         rows: Int,
         cols: Int,
         color: Color,
         stroke: Stroke,
         animate: Boolean,
     ) {
-        val tip = finger?.let { strandsTip(path, it, rows, cols, latch) }
-        latch = if (finger == null || path.isEmpty()) null else tip?.direction ?: latch
-        val end = motion.step(path, tip, animate)
+        val end = motion.step(path, animate)
         if (path.isEmpty()) return
-        val tipCell = motion.tipCell
+        val cells = motion.line
         val pitchX = size.width / cols
         val pitchY = size.height / rows
         fun centre(index: Int): Offset {
-            val cell = if (index < path.size) path[index] else checkNotNull(tipCell)
+            val cell = cells[index]
             return Offset((cell.col + 0.5f) * pitchX, (cell.row + 0.5f) * pitchY)
         }
-        val lastIndex = path.size - if (tipCell == null) 1 else 0
+        val lastIndex = cells.lastIndex
         val last = floor(end).toInt().coerceIn(0, lastIndex)
         val endPoint = if (last < lastIndex) {
             val from = centre(last)
@@ -63,8 +58,8 @@ internal class StrandsLineMotion(scope: CoroutineScope) {
             line.lineTo(endPoint.x, endPoint.y)
             drawPath(line, color, style = stroke)
         }
-        if (path.size >= 2) {
-            drawCircle(color, radius = stroke.width * MotionTokens.Trace.HeadScale / 2 * motion.headScale, center = endPoint)
+        if (cells.size >= 2) {
+            drawCircle(color, radius = stroke.width * MotionTokens.Trace.HeadScale / 2, center = endPoint)
         }
     }
 }

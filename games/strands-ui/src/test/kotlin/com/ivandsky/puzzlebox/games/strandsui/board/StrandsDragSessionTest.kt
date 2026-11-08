@@ -1,12 +1,10 @@
 package com.ivandsky.puzzlebox.games.strandsui.board
 
 import androidx.compose.ui.geometry.Offset
-import com.ivandsky.puzzlebox.gameui.TipKind
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strandsui.Trace
 import com.ivandsky.puzzlebox.games.strandsui.TraceStep
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 /** A5/A12: what one touch on a letter makes of the trace, in cell units over a 6 × 8 board. */
@@ -43,31 +41,15 @@ class StrandsDragSessionTest {
     }
 
     @Test
-    fun `the finger shows only once the touch is a drag`() {
-        val session = session()
-        session.move(centreOf(start) + Offset(0.1f, 0f), Trace())
-        assertNull(session.finger(Trace()))
-        val dragged = (session.move(centreOf(Coord(3, 2)), Trace()).last() as TraceStep.Updated).trace
-        assertEquals(centreOf(Coord(3, 2)), session.finger(dragged)?.at)
-    }
-
-    @Test
-    fun `a tail the walk will not grow from gives the tip no stretch`() {
+    fun `a dip into a diagonal joins only that letter until the finger comes to it`() {
         // An east drag dipping 29° cuts into the diagonal (4, 2) from inside (3, 2), then
-        // wanders on toward it, short of (3, 2) and (4, 2) alike: the walk grows nothing until
-        // the finger comes to (4, 2).
+        // wanders on toward it, short of (3, 2) and (4, 2) alike: the walk grows nothing more.
         val session = session()
         var trace = Trace()
         for (point in listOf(Offset(2.05f, 3.8f), Offset(2.2f, 3.95f))) {
             session.move(point, trace).forEach { trace = (it as TraceStep.Updated).trace }
         }
         assertEquals(listOf(start, Coord(4, 2)), trace.path)
-        val finger = checkNotNull(session.finger(trace))
-        assertEquals(false, finger.armed)
-        assertEquals(TipKind.Nudge, strandsTip(trace.path, finger, rows, cols, latch = null)?.kind)
-
-        session.move(centreOf(Coord(4, 2)), trace)
-        assertEquals(true, session.finger(trace)?.armed)
     }
 
     @Test

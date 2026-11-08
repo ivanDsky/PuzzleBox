@@ -27,8 +27,7 @@ internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, do
     private val trail = TravelTrail().apply { push(down) }
 
     /** Where the finger is: the last point walked to. */
-    var at = down
-        private set
+    private var at = down
 
     /** The tail the finger has come within [StrandsBoardSpec.ArriveCells] of since it joined. */
     private var reached: Coord? = null
@@ -38,9 +37,6 @@ internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, do
 
     /** The finger's travel over the last [StrandsBoardSpec.TravelWindowCells]; null until it has gone half that. */
     fun travel(): Offset? = trail.travel(StrandsBoardSpec.TravelWindowCells)
-
-    /** Whether the finger has reached [path]'s tail, so a free letter ahead of it can join (F2). */
-    fun armed(path: List<Coord>): Boolean = path.isNotEmpty() && reaches(at, path)
 
     /** Walks the finger to [to], handing [join] every letter it takes on the way; [path] is the trace so far. */
     fun moveTo(to: Offset, path: () -> List<Coord>, join: (Coord) -> Unit) {
