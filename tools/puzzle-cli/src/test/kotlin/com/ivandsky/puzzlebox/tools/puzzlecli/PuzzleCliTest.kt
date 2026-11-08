@@ -42,9 +42,52 @@ class PuzzleCliTest {
     }
 
     @Test
+    fun `solve unique fixture carries the solution values and exits publishable`() {
+        val io = Io()
+        val exit = PuzzleCli.run(
+            listOf("solve", "board.txt"),
+            { fixture("queens-unique-5.txt") },
+            io.out,
+            io.err,
+        )
+        assertEquals(CliExit.PUBLISHABLE, exit)
+        val verdict = verdictOf(io)
+        assertEquals("unique", verdict.verdict)
+        assertTrue("solution expected: $verdict", verdict.solution != null && verdict.solution.size == 5)
+    }
+
+    @Test
+    fun `solve multiple fixture leaves solution null and is not publishable`() {
+        val io = Io()
+        val exit = PuzzleCli.run(
+            listOf("solve", "board.txt"),
+            { fixture("queens-multiple-5.txt") },
+            io.out,
+            io.err,
+        )
+        assertEquals(CliExit.NOT_PUBLISHABLE, exit)
+        val verdict = verdictOf(io)
+        assertEquals("multiple", verdict.verdict)
+        assertNull(verdict.solution)
+    }
+
+    @Test
+    fun `validate unique fixture never carries a solution`() {
+        val io = Io()
+        val exit = PuzzleCli.run(
+            listOf("validate", "board.txt"),
+            { fixture("queens-unique-5.txt") },
+            io.out,
+            io.err,
+        )
+        assertEquals(CliExit.PUBLISHABLE, exit)
+        assertNull(verdictOf(io).solution)
+    }
+
+    @Test
     fun `unknown command is usage`() {
         val io = Io()
-        val exit = PuzzleCli.run(listOf("solve", "board.txt"), { "" }, io.out, io.err)
+        val exit = PuzzleCli.run(listOf("frobnicate", "board.txt"), { "" }, io.out, io.err)
         assertEquals(CliExit.USAGE, exit)
         assertTrue(io.outLines.isEmpty())
     }

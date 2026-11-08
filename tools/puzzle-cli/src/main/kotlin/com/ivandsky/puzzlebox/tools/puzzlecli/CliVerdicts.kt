@@ -72,6 +72,7 @@ object CliVerdicts {
                 conflicts = emptyList(),
                 blocks = draft.publishBlocks(verdict).map { it.id },
                 errors = emptyList(),
+                solution = if (withSolution) verdict.solution.values else null,
             )
             is Verdict.Multiple -> CliVerdict(
                 game = draft.gameId.value,
