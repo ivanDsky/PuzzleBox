@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.editor.NotationParse
 import com.ivandsky.puzzlebox.game.editor.NotationText
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
 /**
@@ -21,14 +22,19 @@ class ImportDraftFromText(
     /**
      * NotationText.parse on dispatchers.default (the cap is its first step, so over-cap text is never
      * parsed). Parsed → createDraft(gameId, variant) for the title rule, then one upsert of that row
-     * with blob = parsed.encode() and imported = true. Every other outcome writes nothing.
+     * with blob = parsed.encode() and imported = true. Every other outcome writes nothing. The two
+     * writes are not cancellable, so a cancel leaves no row or one complete imported row, never a
+     * blank "Untitled" one.
      */
     suspend operator fun invoke(text: String): ImportResult = withContext(dispatchers.default) {
         when (val parse = NotationText.parse(text, registry)) {
             is NotationParse.Parsed -> {
                 val draft = parse.draft
-                val created = createDraft(draft.gameId, draft.variant)
-                drafts.upsert(created.copy(blob = draft.encode(), imported = true))
+                val created = withContext(NonCancellable) {
+                    createDraft(draft.gameId, draft.variant).also {
+                        drafts.upsert(it.copy(blob = draft.encode(), imported = true))
+                    }
+                }
                 ImportResult.Imported(created.id)
             }
             is NotationParse.TooLarge -> ImportResult.TooLarge(parse.bytes, parse.line, parse.col)

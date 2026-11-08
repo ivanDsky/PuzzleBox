@@ -12,9 +12,10 @@ import androidx.compose.ui.semantics.semantics
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ImportResult
+import com.ivandsky.puzzlebox.game.editor.NotationText
 
 private const val BYTES_PER_KB = 1024
-private const val LIMIT_KB = 64
+private const val LIMIT_KB = NotationText.MAX_BYTES / BYTES_PER_KB
 
 /** NotationText's messages for a text with no readable header; it reports them as Malformed. */
 private val HeaderMessages = setOf("missing header", "garbled header")

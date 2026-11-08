@@ -52,7 +52,10 @@ class ImportSheetTest {
     }
 
     private fun swipeSheetDown() {
-        composeRule.onNodeWithTag("create.import.sheet").performTouchInput { swipeDown() }
+        // Starts inside the sheet (not on the scrim) and ends below it: a drag, never a scrim tap.
+        composeRule.onNodeWithTag("create.import.sheet").performTouchInput {
+            swipeDown(startY = height / 2f, endY = height * 2f)
+        }
         composeRule.mainClock.advanceTimeBy(SHEET_SETTLE_MS)
     }
 

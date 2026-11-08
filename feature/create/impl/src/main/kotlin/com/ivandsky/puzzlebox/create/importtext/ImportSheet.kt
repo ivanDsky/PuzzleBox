@@ -12,12 +12,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -31,7 +28,8 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.ImportResult
 
 private val BoxMinHeight = 160.dp
-private val CheckingMinHeight = 48.dp
+/** The Import button's height (PrimaryButton's minimum), so the sheet does not jump. */
+private val CheckingMinHeight = 52.dp
 private val SpinnerStroke = 3.dp
 
 /**
@@ -39,7 +37,8 @@ private val SpinnerStroke = 3.dp
  * an Import button that [onSubmit]s the box and stays off while the box is empty, and, after a
  * failed import, one plain inline line ([ImportErrorLine]). While [ImportSheetUi.checking] the
  * button gives way to a spinner row, the box turns read-only and a swipe cannot close the
- * sheet. Draws nothing until [ImportSheetUi.visible]; [onDismiss] closes it.
+ * sheet (back and scrim still close it). Draws nothing until [ImportSheetUi.visible];
+ * [onDismiss] closes it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,14 +50,11 @@ fun ImportSheet(
     modifier: Modifier = Modifier,
 ) {
     if (!ui.visible) return
-    val checking by rememberUpdatedState(ui.checking)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         modifier = modifier.testTag("create.import.sheet"),
-        sheetState = rememberModalBottomSheetState(
-            skipPartiallyExpanded = true,
-            confirmValueChange = { target -> target != SheetValue.Hidden || !checking },
-        ),
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetGesturesEnabled = !ui.checking,
     ) {
         ImportSheetContent(ui, onEdit, onSubmit)
     }
@@ -115,7 +111,7 @@ private fun CheckingRow() {
             strokeWidth = SpinnerStroke,
         )
         Text(
-            text = "Checking… solving for a unique answer",
+            text = "Checking the text…",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

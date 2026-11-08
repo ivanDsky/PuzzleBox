@@ -36,7 +36,8 @@ class ImportTextState(
     /**
      * checking = true → importDraft(text) → Imported: hide + [onImported]; else the error (text
      * kept, cleared for TooLarge). A result never changes `visible`. A submit while one is
-     * running is dropped; [dismiss] cancels the running one, so a dismissed check never imports.
+     * running is dropped; [dismiss] cancels the running one, so a check dismissed before it stores
+     * anything never imports.
      */
     fun submit(text: String) {
         if (state.value.checking) return
