@@ -201,6 +201,42 @@ class LeaderboardSubmitWatcherTest {
         )
     }
 
+    /**
+     * F2's app-start half: the dedup set is per-process, so a fresh watcher (new
+     * process, same records store) retries a record the previous process deferred,
+     * without waiting for any new records emission — the StateFlow's current value
+     * is enough. The status tracker is shared to show the full Posting → Deferred →
+     * Posting → Posted arc across the two instances.
+     */
+    @Test
+    fun `a fresh watcher retries a deferred record (F2)`() = runTest {
+        val records = FakeCompletionRepository(listOf(record()))
+        val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
+        var attempts = 0
+        val leaderboard = FakeLeaderboardRepository(
+            nextSubmitResult = { entry ->
+                attempts++
+                if (attempts == 1) SubmitResult.Err(SubmitError.Unavailable("offline")) else SubmitResult.Ok(entry)
+            },
+        )
+        val scheduler = TestCoroutineScheduler()
+        val statuses = SubmitStatusTracker()
+        val seen = scheduler.statusesSeen(statuses)
+
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler), statuses).start()
+        scheduler.advanceUntilIdle()
+
+        assertEquals(1, attempts) // attempted once, failed: nothing posted
+        assertEquals(listOf(SubmitStatus.Posting, SubmitStatus.Deferred), seen)
+
+        // No setRecords here: a new watcher over the unchanged store still retries.
+        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler), statuses).start()
+        scheduler.advanceUntilIdle()
+
+        assertEquals(listOf(SubmitStatus.Posting, SubmitStatus.Deferred, SubmitStatus.Posting, SubmitStatus.Posted), seen)
+        assertEquals(2, attempts) // the retry came from the fresh watcher
+    }
+
     private fun zipRecord(d: LocalDate, n: Int) = record(ref = ZipPuzzleRef(PuzzleKey.Daily(d, n)))
 
     @Test
