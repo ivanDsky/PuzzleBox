@@ -54,7 +54,7 @@ class P4UseCaseShape(val verbs: Set<String> = DEFAULT_VERBS) : Rule {
 
         val DEFAULT_VERBS = setOf(
             "Get", "Observe", "Compute", "Submit", "Save", "Load", "Delete",
-            "Update", "Create", "Sync", "Validate", "Record", "Start", "Finish",
+            "Update", "Create", "Sync", "Validate", "Record", "Start", "Finish", "Import",
         )
     }
 }
