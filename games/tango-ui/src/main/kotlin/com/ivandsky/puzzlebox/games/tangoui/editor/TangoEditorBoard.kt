@@ -1,11 +1,13 @@
 package com.ivandsky.puzzlebox.games.tangoui.editor
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
@@ -18,6 +20,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
@@ -56,6 +61,7 @@ internal fun TangoEditorBoard(
     val draft by controller.draft.collectAsState()
     val pressed by controller.preview.collectAsState()
     val overlay by controller.overlay.collectAsState()
+    val zones by controller.tapZones.collectAsState()
     val board = draft.state.draft as TangoDraft
     val target = pressed
     val shown = if (target == null) board else controller.commandFor(target).apply(board)
@@ -75,7 +81,41 @@ internal fun TangoEditorBoard(
     ) {
         renderer.Content(model = model, modifier = Modifier.fillMaxWidth())
         TangoDiagnosticsLayer(diagnostics)
+        if (zones) TapZoneBands()
         if (target != null) PressWash(target)
+    }
+}
+
+/** Outlines every interior edge's hit band, so the author sees where a tap lands. */
+@Composable
+private fun TapZoneBands() {
+    val color = MaterialTheme.colorScheme.primary
+    Canvas(Modifier.fillMaxSize().testTag("tango.editor.tapZones.bands")) {
+        val n = TangoDraft.N
+        val pitch = size.width / n
+        val across = TangoBoardSpec.editEdgeBandAcrossFraction
+        val inset = TangoBoardSpec.editEdgeBandInsetFraction
+        val stroke = Stroke(width = 1.dp.toPx())
+        for (row in 0 until n) {
+            for (col in 0 until n) {
+                if (col < n - 1) {
+                    drawRect(
+                        color,
+                        Offset(pitch * (col + 1 - across), pitch * (row + inset)),
+                        Size(pitch * 2 * across, pitch * (1 - 2 * inset)),
+                        style = stroke,
+                    )
+                }
+                if (row < n - 1) {
+                    drawRect(
+                        color,
+                        Offset(pitch * (col + inset), pitch * (row + 1 - across)),
+                        Size(pitch * (1 - 2 * inset), pitch * 2 * across),
+                        style = stroke,
+                    )
+                }
+            }
+        }
     }
 }
 
