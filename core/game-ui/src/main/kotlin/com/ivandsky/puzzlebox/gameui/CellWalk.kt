@@ -5,7 +5,7 @@ import kotlin.math.abs
 import kotlin.math.floor
 
 /** One cell boundary crossing along a segment walked by [GridGeometry.walkCells]. */
-internal sealed interface WalkStep {
+sealed interface WalkStep {
     data class Enter(val cell: GridCell) : WalkStep
 
     /**
@@ -19,7 +19,7 @@ internal sealed interface WalkStep {
  * Cells crossed by the straight segment [from]→[to], in order, excluding the cell [from]
  * lies in (Amanatides–Woo grid traversal). Points off the board clamp to it, like [GridGeometry.cellAt].
  */
-internal fun GridGeometry.walkCells(from: Offset, to: Offset): List<WalkStep> {
+fun GridGeometry.walkCells(from: Offset, to: Offset): List<WalkStep> {
     val x0 = (from.x / cellWidth).clampTo(cols)
     val y0 = (from.y / cellHeight).clampTo(rows)
     val x1 = (to.x / cellWidth).clampTo(cols)
