@@ -1,0 +1,8 @@
+# expect: unique needs-guessing
+puzzlebox tango v1
+S....S
+.M..S.
+...SM.
+.....S
+..M...
+....M.
