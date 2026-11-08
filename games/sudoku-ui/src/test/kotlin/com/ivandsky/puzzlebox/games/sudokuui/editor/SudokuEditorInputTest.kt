@@ -84,6 +84,18 @@ class SudokuEditorInputTest {
     }
 
     @Test
+    fun `a 9x9 draft opens with all nine digit keys`() {
+        val classic = SudokuEditor(SudokuGames.CLASSIC)
+        val nine = SudokuEditorController(EditorDraft.fresh(classic, classic.variants.first())) {}
+        composeRule.setContent {
+            PuzzleBoxTheme { SudokuEditorBoard(nine, SudokuGames.CLASSIC.variant.geometry) }
+        }
+
+        composeRule.onNodeWithTag("sudoku.editor.key.9").assertExists()
+        composeRule.onNodeWithTag("sudoku.cell.80").assertExists()
+    }
+
+    @Test
     fun `erase empties the selected cell as its own step`() {
         show()
         composeRule.onNodeWithTag("sudoku.cell.2").performClick()
