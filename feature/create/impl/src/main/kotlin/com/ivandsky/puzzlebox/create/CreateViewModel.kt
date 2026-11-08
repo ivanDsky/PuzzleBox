@@ -5,13 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.create.importtext.ImportTextState
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
-import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
+import com.ivandsky.puzzlebox.domain.ImportDraftFromText
 import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.VariantId
@@ -58,6 +59,9 @@ import kotlinx.coroutines.withContext
  * under a published code is that puzzle's board, so it leaves the Drafts tab, its counts, its
  * search and its verdict chips. Each time that tab shows, [syncSolves] refreshes the rows' solve
  * counts in the background; the list never waits for it, and the cached counts show meanwhile.
+ *
+ * [importText] owns the Import from text sheet; the header pill shows while [importEnabled]
+ * ([ReleaseFlag.TextImport]). An imported draft is sent on [created], like a new one.
  */
 class CreateViewModel(
     private val games: GameRegistry,
@@ -139,8 +143,20 @@ class CreateViewModel(
 
     private val createdIds = Channel<String>(Channel.BUFFERED)
 
-    /** The id of each draft [newPuzzle] stored, once each, for the route to open. */
+    /** The id of each draft [newPuzzle] or the import sheet stored, once each, for the route to open. */
     val created: Flow<String> = createdIds.receiveAsFlow()
+
+    /** Whether the header's Import pill shows: [ReleaseFlag.TextImport] is on. */
+    val importEnabled: StateFlow<Boolean> = releaseFlags.enabled.map { ReleaseFlag.TextImport in it }.stateIn(
+        viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ReleaseFlag.TextImport in releaseFlags.enabled.value,
+    )
+
+    /** The Import from text sheet; an imported draft is sent on [created] like a new one. */
+    val importText = ImportTextState(
+        importDraft = ImportDraftFromText(games, createDraft, drafts, dispatchers),
+        scope = viewModelScope,
+        onImported = { createdIds.trySend(it) },
+    )
 
     /**
      * Stores a blank [variant] draft of [gameId] (a choice the sheet offered) and sends its id on
@@ -245,11 +261,11 @@ class CreateViewModel(
             games = newGames,
             searchVisible = searchVisible,
             query = text,
-            filters = if (searchVisible) filtersOf(stored) else emptyList(),
+            filters = if (searchVisible) filtersOf(stored, games, plays) else emptyList(),
             filter = shownGame,
             deleted = removed?.let { CreateUiState.Deleted(it.id, it.title) },
             tab = view.tab,
-            published = listed.published.map { publishedRowOf(it, now) },
+            published = listed.published.map { publishedRowOf(it, plays, now) },
         )
     }
 
@@ -267,22 +283,6 @@ class CreateViewModel(
             verdict = if (stamp in settled) settled[stamp] else Verdict.Checking,
         )
     }
-
-    private fun publishedRowOf(row: PublishedPuzzle, now: Instant) = CreateUiState.PublishedRow(
-        code = row.code,
-        gameId = row.gameId,
-        brand = plays.brandOf(row.gameId),
-        title = row.title,
-        meta = if (row.unpublished) "Unpublished" else "Author ${formatDuration(row.authorTimeMs)}",
-        published = ageLabel("published", row.createdAt, now),
-        unpublished = row.unpublished,
-        solves = row.solvesCount,
-    )
-
-    private fun filtersOf(stored: List<Draft>): List<CreateUiState.GameFilter> =
-        stored.groupingBy { it.gameId }.eachCount().map { (id, count) ->
-            CreateUiState.GameFilter(id, games.displayName(id), plays.brandOf(id), count)
-        }
 
     private data class DraftStamp(val id: String, val updatedAt: Instant)
 

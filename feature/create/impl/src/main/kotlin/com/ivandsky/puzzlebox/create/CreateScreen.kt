@@ -28,12 +28,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.create.importtext.ImportSheet
+import com.ivandsky.puzzlebox.create.importtext.ImportSheetUi
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.LargeTopBar
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.maxContentWidth
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -60,6 +63,9 @@ private const val DELETED_TITLE_MAX = 28
  * and [onDelete]. While [CreateUiState.deleted] is set, a snackbar "Deleted “{title}”" offers
  * Undo ([onUndoDelete]); it leaves when the state clears it (the 5 s window is the ViewModel's).
  *
+ * While [importEnabled] the header carries a tonal Import pill ([onImportOpen]) that opens the
+ * [ImportSheet] over [importSheet] ([onImportEdit], [onImportSubmit], [onImportDismiss]).
+ *
  * Motion: rows **Fade in** / **Fade out** and slide to new places with a **Layout animation**
  * (MotionTokens medium, EasingStandard) as edits reorder them and the query narrows them; the
  * New puzzle button **Slides** up over the snackbar (DurationMedium, EasingStandard). None of
@@ -78,6 +84,12 @@ fun CreateScreen(
     onDelete: (draftId: String) -> Unit,
     onUndoDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    importEnabled: Boolean = false,
+    importSheet: ImportSheetUi = ImportSheetUi(),
+    onImportOpen: () -> Unit = {},
+    onImportEdit: (String) -> Unit = {},
+    onImportSubmit: (String) -> Unit = {},
+    onImportDismiss: () -> Unit = {},
 ) {
     var sheetOpen by rememberSaveable { mutableStateOf(false) }
     var actionsId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -96,7 +108,16 @@ fun CreateScreen(
     )
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            LargeTopBar(title = "Create", subtitle = headerCounts(state), modifier = Modifier.maxContentWidth().testTag("create.header"))
+            LargeTopBar(
+                title = "Create",
+                subtitle = headerCounts(state),
+                modifier = Modifier.maxContentWidth().testTag("create.header"),
+                actions = {
+                    if (importEnabled) {
+                        SecondaryButton(text = "Import", onClick = onImportOpen, modifier = Modifier.testTag("create.header.import"))
+                    }
+                },
+            )
             when {
                 state.loading -> Unit
                 state.isEmpty -> CreateEmptyState(games = state.games, onStart = onNew)
@@ -114,6 +135,7 @@ fun CreateScreen(
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).testTag("create.snackbar"))
     }
+    ImportSheet(ui = importSheet, onEdit = onImportEdit, onSubmit = onImportSubmit, onDismiss = onImportDismiss)
     if (sheetOpen) {
         NewPuzzleSheet(
             games = state.games,
