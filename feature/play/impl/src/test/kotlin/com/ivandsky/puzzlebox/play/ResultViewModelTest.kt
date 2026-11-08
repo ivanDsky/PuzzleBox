@@ -1,6 +1,11 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.ComputeStreak
@@ -9,6 +14,10 @@ import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
+import com.ivandsky.puzzlebox.domain.ObserveResultInsights
+import com.ivandsky.puzzlebox.domain.ObserveResultRank
+import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -22,10 +31,14 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.play.friend.signedOutBoard
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
@@ -72,6 +85,7 @@ class ResultViewModelTest {
         setHistory(alpha, listOf(DailyEntry(alpha, day, 7, "alpha/v1", 0L)))
     }
     private val completions = FakeCompletionRepository()
+    private val leaderboard = FakeLeaderboardRepository()
     private val dispatcher = main.testDispatcher
     private val calendar = FakeGameCalendar(day)
     private val saved = FakeSavedPlayRepository()
@@ -112,6 +126,8 @@ class ResultViewModelTest {
         games: GameRegistry = fakes.games,
         ui: GamePlayRegistry = fakes.registry,
         store: PlaySessionStore = this.store,
+        flags: ReleaseFlags = FakeReleaseFlags(),
+        identity: Identity? = null,
     ): ResultViewModel {
         val history = ObserveGameHistory(games, daily, completions)
         return ResultViewModel(
@@ -124,7 +140,21 @@ class ResultViewModelTest {
             rollover = GetNextRollover(games, clock),
             ui = ui,
             games = games,
+            flags = flags,
+            insights = ObserveResultInsights(games, history, ComputeStreak(GetPuzzleDay(games, clock)), GetPuzzleDay(games, clock)),
+            rank = ObserveResultRank(ObserveLeaderboard(FakeIdentityService(initial = identity), leaderboard)),
+            board = signedOutBoard(),
         )
+    }
+
+    private fun heroOn() = FakeReleaseFlags(ReleaseFlag.ResultsHero)
+
+    /** The hero flows run only while the page observes them. */
+    private fun ResultViewModel.heroObserved() = apply {
+        screen.launch { hero.collect {} }
+        screen.launch { heroInsights.collect {} }
+        screen.launch { heroRank.collect {} }
+        dispatcher.scheduler.runCurrent()
     }
 
     /** Both flows run only while the screen observes them. */
@@ -283,5 +313,71 @@ class ResultViewModelTest {
     fun `a past day's result offers done, never next`() {
         val vm = vm(key.copy(day = day.minusDays(1).toString())).observed()
         assertEquals(ResultPrimaryAction.Done, vm.primary.value)
+    }
+
+    @Test
+    fun `the hero page is off by default and on with the flag`() {
+        assertFalse(vm().heroObserved().hero.value)
+        assertTrue(vm(flags = heroOn()).heroObserved().hero.value)
+    }
+
+    @Test
+    fun `with the flag off the hero flows are never read`() {
+        val vm = vm(identity = ME).heroObserved()
+        assertNull(vm.heroInsights.value)
+        assertEquals(ResultRank.Hidden, vm.heroRank.value)
+        assertTrue(leaderboard.observedBoards.isEmpty())
+    }
+
+    @Test
+    fun `a replay is a past day's result`() {
+        assertFalse(vm().replay)
+        assertTrue(vm(key.copy(day = day.minusDays(1).toString())).replay)
+    }
+
+    @Test
+    fun `today's insights count this solve before its write lands`() {
+        val insights = vm(flags = heroOn()).heroObserved().heroInsights.value
+        assertEquals(1, insights?.streak)
+    }
+
+    @Test
+    fun `a past day's insights do not count the solve`() {
+        val replay = key.copy(day = day.minusDays(1).toString())
+        assertEquals(0, vm(replay, flags = heroOn()).heroObserved().heroInsights.value?.streak)
+    }
+
+    @Test
+    fun `a practice puzzle has no insights`() {
+        daily.setHistory(alpha, listOf(DailyEntry(alpha, day, null, "alpha/v1", 0L)))
+        assertNull(vm(flags = heroOn()).heroObserved().heroInsights.value)
+    }
+
+    @Test
+    fun `the rank reads this game's board for the slot's day`() {
+        val board = LeaderboardRef(alpha.value, day)
+        leaderboard.setEntries(board, listOf(entry("a", 30), entry(ME.uid, 40)))
+        val vm = vm(flags = heroOn(), identity = ME).heroObserved()
+        assertEquals(ResultRank.Ranked(position = 2, count = 2, topPercent = 100), vm.heroRank.value)
+    }
+
+    @Test
+    fun `signed out the rank offers sign in`() {
+        assertEquals(ResultRank.SignedOut, vm(flags = heroOn()).heroObserved().heroRank.value)
+    }
+
+    @Test
+    fun `a replay reads no board and shows no rank`() {
+        val replay = key.copy(day = day.minusDays(1).toString())
+        val vm = vm(replay, flags = heroOn(), identity = ME).heroObserved()
+        assertEquals(ResultRank.Hidden, vm.heroRank.value)
+        assertTrue(leaderboard.observedBoards.isEmpty())
+    }
+
+    private fun entry(uid: String, seconds: Int) =
+        LeaderboardEntry(uid, uid, "alpha/${day}/7", seconds * 1_000L, 0, 1_700_000_000_000)
+
+    private companion object {
+        val ME = Identity("me", "Me", null)
     }
 }

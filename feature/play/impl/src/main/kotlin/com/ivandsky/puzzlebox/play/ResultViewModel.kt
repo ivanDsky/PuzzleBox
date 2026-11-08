@@ -1,35 +1,48 @@
 package com.ivandsky.puzzlebox.play
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ObserveResultInsights
+import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.ResultInsights
+import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.nextUnsolved
-import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.gameui.GameBrand
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.play.friend.FriendPuzzleBoard
 import java.time.Instant
 import java.time.LocalDate
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /**
  * The result route's live facts. [verdict] is the A10 verdict for THIS play — null while
@@ -76,8 +89,11 @@ data class ResultUiState(
  * first lands, so the screen never shows a Done that turns into Next. Any other day's
  * result (a replay) offers Done from the first frame. The read flows run only while the
  * screen is observed (plus a 5 s grace), so a day change is re-read.
+ *
+ * Behind [ReleaseFlag.ResultsHero]: [hero] says which page to draw, and [heroInsights],
+ * [heroRank] and [replay] feed the hero page. With the flag off they are never read.
  */
-class ResultViewModel(
+class ResultViewModel internal constructor(
     key: ResultKey,
     store: PlaySessionStore,
     todaySet: ObserveTodaySet,
@@ -87,6 +103,10 @@ class ResultViewModel(
     rollover: GetNextRollover,
     ui: GamePlayRegistry,
     games: GameRegistry,
+    flags: ReleaseFlags,
+    insights: ObserveResultInsights,
+    rank: ObserveResultRank,
+    private val board: FriendPuzzleBoard,
 ) : ViewModel() {
 
     private val slot = PlaySlot.Daily(GameId(key.gameId), LocalDate.parse(key.day))
@@ -137,6 +157,35 @@ class ResultViewModel(
         } else {
             MutableStateFlow(ResultPrimaryAction.Done)
         }
+
+    /** True while [ReleaseFlag.ResultsHero] is on: the route draws the hero page. Off, nothing below is read. */
+    val hero: StateFlow<Boolean> = flags.enabled
+        .map { ReleaseFlag.ResultsHero in it }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ReleaseFlag.ResultsHero in flags.enabled.value)
+
+    /** True for a past day's result: a replay counts nothing. */
+    val replay: Boolean = !today
+
+    /**
+     * The hero page's streak, week and time spread; null until read, and for a practice puzzle.
+     * Today's solve counts, a replay's does not. Read only while [hero] is on.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val heroInsights: StateFlow<ResultInsights?> = hero
+        .flatMapLatest { on -> if (on) insights(slot.gameId, slot.day, BestScore(key.timeMs, key.hintsUsed), counted = today) else flowOf(null) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
+    /** The hero page's rank on today's board; hidden for a replay, which has no board to read. Read only while [hero] is on. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val heroRank: StateFlow<ResultRank> = hero
+        .flatMapLatest { on -> if (on && today) rank(slot.gameId, slot.day) else flowOf(ResultRank.Hidden) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ResultRank.Hidden)
+
+    /** The rank row's Google button: [activityContext] hosts Google's account picker, and is not kept. */
+    fun signIn(activityContext: Context) {
+        viewModelScope.launch { board.signIn(activityContext) }
+    }
 
     fun retryRecordWrite() {
         live?.takeIf { it.record.value.solve == solve }?.retryRecordWrite()

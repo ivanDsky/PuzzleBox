@@ -3,7 +3,14 @@ package com.ivandsky.puzzlebox.app.play
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import android.content.Context
+import com.ivandsky.puzzlebox.auth.GoogleIdToken
+import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -15,6 +22,9 @@ import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
+import com.ivandsky.puzzlebox.domain.ObserveResultInsights
+import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
@@ -36,13 +46,20 @@ import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.LocalDate
+import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
@@ -70,34 +87,7 @@ class RealGamesResultRouteTest {
         val daily = freshDailyForAllGames().apply {
             setHistory(ZipDefinition.id, listOf(ZipPlayFixture.entry(today)))
         }
-        stopKoin() // tests share the JVM-global Koin context
-        val koin = startKoin {
-            modules(
-                commonModule,
-                module {
-                    single<DailyRepository> { daily }
-                    single<CompletionRepository> { FakeCompletionRepository() }
-                    single { GameRegistry(listOf(zipPlugin)) }
-                    single { GamePlayRegistry(listOf(ZipPlayUi())) }
-                    single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
-                    single<SavedPlayRepository> { FakeSavedPlayRepository() }
-                    single<GameCalendar> { FakeGameCalendar(today) }
-                    factory { LoadPastDay(get(), get()) }
-                    single { SyncTodayPuzzles(get(), get(), get()) }
-                    factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
-                    factory { ObserveGameHistory(get(), get(), get()) }
-                    factory { GetPuzzleDay(get()) }
-                    factory { ComputeStreak(get()) }
-                    factory { ObserveGameStats(get(), get(), get()) }
-                    factory { GetNextRollover(get()) }
-                    // Tutorial seen: this path is about the result; the lessons have their own tests.
-                    single<UserPreferencesRepository> {
-                        FakeUserPreferencesRepository(seen = setOf(ZipDefinition.id))
-                    }
-                },
-                playModule,
-            )
-        }
+        val koin = startGraph(daily, today)
         val store = koin.koin.get<PlaySessionStore>()
         val gameKey = GameKey(ZipDefinition.id.value, today.toString())
         fun zip() = store.peek(PlaySlot.Daily(ZipDefinition.id, today))!!.controller as ZipPlayController
@@ -140,6 +130,50 @@ class RealGamesResultRouteTest {
             }
         } finally {
             stopKoin() // close() alone leaves the JVM-global context registered for later tests
+        }
+    }
+
+    private object DismissedGoogleIdTokenProvider : GoogleIdTokenProvider {
+        override suspend fun idToken(activityContext: Context): GoogleIdToken =
+            GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.CANCELLED)
+    }
+
+    private fun startGraph(daily: FakeDailyRepository, today: LocalDate, flags: ReleaseFlags = FakeReleaseFlags()): KoinApplication {
+        stopKoin() // tests share the JVM-global Koin context
+        return startKoin {
+            modules(
+                commonModule,
+                module {
+                    single<DailyRepository> { daily }
+                    single<CompletionRepository> { FakeCompletionRepository() }
+                    single { GameRegistry(listOf(zipPlugin)) }
+                    single { GamePlayRegistry(listOf(ZipPlayUi())) }
+                    single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
+                    single<SavedPlayRepository> { FakeSavedPlayRepository() }
+                    single<GameCalendar> { FakeGameCalendar(today) }
+                    factory { LoadPastDay(get(), get()) }
+                    single { SyncTodayPuzzles(get(), get(), get()) }
+                    factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
+                    factory { ObserveGameHistory(get(), get(), get()) }
+                    factory { GetPuzzleDay(get()) }
+                    factory { ComputeStreak(get()) }
+                    factory { ObserveGameStats(get(), get(), get()) }
+                    factory { GetNextRollover(get()) }
+                    single { flags }
+                    single<IdentityService> { FakeIdentityService() }
+                    single<LeaderboardRepository> { FakeLeaderboardRepository() }
+                    single<CustomBoardRepository> { FakeCustomBoardRepository() }
+                    single<GoogleIdTokenProvider> { DismissedGoogleIdTokenProvider }
+                    factory { ObserveLeaderboard(get(), get()) }
+                    factory { ObserveResultRank(get()) }
+                    factory { ObserveResultInsights(get(), get(), get(), get()) }
+                    // Tutorial seen: this path is about the result; the lessons have their own tests.
+                    single<UserPreferencesRepository> {
+                        FakeUserPreferencesRepository(seen = setOf(ZipDefinition.id))
+                    }
+                },
+                playModule,
+            )
         }
     }
 }
