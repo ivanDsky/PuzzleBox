@@ -1,11 +1,11 @@
 package com.ivandsky.puzzlebox.games.zipui.editor
 
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
-import com.ivandsky.puzzlebox.game.editor.ReplaceDraft
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.Wall
 import com.ivandsky.puzzlebox.games.zip.WallDirection
 import com.ivandsky.puzzlebox.games.zip.editor.ZipDraft
+import com.ivandsky.puzzlebox.games.zip.editor.ZipDraftCommand
 import com.ivandsky.puzzlebox.games.zip.editor.ZipEditor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -46,7 +46,7 @@ class ZipEditorControllerTest {
 
         val edit = edits.single()
         assertEquals(listOf(0, 1, 2, 7), board(edit).path)
-        assertTrue(edit.state.history.done.single() is ReplaceDraft<*>)
+        assertTrue(edit.state.history.done.single() is ZipDraftCommand.PathEdit)
         assertEquals(emptyList<Int>(), board(edit.undo()!!).path)
     }
 

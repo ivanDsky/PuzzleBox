@@ -1,11 +1,13 @@
 package com.ivandsky.puzzlebox.games.zipui.editor
 
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
-import com.ivandsky.puzzlebox.game.editor.ReplaceDraft
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipBoard
 import com.ivandsky.puzzlebox.games.zip.editor.ZipDraft
+import com.ivandsky.puzzlebox.games.zip.editor.ZipDraftCommand
 import com.ivandsky.puzzlebox.games.zip.editor.ZipEditor
+import com.ivandsky.puzzlebox.games.zip.editor.reversed
+import com.ivandsky.puzzlebox.games.zip.editor.stroke
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
@@ -15,10 +17,11 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * The Zip editor screen's live draft. A stroke ([beginStroke], [strokeTo]…, [endStroke]) draws
- * the author's path: it extends over adjacent cells the walls leave open, and drawing back onto
- * the previous cell retracts by one. The board follows the stroke through [shown]; lifting
- * the finger commits it as one `ReplaceDraft` step through [onEdit]. The first and last cells of the
- * path are always waypoints 1 and last. The VM hands replacement drafts back through [adopt].
+ * the author's path: it extends from either end over adjacent cells the walls leave open, and
+ * drawing back onto the previous cell retracts by one. The board follows the stroke through
+ * [shown]; lifting the finger commits it as one `PathEdit` step through [onEdit], as do
+ * [reverse] and [clearPath]. The first and last cells of the path are always waypoints 1 and
+ * last. The VM hands replacement drafts back through [adopt].
  */
 class ZipEditorController(
     initial: EditorDraft<*>,
@@ -28,17 +31,23 @@ class ZipEditorController(
     private val current = MutableStateFlow(typed(initial))
     private val showing = MutableStateFlow(current.value.state.draft)
     private val shownOverlay = MutableStateFlow(EditorOverlay())
+    private val selected = MutableStateFlow(ZipEditorStep.Path)
     private var anchor: Int? = null
+    private var fromHead = false
 
     override val draft: StateFlow<EditorDraft<*>> = current.asStateFlow()
 
     /** The board as drawn: the draft with the stroke in flight applied. */
     val shown: StateFlow<ZipDraft> = showing.asStateFlow()
 
+    /** The step whose tools the row shows; the stroke draws in [ZipEditorStep.Path] only. */
+    val step: StateFlow<ZipEditorStep> = selected.asStateFlow()
+
     override val overlay: StateFlow<EditorOverlay> = shownOverlay.asStateFlow()
 
     override fun adopt(draft: EditorDraft<*>) {
         anchor = null
+        fromHead = false
         current.value = typed(draft)
         showing.value = current.value.state.draft
     }
@@ -47,9 +56,18 @@ class ZipEditorController(
         shownOverlay.value = overlay
     }
 
-    /** The finger lands on [cell]; nothing changes until it moves to another cell. */
+    fun select(step: ZipEditorStep) {
+        selected.value = step
+    }
+
+    /**
+     * The finger lands on [cell]; nothing changes until it moves to another cell. Landing on the
+     * first cell of a longer path carries the path on from its head.
+     */
     fun beginStroke(cell: Int) {
+        val path = showing.value.path
         anchor = cell
+        fromHead = path.size > 1 && cell == path.first()
     }
 
     /** The finger reaches [cell]: a step the path allows extends or retracts it, any other cell is ignored. */
@@ -57,23 +75,42 @@ class ZipEditorController(
         val from = anchor
         if (from != null && cell == from) return
         val board = showing.value
-        val path = if (from == null) board.path else resumed(board.path, from)
+        val drawn = if (fromHead) board.path.asReversed() else board.path
+        val path = if (from == null) drawn else resumed(drawn, from)
+        val next = advance(board, path, cell)
         anchor = null
-        showing.value = withPath(current.value.state.draft, step(board, path, cell))
+        showing.value = withPath(current.value.state.draft, if (fromHead) next.asReversed() else next)
     }
 
     /** The finger lifts: a changed path becomes one undoable edit. */
     fun endStroke() {
         anchor = null
-        val before = current.value.state.draft
-        val after = showing.value
-        if (after.path == before.path) return
-        val next = current.value.apply(ReplaceDraft(before, after))
+        fromHead = false
+        val path = showing.value.path
+        if (path == current.value.state.draft.path) return
+        commit(current.value.state.draft.stroke(path))
+    }
+
+    /** The path run backwards, its numbers following it, as one edit. */
+    fun reverse() {
+        val board = current.value.state.draft
+        if (board.path.size > 1) commit(board.reversed())
+    }
+
+    /** Empties the path as one edit. */
+    fun clearPath() {
+        val board = current.value.state.draft
+        if (board.path.isNotEmpty()) commit(board.stroke(emptyList()))
+    }
+
+    private fun commit(edit: ZipDraftCommand.PathEdit) {
+        val next = current.value.apply(edit)
         current.value = next
+        showing.value = next.state.draft
         onEdit(next)
     }
 
-    private fun step(board: ZipDraft, path: List<Int>, cell: Int): List<Int> {
+    private fun advance(board: ZipDraft, path: List<Int>, cell: Int): List<Int> {
         val last = path.lastOrNull() ?: return listOf(cell)
         return when {
             cell == last -> path
@@ -106,13 +143,7 @@ class ZipEditorController(
             else -> listOf(from)
         }
 
-        /** [board] drawn along [path]: the ends are waypoints 1 and last; marks between the old ends that are still on the path keep their order. */
-        fun withPath(board: ZipDraft, path: List<Int>): ZipDraft {
-            val ends = setOf(path.first(), path.last())
-            val interior = if (board.path.isEmpty()) emptyList() else board.waypoints.drop(1).dropLast(1)
-            val marks = interior.filter { it in path && it !in ends }.sortedBy(path::indexOf)
-            val labelled = listOf(path.first()) + marks + listOfNotNull(path.last().takeIf { path.size > 1 })
-            return board.copy(path = path, waypoints = labelled)
-        }
+        /** [board] drawn along [path]: ends are waypoints 1 and last, marks on the path keep order. */
+        fun withPath(board: ZipDraft, path: List<Int>): ZipDraft = board.stroke(path).apply(board)
     }
 }
