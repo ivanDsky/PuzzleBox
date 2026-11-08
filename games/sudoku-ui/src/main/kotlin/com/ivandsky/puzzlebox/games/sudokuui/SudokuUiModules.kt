@@ -14,7 +14,8 @@ val miniSudokuUiModule: Module = module {
     single<GameEditorUi>(qualifier = qualifier("${SudokuGames.MINI.id.value}.editor")) { SudokuEditorUi(SudokuGames.MINI) }
 }
 
-/** Classic Sudoku's play UI; installed once its daily source ships (ticket 08). */
+/** Classic Sudoku's play and editor UIs; only the debug build installs them (ADR-0015). */
 val sudokuUiModule: Module = module {
     single<GamePlayUi>(qualifier = qualifier(SudokuGames.CLASSIC.id.value)) { SudokuPlayUi(SudokuGames.CLASSIC, ClassicSudokuBrand) }
+    single<GameEditorUi>(qualifier = qualifier("${SudokuGames.CLASSIC.id.value}.editor")) { SudokuEditorUi(SudokuGames.CLASSIC) }
 }

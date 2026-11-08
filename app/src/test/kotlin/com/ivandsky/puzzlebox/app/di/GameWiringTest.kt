@@ -2,7 +2,14 @@ package com.ivandsky.puzzlebox.app.di
 
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.app.buildTypeGameModules
+import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
+import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
+import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
+import com.ivandsky.puzzlebox.games.sudokuui.miniSudokuUiModule
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
+import org.junit.Assert.assertNotNull
+import org.koin.dsl.koinApplication
 import com.ivandsky.puzzlebox.games.zip.zipPlugin
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayUi
 import org.junit.Assert.assertThrows
@@ -29,5 +36,13 @@ class GameWiringTest {
             )
         }
         assertTrue(error.message!!, error.message!!.contains("'tango'"))
+    }
+
+    @Test
+    fun `debug has a 9x9 editor beside mini`() {
+        val koin = koinApplication { modules(listOf(miniSudokuUiModule) + buildTypeGameModules) }.koin
+        val editors = GameEditorRegistry(koin.getAll<GameEditorUi>())
+        assertNotNull(editors[SudokuGames.MINI.id])
+        assertNotNull(editors[SudokuGames.CLASSIC.id])
     }
 }

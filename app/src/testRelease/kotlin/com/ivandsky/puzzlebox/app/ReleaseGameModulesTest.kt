@@ -2,7 +2,10 @@ package com.ivandsky.puzzlebox.app
 
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.model.GameId
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -33,6 +36,9 @@ class ReleaseGameModulesTest {
             val sources = koin.getAll<DailySource>().map { it.gameId }.toSet()
             assertTrue(GameId("minisudoku") in sources)
             assertTrue(GameId("sudoku") !in sources)
+            val editors = koin.get<GameEditorRegistry>()
+            assertNotNull(editors[GameId("minisudoku")])
+            assertNull(editors[GameId("sudoku")])
         } finally {
             stopKoin()
         }
