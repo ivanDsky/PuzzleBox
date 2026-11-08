@@ -161,9 +161,8 @@ the ref and the day always agree, so each row's path day is the ref day.
 
 ## Last run
 
-2026-11-07, rules at the commit that added the daily allow-list and day window (ticket 03, not deployed;
-the run uses the local source on the Rules Test API): **100 cases, 100/100 passed**, exit 0. The 80 cases
-before this ticket all still pass.
+2026-11-08, local `firestore.rules` after the daily-board rules and the optional `last` field (not deployed;
+the run uses the local source on the Rules Test API): **110 cases, 110/110 passed**, exit 0.
 
 ```
 PASS  ALLOW  [puzzles] anonymous get of a puzzle
@@ -276,5 +275,5 @@ PASS  DENY  [daily leaderboards (allow-list and day window)] queens entry for a 
 PASS  DENY  [deny-all] signed-in read of an unmatched path
 PASS  DENY  [deny-all] signed-in write of an unmatched path
 PASS  DENY  [deny-all] signed-in read of a puzzle's unknown subcollection
-100/100 passed
+110/110 passed
 ```
