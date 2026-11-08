@@ -14,6 +14,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
@@ -129,6 +130,7 @@ class PlayBoardPositionTest {
                     factory {
                         ObservePlayStats(get(), get(), get(), get(), ObserveLeaderboard(FakeIdentityService(), FakeLeaderboardRepository(), get(), get()))
                     }
+                    single { SubmitStatusTracker() }
                 },
                 playModule,
             )

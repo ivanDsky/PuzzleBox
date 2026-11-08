@@ -12,11 +12,13 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 import com.ivandsky.puzzlebox.game.RankOrder
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -123,6 +125,26 @@ class DailyBoardTest {
     fun `replay note reads its copy`() {
         show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList(), DailyBoardNote.ReplayFirstTimeStands))
         composeRule.onNodeWithTag("daily_board.note").assertTextEquals("Replay — your first time stands")
+    }
+
+    @Test
+    fun `a deferred post reads its copy`() {
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList(), DailyBoardNote.Deferred))
+        composeRule.onNodeWithTag("daily_board.note").assertTextEquals("Saved on this device — it'll post when you're online.")
+    }
+
+    @Test
+    fun `a rejected post reads its copy`() {
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList(), DailyBoardNote.Rejected))
+        composeRule.onNodeWithTag("daily_board.note").assertTextEquals("Couldn't post this time.")
+    }
+
+    @Test
+    fun `each post status maps to its note, Posted to none`() {
+        assertEquals(DailyBoardNote.Posting, SubmitStatus.Posting.toBoardNote())
+        assertEquals(DailyBoardNote.Deferred, SubmitStatus.Deferred.toBoardNote())
+        assertEquals(DailyBoardNote.Rejected, SubmitStatus.Rejected.toBoardNote())
+        assertNull(SubmitStatus.Posted.toBoardNote())
     }
 
     @Test

@@ -6,6 +6,8 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.ComputeStreak
@@ -88,6 +90,7 @@ class ResultViewModelTest {
     }
     private val completions = FakeCompletionRepository()
     private val leaderboard = FakeLeaderboardRepository()
+    private val posts = SubmitStatusTracker()
     private val dispatcher = main.testDispatcher
     private val calendar = FakeGameCalendar(day)
     private val saved = FakeSavedPlayRepository()
@@ -146,6 +149,7 @@ class ResultViewModelTest {
             insights = ObserveResultInsights(games, history, ComputeStreak(GetPuzzleDay(games, clock)), GetPuzzleDay(games, clock)),
             rank = ObserveResultRank(observeBoard),
             leaderboard = observeBoard,
+            posts = posts,
             board = signedOutBoard(),
         )
     }
@@ -384,6 +388,59 @@ class ResultViewModelTest {
         completions.setRecords(listOf(record(FakeController.TIME_MS, 0)))
         solveLive()
         leaderboard.setEntries(LeaderboardRef(alpha.value, day), listOf(entry(ME.uid, 40)))
+        val vm = vm(flags = boardOn(), identity = ME).boardObserved().observed()
+        assertEquals(RecordVerdict.Replay, vm.state.value.verdict)
+        assertEquals(DailyBoardNote.ReplayFirstTimeStands, ranked(vm.dailyBoard.value).note)
+    }
+
+    /** Today's board without the player's row, the watcher having reached [status] for the post. */
+    private fun noteFor(status: SubmitStatus?): DailyBoardNote? {
+        leaderboard.setEntries(LeaderboardRef(alpha.value, day), listOf(entry("a", 30)))
+        status?.let { posts.set(ME.uid, "alpha/$day/7", it) }
+        return ranked(vm(flags = boardOn(), identity = ME).boardObserved().dailyBoard.value).note
+    }
+
+    @Test
+    fun `flag on, the note follows the post status until the own row lands`() {
+        assertEquals(DailyBoardNote.Posting, noteFor(null))
+        assertEquals(DailyBoardNote.Posting, noteFor(SubmitStatus.Posting))
+        assertEquals(DailyBoardNote.Deferred, noteFor(SubmitStatus.Deferred))
+        assertEquals(DailyBoardNote.Rejected, noteFor(SubmitStatus.Rejected))
+        assertNull(noteFor(SubmitStatus.Posted))
+    }
+
+    @Test
+    fun `flag on, a status change reaches the open board`() {
+        leaderboard.setEntries(LeaderboardRef(alpha.value, day), listOf(entry("a", 30)))
+        val vm = vm(flags = boardOn(), identity = ME).boardObserved()
+        posts.set(ME.uid, "alpha/$day/7", SubmitStatus.Posting)
+        dispatcher.scheduler.runCurrent()
+        assertEquals(DailyBoardNote.Posting, ranked(vm.dailyBoard.value).note)
+
+        posts.set(ME.uid, "alpha/$day/7", SubmitStatus.Deferred)
+        dispatcher.scheduler.runCurrent()
+        assertEquals(DailyBoardNote.Deferred, ranked(vm.dailyBoard.value).note)
+    }
+
+    @Test
+    fun `flag on, the own row landing wins over any status`() {
+        val ref = LeaderboardRef(alpha.value, day)
+        leaderboard.setEntries(ref, listOf(entry("a", 30)))
+        posts.set(ME.uid, "alpha/$day/7", SubmitStatus.Rejected)
+        val vm = vm(flags = boardOn(), identity = ME).boardObserved()
+        assertEquals(DailyBoardNote.Rejected, ranked(vm.dailyBoard.value).note)
+
+        leaderboard.setEntries(ref, listOf(entry("a", 30), entry(ME.uid, 40)))
+        dispatcher.scheduler.runCurrent()
+        assertNull(ranked(vm.dailyBoard.value).note)
+    }
+
+    @Test
+    fun `flag on, a replay keeps the first-time note whatever the status`() {
+        completions.setRecords(listOf(record(FakeController.TIME_MS, 0)))
+        solveLive()
+        leaderboard.setEntries(LeaderboardRef(alpha.value, day), listOf(entry("a", 30)))
+        posts.set(ME.uid, "alpha/$day/7", SubmitStatus.Deferred)
         val vm = vm(flags = boardOn(), identity = ME).boardObserved().observed()
         assertEquals(RecordVerdict.Replay, vm.state.value.verdict)
         assertEquals(DailyBoardNote.ReplayFirstTimeStands, ranked(vm.dailyBoard.value).note)

@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
@@ -349,6 +350,7 @@ class ResultScreenTest {
                     single<ReleaseFlags> { FakeReleaseFlags() }
                     single<IdentityService> { FakeIdentityService() }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
+                    single { SubmitStatusTracker() }
                     single<CustomBoardRepository> { FakeCustomBoardRepository() }
                     single { dismissedGoogleSignIn }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }

@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -201,6 +202,7 @@ class RealGamesResultRouteTest {
                     single { flags }
                     single<IdentityService> { FakeIdentityService() }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
+                    single { SubmitStatusTracker() }
                     single<CustomBoardRepository> { FakeCustomBoardRepository() }
                     single<GoogleIdTokenProvider> { DismissedGoogleIdTokenProvider }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }

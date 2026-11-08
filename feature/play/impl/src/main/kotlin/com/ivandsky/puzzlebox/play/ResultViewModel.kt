@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
@@ -27,6 +30,7 @@ import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardNote
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
+import com.ivandsky.puzzlebox.gameui.board.toBoardNote
 import com.ivandsky.puzzlebox.gameui.board.toDailyBoardState
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
@@ -96,9 +100,11 @@ data class ResultUiState(
  *
  * Behind [ReleaseFlag.PerGameLeaderboards]: [dailyBoard] is
  * today's board of this game for an official daily whose day is the game's today, null
- * otherwise (a past day, a practice play) and with the flag off. It reads Posting until the
- * player's own entry lands, and the first-time-stands note when this finish is a replay.
- * Sign-in goes through [board]'s holder, so one screen has one sign-in flow ([signInStatus]).
+ * otherwise (a past day, a practice play) and with the flag off. Until the player's own
+ * entry lands its note tells how the post stands in [posts] (Posting, Deferred, Rejected;
+ * none once Posted); a landed row clears it, the board being the truth. A replay keeps the
+ * first-time-stands note. Sign-in goes through [board]'s holder, so one screen has one
+ * sign-in flow ([signInStatus]).
  */
 class ResultViewModel internal constructor(
     key: ResultKey,
@@ -113,6 +119,7 @@ class ResultViewModel internal constructor(
     insights: ObserveResultInsights,
     rank: ObserveResultRank,
     leaderboard: ObserveLeaderboard,
+    posts: SubmitStatusTracker,
     private val board: FriendPuzzleBoard,
 ) : ViewModel() {
 
@@ -197,7 +204,12 @@ class ResultViewModel internal constructor(
                 val official = state.map { it.puzzleNumber != null }.distinctUntilChanged()
                 val replayed = state.map { it.verdict == RecordVerdict.Replay }.distinctUntilChanged()
                 val boards = official.flatMapLatest { yes -> if (yes) leaderboard(slot.gameId, slot.day) else flowOf(null) }
-                combine(boards, replayed) { board, replay -> board?.toDailyBoardState(boardNote(board, replay)) }
+                val ref = LeaderboardRef(slot.gameId.value, slot.day)
+                boards.flatMapLatest { board ->
+                    val uid = (board as? TodayLeaderboard.SignedIn)?.identity?.uid
+                    val post = if (uid == null) flowOf(null) else posts.observe(uid, ref)
+                    combine(post, replayed) { status, replay -> board?.toDailyBoardState(boardNote(board, replay, status)) }
+                }
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
@@ -207,12 +219,16 @@ class ResultViewModel internal constructor(
         viewModelScope.launch { board.signIn(activityContext) }
     }
 
-    /** A12: the replay note on a replay; Posting while the player's own entry has not landed; else none. */
-    private fun boardNote(today: TodayLeaderboard, replay: Boolean): DailyBoardNote? {
+    /**
+     * A12: the replay note on a replay; while the player's own entry has not landed, the line
+     * for its [post] status; else none.
+     */
+    private fun boardNote(today: TodayLeaderboard, replay: Boolean, post: SubmitStatus?): DailyBoardNote? {
         if (replay) return DailyBoardNote.ReplayFirstTimeStands
         val signedIn = today as? TodayLeaderboard.SignedIn ?: return null
         val loaded = signedIn.board as? TodayLeaderboard.Board.Loaded ?: return null
-        return DailyBoardNote.Posting.takeIf { loaded.snapshot.entries.none { it.uid == signedIn.identity.uid } }
+        if (loaded.snapshot.entries.any { it.uid == signedIn.identity.uid }) return null
+        return post?.toBoardNote()
     }
 
     fun retryRecordWrite() {

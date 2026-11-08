@@ -9,6 +9,8 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitError
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.model.GameId
 import kotlin.coroutines.cancellation.CancellationException
@@ -22,7 +24,9 @@ import kotlinx.coroutines.launch
  * and submitted exactly once per (uid, puzzleRef). Submission is async/eventual with
  * a degrade-to-local posture (A7): signed out or offline, nothing is sent and NO
  * error ever surfaces; the backend's create-if-absent makes the first write stand
- * (A4) and re-submissions after process death are deduped server-side too.
+ * (A4) and re-submissions after process death are deduped server-side too. Each
+ * attempt's outcome goes to [statuses] (Posting, then Posted, Deferred or Rejected),
+ * so the screens can end their Posting line; signed out writes none.
  */
 class LeaderboardSubmitWatcher(
     private val records: CompletionRepository,
@@ -30,6 +34,7 @@ class LeaderboardSubmitWatcher(
     private val leaderboard: LeaderboardRepository,
     private val calendar: GameCalendar,
     private val scope: CoroutineScope,
+    private val statuses: SubmitStatusTracker,
 ) {
 
     private val submitted = java.util.Collections.newSetFromMap(
@@ -51,12 +56,15 @@ class LeaderboardSubmitWatcher(
                     if (!inWindow(entry)) continue
                     val key = me.uid to entry.puzzleRef
                     if (!submitted.add(key)) continue // in-process dedup
+                    statuses.set(me.uid, entry.puzzleRef, SubmitStatus.Posting)
                     scope.launch {
                         // A failed attempt un-marks the key: the next records emission
                         // retries it, so an offline flap doesn't silence the player
                         // until process death. A Rejected result stays marked: with the
                         // day window a rejection is permanent.
-                        if (!submitQuietly(entry)) submitted.remove(key)
+                        val status = submitQuietly(entry)
+                        statuses.set(me.uid, entry.puzzleRef, status)
+                        if (status == SubmitStatus.Deferred) submitted.remove(key)
                     }
                 }
             }
@@ -70,23 +78,23 @@ class LeaderboardSubmitWatcher(
         return ref.day == today || ref.day == today.minusDays(1)
     }
 
-    /** True when the entry is settled (on the board, or permanently rejected); false = retry later. */
-    private suspend fun submitQuietly(entry: LeaderboardEntry): Boolean = try {
+    /** Posted or Rejected settle the entry; Deferred = retry later. */
+    private suspend fun submitQuietly(entry: LeaderboardEntry): SubmitStatus = try {
         when (val result = leaderboard.submit(entry)) {
-            is SubmitResult.Ok, is SubmitResult.Deduped -> true
+            is SubmitResult.Ok, is SubmitResult.Deduped -> SubmitStatus.Posted
             is SubmitResult.Err -> if (result.error is SubmitError.Rejected) {
                 Log.w(TAG, "leaderboard submit rejected: ${result.error}")
-                true // permanent: stays marked, never retried
+                SubmitStatus.Rejected // permanent: stays marked, never retried
             } else {
                 Log.w(TAG, "leaderboard submit deferred: ${result.error}")
-                false
+                SubmitStatus.Deferred
             }
         }
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
         Log.w(TAG, "leaderboard submit deferred: ${e.message}")
-        false
+        SubmitStatus.Deferred
     }
 
     private companion object {

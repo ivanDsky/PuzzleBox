@@ -45,12 +45,7 @@ private fun Ranked(state: DailyBoardState.Ranked, order: RankOrder) {
     } else {
         state.rows.forEach { DailyBoardRow(it, order) }
     }
-    state.note?.let { Line(noteText(it), "daily_board.note") }
-}
-
-private fun noteText(note: DailyBoardNote): String = when (note) {
-    DailyBoardNote.Posting -> "Posting your time…"
-    DailyBoardNote.ReplayFirstTimeStands -> "Replay — your first time stands"
+    state.note?.let { Line(it.text, "daily_board.note") }
 }
 
 @Composable

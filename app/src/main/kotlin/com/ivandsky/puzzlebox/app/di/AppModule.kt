@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.game.GamePlugin
@@ -31,6 +32,9 @@ val appModule = module {
     single<CoroutineScope> {
         CoroutineScope(SupervisorJob() + get<DispatcherProvider>().default)
     }
+    // The watcher's per-post outcome: one instance, written by the watcher and read by
+    // the Result board and the tablet panel.
+    single { SubmitStatusTracker() }
     single {
         LeaderboardSubmitWatcher(
             records = get<CompletionRepository>(),
@@ -38,6 +42,7 @@ val appModule = module {
             leaderboard = get<LeaderboardRepository>(),
             calendar = get<GameCalendar>(),
             scope = get<CoroutineScope>(),
+            statuses = get<SubmitStatusTracker>(),
         )
     }
     // Friend puzzle wins post to their own boards, never through the daily watcher.

@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.WeekDay
@@ -36,9 +37,16 @@ internal sealed interface PlayTimes {
      * Every posted time in board order; [rows] is empty before anyone has posted. [solved]
      * is the player's own solve of the slot, whose time can trail it onto the board.
      * [order] is the game's rank rule when the per-game board is on (rows then lead with
-     * its key and the label names the rule); null keeps the time-only rows.
+     * its key and the label names the rule); null keeps the time-only rows. [post] is how
+     * the player's own post stands while its row is missing, read only with the per-game
+     * board on; null keeps the plain Posting line.
      */
-    data class Board(val rows: List<PlayTimeRow>, val solved: Boolean, val order: RankOrder? = null) : PlayTimes {
+    data class Board(
+        val rows: List<PlayTimeRow>,
+        val solved: Boolean,
+        val order: RankOrder? = null,
+        val post: SubmitStatus? = null,
+    ) : PlayTimes {
 
         private val you: Int = rows.indexOfFirst { it.you }
 

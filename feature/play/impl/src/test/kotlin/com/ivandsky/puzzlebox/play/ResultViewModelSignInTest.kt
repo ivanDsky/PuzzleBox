@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.domain.ComputeCustomBoard
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetNextRollover
@@ -89,6 +90,7 @@ class ResultViewModelSignInTest {
             insights = ObserveResultInsights(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games, clock)), GetPuzzleDay(fakes.games, clock)),
             rank = ObserveResultRank(ObserveLeaderboard(identity, FakeLeaderboardRepository(), fakes.games, calendar)),
             leaderboard = ObserveLeaderboard(identity, FakeLeaderboardRepository(), fakes.games, calendar),
+            posts = SubmitStatusTracker(),
             board = FriendPuzzleBoard(FakeCustomBoardRepository(), identity, oneGoogleAccount("token"), ComputeCustomBoard()),
         )
 
