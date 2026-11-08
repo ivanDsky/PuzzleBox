@@ -63,13 +63,7 @@ fun DraftRow(row: CreateUiState.DraftRow, onOpen: () -> Unit, onActions: () -> U
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = row.meta,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            DraftMetaLine(row.meta)
             Text(
                 text = row.edited,
                 style = MaterialTheme.typography.bodySmall,
@@ -79,6 +73,38 @@ fun DraftRow(row: CreateUiState.DraftRow, onOpen: () -> Unit, onActions: () -> U
         row.verdict?.let { VerdictChip(it) }
         IconButton(onClick = onActions, modifier = Modifier.testTag("create.draft.more")) {
             Icon(PuzzleIcons.More, contentDescription = "Draft actions")
+        }
+    }
+}
+
+/** The suffix the view model appends to an imported draft's meta line. */
+private const val IMPORTED_SUFFIX = " · imported"
+
+/**
+ * The meta line, with an imported draft's " · imported" kept apart as its own tagged text: a
+ * long "{Game} · {size}" ellipsizes first and the suffix always stays at the line's end.
+ */
+@Composable
+private fun DraftMetaLine(meta: String) {
+    val imported = meta.endsWith(IMPORTED_SUFFIX)
+    val base = if (imported) meta.removeSuffix(IMPORTED_SUFFIX) else meta
+    Row {
+        Text(
+            text = base,
+            modifier = Modifier.weight(1f, fill = false),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (imported) {
+            Text(
+                text = IMPORTED_SUFFIX,
+                modifier = Modifier.testTag("create.draft.imported"),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
         }
     }
 }

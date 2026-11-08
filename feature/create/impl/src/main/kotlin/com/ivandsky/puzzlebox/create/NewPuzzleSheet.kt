@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,7 +49,9 @@ private val SizeRowMinHeight = 56.dp
  * The New puzzle sheet (spec A1, A5; 01 handoff "New puzzle sheet"): one [GameStartRow] per
  * game in [games] (glyph tile, one-line rule, default size), then the picked game's sizes,
  * exactly its editor's variants in order. Picking a size slides the sheet away, then reports
- * it through [onPick], once per sheet; back on the sizes step returns to the games.
+ * it through [onPick], once per sheet; back on the sizes step returns to the games. When
+ * [onImport] is set, the games end with a divider and an "Import from text" row that slides
+ * the sheet away, then reports through [onImport]; null leaves the row out.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,13 +60,27 @@ fun NewPuzzleSheet(
     onPick: (gameId: GameId, variant: VariantId) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    onImport: (() -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     var pickedId by rememberSaveable { mutableStateOf<String?>(null) }
     val picked = games.firstOrNull { it.id.value == pickedId }
-    // A second size tap mid-hide would cancel the first hide, and both picks would report.
-    var picking by remember { mutableStateOf(false) }
+    // A second tap mid-hide would cancel the first hide, and both would report.
+    var leaving by remember { mutableStateOf(false) }
+    fun slideAwayThen(report: () -> Unit) {
+        if (leaving) return
+        leaving = true
+        scope.launch {
+            // A drag that stops the slide cancels hide(): the sheet stays, so its rows take taps again.
+            try {
+                sheetState.hide()
+            } finally {
+                leaving = false
+            }
+            report()
+        }
+    }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         modifier = modifier.testTag("create.new.sheet"),
@@ -76,18 +93,9 @@ fun NewPuzzleSheet(
             onBack = { pickedId = null },
             onSize = { variant ->
                 val game = picked ?: return@NewPuzzleSheetContent
-                if (picking) return@NewPuzzleSheetContent
-                picking = true
-                scope.launch {
-                    // A drag that stops the slide cancels hide(): the sheet stays, so its sizes take taps again.
-                    try {
-                        sheetState.hide()
-                    } finally {
-                        picking = false
-                    }
-                    onPick(game.id, variant)
-                }
+                slideAwayThen { onPick(game.id, variant) }
             },
+            onImport = onImport?.let { import -> { slideAwayThen(import) } },
         )
     }
 }
@@ -99,6 +107,7 @@ private fun NewPuzzleSheetContent(
     onGame: (GameId) -> Unit,
     onBack: () -> Unit,
     onSize: (VariantId) -> Unit,
+    onImport: (() -> Unit)? = null,
 ) {
     val reduced = rememberReducedMotion()
     AnimatedContent(
@@ -119,7 +128,7 @@ private fun NewPuzzleSheetContent(
                 .padding(bottom = Spacing.lg),
         ) {
             if (game == null) {
-                GamesStep(games, onGame)
+                GamesStep(games, onGame, onImport)
             } else {
                 SizesStep(game, onBack, onSize)
             }
@@ -128,7 +137,7 @@ private fun NewPuzzleSheetContent(
 }
 
 @Composable
-private fun GamesStep(games: List<CreateUiState.NewGame>, onGame: (GameId) -> Unit) {
+private fun GamesStep(games: List<CreateUiState.NewGame>, onGame: (GameId) -> Unit, onImport: (() -> Unit)?) {
     Column(
         Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -146,6 +155,33 @@ private fun GamesStep(games: List<CreateUiState.NewGame>, onGame: (GameId) -> Un
     }
     games.forEach { game ->
         GameStartRow(game = game, tagRoot = "create.new", onClick = { onGame(game.id) }, chevron = true)
+    }
+    onImport?.let { ImportRow(it) }
+}
+
+/** The sheet's last row, after a divider: Import from text, for notation made elsewhere. */
+@Composable
+private fun ImportRow(onClick: () -> Unit) {
+    HorizontalDivider(Modifier.padding(vertical = Spacing.sm))
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = SizeRowMinHeight)
+            .clickable(onClick = onClick)
+            .testTag("create.new.import")
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterVertically),
+    ) {
+        Text(
+            text = "Import from text",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = "Paste notation from the PuzzleBox tool",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -192,7 +228,7 @@ private fun SizeRow(label: String, tag: String, onClick: () -> Unit) {
 @Composable
 private fun NewPuzzleSheetGamesPreview() {
     PuzzleBoxTheme {
-        NewPuzzleSheet(games = PreviewGames, onPick = { _, _ -> }, onDismiss = {})
+        NewPuzzleSheet(games = PreviewGames, onPick = { _, _ -> }, onDismiss = {}, onImport = {})
     }
 }
 
@@ -209,6 +245,6 @@ private fun NewPuzzleSheetSizesPreview() {
 @Composable
 private fun NewPuzzleSheetContentPreview() {
     PuzzleBoxTheme {
-        NewPuzzleSheetContent(games = PreviewGames, picked = null, onGame = {}, onBack = {}, onSize = {})
+        NewPuzzleSheetContent(games = PreviewGames, picked = null, onGame = {}, onBack = {}, onSize = {}, onImport = {})
     }
 }
