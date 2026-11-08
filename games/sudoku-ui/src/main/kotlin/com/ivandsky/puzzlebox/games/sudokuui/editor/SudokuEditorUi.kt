@@ -1,6 +1,10 @@
 package com.ivandsky.puzzlebox.games.sudokuui.editor
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -12,16 +16,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.sudoku.SudokuDefinition
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGeometry
+import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuPublishGates
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.model.GameId
+
+private val FixRowMinHeight = 48.dp
 
 /**
  * One Sudoku game's editor UI: the play grid, counted keypad and tools row over a
@@ -53,6 +62,36 @@ class SudokuEditorUi(private val definition: SudokuDefinition) : GameEditorUi {
     @Composable
     override fun ToolHint(controller: GameEditorController, modifier: Modifier) {
         SudokuToolHint(controller as SudokuEditorController, definition.variant.geometry, modifier)
+    }
+
+    /** One row per Incomplete reason and Sudoku block, each tagged `sudoku.editor.fix.<id>`. */
+    @Composable
+    override fun Issues(
+        controller: GameEditorController,
+        verdict: Verdict,
+        blocks: List<PublishBlock>,
+        onSelect: () -> Unit,
+        modifier: Modifier,
+    ) {
+        val ids = buildList {
+            if (verdict is Verdict.Incomplete) add(verdict.reason.id)
+            blocks.filter { it.id in SudokuPublishGates.blockIds }.forEach { add(it.id) }
+        }
+        val rows = ids.mapNotNull { id -> SudokuEditorCopy.fix(id)?.let { id to it } }
+        if (rows.isEmpty()) return
+        Column(modifier.fillMaxWidth().testTag("sudoku.editor.fix")) {
+            rows.forEachIndexed { index, (id, text) ->
+                if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Text(
+                    text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = FixRowMinHeight)
+                        .testTag("sudoku.editor.fix.$id"),
+                )
+            }
+        }
     }
 }
 
