@@ -105,13 +105,16 @@ sealed interface SubmitError {
  */
 interface LeaderboardRepository {
 
-    /** Live board ranked by [order]; null = not observable right now (soft unavailable, A14).
-     *  [order] MUST be the board's game's rank order; `ObserveLeaderboard` is the only production caller. */
+    /**
+     * Live board ranked by [order]; null = not observable right now (soft unavailable, A14).
+     * [order] MUST be the board's game's rank order; `ObserveLeaderboard` is the only
+     * production caller.
+     */
     fun observe(board: LeaderboardRef, order: RankOrder): Flow<LeaderboardSnapshot?>
 
     suspend fun submit(entry: LeaderboardEntry): SubmitResult
 }
 
-/** The one entry ranking rule: [RankOrder.comparator] over the entry's (timeMs, hints). Replaces `leaderboardOrder` (deleted). */
+/** The one entry ranking rule: [RankOrder.comparator] over the entry's (timeMs, hints). */
 fun RankOrder.entryComparator(): Comparator<LeaderboardEntry> =
     compareBy(comparator) { BestScore(it.timeMs, it.hints) }

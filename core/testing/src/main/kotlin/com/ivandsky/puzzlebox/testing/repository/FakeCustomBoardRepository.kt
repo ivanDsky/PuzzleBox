@@ -50,7 +50,9 @@ class FakeCustomBoardRepository : CustomBoardRepository {
             if (!current.online || !current.signedIn) {
                 null
             } else {
-                current.boards[code].orEmpty().sortedWith(order.entryComparator().thenBy { it.completedAtMs }.thenBy { it.uid }).take(limit)
+                current.boards[code].orEmpty()
+                    .sortedWith(order.entryComparator().thenBy { it.completedAtMs }.thenBy { it.uid })
+                    .take(limit)
             }
         }.distinctUntilChanged()
 
