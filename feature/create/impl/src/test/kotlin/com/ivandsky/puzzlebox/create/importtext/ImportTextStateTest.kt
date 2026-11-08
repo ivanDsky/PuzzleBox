@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.NotationHeader
 import com.ivandsky.puzzlebox.game.editor.NotationResult
+import com.ivandsky.puzzlebox.game.editor.NotationText
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -137,6 +138,27 @@ class ImportTextStateTest {
         holder.offerClipboard(fixture())
 
         assertEquals(ClipboardNotation("Regions", lines = 6, text = fixture()), holder.ui.value.clipboard)
+    }
+
+    @Test
+    fun `a headed clipboard over the size cap sets no banner`() = runTest {
+        val holder = holder()
+        holder.open()
+
+        holder.offerClipboard(fixture() + "0".repeat(NotationText.MAX_BYTES))
+
+        assertNull(holder.ui.value.clipboard)
+    }
+
+    @Test
+    fun `a clipboard at the size cap still gets its banner`() = runTest {
+        val holder = holder()
+        holder.open()
+        val header = NotationHeader("regions", 1).line + "\n"
+
+        holder.offerClipboard(header + "0".repeat(NotationText.MAX_BYTES - header.length))
+
+        assertNotNull(holder.ui.value.clipboard)
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.create.importtext
 import com.ivandsky.puzzlebox.domain.ImportDraftFromText
 import com.ivandsky.puzzlebox.domain.ImportResult
 import com.ivandsky.puzzlebox.game.editor.NotationHeader
+import com.ivandsky.puzzlebox.game.editor.NotationText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -64,12 +65,15 @@ class ImportTextState(
     /**
      * Called once per sheet open with the clipboard's text, which the sheet reads only from this
      * user-initiated surface. Sets `ui.clipboard` when [NotationHeader.find] matches; a null,
-     * non-notation, later or closed-sheet offer changes nothing.
+     * over-cap ([NotationText.MAX_BYTES], which could only fail), non-notation, later or
+     * closed-sheet offer changes nothing.
      */
     fun offerClipboard(text: String?) {
         if (offered || !state.value.visible) return
         offered = true
-        val header = text?.let(NotationHeader::find) ?: return
+        // A char is at least one UTF-8 byte, so this never refuses text that would fit.
+        if (text == null || text.length > NotationText.MAX_BYTES) return
+        val header = NotationHeader.find(text) ?: return
         val lines = text.trimEnd().lines().size
         state.update { it.copy(clipboard = ImportSheetUi.ClipboardNotation(gameName(header.gameId), lines, text)) }
     }

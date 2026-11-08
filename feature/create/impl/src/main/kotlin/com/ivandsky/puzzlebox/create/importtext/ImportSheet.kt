@@ -12,6 +12,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -71,7 +75,14 @@ fun ImportSheet(
 ) {
     if (!ui.visible) return
     val clipboard = LocalClipboard.current
-    LaunchedEffect(Unit) { onClipboard(clipboard.textOrNull()) }
+    // Saved, so an activity recreation does not read again; dropped with the sheet when it closes.
+    var read by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!read) {
+            read = true
+            onClipboard(clipboard.textOrNull())
+        }
+    }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         modifier = modifier.testTag("create.import.sheet"),
@@ -82,10 +93,15 @@ fun ImportSheet(
     }
 }
 
-/** The clipboard's first item as text, or null when it is empty or holds something else. */
+/**
+ * The clipboard's first item as text, or null when it is empty or holds something else. The
+ * description is checked first: it carries no payload and shows no paste toast, so an image
+ * is never read.
+ */
 private suspend fun Clipboard.textOrNull(): String? {
+    if (nativeClipboard.primaryClipDescription?.hasMimeType(TEXT_MIME) != true) return null
     val data = getClipEntry()?.clipData ?: return null
-    if (data.itemCount == 0 || !data.description.hasMimeType(TEXT_MIME)) return null
+    if (data.itemCount == 0) return null
     return data.getItemAt(0).text?.toString()
 }
 
@@ -129,6 +145,12 @@ private fun ImportSheetContent(
     }
 }
 
+/** "Clipboard has {Game} puzzle text ({n} line|lines)". */
+internal fun clipboardBannerText(clipboard: ImportSheetUi.ClipboardNotation): String {
+    val noun = if (clipboard.lines == 1) "line" else "lines"
+    return "Clipboard has ${clipboard.gameName} puzzle text (${clipboard.lines} $noun)"
+}
+
 /** "Clipboard has {Game} puzzle text ({n} lines)" with Paste and a close button. */
 @Composable
 private fun ClipboardBanner(clipboard: ImportSheetUi.ClipboardNotation, onPaste: () -> Unit, onDismiss: () -> Unit) {
@@ -144,7 +166,7 @@ private fun ClipboardBanner(clipboard: ImportSheetUi.ClipboardNotation, onPaste:
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Clipboard has ${clipboard.gameName} puzzle text (${clipboard.lines} lines)",
+                text = clipboardBannerText(clipboard),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite },
             )

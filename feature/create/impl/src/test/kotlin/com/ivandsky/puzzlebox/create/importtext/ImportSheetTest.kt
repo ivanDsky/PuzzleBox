@@ -3,15 +3,22 @@ package com.ivandsky.puzzlebox.create.importtext
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.net.Uri
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -24,6 +31,7 @@ import com.ivandsky.puzzlebox.domain.ImportResult
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.editor.NotationParse
 import com.ivandsky.puzzlebox.game.editor.NotationText
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -67,6 +75,26 @@ class ImportSheetTest {
             }
         }
         composeRule.mainClock.advanceTimeBy(SHEET_SETTLE_MS)
+    }
+
+    @Composable
+    private fun sheet(ui: ImportSheetUi) = ImportSheet(
+        ui = ui,
+        onEdit = {},
+        onSubmit = {},
+        onDismiss = {},
+        onClipboard = { offers += it },
+        onPaste = {},
+        onDismissClipboard = {},
+    )
+
+    /** Counts the full clip reads, the ones that show Android's paste toast. */
+    private class CountingClipboard(private val delegate: Clipboard, private val reads: AtomicInteger) :
+        Clipboard by delegate {
+        override suspend fun getClipEntry(): ClipEntry? {
+            reads.incrementAndGet()
+            return delegate.getClipEntry()
+        }
     }
 
     private fun putOnClipboard(text: String) {
@@ -196,6 +224,69 @@ class ImportSheetTest {
         composeRule.mainClock.advanceTimeBy(SHEET_SETTLE_MS)
 
         assertEquals(listOf<String?>("puzzlebox queens v1\n0011\n"), offers)
+    }
+
+    @Test
+    fun `a clipboard that is not text is never read`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val image = ClipData("pic", arrayOf("image/png"), ClipData.Item(Uri.parse("content://x/1")))
+        manager.setPrimaryClip(image)
+        val reads = AtomicInteger()
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            CompositionLocalProvider(LocalClipboard provides CountingClipboard(LocalClipboard.current, reads)) {
+                PuzzleBoxTheme { sheet(ImportSheetUi(visible = true)) }
+            }
+        }
+        composeRule.mainClock.advanceTimeBy(SHEET_SETTLE_MS)
+
+        assertEquals(0, reads.get())
+        assertEquals(listOf<String?>(null), offers)
+    }
+
+    @Test
+    fun `an activity recreation while the sheet is open does not read the clipboard again`() {
+        putOnClipboard("puzzlebox queens v1\n0011\n")
+        val reads = AtomicInteger()
+        val restoration = StateRestorationTester(composeRule)
+
+        restoration.setContent {
+            CompositionLocalProvider(LocalClipboard provides CountingClipboard(LocalClipboard.current, reads)) {
+                PuzzleBoxTheme { sheet(ImportSheetUi(visible = true)) }
+            }
+        }
+        composeRule.waitForIdle()
+        assertEquals(1, reads.get())
+
+        restoration.emulateSavedInstanceStateRestore()
+        composeRule.waitForIdle()
+
+        assertEquals(1, reads.get())
+        assertEquals(1, offers.size)
+    }
+
+    @Test
+    fun `closing the sheet and opening it again reads the clipboard again`() {
+        putOnClipboard("puzzlebox queens v1\n0011\n")
+        var ui by mutableStateOf(ImportSheetUi(visible = true))
+        composeRule.setContent { PuzzleBoxTheme { sheet(ui) } }
+        composeRule.waitForIdle()
+        assertEquals(1, offers.size)
+
+        composeRule.runOnUiThread { ui = ImportSheetUi(visible = false) }
+        composeRule.waitForIdle()
+        composeRule.runOnUiThread { ui = ImportSheetUi(visible = true) }
+        composeRule.waitForIdle()
+
+        assertEquals(2, offers.size)
+    }
+
+    @Test
+    fun `the banner says line for one line and lines otherwise`() {
+        assertEquals("Clipboard has Queens puzzle text (1 line)", clipboardBannerText(banner.copy(lines = 1)))
+        assertEquals("Clipboard has Queens puzzle text (6 lines)", clipboardBannerText(banner))
     }
 
     @Test
