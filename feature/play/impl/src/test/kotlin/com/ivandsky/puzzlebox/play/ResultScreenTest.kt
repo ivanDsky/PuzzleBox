@@ -4,9 +4,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -36,7 +36,6 @@ import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
-import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.ResultScreen
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
@@ -52,7 +51,6 @@ import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
-import java.time.Instant
 import java.time.LocalDate
 import java.util.Locale
 import org.junit.Assert.assertEquals
@@ -69,12 +67,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Ticket 23: the win-moment coverage on the result ROUTE. The A3 facts render (time hero,
- * the hints tile), the A10 pill is conditional on the in-memory verdict — absent while the
- * write is in flight (fire-and-observe, never waited on) — and "Play again" and Share hand
- * back to navigation. Ticket 17 / S08: each primary step (Next, a replay's Done) shows its
- * own tag, and once everything is solved the countdown stands in for the button. A practice
- * puzzle shows no pill and no streak. Assertions ride tags, never copy.
+ * The win-moment coverage. [ResultScreen] (a friend puzzle's result): the header, the time
+ * and the Hints tile; the A10 pill rides the in-memory verdict, absent while the write is in
+ * flight; a replay names the best it left standing; Done, Share and "Play again" hand back.
+ * Then the daily [ResultRoute] on the hero page: its slot's live play, the key's facts alone,
+ * and Next for the next unsolved game. Assertions ride tags, never copy.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -92,68 +89,39 @@ class ResultScreenTest {
         previousBestMs: Long? = null,
         previousHints: Int = 0,
         rankOrder: RankOrder = RankOrder.TimeThenHints,
-        writeFailed: Boolean = false,
-        primary: ResultPrimaryAction? = ResultPrimaryAction.Done,
-        practice: Boolean = false,
-        streak: Int? = null,
-        rolloverAt: Instant? = null,
-        onPrimary: () -> Unit = {},
+        onDone: () -> Unit = {},
         onShare: () -> Unit = {},
         onPlayAgain: (() -> Unit)? = {},
-        onRetryWrite: () -> Unit = {},
     ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 ResultScreen(
                     timeMs = 95_000,
                     hintsUsed = 1,
-                    primary = primary,
-                    onPrimary = onPrimary,
+                    onDone = onDone,
                     onShare = onShare,
                     onPlayAgain = onPlayAgain,
                     game = "Alpha",
-                    puzzleNumber = if (practice) null else 7,
-                    practice = practice,
                     verdict = verdict,
                     previousBest = previousBestMs?.let { BestScore(it, previousHints) },
                     rankOrder = rankOrder,
-                    streak = streak,
-                    doneToday = 1,
-                    total = 2,
-                    rolloverAt = rolloverAt,
-                    writeFailed = writeFailed,
-                    onRetryWrite = onRetryWrite,
                 )
             }
         }
     }
 
     @Test
-    fun `shows the header, the time and the tiles`() {
-        setContent(streak = 3)
-        listOf(
-            "result.screen", "result.stamp", "result.label", "result.time",
-            "result.tile.hints", "result.tile.streak", "result.tile.today",
-        ).forEach { composeRule.onNodeWithTag(it).assertExists() }
-    }
-
-    @Test
-    fun `an unknown streak hides its tile`() {
-        setContent(streak = null)
+    fun `shows the header, the time and the hints tile`() {
+        setContent()
+        listOf("result.screen", "result.stamp", "result.label", "result.time", "result.tile.hints")
+            .forEach { composeRule.onNodeWithTag(it).assertExists() }
         composeRule.onNodeWithTag("result.tile.streak").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.tile.hints").assertExists()
+        composeRule.onNodeWithTag("result.tile.today").assertDoesNotExist()
     }
 
     @Test
-    fun `new best pill appears on a faster solve with the gap it beat`() {
-        setContent(verdict = RecordVerdict.NewBest, previousBestMs = 120_000)
-        composeRule.onNodeWithTag("result.record_badge").assertExists()
-        composeRule.onNodeWithTag("result.previous_best").assertExists()
-    }
-
-    @Test
-    fun `first solve pill appears on the game's first completion`() {
-        setContent(verdict = RecordVerdict.FirstSolve)
+    fun `a record shows the pill and no replay line`() {
+        setContent(verdict = RecordVerdict.NewBest)
         composeRule.onNodeWithTag("result.record_badge").assertExists()
         composeRule.onNodeWithTag("result.previous_best").assertDoesNotExist()
     }
@@ -166,20 +134,6 @@ class ResultScreenTest {
     }
 
     @Test
-    fun `not a new best shows no pill and the best to chase`() {
-        setContent(verdict = RecordVerdict.NotBest, previousBestMs = 80_000)
-        composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.previous_best").assertExists()
-    }
-
-    @Test
-    fun `a tie shows the pill and no second best line`() {
-        setContent(verdict = RecordVerdict.TiedBest, previousBestMs = 95_000)
-        composeRule.onNodeWithTag("result.record_badge").assertExists()
-        composeRule.onNodeWithTag("result.previous_best").assertDoesNotExist()
-    }
-
-    @Test
     fun `a replay claims no pill and says it was a replay`() {
         setContent(verdict = RecordVerdict.Replay, previousBestMs = 80_000)
         composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
@@ -187,30 +141,15 @@ class ResultScreenTest {
     }
 
     @Test
-    fun `a practice puzzle shows no streak tile and no new best`() {
-        setContent(practice = true, verdict = RecordVerdict.NewBest, previousBestMs = 120_000, streak = 3)
-        composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.tile.streak").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.previous_best").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.tile.hints").assertExists()
-    }
-
-    @Test
-    fun `a hints-first game leads its best line with the hints`() {
-        setContent(verdict = RecordVerdict.NotBest, previousBestMs = 102_000, rankOrder = RankOrder.HintsThenTime)
-        composeRule.onNodeWithText("Your best is Perfect · 1:42").assertExists()
-    }
-
-    @Test
-    fun `a hints-first new best shows the score it beat`() {
-        setContent(verdict = RecordVerdict.NewBest, previousBestMs = 80_000, previousHints = 1, rankOrder = RankOrder.HintsThenTime)
-        composeRule.onNodeWithText("Previous best 1 hint · 1:20").assertExists()
+    fun `a hints-first replay leads its best line with the hints`() {
+        setContent(verdict = RecordVerdict.Replay, previousBestMs = 102_000, rankOrder = RankOrder.HintsThenTime)
+        composeRule.onNodeWithText("Replay · Best Perfect · 1:42").assertExists()
     }
 
     @Test
     fun `a time-first best line never shows hints`() {
-        setContent(verdict = RecordVerdict.NotBest, previousBestMs = 80_000, previousHints = 2)
-        composeRule.onNodeWithText("Your best is 1:20").assertExists()
+        setContent(verdict = RecordVerdict.Replay, previousBestMs = 80_000, previousHints = 2)
+        composeRule.onNodeWithText("Replay · Best 1:20").assertExists()
     }
 
     @Test
@@ -230,44 +169,13 @@ class ResultScreenTest {
     }
 
     @Test
-    fun `next names the next game and hands back`() {
-        var taps = 0
-        setContent(primary = ResultPrimaryAction.Next(GameId("beta"), "Beta"), onPrimary = { taps++ })
-        composeRule.onNodeWithTag("result.done").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.all_done").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.playAgain").assertExists()
-        composeRule.onNodeWithTag("result.next").performClick()
-        composeRule.runOnIdle { assertEquals(1, taps) }
-    }
-
-    @Test
-    fun `with every game solved the countdown replaces next`() {
-        setContent(primary = ResultPrimaryAction.AllDone, rolloverAt = Instant.now().plusSeconds(3_600))
-        composeRule.onNodeWithTag("result.all_done").assertExists()
-        composeRule.onNodeWithTag("result.countdown").assertExists()
-        composeRule.onNodeWithTag("result.next").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.done").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.share").assertExists()
-    }
-
-    @Test
-    fun `a replay's result offers done and play again`() {
-        setContent(primary = ResultPrimaryAction.Done)
-        composeRule.onNodeWithTag("result.done").assertExists()
-        composeRule.onNodeWithTag("result.playAgain").assertExists()
+    fun `done hands back and is the only primary step`() {
+        var done = 0
+        setContent(onDone = { done++ })
         composeRule.onNodeWithTag("result.next").assertDoesNotExist()
         composeRule.onNodeWithTag("result.all_done").assertDoesNotExist()
-    }
-
-    @Test
-    fun `an unresolved next step exposes no actions to tap or read`() {
-        var taps = 0
-        setContent(primary = null, onPrimary = { taps++ }, onShare = { taps++ }, onPlayAgain = { taps++ })
-        composeRule.onNodeWithTag("result.time").assertExists()
-        listOf("result.next", "result.done", "result.share", "result.playAgain", "result.all_done").forEach {
-            composeRule.onNodeWithTag(it).assertDoesNotExist()
-        }
-        composeRule.runOnIdle { assertEquals(0, taps) }
+        composeRule.onNodeWithTag("result.done").performClick()
+        composeRule.runOnIdle { assertEquals(1, done) }
     }
 
     @Test
@@ -275,21 +183,6 @@ class ResultScreenTest {
         setContent(onPlayAgain = null)
         composeRule.onNodeWithTag("result.playAgain").assertDoesNotExist()
         composeRule.onNodeWithTag("result.share").assertExists()
-    }
-
-    @Test
-    fun `a failed record write stays surfaced and retryable`() {
-        var retried = 0
-        setContent(writeFailed = true, onRetryWrite = { retried++ })
-        composeRule.onNodeWithTag("result.write_failed").assertExists()
-        composeRule.onNodeWithTag("result.retry").performClick()
-        composeRule.runOnIdle { assertEquals(1, retried) }
-    }
-
-    @Test
-    fun `no write failure affordance while the write is healthy`() {
-        setContent(writeFailed = false)
-        composeRule.onNodeWithTag("result.write_failed").assertDoesNotExist()
     }
 
     /**
@@ -325,11 +218,11 @@ class ResultScreenTest {
                     )
                 }
             }
-            composeRule.onNodeWithTag("result.screen").assertExists()
+            composeRule.onNodeWithTag("result.hero.screen").assertExists()
             // The verdict is in memory: the game's first solve pill renders.
-            composeRule.onNodeWithTag("result.record_badge").assertExists()
-            composeRule.onNodeWithTag("result.label").assertExists()
-            composeRule.onNodeWithTag("result.tile.today").assertExists()
+            composeRule.onNodeWithTag("result.hero.pill").assertExists()
+            composeRule.onNodeWithTag("result.hero.title").assertExists()
+            composeRule.onNodeWithTag("result.hero.chip.today").assertExists()
 
             composeRule.onNodeWithTag("result.up").performClick()
             composeRule.runOnIdle { assertEquals(1, done) }
@@ -339,7 +232,8 @@ class ResultScreenTest {
             composeRule.onNodeWithTag("result.countdown").assertExists()
             composeRule.onNodeWithTag("result.next").assertDoesNotExist()
 
-            composeRule.onNodeWithTag("result.playAgain").performClick()
+            // The hero page scrolls: bring the button on screen before the tap.
+            composeRule.onNodeWithTag("result.playAgain").performScrollTo().performClick()
             composeRule.runOnIdle {
                 assertTrue(replayed)
                 store.open(gameKey)
@@ -366,8 +260,8 @@ class ResultScreenTest {
                     )
                 }
             }
-            composeRule.onNodeWithTag("result.time").assertExists()
-            composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
+            composeRule.onNodeWithTag("result.hero.time").assertExists()
+            composeRule.onNodeWithTag("result.hero.pill").assertDoesNotExist()
             composeRule.onNodeWithTag("result.write_failed").assertDoesNotExist()
         } finally {
             koin.close()
@@ -375,25 +269,8 @@ class ResultScreenTest {
     }
 
     @Test
-    fun `result route with ResultsHero off draws the old page and no hero tag`() {
-        val koin = startGraph(FakeGames(listOf(game)), FakeDailyRepository())
-        try {
-            composeRule.setContent {
-                PuzzleBoxTheme(darkTheme = false) {
-                    ResultRoute(key = ResultKey(game.value, day.toString(), 12_340, 0), onPlayAgain = {}, onNext = {}, onDone = {})
-                }
-            }
-            composeRule.onNodeWithTag("result.screen").assertExists()
-            composeRule.onNodeWithTag("result.hero.screen").assertDoesNotExist()
-            composeRule.onNodeWithTag("result.hero.time").assertDoesNotExist()
-        } finally {
-            koin.close()
-        }
-    }
-
-    @Test
-    fun `result route with ResultsHero on draws the hero page and not the old one`() {
-        val koin = startGraph(FakeGames(listOf(game, TestGames.beta)), FakeDailyRepository(), FakeReleaseFlags(ReleaseFlag.ResultsHero))
+    fun `result route draws the hero page and hands back Up and Next`() {
+        val koin = startGraph(FakeGames(listOf(game, TestGames.beta)), FakeDailyRepository())
         try {
             var next: GameId? = null
             var done = 0
@@ -409,7 +286,6 @@ class ResultScreenTest {
             }
             composeRule.onNodeWithTag("result.hero.screen").assertExists()
             composeRule.onNodeWithTag("result.hero.time").assertExists()
-            composeRule.onNodeWithTag("result.screen").assertDoesNotExist()
 
             composeRule.onNodeWithTag("result.up").performClick()
             composeRule.runOnIdle { assertEquals(1, done) }
@@ -449,11 +325,7 @@ class ResultScreenTest {
         }
     }
 
-    private fun startGraph(
-        fakes: FakeGames,
-        daily: FakeDailyRepository,
-        flags: ReleaseFlags = FakeReleaseFlags(),
-    ): KoinApplication {
+    private fun startGraph(fakes: FakeGames, daily: FakeDailyRepository): KoinApplication {
         stopKoin() // tests share the JVM-global Koin context
         return startKoin {
             modules(
@@ -474,7 +346,7 @@ class ResultScreenTest {
                     factory { ComputeStreak(get()) }
                     factory { ObserveGameStats(get(), get(), get()) }
                     factory { GetNextRollover(get()) }
-                    single { flags }
+                    single<ReleaseFlags> { FakeReleaseFlags() }
                     single<IdentityService> { FakeIdentityService() }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
                     single<CustomBoardRepository> { FakeCustomBoardRepository() }

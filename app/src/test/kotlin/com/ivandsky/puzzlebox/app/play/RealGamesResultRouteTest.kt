@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.app.play
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import android.content.Context
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
@@ -117,12 +118,12 @@ class RealGamesResultRouteTest {
             }
             // The verdict is in memory: the game's first solve (no prior records) stamps
             // the pill; the key's facts show.
-            composeRule.onNodeWithTag("result.screen").assertExists()
-            composeRule.onNodeWithTag("result.time").assertExists()
-            composeRule.onNodeWithTag("result.record_badge").assertExists()
+            composeRule.onNodeWithTag("result.hero.screen").assertExists()
+            composeRule.onNodeWithTag("result.hero.time").assertExists()
+            composeRule.onNodeWithTag("result.hero.pill").assertExists()
 
             // "Play again": navigation is handed back; the game's reopen is a fresh session.
-            composeRule.onNodeWithTag("result.playAgain").performClick()
+            composeRule.onNodeWithTag("result.playAgain").performScrollTo().performClick()
             composeRule.runOnIdle {
                 assertTrue(replayed)
                 store.open(gameKey)
@@ -135,53 +136,17 @@ class RealGamesResultRouteTest {
     }
 
     @Test
-    fun `result route with ResultsHero on draws the hero page`() {
-        val today = ZipDefinition.cadence.today()
-        val daily = freshDailyForAllGames().apply {
-            setHistory(ZipDefinition.id, listOf(ZipPlayFixture.entry(today)))
-        }
-        startGraph(daily, today, FakeReleaseFlags(ReleaseFlag.ResultsHero))
-        try {
-            composeRule.setContent {
-                PuzzleBoxTheme(darkTheme = false) {
-                    ResultRoute(
-                        key = ResultKey(ZipDefinition.id.value, today.toString(), 95_000L, 0),
-                        onPlayAgain = {},
-                        onNext = {},
-                        onDone = {},
-                    )
-                }
-            }
-            composeRule.onNodeWithTag("result.hero.screen").assertExists()
-            composeRule.onNodeWithTag("result.hero.time").assertExists()
-            composeRule.onNodeWithTag("result.screen").assertDoesNotExist()
-        } finally {
-            stopKoin()
-        }
+    fun `the daily board shows with the leaderboard flag on`() {
+        assertBoard(shown = true, ReleaseFlag.PerGameLeaderboards)
     }
 
     @Test
-    fun `the daily board shows in the legacy layout with the leaderboard flag on`() {
-        assertBoard(shown = true, hero = false, ReleaseFlag.PerGameLeaderboards)
+    fun `no daily board with the leaderboard flag off`() {
+        assertBoard(shown = false)
     }
 
-    @Test
-    fun `the daily board shows in the hero layout with the leaderboard flag on`() {
-        assertBoard(shown = true, hero = true, ReleaseFlag.PerGameLeaderboards, ReleaseFlag.ResultsHero)
-    }
-
-    @Test
-    fun `no daily board in the legacy layout with the leaderboard flag off`() {
-        assertBoard(shown = false, hero = false)
-    }
-
-    @Test
-    fun `no daily board in the hero layout with the leaderboard flag off`() {
-        assertBoard(shown = false, hero = true, ReleaseFlag.ResultsHero)
-    }
-
-    /** Today's numbered Zip result under [flags]: the layout follows ResultsHero, the board only PerGameLeaderboards. */
-    private fun assertBoard(shown: Boolean, hero: Boolean, vararg flags: ReleaseFlag) {
+    /** Today's numbered Zip result under [flags]: the board shows only with PerGameLeaderboards. */
+    private fun assertBoard(shown: Boolean, vararg flags: ReleaseFlag) {
         val today = ZipDefinition.cadence.today()
         val daily = freshDailyForAllGames().apply {
             setHistory(ZipDefinition.id, listOf(ZipPlayFixture.entry(today)))
@@ -199,7 +164,7 @@ class RealGamesResultRouteTest {
                 }
             }
             composeRule.waitForIdle()
-            composeRule.onNodeWithTag(if (hero) "result.hero.screen" else "result.screen").assertExists()
+            composeRule.onNodeWithTag("result.hero.screen").assertExists()
             val board = composeRule.onNodeWithTag("daily_board.title")
             if (shown) board.assertExists() else board.assertDoesNotExist()
         } finally {

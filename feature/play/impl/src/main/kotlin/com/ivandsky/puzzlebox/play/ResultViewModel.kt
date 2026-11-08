@@ -8,7 +8,6 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
-import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
@@ -57,8 +56,7 @@ import kotlinx.coroutines.launch
  * affordance) is only ever true for a live play holding this solve.
  *
  * [game] names the game; [puzzleNumber] is the slot's edition number, and [practice] is
- * true once the history shows the slot has none (A22: it never ranks or counts). [streak]
- * is the days-in-a-row streak, null until known and always null for practice;
+ * true once the history shows the slot has none (A22: it never ranks or counts).
  * [doneToday] of [total] is today's playable set solved, this game counted the moment it
  * is solved; [rolloverAt] is when the next puzzles land.
  */
@@ -70,7 +68,6 @@ data class ResultUiState(
     val game: String = "",
     val puzzleNumber: Int? = null,
     val practice: Boolean = false,
-    val streak: Int? = null,
     val doneToday: Int? = null,
     val total: Int? = null,
     val rolloverAt: Instant? = null,
@@ -86,9 +83,8 @@ data class ResultUiState(
  * the verdict needs died with the play.
  *
  * Everything else is read, so it holds after process death too: the edition number from
- * [history] (the same cached row the play's identity uses), the streak from [stats], the
- * day's progress from [todaySet] and the next rollover from [rollover]. [brand] is the
- * game's registered brand.
+ * [history] (the same cached row the play's identity uses), the day's progress from
+ * [todaySet] and the next rollover from [rollover]. [brand] is the game's registered brand.
  *
  * [primary] (A7, SC10): on today's slot it is Next — [todaySet]'s next unsolved game after
  * this one that the [store] can play — or AllDone when none is left, and null until the set
@@ -96,10 +92,9 @@ data class ResultUiState(
  * result (a replay) offers Done from the first frame. The read flows run only while the
  * screen is observed (plus a 5 s grace), so a day change is re-read.
  *
- * Behind [ReleaseFlag.ResultsHero]: [hero] says which page to draw, and [heroInsights],
- * [heroRank] and [replay] feed the hero page. With the flag off they are never read.
+ * [heroInsights], [heroRank] and [replay] feed the hero page.
  *
- * Behind [ReleaseFlag.PerGameLeaderboards], independent of the hero flag: [dailyBoard] is
+ * Behind [ReleaseFlag.PerGameLeaderboards]: [dailyBoard] is
  * today's board of this game for an official daily whose day is the game's today, null
  * otherwise (a past day, a practice play) and with the flag off. It reads Posting until the
  * player's own entry lands, and the first-time-stands note when this finish is a replay.
@@ -111,7 +106,6 @@ class ResultViewModel internal constructor(
     todaySet: ObserveTodaySet,
     calendar: GameCalendar,
     history: ObserveGameHistory,
-    stats: ObserveGameStats,
     rollover: GetNextRollover,
     ui: GamePlayRegistry,
     games: GameRegistry,
@@ -146,14 +140,12 @@ class ResultViewModel internal constructor(
     val state: StateFlow<ResultUiState> = combine(
         record,
         history().map { days -> days.firstOrNull { it.gameId == slot.gameId && it.day == slot.day } },
-        stats().map { it.currentStreak },
         playableToday,
-    ) { facts, day, streak, set ->
+    ) { facts, day, set ->
         val practice = day != null && day.puzzleNumber == null
         facts.copy(
             puzzleNumber = day?.puzzleNumber,
             practice = practice,
-            streak = streak.takeUnless { practice },
             doneToday = set.count { it.status is TodayStatus.Solved || (today && it.game == slot.gameId) },
             total = set.size,
             rolloverAt = rollover(),
@@ -171,29 +163,21 @@ class ResultViewModel internal constructor(
             MutableStateFlow(ResultPrimaryAction.Done)
         }
 
-    /** True while [ReleaseFlag.ResultsHero] is on: the route draws the hero page. Off, nothing below is read. */
-    val hero: StateFlow<Boolean> = flags.enabled
-        .map { ReleaseFlag.ResultsHero in it }
-        .distinctUntilChanged()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ReleaseFlag.ResultsHero in flags.enabled.value)
-
     /** True for a past day's result: a replay counts nothing. */
     val replay: Boolean = !today
 
     /**
      * The hero page's streak, week and time spread; null until read, and for a practice puzzle.
-     * Today's solve counts, a replay's does not. Read only while [hero] is on.
+     * Today's solve counts, a replay's does not.
      */
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val heroInsights: StateFlow<ResultInsights?> = hero
-        .flatMapLatest { on -> if (on) insights(slot.gameId, slot.day, BestScore(key.timeMs, key.hintsUsed), counted = today) else flowOf(null) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+    val heroInsights: StateFlow<ResultInsights?> =
+        insights(slot.gameId, slot.day, BestScore(key.timeMs, key.hintsUsed), counted = today)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
-    /** The hero page's rank on today's board; hidden for a replay, which has no board to read. Read only while [hero] is on. */
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val heroRank: StateFlow<ResultRank> = hero
-        .flatMapLatest { on -> if (on && today) rank(slot.gameId, slot.day) else flowOf(ResultRank.Hidden) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ResultRank.Hidden)
+    /** The hero page's rank on today's board; hidden for a replay, which has no board to read. */
+    val heroRank: StateFlow<ResultRank> =
+        (if (today) rank(slot.gameId, slot.day) else flowOf(ResultRank.Hidden))
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ResultRank.Hidden)
 
     /** The rank order [dailyBoard] is ranked by. */
     val boardOrder: RankOrder = games.rankOrderOf(slot.gameId)

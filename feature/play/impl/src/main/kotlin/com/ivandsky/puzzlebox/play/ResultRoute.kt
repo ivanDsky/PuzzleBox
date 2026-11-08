@@ -18,7 +18,6 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
 import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
-import com.ivandsky.puzzlebox.gameui.ResultScreen
 import com.ivandsky.puzzlebox.gameui.board.DailyBoard
 import com.ivandsky.puzzlebox.gameui.resultShareText
 import com.ivandsky.puzzlebox.model.GameId
@@ -41,9 +40,8 @@ import org.koin.core.parameter.parametersOf
  * next unsolved daily (A7, SC10). Share (A17) opens the system share sheet with the
  * plain [resultShareText] — no screen of our own.
  *
- * While [ResultViewModel.hero] is on (`ResultsHero`) the hero page replaces the old
- * [ResultScreen], fed by the same state plus the view model's insights and rank, with the
- * same callbacks and a sign in; off, the old page draws exactly as before.
+ * The hero page ([ResultHeroScreen]) draws the solve: the frozen facts, the view model's
+ * insights and rank, and the same callbacks plus a sign in.
  */
 @Composable
 fun ResultRoute(
@@ -56,7 +54,6 @@ fun ResultRoute(
     val viewModel: ResultViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val state by viewModel.state.collectAsStateWithLifecycle()
     val primary by viewModel.primary.collectAsStateWithLifecycle()
-    val hero by viewModel.hero.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val onPrimary = {
         when (val action = primary) {
@@ -80,36 +77,11 @@ fun ResultRoute(
                 }
             },
         )
-        if (hero) {
-            HeroPage(key, viewModel, state, primary, onPrimary, onShare, onPlayAgain, context)
-        } else {
-            ResultScreen(
-                timeMs = key.timeMs,
-                hintsUsed = key.hintsUsed,
-                primary = primary,
-                onPrimary = onPrimary,
-                onShare = onShare,
-                onPlayAgain = onPlayAgain,
-                brand = viewModel.brand,
-                game = state.game,
-                puzzleNumber = state.puzzleNumber,
-                practice = state.practice,
-                verdict = state.verdict,
-                previousBest = state.previousBest,
-                rankOrder = state.rankOrder,
-                streak = state.streak,
-                doneToday = state.doneToday,
-                total = state.total,
-                rolloverAt = state.rolloverAt,
-                writeFailed = state.writeFailed,
-                onRetryWrite = viewModel::retryRecordWrite,
-                details = resultBoard(key, viewModel, state.game, context),
-            )
-        }
+        HeroPage(key, viewModel, state, primary, onPrimary, onShare, onPlayAgain, context)
     }
 }
 
-/** The hero page behind `ResultsHero`; its insights and rank are read only while it is drawn. */
+/** The hero page: the time, its facts, the streak and week, the time spread and the rank. */
 @Composable
 private fun ColumnScope.HeroPage(
     key: ResultKey,

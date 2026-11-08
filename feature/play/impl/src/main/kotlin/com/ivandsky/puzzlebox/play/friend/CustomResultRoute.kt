@@ -25,7 +25,6 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
-import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.ResultScreen
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -93,8 +92,7 @@ internal fun CustomResultScreen(
     ResultScreen(
         timeMs = state.timeMs,
         hintsUsed = state.hintsUsed,
-        primary = ResultPrimaryAction.Done,
-        onPrimary = onDone,
+        onDone = onDone,
         onShare = onShare,
         onPlayAgain = onPlayAgain,
         modifier = modifier,
