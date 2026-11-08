@@ -8,7 +8,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** A tap on a cell is one undoable [com.ivandsky.puzzlebox.game.editor.ReplaceDraft] step. */
+/** A tap on a cell is one undoable step. */
 class TangoEditorControllerTest {
 
     private val edits = ArrayList<EditorDraft<*>>()
@@ -16,34 +16,31 @@ class TangoEditorControllerTest {
 
     private fun givens(draft: EditorDraft<*>): Map<Int, TangoCell> = (draft.state.draft as TangoDraft).givens
 
+    private fun tap(cell: Int) {
+        controller.press(TangoEditorTarget.Square(cell))
+        controller.release()
+    }
+
     @Test
-    fun `placing sets a given and reports one edit`() {
-        controller.place(3, TangoCell.SUN)
+    fun `a tap sets a sun and reports one edit`() {
+        tap(3)
 
         assertEquals(mapOf(3 to TangoCell.SUN), givens(controller.draft.value))
         assertEquals(1, edits.size)
     }
 
     @Test
-    fun `placing null empties the cell`() {
-        controller.place(3, TangoCell.MOON)
-        controller.place(3, null)
+    fun `three taps cycle the cell back to empty`() {
+        repeat(3) { tap(3) }
 
         assertTrue(givens(controller.draft.value).isEmpty())
-        assertEquals(2, edits.size)
+        assertEquals(3, edits.size)
     }
 
     @Test
-    fun `placing what the cell already holds is no edit`() {
-        controller.place(3, null)
-
-        assertTrue(edits.isEmpty())
-    }
-
-    @Test
-    fun `each placement is one undo step`() {
-        controller.place(3, TangoCell.SUN)
-        controller.place(4, TangoCell.MOON)
+    fun `each tap is one undo step`() {
+        tap(3)
+        tap(4)
 
         val undone = checkNotNull(controller.draft.value.undo())
         assertEquals(mapOf(3 to TangoCell.SUN), givens(undone))
