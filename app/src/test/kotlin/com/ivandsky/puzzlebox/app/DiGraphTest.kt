@@ -27,6 +27,7 @@ import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
+import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.ObserveTodayLeaderboard
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
@@ -147,6 +148,7 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<ObserveTodayLeaderboard>())
             // The tablet play side panel's stats and the board gate beneath them.
             assertNotNull(koin.get<ObserveLeaderboard>())
+            assertNotNull(koin.get<ObserveResultInsights>())
             assertNotNull(koin.get<ObservePlayStats>())
             // Home's resume update check: the use case over the shell-bound installed build;
             // this debug-variant graph never checks (spec A4).
