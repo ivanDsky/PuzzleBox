@@ -44,7 +44,7 @@ internal object TangoShareCodec : EditorShareCodec<TangoDraft> {
         return out.toByteArray()
     }
 
-    /** Version byte > 1 is UnsupportedVersion(found, 1); short, unordered or off-board is Malformed. */
+    /** Version > 1 is UnsupportedVersion(found, 1); short, unordered or off-board is Malformed. */
     override fun decodeShare(bytes: ByteArray): DecodeResult<TangoDraft> {
         var pos = 0
         fun u8(): Int? = if (pos < bytes.size) bytes[pos++].toInt() and 0xFF else null
