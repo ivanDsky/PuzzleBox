@@ -22,6 +22,6 @@ data class PublishBlock(
         const val AUTHOR_TOO_LONG = "author-too-long" // emitted by the domain (ValidatePublishDetails)
         const val NOTE_TOO_LONG = "note-too-long"     // emitted by the domain (ValidatePublishDetails)
         const val DAILY_CAP = "daily-cap"             // emitted by the Studio once the store answers its daily cap
-        // since M4: BLOCKLISTED
+        const val BLOCKLISTED = "blocklisted"         // theme word or spangram; subject = path index
     }
 }
