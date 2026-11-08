@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -232,5 +233,16 @@ class TangoSemanticsTest {
                 TangoHint.Why.MarkerBinding(markerCell = 0, neighborIdx = 1, kind = TangoMarkerKind.OPPOSITE),
             ),
         )
+    }
+
+    @Test
+    fun `line fills hint renders a non-empty message for one fill and for several`() {
+        val m = model(cells = emptyMap())
+        listOf(1, 2).forEach { fills ->
+            listOf(
+                TangoHint.Why.LineFills(row = 3, col = null, fills = fills),
+                TangoHint.Why.LineFills(row = null, col = 1, fills = fills),
+            ).forEach { why -> assertTrue(TangoSemantics.hintPhrase(m, why).isNotBlank()) }
+        }
     }
 }

@@ -269,6 +269,15 @@ object TangoSemantics {
             val half = numberWord(model.n / 2)
             "$line already has $half ${plural(why.fullOf)} — the rest are ${plural(other(why.fullOf))}."
         }
+        is TangoHint.Why.LineFills -> {
+            val row = why.row
+            val line = if (row != null) "Row ${row + 1}" else "Column ${(why.col ?: 0) + 1}"
+            if (why.fills == 1) {
+                "$line has only one way to finish — this cell follows from it."
+            } else {
+                "$line has only ${why.fills} ways to finish, and all of them agree on this cell."
+            }
+        }
     }
 
     private fun numberWord(count: Int): String = when (count) {
