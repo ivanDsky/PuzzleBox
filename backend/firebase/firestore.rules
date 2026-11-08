@@ -200,8 +200,8 @@ service cloud.firestore {
         && after.day == today
         && after.count is int
         && after.count == (before != null && before.day == today ? before.count + 1 : 1)
-        && after.count <= 20
-        && (!('last' in after) || isShareCode(after.last));
+        && (!('last' in after) || isShareCode(after.last))
+        && after.count <= 20;
     }
 
     function isShareCode(s) {
