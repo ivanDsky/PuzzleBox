@@ -49,8 +49,8 @@ class ModuleReaderTest {
 
     @Test
     fun missingNamespaceWithoutFallbackFailsNamingTheModule() {
-        val root = rootWith(":tools:y", buildFile = "plugins { kotlin(\"jvm\") }")
-        assertFailsNaming(root, ":tools:y")
+        val root = rootWith(":app:y", buildFile = "plugins { kotlin(\"jvm\") }")
+        assertFailsNaming(root, ":app:y")
     }
 
     @Test

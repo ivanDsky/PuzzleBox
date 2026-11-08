@@ -10,6 +10,7 @@ object PackageRootFallback {
         return when (segments[0]) {
             "core" -> "$ROOT.$name"
             "games" -> "$ROOT.games.$name"
+            "tools" -> "$ROOT.tools.$name"
             else -> null
         }
     }

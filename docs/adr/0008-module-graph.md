@@ -59,7 +59,10 @@ the build instead of a review.
    - `games:*` → `feature:*`;
    - `games:x` → `games:y`, except `games:x-ui` → `games:x`;
    - `:konsist` → any module, and any module → `:konsist`, in every configuration (test
-     configurations included).
+     configurations included);
+   - any module outside `tools:*` → `tools:*`;
+   - `tools:*` → anything but `:core:game`, non-UI `games:*`, and `:core:testing` from test
+     configurations.
 
    `:konsist` is a verification-only family (ADR-0009, [in-module structure rules](0009-in-module-structure-rules.md)):
    it reads sources as files and has zero edges, so it never joins the app's graph. Two arms of
