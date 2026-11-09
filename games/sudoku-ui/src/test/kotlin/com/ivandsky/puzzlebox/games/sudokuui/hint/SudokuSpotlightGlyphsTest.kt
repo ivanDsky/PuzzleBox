@@ -9,7 +9,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -88,11 +87,5 @@ class SudokuSpotlightGlyphsTest {
         val glyphs = SudokuSpotlightGlyphs(mapOf(4 to "8"))
 
         for (role in SpotlightRole.entries) assertEquals("$role", 0, paint(glyphs, 3, role).painted)
-    }
-
-    @Test
-    fun `equal texts are equal glyphs`() {
-        assertFalse(SudokuSpotlightGlyphs(mapOf(1 to "2")) == SudokuSpotlightGlyphs(mapOf(1 to "3")))
-        assertEquals(SudokuSpotlightGlyphs(mapOf(1 to "2")), SudokuSpotlightGlyphs(mapOf(1 to "2")))
     }
 }

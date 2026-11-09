@@ -21,6 +21,14 @@ import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
  */
 internal data class SudokuSpotlightGlyphs(val texts: Map<Int, String>) : SpotlightGlyphs {
 
+    // Drawing runs on one thread; the paint is reused and fully reset by every call. Not part of equality.
+    private val paint: Paint by lazy {
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textAlign = Paint.Align.CENTER
+            fontFeatureSettings = "tnum"
+        }
+    }
+
     override fun DrawScope.draw(cell: Int, role: SpotlightRole, size: Size, color: Color) {
         val text = texts[cell] ?: return
         when (role) {
@@ -34,13 +42,9 @@ internal data class SudokuSpotlightGlyphs(val texts: Map<Int, String>) : Spotlig
     }
 
     private fun DrawScope.drawDigits(text: String, size: Size, color: Color, scale: Float, heavy: Boolean, struck: Boolean) {
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.color = color.toArgb()
-            textAlign = Paint.Align.CENTER
-            textSize = size.minDimension * scale
-            fontFeatureSettings = "tnum"
-            if (heavy) typeface = Typeface.DEFAULT_BOLD
-        }
+        paint.color = color.toArgb()
+        paint.textSize = size.minDimension * scale
+        paint.typeface = if (heavy) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
         val centre = Offset(size.width / 2, size.height / 2)
         val metrics = paint.fontMetrics
         drawContext.canvas.nativeCanvas.drawText(text, centre.x, centre.y - (metrics.ascent + metrics.descent) / 2, paint)

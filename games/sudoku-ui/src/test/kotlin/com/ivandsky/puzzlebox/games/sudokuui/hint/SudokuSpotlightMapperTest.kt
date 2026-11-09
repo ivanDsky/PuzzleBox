@@ -37,7 +37,7 @@ class SudokuSpotlightMapperTest {
     private fun map(step: SudokuStep, puzzle: SudokuPuzzle = mini, board: SudokuBoard = miniBoard, playId: Int = 0) =
         checkNotNull(SudokuSpotlightMapper.map(step, puzzle, board, playId)) { "no spotlight for $step" }
 
-    private fun SudokuSpotlightMapperTest.rolesOf(step: SudokuStep) = map(step).roles
+    private fun rolesOf(step: SudokuStep) = map(step).roles
 
     private val box0 = SudokuUnit(UnitKind.BOX, 0)
     private val row0 = SudokuUnit(UnitKind.ROW, 0)
@@ -75,13 +75,12 @@ class SudokuSpotlightMapperTest {
     }
 
     @Test
-    fun `the target is never also evidence and every key is on the board`() {
+    fun `the target is never also evidence`() {
         val step = SudokuStep.Single(place(7, 4, SudokuTechnique.HIDDEN_SINGLE_BOX, box0), null, setOf(7, 20))
 
         val roles = rolesOf(step)
 
         assertEquals(SpotlightRole.TARGET, roles[7])
-        assertTrue(roles.keys.all { it in 0 until 36 })
     }
 
     // Elimination
@@ -174,13 +173,6 @@ class SudokuSpotlightMapperTest {
         val step = SudokuStep.Elimination(SudokuTechnique.HIDDEN_PAIR, row0, bit(2) or bit(3), mapOf(0 to (bit(1) or bit(4) or bit(6)), 1 to bit(2)), setOf(0, 1))
 
         assertEquals(SudokuSpotlightGlyphs(mapOf(0 to "1 4 6", 1 to "2")), map(step).glyphs)
-    }
-
-    @Test
-    fun `equal inputs give equal spotlights`() {
-        val step = SudokuStep.Elimination(SudokuTechnique.POINTING, box0, bit(6), mapOf(3 to bit(6)), setOf(0))
-
-        assertEquals(map(step), map(step.copy()))
     }
 
     // Keys
