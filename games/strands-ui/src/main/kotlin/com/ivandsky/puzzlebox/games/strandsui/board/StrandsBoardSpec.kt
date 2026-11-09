@@ -42,18 +42,18 @@ internal object StrandsBoardSpec {
      * Drag acceptance (A5, prototype 02 variant E), in cell pitches from the tail's centre
      * unless named otherwise. The direction is the finger's travel over TravelWindowCells,
      * so a diagonal drawn beside the centre line, wobbling, still reads as diagonal. A side
-     * letter needs both a heading inside its narrow cone and the finger deep in its token,
+     * letter needs both a heading inside its cone and the finger deep in its token,
      * so it never steals a corner-cutting diagonal.
      */
     const val TravelWindowCells: Float = 0.25f
-    const val SideConeDegrees: Float = 20f
+    const val SideConeDegrees: Float = 22.5f
     const val SideJoinCells: Float = 0.40f
 
     /** What the side cone leaves of the 45° between an axis and a diagonal: the cones tile the circle, so every heading decides one. */
     const val DiagonalConeDegrees: Float = 45f - SideConeDegrees
 
     /** Of the diagonal step (√2 pitches): the diagonal letter joins this far along it. */
-    const val DiagonalJoinFraction: Float = 0.40f
+    const val DiagonalJoinFraction: Float = 0.55f
 
     /** A joined letter grows the trace only once the finger comes this close to its centre. */
     const val ArriveCells: Float = 0.55f

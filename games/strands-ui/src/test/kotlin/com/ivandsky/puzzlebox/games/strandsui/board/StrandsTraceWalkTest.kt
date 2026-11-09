@@ -14,7 +14,7 @@ import org.junit.Test
  * A5 on the walk, driven through [StrandsDragSession] in cell units over a 6 × 8 board: a
  * drag's direction is its travel over the last [StrandsBoardSpec.TravelWindowCells], so a
  * diagonal drawn with a ±20° wobble, on or off the centre line, joins only diagonal letters,
- * and a side drag (straight or ±10°) joins the side letters. Fingers are zigzags: legs of
+ * and a side drag (straight or ±15°) joins the side letters. Fingers are zigzags: legs of
  * [LEG] cells alternating ± the wobble.
  */
 class StrandsTraceWalkTest {
@@ -115,20 +115,35 @@ class StrandsTraceWalkTest {
     }
 
     @Test
-    fun `a side drag up to 20 degrees off its axis joins the side letter, not the diagonal`() {
-        // F1: 17.5° below east sat in the old ±30° diagonal cone and took (4, 2).
-        val heading = Math.toRadians(17.5).let { Offset(cos(it).toFloat(), sin(it).toFloat()) }
+    fun `a side drag within 22 and a half degrees of its axis joins the side letter, not the diagonal`() {
+        // 21.5° sits just inside the cone but outside the old 20° one.
+        val heading = Math.toRadians(21.5).let { Offset(cos(it).toFloat(), sin(it).toFloat()) }
         val finger = polyline(listOf(centre(Coord(3, 1)), centre(Coord(3, 1)) + heading), FINE)
         assertEquals(listOf(Coord(3, 1), Coord(3, 2)), drag(finger))
     }
 
     @Test
-    fun `a diagonal joins only 0_40 of the way along its step`() {
-        // F1: the old 0.30 joined (3, 2) a hair past the corner, at 0.38.
+    fun `a horizontal drag wobbling up to 22 degrees at the 48dp phone pitch never joins a diagonal`() {
+        // 48dp is the phone's pitch floor: 4dp of shake is 0.08 cell; the heading alone must not read diagonal.
+        val shake = 4f / 48f
+        for (wobble in listOf(15f, 22f, -22f)) {
+            for (offset in listOf(0f, shake, -shake)) {
+                for (pitch in listOf(FINE, SPARSE)) {
+                    val finger = zigzag(Coord(2, 0), Coord(2, 4), offset, wobble, pitch)
+                    val expected = (0..4).map { Coord(2, it) }
+                    assertEquals("wobble $wobble off $offset every $pitch", expected, drag(finger))
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a diagonal joins only 0_55 of the way along its step`() {
+        // F1: the old 0.40 joined (3, 2) with the finger barely past the corner of the token.
         val start = centre(Coord(2, 1))
-        val short = polyline(listOf(start, start + Offset(0.38f, 0.38f)), FINE)
+        val short = polyline(listOf(start, start + Offset(0.52f, 0.52f)), FINE)
         assertEquals(emptyList<Coord>(), drag(short))
-        val past = polyline(listOf(start, start + Offset(0.42f, 0.42f)), FINE)
+        val past = polyline(listOf(start, start + Offset(0.58f, 0.58f)), FINE)
         assertEquals(listOf(Coord(2, 1), Coord(3, 2)), drag(past))
     }
 
