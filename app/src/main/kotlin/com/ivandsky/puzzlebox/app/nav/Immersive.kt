@@ -1,9 +1,6 @@
 package com.ivandsky.puzzlebox.app.nav
 
 import androidx.navigation3.runtime.NavKey
-import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
-import com.ivandsky.puzzlebox.play.api.CustomGameKey
-import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
@@ -11,15 +8,13 @@ import com.ivandsky.puzzlebox.play.api.ResultKey
 
 /**
  * The one rule for immersive play (A15, N2): a key whose screen is full-window hides the
- * tab bar and rail while it is on top. Boards and results of every kind are immersive, a
- * duel's leg board and leg result included, and so is a duel's reveal. The duel screen
- * ([com.ivandsky.puzzlebox.compete.api.DuelKey]) keeps the bottom nav.
+ * tab bar and rail while it is on top. The answer is the key's row in the placement table
+ * ([placementRows]): immersive when its chrome is [Chrome.Immersive]. Boards and results
+ * of every kind are immersive, a duel's leg board and leg result included, and so is a
+ * duel's reveal. The duel screen ([com.ivandsky.puzzlebox.compete.api.DuelKey]) keeps the
+ * bottom nav.
  */
-internal fun isImmersive(key: NavKey): Boolean = when (key) {
-    is GameKey, is CustomGameKey, is ResultKey, is CustomResultKey,
-    is MatchLegKey, is MatchLegResultKey, is DuelRevealKey -> true
-    else -> false
-}
+internal fun isImmersive(key: NavKey): Boolean = placementOf(key).chrome == Chrome.Immersive
 
 /**
  * The board-and-result subset of [isImmersive] that takes the game motion (tablet lifts

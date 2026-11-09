@@ -7,21 +7,12 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.serialization.NavBackStackSerializer
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
-import com.ivandsky.puzzlebox.app.nav.CatalogKey
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavKeys
-import com.ivandsky.puzzlebox.compete.api.DuelKey
-import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
-import com.ivandsky.puzzlebox.create.api.CreateKey
-import com.ivandsky.puzzlebox.create.api.EditorKey
+import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
-import com.ivandsky.puzzlebox.play.api.GameKey
-import com.ivandsky.puzzlebox.play.api.MatchLegKey
-import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.play.api.ResultKey
-import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import kotlinx.serialization.PolymorphicSerializer
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -42,23 +33,22 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], application = Application::class)
 class NavKeySavedStateTest {
 
-    private val everyKey = NavigationState(
-        tab = PlayKey,
-        stacks = listOf(
-            // History's all-games key and a per-game tab key (A8).
-            listOf(HomeKey, HistoryKey(), HistoryKey("zip"), GameKey("zip", "2026-03-09")),
-            listOf(
-                PlayKey,
-                ResultKey("zip", "2026-03-09", 61_200, 2),
-                MatchLegKey("K7Q2MX", 0, "zip"),
-                MatchLegResultKey("K7Q2MX", 0, 61_200, 0, false),
-                DuelKey("K7Q2MX"),
-                DuelRevealKey("K7Q2MX"),
-            ),
-            listOf(CreateKey, EditorKey("d1")),
-            listOf(ProfileKey, CatalogKey),
-        ),
-    )
+    /**
+     * Every key in the placement table. A live root (a key of [topLevelDestinations], which
+     * includes ProfileKey with the flag off) sits at index 0 of its own stack, because I4
+     * allows a root only there; every other key goes mid-stack on stack 0.
+     */
+    private val everyKey: NavigationState = run {
+        val roots = topLevelDestinations.map { it.key }
+        val pushed = PlacementSamples.everyRow().filter { it !in roots }
+        NavigationState(
+            tab = PlayKey,
+            stacks = roots.mapIndexed { index, root ->
+                // A per-game History key keeps the nullable payload covered (A8).
+                if (index == 0) listOf(root) + pushed + HistoryKey("zip") else listOf(root)
+            },
+        )
+    }
 
     /**
      * `NavBackStack` is snapshot state, so building one writes the global snapshot. That
