@@ -97,11 +97,11 @@ abstract class LibraryTabsGoldenScreenshots(private val layout: PlayLayout, priv
 
         val TODAY: LocalDate = LocalDate.parse("2026-11-05")
 
-        /** A stand-in for the compete module's tab: a few cards in a list of its own. */
+        /** A stand-in for the compete module's tab: a few cards in a list of its own; the host owns the side inset. */
         val DUELS = DuelsSlot(
             content = {
                 Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.lg),
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(Spacing.md),
                 ) {
                     repeat(3) { index ->
