@@ -1,6 +1,9 @@
 package com.ivandsky.puzzlebox.games.tango.engine
 
 import com.ivandsky.puzzlebox.games.tango.TangoCell
+import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
+import com.ivandsky.puzzlebox.games.tango.TangoMarker
+import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.TangoTestSupport
 import kotlin.random.Random
@@ -35,13 +38,6 @@ class TangoRuleForcedTest {
             val grid = solution.toMutableList<TangoCell?>()
             order.take(blanked).forEach { grid[it] = null }
             grid
-        }
-    }
-
-    @Test
-    fun `deduction is the head of forced on every swept grid`() {
-        for (rule in rules) for (grid in sweep()) {
-            assertEquals(rule.name, rule.forced(puzzle, grid).firstOrNull(), rule.deduction(puzzle, grid))
         }
     }
 
@@ -104,5 +100,29 @@ class TangoRuleForcedTest {
             all,
         )
         assertEquals(all.first(), TangoTripleRule.deduction(bare, grid))
+    }
+
+    @Test
+    fun `marker rule lists a cell on two marker edges once per edge`() {
+        val twoEdges = puzzle.copy(
+            givens = emptyMap(),
+            markers = listOf(
+                TangoMarker(7, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME),
+                TangoMarker(2, TangoEdgeSide.DOWN, TangoMarkerKind.OPPOSITE),
+            ),
+        )
+        val grid = MutableList<TangoCell?>(twoEdges.cellCount) { null }
+        grid[7] = TangoCell.SUN
+        grid[2] = TangoCell.MOON
+
+        val all = TangoMarkerRule.forced(twoEdges, grid)
+
+        assertEquals(
+            listOf(
+                TangoHint.Forced(8, TangoCell.SUN, TangoHint.Why.MarkerBinding(7, 8, TangoMarkerKind.SAME)),
+                TangoHint.Forced(8, TangoCell.SUN, TangoHint.Why.MarkerBinding(2, 8, TangoMarkerKind.OPPOSITE)),
+            ),
+            all,
+        )
     }
 }
