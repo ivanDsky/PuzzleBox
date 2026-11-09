@@ -9,6 +9,8 @@ core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/PlayBoardStatus.kt  #
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/PlayChrome.kt  # S4
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/PlayScaffold.kt  # S4
 core/game-ui/src/main/kotlin/com/ivandsky/puzzlebox/gameui/TimerBar.kt  # S4
+feature/compete/impl/src/main/kotlin/com/ivandsky/puzzlebox/compete/tab/DuelsNeedYou.kt  # S4
+feature/compete/impl/src/main/kotlin/com/ivandsky/puzzlebox/compete/tab/DuelsTab.kt  # S4
 feature/history/impl/src/main/kotlin/com/ivandsky/puzzlebox/history/HistoryRoute.kt  # S4
 feature/history/impl/src/main/kotlin/com/ivandsky/puzzlebox/history/HistoryScreen.kt  # S4
 feature/home/impl/src/main/kotlin/com/ivandsky/puzzlebox/home/HomeRoute.kt  # S4

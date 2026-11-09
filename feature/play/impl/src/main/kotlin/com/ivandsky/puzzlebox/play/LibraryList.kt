@@ -153,7 +153,10 @@ private fun TabbedList(
                 GamesTab.Friends -> Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(bottom = if (phone) Spacing.xl else 0.dp)) {
                     Box(sides) { friendsTab() }
                 }
-                GamesTab.Duels -> Box(Modifier.fillMaxSize()) { duels.content() }
+                // Like Dailies: inset on the phone, flush with the pane on the tablet; the tab pads no sides itself.
+                GamesTab.Duels -> Box(
+                    Modifier.fillMaxSize().then(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier),
+                ) { duels.content() }
             }
         }
     }

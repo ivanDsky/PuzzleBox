@@ -13,6 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,7 +27,8 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 /**
  * A circle with the player's initial, always drawn; a [photoUrl] is drawn over it once it
  * loads, so a slow or failed load just leaves the initial showing. The initial scales with
- * [size]; [tone] picks the fill from the theme.
+ * [size]; [tone] picks the fill from the theme, unless [fill] and [onFill] override it (a row that
+ * sits on a tinted container, for instance).
  */
 @Composable
 fun PlayerAvatar(
@@ -34,19 +37,23 @@ fun PlayerAvatar(
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,
     tone: DuelTone = DuelTone.Me,
+    fill: Color = Color.Unspecified,
+    onFill: Color = Color.Unspecified,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val (fill, onFill) = when (tone) {
+    val (toneFill, toneOnFill) = when (tone) {
         DuelTone.Me -> scheme.primaryContainer to scheme.onPrimaryContainer
         DuelTone.Them -> scheme.secondaryContainer to scheme.onSecondaryContainer
     }
+    val circle = fill.takeOrElse { toneFill }
+    val ink = onFill.takeOrElse { toneOnFill }
     Box(
-        modifier = modifier.size(size).clip(CircleShape).background(fill, CircleShape),
+        modifier = modifier.size(size).clip(CircleShape).background(circle, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = name.trim().firstOrNull()?.uppercase() ?: "?",
-            color = onFill,
+            color = ink,
             style = MaterialTheme.typography.titleMedium,
             fontSize = (size.value * 0.42f).sp,
         )
