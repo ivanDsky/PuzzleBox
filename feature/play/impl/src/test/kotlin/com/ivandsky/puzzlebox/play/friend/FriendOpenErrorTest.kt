@@ -33,6 +33,7 @@ import com.ivandsky.puzzlebox.play.FakeGames
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
@@ -306,7 +307,7 @@ class FriendOpenErrorTest {
     private val sheetOpened = mutableListOf<ShareCode>()
 
     private fun showSheet(initialText: String = "") {
-        val viewModel = EnterCodeViewModel(load, now)
+        val viewModel = EnterCodeViewModel(load, FakeMatchRepository(), now)
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 CompositionLocalProvider(LocalUriHandler provides uris) {

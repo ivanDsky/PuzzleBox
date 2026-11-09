@@ -123,6 +123,12 @@ internal fun LibraryRoute(
                 },
                 onDismiss = { enteringCode = false },
                 initialText = codePrefill,
+                onOpenDuel = onOpenDuel?.let { openDuel ->
+                    { key ->
+                        enteringCode = false
+                        openDuel(key)
+                    }
+                },
             )
         }
         val open = lesson
