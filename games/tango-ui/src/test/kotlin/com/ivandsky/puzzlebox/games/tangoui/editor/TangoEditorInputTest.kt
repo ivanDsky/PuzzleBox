@@ -51,7 +51,7 @@ class TangoEditorInputTest {
 
     private val edits = ArrayList<EditorDraft<*>>()
     private val controller =
-        TangoEditorController(EditorDraft.fresh(TangoEditor, TangoEditor.variants.first())) { edits += it }
+        TangoEditorController(EditorDraft.fresh(TangoEditor, TangoEditor.defaultVariant)) { edits += it }
 
     private fun board(): TangoDraft = controller.draft.value.state.draft as TangoDraft
 
