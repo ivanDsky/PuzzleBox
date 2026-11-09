@@ -1,11 +1,17 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.match.LegRef
+import com.ivandsky.puzzlebox.data.match.MatchFetch
+import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
+import com.ivandsky.puzzlebox.domain.OpenOutcome
 import com.ivandsky.puzzlebox.domain.PastDayOutcome
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.FetchError
@@ -16,11 +22,13 @@ import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
 import com.ivandsky.puzzlebox.gameui.unavailableMessage
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 
 /**
  * Decides where a slot's board comes from (A11), in this order:
@@ -33,8 +41,11 @@ import kotlinx.coroutines.flow.first
  *    carrying the day's puzzleNumber from the cache so the record identity (ADR-0004)
  *    survives keys that name only game and day (arch-2);
  * 4. a friend's puzzle ([PlaySlot.Custom]) from the [received] puzzles stored when it opened;
- * 5. otherwise [Origin.Unavailable], whose copy names the cause; a duel puzzle ([PlaySlot.Leg])
- *    with no saved row is unavailable here for now.
+ * 5. a duel puzzle ([PlaySlot.Leg]) named by its match's leg, built as a replay under the leg
+ *    puzzle's own identity: a day through the same past-day path (today's falls back to the
+ *    daily fetch before the day is captured), a friend's puzzle through [loadShared], whose
+ *    check runs on [DispatcherProvider.default];
+ * 6. otherwise [Origin.Unavailable], whose copy names the cause.
  */
 internal class SlotOpening(
     private val daily: DailyRepository,
@@ -44,6 +55,9 @@ internal class SlotOpening(
     private val games: GameRegistry,
     private val lane: WriteLane,
     private val received: ReceivedPuzzleRepository,
+    private val matches: MatchRepository,
+    private val loadShared: LoadSharedPuzzle,
+    private val dispatchers: DispatcherProvider,
 ) {
     /** Where a slot's board comes from (patterns-9). */
     sealed interface Origin {
@@ -64,7 +78,7 @@ internal class SlotOpening(
         restore(slot, plugin)?.let { return Origin.Restored(it) }
         return when (slot) {
             is PlaySlot.Custom -> friend(slot)
-            is PlaySlot.Leg -> Origin.Unavailable(DUEL_PUZZLE_UNAVAILABLE, retryable = false)
+            is PlaySlot.Leg -> leg(slot, plugin)
             is PlaySlot.Daily -> {
                 val today = calendar.today(slot.gameId) ?: return Origin.Unavailable(UNREGISTERED)
                 if (slot.day == today) fetch(slot) else build(slot)
@@ -108,15 +122,65 @@ internal class SlotOpening(
     }
 
     private suspend fun build(slot: PlaySlot.Daily): Origin =
-        when (val opened = pastDays(slot.gameId, slot.day, puzzleNumberOf(slot))) {
-            is PastDayOutcome.Ready -> Origin.Restored(opened.session)
-            PastDayOutcome.Missing -> Origin.Unavailable(DAY_MISSING)
-            PastDayOutcome.OutOfRange -> Origin.Unavailable(PAST_DAY_OUT_OF_RANGE, retryable = false)
-            is PastDayOutcome.Failed -> Origin.Unavailable(
-                pastDayUnavailableMessage(slot.day, opened.error),
-                retryable = opened.error is FetchError.Unavailable || opened.error is FetchError.Throttled,
-            )
-            is PastDayOutcome.Unreadable -> Origin.Unavailable(DAY_UNREADABLE)
+        pastDay(slot.day, pastDays(slot.gameId, slot.day, puzzleNumberOf(slot)))
+
+    private fun pastDay(day: LocalDate, opened: PastDayOutcome): Origin = when (opened) {
+        is PastDayOutcome.Ready -> Origin.Restored(opened.session)
+        PastDayOutcome.Missing -> Origin.Unavailable(DAY_MISSING)
+        PastDayOutcome.OutOfRange -> Origin.Unavailable(PAST_DAY_OUT_OF_RANGE, retryable = false)
+        is PastDayOutcome.Failed -> Origin.Unavailable(
+            pastDayUnavailableMessage(day, opened.error),
+            retryable = opened.error is FetchError.Unavailable || opened.error is FetchError.Throttled,
+        )
+        is PastDayOutcome.Unreadable -> Origin.Unavailable(DAY_UNREADABLE)
+    }
+
+    /** The leg's puzzle, read from its match: a leg always opens as a replay, never a fresh board. */
+    private suspend fun leg(slot: PlaySlot.Leg, plugin: GamePlugin<*, *, *>): Origin {
+        val code = ShareCode.parse(slot.matchCode) ?: return Origin.Unavailable(DUEL_PUZZLE_MISSING, retryable = false)
+        val match = when (val fetched = matches.observe(code).first()) {
+            is MatchFetch.Found -> fetched.match
+            MatchFetch.Offline -> return Origin.Unavailable(DUEL_OFFLINE)
+            MatchFetch.NotFound -> return Origin.Unavailable(DUEL_PUZZLE_MISSING, retryable = false)
+            is MatchFetch.UnsupportedVersion -> return Origin.Unavailable(DUEL_NEEDS_UPDATE, retryable = false)
+        }
+        val ref = match.legs.getOrNull(slot.legIndex)?.ref?.takeIf { it.gameId == slot.gameId }
+            ?: return Origin.Unavailable(DUEL_PUZZLE_MISSING, retryable = false)
+        return when (ref) {
+            is LegRef.Daily -> dailyLeg(ref, plugin)
+            is LegRef.Custom -> friendLeg(ref, plugin)
+        }
+    }
+
+    /** A day leg; today's is fetched when the day isn't captured yet, as the daily slot would. */
+    private suspend fun dailyLeg(ref: LegRef.Daily, plugin: GamePlugin<*, *, *>): Origin {
+        val opened = pastDays(ref.gameId, ref.day, ref.number)
+        if (opened != PastDayOutcome.Missing || ref.day != calendar.today(ref.gameId)) return pastDay(ref.day, opened)
+        val key = PuzzleKey.Daily(ref.day, ref.number)
+        return when (val fetched = daily.today(ref.gameId)) {
+            is DailyToday.Fresh -> replay(plugin, fetched.puzzle, key)
+            is DailyToday.Cached -> replay(plugin, fetched.puzzle, key)
+            is DailyToday.Unavailable -> Origin.Unavailable(unavailableMessage(fetched.error))
+        }
+    }
+
+    /** A friend's leg, verified and stored on its first open; later opens read the stored row. */
+    private suspend fun friendLeg(ref: LegRef.Custom, plugin: GamePlugin<*, *, *>): Origin =
+        when (val opened = withContext(dispatchers.default) { loadShared(ref.code) }) {
+            is OpenOutcome.Opened -> opened.puzzle.takeIf { it.gameId == ref.gameId }?.let { row ->
+                val puzzle = Puzzle(row.gameId, row.variant, row.sharedFormatVersion, row.puzzleBytes)
+                replay(plugin, puzzle, PuzzleKey.Custom(ref.code.value))
+            } ?: Origin.Unavailable(DUEL_PUZZLE_MISSING, retryable = false)
+            OpenOutcome.Offline -> Origin.Unavailable(DUEL_OFFLINE)
+            is OpenOutcome.NeedsUpdate -> Origin.Unavailable(DUEL_NEEDS_UPDATE, retryable = false)
+            OpenOutcome.NotFound, OpenOutcome.NoLongerAvailable, OpenOutcome.FailedCheck, is OpenOutcome.UnknownGame ->
+                Origin.Unavailable(DUEL_PUZZLE_MISSING, retryable = false)
+        }
+
+    private fun replay(plugin: GamePlugin<*, *, *>, puzzle: Puzzle, key: PuzzleKey): Origin =
+        when (val session = plugin.replaySession(puzzle, key)) {
+            is DecodeResult.Ok -> Origin.Restored(session.value)
+            is DecodeResult.Err -> Origin.Unavailable(PUZZLE_UNREADABLE, retryable = false)
         }
 
     /** The day's puzzleNumber from the cache's history rows (null when the day has none). */
@@ -128,7 +192,10 @@ internal class SlotOpening(
         const val DAY_MISSING = "That day is no longer saved on this device."
         const val DAY_UNREADABLE = "This day didn't load right, so it can't be played again."
         const val FRIEND_MISSING = "This puzzle is no longer saved on this device."
-        const val DUEL_PUZZLE_UNAVAILABLE = "This puzzle isn't available here yet."
+        const val DUEL_OFFLINE = "You're offline. A duel's puzzle needs a connection the first time it opens."
+        const val DUEL_NEEDS_UPDATE = "Update PuzzleBox to play this puzzle."
+        const val DUEL_PUZZLE_MISSING = "This puzzle isn't available."
+        const val PUZZLE_UNREADABLE = "This puzzle didn't load right, so it can't be played."
     }
 }
 

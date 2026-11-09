@@ -5,7 +5,9 @@ import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.game.SessionBlob
+import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -14,8 +16,10 @@ import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -53,7 +57,11 @@ class SlotOpeningCustomTest {
     private val received = FakeReceivedPuzzleRepository()
     private val calendar = FakeGameCalendar(today)
     private val lane = WriteLane()
-    private val opening = SlotOpening(daily, LoadPastDay(daily, fakes.games), saved, calendar, fakes.games, lane, received)
+    private val opening = SlotOpening(
+        daily, LoadPastDay(daily, fakes.games), saved, calendar, fakes.games, lane, received, FakeMatchRepository(),
+        LoadSharedPuzzle(fakes.games, FakeSharedPuzzleRepository(), received, { Budget.Unlimited }, { Instant.EPOCH }),
+        testDispatchers(),
+    )
 
     @Test
     fun `a friend puzzle with no save starts fresh from the puzzle stored when it opened`() = runTest {

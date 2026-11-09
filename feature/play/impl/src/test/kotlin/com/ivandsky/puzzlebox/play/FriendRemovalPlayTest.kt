@@ -6,6 +6,8 @@ import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
+import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
@@ -13,8 +15,10 @@ import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -57,7 +61,9 @@ class FriendRemovalPlayTest {
             ui = fakes.registry,
             opening = SlotOpening(
                 daily, LoadPastDay(daily, fakes.games), saved, calendar,
-                fakes.games, lane, received,
+                fakes.games, lane, received, FakeMatchRepository(),
+                LoadSharedPuzzle(fakes.games, FakeSharedPuzzleRepository(), received, { Budget.Unlimited }, { Instant.EPOCH }),
+                testDispatchers(dispatcher),
             ),
             writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
             completions = FakeCompletionRepository(),

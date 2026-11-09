@@ -2,13 +2,18 @@ package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.game.SessionBlob
+import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import java.time.Instant
 import java.time.LocalDate
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -134,7 +139,12 @@ class SlotWriterTest {
         val saved = recording(latency = 50.milliseconds)
         val daily = FakeDailyRepository()
         val games = TestGames.registry(listOf(alpha))
-        val opening = SlotOpening(daily, LoadPastDay(daily, games), saved, FakeGameCalendar(today), games, lane, FakeReceivedPuzzleRepository())
+        val opening = SlotOpening(
+            daily, LoadPastDay(daily, games), saved, FakeGameCalendar(today), games, lane, FakeReceivedPuzzleRepository(),
+            FakeMatchRepository(),
+            LoadSharedPuzzle(games, FakeSharedPuzzleRepository(), FakeReceivedPuzzleRepository(), { Budget.Unlimited }, { Instant.EPOCH }),
+            testDispatchers(),
+        )
         val released = writer(saved)
         released.offer(blob(1), 0L)
 

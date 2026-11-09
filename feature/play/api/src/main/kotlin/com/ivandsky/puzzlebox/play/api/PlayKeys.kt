@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.play.api
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.modules.PolymorphicModuleBuilder
 
-/** Registers Play's keys (hub, game, result, friend card, friend game and friend result) for back-stack saved state. */
+/** Registers Play's keys (hub, game, result, friend card, friend game, friend result and duel leg) for back-stack saved state. */
 fun PolymorphicModuleBuilder<NavKey>.playNavKeys() {
     subclass(PlayKey::class, PlayKey.serializer())
     subclass(GameKey::class, GameKey.serializer())
@@ -11,4 +11,5 @@ fun PolymorphicModuleBuilder<NavKey>.playNavKeys() {
     subclass(FriendPuzzleKey::class, FriendPuzzleKey.serializer())
     subclass(CustomGameKey::class, CustomGameKey.serializer())
     subclass(CustomResultKey::class, CustomResultKey.serializer())
+    subclass(MatchLegKey::class, MatchLegKey.serializer())
 }
