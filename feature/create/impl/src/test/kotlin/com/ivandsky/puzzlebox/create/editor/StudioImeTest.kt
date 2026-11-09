@@ -79,10 +79,20 @@ abstract class StudioImeTest(private val layout: PlayLayout, private val device:
 
     @Test
     fun `the focused field stays above the keyboard and the board keeps its size`() {
+        assertFieldAboveKeyboard(slides = true)
+    }
+
+    @Test
+    fun `the focused field stays above a keyboard that arrives in one step`() {
+        // API 26-29 and animations off: the inset jumps from none to full in one frame.
+        assertFieldAboveKeyboard(slides = false)
+    }
+
+    private fun assertFieldAboveKeyboard(slides: Boolean) {
         show()
         val grid = rule.onNodeWithTag(GRID).getUnclippedBoundsInRoot()
         rule.onNodeWithTag(FIELD).performClick()
-        openKeyboard(keyboard)
+        openKeyboard(keyboard, slides)
 
         val field = rule.onNodeWithTag(FIELD).getUnclippedBoundsInRoot()
         assertTrue("field bottom ${field.bottom} under the keyboard top ${keyboardTop()}", field.bottom <= keyboardTop())
@@ -124,16 +134,29 @@ abstract class StudioImeTest(private val layout: PlayLayout, private val device:
 
     @Test
     fun `the window resizes for the keyboard while the Studio shows and pans no more`() {
-        var shown by mutableStateOf(true)
-        val window = rule.activity.window
-        rule.runOnUiThread { window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN) }
-        setContent { if (shown) Studio() }
-        rule.waitForIdle()
-        assertEquals(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE, window.attributes.softInputMode and ADJUST)
+        assertWindowModeRestored(from = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
+    }
 
-        shown = false
-        rule.waitForIdle()
-        assertEquals(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN, window.attributes.softInputMode and ADJUST)
+    @Test
+    fun `a window relaunched by a config change gets its unspecified mode back on every leave`() {
+        // Rotation, dark mode or font scale relaunch the activity: the new window holds the
+        // manifest's mode 0, without the forward bit a fresh launch ORs in.
+        assertWindowModeRestored(from = WindowManager.LayoutParams.SOFT_INPUT_STATE_UNSPECIFIED)
+    }
+
+    private fun assertWindowModeRestored(from: Int) {
+        var shown by mutableStateOf(false)
+        val window = rule.activity.window
+        rule.runOnUiThread { window.attributes = window.attributes.apply { softInputMode = from } }
+        setContent { if (shown) Studio() }
+        repeat(2) { visit ->
+            shown = true
+            rule.waitForIdle()
+            assertEquals("visit $visit", WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE, window.attributes.softInputMode and ADJUST)
+            shown = false
+            rule.waitForIdle()
+            assertEquals("visit $visit", from, window.attributes.softInputMode)
+        }
     }
 
     @Test
@@ -181,11 +204,11 @@ abstract class StudioImeTest(private val layout: PlayLayout, private val device:
     }
 
     /**
-     * The keyboard [height] from the window's bottom, as the system reports it: a first sliver,
-     * then the rest, the way the keyboard slides in frame by frame.
+     * The keyboard [height] from the window's bottom, as the system reports it. A keyboard that
+     * [slides] in reports a first sliver, then the rest; one that does not jumps straight to full.
      */
-    private fun openKeyboard(height: Dp) {
-        listOf(1.dp, height).forEach { step ->
+    private fun openKeyboard(height: Dp, slides: Boolean = true) {
+        (if (slides) listOf(1.dp, height) else listOf(height)).forEach { step ->
             val px = with(rule.density) { step.roundToPx() }
             val insets = WindowInsetsCompat.Builder()
                 .setInsets(WindowInsetsCompat.Type.ime(), Insets.of(0, 0, 0, px))

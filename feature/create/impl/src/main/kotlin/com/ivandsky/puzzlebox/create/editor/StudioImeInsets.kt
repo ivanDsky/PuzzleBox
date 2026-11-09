@@ -19,12 +19,14 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -85,8 +87,9 @@ internal fun rememberStudioKeyboard(): StudioKeyboard {
  * [content] at the height it has with the keyboard closed (the board keeps its size; it never
  * shrinks to fit) in a viewport that ends at the [keyboard]'s top. While the keyboard shows the
  * part it covers scrolls into reach, and a focused field in [content] stays in view: the scroll
- * attaches on the keyboard's first slide-in frame, so the viewport shrinks under it. Closed,
- * there is no scroll at all, nor its clip: the layout is the keyboard-less one.
+ * attaches and lays out once at full size before the keyboard's padding lands, so the viewport
+ * shrinks under it even when the keyboard arrives in one step (API 26-29, animations off).
+ * Closed, there is no scroll at all, nor its clip: the layout is the keyboard-less one.
  */
 @Composable
 internal fun KeyboardScroll(keyboard: StudioKeyboard, modifier: Modifier, content: @Composable (Modifier) -> Unit) {
@@ -94,8 +97,10 @@ internal fun KeyboardScroll(keyboard: StudioKeyboard, modifier: Modifier, conten
     val open by remember(keyboard, density) { derivedStateOf { keyboard.shows(density) } }
     BoxWithConstraints(modifier) {
         val height = constraints.maxHeight
-        val scroll = if (open) Modifier.verticalScroll(remember { ScrollState(0) }) else Modifier
-        Box(Modifier.fillMaxSize().then(keyboard.padding).testTag(KeyboardScrollTag).then(scroll)) {
+        // Whether the scroll has laid out at full size since the keyboard opened.
+        var placed by remember(open) { mutableStateOf(false) }
+        val scroll = if (open) Modifier.verticalScroll(remember { ScrollState(0) }).onPlaced { placed = true } else Modifier
+        Box(Modifier.fillMaxSize().then(if (placed) keyboard.padding else Modifier).testTag(KeyboardScrollTag).then(scroll)) {
             content(
                 Modifier.layout { measurable, outer ->
                     val placeable = measurable.measure(outer.copy(minHeight = height, maxHeight = height))
@@ -111,4 +116,7 @@ private const val ADJUST = WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST
 /** The viewport over the keyboard's top: the phone's column, the tablet's board pane. */
 private const val KeyboardScrollTag = "create.studio.keyboardScroll"
 
-private fun Window.adjust(mode: Int) = setSoftInputMode((attributes.softInputMode and ADJUST.inv()) or mode)
+/** Writes the attributes: `setSoftInputMode(0)` leaves them as they are, so 0 would never come back. */
+private fun Window.adjust(mode: Int) {
+    attributes = attributes.apply { softInputMode = (softInputMode and ADJUST.inv()) or mode }
+}
