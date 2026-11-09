@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.create.importtext
 
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,7 @@ import com.ivandsky.puzzlebox.create.CreateScreen
 import com.ivandsky.puzzlebox.create.CreateUiState
 import com.ivandsky.puzzlebox.create.GOLDEN_PHONE
 import com.ivandsky.puzzlebox.create.GOLDEN_TABLET
+import com.ivandsky.puzzlebox.create.NewPuzzleSheet
 import com.ivandsky.puzzlebox.create.PreviewGames
 import com.ivandsky.puzzlebox.create.editor.ActionArea
 import com.ivandsky.puzzlebox.create.editor.StudioScreen
@@ -78,20 +80,20 @@ abstract class ImportGoldenScreenshots(private val layout: PlayLayout, private v
     @Test fun `checking light`() = sheet("checking", FILLED.copy(checking = true, clipboard = CLIP_6), dark = false)
     @Test fun `checking dark`() = sheet("checking", FILLED.copy(checking = true, clipboard = CLIP_6), dark = true)
 
-    @Test fun `malformed light`() = sheet("malformed", FILLED.copy(error = MALFORMED), dark = false)
-    @Test fun `malformed dark`() = sheet("malformed", FILLED.copy(error = MALFORMED), dark = true)
+    @Test fun `malformed light`() = sheet("malformed", MALFORMED, dark = false)
+    @Test fun `malformed dark`() = sheet("malformed", MALFORMED, dark = true)
 
-    @Test fun `header light`() = sheet("header", FILLED.copy(error = HEADER), dark = false)
-    @Test fun `header dark`() = sheet("header", FILLED.copy(error = HEADER), dark = true)
+    @Test fun `header light`() = sheet("header", HEADER, dark = false)
+    @Test fun `header dark`() = sheet("header", HEADER, dark = true)
 
-    @Test fun `unknown game light`() = sheet("unknown-game", FILLED.copy(error = UNKNOWN_GAME), dark = false)
-    @Test fun `unknown game dark`() = sheet("unknown-game", FILLED.copy(error = UNKNOWN_GAME), dark = true)
+    @Test fun `unknown game light`() = sheet("unknown-game", UNKNOWN_GAME, dark = false)
+    @Test fun `unknown game dark`() = sheet("unknown-game", UNKNOWN_GAME, dark = true)
 
-    @Test fun `unsupported version light`() = sheet("unsupported-version", FILLED.copy(error = VERSION), dark = false)
-    @Test fun `unsupported version dark`() = sheet("unsupported-version", FILLED.copy(error = VERSION), dark = true)
+    @Test fun `unsupported version light`() = sheet("unsupported-version", VERSION, dark = false)
+    @Test fun `unsupported version dark`() = sheet("unsupported-version", VERSION, dark = true)
 
-    @Test fun `too large light`() = sheet("too-large", FILLED.copy(error = TOO_LARGE), dark = false)
-    @Test fun `too large dark`() = sheet("too-large", FILLED.copy(error = TOO_LARGE), dark = true)
+    @Test fun `too large light`() = sheet("too-large", TOO_LARGE, dark = false)
+    @Test fun `too large dark`() = sheet("too-large", TOO_LARGE, dark = true)
 
     @Test fun `new puzzle import row light`() = newPuzzle(dark = false)
     @Test fun `new puzzle import row dark`() = newPuzzle(dark = true)
@@ -104,12 +106,15 @@ abstract class ImportGoldenScreenshots(private val layout: PlayLayout, private v
 
     private fun sheet(name: String, ui: ImportSheetUi, dark: Boolean) {
         rule.showGolden(dark) { CreateRoot(ui) }
+        clearWindowFocus()
         rule.settleAndCapture("import", name, device, dark)
     }
 
     private fun newPuzzle(dark: Boolean) {
-        rule.showGolden(dark, frozen = false) { CreateRoot(ImportSheetUi()) }
-        open(tap = "create.new", shows = "create.new.sheet")
+        rule.showGolden(dark) {
+            CreateRoot(ImportSheetUi())
+            NewPuzzleSheet(games = PreviewGames, onPick = { _, _ -> }, onDismiss = {}, onImport = {})
+        }
         rule.settleAndCapture("import", "new-puzzle-row", device, dark)
     }
 
@@ -122,7 +127,26 @@ abstract class ImportGoldenScreenshots(private val layout: PlayLayout, private v
     /** Taps [tap] and waits, on the running clock, until the window it opens shows [shows]. */
     private fun open(tap: String, shows: String) {
         rule.onNodeWithTag(tap).performClick()
-        rule.waitUntil { rule.onAllNodesWithTag(shows).fetchSemanticsNodes().isNotEmpty() }
+        rule.waitUntil(TIMEOUT_MS) { rule.onAllNodesWithTag(shows).fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    /**
+     * Takes the focus off every window's root view once the sheet has settled. Robolectric runs
+     * a dialog window's first traversal in non-touch mode, so the text box grabs the initial
+     * focus and is drawn with its focused border; on a device a tap opens the sheet in touch
+     * mode, no box is focused until it is touched, and the golden must show that.
+     */
+    private fun clearWindowFocus() {
+        rule.mainClock.advanceTimeBy(FOCUS_SETTLE_MS)
+        val global = Class.forName("android.view.WindowManagerGlobal")
+        val instance = global.getMethod("getInstance").invoke(null)
+        val names = global.getMethod("getViewRootNames").invoke(instance) as Array<*>
+        val rootView = global.getMethod("getRootView", String::class.java)
+        names.forEach { name ->
+            val root = rootView.invoke(instance, name as String) as View
+            rule.runOnUiThread { root.clearFocus() }
+        }
+        rule.mainClock.advanceTimeBy(FRAME_SETTLE_MS)
     }
 
     /** The Create root with a few drafts, the Import pill on, as the sheet opens over it. */
@@ -194,17 +218,39 @@ abstract class ImportGoldenScreenshots(private val layout: PlayLayout, private v
         val NOT_TESTED = PublishBlock(PublishBlock.NOT_TESTED)
 
         val OPEN = ImportSheetUi(visible = true)
-        const val QUEENS = "puzzlebox queens v1\n00001\n00031\n42033\n43333\n43333\n"
+        const val TIMEOUT_MS = 5_000L
+        const val FOCUS_SETTLE_MS = 2_000L
+        const val FRAME_SETTLE_MS = 100L
+        const val BODY = "00001\n00031\n42033\n43333\n43333\n"
+        const val QUEENS = "puzzlebox queens v1\n$BODY"
         val FILLED = OPEN.copy(text = QUEENS)
 
         val CLIP_1 = ClipboardNotation("Queens", lines = 1, text = "puzzlebox queens v1\n")
         val CLIP_6 = ClipboardNotation("Queens", lines = 6, text = QUEENS)
 
-        val MALFORMED = ImportResult.Malformed(line = 3, col = 2, message = "expected 5 rows")
-        val HEADER = ImportResult.Malformed(line = 1, col = 1, message = "missing header")
-        val UNKNOWN_GAME = ImportResult.UnknownGame("sudoku9")
-        val VERSION = ImportResult.UnsupportedVersion(found = 9, maxKnown = 1)
-        val TOO_LARGE = ImportResult.TooLarge(bytes = 66_000, line = 412, col = 1)
+        /** Each failure over a text the parser would really fail on, at the position it reports. */
+        val MALFORMED = OPEN.copy(
+            text = "puzzlebox queens v1\n00001\n0x031\n42033\n43333\n43333\n",
+            error = ImportResult.Malformed(line = 3, col = 2, message = "unexpected character 'x'"),
+        )
+        val HEADER = OPEN.copy(text = BODY, error = ImportResult.Malformed(line = 1, col = 1, message = "garbled header"))
+        val UNKNOWN_GAME = OPEN.copy(
+            text = "puzzlebox crossword v1\n$BODY",
+            error = ImportResult.UnknownGame("crossword"),
+        )
+        val VERSION = OPEN.copy(
+            text = "puzzlebox queens v9\n$BODY",
+            error = ImportResult.UnsupportedVersion(found = 9, maxKnown = 1),
+        )
+
+        /**
+         * The text is abridged: 412 short lines, not the 64 KB the error reports, which is enough
+         * to fill the box and show it scrolling inside the sheet with the button and error in view.
+         */
+        val TOO_LARGE = OPEN.copy(
+            text = "puzzlebox queens v1\n" + (2..412).joinToString("\n") { "00001" },
+            error = ImportResult.TooLarge(bytes = 66_000, line = 412, col = 1),
+        )
 
         val ROOT = CreateUiState(
             loading = false,
