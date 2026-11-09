@@ -41,5 +41,18 @@ class QueensLadder(rungs: List<QueensRung>) {
 
         /** All four rungs in difficulty order; look-ahead probes with the three below it. */
         val Default: QueensLadder = QueensLadder(propagation + LookAheadRung(propagation))
+
+        /** What a look-ahead round may exclude with, in the lab's `cheapExclusion` order. */
+        private val cheap: List<QueensRung> =
+            listOf(LineLockRung, SharedNeighboursRung, PigeonholeRung, LineGroupPigeonholeRung, SqueezeRung, LeftoverQueenRung)
+
+        /** The step-hint ladder: catalog rungs D0–D11 in difficulty order. */
+        val Stepwise: QueensLadder = QueensLadder(
+            listOf(
+                AttackRung, SinglesRung, LineLockRung, SharedNeighboursRung, PigeonholeRung,
+                LineGroupPigeonholeRung, LeftoverQueenRung, SqueezeRung, CountSqueezeRung,
+                ShortLookAheadRung(cheap), LongLookAheadRung(cheap),
+            ),
+        )
     }
 }
