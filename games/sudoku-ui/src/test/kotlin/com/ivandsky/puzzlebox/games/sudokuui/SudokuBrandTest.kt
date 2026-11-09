@@ -6,16 +6,21 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
+import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertSame
 import org.junit.Test
 import org.koin.core.qualifier.qualifier
 import org.koin.dsl.koinApplication
+import org.koin.dsl.module
 
 class SudokuBrandTest {
 
-    private val koin = koinApplication { modules(miniSudokuUiModule, sudokuUiModule) }.koin
+    private val koin = koinApplication {
+        modules(miniSudokuUiModule, sudokuUiModule, module { single { HintModeSource { HintMode.Legacy } } })
+    }.koin
     private val mini: GamePlayUi = koin.get(qualifier(SudokuGames.MINI.id.value))
     private val classic: GamePlayUi = koin.get(qualifier(SudokuGames.CLASSIC.id.value))
     private val registry = GamePlayRegistry(listOf(mini, classic))

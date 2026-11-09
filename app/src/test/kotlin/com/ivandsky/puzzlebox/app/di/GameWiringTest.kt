@@ -5,6 +5,8 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
+import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudokuui.miniSudokuUiModule
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
@@ -15,6 +17,7 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.koin.dsl.koinApplication
+import org.koin.dsl.module
 
 /** ADR-0008 "Adding a game": a plugin wired without its play UI fails loudly, naming it. */
 class GameWiringTest {
@@ -40,7 +43,9 @@ class GameWiringTest {
 
     @Test
     fun `debug has a 9x9 editor beside mini`() {
-        val koin = koinApplication { modules(listOf(miniSudokuUiModule) + buildTypeGameModules) }.koin
+        val koin = koinApplication {
+            modules(listOf(miniSudokuUiModule, module { single { HintModeSource { HintMode.Legacy } } }) + buildTypeGameModules)
+        }.koin
         val editors = GameEditorRegistry(koin.getAll<GameEditorUi>())
         assertNotNull(editors[SudokuGames.MINI.id])
         assertNotNull(editors[SudokuGames.CLASSIC.id])

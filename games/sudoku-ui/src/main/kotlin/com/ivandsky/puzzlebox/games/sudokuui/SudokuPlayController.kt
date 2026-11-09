@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.gameui.PlayGuide
 import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.games.sudoku.SudokuDefinition
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.SudokuScoreModel
@@ -33,7 +34,11 @@ class SudokuPlayController(
     private val definition: SudokuDefinition,
     private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
+    hintMode: HintMode = HintMode.Legacy,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
+
+    /** Stored for the Stepwise hint path (ticket 34); nothing reads it yet. */
+    internal val hintMode: HintMode = hintMode
 
     /** The live interaction holder, null until a session is adopted. */
     var board by mutableStateOf<SudokuBoardState?>(null)

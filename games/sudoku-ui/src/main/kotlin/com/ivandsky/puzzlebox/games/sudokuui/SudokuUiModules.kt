@@ -4,13 +4,14 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudokuui.editor.SudokuEditorUi
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
+import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import org.koin.core.module.Module
 import org.koin.core.qualifier.qualifier
 import org.koin.dsl.module
 
 /** Mini Sudoku's play UI, qualified by its game id like the plugin binding; its editor UI takes the `<id>.editor` qualifier beside it. */
 val miniSudokuUiModule: Module = module {
-    single<GamePlayUi>(qualifier = qualifier(SudokuGames.MINI.id.value)) { SudokuPlayUi(SudokuGames.MINI, MiniSudokuBrand) }
+    single<GamePlayUi>(qualifier = qualifier(SudokuGames.MINI.id.value)) { SudokuPlayUi(SudokuGames.MINI, MiniSudokuBrand, get<HintModeSource>()) }
     single<GameEditorUi>(qualifier = qualifier("${SudokuGames.MINI.id.value}.editor")) { SudokuEditorUi(SudokuGames.MINI) }
 }
 
