@@ -27,42 +27,57 @@ internal object HallViolation {
     )
 
     /** The violation with the fewest units, the earlier kind pair then the lower subset winning ties; null when none. */
-    fun smallest(puzzle: QueensPuzzle, candidates: QueensCandidates): Violation? {
-        val scan = Scan(puzzle, candidates)
+    fun smallest(puzzle: QueensPuzzle, candidates: QueensCandidates): Violation? = smallest(candidates, Scratch(puzzle))
+
+    /** [smallest] reusing [scratch]'s buffers, for callers that probe many states of one puzzle. */
+    fun smallest(candidates: QueensCandidates, scratch: Scratch): Violation? {
+        scratch.load(candidates)
         var best: Violation? = null
         for ((kind, targetKind) in pairs) {
-            best = scan.smallest(kind, targetKind, best?.k ?: Int.MAX_VALUE) ?: best
+            best = scratch.smallest(kind, targetKind, best?.k ?: Int.MAX_VALUE) ?: best
         }
         return best
     }
 
-    /** One state's open cells and missing queens, read once and shared by the six kind pairs, with the subset buffers. */
-    private class Scan(private val puzzle: QueensPuzzle, candidates: QueensCandidates) {
+    /**
+     * Buffers for one puzzle, refilled per state: D9 probes ~100 states per call, and fresh
+     * subset arrays (2 × 2¹¹ ints on 11×11) per probe dominate its cost.
+     */
+    class Scratch(private val puzzle: QueensPuzzle) {
         private val n = puzzle.size
-        private val isOpen = BooleanArray(n * n) { candidates.isOpen(it) }
-        private val missingOf = Kind.entries.associateWith { kind ->
-            IntArray(n) { puzzle.queensPerUnit }.also { left ->
-                for (queen in candidates.queens) left[indexOf(puzzle, kind, queen)]--
-                for (unit in 0 until n) left[unit] = maxOf(0, left[unit])
-            }
-        }
+        private val unitOf = Array(Kind.entries.size) { kind -> IntArray(n * n) { indexOf(puzzle, Kind.entries[kind], it) } }
+        private val isOpen = BooleanArray(n * n)
+        private val missingOf = Array(Kind.entries.size) { IntArray(n) }
         private val open = IntArray(n)
         private val reach = IntArray(n)
         private val groups = IntArray(n)
         private val reachOf = IntArray(1 shl n)
         private val needOf = IntArray(1 shl n)
 
+        /** Reads [candidates]' open cells and each unit's missing queens (0 for a full or overfull unit). */
+        internal fun load(candidates: QueensCandidates) {
+            for (cell in 0 until n * n) isOpen[cell] = candidates.isOpen(cell)
+            for (kind in missingOf.indices) {
+                val left = missingOf[kind]
+                left.fill(puzzle.queensPerUnit)
+                for (queen in candidates.queens) left[unitOf[kind][queen]]--
+                for (unit in 0 until n) left[unit] = maxOf(0, left[unit])
+            }
+        }
+
         /** The smallest violation of [kind] against [targetKind] with fewer than [below] units, or null. */
-        fun smallest(kind: Kind, targetKind: Kind, below: Int): Violation? {
-            val missing = missingOf.getValue(kind)
-            val room = missingOf.getValue(targetKind)
+        internal fun smallest(kind: Kind, targetKind: Kind, below: Int): Violation? {
+            val missing = missingOf[kind.ordinal]
+            val room = missingOf[targetKind.ordinal]
+            val unitOfKind = unitOf[kind.ordinal]
+            val unitOfTarget = unitOf[targetKind.ordinal]
             open.fill(0)
             reach.fill(0)
             for (cell in 0 until n * n) {
                 if (!isOpen[cell]) continue
-                val unit = indexOf(puzzle, kind, cell)
+                val unit = unitOfKind[cell]
                 open[unit]++
-                reach[unit] = reach[unit] or (1 shl indexOf(puzzle, targetKind, cell))
+                reach[unit] = reach[unit] or (1 shl unitOfTarget[cell])
             }
             var m = 0
             for (unit in 0 until n) if (missing[unit] > 0) groups[m++] = unit

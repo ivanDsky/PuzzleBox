@@ -32,9 +32,10 @@ object CountSqueezeRung : QueensRung {
     /** Eager: the order needs every violation, so every open cell is probed. */
     private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<Found> {
         val causes = LinkedHashMap<HallViolation.Violation, MutableSet<Int>>()
+        val scratch = HallViolation.Scratch(puzzle)
         for (x in puzzle.regions.indices) {
             if (!candidates.isOpen(x)) continue
-            val violation = HallViolation.smallest(puzzle, candidates.place(puzzle, x))?.takeIf { it.k >= 2 } ?: continue
+            val violation = HallViolation.smallest(candidates.place(puzzle, x), scratch)?.takeIf { it.k >= 2 } ?: continue
             causes.getOrPut(violation, ::mutableSetOf) += x
         }
         return causes.map { (violation, cells) ->
