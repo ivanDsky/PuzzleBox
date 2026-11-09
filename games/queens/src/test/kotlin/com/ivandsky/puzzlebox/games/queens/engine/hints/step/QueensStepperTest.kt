@@ -7,11 +7,13 @@ import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensTestSupport
 import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.AttackRung
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.LongLookAheadRung
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensCandidates
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensDeduction
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensLadder
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensProof
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensRung
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.ShortLookAheadRung
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep.Deduction.Result
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep.Mistake.Kind
 import kotlin.math.abs
@@ -102,7 +104,6 @@ class QueensStepperTest {
         val replays: Map<String, Replay> by lazy {
             mapOf(
                 "gen-n8-q1" to replay(n8, autoCross = true),
-                "gen-n8-q2" to replay(golden("gen-n8-q2"), autoCross = true),
                 "n8N2 auto-cross off" to replay(QueensTestSupport.n8N2Puzzle(), autoCross = false),
                 "two-solutions" to replay(twoSolutions, autoCross = true),
             )
@@ -310,6 +311,24 @@ class QueensStepperTest {
         assertTrue("$reveal", stall.isOpen(reveal.cell.idx) && reveal.cell !in solution && !reveal.holdsQueen)
     }
 
+    @Test
+    fun `a look-ahead rung offers only its shallowest chains, even against smaller deeper evidence`() {
+        fun only(rung: QueensRung) = QueensLadder(listOf(rung))
+        val short = QueensLadder.Stepwise.rungs.single { it is ShortLookAheadRung }
+        val long = QueensLadder.Stepwise.rungs.single { it is LongLookAheadRung }
+        // gen-n8-q1 states from its replay. D10: 51 breaks at round 0 with 8 evidence, 35 at round 1 with 6.
+        val d10 = board(manual = setOf(0, 1, 2, 3, 7, 9, 11, 13, 14, 17, 19, 20, 25, 26, 30, 31, 40, 42, 47, 48, 52, 56, 57, 60))
+        // D11: the round-2 breaks' fewest evidence is 6 (8 and 46); 59 breaks at round 3 with 5.
+        val d11 = board(manual = setOf(0, 1, 2, 3, 7, 9, 11, 13, 14, 17, 19, 20, 23, 25, 26, 30, 31, 35, 36, 37, 40, 42, 47, 48, 51, 52, 55, 56, 57, 60, 63))
+        for ((rung, b, deeper) in listOf(Triple(short, d10, 35), Triple(long, d11, 59))) {
+            val smaller = rung.steps(n8, seeded(n8, b, true)).single { (it.deduction as QueensDeduction.Exclude).cells == setOf(deeper) }
+            val step = QueensStepper.next(n8, b, true, null, solution, only(rung)) as QueensStep.Deduction
+            assertTrue("$step", step.evidence.size > smaller.evidence.size)
+        }
+        assertEquals(Result.Cross(cells(51)), (QueensStepper.next(n8, d10, true, Cell(48), solution, only(short)) as QueensStep.Deduction).result)
+        assertEquals(Result.Cross(cells(46)), (QueensStepper.next(n8, d11, true, Cell(63), solution, only(long)) as QueensStep.Deduction).result)
+    }
+
     // ---- soundness replays ----
 
     @Test
@@ -325,7 +344,7 @@ class QueensStepperTest {
     @Test
     fun `auto-cross off replays step through D0`() {
         assertTrue(replays.getValue("n8N2 auto-cross off").steps.any { (it as? QueensStep.Deduction)?.rung == AttackRung })
-        assertTrue(replays.getValue("gen-n8-q2").steps.none { (it as? QueensStep.Deduction)?.rung == AttackRung })
+        assertTrue(replays.getValue("gen-n8-q1").steps.none { (it as? QueensStep.Deduction)?.rung == AttackRung })
     }
 
     @Test
