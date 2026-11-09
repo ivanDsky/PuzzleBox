@@ -170,6 +170,7 @@ class TangoPlayControllerTest {
         assertNotNull(s.hintCell)
         assertNotNull(s.hintWhy)
         assertNotNull(s.hintCaption)
+        assertNull(s.spotlight) // the default Legacy mode never shows one
     }
 
     @Test
