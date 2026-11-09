@@ -2,12 +2,13 @@ package com.ivandsky.puzzlebox.games.strandsui.editor
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -42,11 +43,15 @@ class StrandsEditorTraceTest {
 
     private fun board() = controller.draft.value.state.draft as StrandsDraft
 
+    /** The phone board and tool hint, and the tablet pane's paths panel under them. */
     private fun show() = rule.setContent {
         PuzzleBoxTheme {
             Column {
                 StrandsEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier.weight(1f))
                 StrandsEditorUi.ToolHint(controller, Modifier.fillMaxWidth())
+                val draft by controller.draft.collectAsState()
+                val selected by controller.selectedPath.collectAsState()
+                StrandsPathsPanel(draft.state.draft as StrandsDraft, selected, controller::selectPath)
             }
         }
     }
@@ -146,9 +151,9 @@ class StrandsEditorTraceTest {
         trace(6, 7)
         controller.selectPath(null)
 
-        rule.onNodeWithTag("strands.editor.path.1").performScrollTo().performClick()
+        rule.onNodeWithTag("strands.editor.path.1").performClick()
         assertEquals(1, controller.selectedPath.value)
-        rule.onNodeWithTag("strands.editor.path.1").performScrollTo().performClick()
+        rule.onNodeWithTag("strands.editor.path.1").performClick()
         assertNull(controller.selectedPath.value)
         rule.onNodeWithTag("strands.editor.remove").assertDoesNotExist()
     }

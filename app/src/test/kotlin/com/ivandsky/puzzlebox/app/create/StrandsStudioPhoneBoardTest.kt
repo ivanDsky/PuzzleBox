@@ -17,12 +17,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
@@ -116,6 +120,39 @@ class StrandsStudioPhoneBoardTest {
         assertTrue("the board went from $idle to $selected on the selection", abs((selected.height - idle.height).value) < 0.5f)
     }
 
+    @Test
+    fun `a path just traced can be marked the spangram from the phone`() {
+        traceTheLastRow()
+        val path = controller.selectedPath.value
+        assertTrue("the traced path is not selected", path != null)
+
+        val toggle = rule.onNodeWithTag("strands.editor.spangram.$path").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val tools = rule.onNodeWithTag(TOOL_SLOT).getUnclippedBoundsInRoot()
+        val window = rule.onRoot().getUnclippedBoundsInRoot()
+        assertTrue("spangram toggle $toggle outside the tool slot $tools", toggle.height > 0.dp && toggle.top >= tools.top && toggle.bottom <= tools.bottom)
+        assertTrue("spangram toggle $toggle outside the window $window", toggle.bottom <= window.bottom)
+        rule.onNodeWithTag("strands.editor.spangram.$path").performClick()
+        rule.mainClock.advanceTimeBy(SETTLE_MS)
+
+        assertTrue("path $path is not the spangram", (controller.draft.value.state.draft as StrandsDraft).spangram == path)
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h780dp-420dpi")
+    fun `on a 360x780 phone Edit board shows the word field whole and typeable`() {
+        show(tested = true)
+        rule.onNodeWithTag(EDIT_BOARD).performClick()
+        rule.mainClock.advanceTimeBy(SETTLE_MS)
+        rule.onNodeWithTag("strands.editor.cell.0").performClick()
+        rule.mainClock.advanceTimeBy(SETTLE_MS)
+        assertTrue("path 0 is not selected", controller.selectedPath.value == 0)
+        assertEveryRowInTheSlot()
+        assertWordFieldInTheSlot()
+        rule.onNodeWithTag(WORD).performTextReplacement("SPRINGS")
+        rule.mainClock.advanceTimeBy(SETTLE_MS)
+        assertTrue("the field took ${controller.word.value}", controller.word.value == "SPRINGS")
+    }
+
     /** The Studio with every row but the last a path, then the last row traced by taps. */
     private fun traceTheLastRow() {
         if (!::controller.isInitialized) show(tested = false, traced = StrandsDraft.ROWS - 1)
@@ -167,6 +204,22 @@ class StrandsStudioPhoneBoardTest {
         val frames = framesOfTheSwap()
 
         assertTheBoardFollowsTheSlot(frames, from = details.height, to = frames.last().first.height)
+    }
+
+    @Test
+    fun `a tap mid-way through the swap lands on the cell drawn under it`() {
+        show(tested = true, motion = true)
+        rule.onNodeWithTag(EDIT_BOARD).performClick()
+        repeat(MID_SWAP_FRAMES) { rule.mainClock.advanceTimeByFrame() }
+        val laidOut = rule.onNodeWithTag(GRID).getUnclippedBoundsInRoot()
+        val drawn = drawn(GRID)
+        assertTrue("the grid is not scaled mid-way: drawn $drawn, laid out $laidOut", abs((drawn.height - laidOut.height).value) > 1f)
+
+        // The pointer goes through the scaled layer to the cell's drawn centre: the last cell, of the last path.
+        rule.onNodeWithTag("strands.editor.cell.$LAST_CELL").performTouchInput { click(center) }
+        rule.mainClock.advanceTimeBy(SETTLE_MS)
+
+        assertTrue("the tap selected ${controller.selectedPath.value}", controller.selectedPath.value == StrandsDraft.ROWS - 1)
     }
 
     /** The grid and the board slot each frame, from the swap's first frame until well after the slot's animation. */
@@ -236,7 +289,8 @@ class StrandsStudioPhoneBoardTest {
     private fun assertWordFieldInTheSlot() {
         val slot = slot()
         val tools = rule.onNodeWithTag(TOOL_SLOT).getUnclippedBoundsInRoot()
-        val field = rule.onNodeWithTag(WORD).getUnclippedBoundsInRoot()
+        // Placed: an unplaced node's bounds are unspecified, and those compare as in bounds.
+        val field = rule.onNodeWithTag(WORD).assertIsDisplayed().getUnclippedBoundsInRoot()
         val line = rule.onNode(hasTestTag(WORD_CHECK) or hasTestTag(WORD_FIT), useUnmergedTree = true).getUnclippedBoundsInRoot()
         val bottom = maxOf(field.bottom, line.bottom)
         assertTrue("word field $field outside the slot $slot", field.top >= slot.top && bottom <= slot.bottom + 0.5.dp)
@@ -361,6 +415,10 @@ class StrandsStudioPhoneBoardTest {
 
         /** Frames of the swap watched: the slot's medium tween (240 ms) is about 15 of them. */
         const val SWAP_FRAMES = 40
+
+        /** Frames into the swap: about half the slot's tween. */
+        const val MID_SWAP_FRAMES = 7
+        const val LAST_CELL = StrandsDraft.ROWS * StrandsDraft.COLS - 1
         const val TITLE = "Untitled Strands"
         const val CLUE = "Rainbow shades"
         const val SPANGRAM = 5

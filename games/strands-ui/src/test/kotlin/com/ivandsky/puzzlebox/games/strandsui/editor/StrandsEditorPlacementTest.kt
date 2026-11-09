@@ -24,10 +24,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Where the authoring controls sit (user F8b): on a phone the word field, spangram toggle and
- * path rows follow the board; on a tablet the board is alone and the side pane's
- * [StrandsEditorUi.PaneTools] hold them. The clue and the credit are on neither: they wait for
- * the publish details.
+ * Where the authoring controls sit (user F8b): on a phone the word field follows the board and a
+ * tap on the board selects a path; on a tablet the board is alone and the side pane's
+ * [StrandsEditorUi.PaneTools] hold the word field and the path rows. The selected path's
+ * spangram toggle sits in [StrandsEditorUi.ToolHint] on both. The clue and the credit are on
+ * neither: they wait for the publish details.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -59,12 +60,14 @@ class StrandsEditorPlacementTest {
         rule.onNode(hasTestTag(tag), useUnmergedTree = true).assertExists()
 
     @Test
-    fun `the phone board has the word field and the paths but no clue and no credit`() {
+    fun `the phone board has the word field but no paths, no clue and no credit`() {
         path(0, 1)
+        controller.selectPath(0)
         board(PlayLayout.SinglePane)
         assertPresent(BOARD)
         assertPresent(WORD)
-        assertPresent(PATH_0)
+        assertAbsent(PATH_0)
+        assertAbsent(SPANGRAM_0)
         assertAbsent(CLUE)
         assertAbsent(CREDIT)
     }
@@ -93,16 +96,27 @@ class StrandsEditorPlacementTest {
     }
 
     @Test
-    fun `the pane tools hold the spangram toggle, the word field and the paths`() {
+    fun `the pane tools hold the word field and the paths`() {
         path(0, 1)
         controller.selectPath(0)
         rule.setContent { PuzzleBoxTheme { StrandsEditorUi.PaneTools(controller, Modifier) } }
         assertPresent(WORD)
         assertPresent(PATH_0)
-        assertPresent(SPANGRAM_0)
+        assertAbsent(SPANGRAM_0)
         assertAbsent(BOARD)
         assertAbsent(CLUE)
         assertAbsent(CREDIT)
+    }
+
+    @Test
+    fun `the tool hint holds the selected path's spangram toggle`() {
+        path(0, 1)
+        controller.selectPath(null)
+        rule.setContent { PuzzleBoxTheme { StrandsEditorUi.ToolHint(controller, Modifier) } }
+        assertAbsent(SPANGRAM_0)
+        controller.selectPath(0)
+        assertPresent(SPANGRAM_0)
+        assertPresent(REMOVE)
     }
 
     private companion object {
@@ -115,5 +129,6 @@ class StrandsEditorPlacementTest {
         const val SPANGRAM_0 = "strands.editor.spangram.0"
         const val CLUE = "strands.editor.clue"
         const val CREDIT = "strands.editor.credit"
+        const val REMOVE = "strands.editor.remove"
     }
 }

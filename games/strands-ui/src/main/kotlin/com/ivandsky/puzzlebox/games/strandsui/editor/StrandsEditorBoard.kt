@@ -3,8 +3,6 @@ package com.ivandsky.puzzlebox.games.strandsui.editor
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.unit.Dp
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -60,10 +58,10 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
  * for a word get a dashed outline (`strands.editor.cell.<idx>.pocket`). The [verdict] and the card's witness choice
  * ([StrandsEditorController.overlay]) are drawn by [StrandsDiagnosticsLayer]. The trace takes
  * any drag on the grid, so nothing scrolls it: with [withTools] (the phone Studio) the whole
- * grid fits the slot, below the touch floor if it must, the word field under it in view while the
- * slot has room, and the [StrandsPathTools] scroll in what is left ([StrandsPhoneBoard]); without
- * them (the tablet Studio draws them in its side pane) the grid alone fits the width and the
- * height at the touch floor, centred.
+ * grid fits the slot, below the touch floor if it must, the word field under it while the slot
+ * has room ([StrandsPhoneBoard]); the path rows stay in the tablet's pane, a tap on the board
+ * selects a path on the phone. Without them (the tablet Studio draws its tools in its side pane)
+ * the grid alone fits the width and the height at the touch floor, centred.
  */
 @Composable
 internal fun StrandsEditorBoard(
@@ -76,7 +74,6 @@ internal fun StrandsEditorBoard(
         StrandsPhoneBoard(
             grid = { StrandsEditorGrid(controller, verdict, 0.dp, Modifier.fillMaxSize()) },
             field = { StrandsWordField(controller) },
-            rest = { StrandsPathTools(controller, Modifier.verticalScroll(rememberScrollState())) },
             modifier = modifier,
         )
     } else {
@@ -88,35 +85,19 @@ internal fun StrandsEditorBoard(
 }
 
 /**
- * The authoring controls under the grid: the word field ([StrandsWordField]), which names the
+ * The tablet pane's authoring controls: the word field ([StrandsWordField]), which names the
  * selected path and is off while none is selected, first, so the selection that turns it on
- * never pushes it out of view; then the [StrandsPathTools].
+ * never pushes it out of view; then [StrandsPathsPanel], one row per path. The selected path's
+ * spangram toggle sits in the tool hint, on the phone and the tablet alike.
  */
 @Composable
 internal fun StrandsAuthoringTools(controller: StrandsEditorController, modifier: Modifier = Modifier) {
-    Column(modifier) {
-        StrandsWordField(controller)
-        StrandsPathTools(controller)
-    }
-}
-
-/** The selected path's spangram toggle and [StrandsPathsPanel], one row per path. */
-@Composable
-private fun StrandsPathTools(controller: StrandsEditorController, modifier: Modifier = Modifier) {
     val draft by controller.draft.collectAsState()
     val selected by controller.selectedPath.collectAsState()
-    val board = draft.state.draft as StrandsDraft
     Column(modifier) {
-        selected?.let { index ->
-            StrandsSpangramToggle(
-                index = index,
-                isSpangram = board.spangram == index,
-                onToggle = { controller.toggleSpangram(index) },
-                modifier = Modifier.padding(top = Spacing.sm),
-            )
-        }
+        StrandsWordField(controller)
         StrandsPathsPanel(
-            board = board,
+            board = draft.state.draft as StrandsDraft,
             selected = selected,
             onSelect = controller::selectPath,
             modifier = Modifier.padding(top = Spacing.sm),

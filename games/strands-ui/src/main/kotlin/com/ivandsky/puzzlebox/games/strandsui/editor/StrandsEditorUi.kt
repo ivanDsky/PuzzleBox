@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.VariantId
@@ -49,13 +50,13 @@ object StrandsEditorUi : GameEditorUi {
         onEdit: (EditorDraft<*>) -> Unit,
     ): GameEditorController = StrandsEditorController(initial, onEdit)
 
-    /** The grid and, on a phone, the [StrandsAuthoringTools] under it; on a tablet the grid alone. */
+    /** The grid and, on a phone, the word field under it; on a tablet the grid alone. */
     @Composable
     override fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) {
         StrandsEditorBoard(controller as StrandsEditorController, modifier, verdict, withTools = layout == PlayLayout.SinglePane)
     }
 
-    /** The tablet's [StrandsAuthoringTools]: word field, spangram toggle and path rows. */
+    /** The tablet's [StrandsAuthoringTools]: word field and path rows. */
     @Composable
     override fun PaneTools(controller: GameEditorController, modifier: Modifier) {
         StrandsAuthoringTools(controller as StrandsEditorController, modifier)
@@ -70,7 +71,10 @@ object StrandsEditorUi : GameEditorUi {
     /** A missing or too-long clue reads as a field to fill, not a board to fix. */
     override val publishFieldCopy: Map<String, String> = mapOf(StrandsPublishGates.CLUE_LENGTH to StrandsEditorCopy.CLUE_READINESS)
 
-    /** "Trace a word", or the selected path's word and length with a Remove action. */
+    /**
+     * "Trace a word", or the selected path's word and length with its spangram toggle and a
+     * Remove action: in the tool strip, so both stay in reach on a phone however tall the board.
+     */
     @Composable
     override fun ToolHint(controller: GameEditorController, modifier: Modifier) {
         StrandsToolHint(controller as StrandsEditorController, modifier)
@@ -93,7 +97,8 @@ object StrandsEditorUi : GameEditorUi {
 private fun StrandsToolHint(controller: StrandsEditorController, modifier: Modifier) {
     val draft by controller.draft.collectAsState()
     val selected by controller.selectedPath.collectAsState()
-    val path = selected?.let { (draft.state.draft as StrandsDraft).paths.getOrNull(it) }
+    val board = draft.state.draft as StrandsDraft
+    val path = selected?.let { board.paths.getOrNull(it) }
     // The row reserves Remove's touch target with or without a selection, so selecting a path
     // never grows the tools and shrinks the phone board above them.
     Row(
@@ -104,11 +109,20 @@ private fun StrandsToolHint(controller: StrandsEditorController, modifier: Modif
         Text(
             text = if (path == null) "Trace a word" else "${path.word ?: "Unnamed"} · ${path.cells.size}",
             style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.testTag("strands.editor.hint"),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false).testTag("strands.editor.hint"),
         )
-        if (selected != null) {
-            TextButton(onClick = { selected?.let(controller::removePath) }, modifier = Modifier.testTag("strands.editor.remove")) {
-                Text("Remove")
+        selected?.let { index ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StrandsSpangramToggle(
+                    index = index,
+                    isSpangram = board.spangram == index,
+                    onToggle = { controller.toggleSpangram(index) },
+                )
+                TextButton(onClick = { controller.removePath(index) }, modifier = Modifier.testTag("strands.editor.remove")) {
+                    Text("Remove")
+                }
             }
         }
     }
