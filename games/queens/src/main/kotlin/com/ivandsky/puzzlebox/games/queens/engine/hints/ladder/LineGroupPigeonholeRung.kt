@@ -21,20 +21,19 @@ object LineGroupPigeonholeRung : QueensRung {
     override val captionKey: String = "queens.hint.rung.line-group-pigeonhole"
 
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
-        found(puzzle, candidates).sortedWith(order).asSequence().map { it.proof }
+        found(puzzle, candidates).sortedWith(order).asSequence().map { QueensProof(it.deduction, it.evidence()) }
 
     override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
-        found(puzzle, candidates).minWithOrNull(order)?.proof?.deduction
+        found(puzzle, candidates).minWithOrNull(order)?.deduction
 
-    private class Found(val k: Int, val proof: QueensProof) {
-        val cells: Set<Int> = (proof.deduction as QueensDeduction.Exclude).cells
-    }
+    /** A deduction with its evidence still unbuilt, so [step] builds none for the losing candidates. */
+    private class Found(val k: Int, val deduction: QueensDeduction.Exclude, val evidence: () -> Set<Int>)
 
     private val order: Comparator<Found> = compareBy(
         { it.k },
-        { it.cells.min() },
-        { it.proof.deduction.unit.kind },
-        { it.proof.deduction.unit.unit },
+        { it.deduction.cells.min() },
+        { it.deduction.unit.kind },
+        { it.deduction.unit.unit },
     )
 
     private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<Found> {
@@ -89,7 +88,7 @@ object LineGroupPigeonholeRung : QueensRung {
             val cells = lines.flatMap { targets[it] }.filter { candidates.isOpen(it) && it !in inside }.toSet()
             if (cells.isEmpty()) continue
             val deduction = QueensDeduction.Exclude(this, HintReason(kind, lines.first(), this), cells)
-            found += Found(chosen.size, QueensProof(deduction, chosen.flatMap { opens[it] }.toSet()))
+            found += Found(chosen.size, deduction) { chosen.flatMap { opens[it] }.toSet() }
         }
         return found
     }

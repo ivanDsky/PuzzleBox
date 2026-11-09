@@ -25,20 +25,19 @@ object LeftoverQueenRung : QueensRung {
     private const val MAX_BAND = 4
 
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
-        found(puzzle, candidates).sortedWith(order).asSequence().map { it.proof }
+        found(puzzle, candidates).sortedWith(order).asSequence().map { QueensProof(it.deduction, it.evidence()) }
 
     override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
-        found(puzzle, candidates).minWithOrNull(order)?.proof?.deduction
+        found(puzzle, candidates).minWithOrNull(order)?.deduction
 
-    private class Found(val k: Int, val proof: QueensProof) {
-        val cells: Set<Int> = (proof.deduction as QueensDeduction.Exclude).cells
-    }
+    /** A deduction with its evidence still unbuilt, so [step] builds none for the losing candidates. */
+    private class Found(val k: Int, val deduction: QueensDeduction.Exclude, val evidence: () -> Set<Int>)
 
     private val order: Comparator<Found> = compareBy(
         { it.k },
-        { it.cells.min() },
-        { it.proof.deduction.unit.kind },
-        { it.proof.deduction.unit.unit },
+        { it.deduction.cells.min() },
+        { it.deduction.unit.kind },
+        { it.deduction.unit.unit },
     )
 
     /** One family of units: its cells and missing queens per index, a cell's index, and its kind. */
@@ -87,6 +86,8 @@ object LeftoverQueenRung : QueensRung {
                 insideUnits += unit
                 insideReach += open.fold(0) { bits, cell -> bits or (1 shl bands.of(cell)) }
             }
+            val leftover = IntArray(n * n)
+            val inLeftover = BooleanArray(n * n)
             val found = ArrayList<Found>()
             for (mask in 1 until (1 shl unsolved.size)) {
                 val k = Integer.bitCount(mask)
@@ -97,20 +98,30 @@ object LeftoverQueenRung : QueensRung {
                     bandBits = bandBits or (1 shl unsolved[i])
                     bandNeed += bands.missing[unsolved[i]]
                 }
+                var insideBits = 0
                 var insideNeed = 0
-                for (i in insideUnits.indices) if (insideReach[i] and bandBits.inv() == 0) insideNeed += insides.missing[insideUnits[i]]
+                for (i in insideUnits.indices) if (insideReach[i] and bandBits.inv() == 0) {
+                    insideBits = insideBits or (1 shl insideUnits[i])
+                    insideNeed += insides.missing[insideUnits[i]]
+                }
                 if (insideNeed != bandNeed - 1) continue
-                val band = unsolved.filterIndexed { i, _ -> mask and (1 shl i) != 0 }
-                val inside = insideUnits.filterIndexed { i, _ -> insideReach[i] and bandBits.inv() == 0 }.toSet()
-                val open = band.flatMap { bands.cells[it] }.filter(candidates::isOpen)
-                val leftover = open.filter { insides.of(it) !in inside }.toSet()
-                if (leftover.isEmpty()) continue
+                var size = 0
+                for (cell in 0 until n * n) {
+                    if (candidates.isOpen(cell) && bandBits and (1 shl bands.of(cell)) != 0 && insideBits and (1 shl insides.of(cell)) == 0) {
+                        leftover[size++] = cell
+                        inLeftover[cell] = true
+                    }
+                }
+                if (size == 0) continue
                 val cells = (0 until n * n).filter { x ->
-                    candidates.isOpen(x) && x !in leftover && leftover.all { rulesOut(x, it) }
+                    candidates.isOpen(x) && !inLeftover[x] && (0 until size).all { rulesOut(x, leftover[it]) }
                 }.toSet()
+                for (i in 0 until size) inLeftover[leftover[i]] = false
                 if (cells.isEmpty()) continue
-                val deduction = QueensDeduction.Exclude(LeftoverQueenRung, HintReason(bands.kind, band.first(), LeftoverQueenRung), cells)
-                found += Found(k, QueensProof(deduction, open.toSet()))
+                val unit = HintReason(bands.kind, Integer.numberOfTrailingZeros(bandBits), LeftoverQueenRung)
+                found += Found(k, QueensDeduction.Exclude(LeftoverQueenRung, unit, cells)) {
+                    (0 until n * n).filter { candidates.isOpen(it) && bandBits and (1 shl bands.of(it)) != 0 }.toSet()
+                }
             }
             return found
         }
