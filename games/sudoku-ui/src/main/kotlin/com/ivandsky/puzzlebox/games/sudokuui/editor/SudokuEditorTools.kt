@@ -23,8 +23,10 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.GameButton
+import com.ivandsky.puzzlebox.designsystem.GameToggleButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuDraft
+import com.ivandsky.puzzlebox.games.sudokuui.MiniSudokuBrand
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuKeypad
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuKeypadActions
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuKeypadModel
@@ -34,8 +36,8 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 
 /**
  * The tools row under the grid, [height] tall: Erase, Clear, the Symmetry toggle and the
- * Forced cells toggle (on shows the digits logic places from the givens). Erase stays on
- * with nothing selected (it then nudges); Clear is off while the board holds no digit.
+ * Forced cells switch (filled with the Sudoku accent while on; on shows the digits logic
+ * places from the givens). Erase stays on
  * Symmetry shows its mode as state and, while [unpaired] cells wait for a partner, their
  * count in a badge.
  */
@@ -73,13 +75,13 @@ internal fun SudokuEditorTools(
 @Composable
 private fun ForcedButton(controller: SudokuEditorController, modifier: Modifier) {
     val on by controller.forcedView.collectAsState()
-    GameButton(
-        onClick = controller::toggleForcedView,
+    GameToggleButton(
+        checked = on,
+        onCheckedChange = { controller.toggleForcedView() },
         icon = PuzzleIcons.Hint,
         label = "Forced",
-        modifier = modifier.testTag("sudoku.editor.forced").semantics {
-            stateDescription = if (on) "On" else "Off"
-        },
+        accent = MiniSudokuBrand.accent,
+        modifier = modifier.testTag("sudoku.editor.forced"),
     )
 }
 
