@@ -74,6 +74,15 @@ class ZipSearchBudgetTest {
     }
 
     @Test
+    fun `a node cap stops the search with no clock and no cancel`() {
+        val capped = ZipSearch.bounded(ZipWorstCaseFixtures.adjacentCorners, limit = 2, budget = Budget.Unlimited, maxNodes = 1_000)
+        val roomy = ZipSearch.bounded(twoPathBoard, limit = 2, budget = Budget.Unlimited, maxNodes = 1_000)
+
+        assertEquals(ZipSearchOutcome.Exhausted, capped)
+        assertEquals(2, (roomy as ZipSearchOutcome.Done).solutions.size)
+    }
+
+    @Test
     fun `a board parity rules out answers Done with no paths before the DFS`() {
         var polls = 0
         val counting = Budget { polls++; false }

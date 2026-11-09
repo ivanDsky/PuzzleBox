@@ -7,14 +7,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.TouchInjectionScope
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.games.zip.Cell
+import com.ivandsky.puzzlebox.games.zip.Wall
+import com.ivandsky.puzzlebox.games.zip.WallDirection
 import com.ivandsky.puzzlebox.games.zip.editor.ZipDraft
 import com.ivandsky.puzzlebox.games.zip.editor.ZipDraftCommand
 import com.ivandsky.puzzlebox.games.zip.editor.ZipEditor
@@ -43,10 +48,14 @@ class ZipEditorPathTest {
 
     private val edits = ArrayList<EditorDraft<*>>()
 
-    private fun show(path: List<Int> = emptyList(), marks: List<Int> = emptyList()): ZipEditorController {
+    private fun show(
+        path: List<Int> = emptyList(),
+        marks: List<Int> = emptyList(),
+        walls: Set<Wall> = emptySet(),
+    ): ZipEditorController {
         val blank = EditorDraft.fresh(ZipEditor, ZipEditor.variants.first())
         val ends = listOfNotNull(path.firstOrNull(), path.lastOrNull().takeIf { path.size > 1 })
-        val board = (blank.state.draft as ZipDraft).copy(path = path, waypoints = ends.take(1) + marks + ends.drop(1))
+        val board = (blank.state.draft as ZipDraft).copy(path = path, waypoints = ends.take(1) + marks + ends.drop(1), walls = walls)
         val controller = ZipEditorController(EditorDraft(ZipEditor, blank.state.copy(draft = board))) { edits += it }
         rule.setContent {
             PuzzleBoxTheme {
@@ -193,7 +202,7 @@ class ZipEditorPathTest {
         val controller = show(path = listOf(0, 1, 2))
         rule.onAllNodesWithTag("zip.editor.hint").assertCountEquals(1)
         assertEquals(ZipEditorHintState(covered = 3, total = SIZE * SIZE), covered(controller))
-        assertTrue(!covered(controller).complete)
+        rule.onAllNodesWithTag("zip.editor.hint.next").assertCountEquals(0)
 
         drag(2, 7, 12)
 
@@ -201,11 +210,25 @@ class ZipEditorPathTest {
     }
 
     @Test
-    fun `a covered board names the next step in the hint`() {
-        val snake = (0 until SIZE).flatMap { row -> (0 until SIZE).map { row * SIZE + if (row % 2 == 0) it else SIZE - 1 - it } }
-        show(path = snake)
+    fun `a covered board with only its ends numbered names Numbers next`() {
+        show(path = SNAKE)
 
-        rule.onAllNodesWithTag("zip.editor.hint.next").assertCountEquals(1)
+        rule.onNodeWithTag("zip.editor.hint.next").assertTextEquals("Next: Numbers")
+    }
+
+    @Test
+    fun `once a middle number is placed the hint names Walls, not Numbers`() {
+        show(path = SNAKE, marks = listOf(SNAKE[12]))
+
+        rule.onNodeWithTag("zip.editor.hint.next").assertTextEquals("Next: Walls")
+        rule.onAllNodesWithText("Next: Numbers").assertCountEquals(0)
+    }
+
+    @Test
+    fun `with numbers and walls placed the hint names no next step`() {
+        show(path = SNAKE, marks = listOf(SNAKE[12]), walls = setOf(Wall(Cell(0), WallDirection.DOWN)))
+
+        rule.onAllNodesWithTag("zip.editor.hint.next").assertCountEquals(0)
     }
 
     @Test
@@ -252,5 +275,8 @@ class ZipEditorPathTest {
         const val SIZE = 5
         const val STEPS = 6
         const val BOARD = "zip.editor.board"
+
+        /** Row by row, even rows left to right and odd rows right to left: covers the board. */
+        val SNAKE = (0 until SIZE).flatMap { row -> (0 until SIZE).map { row * SIZE + if (row % 2 == 0) it else SIZE - 1 - it } }
     }
 }

@@ -13,39 +13,45 @@ import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
  * completion gate is [EndAtLastWaypointRule] (`path.last() == last waypoint`), waypoint
  * monotonicity is [WaypointOrderRule] over the [ZipVerifier.waypointIndexTable].
  *
- * [bounded] polls its [Budget] once up front and then every [POLL_INTERVAL] DFS nodes;
- * once spent it unwinds and answers [ZipSearchOutcome.Exhausted]. [search] runs the same
- * walk with [Budget.Unlimited], so the solver, hints and generator see unchanged results.
+ * [bounded] polls its [Budget] once up front and then every [POLL_INTERVAL] DFS nodes, and
+ * stops past its node cap; either way it unwinds and answers [ZipSearchOutcome.Exhausted].
+ * The cap counts work, not time, so a board gets the same outcome on any device. [search]
+ * runs the same walk with [Budget.Unlimited] and no cap, so the solver, hints and generator
+ * see unchanged results.
  */
 object ZipSearch {
 
     fun search(puzzle: ZipPuzzle, prefix: List<Cell>, limit: Int): ZipSolver.Result {
         var found = 0
         var first: List<Cell>? = null
-        walk(puzzle, prefix, limit, Budget.Unlimited) { path ->
+        walk(puzzle, prefix, limit, Budget.Unlimited, maxNodes = Int.MAX_VALUE) { path ->
             found++
             if (first == null) first = path.toList()
         }
         return ZipSolver.Result(found, first)
     }
 
-    /** Up to [limit] distinct full paths in search order, or Exhausted once [budget] is spent. */
-    fun bounded(puzzle: ZipPuzzle, limit: Int, budget: Budget): ZipSearchOutcome {
+    /**
+     * Up to [limit] distinct full paths in search order, or Exhausted once [budget] is spent or
+     * the DFS has visited more than [maxNodes] nodes.
+     */
+    fun bounded(puzzle: ZipPuzzle, limit: Int, budget: Budget, maxNodes: Int = Int.MAX_VALUE): ZipSearchOutcome {
         if (budget.exhausted()) return ZipSearchOutcome.Exhausted
         val solutions = ArrayList<List<Cell>>()
-        val settled = walk(puzzle, emptyList(), limit, budget) { path -> solutions.add(path.toList()) }
+        val settled = walk(puzzle, emptyList(), limit, budget, maxNodes) { path -> solutions.add(path.toList()) }
         return if (settled) ZipSearchOutcome.Done(solutions) else ZipSearchOutcome.Exhausted
     }
 
     /**
      * Hands each full path, live, to [onSolution] until [limit] are found. Returns false
-     * when [budget] ran out before the search settled.
+     * when [budget] ran out or the DFS passed [maxNodes] nodes before the search settled.
      */
     private fun walk(
         puzzle: ZipPuzzle,
         prefix: List<Cell>,
         limit: Int,
         budget: Budget,
+        maxNodes: Int,
         onSolution: (List<Cell>) -> Unit,
     ): Boolean {
         val board = puzzle.board
@@ -94,7 +100,7 @@ object ZipSearch {
                 }
                 return found >= limit
             }
-            if (++nodes % POLL_INTERVAL == 0 && budget.exhausted()) {
+            if (++nodes > maxNodes || nodes % POLL_INTERVAL == 0 && budget.exhausted()) {
                 exhausted = true
                 return true
             }

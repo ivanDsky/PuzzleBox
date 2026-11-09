@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.Solution
@@ -49,6 +50,22 @@ class VerdictCardCrossfadeTest {
         composeRule.mainClock.advanceTimeBy(FRAMES_INTO_FADE_MS)
 
         assertEquals(1, composeRule.onAllNodesWithTag(ISSUES).fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `a new Multiple straight after another shows its own cell count`() {
+        fun multiple(cells: IntRange) = Verdict.Multiple(Solution(listOf(0)), Solution(listOf(1)), cells.toSet())
+        var verdict: Verdict by mutableStateOf(multiple(5..19))
+        composeRule.setContent {
+            PuzzleBoxTheme { VerdictCard(verdict = verdict, onCheckAgain = {}, issues = {}) }
+        }
+        composeRule.onNodeWithText("15 cells differ, marked on the board").assertExists()
+
+        composeRule.runOnIdle { verdict = multiple(23..26) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("4 cells differ, marked on the board").assertExists()
+        composeRule.onNodeWithText("15 cells differ, marked on the board").assertDoesNotExist()
     }
 
     private companion object {
