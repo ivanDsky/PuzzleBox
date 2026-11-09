@@ -3,15 +3,22 @@ package com.ivandsky.puzzlebox.games.sudokuui
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.ScoreModel
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
+import com.ivandsky.puzzlebox.gameui.hint.StepHints
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCommand
 import com.ivandsky.puzzlebox.games.sudoku.SudokuMoves
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHint
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHints
+import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStep
+import com.ivandsky.puzzlebox.games.sudokuui.hint.SudokuSpotlightMapper
+import com.ivandsky.puzzlebox.games.sudokuui.hint.SudokuStepGame
 import java.time.Instant
+import kotlinx.coroutines.CoroutineScope
 
 /**
  * Selection, input routing and the staged hint over one [SudokuSession]; the session decides
@@ -26,6 +33,11 @@ import java.time.Instant
  * Clock: [settle] is the owner's hook on every committed command or counted hint, applied
  * before the session is stored and the win record built, so the record carries the real time.
  * Selection and the Notes toggle never reach it.
+ *
+ * [HintMode.Stepwise] with a [scope] (HintParity, Mini only) swaps the staged hint for [StepHints]:
+ * a press shows a [spotlight] and never places (A1), a culprit's second press erases it as one
+ * undo unit (A4), and every input above clears the Spotlight in the same call (A10). [hint] then
+ * stays null, so the legacy wash, rings and caption never draw (A15).
  */
 class SudokuBoardState(
     initialSession: SudokuSession,
@@ -35,6 +47,8 @@ class SudokuBoardState(
     private val now: () -> Instant = Instant::now,
     private val onSessionChanged: (SudokuSession) -> Unit = {},
     private val settle: (SudokuSession) -> SudokuSession = { it },
+    hintMode: HintMode = HintMode.Legacy,
+    scope: CoroutineScope? = null,
 ) {
 
     var session by mutableStateOf(initialSession)
@@ -60,13 +74,25 @@ class SudokuBoardState(
     // Survives the hint being cleared, so looking away and asking again does not count twice.
     private val countedTargets = HashSet<Pair<Class<out SudokuHint>, List<Int>>>()
 
+    private val stepHints: StepHints<SudokuStep, SudokuSpotlightMapper.Key>? =
+        (hintMode as? HintMode.Stepwise)?.let { mode ->
+            scope?.let {
+                val game = SudokuStepGame(session = { session }, onEraseCulprit = ::eraseMistake)
+                StepHints(mode, it, game, used = { session.hintsUsed }, onCount = ::storeHintsUsed)
+            }
+        }
+
+    /** The Stepwise hint on screen; null in Legacy mode and after any input. */
+    val spotlight: Spotlight? get() = stepHints?.spotlight
+
     val canUndo: Boolean get() = session.canUndo
 
     val canRedo: Boolean get() = session.canRedo
 
-    val hintCaption: String? get() = SudokuHintCaptions.hint(hint, session.board)
+    // While a Spotlight shows its callout carries the text, so the caption slot stays empty (A11).
+    val hintCaption: String? get() = if (spotlight != null) null else SudokuHintCaptions.hint(hint, session.board)
 
-    val violation: String? get() = SudokuHintCaptions.violation(session.board)
+    val violation: String? get() = if (spotlight != null) null else SudokuHintCaptions.violation(session.board)
 
     /** The cell the hint places into, null for hints that point at a set of cells. */
     val hintTarget: Int?
@@ -152,6 +178,10 @@ class SudokuBoardState(
     fun requestHint() {
         if (session.isComplete) return
         rejection = null
+        stepHints?.let {
+            it.press()
+            return
+        }
         val active = hint
         if (!hintRevealed && (active is SudokuHint.Place || active is SudokuHint.Reveal)) {
             reveal(active)
@@ -176,6 +206,16 @@ class SudokuBoardState(
         val command = SudokuMoves.reveal(session.board, cell, digit) ?: return
         record(command)
         hintRevealed = true
+    }
+
+    /** The culprit's second press (A4): one undoable Erase; a cell with nothing to erase records nothing. */
+    private fun eraseMistake(step: SudokuStep.Mistake) {
+        SudokuMoves.erase(session.board, step.cell)?.let(::record)
+    }
+
+    /** A newly counted Stepwise hint: through [settle] like the legacy count, never [commit], so the Spotlight stays. */
+    private fun storeHintsUsed(used: Int) {
+        store(settle(session.copy(hintsUsed = used)))
     }
 
     private fun targetOf(hint: SudokuHint): Pair<Class<out SudokuHint>, List<Int>> {
@@ -207,6 +247,7 @@ class SudokuBoardState(
         hint = null
         hintRevealed = false
         rejection = null
+        stepHints?.inputMade()
     }
 
     private fun record(command: SudokuCommand) = commit(session.withCommand(command, now()))

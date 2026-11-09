@@ -27,15 +27,20 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
+import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
+import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightOverlay
 
 /**
  * The N x N board inside the square [modifier] gives it. The outer frame and box borders share
  * the thick stroke, cell borders the thin one; all lines draw over the cell fills, and the thin
  * ones take the board gridline role so they hold up on every highlight tint. Text scales with the
  * cell so any size the caller picks stays legible; digits use tabular figures.
+ *
+ * [spotlight] draws over the cells inside the frame, so its cells are the grid's cells; it takes
+ * no taps, so a tap on a lit or dimmed cell still selects it. Null draws nothing.
  */
 @Composable
-fun SudokuGrid(model: SudokuBoardModel, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
+fun SudokuGrid(model: SudokuBoardModel, onSelect: (Int) -> Unit, modifier: Modifier = Modifier, spotlight: Spotlight? = null) {
     val strokes = gridStrokes(model.size)
     val colors = MaterialTheme.colorScheme
     val cellLine = LocalBoardColors.current.boardGridLine
@@ -77,6 +82,7 @@ fun SudokuGrid(model: SudokuBoardModel, onSelect: (Int) -> Unit, modifier: Modif
                 }
             }
         }
+        SpotlightOverlay(spotlight, Modifier.testTag(SPOTLIGHT_TAG))
     }
 }
 
@@ -104,6 +110,7 @@ private fun DrawScope.drawGridLines(model: SudokuBoardModel, strokes: GridStroke
 }
 
 private const val GRID_TAG = "sudoku.grid"
+private const val SPOTLIGHT_TAG = "sudoku.spotlight"
 private const val TABULAR_FIGURES = "tnum"
 private const val MINI_SIZE = 6
 private const val DIGIT_FRACTION = 0.6f
