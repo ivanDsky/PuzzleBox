@@ -12,9 +12,9 @@ import kotlinx.serialization.modules.polymorphic
  * registered by [registerKeys] (each api exposes its own registration).
  *
  * Saved form: each entry is `type` (the key's serial name) + `value` — the same shape the
- * reflective default writes with the class name as `type`. Keys therefore pin
- * `@SerialName` to the class name they were first saved under, so a back stack saved by
- * an older build restores after a key moves or is renamed.
+ * reflective default writes with the class name as `type`. Serial names carry the
+ * `com.ivandsky.puzzlebox.app.nav.` prefix by convention; compatibility across releases is
+ * versioned by `NAVIGATION_STATE_KEY` (ADR-0011 §5), not by pinned names.
  */
 fun navKeySavedStateConfiguration(
     registerKeys: PolymorphicModuleBuilder<NavKey>.() -> Unit,

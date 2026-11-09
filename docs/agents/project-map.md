@@ -33,7 +33,7 @@ seam (`GameEditor` in `core:game`, `GameEditorUi` in `core:game-ui`, one game-ag
 `feature:create`), ADR-0020 shared puzzles in Firestore, ADR-0021 the tools module family,
 ADR-0022 trunk delivery (unfinished work merges dark behind a
 `ReleaseFlag`, bound per build type; the flip PR releases), ADR-0023 CI on main only (PRs
-run no CI; the local `assembleDebug test` is the merge gate; main tests before releasing), ADR-0024 per-game daily boards (rules allow-list, day window, rank-ordered queries; amends ADR-0013 and ADR-0020), ADR-0025 Spotlight and press ledger (one generic `StepHints` press flow, shape-only glyph seam, `HintModeSource` bound once; hint-parity seams). ADR-0026 Competitions (match documents, sealed results, device-derived outcome).
+run no CI; the local `assembleDebug test` is the merge gate; main tests before releasing), ADR-0024 per-game daily boards (rules allow-list, day window, rank-ordered queries; amends ADR-0013 and ADR-0020), ADR-0025 Spotlight and press ledger (one generic `StepHints` press flow, shape-only glyph seam, `HintModeSource` bound once; hint-parity seams). ADR-0026 Competitions (match documents, sealed results, device-derived outcome). ADR-0027 navigation placement (one owner per content type, placement table and Konsist P9, chrome types, one flag-on convention; amends ADR-0011).
 
 ## Layout
 
