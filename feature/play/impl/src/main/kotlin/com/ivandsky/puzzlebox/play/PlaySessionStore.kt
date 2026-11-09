@@ -1,9 +1,11 @@
 package com.ivandsky.puzzlebox.play
 
+import android.util.Log
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
@@ -13,12 +15,14 @@ import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import java.time.LocalDate
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainCoroutineDispatcher
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 
@@ -26,7 +30,8 @@ import kotlinx.coroutines.launch
  * Owner of the play feature's live plays: one [ActivePlay] per [PlaySlot] (A9, N21), so
  * every stack that shows a game's day shares its board. A play outlives its entry's
  * composition: the record write is fire-and-observe (a navigation must not cancel it),
- * the badge lands on the result screen, and [replay] (Result's "Play again") resets in place. A Koin single
+ * the badge lands on the result screen, and [replay] (Result's "Play again") resets in
+ * place. A Koin single
  * is the process lifetime; [retain] releases what no back stack names (fold → flush →
  * cancel) and [flush] writes every pending save at app stop (A10).
  *
@@ -64,6 +69,9 @@ class PlaySessionStore internal constructor(
     /** Each day's first solve as the record rows hold it, replaced on every emission. */
     private var recordedSolves = emptyMap<PlaySlot.Daily, ActivePlay.Solve>()
 
+    /** The records flow errored; [decide] stays cold until a one-shot read lands. */
+    private var snapshotFailed = false
+
     /** Solves of released plays until their record lands in [recordedSolves]. */
     private val releasedSolves = HashMap<PlaySlot.Daily, ActivePlay.Solve>()
 
@@ -72,14 +80,36 @@ class PlaySessionStore internal constructor(
 
     init {
         scope.launch {
-            completions.observeRecords().collect { rows ->
-                recordedSolves = rows.mapNotNull { row ->
-                    val date = (row.puzzleRef.key as? PuzzleKey.Daily)?.date ?: return@mapNotNull null
-                    PlaySlot.Daily(row.puzzleRef.gameId, date) to ActivePlay.Solve(row.time, row.hints)
-                }.toMap()
-                releasedSolves.keys.removeAll(recordedSolves.keys)
+            try {
+                completions.observeRecords().collect(::adopt)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "completed-day snapshot stopped: ${e.message}")
+                snapshotFailed = true
                 snapshotLoaded.complete(Unit)
             }
+        }
+    }
+
+    private fun adopt(rows: List<CompletionRecord>) {
+        recordedSolves = rows.mapNotNull { row ->
+            val date = (row.puzzleRef.key as? PuzzleKey.Daily)?.date ?: return@mapNotNull null
+            PlaySlot.Daily(row.puzzleRef.gameId, date) to ActivePlay.Solve(row.time, row.hints)
+        }.toMap()
+        releasedSolves.keys.removeAll(recordedSolves.keys)
+        snapshotFailed = false
+        snapshotLoaded.complete(Unit)
+    }
+
+    /** The records read once, for when the live snapshot failed; a failing read leaves it failed. */
+    private suspend fun readOnce() {
+        try {
+            adopt(completions.observeRecords().first())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "completed-day read failed: ${e.message}")
         }
     }
 
@@ -125,7 +155,7 @@ class PlaySessionStore internal constructor(
             val solve = live.record.value.solve ?: solvedBefore(slot) ?: return OpenDecision.Open
             return OpenDecision.Finished(resultOf(slot, solve))
         }
-        if (!snapshotLoaded.isCompleted) return OpenDecision.Cold
+        if (!snapshotLoaded.isCompleted || snapshotFailed) return OpenDecision.Cold
         return solvedBefore(slot)?.let { OpenDecision.Check(resultOf(slot, it)) } ?: OpenDecision.Open
     }
 
@@ -136,6 +166,7 @@ class PlaySessionStore internal constructor(
      */
     suspend fun completedResult(key: GameKey): ResultKey? {
         snapshotLoaded.await()
+        if (snapshotFailed) readOnce()
         return when (val decision = decide(key)) {
             is OpenDecision.Finished -> decision.result
             is OpenDecision.Check -> decision.result.takeIf { opening.savedRow(it.slot()) == null }
@@ -233,3 +264,5 @@ class PlaySessionStore internal constructor(
 }
 
 private val CustomGameKey.slot: PlaySlot get() = PlaySlot.Custom(GameId(gameId), puzzleId)
+
+private const val TAG = "PlaySessionStore"

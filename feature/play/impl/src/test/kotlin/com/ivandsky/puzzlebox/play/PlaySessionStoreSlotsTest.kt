@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.LoadPastDay
@@ -32,6 +33,8 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -73,7 +76,10 @@ class PlaySessionStoreSlotsTest {
     private val calendar = FakeGameCalendar(today)
     private val completions = FakeCompletionRepository()
 
-    private fun TestScope.store(ui: GamePlayRegistry = fakes.registry): PlaySessionStore {
+    private fun TestScope.store(
+        ui: GamePlayRegistry = fakes.registry,
+        repo: CompletionRepository = completions,
+    ): PlaySessionStore {
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
         val lane = WriteLane()
         return PlaySessionStore(
@@ -81,7 +87,7 @@ class PlaySessionStoreSlotsTest {
             ui = ui,
             opening = SlotOpening(daily, LoadPastDay(daily, fakes.games), saved, calendar, fakes.games, lane, FakeReceivedPuzzleRepository()),
             writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
-            completions = completions,
+            completions = repo,
             calendar = calendar,
             dispatchers = object : DispatcherProvider {
                 override val main = dispatcher
@@ -265,6 +271,18 @@ class PlaySessionStoreSlotsTest {
         assertNotNull(store.peek(slot))
         assertFalse(fakes[alpha].latest.isComplete)
         assertNull("the replay is live, so its board opens", store.completedResult(key))
+    }
+
+    @Test
+    fun `a failing records flow never leaves an unsolved day waiting`() = runTest {
+        val broken = object : CompletionRepository by completions {
+            override fun observeRecords(): Flow<List<CompletionRecord>> = flow { throw IllegalStateException("boom") }
+        }
+        val store = store(repo = broken)
+        runCurrent()
+
+        assertEquals(OpenDecision.Cold, store.decide(key))
+        assertNull(store.completedResult(key))
     }
 
     @Test

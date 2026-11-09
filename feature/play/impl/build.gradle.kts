@@ -5,6 +5,8 @@ plugins {
 
 android {
     namespace = "com.ivandsky.puzzlebox.play"
+    // PlaySessionStore logs a failed records snapshot through android.util.Log.
+    testOptions.unitTests.isReturnDefaultValues = true
 }
 
 dependencies {

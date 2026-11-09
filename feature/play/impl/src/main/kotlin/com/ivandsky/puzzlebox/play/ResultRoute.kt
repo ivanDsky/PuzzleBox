@@ -37,8 +37,9 @@ import org.koin.core.parameter.parametersOf
  *
  * Up and Done both hand back [onDone] (a pop to the game's origin, SC4). "Play again"
  * hands back [onPlayAgain]: the app resets the solved live play to a fresh attempt
- * ([PlaySessionStore.replay]) and replaces this entry with the game. "Next: <game>" hands back [onNext] with the
- * next unsolved daily (A7, SC10). Share (A17) opens the system share sheet with the
+ * ([PlaySessionStore.replay]) and replaces this entry with the game. "Next: <game>" hands
+ * back [onNext] with the next unsolved daily (A7, SC10). Share (A17) opens the system share
+ * sheet with the
  * plain [resultShareText] — no screen of our own.
  *
  * The hero page ([ResultHeroScreen]) draws the solve: the frozen facts, the view model's
