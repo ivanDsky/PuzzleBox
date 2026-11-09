@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -47,6 +48,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeAppReleaseRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.LocalDate
@@ -130,6 +132,7 @@ class HomeRouteTest {
                     single<SavedPlayRepository> { saved }
                     single<MatchLocalRepository> { FakeMatchLocalRepository() }
                     single<GameCalendar> { FakeGameCalendar(today) }
+                    single<LeaderboardRepository> { FakeLeaderboardRepository() }
                     single<GamePlayRegistry> { GamePlayRegistry(emptyList()) }
                     // Resume also checks for an update: by default no release known, so no pill.
                     single<AppReleaseRepository> { releases }
