@@ -11,8 +11,10 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import java.time.LocalDate
 import kotlin.coroutines.cancellation.CancellationException
@@ -183,6 +185,11 @@ class PlaySessionStore internal constructor(
         if (live.controller.isComplete) live.replay()
     }
 
+    /** The live play of a duel leg, opened and kept as [open] keeps a friend's puzzle's; its
+     *  board is the leg's puzzle, built from the match on first open. Null when the key's
+     *  code is unreadable or the game is unplayable. */
+    fun open(key: MatchLegKey): ActivePlay? = key.slot?.let { open(it) }
+
     /** The live play of [slot]; never creates one. */
     fun peek(slot: PlaySlot): ActivePlay? = slots[slot]
 
@@ -197,9 +204,9 @@ class PlaySessionStore internal constructor(
     /**
      * Releases every live slot that no key in [keys] names: a [GameKey] with a day names
      * that day, a null-day one the slot it pinned, a [ResultKey] its play's slot (the
-     * result's badge and retry read it), and a [CustomGameKey] its friend's puzzle. A
-     * released play folds its clock and queues its final save before this returns, so a
-     * reopen's read is ordered after it.
+     * result's badge and retry read it), a [CustomGameKey] its friend's puzzle, and a
+     * [MatchLegKey] its duel leg. A released play folds its clock and queues its final save
+     * before this returns, so a reopen's read is ordered after it.
      */
     fun retain(keys: Collection<NavKey>) {
         val gameKeys = keys.filterIsInstance<GameKey>().toSet()
@@ -209,6 +216,7 @@ class PlaySessionStore internal constructor(
         }
         keys.filterIsInstance<ResultKey>().mapTo(named) { PlaySlot.Daily(GameId(it.gameId), LocalDate.parse(it.day)) }
         keys.filterIsInstance<CustomGameKey>().mapTo(named) { it.slot }
+        keys.filterIsInstance<MatchLegKey>().mapNotNullTo(named) { it.slot }
         val released = slots.filterKeys { it !in named }.values.toList()
         released.forEach { play ->
             slots.remove(play.slot)
@@ -265,3 +273,6 @@ class PlaySessionStore internal constructor(
 private val CustomGameKey.slot: PlaySlot get() = PlaySlot.Custom(GameId(gameId), puzzleId)
 
 private const val TAG = "PlaySessionStore"
+
+private val MatchLegKey.slot: PlaySlot?
+    get() = ShareCode.parse(code)?.let { PlaySlot.Leg(GameId(gameId), it.value, legIndex) }

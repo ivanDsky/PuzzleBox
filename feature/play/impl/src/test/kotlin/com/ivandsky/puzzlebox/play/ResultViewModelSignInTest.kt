@@ -9,12 +9,14 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleBoard
 import com.ivandsky.puzzlebox.play.friend.oneGoogleAccount
@@ -25,10 +27,13 @@ import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
@@ -66,7 +71,12 @@ class ResultViewModelSignInTest {
         val store = PlaySessionStore(
             games = fakes.games,
             ui = fakes.registry,
-            opening = SlotOpening(daily, LoadPastDay(daily, fakes.games), saved, calendar, fakes.games, WriteLane(), FakeReceivedPuzzleRepository()),
+            opening = SlotOpening(
+                daily, LoadPastDay(daily, fakes.games), saved, calendar, fakes.games, WriteLane(), FakeReceivedPuzzleRepository(),
+                FakeMatchRepository(),
+                LoadSharedPuzzle(fakes.games, FakeSharedPuzzleRepository(), FakeReceivedPuzzleRepository(), { Budget.Unlimited }, { Instant.EPOCH }),
+                testDispatchers(dispatcher),
+            ),
             writers = { SlotWriter(it, saved, WriteLane(), CoroutineScope(dispatcher)) },
             completions = completions,
             calendar = calendar,
