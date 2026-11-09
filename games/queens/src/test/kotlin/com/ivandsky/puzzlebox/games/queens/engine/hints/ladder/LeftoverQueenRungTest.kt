@@ -97,8 +97,9 @@ class LeftoverQueenRungTest {
     @Test
     fun `a two-row band with one region inside crosses the cells attacking both leftover cells, naming the top row`() {
         val proofs = LeftoverQueenRung.steps(twoRows, empty(5)).toList()
-        // 3 and 8 touch both 4 and 9; 14, 19 and 24 share their column. 13 touches only 9.
-        assertTrue(proof(HintReason.Kind.ROW, 0, setOf(3, 8, 14, 19, 24), rows(5, 0, 1)) in proofs)
+        // 3 and 8 touch both 4 and 9; 14, 19 and 24 share their column. 13 touches only 9. 3 and 8 sit in
+        // the band, so they leave the evidence: a cell is never both reason and target.
+        assertTrue(proof(HintReason.Kind.ROW, 0, setOf(3, 8, 14, 19, 24), rows(5, 0, 1) - setOf(3, 8)) in proofs)
     }
 
     @Test
@@ -112,14 +113,14 @@ class LeftoverQueenRungTest {
     fun `a three-row band with two regions inside crosses what attacks all three leftover cells`() {
         val proofs = LeftoverQueenRung.steps(threeRows, empty(6)).toList()
         // 10 touches 5, 11 and 17; 23, 29 and 35 share their column. 4 and 16 touch only two of them.
-        assertTrue(proof(HintReason.Kind.ROW, 0, setOf(10, 23, 29, 35), rows(6, 0, 1, 2)) in proofs)
+        assertTrue(proof(HintReason.Kind.ROW, 0, setOf(10, 23, 29, 35), rows(6, 0, 1, 2) - 10) in proofs)
     }
 
     @Test
     fun `a four-row band is searched, a five-row band is not`() {
         assertTrue(proof(HintReason.Kind.ROW, 0, setOf(24), rows(5, 0, 1, 2, 3)) in LeftoverQueenRung.steps(fourRows, empty(5)).toList())
         val band = rows(6, 0, 1, 2, 3, 4)
-        assertTrue(LeftoverQueenRung.steps(fiveRows, empty(6)).none { it.evidence == band })
+        assertTrue(LeftoverQueenRung.steps(fiveRows, empty(6)).none { it.evidence == band - cells(it) })
     }
 
     @Test
@@ -127,12 +128,12 @@ class LeftoverQueenRungTest {
         // With 4 and 9 crossed, rows 0–1 are open only in region 0.
         val state = QueensCandidates(5, emptySet(), setOf(4, 9))
         val band = rows(5, 0, 1) - setOf(4, 9)
-        assertTrue(LeftoverQueenRung.steps(twoRows, state).none { it.evidence == band })
+        assertTrue(LeftoverQueenRung.steps(twoRows, state).none { it.evidence == band - cells(it) })
     }
 
     @Test
     fun `a two-row band with two regions inside yields nothing`() {
-        assertTrue(LeftoverQueenRung.steps(twoRows, empty(5)).none { it.evidence == rows(5, 2, 3) })
+        assertTrue(LeftoverQueenRung.steps(twoRows, empty(5)).none { it.evidence == rows(5, 2, 3) - cells(it) })
     }
 
     @Test
@@ -142,7 +143,7 @@ class LeftoverQueenRungTest {
         val excluded = setOf(2, 3, 5, 8, 9, 11, 12, 18, 24, 30, 13, 19, 31)
         val band = setOf(0, 1, 4, 6, 7, 10)
         val open = LeftoverQueenRung.steps(sixN2, QueensCandidates(6, setOf(25), excluded)).toList()
-        assertTrue(open.none { it.evidence == band })
+        assertTrue(open.none { it.evidence == band - cells(it) })
 
         // A queen on 28 leaves column 4 one queen short: a queen anywhere else in it would fill it.
         val filling = LeftoverQueenRung.steps(sixN2, QueensCandidates(6, setOf(25, 28), excluded)).toList()
@@ -197,7 +198,7 @@ class LeftoverQueenRungTest {
     }
 
     @Test
-    fun `no cell the rung crosses on a golden board is a solution cell, and evidence is the band's open cells`() {
+    fun `no cell the rung crosses on a golden board is a solution cell, and evidence is the band's open cells less the crossed ones`() {
         var fired = 0
         for ((name, puzzle) in goldenBoards()) {
             val n = puzzle.size
@@ -211,7 +212,7 @@ class LeftoverQueenRungTest {
                 val band = band(n, puzzle, proof)
                 assertTrue("$name $proof", band.size in 2..4)
                 assertEquals("$name $proof", band.min(), proof.deduction.unit.unit)
-                assertEquals("$name $proof", (0 until n * n).filter { state.isOpen(it) && unitOf(it) in band }.toSet(), proof.evidence)
+                assertEquals("$name $proof", (0 until n * n).filter { state.isOpen(it) && unitOf(it) in band && it !in crossed }.toSet(), proof.evidence)
             }
         }
         assertTrue(fired > 0)
