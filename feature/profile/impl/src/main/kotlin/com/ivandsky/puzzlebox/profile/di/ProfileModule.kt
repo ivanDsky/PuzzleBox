@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.profile.di
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.profile.settings.SettingsViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -29,4 +30,5 @@ val profileModule: Module = module {
             savedStateHandle = get(),
         )
     }
+    viewModel { SettingsViewModel(preferences = get(), appBuild = get()) }
 }
