@@ -53,6 +53,8 @@ private const val TEXT_MIME = "text/*"
  * and stays off while the box is empty, and, after a failed import, one plain inline line
  * ([ImportErrorLine]). While [ImportSheetUi.checking] the button gives way to a spinner row,
  * the box turns read-only and a swipe cannot close the sheet (back and scrim still close it).
+ * The box takes the height the sheet has left (keyboard included), at least [BoxMinHeight], and
+ * scrolls inside, so a big paste never pushes the button or the error line off screen.
  * Draws nothing until [ImportSheetUi.visible]; [ImportSheetActions.onDismiss] closes it.
  *
  * Once per open, from this user-opened surface only, the clipboard's text goes to
@@ -121,7 +123,11 @@ private fun ImportSheetContent(
         OutlinedTextField(
             value = ui.text,
             onValueChange = onEdit,
-            modifier = Modifier.fillMaxWidth().heightIn(min = BoxMinHeight).testTag("create.import.text"),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f, fill = false)
+                .heightIn(min = BoxMinHeight)
+                .testTag("create.import.text"),
             textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
             readOnly = ui.checking,
             isError = ui.error != null,
