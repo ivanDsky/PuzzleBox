@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -132,6 +133,13 @@ object PuzzleIcons {
 
     /** Copy to the clipboard: two outlined sheets, the back one tucked under the front. */
     val Copy: ImageVector = CopyMark
+
+    /** Duel result and record: `emoji_events`, the trophy. */
+    val Trophy: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_emoji_events)
+
+    /** Share a result or invite: the share glyph from the core set. */
+    val Share: ImageVector = Icons.Rounded.Share
 }
 
 private const val PREVIEW_COLUMNS = 4
@@ -181,6 +189,8 @@ internal fun PuzzleIconsPreview() {
             "NeedsConnection" to PuzzleIcons.NeedsConnection,
             "Add" to PuzzleIcons.Add,
             "Copy" to PuzzleIcons.Copy,
+            "Trophy" to PuzzleIcons.Trophy,
+            "Share" to PuzzleIcons.Share,
         )
         Column(
             modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.md),
