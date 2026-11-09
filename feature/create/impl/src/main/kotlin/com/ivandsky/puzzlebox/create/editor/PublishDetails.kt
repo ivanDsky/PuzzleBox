@@ -47,7 +47,8 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
  * cap the field shows its inline error. Signed out ([signedIn] false) the author placeholder
  * says Google fills it. Fields are disabled while not [enabled] (a publish runs). [paired] sets
  * the title and the author side by side, for a short slot; an [action] heads the form, at the
- * end of its "Publish details" row. The game's own [fields] close the form.
+ * end of its "Publish details" row, after the [history] (Undo and Redo, reachable here while the
+ * tools are away). The game's own [fields] close the form.
  *
  * Motion: the note row **Expands** in with a **Fade** (EnterDuration on the emphasized
  * decelerate curve); under reduced motion it only fades.
@@ -64,6 +65,7 @@ fun PublishDetails(
     enabled: Boolean = true,
     paired: Boolean = false,
     action: (@Composable () -> Unit)? = null,
+    history: (@Composable () -> Unit)? = null,
     fields: @Composable (Modifier) -> Unit = {},
 ) {
     var renaming by rememberSaveable { mutableStateOf(false) }
@@ -71,14 +73,15 @@ fun PublishDetails(
     var focusNote by remember { mutableStateOf(false) }
     val blocked = remember(details.blocks) { details.blocks.map(PublishBlock::id).toSet() }
     Column(modifier.testTag("create.details"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        if (action != null) {
+        if (action != null || history != null) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "Publish details",
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.weight(1f),
                 )
-                action()
+                history?.invoke()
+                action?.invoke()
             }
         }
         Paired(paired) { half ->

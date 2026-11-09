@@ -36,7 +36,7 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
 
 /**
  * The Studio's tool slot, under the board on a phone and in the tablet's side pane: the [tools], or, while [open] and not [editBoard],
- * the publish details [form] with an Edit board chip ([onEditBoard]) that brings the tools back.
+ * the publish details [form] with Undo and Redo and an Edit board chip ([onEditBoard]) that brings the tools back.
  * While [open] the slot holds the taller of the two, so the board above keeps its size across
  * Edit board and back; once the details no longer apply it fits the tools again. Faded-out
  * content leaves the composition.
@@ -180,5 +180,6 @@ private fun PreviewForm(modifier: Modifier, editBoard: @Composable () -> Unit) {
         modifier = modifier,
         paired = true,
         action = editBoard,
+        history = { UndoRedoButtons(canUndo = true, canRedo = false, onUndo = {}, onRedo = {}) },
     )
 }

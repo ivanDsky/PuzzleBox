@@ -119,6 +119,7 @@ class TestSolveGoldenScreenshots {
                             modifier = formModifier,
                             paired = true,
                             action = editBoardChip,
+                            history = { UndoRedoButtons(canUndo = true, canRedo = false, onUndo = {}, onRedo = {}) },
                         )
                     },
                     modifier = slotModifier,
