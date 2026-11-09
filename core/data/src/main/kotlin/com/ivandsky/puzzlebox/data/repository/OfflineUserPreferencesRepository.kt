@@ -24,4 +24,11 @@ internal class OfflineUserPreferencesRepository(
     override suspend fun markTutorialSeen(game: GameId) {
         dataSource.markTutorialSeen(game)
     }
+
+    override val autoShowWitness: Flow<Boolean> =
+        dataSource.preferences.map { it.autoShowWitness }.distinctUntilChanged()
+
+    override suspend fun setAutoShowWitness(on: Boolean) {
+        dataSource.setAutoShowWitness(on)
+    }
 }

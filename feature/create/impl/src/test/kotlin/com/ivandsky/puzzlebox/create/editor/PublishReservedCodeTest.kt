@@ -31,6 +31,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import kotlin.random.Random
@@ -136,6 +137,7 @@ class PublishReservedCodeTest {
             identity = author,
             idTokens = noGoogleAccount,
             updatePublishState = signedOutUnpublishing(),
+            preferences = FakeUserPreferencesRepository(),
         )
         runCurrent()
         return vm

@@ -49,6 +49,8 @@ internal fun PillWithCard(
     onDismiss: () -> Unit,
     onCheckAgain: () -> Unit,
     onOverlay: (EditorOverlay) -> Unit,
+    autoShow: Boolean,
+    onAutoShow: (Boolean) -> Unit,
     issues: @Composable (Modifier) -> Unit,
 ) {
     Box {
@@ -60,6 +62,8 @@ internal fun PillWithCard(
                 onCheckAgain = onCheckAgain,
                 overlay = overlay,
                 onOverlay = onOverlay,
+                autoShow = autoShow,
+                onAutoShow = onAutoShow,
                 issues = issues,
                 modifier = cardModifier,
             )

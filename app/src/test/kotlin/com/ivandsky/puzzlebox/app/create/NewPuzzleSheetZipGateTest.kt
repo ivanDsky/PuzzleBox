@@ -51,6 +51,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.Instant
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
@@ -181,6 +182,7 @@ class NewPuzzleSheetZipGateTest {
                                     GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.NO_CREDENTIAL)
                             },
                             updatePublishState = UpdatePublishState(FakeSharedPuzzleRepository(), FakePublishedPuzzleRepository()),
+                            preferences = FakeUserPreferencesRepository(),
                         )
                     }
                 },

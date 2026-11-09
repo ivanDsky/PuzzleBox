@@ -72,6 +72,7 @@ internal fun EditorRoute(
     val testCleared by viewModel.testSolve.cleared.collectAsStateWithLifecycle()
     val publish by viewModel.publish.state.collectAsStateWithLifecycle()
     val cardOpen by viewModel.verdictCard.open.collectAsStateWithLifecycle()
+    val autoShow by viewModel.autoShowWitness.collectAsStateWithLifecycle()
     val ticket by viewModel.ticket.collectAsStateWithLifecycle()
     val unpublish by viewModel.unpublish.state.collectAsStateWithLifecycle()
     // Each Copy code bumps it, so the same code copied twice still toasts twice.
@@ -114,6 +115,8 @@ internal fun EditorRoute(
                 onDismissCard = viewModel.verdictCard::dismiss,
                 onCheckAgain = viewModel.verdictCard::checkAgain,
                 onOverlay = viewModel.verdictCard::choose,
+                autoShow = autoShow,
+                onAutoShow = viewModel::setAutoShowWitness,
                 layout = layout,
                 onBack = onBack,
                 onRename = viewModel.meta::rename,

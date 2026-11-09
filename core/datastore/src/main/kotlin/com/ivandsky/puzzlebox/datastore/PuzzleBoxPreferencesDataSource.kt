@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.datastore
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -15,12 +16,15 @@ data class PuzzleBoxPreferences(
     val themeMode: ThemeMode,
     /** Games whose tutorial the player finished or skipped. */
     val tutorialsSeen: Set<GameId>,
+    /** Whether the Studio opens each 2+ solutions verdict with its witness on the board; on until switched off. */
+    val autoShowWitness: Boolean,
 )
 
 /**
  * Owns the Preferences DataStore keys. Reads tolerate a missing or corrupt value by
  * falling back to [ThemeMode.SYSTEM]; writes store the enum name so the file stays
  * human-readable and forward-compatible. Seen tutorials are one string set of game ids.
+ * Auto-show is a plain boolean, true while the key is absent.
  */
 class PuzzleBoxPreferencesDataSource(
     private val dataStore: DataStore<Preferences>,
@@ -30,6 +34,7 @@ class PuzzleBoxPreferencesDataSource(
         PuzzleBoxPreferences(
             themeMode = preferences[KEY_THEME_MODE]?.let(ThemeMode::fromStored) ?: ThemeMode.SYSTEM,
             tutorialsSeen = preferences[KEY_TUTORIALS_SEEN].orEmpty().mapTo(mutableSetOf(), ::GameId),
+            autoShowWitness = preferences[KEY_AUTO_SHOW_WITNESS] ?: true,
         )
     }
 
@@ -43,8 +48,13 @@ class PuzzleBoxPreferencesDataSource(
         }
     }
 
+    suspend fun setAutoShowWitness(on: Boolean) {
+        dataStore.edit { preferences -> preferences[KEY_AUTO_SHOW_WITNESS] = on }
+    }
+
     private companion object {
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         val KEY_TUTORIALS_SEEN = stringSetPreferencesKey("tutorials_seen")
+        val KEY_AUTO_SHOW_WITNESS = booleanPreferencesKey("auto_show_witness")
     }
 }

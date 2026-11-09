@@ -14,12 +14,14 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * On a 2+ solutions verdict it drives the A/B witness choice, which the open [controller]
  * owns as its `overlay`: each new settled Multiple [read] resets it to that controller's
- * `openingOverlay`, and every [choose] goes to its `adoptOverlay`; the card reads the controller's
+ * `openingOverlay`, on the board as well while [autoShow] (the author's saved Auto-show) is on,
+ * and every [choose] goes to its `adoptOverlay`; the card reads the controller's
  * overlay itself, so it and the board read one value. Checking keeps the choice, as the board holds its last settled reading.
  */
 class VerdictCardState(
     private val recheck: () -> Unit,
     private val controller: () -> GameEditorController? = { null },
+    private val autoShow: () -> Boolean,
 ) {
 
     private val mutableOpen = MutableStateFlow(false)
@@ -40,12 +42,13 @@ class VerdictCardState(
         recheck()
     }
 
-    /** Each verdict the Studio shows: a new settled Multiple opens the witness choice afresh. */
+    /** Each verdict the Studio shows: a new settled Multiple opens the witness choice afresh, on the board while [autoShow]. */
     fun read(verdict: Verdict) {
         if (verdict !is Verdict.Multiple || verdict == lastMultiple) return
         lastMultiple = verdict
         val controller = controller() ?: return
-        controller.adoptOverlay(controller.openingOverlay(verdict))
+        val opening = controller.openingOverlay(verdict)
+        controller.adoptOverlay(opening.copy(showOnBoard = opening.showOnBoard || autoShow()))
     }
 
     /** The author's A/B or Show on board change; the board draws it at once. */

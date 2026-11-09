@@ -65,6 +65,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
@@ -377,6 +378,7 @@ class CreatePublishedTabTest {
         identity = identity,
         idTokens = noGoogleAccount,
         updatePublishState = UpdatePublishState(shared, published),
+        preferences = FakeUserPreferencesRepository(),
     )
 
     private fun show(top: NavKey): Navigator =

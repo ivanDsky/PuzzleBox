@@ -4,6 +4,10 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -27,20 +31,25 @@ import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -55,7 +64,8 @@ import org.robolectric.shadows.ShadowLooper
 /**
  * The verdict card (02 handoff, "Pill popover"; spec S6, A8): tapping the pill opens it,
  * Check again after Undetermined runs exactly one more analysis, and a Unique board shows its
- * difficulty, or "needs guessing", on both the pill and the card.
+ * difficulty, or "needs guessing", on both the pill and the card. The saved Auto-show (on by
+ * default) opens every new Multiple with its witness on the board; the card's switch saves it.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -67,6 +77,7 @@ class VerdictCardTest {
     private val editor = FakeGameEditor()
     private val ui = FakeGameEditorUi()
     private val drafts = FakeDraftRepository()
+    private var prefs = FakeUserPreferencesRepository()
     private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey, EditorKey(DRAFT_ID)))))
 
     @After
@@ -147,6 +158,59 @@ class VerdictCardTest {
         assertEquals(FakeEditorController.FIX_CELLS, ui.controllers.single().selected)
     }
 
+    @Test
+    fun `on a fresh install a Multiple opens with its witness on the board, no press`() {
+        editor.analysis = { draft, _ -> multipleOf(draft.marks) }
+        open(marks = 1)
+        awaitPill("Multiple")
+
+        awaitOverlay { it.showOnBoard }
+    }
+
+    @Test
+    fun `switching auto-show off on the card saves it and the next Multiple opens off the board`() {
+        editor.analysis = { draft, _ -> multipleOf(draft.marks) }
+        open(marks = 1)
+        awaitPill("Multiple")
+        openCard()
+        composeRule.onNodeWithTag(AUTO_SHOW).assertIsOn()
+
+        composeRule.onNodeWithTag(AUTO_SHOW).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(AUTO_SHOW).assertIsOff()
+        assertFalse(runBlocking { prefs.autoShowWitness.first() })
+        val controller = ui.controllers.single()
+        composeRule.runOnIdle { controller.edit(editor.draft(marks = 2)) }
+        awaitOverlay { !it.showOnBoard }
+    }
+
+    @Test
+    fun `switching auto-show back on mid-verdict shows the witness and saves it`() {
+        prefs = FakeUserPreferencesRepository(autoShowWitness = false)
+        editor.analysis = { draft, _ -> multipleOf(draft.marks) }
+        open(marks = 1)
+        awaitPill("Multiple")
+        openCard()
+        composeRule.onNodeWithTag(AUTO_SHOW).assertIsOff()
+        composeRule.onNodeWithTag(SHOW_ON_BOARD).assertIsNotSelected()
+
+        composeRule.onNodeWithTag(AUTO_SHOW).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(SHOW_ON_BOARD).assertIsSelected()
+        assertTrue(ui.controllers.single().overlay.value.showOnBoard)
+        assertTrue(runBlocking { prefs.autoShowWitness.first() })
+    }
+
+    /** Waits until the board's controller holds an overlay matching [shown], running the paused looper so verdicts land. */
+    private fun awaitOverlay(shown: (EditorOverlay) -> Boolean) {
+        composeRule.waitUntil(TIMEOUT_MS) {
+            ShadowLooper.idleMainLooper(FRAME_MS, TimeUnit.MILLISECONDS)
+            shown(ui.controllers.single().overlay.value)
+        }
+    }
+
     /** Taps the pill and lets the card's popover settle in its window. */
     private fun openCard() {
         composeRule.onNodeWithTag(PILL).performClick()
@@ -162,7 +226,7 @@ class VerdictCardTest {
                 module {
                     viewModel { (key: EditorKey) ->
                         val copyDraft = CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW })
-                        EditorViewModel(key, drafts, games, editors, GamePlayRegistry(emptyList()), copyDraft, DefaultDispatcherProvider(), saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW }, createShared = signedOutPublishing(drafts), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(), idTokens = noGoogleAccount, updatePublishState = signedOutUnpublishing())
+                        EditorViewModel(key, drafts, games, editors, GamePlayRegistry(emptyList()), copyDraft, DefaultDispatcherProvider(), saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW }, createShared = signedOutPublishing(drafts), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(), idTokens = noGoogleAccount, updatePublishState = signedOutUnpublishing(), preferences = prefs)
                     }
                     idleCreateRoot(drafts)
                 },
@@ -214,6 +278,11 @@ class VerdictCardTest {
         const val CHECK_AGAIN = "create.verdict.checkAgain"
         const val FIX_SELECT = "fake.editor.fix.select"
         const val NEEDS_GUESSING = "NeedsGuessing"
+        const val AUTO_SHOW = "create.verdict.autoShow"
+        const val SHOW_ON_BOARD = "create.verdict.showOnBoard"
+
+        /** A Multiple that differs with each board, so every edit opens the witness afresh. */
+        fun multipleOf(marks: Int) = Verdict.Multiple(Solution(listOf(marks)), Solution(listOf(marks + 1)), setOf(marks))
 
         fun storedRow(blob: ByteArray) = Draft(
             id = DRAFT_ID,

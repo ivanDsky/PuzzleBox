@@ -64,6 +64,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
@@ -299,6 +300,7 @@ class PublishedStudioTest {
                             identity = identity,
                             idTokens = noGoogleAccount,
                             updatePublishState = signedOutUnpublishing(),
+                            preferences = FakeUserPreferencesRepository(),
                         ).also { vm = it }
                     }
                     idleCreateRoot(drafts)

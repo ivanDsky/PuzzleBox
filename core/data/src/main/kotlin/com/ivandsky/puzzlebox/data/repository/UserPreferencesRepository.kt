@@ -18,4 +18,9 @@ interface UserPreferencesRepository {
     fun tutorialSeen(game: GameId): Flow<Boolean>
 
     suspend fun markTutorialSeen(game: GameId)
+
+    /** Whether the Studio opens each 2+ solutions verdict with its witness on the board; true until switched off. */
+    val autoShowWitness: Flow<Boolean>
+
+    suspend fun setAutoShowWitness(on: Boolean)
 }

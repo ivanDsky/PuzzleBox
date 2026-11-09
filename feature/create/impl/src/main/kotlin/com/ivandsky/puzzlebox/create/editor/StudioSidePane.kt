@@ -33,7 +33,7 @@ internal val SidePaneWidth = 372.dp
 /**
  * The tablet Studio's right pane, 372 dp on the surface: the [VerdictCard] always open inline
  * (so there is no pill), with Check again ([onCheckAgain]), the witness A/B over [overlay]
- * ([onOverlay]) and the game's fix list ([issues]); then the [toolStrip] with its game hint; both
+ * ([onOverlay]), the saved Auto-show ([autoShow], [onAutoShow]) and the game's fix list ([issues]); then the [toolStrip] with its game hint; both
  * scroll when the pane is short. The [actionArea] stays pinned at the bottom, the [toast] just
  * above it.
  */
@@ -43,6 +43,8 @@ internal fun StudioSidePane(
     overlay: EditorOverlay,
     onCheckAgain: () -> Unit,
     onOverlay: (EditorOverlay) -> Unit,
+    autoShow: Boolean,
+    onAutoShow: (Boolean) -> Unit,
     issues: @Composable (Modifier) -> Unit,
     toolStrip: @Composable (Modifier) -> Unit,
     actionArea: @Composable (Modifier) -> Unit,
@@ -67,6 +69,8 @@ internal fun StudioSidePane(
                     onCheckAgain = onCheckAgain,
                     overlay = overlay,
                     onOverlay = onOverlay,
+                    autoShow = autoShow,
+                    onAutoShow = onAutoShow,
                     issues = issues,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -99,6 +103,8 @@ private fun PreviewPane(verdict: Verdict) {
         overlay = EditorOverlay(),
         onCheckAgain = {},
         onOverlay = {},
+        autoShow = true,
+        onAutoShow = {},
         issues = {},
         toolStrip = { stripModifier ->
             ToolStrip(
