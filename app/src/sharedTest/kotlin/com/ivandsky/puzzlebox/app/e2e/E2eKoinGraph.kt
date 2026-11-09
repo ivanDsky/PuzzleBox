@@ -8,6 +8,9 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
+import com.ivandsky.puzzlebox.data.match.MatchRepository
+import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
@@ -18,6 +21,9 @@ import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.LocalDate
@@ -35,7 +41,8 @@ val E2E_TODAY: LocalDate = LocalDate.of(2026, 11, 4)
  * The one Koin graph every E2E test runs on: the production modules
  * ([PuzzleBoxApplication.appModules]) with core:testing fakes on the edges — daily
  * (every game's fixture fresh, so no LinkedIn call), records, saved plays, calendar,
- * preferences, identity, leaderboards and [releaseFlags] (none on, as in release; a run of an
+ * preferences, identity, leaderboards, duels (the matches backend, the local match list and
+ * the result outbox) and [releaseFlags] (none on, as in release; a run of an
  * unreleased feature passes its flag). [overrides] load last and win (Koin allows
  * overriding by default), e.g. a file-backed database for process-death rows.
  *
@@ -65,6 +72,9 @@ class E2eKoinGraph(
     )
     val identity = FakeIdentityService()
     val leaderboard = FakeLeaderboardRepository()
+    val matches = FakeMatchRepository()
+    val matchLocal = FakeMatchLocalRepository()
+    val outbox = FakeMatchResultOutbox()
 
     private var started: Koin? = null
 
@@ -79,6 +89,9 @@ class E2eKoinGraph(
         single<UserPreferencesRepository> { preferences }
         single<IdentityService> { identity }
         single<LeaderboardRepository> { leaderboard }
+        single<MatchRepository> { matches }
+        single<MatchLocalRepository> { matchLocal }
+        single<MatchResultOutbox> { outbox }
         single<ReleaseFlags> { releaseFlags }
     }
 

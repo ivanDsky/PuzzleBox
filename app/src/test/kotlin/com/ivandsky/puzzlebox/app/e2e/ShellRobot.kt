@@ -45,8 +45,14 @@ import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.ActivePlay
+import com.ivandsky.puzzlebox.play.PlaySessionStore
+import com.ivandsky.puzzlebox.play.api.MatchLegKey
+import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import java.time.Duration
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -190,6 +196,41 @@ class ShellRobot internal constructor(
         }
         tap("library.play")
         awaitTag(landing)
+    }
+
+    /**
+     * Opens duel puzzle [key] on the selected tab's stack, as a duel's Play does, and waits for
+     * [landing]: its board, or the result of a puzzle already played. The duel screen has no
+     * route of its own yet, so the push stands in for its tap.
+     */
+    fun openDuelPuzzle(key: MatchLegKey, landing: String = GAME_ROUTE) {
+        rule.runOnIdle { navigator.push(key) }
+        awaitTag(landing)
+    }
+
+    /** [key]'s live play once [ready] holds for it, e.g. once its board's session has loaded. */
+    fun awaitDuelPlay(key: MatchLegKey, ready: (ActivePlay) -> Boolean): ActivePlay {
+        val store = graph.koin.get<PlaySessionStore>()
+        val slot = PlaySlot.Leg(GameId(key.gameId), key.code, key.legIndex)
+        rule.waitUntil(TIMEOUT_MS) { rule.runOnIdle { store.peek(slot)?.let(ready) } == true }
+        return checkNotNull(rule.runOnIdle { store.peek(slot) })
+    }
+
+    /**
+     * Solves the open duel puzzle [key]: once its play is [ready], [moves] run on it in one
+     * frame. Returns the duel result the solve opened.
+     */
+    fun solveDuelPuzzle(key: MatchLegKey, ready: (ActivePlay) -> Boolean, moves: (ActivePlay) -> Unit): MatchLegResultKey {
+        val play = awaitDuelPlay(key, ready)
+        rule.runOnIdle { moves(play) }
+        rule.waitUntil(TIMEOUT_MS) {
+            // A bare waitUntil drives no frame here; pump one so the win's handoff runs.
+            rule.runOnIdle { }
+            rule.onAllNodesWithTag(RESULT_ROUTE, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        val result = state.currentStack.last()
+        check(result is MatchLegResultKey) { "the solve of $key opened $result" }
+        return result
     }
 
     fun awaitTag(tag: String) {
@@ -392,6 +433,7 @@ class ShellRobot internal constructor(
         const val TIMEOUT_MS = 5_000L
         const val IDLE_STEP_MS = 100L
         const val GAME_ROUTE = "route.game"
+        const val RESULT_ROUTE = "route.result"
         val isRoute = SemanticsMatcher("test tag route.*") {
             it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("route.") == true
         }
