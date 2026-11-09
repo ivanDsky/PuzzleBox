@@ -9,7 +9,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,11 +25,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.PublishOutcome
@@ -51,7 +57,7 @@ fun ToolSlot(
     editBoard: Boolean,
     onEditBoard: () -> Unit,
     tools: @Composable (Modifier) -> Unit,
-    form: @Composable (modifier: Modifier, editBoard: @Composable () -> Unit) -> Unit,
+    form: @Composable (modifier: Modifier, editBoard: @Composable (compact: Boolean) -> Unit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val details = open && !editBoard
@@ -79,7 +85,7 @@ fun ToolSlot(
                 enter = if (reduced) EnterTransition.None else fadeIn(fade),
                 exit = if (reduced) ExitTransition.None else fadeOut(fade),
             ) {
-                form(Modifier.fillMaxWidth()) { EditBoardChip(onEditBoard) }
+                form(Modifier.fillMaxWidth()) { compact -> EditBoardChip(onEditBoard, compact) }
             }
         },
         modifier = modifier.then(resize).testTag("create.tool.slot"),
@@ -108,16 +114,29 @@ private const val UNMEASURED = -1
 internal fun detailsOpen(verdict: Verdict, passed: TestSolve?, publish: PublishSession.State?): Boolean =
     publish != null && verdict is Verdict.Unique && passed != null && publish.outcome !is PublishOutcome.Published
 
-/** Brings the tools back; full-round like the Studio's verdict pill. */
+/**
+ * Brings the tools back; full-round like the Studio's verdict pill. [compact] drops the words for
+ * a pencil, keeping "Edit board" as its description.
+ */
 @Composable
-private fun EditBoardChip(onClick: () -> Unit) {
+private fun EditBoardChip(onClick: () -> Unit, compact: Boolean) {
     AssistChip(
         onClick = onClick,
-        label = { Text("Edit board", style = MaterialTheme.typography.labelLarge) },
+        label = {
+            if (compact) {
+                Icon(PuzzleIcons.Create, contentDescription = null, modifier = Modifier.size(EditIconSize))
+            } else {
+                Text("Edit board", style = MaterialTheme.typography.labelLarge)
+            }
+        },
         shape = PillShape,
-        modifier = Modifier.testTag("create.tool.editBoard"),
+        modifier = Modifier
+            .then(if (compact) Modifier.semantics { contentDescription = "Edit board" } else Modifier)
+            .testTag("create.tool.editBoard"),
     )
 }
+
+private val EditIconSize = 18.dp
 
 /** Edit board: the tools back in the held slot. */
 @PuzzleBoxPreviews
@@ -169,7 +188,7 @@ private fun PreviewTools(modifier: Modifier) {
 }
 
 @Composable
-private fun PreviewForm(modifier: Modifier, editBoard: @Composable () -> Unit) {
+private fun PreviewForm(modifier: Modifier, editBoard: @Composable (compact: Boolean) -> Unit) {
     PublishDetails(
         title = "Castle",
         details = PublishSession.Details(authorName = "Ivan"),
