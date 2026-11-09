@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app.nav
 
 import androidx.savedstate.serialization.SavedStateConfiguration
+import com.ivandsky.puzzlebox.compete.api.competeNavKeys
 import com.ivandsky.puzzlebox.create.api.createNavKeys
 import com.ivandsky.puzzlebox.history.api.historyNavKeys
 import com.ivandsky.puzzlebox.home.api.homeNavKeys
@@ -19,5 +20,6 @@ internal val puzzleBoxNavKeys: SavedStateConfiguration = navKeySavedStateConfigu
     createNavKeys()
     historyNavKeys()
     profileNavKeys()
+    competeNavKeys()
     subclass(CatalogKey::class, CatalogKey.serializer())
 }

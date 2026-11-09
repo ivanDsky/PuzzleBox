@@ -4,6 +4,7 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.app.CatalogScreen
+import com.ivandsky.puzzlebox.compete.navigation.competeEntry
 import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.create.navigation.publishedPuzzleEntry
@@ -60,5 +61,6 @@ internal fun puzzleBoxEntryProvider(
         onOpenHistory = { game -> navigator.pushOnce(HistoryKey(game.value)) },
         onOpenCatalog = { navigator.push(CatalogKey) },
     )
+    competeEntry(navigator)
     entry<CatalogKey> { CatalogScreen(openGame = { navigator.pushOnce(GameKey(it)) }) }
 }
