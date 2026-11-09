@@ -40,6 +40,7 @@ import org.koin.compose.koinInject
  * throttled save is never lost.
  *
  * [codeDraft] and [onCodeDraftTaken] reach the Play library: a draft opens its code sheet.
+ * [libraryRequests] is the one-shot Games request: Games reads its pending value and takes it.
  * [duels] and [onOpenDuel] (both null with the Competitions flag off) add the Duels tab and
  * let Enter code open a duel. [navV2] is the NavV2 value the app read once at launch
  * ([rememberNavV2]); the shell never reads the flag itself. With it on, Browse screens get
@@ -57,6 +58,7 @@ internal fun PuzzleBoxNavShell(
     duels: DuelsSlot? = null,
     onOpenDuel: ((DuelKey) -> Unit)? = null,
     navV2: Boolean = false,
+    libraryRequests: LibraryRequests = rememberLibraryRequests(),
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
 ) {
@@ -83,6 +85,8 @@ internal fun PuzzleBoxNavShell(
             onCodeDraftTaken = onCodeDraftTaken,
             duels = duels,
             onOpenDuel = onOpenDuel,
+            navV2 = navV2,
+            libraryRequests = libraryRequests,
         ),
         shellChrome = shellChrome,
     )

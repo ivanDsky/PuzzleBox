@@ -37,6 +37,7 @@ import com.ivandsky.puzzlebox.app.nav.chromePadding
 import com.ivandsky.puzzlebox.app.nav.isImmersive
 import com.ivandsky.puzzlebox.app.nav.playTabBadged
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
+import com.ivandsky.puzzlebox.app.nav.rememberLibraryRequests
 import com.ivandsky.puzzlebox.app.nav.rememberNavV2
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
@@ -96,6 +97,7 @@ fun PuzzleBoxApp(
     todaySet: ObserveTodaySet = koinInject(),
 ) {
     var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
+    val libraryRequests = rememberLibraryRequests()
     if (pendingLink != null) {
         val matchesEnabled = Competitions in koinInject<ReleaseFlags>().enabled.value
         remember(pendingLink) {
@@ -223,6 +225,7 @@ fun PuzzleBoxApp(
                     duels = duels,
                     onOpenDuel = onOpenDuel,
                     navV2 = navV2,
+                    libraryRequests = libraryRequests,
                 )
             }
         }
