@@ -182,7 +182,7 @@ abstract class StrandsStudioGoldenScreenshots(private val layout: PlayLayout, pr
             onDelete = {},
             board = { boardModifier -> StrandsEditorUi.Board(controller, verdict, layout, boardModifier) },
             // The Route's own host: the tools, or once the test passes the details in their place,
-            // headed "Publish details" with the Edit board chip, the slot holding the taller of the two.
+            // headed "Publish details" with the Edit board chip, the slot holding the taller of the two while they show.
             toolStrip = { slotModifier ->
                 ToolSlot(
                     open = passed != null,

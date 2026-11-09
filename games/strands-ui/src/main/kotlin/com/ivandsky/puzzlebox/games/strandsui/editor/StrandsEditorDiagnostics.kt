@@ -22,10 +22,12 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
+import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSpec
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 
@@ -56,16 +58,16 @@ internal fun strandsDiagnostics(verdict: Verdict, held: Verdict?, overlay: Edito
 /**
  * The marks over the grid, per cell `strands.editor.cell.<idx>.clash` (an inset error ring),
  * `.diff` (the diff-ring outline) and `.witness` (a tint per word of the chosen tiling, its word
- * index as the state, a line on each side facing another word).
+ * index as the state, a line on each side facing another word), at the board's [floor].
  */
 @Composable
-internal fun StrandsDiagnosticsLayer(diagnostics: StrandsDiagnostics, modifier: Modifier = Modifier) {
+internal fun StrandsDiagnosticsLayer(diagnostics: StrandsDiagnostics, modifier: Modifier = Modifier, floor: Dp = StrandsBoardSpec.TouchFloor) {
     val ring = LocalBoardColors.current.editorDiffRing
     val error = MaterialTheme.colorScheme.error
     val scheme = MaterialTheme.colorScheme
     val tints = listOf(scheme.primary, scheme.tertiary, scheme.secondary)
     BoxWithConstraints(modifier) {
-        val cell = strandsCellSizeFor(maxWidth, maxHeight, StrandsDraft.ROWS, StrandsDraft.COLS)
+        val cell = strandsCellSizeFor(maxWidth, maxHeight, StrandsDraft.ROWS, StrandsDraft.COLS, floor)
         Box(Modifier.fillMaxWidth().height(cell * StrandsDraft.ROWS), contentAlignment = Alignment.Center) {
             Column(Modifier.requiredSize(cell * StrandsDraft.COLS, cell * StrandsDraft.ROWS)) {
                 repeat(StrandsDraft.ROWS) { row ->
