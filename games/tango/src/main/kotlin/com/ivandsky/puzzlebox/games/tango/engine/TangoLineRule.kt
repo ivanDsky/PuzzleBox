@@ -54,7 +54,7 @@ object TangoLineRule {
     }
 
     /** Every assignment of the line that keeps its filled cells and breaks no rule inside it. */
-    private fun fillsOf(
+    internal fun fillsOf(
         puzzle: TangoPuzzle,
         cells: IntArray,
         grid: List<TangoCell?>,
