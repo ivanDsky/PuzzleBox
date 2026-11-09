@@ -11,11 +11,52 @@ import kotlinx.coroutines.flow.asStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** The card's witness choice opens afresh on each new settled Multiple and lives in the open controller. */
+/**
+ * The card's witness choice opens afresh on each new settled Multiple and lives in the open
+ * controller; the saved Auto-show puts the witness on the board as it opens.
+ */
 class VerdictCardStateTest {
 
     private var controller = OverlayController()
-    private val state = VerdictCardState(recheck = {}, controller = { controller })
+    private var autoShow = false
+    private val state = VerdictCardState(recheck = {}, controller = { controller }, autoShow = { autoShow })
+
+    @Test
+    fun `with auto-show on a new Multiple opens on the board`() {
+        controller.opening = EditorOverlay()
+        autoShow = true
+
+        state.read(MULTIPLE)
+
+        assertEquals(EditorOverlay(showOnBoard = true), controller.overlay.value)
+    }
+
+    @Test
+    fun `with auto-show off a new Multiple opens as the controller says`() {
+        controller.opening = EditorOverlay()
+
+        state.read(MULTIPLE)
+
+        assertEquals(EditorOverlay(), controller.overlay.value)
+    }
+
+    @Test
+    fun `with auto-show off the controller's own show on board still wins`() {
+        state.read(MULTIPLE)
+
+        assertEquals(OPENING, controller.overlay.value)
+    }
+
+    @Test
+    fun `auto-show is read as each Multiple opens`() {
+        controller.opening = EditorOverlay()
+        state.read(MULTIPLE)
+        autoShow = true
+
+        state.read(MULTIPLE.copy(differingCells = setOf(1, 2)))
+
+        assertEquals(listOf(EditorOverlay(), EditorOverlay(showOnBoard = true)), controller.adopted)
+    }
 
     @Test
     fun `a new Multiple opens on the controller's opening overlay and hands it to the board`() {
@@ -60,9 +101,11 @@ class VerdictCardStateTest {
         assertEquals(OPENING.copy(witness = EditorOverlay.Witness.A), controller.overlay.value)
     }
 
+    /** [opening] stands in for the game's opening overlay; the default is Queens' crowned case, already on the board. */
     private class OverlayController : GameEditorController {
         private val shown = MutableStateFlow(EditorOverlay())
         val adopted = ArrayList<EditorOverlay>()
+        var opening = OPENING
         override val draft: StateFlow<EditorDraft<*>> get() = error("unused")
         override val overlay: StateFlow<EditorOverlay> = shown.asStateFlow()
         override fun adopt(draft: EditorDraft<*>) = Unit
@@ -70,7 +113,7 @@ class VerdictCardStateTest {
             adopted += overlay
             shown.value = overlay
         }
-        override fun openingOverlay(verdict: Verdict): EditorOverlay = OPENING
+        override fun openingOverlay(verdict: Verdict): EditorOverlay = opening
     }
 
     private companion object {

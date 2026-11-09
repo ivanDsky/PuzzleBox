@@ -54,6 +54,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.Instant
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
@@ -194,6 +195,7 @@ class NewPuzzleSheetStrandsGateTest {
                             identity = FakeIdentityService(initial = null),
                             idTokens = noGoogleAccount,
                             updatePublishState = UpdatePublishState(shared = FakeSharedPuzzleRepository(), published = FakePublishedPuzzleRepository()),
+                            preferences = FakeUserPreferencesRepository(),
                         )
                     }
                 },

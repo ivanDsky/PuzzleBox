@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
@@ -65,6 +66,7 @@ class MissingDraftTest {
                             identity = nobodySignedIn(),
                             idTokens = noGoogleAccount,
                             updatePublishState = signedOutUnpublishing(),
+                            preferences = FakeUserPreferencesRepository(),
                         )
                     }
                 },

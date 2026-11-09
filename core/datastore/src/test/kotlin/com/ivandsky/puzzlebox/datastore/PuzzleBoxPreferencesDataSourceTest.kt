@@ -10,6 +10,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -63,5 +65,27 @@ class PuzzleBoxPreferencesDataSourceTest {
 
         val restartedProcess = newDataSource(file)
         assertEquals(ThemeMode.DARK, restartedProcess.preferences.first().themeMode)
+    }
+
+    @Test
+    fun `first launch auto-shows the witness`() = runTest {
+        val dataSource = newDataSource(tempFile())
+
+        assertTrue(dataSource.preferences.first().autoShowWitness)
+    }
+
+    @Test
+    fun `auto-show off survives a new data source over the same file`() = runTest {
+        val file = tempFile()
+        val firstScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + SupervisorJob())
+        val firstProcess = PuzzleBoxPreferencesDataSource(
+            PreferenceDataStoreFactory.create(scope = firstScope) { file },
+        )
+
+        firstProcess.setAutoShowWitness(false)
+        firstScope.cancel()
+
+        val restartedProcess = newDataSource(file)
+        assertFalse(restartedProcess.preferences.first().autoShowWitness)
     }
 }

@@ -106,4 +106,25 @@ class OfflineUserPreferencesRepositoryTest {
         assertTrue(restarted.tutorialSeen(zip).first())
         assertFalse(restarted.tutorialSeen(queens).first())
     }
+
+    @Test
+    fun `the witness auto-shows on first launch`() = runTest {
+        assertTrue(newRepository().autoShowWitness.first())
+    }
+
+    @Test
+    fun `auto-show round-trips and survives a fresh repository over the same store`() = runTest {
+        val file = tempFile()
+        val firstScope = processScope()
+        val first = newRepository(file, firstScope)
+
+        first.setAutoShowWitness(false)
+        assertFalse(first.autoShowWitness.first())
+        firstScope.cancel()
+
+        val restarted = newRepository(file, processScope())
+        assertFalse(restarted.autoShowWitness.first())
+        restarted.setAutoShowWitness(true)
+        assertTrue(restarted.autoShowWitness.first())
+    }
 }

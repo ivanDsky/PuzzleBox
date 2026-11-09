@@ -51,6 +51,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.Instant
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
@@ -155,6 +156,7 @@ class NewPuzzleSheetTangoGateTest {
                             identity = identity,
                             idTokens = noGoogleAccount,
                             updatePublishState = UpdatePublishState(FakeSharedPuzzleRepository(), published),
+                            preferences = FakeUserPreferencesRepository(),
                         )
                     }
                 },

@@ -37,7 +37,7 @@ import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
  * grid square in it and keeps its own rows (Queens' coach line and probe strip) under the grid,
  * and the group sits on the strip, so a width-bound grid leaves its spare height under the bar.
  * [PlayLayout.TwoPane] (02 handoff "Tablet"): a square centred in the left pane, and the
- * [StudioSidePane] on the right with the card inline ([verdict], [overlay], [issues]), the
+ * [StudioSidePane] on the right with the card inline ([verdict], [overlay], [autoShow], [issues]), the
  * strip and the actions. The [toast] covers no control: on the phone it sits in the board slot,
  * above the strip; on the tablet inside the side pane, above the action area. With [hugBoard]
  * (a read-only board) the phone slot takes only the group's height, so the board sits under the
@@ -50,6 +50,8 @@ internal fun StudioLayout(
     overlay: EditorOverlay,
     onCheckAgain: () -> Unit,
     onOverlay: (EditorOverlay) -> Unit,
+    autoShow: Boolean,
+    onAutoShow: (Boolean) -> Unit,
     board: @Composable (Modifier) -> Unit,
     toolStrip: @Composable (Modifier) -> Unit,
     issues: @Composable (Modifier) -> Unit,
@@ -82,6 +84,8 @@ internal fun StudioLayout(
                 overlay = overlay,
                 onCheckAgain = onCheckAgain,
                 onOverlay = onOverlay,
+                autoShow = autoShow,
+                onAutoShow = onAutoShow,
                 issues = issues,
                 toolStrip = toolStrip,
                 actionArea = actionArea,
@@ -167,6 +171,8 @@ private fun PreviewLayout(layout: PlayLayout) {
         overlay = EditorOverlay(),
         onCheckAgain = {},
         onOverlay = {},
+        autoShow = true,
+        onAutoShow = {},
         board = { boardModifier ->
             Box(boardModifier, contentAlignment = Alignment.Center) {
                 Box(Modifier.aspectRatio(1f, matchHeightConstraintsFirst = true).background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))

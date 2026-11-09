@@ -128,8 +128,9 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
         val editorDraft = EditorDraft(QueensEditor, DraftState(draft))
         val controller = QueensEditorController(editorDraft) {}
         mode?.let(controller::setMode)
-        // The Studio's own wiring: the card reads each verdict and hands its overlay to the board.
-        val card = VerdictCardState(recheck = {}, controller = { controller }).apply {
+        // The Studio's own wiring: the card reads each verdict and hands its overlay to the board,
+        // with Auto-show at its fresh-install default (on).
+        val card = VerdictCardState(recheck = {}, controller = { controller }, autoShow = { true }).apply {
             read(verdict)
             if (openCard && layout == PlayLayout.SinglePane) show()
         }
