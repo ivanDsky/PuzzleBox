@@ -82,7 +82,7 @@ class QueensBoardState(
     var session by mutableStateOf(initialSession)
         private set
 
-    /** A14 (fix round 6): the Auto-cross setting rides the SESSION (codec-persisted). */
+    /** The Auto-cross value the session derives its AUTO marks under: the player's setting, never saved. */
     val autoCross: Boolean get() = session.autoCross
 
     /** The current hint presentation (§5.5); cleared by any board action. */
@@ -206,12 +206,13 @@ class QueensBoardState(
         store(session.copy(elapsedMs = session.elapsedMs + deltaMs))
     }
 
-    /** A14 (fix round 6): ON auto-fills exclusion marks (A10); OFF places queens bare.
-     *  A settings flip — no undo unit; the session recomputes its system marks. */
+    /** Applies the player's Auto-cross setting (the controller feeds it): ON auto-fills exclusion
+     *  marks (A10); OFF places queens bare. Not a board action — no undo unit; the session
+     *  re-derives its system marks. An unchanged value touches nothing (no hint clear, no save). */
     fun setAutoCross(enabled: Boolean) {
-        clearHint()
         val next = session.withAutoCross(enabled)
         if (next == session) return
+        clearHint()
         store(next)
     }
 

@@ -109,6 +109,7 @@ class QueensPlayWiringTest {
                             )
                         }
                     }
+                    single<com.ivandsky.puzzlebox.data.repository.GameSettingsRepository> { com.ivandsky.puzzlebox.testing.repository.FakeGameSettingsRepository() }
                     // Every tutorial seen: this path is about the board; the lessons have their own tests.
                     single<com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository> {
                         com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository(

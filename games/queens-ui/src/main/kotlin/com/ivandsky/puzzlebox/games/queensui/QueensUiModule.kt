@@ -13,6 +13,6 @@ import org.koin.dsl.module
  *  Qualified by game id (the plugin binding's pattern) so the three play UIs coexist; the
  *  editor UI takes the `<id>.editor` qualifier beside it. */
 val queensUiModule: Module = module {
-    single<GamePlayUi>(qualifier = qualifier(QueensDefinition.id.value)) { QueensPlayUi(get<HintModeSource>()) }
+    single<GamePlayUi>(qualifier = qualifier(QueensDefinition.id.value)) { QueensPlayUi(get<QueensSettings>(), get<HintModeSource>()) }
     single<GameEditorUi>(qualifier = qualifier("${QueensDefinition.id.value}.editor")) { QueensEditorUi }
 }

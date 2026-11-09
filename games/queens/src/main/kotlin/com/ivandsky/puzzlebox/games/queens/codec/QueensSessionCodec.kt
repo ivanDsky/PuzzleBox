@@ -27,7 +27,7 @@ import java.time.Instant
  * ```
  * 0   u8    formatVersion = 4
  *     u16   puzzleLen; puzzleLen x u8   (QueensCodec bytes)
- *     u8    flags   (bit0 completedAt, bit1 ref, bit2 unused, bit3 autoCross OFF)
+ *     u8    flags   (bit0 completedAt, bit1 ref, bit2 unused, bit3 retired)
  *     [bit1] u8 keyTag (absent in v2/v3: read as 0), then
  *            0 Daily  i64 epochDay, u8 numberPresent, [i64 puzzleNumber]
  *            1 Custom u8 idLen (1..255); idLen x u8 puzzleId (UTF-8)
@@ -42,6 +42,10 @@ import java.time.Instant
  * v2 (read-only) was `... queens, marks{idx, kind, [source]}, undo snapshots, [bit0]
  * completedAt, [bit2] startedAt, hintsUsed`. Decode validates cell ranges and bounds each
  * history list by [MAX_HISTORY].
+ *
+ * Flags bit3 (8) once marked a session whose Auto-cross was OFF. Auto-cross is now a per-game
+ * setting (`game.queens.auto_cross`), so [serialize] never sets the bit and decode ignores it:
+ * an old save with it set still reads, and the setting decides how the board derives its marks.
  */
 object QueensSessionCodec : GameSessionCodec<QueensSession> {
 
@@ -56,7 +60,6 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
     private const val FLAG_COMPLETED = 1
     private const val FLAG_REF = 2
     private const val FLAG_V2_STARTED = 4
-    private const val FLAG_AUTO_CROSS_OFF = 8
 
     private const val KIND_MANUAL = 0
     private const val KIND_AUTO = 1
@@ -83,7 +86,6 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
         var flags = 0
         if (session.completedAt != null) flags = flags or FLAG_COMPLETED
         if (session.ref != null) flags = flags or FLAG_REF
-        if (!session.autoCross) flags = flags or FLAG_AUTO_CROSS_OFF
         out.write(flags)
 
         session.ref?.let { writeKey(out, it.key) }
@@ -171,7 +173,6 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
                 completedAt = completedAt,
                 elapsedMs = elapsedMs,
                 hintsUsed = hintsUsed,
-                autoCross = flags and FLAG_AUTO_CROSS_OFF == 0,
             ),
         )
     }
@@ -236,7 +237,6 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
                 completedAt = completedAt,
                 elapsedMs = elapsedMs,
                 hintsUsed = hintsUsed,
-                autoCross = flags and FLAG_AUTO_CROSS_OFF == 0,
             ),
         )
     }

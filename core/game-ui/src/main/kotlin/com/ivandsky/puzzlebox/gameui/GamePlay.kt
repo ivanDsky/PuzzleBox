@@ -25,6 +25,13 @@ interface GamePlayUi {
     fun createController(env: PlayEnvironment): GamePlayController
 
     /**
+     * A fresh controller for one tutorial lesson's sandboxed session (see [TutorialSandbox]). A
+     * lesson teaches the rules as authored, so a game whose controller follows the player's saved
+     * settings returns one that ignores them here; the default is [createController].
+     */
+    fun createLessonController(env: PlayEnvironment): GamePlayController = createController(env)
+
+    /**
      * The game's lessons, in order (spec A11): each is one instruction line and a tiny
      * puzzle. [TutorialHost] plays them through [Board] on a sandboxed controller.
      */
