@@ -20,20 +20,25 @@ fun ScoreChip(
     value: String,
     modifier: Modifier = Modifier,
     label: String? = null,
+    tone: DuelTone = DuelTone.Me,
 ) {
     val scheme = MaterialTheme.colorScheme
-    ChipSurface(modifier, containerColor = scheme.primaryContainer) {
+    val (containerColor, contentColor) = when (tone) {
+        DuelTone.Me -> scheme.primaryContainer to scheme.onPrimaryContainer
+        DuelTone.Them -> scheme.secondaryContainer to scheme.onSecondaryContainer
+    }
+    ChipSurface(modifier, containerColor = containerColor) {
         if (label != null) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = scheme.onPrimaryContainer,
+                color = contentColor,
             )
         }
         Text(
             text = value,
             style = MaterialTheme.typography.titleSmall,
-            color = scheme.onPrimaryContainer,
+            color = contentColor,
         )
     }
 }
@@ -84,6 +89,15 @@ private fun ChipSurface(
 internal fun ScoreChipPreview() {
     PuzzleBoxTheme {
         ScoreChip(value = "1:24", label = "Score")
+    }
+}
+
+@ShowkaseComposable(name = "ScoreChip (Them)", group = "Chips")
+@PuzzleBoxPreviews
+@Composable
+internal fun ScoreChipThemPreview() {
+    PuzzleBoxTheme {
+        ScoreChip(value = "0:58", label = "Score", tone = DuelTone.Them)
     }
 }
 
