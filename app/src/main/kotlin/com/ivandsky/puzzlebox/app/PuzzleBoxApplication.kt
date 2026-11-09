@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.app.di.appModule
 import com.ivandsky.puzzlebox.app.di.buildTypeReleaseFlagsModule
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
+import com.ivandsky.puzzlebox.app.match.MatchResultPoster
 import com.ivandsky.puzzlebox.backend.firebase.firebaseBackendModule
 import com.ivandsky.puzzlebox.auth.di.authModule
 import com.ivandsky.puzzlebox.common.di.commonModule
@@ -50,6 +51,8 @@ class PuzzleBoxApplication : Application() {
         koin.get<LeaderboardSubmitWatcher>().start()
         // Friend puzzle wins: posts pending at the last run retry on every app start.
         koin.get<CustomBoardSubmitter>().start()
+        // Duel results: pending posts retry on every app start; idle while the outbox is empty.
+        koin.get<MatchResultPoster>().start()
     }
 
     // Applies the saved developer design settings before the first frame.
