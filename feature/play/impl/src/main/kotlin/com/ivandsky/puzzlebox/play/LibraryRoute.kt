@@ -54,6 +54,7 @@ import org.koin.compose.koinInject
  * Open is [onOpenCode]. A From friends card's Remove shows "Removed <code>" with Undo. A
  * [codeDraft] opens the sheet with that text already in the field, then is taken
  * ([onCodeDraftTaken]); a [request] opens a game's page or a tab, then is taken ([onRequestTaken]).
+ * The game page's leaderboard shows with [showGameBoard] and its "Your history" row with [onOpenGameHistory].
  */
 @Composable
 internal fun LibraryRoute(
@@ -67,6 +68,8 @@ internal fun LibraryRoute(
     onOpenDuel: ((DuelKey) -> Unit)? = null,
     request: LibraryRequest? = null,
     onRequestTaken: () -> Unit = {},
+    showGameBoard: Boolean = false,
+    onOpenGameHistory: (() -> Unit)? = null,
 ) {
     val viewModel: LibraryViewModel = koinViewModel()
     val registry: GamePlayRegistry = koinInject()
@@ -115,6 +118,8 @@ internal fun LibraryRoute(
             onOpenDuel = onOpenDuel,
             request = request,
             onRequestTaken = onRequestTaken,
+            showGameBoard = showGameBoard,
+            onOpenGameHistory = onOpenGameHistory,
         )
         FriendRemovedSnackbar(removedFriend, onUndo = viewModel::undoRemoveFriend, modifier = Modifier.align(Alignment.BottomCenter))
         if (enteringCode) {
@@ -155,7 +160,8 @@ internal fun LibraryRoute(
  * puzzle through [onOpenFriend] and removing it through [onRemoveFriend]. A [duels] slot turns
  * the list into the Dailies, Friends and Duels tabs (the tab is saved here, so it survives a
  * page push); [onOpenDuel] is carried for Enter code and unused here. A [request] acts once
- * ([ConsumeLibraryRequest]; a section needs [duels]) and is reported taken ([onRequestTaken]).
+ * ([ConsumeLibraryRequest]; a section needs [duels]) and is reported taken ([onRequestTaken]). The game page
+ * shows its leaderboard with [showGameBoard] and a "Your history" row with [onOpenGameHistory].
  */
 @Composable
 internal fun LibraryScreen(
@@ -178,6 +184,8 @@ internal fun LibraryScreen(
     onOpenDuel: ((DuelKey) -> Unit)? = null,
     request: LibraryRequest? = null,
     onRequestTaken: () -> Unit = {},
+    showGameBoard: Boolean = false,
+    onOpenGameHistory: (() -> Unit)? = null,
 ) {
     val listScroll = rememberScrollState()
     val enterCode: @Composable () -> Unit = {
@@ -194,6 +202,7 @@ internal fun LibraryScreen(
     fun Page(row: LibraryRowModel, onBack: (() -> Unit)?) = LibraryGamePage(
         row, page, month, layout, calendar, onPlay, onRetry, onOpenLesson, onBack,
         offline = state.offline, hasLesson = hasLesson(row.card.game),
+        showGameBoard = showGameBoard, onOpenGameHistory = onOpenGameHistory,
     )
     val selected = state.rows.firstOrNull { it.card.game == state.selected } ?: state.rows.firstOrNull()
     var tab by rememberSaveable { mutableStateOf(GamesTab.Dailies) }
