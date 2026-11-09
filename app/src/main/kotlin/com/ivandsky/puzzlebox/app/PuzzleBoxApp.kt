@@ -1,22 +1,9 @@
 package com.ivandsky.puzzlebox.app
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -34,26 +21,29 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.app.nav.FriendLink
 import com.ivandsky.puzzlebox.app.nav.LocalChromePadding
 import com.ivandsky.puzzlebox.app.nav.PuzzleBoxNavShell
+import com.ivandsky.puzzlebox.app.nav.TabRef
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
 import com.ivandsky.puzzlebox.app.nav.applyFriendLink
 import com.ivandsky.puzzlebox.app.nav.applySharedText
+import com.ivandsky.puzzlebox.app.nav.chromeMotion
+import com.ivandsky.puzzlebox.app.nav.chromePadding
 import com.ivandsky.puzzlebox.app.nav.isImmersive
 import com.ivandsky.puzzlebox.app.nav.playTabBadged
+import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
+import com.ivandsky.puzzlebox.app.nav.rememberNavV2
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
+import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.Competitions
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.compete.tab.DuelsTab
 import com.ivandsky.puzzlebox.compete.tab.rememberDuelsNeedYou
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.TodayStatus
@@ -64,7 +54,6 @@ import com.ivandsky.puzzlebox.home.homeLayoutFor
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.map
 import org.koin.compose.koinInject
 
@@ -86,12 +75,17 @@ import org.koin.compose.koinInject
  * [onLinkApplied]. A link whose code doesn't parse opens Play's code sheet holding its text.
  * A [pendingShare] (shared text waiting in the store, which `MainActivity` filled) shows
  * Create's root the same way, then [onShareApplied]; the root imports the text.
+ *
+ * [navV2] is the NavV2 flag, read once per launch ([rememberNavV2]); a flip lands on the
+ * next launch. It picks the tab set (Home, Play, Create, Profile off; Today, Games, History,
+ * Create on) for the bar, the rail and the [navigator]'s fresh state.
  */
 @Composable
 fun PuzzleBoxApp(
     windowWidthSizeClass: WindowWidthSizeClass,
     modifier: Modifier = Modifier,
-    navigator: Navigator = rememberNavigator(),
+    navV2: Boolean = rememberNavV2(),
+    navigator: Navigator = rememberNavigator(puzzleBoxNavigationState(navV2)),
     pendingLink: String? = null,
     onLinkApplied: () -> Unit = {},
     pendingShare: Boolean = false,
@@ -136,6 +130,7 @@ fun PuzzleBoxApp(
         isLandscape = isLandscape,
     )
     val expanded = layout == HomeLayout.TwoPane
+    val destinations = topLevelDestinations(navV2)
     val selected = navigator.state.tab
     val top = navigator.state.currentStack.last()
     val immersive = isImmersive(top)
@@ -182,6 +177,7 @@ fun PuzzleBoxApp(
                     selected = selected,
                     onSelect = navigator::selectTab,
                     badged = badged,
+                    destinations = destinations,
                     modifier = Modifier.onSizeChanged { barHeight = with(density) { it.height.toDp() } },
                 )
             }
@@ -195,6 +191,7 @@ fun PuzzleBoxApp(
                     selected = selected,
                     onSelect = navigator::selectTab,
                     badged = badged,
+                    destinations = destinations,
                     modifier = Modifier
                         .fillMaxHeight()
                         .onSizeChanged { railWidth = with(density) { it.width.toDp() } },
@@ -211,74 +208,9 @@ fun PuzzleBoxApp(
                     onCodeDraftTaken = { codeDraft = null },
                     duels = duels,
                     onOpenDuel = onOpenDuel,
+                    navV2 = navV2,
                 )
             }
         }
     }
-}
-
-/** The tab the last composition showed; read to tell a tab switch from a push. */
-private class TabRef(var tab: Any)
-
-private class ChromeMotion(val enter: EnterTransition, val exit: ExitTransition)
-
-/**
- * How the bar or rail comes and goes. Phone: it rides the page beneath, parallaxing toward
- * the start on the slide clocks. Tablet: the rail fades and shifts out over the lift's first
- * stretch and back late in its return. A tab switch (onto a tab already in a game) fades it
- * on the tab clock; reduced motion is the short fade.
- */
-@Composable
-private fun chromeMotion(
-    expanded: Boolean,
-    tabChanged: Boolean,
-    reduceMotion: Boolean,
-    layoutDirection: LayoutDirection,
-): ChromeMotion {
-    val startward = if (layoutDirection == LayoutDirection.Ltr) -1 else 1
-    val shiftPx = with(LocalDensity.current) { MotionTokens.LiftNavShift.roundToPx() }
-    return when {
-        reduceMotion -> ChromeMotion(
-            fadeIn(tween(MotionTokens.ReducedFadeDuration)),
-            fadeOut(tween(MotionTokens.ReducedFadeDuration)),
-        )
-        tabChanged -> ChromeMotion(
-            fadeIn(tween(MotionTokens.NavTabEnter, MotionTokens.NavTabEnterDelay, MotionTokens.EasingStandard)),
-            fadeOut(tween(MotionTokens.NavTabExit, easing = MotionTokens.EasingLinear)),
-        )
-        expanded -> {
-            val outMillis = (MotionTokens.LiftEnter * MotionTokens.LiftNavFraction).roundToInt()
-            val inDelay = (MotionTokens.LiftExit * MotionTokens.LiftNavFraction).roundToInt()
-            val inMillis = MotionTokens.LiftExit - inDelay
-            ChromeMotion(
-                fadeIn(tween(inMillis, inDelay, MotionTokens.EasingStandard)) +
-                    slideInHorizontally(tween(inMillis, inDelay, MotionTokens.EasingStandard)) { startward * shiftPx },
-                fadeOut(tween(outMillis, easing = MotionTokens.EasingStandard)) +
-                    slideOutHorizontally(tween(outMillis, easing = MotionTokens.EasingStandard)) { startward * shiftPx },
-            )
-        }
-        else -> {
-            val parallax = { width: Int -> startward * (width * MotionTokens.NavParallaxFraction).roundToInt() }
-            ChromeMotion(
-                slideInHorizontally(tween(MotionTokens.NavFullSlidePop, easing = MotionTokens.EasingStandard), parallax),
-                slideOutHorizontally(
-                    tween(MotionTokens.NavFullSlideEnter, easing = MotionTokens.EasingEmphasizedDecelerate),
-                    parallax,
-                ),
-            )
-        }
-    }
-}
-
-/** System bars everywhere, except the side the bar or rail holds, which is the chrome's own size. */
-@Composable
-private fun chromePadding(expanded: Boolean, barHeight: Dp, railWidth: Dp): PaddingValues {
-    val direction = LocalLayoutDirection.current
-    val bars = WindowInsets.systemBars.asPaddingValues()
-    return PaddingValues(
-        start = if (expanded) railWidth else bars.calculateStartPadding(direction),
-        top = bars.calculateTopPadding(),
-        end = bars.calculateEndPadding(direction),
-        bottom = if (expanded) bars.calculateBottomPadding() else barHeight,
-    )
 }

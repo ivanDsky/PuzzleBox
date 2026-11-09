@@ -21,11 +21,12 @@ import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 
 /**
- * The bottom bar for the single-pane shapes: one item per [topLevelDestinations] entry,
- * tagged with [TopLevelDestination.tag]; the item whose key is [selected] carries the
- * selected semantics. Items whose key is in [badged] carry a primary-coloured badge dot at
- * the icon's top end, except the selected item, whose screen already shows the cue (A13,
- * SC11); the caller decides which keys, so the bar never names a tab.
+ * The bottom bar for the single-pane shapes: one item per entry of [destinations] (the
+ * flag-off [topLevelDestinations] by default), tagged with [TopLevelDestination.tag]; the
+ * item whose key is [selected] carries the selected semantics. Items whose key is in
+ * [badged] carry a primary-coloured badge dot at the icon's top end, except the selected
+ * item, whose screen already shows the cue (A13, SC11); the caller decides which keys, so
+ * the bar never names a tab.
  */
 @Composable
 internal fun TopLevelNavBar(
@@ -33,9 +34,10 @@ internal fun TopLevelNavBar(
     onSelect: (NavKey) -> Unit,
     badged: Set<NavKey> = emptySet(),
     modifier: Modifier = Modifier,
+    destinations: List<TopLevelDestination> = topLevelDestinations,
 ) {
     NavigationBar(modifier = modifier) {
-        topLevelDestinations.forEach { destination ->
+        destinations.forEach { destination ->
             NavigationBarItem(
                 selected = selected == destination.key,
                 onClick = { onSelect(destination.key) },
@@ -54,9 +56,10 @@ internal fun TopLevelNavRail(
     onSelect: (NavKey) -> Unit,
     badged: Set<NavKey> = emptySet(),
     modifier: Modifier = Modifier,
+    destinations: List<TopLevelDestination> = topLevelDestinations,
 ) {
     NavigationRail(modifier = modifier) {
-        topLevelDestinations.forEach { destination ->
+        destinations.forEach { destination ->
             NavigationRailItem(
                 selected = selected == destination.key,
                 onClick = { onSelect(destination.key) },
@@ -81,7 +84,7 @@ private fun showsBadge(destination: TopLevelDestination, selected: NavKey, badge
 /** The tab's icon: filled while [selected], outlined otherwise (N5). */
 @Composable
 private fun TabIcon(destination: TopLevelDestination, selected: Boolean, badged: Boolean) {
-    val icon = if (selected) destination.selectedIcon else destination.icon
+    val icon = if (selected) destination.selectedIcon() else destination.icon()
     if (badged) {
         BadgedBox(
             badge = {

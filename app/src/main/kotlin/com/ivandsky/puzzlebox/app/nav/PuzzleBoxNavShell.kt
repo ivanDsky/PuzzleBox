@@ -40,7 +40,8 @@ import org.koin.compose.koinInject
  *
  * [codeDraft] and [onCodeDraftTaken] reach the Play library: a draft opens its code sheet.
  * [duels] and [onOpenDuel] (both null with the Competitions flag off) add the Duels tab and
- * let Enter code open a duel.
+ * let Enter code open a duel. [navV2] is the NavV2 value the app read once at launch
+ * ([rememberNavV2]); the shell never reads the flag itself.
  */
 @Composable
 internal fun PuzzleBoxNavShell(
@@ -53,6 +54,7 @@ internal fun PuzzleBoxNavShell(
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
     onOpenDuel: ((DuelKey) -> Unit)? = null,
+    navV2: Boolean = false,
     store: PlaySessionStore = koinInject(),
 ) {
     val reduceMotion = rememberReducedMotion()

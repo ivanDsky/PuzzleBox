@@ -91,11 +91,18 @@ class PlacementTest {
     }
 
     @Test
-    fun `tab roots are at most five with distinct tabs`() {
-        val tabs = placementRows.map { it.placement.home }.filterIsInstance<Home.TabRoot>().map { it.tab }
+    fun `tab roots are exactly the flag-on tab set, one row per tab`() {
+        val roots = placementRows.mapNotNull { row -> (row.placement.home as? Home.TabRoot)?.let { it.tab to row.key } }
+        val tabs = roots.map { it.first }
+        val flagOn = topLevelDestinations(navV2 = true)
 
-        assertTrue("more than five tab roots: $tabs", tabs.size <= 5)
         assertEquals("two tab roots share a tab: $tabs", tabs.distinct(), tabs)
+        assertEquals(flagOn.map { it.tab }.toSet(), tabs.toSet())
+        assertEquals(
+            "a tab root's key differs from its destination's",
+            flagOn.associate { it.tab to it.key::class },
+            roots.toMap(),
+        )
     }
 
     @Test
