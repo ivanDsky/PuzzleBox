@@ -80,6 +80,7 @@ class TangoRapidTapTest {
         composeRule.waitForIdle()
         node.performTouchInput { up() }
 
+        assertEquals(TangoCell.SUN, valueAt(3)) // the mid-tap placement really landed
         assertEquals(TangoCell.SUN, valueAt(idx))
     }
 }
