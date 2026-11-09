@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightGlyphs
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
 import com.ivandsky.puzzlebox.games.tango.TangoCell
+import com.ivandsky.puzzlebox.games.tangoui.MoonPaths
 import com.ivandsky.puzzlebox.games.tangoui.TangoBoardSpec
 import com.ivandsky.puzzlebox.games.tangoui.drawMoon
 import com.ivandsky.puzzlebox.games.tangoui.drawSun
@@ -21,11 +22,14 @@ import com.ivandsky.puzzlebox.games.tangoui.drawSun
  */
 internal data class TangoSpotlightGlyphs(val n: Int, val values: Map<Int, TangoCell>) : SpotlightGlyphs {
 
+    // Scratch reused by every frame's draw; not part of equality.
+    private val moonPaths = MoonPaths()
+
     override fun DrawScope.draw(cell: Int, role: SpotlightRole, size: Size, color: Color) {
         when (role) {
             SpotlightRole.TARGET, SpotlightRole.CULPRIT -> when (values[cell]) {
                 TangoCell.SUN -> drawSun(color, n)
-                TangoCell.MOON -> drawMoon(color, n)
+                TangoCell.MOON -> drawMoon(color, n, moonPaths)
                 null -> Unit
             }
             SpotlightRole.EXCLUDED -> drawCross(color)

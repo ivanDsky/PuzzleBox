@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -242,4 +243,7 @@ private fun Glyph(value: TangoCell, modifier: Modifier, n: Int, alpha: Float = 1
 private fun SunGlyph(modifier: Modifier, fill: Color, n: Int) = Canvas(modifier) { drawSun(fill, n) }
 
 @Composable
-private fun MoonGlyph(modifier: Modifier, fill: Color, n: Int) = Canvas(modifier) { drawMoon(fill, n) }
+private fun MoonGlyph(modifier: Modifier, fill: Color, n: Int) {
+    val paths = remember { MoonPaths() }
+    Canvas(modifier) { drawMoon(fill, n, paths) }
+}

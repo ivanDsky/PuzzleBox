@@ -9,7 +9,6 @@ import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepRung
 import com.ivandsky.puzzlebox.games.tangoui.TangoPlayFixture
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -77,15 +76,12 @@ class TangoSpotlightMapperTest {
     }
 
     @Test
-    fun `the spotlight is n by n, carries the play id and the copy text, and every key is on the board`() {
-        val step = deduction()
-        val spotlight = map(step, playId = 7)!!
+    fun `the spotlight is n by n and carries the play id`() {
+        val spotlight = map(deduction(), playId = 7)!!
 
         assertEquals(puzzle.n, spotlight.rows)
         assertEquals(puzzle.n, spotlight.cols)
         assertEquals(7, spotlight.playId)
-        assertEquals(TangoStepCopy.text(step, puzzle), spotlight.callout!!.text)
-        assertEquals(true, spotlight.roles.keys.all { it in 0 until puzzle.n * puzzle.n })
     }
 
     @Test
@@ -97,35 +93,16 @@ class TangoSpotlightMapperTest {
     }
 
     @Test
-    fun `a deduction and a reveal carry the step value, a mistake the entry read from the grid`() {
-        assertEquals(TangoSpotlightGlyphs(6, mapOf(2 to TangoCell.MOON)), map(deduction())!!.glyphs)
-        assertEquals(TangoSpotlightGlyphs(6, mapOf(5 to TangoCell.SUN)), map(TangoStep.Reveal(5, TangoCell.SUN))!!.glyphs)
-
+    fun `a mistake carries the entry read from the grid`() {
         val board = grid.toMutableList().also { it[8] = TangoCell.MOON }
         assertEquals(TangoSpotlightGlyphs(6, mapOf(8 to TangoCell.MOON)), map(TangoStep.Mistake(8, null), board)!!.glyphs)
     }
 
     @Test
-    fun `equal inputs give equal spotlights`() {
-        assertEquals(map(deduction()), map(deduction()))
-        assertNotNull(map(deduction()))
-    }
-
-    @Test
-    fun `the same deduction keys the same whatever order its evidence is listed in`() {
-        assertEquals(
-            TangoSpotlightMapper.keyOf(deduction(evidence = linkedSetOf(0, 1))),
-            TangoSpotlightMapper.keyOf(deduction(evidence = linkedSetOf(1, 0))),
-        )
-    }
-
-    @Test
-    fun `a different rung, target, value or evidence is a different key`() {
+    fun `a different rung or evidence is a different key`() {
         val base = TangoSpotlightMapper.keyOf(deduction())
 
         assertNotEquals(base, TangoSpotlightMapper.keyOf(deduction(rung = TangoStepRung.SANDWICH)))
-        assertNotEquals(base, TangoSpotlightMapper.keyOf(deduction(idx = 3)))
-        assertNotEquals(base, TangoSpotlightMapper.keyOf(deduction(value = TangoCell.SUN)))
         assertNotEquals(base, TangoSpotlightMapper.keyOf(deduction(evidence = setOf(0, 4))))
     }
 

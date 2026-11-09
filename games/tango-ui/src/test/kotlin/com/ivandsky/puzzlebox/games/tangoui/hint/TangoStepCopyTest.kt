@@ -38,14 +38,6 @@ class TangoStepCopyTest {
     private fun text(step: TangoStep, puzzle: TangoPuzzle = plain) = TangoStepCopy.text(step, puzzle)
 
     @Test
-    fun `every rung has non-blank copy`() {
-        for (rung in TangoStepRung.entries) {
-            val step = deduction(rung, row = 1, options = 2)
-            assertTrue("$rung", text(step).isNotBlank())
-        }
-    }
-
-    @Test
     fun `each rung's text is pinned for both values`() {
         val expected = mapOf(
             TangoStepRung.PAIR to listOf("Pair: two moons touch, so suns at both ends", "Pair: two suns touch, so moons at both ends"),
@@ -63,6 +55,7 @@ class TangoStepCopyTest {
             ),
             TangoStepRung.LINE_OPTIONS to listOf("Line options: all 2 fills, a sun here", "Line options: all 2 fills, a moon here"),
         )
+        assertEquals("a rung has no pinned text", TangoStepRung.entries.toSet() - TangoStepRung.SIGN, expected.keys)
         for ((rung, texts) in expected) {
             val actual = listOf(TangoCell.SUN, TangoCell.MOON).map { text(deduction(rung, it, row = 1, options = 2)) }
             assertEquals("$rung", texts, actual)
