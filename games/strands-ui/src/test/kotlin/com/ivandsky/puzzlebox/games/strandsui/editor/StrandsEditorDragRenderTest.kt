@@ -73,8 +73,17 @@ class StrandsEditorDragRenderTest {
     /** The board pixel [colCells], [rowCells] cell units from the grid's top-left, after 1/4 s. */
     private fun pixelAt(colCells: Float, rowCells: Float): Color = pixelsAlong(rowCells, colCells, colCells).single()
 
-    /** The board pixels on row [rowCells] from [fromCol] to [toCol] cell units, after 1/4 s. */
+    /**
+     * The board pixels on row [rowCells] from [fromCol] to [toCol] cell units, after 1/4 s.
+     *
+     * Robolectric draws nothing on screen until a capture asks: the board's connector is first
+     * drawn by that capture, and with motion on its blend starts there (the tween's coroutine
+     * has not run yet, so the end is still at its start). A throwaway capture first lets the
+     * frames run the tween; without it the lean looks swallowed at the tail while the real
+     * line, drawn every frame on a device, climbs to it ([TraceLineMotionTest] covers that).
+     */
     private fun pixelsAlong(rowCells: Float, fromCol: Float, toCol: Float): List<Color> {
+        rule.onNodeWithTag(BOARD).captureToImage()
         repeat(FRAMES) { rule.mainClock.advanceTimeBy(FRAME_MS) }
         val pixels = rule.onNodeWithTag(BOARD).captureToImage().toPixelMap()
         val cell = pixels.height / StrandsDraft.ROWS.toFloat()
@@ -104,6 +113,18 @@ class StrandsEditorDragRenderTest {
         rule.onNodeWithTag(BOARD).performTouchInput { moveTo(cellPoint(4.07f, 1.5f)) }
 
         assertEquals(listOf(0, 1, 2, 9), controller.trace.value)
+        val tileEdge = 4f + (1f - StrandsBoardSpec.TokenFraction) / 2
+        val inTile = pixelsAlong(1.5f, tileEdge + 0.01f, tileEdge + 0.1f)
+        assertTrue("the line's end is hidden in $inTile", colors.strandsTraceConnector in inTile)
+        rule.onNodeWithTag(BOARD).performTouchInput { up() }
+    }
+
+    @Test
+    fun `the leaning end reaches the tile with motion on too`() {
+        show()
+        dragFourCells()
+        rule.onNodeWithTag(BOARD).performTouchInput { moveTo(cellPoint(4.07f, 1.5f)) }
+
         val tileEdge = 4f + (1f - StrandsBoardSpec.TokenFraction) / 2
         val inTile = pixelsAlong(1.5f, tileEdge + 0.01f, tileEdge + 0.1f)
         assertTrue("the line's end is hidden in $inTile", colors.strandsTraceConnector in inTile)
