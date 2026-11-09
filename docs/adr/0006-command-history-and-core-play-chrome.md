@@ -22,9 +22,9 @@ chrome. The Play tab opened Queens directly, skipping the game picker.
 4. All three games share one play layout (A14). The route's top bar (`GameRoute`, through
    `CompactTopBar`) carries Back, the game's `GameGlyph` badge, its name and number, the
    tabular timer, How to play, and an overflow menu; a game's `Screen` no longer draws a
-   title or a how-to button. The board sits under it in `playBoardPane()`, top-aligned
-   with a fixed top inset and horizontal-only gutters, so every board's top y matches at
-   a given window size (pinned by app's `PlayBoardPositionTest`).
+   title or a how-to button. The board sits under it in the shared `PlayBoardPane`,
+   centred vertically between the top chrome and the bottom controls with equal insets
+   above and below and horizontal-only gutters (pinned by app's `PlayBoardPositionTest`).
    - `GamePlayUi.clearFor(controller): PlayClear?` is the Clear seam: Zip empties its
      trace as one undo step (`ZipTraceEdits`), Queens clears the whole board, and Tango
      wipes its placements (`TangoClear`, one undo unit). Clear is never disabled: on an

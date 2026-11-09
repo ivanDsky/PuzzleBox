@@ -8,10 +8,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -19,6 +19,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
@@ -63,6 +64,7 @@ class PlayScaffoldLayoutTest {
         layout: PlayLayout,
         width: Int,
         height: Int,
+        boardSize: Dp? = null,
         slot: @Composable ColumnScope.() -> Unit = { Text("stats", Modifier.testTag("slot")) },
     ) {
         composeRule.setContent {
@@ -73,11 +75,11 @@ class PlayScaffoldLayoutTest {
                     // Honours the cap the way Tango's and Zip's boards do.
                     board = { paneCap ->
                         val cap = paneCap ?: PlayBoardMaxWidth
-                        Box(
-                            Modifier.playBoardPane().padding(horizontal = Spacing.lg),
-                            contentAlignment = Alignment.TopCenter,
-                        ) {
-                            Box(Modifier.widthIn(max = cap).heightIn(max = cap).aspectRatio(1f).testTag("board"))
+                        PlayBoardPane(Modifier.padding(horizontal = Spacing.lg)) {
+                            // A fixed size stands for a short board, smaller than its pane.
+                            val size = boardSize?.let { Modifier.size(it) }
+                                ?: Modifier.widthIn(max = cap).heightIn(max = cap).aspectRatio(1f)
+                            Box(size.testTag("board"))
                         }
                     },
                     side = { PlayChrome(clock = null, hints = Hints, banner = null) },
@@ -103,8 +105,33 @@ class PlayScaffoldLayoutTest {
     }
 
     @Test
+    fun `a short board sits centred between the top chrome and the bottom controls on a phone`() {
+        setScreen(PlayLayout.SinglePane, 360, 800, boardSize = 200.dp)
+        val board = composeRule.onNodeWithTag("board").getUnclippedBoundsInRoot()
+        val chrome = composeRule.onNodeWithTag("play.side_panel").getUnclippedBoundsInRoot()
+
+        val above = board.top - 0.dp
+        // The chrome's tag sits inside its own top margin, which is part of the space below.
+        val below = chrome.top - Spacing.sm - board.bottom
+        assertTrue("room to centre in: above $above below $below", above > Spacing.lg)
+        assertEquals("equal space above and below the board", above.value, below.value, 1f)
+    }
+
+    @Test
+    fun `a short board sits centred under the toolbar in the two-pane board pane`() {
+        setScreen(PlayLayout.TwoPane, 1848, 1000, boardSize = 200.dp)
+        val board = composeRule.onNodeWithTag("board").getUnclippedBoundsInRoot()
+        val toolbar = composeRule.onNodeWithTag("play.toolbar").getUnclippedBoundsInRoot()
+
+        val above = board.top - toolbar.bottom
+        val below = 1000.dp - board.bottom
+        assertTrue("room to centre in: above $above below $below", above > Spacing.lg)
+        assertEquals("equal space above and below the board", above.value, below.value, 1f)
+    }
+
+    @Test
     fun `a slot taller than the side pane scrolls under the game's chrome, never over it`() {
-        setScreen(PlayLayout.TwoPane, 1848, 1000) { Box(Modifier.height(5000.dp).testTag("slot")) }
+        setScreen(PlayLayout.TwoPane, 1848, 1000, slot = { Box(Modifier.height(5000.dp).testTag("slot")) })
         val pane = composeRule.onNodeWithTag("play.side_pane").getUnclippedBoundsInRoot()
         val chrome = composeRule.onNodeWithTag("play.side_panel").getUnclippedBoundsInRoot()
         val slot = composeRule.onNodeWithTag("play.side_slot").getUnclippedBoundsInRoot()

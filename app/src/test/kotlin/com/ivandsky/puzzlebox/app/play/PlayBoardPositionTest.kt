@@ -78,10 +78,10 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * A14: the shared play chrome puts every game's board at the same top y. Each real game
- * is opened on the same Play stack in turn, at one window size, and its board's top edge
- * is read once the board is ready — a phone (one pane) and a tablet (two panes). A15: on
- * the tablet every game's route hands it the live stats panel, whose timer replaces the top bar's.
+ * Every real game is opened on the same Play stack in turn, at one window size, and its
+ * board is read once ready — a phone (one pane) and a tablet (two panes). The shared board
+ * pane centres each board vertically in its pane. A15: on the tablet every game's route
+ * hands it the live stats panel, whose timer replaces the top bar's.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -144,31 +144,30 @@ class PlayBoardPositionTest {
 
     @Config(sdk = [34], application = android.app.Application::class, qualifiers = "w360dp-h800dp")
     @Test
-    fun `every board starts at the same height on a phone`() {
-        assertSameBoardTop(DpSize(360.dp, 800.dp), PlayLayout.SinglePane)
+    fun `every board is centred vertically in its pane on a phone`() {
+        assertBoardsCentred(DpSize(360.dp, 800.dp), PlayLayout.SinglePane)
     }
 
     @Config(sdk = [34], application = android.app.Application::class, qualifiers = "w1280dp-h800dp")
     @Test
-    fun `every board starts at the same height on a tablet`() {
-        assertSameBoardTop(DpSize(1280.dp, 800.dp), PlayLayout.TwoPane)
+    fun `every board is centred vertically in its pane on a tablet`() {
+        assertBoardsCentred(DpSize(1280.dp, 800.dp), PlayLayout.TwoPane)
     }
 
     @Config(sdk = [34], application = android.app.Application::class, qualifiers = "w1280dp-h800dp")
     @Test
     fun `every game on a tablet times itself in the stats panel, not the top bar`() {
         eachGame(DpSize(1280.dp, 800.dp), PlayLayout.TwoPane) { game ->
-            boardTop(game)
+            boardCentreOffset(game)
             assertEquals("${game.value} panel timers", 1, count("play.stats.timer"))
             assertEquals("${game.value} top bar timers", 0, count("play.timer"))
         }
     }
 
-    private fun assertSameBoardTop(size: DpSize, layout: PlayLayout) {
-        val tops = mutableMapOf<GameId, Float>()
-        eachGame(size, layout) { game -> tops[game] = boardTop(game) }
-        val zipTop = tops.getValue(ZipDefinition.id)
-        tops.forEach { (game, top) -> assertEquals("${game.value} board top (px) vs Zip's", zipTop, top, 0.5f) }
+    private fun assertBoardsCentred(size: DpSize, layout: PlayLayout) {
+        eachGame(size, layout) { game ->
+            assertEquals("${game.value} board centre vs its pane's (px)", 0f, boardCentreOffset(game), 1f)
+        }
     }
 
     private fun count(tag: String) = composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().size
@@ -199,12 +198,17 @@ class PlayBoardPositionTest {
         }
     }
 
-    /** The top edge of [game]'s board, in root pixels, once its puzzle is ready. */
-    private fun boardTop(game: GameId): Float {
+    /**
+     * How far [game]'s board centre sits below its board pane's centre, in root pixels,
+     * once its puzzle is ready.
+     */
+    private fun boardCentreOffset(game: GameId): Float {
         composeRule.waitUntil(10_000) { play(game)?.board?.value?.status is PlayBoardStatus.Ready }
-        val tag = if (game == QueensDefinition.id) "queens.board" else "play.board"
-        composeRule.waitUntil(10_000) { composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().size == 1 }
-        return composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().single().positionInRoot.y
+        val prefix = if (game == QueensDefinition.id) "queens" else "play"
+        composeRule.waitUntil(10_000) { composeRule.onAllNodesWithTag("$prefix.board").fetchSemanticsNodes().size == 1 }
+        val board = composeRule.onAllNodesWithTag("$prefix.board").fetchSemanticsNodes().single()
+        val pane = composeRule.onAllNodesWithTag("$prefix.board_area").fetchSemanticsNodes().single()
+        return (board.positionInRoot.y + board.size.height / 2f) - (pane.positionInRoot.y + pane.size.height / 2f)
     }
 
     private fun play(game: GameId) = koin!!.koin.get<PlaySessionStore>().peek(PlaySlot.Daily(game, cadenceToday))
