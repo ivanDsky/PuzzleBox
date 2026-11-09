@@ -108,7 +108,7 @@ internal class FirestoreSharedPuzzleRepository(
 }
 
 /** Failures a retry can fix; the rest (denied, malformed, missing) are final. */
-private fun Exception.isTransient(): Boolean = when (this) {
+internal fun Exception.isTransient(): Boolean = when (this) {
     is FirebaseNetworkException -> true
     is FirebaseFirestoreException -> when (code) {
         FirebaseFirestoreException.Code.UNAVAILABLE,
@@ -124,5 +124,5 @@ private fun Exception.isTransient(): Boolean = when (this) {
     else -> false
 }
 
-private fun Exception.isDenied(): Boolean =
+internal fun Exception.isDenied(): Boolean =
     this is FirebaseFirestoreException && code == FirebaseFirestoreException.Code.PERMISSION_DENIED
