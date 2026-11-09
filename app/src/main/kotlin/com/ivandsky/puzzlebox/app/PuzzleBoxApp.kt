@@ -45,6 +45,7 @@ import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
 import com.ivandsky.puzzlebox.app.nav.applyFriendLink
 import com.ivandsky.puzzlebox.app.nav.applySharedText
+import com.ivandsky.puzzlebox.app.nav.isImmersive
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -55,11 +56,7 @@ import com.ivandsky.puzzlebox.history.historyLayoutFor
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.homeLayoutFor
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.play.api.CustomGameKey
-import com.ivandsky.puzzlebox.play.api.CustomResultKey
-import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.play.api.ResultKey
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.map
 import org.koin.compose.koinInject
@@ -68,9 +65,9 @@ import org.koin.compose.koinInject
  * The app shell: tab bar (or rail) beneath [PuzzleBoxNavShell]. The highlight is the
  * [navigator]'s selected tab, so it always names the tab that owns the screen on top.
  * The Play tab carries a dot while any of today's games is in progress (A13, SC11).
- * Play is immersive (A15, N2): while the selected tab's top is a board ([GameKey], or a
- * friend's [CustomGameKey]) or a result ([ResultKey], or a friend's [CustomResultKey])
- * neither bar nor rail shows, and back is the way out.
+ * Play is immersive (A15, N2): while the selected tab's top is immersive ([isImmersive]: a
+ * board or a result, a duel's leg board or result, or a duel's reveal) neither bar nor rail
+ * shows, and back is the way out.
  *
  * Full-screen motion (polish 04): the chrome sits UNDER the scenes, which leave its strip
  * unpainted ([LocalChromePadding]), so a board covers it as one window and the chrome leaves
@@ -133,7 +130,7 @@ fun PuzzleBoxApp(
     val expanded = layout == HomeLayout.TwoPane
     val selected = navigator.state.tab
     val top = navigator.state.currentStack.last()
-    val immersive = top is GameKey || top is CustomGameKey || top is ResultKey || top is CustomResultKey
+    val immersive = isImmersive(top)
     val anyInProgress by remember(todaySet) {
         todaySet().map { entries -> entries.any { it.status is TodayStatus.InProgress } }
     }.collectAsStateWithLifecycle(initialValue = false)

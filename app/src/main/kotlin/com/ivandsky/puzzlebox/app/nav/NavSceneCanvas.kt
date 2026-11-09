@@ -23,13 +23,11 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import com.ivandsky.puzzlebox.designsystem.LocalNavLiftVisibility
 import com.ivandsky.puzzlebox.designsystem.navLiftTarget
-import com.ivandsky.puzzlebox.play.api.CustomGameKey
-import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.GameKey
-import com.ivandsky.puzzlebox.play.api.ResultKey
 
 /**
  * The space the window's chrome (status bar, tab bar or rail) takes from a non-immersive
@@ -42,9 +40,9 @@ internal val LocalChromePadding = compositionLocalOf { PaddingValues(0.dp) }
 internal val LocalNavMotion = compositionLocalOf<State<NavMotion>> { mutableStateOf(NavMotion.Idle) }
 
 /**
- * Every nav scene's canvas. A board or a result ([entryKey] a [GameKey], a friend's
- * [CustomGameKey], a [ResultKey] or a friend's [CustomResultKey]) is
- * full-window and opaque, insetting only its content; a board is also the target its card
+ * Every nav scene's canvas. An immersive scene ([isImmersive]: a board or a result, a duel's
+ * leg board or result, or a duel's reveal) is full-window and opaque, insetting only its
+ * content; a board is also the target its card
  * lifts into. Any other scene paints opaque inside [LocalChromePadding] only. While this scene
  * is the upper page of a scrimmed move it dims what lies beneath: the window strip to its
  * start during a slide, the whole window during a lift.
@@ -60,8 +58,7 @@ internal fun SceneCanvas(entryKey: Any?, content: @Composable () -> Unit) {
     ) { state -> if (state == EnterExitState.Visible) 1f else 0f }
     val scrim = MaterialTheme.colorScheme.scrim
     val background = MaterialTheme.colorScheme.background
-    val immersive = entryKey is GameKey || entryKey is CustomGameKey ||
-        entryKey is ResultKey || entryKey is CustomResultKey
+    val immersive = (entryKey as? NavKey)?.let { isImmersive(it) } == true
     Box(
         Modifier
             .fillMaxSize()

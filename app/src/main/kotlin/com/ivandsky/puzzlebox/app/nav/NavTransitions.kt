@@ -12,11 +12,15 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.navigation3.runtime.NavKey
 import androidx.navigationevent.NavigationEvent
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.play.api.GameKey
-import com.ivandsky.puzzlebox.play.api.ResultKey
 import kotlin.math.roundToInt
+
+/** Scene metadata carries the entry's key as `Any`; these read it as the [NavKey] it is. */
+private fun Any?.isBoardEntry(): Boolean = (this as? NavKey)?.let { movesLikeGame(it) && !isResultKey(it) } == true
+
+private fun Any?.isResultEntry(): Boolean = (this as? NavKey)?.let { isResultKey(it) } == true
 
 /** Which navigation chrome the window wears: a bottom bar (phone, B) or a rail (tablet, D). */
 internal enum class NavForm { Phone, Tablet }
@@ -149,8 +153,8 @@ internal fun navMotion(
     form: NavForm,
     liftable: Boolean = false,
 ): NavMotion {
-    val opensGame = !pop && to[ENTRY_KEY] is GameKey && from[ENTRY_KEY] !is ResultKey
-    val closesGame = pop && from[ENTRY_KEY] is GameKey
+    val opensGame = !pop && to[ENTRY_KEY].isBoardEntry() && !from[ENTRY_KEY].isResultEntry()
+    val closesGame = pop && from[ENTRY_KEY].isBoardEntry()
     return when {
         reduceMotion -> reduced(pop, MotionTokens.ReducedFadeDuration)
         from[OWNER_TAB] != to[OWNER_TAB] -> if (form == NavForm.Phone) tabFadeThrough(pop) else rise(pop)
