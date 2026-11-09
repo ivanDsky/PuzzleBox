@@ -115,8 +115,13 @@ internal fun ZipEditorHint(state: ZipEditorHintState, modifier: Modifier = Modif
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         state.next?.let { next ->
+            val label = when (next) {
+                ZipEditorStep.Path -> "Path"
+                ZipEditorStep.Numbers -> "Numbers"
+                ZipEditorStep.Walls -> "Walls"
+            }
             Text(
-                "Next: ${next.name}",
+                "Next: $label",
                 Modifier.testTag("zip.editor.hint.next"),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,

@@ -11,8 +11,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * [ZipSearch.bounded] polls its [Budget] inside the DFS, so the editor's 1.5 s analysis
- * bound holds on the largest open boards, and [Budget.Unlimited] leaves results unchanged.
+ * [ZipSearch.bounded] polls its [Budget] inside the DFS and stops at its node cap, so the
+ * editor's analysis stays bounded (node cap + cancel) on the largest open boards, and
+ * [Budget.Unlimited] with no cap leaves results unchanged.
  */
 class ZipSearchBudgetTest {
 

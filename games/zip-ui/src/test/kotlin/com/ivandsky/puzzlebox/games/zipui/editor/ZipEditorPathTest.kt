@@ -7,10 +7,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.TouchInjectionScope
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -211,23 +209,25 @@ class ZipEditorPathTest {
 
     @Test
     fun `a covered board with only its ends numbered names Numbers next`() {
-        show(path = SNAKE)
+        val controller = show(path = SNAKE)
 
-        rule.onNodeWithTag("zip.editor.hint.next").assertTextEquals("Next: Numbers")
+        assertEquals(ZipEditorStep.Numbers, covered(controller).next)
+        rule.onAllNodesWithTag("zip.editor.hint.next").assertCountEquals(1)
     }
 
     @Test
     fun `once a middle number is placed the hint names Walls, not Numbers`() {
-        show(path = SNAKE, marks = listOf(SNAKE[12]))
+        val controller = show(path = SNAKE, marks = listOf(SNAKE[12]))
 
-        rule.onNodeWithTag("zip.editor.hint.next").assertTextEquals("Next: Walls")
-        rule.onAllNodesWithText("Next: Numbers").assertCountEquals(0)
+        assertEquals(ZipEditorStep.Walls, covered(controller).next)
+        rule.onAllNodesWithTag("zip.editor.hint.next").assertCountEquals(1)
     }
 
     @Test
     fun `with numbers and walls placed the hint names no next step`() {
-        show(path = SNAKE, marks = listOf(SNAKE[12]), walls = setOf(Wall(Cell(0), WallDirection.DOWN)))
+        val controller = show(path = SNAKE, marks = listOf(SNAKE[12]), walls = setOf(Wall(Cell(0), WallDirection.DOWN)))
 
+        assertNull(covered(controller).next)
         rule.onAllNodesWithTag("zip.editor.hint.next").assertCountEquals(0)
     }
 

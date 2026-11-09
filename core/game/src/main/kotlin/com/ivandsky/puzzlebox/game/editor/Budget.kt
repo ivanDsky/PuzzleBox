@@ -9,7 +9,10 @@ package com.ivandsky.puzzlebox.game.editor
 fun interface Budget {
     fun exhausted(): Boolean
 
-    /** True once the caller gave up on the answer; the clock alone never sets it. */
+    /**
+     * True once the caller gave up on the answer. For [within], only its cancel lambda sets it;
+     * any other Budget answers as [exhausted].
+     */
     fun cancelled(): Boolean = exhausted()
 
     companion object {
