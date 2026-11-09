@@ -6,12 +6,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.TouchInjectionScope
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.editor.TangoDraft
@@ -54,18 +56,18 @@ class TangoForcedLayerTest {
     private fun forcedCount() =
         rule.onAllNodesWithTag("tango.editor.forced", useUnmergedTree = true)
 
-    private fun show() {
+    private fun show(shown: TangoEditorController = controller) {
         rule.setContent {
             CompositionLocalProvider(LocalForcedDispatchers provides TestInlineDispatcherProvider) {
-                PuzzleBoxTheme { TangoEditorBoard(controller, Modifier.fillMaxWidth()) }
+                PuzzleBoxTheme { TangoEditorBoard(shown, Modifier.fillMaxWidth()) }
             }
         }
     }
 
-    private fun assertTagged(tags: Set<String>) {
+    private fun assertTagged(tags: Set<String>, n: Int = 6) {
         rule.waitForIdle()
         tags.forEach { rule.onAllNodesWithTag(it, useUnmergedTree = true).assertCountEquals(1) }
-        (0 until 6 * 6).map { "tango.editor.cell.$it.forced" }
+        (0 until n * n).map { "tango.editor.cell.$it.forced" }
             .filter { it !in tags }
             .forEach { rule.onAllNodesWithTag(it, useUnmergedTree = true).assertCountEquals(0) }
     }
@@ -124,6 +126,27 @@ class TangoForcedLayerTest {
         assertEquals(1, edits.size)
         assertTrue(controller.draft.value.canUndo)
         assertTrue(edits.single().undo()?.canUndo == false)
+    }
+
+    @Test
+    fun `on a 10x10 board the forced tags sit on exactly the forced cells`() {
+        val board = TangoDraft(10, mapOf(44 to TangoCell.SUN, 45 to TangoCell.SUN), emptyList())
+        val forced = TangoForcedCells.of(board)
+        assertEquals(TangoCell.MOON, forced[43])
+        assertEquals(TangoCell.MOON, forced[46])
+        val sized = TangoEditorController(EditorDraft(TangoEditor, DraftState(board))) {}
+        sized.toggleForcedView()
+        show(sized)
+
+        assertTagged(forced.keys.map { "tango.editor.cell.$it.forced" }.toSet(), n = 10)
+        val bounds = rule.onNodeWithTag("tango.editor.board").getUnclippedBoundsInRoot()
+        val pitch = (bounds.right - bounds.left).value / 10
+        listOf(43, 46).forEach { idx ->
+            val cell = rule.onNodeWithTag("tango.editor.cell.$idx.forced", useUnmergedTree = true).getUnclippedBoundsInRoot()
+            assertEquals(bounds.left.value + pitch * (idx % 10), cell.left.value, 0.5f)
+            assertEquals(bounds.top.value + pitch * (idx / 10), cell.top.value, 0.5f)
+            assertEquals(pitch, (cell.right - cell.left).value, 0.5f)
+        }
     }
 
     private fun TouchInjectionScope.centre(cell: Int) = Offset(

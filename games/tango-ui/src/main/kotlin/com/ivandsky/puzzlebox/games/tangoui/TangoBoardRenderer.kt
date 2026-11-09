@@ -79,8 +79,8 @@ class TangoBoardRenderer(
                             color = LocalBoardColors.current.boardGridLine,
                         ),
                     markStyleOverride = MaterialTheme.typography.labelMedium.copy(
-                        // Ink-corrected mark font (see markTextFraction): the
-                        // drawn `=`/`×` ink lands at markSizeFraction of pitch.
+                        // Mark font, fraction of pitch; the drawn `=`/`×` ink per
+                        // size is in markTextFraction's KDoc (TangoMarkInkTest).
                         fontSize = with(LocalDensity.current) {
                             (pitch * TangoBoardSpec.markTextFraction(tango.n)).toSp()
                         },

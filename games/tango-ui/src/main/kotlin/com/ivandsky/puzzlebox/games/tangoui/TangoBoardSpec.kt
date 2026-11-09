@@ -8,14 +8,14 @@ import androidx.compose.ui.unit.dp
  * the cell pitch so n6→n8 and phone→tablet scale without new values (ZipBoardSpec
  * discipline). Retune through these names — never call-site literals.
  *
- * Measured floors: glyph cap ≥ 10.3 dp at the content worst case (n8 on a 360 dp
- * phone, pitch 41.0 dp → 0.28 × 41.0 = 11.5 dp ✓); mark height ≥ 10.3 dp same case
- * (mark fraction 0.30 × 41.0 = 12.3 dp).
+ * Computed glyph floor at the content worst case, n10 on a 360 dp phone (328 dp board, pitch
+ * 32.8 dp): glyph box 0.66 × 32.8 = 21.6 dp, its smallest solid ink, the sun disc,
+ * 0.64 × 21.6 = 13.9 dp ≥ [glyphInkFloor]. Marks: see [markTextFraction].
  */
 object TangoBoardSpec {
 
-    /** Worst-case legibility floor for marks and glyph caps (senior-UX D5 gate). */
-    val markHeightFloor: Dp = 10.3.dp
+    /** Worst-case legibility floor for glyph ink (senior-UX D5 gate). */
+    val glyphInkFloor: Dp = 10.3.dp
 
     /** Touch floor: n6 pitch on a 360 dp pane (§10.1). */
     val touchTargetFloor: Dp = 48.dp
@@ -41,20 +41,22 @@ object TangoBoardSpec {
      *  on preplaced cells; violation tint draws above it when they co-occur. */
     val givenTintAlpha: Float = 0.5f
 
-    /** `=`/`×` mark size, fraction of cell pitch (n≥8 rescue step).
-     *  Worst case (§1): n8 mark = 0.30 × 41.0 = 12.3 dp ≥ 10.3 floor. */
-    fun markSizeFraction(n: Int): Float = if (n >= 8) 0.30f else 0.34f
-
-    /** Mark FONT size, fraction of pitch: the `=`/`×` ink is ~0.35 em, so the font
-     *  must overshoot markSize to hit the ink floor. 0.36 after user QA round 4
-     *  (0.44 still read oversized on the tablet). */
-    fun markTextFraction(n: Int): Float = if (n >= 8) 0.32f else 0.36f
-
-    /** Mark bar/stroke thickness, fraction of the mark box. */
-    const val markStrokeFraction: Float = 0.14f
-
-    /** `=` bar gap, fraction of the mark box. */
-    const val markBarGapFraction: Float = 0.20f
+    /**
+     * `=`/`×` mark font size, fraction of pitch. Sizes picked by eye (user QA round 4: 0.44 read
+     * oversized on the tablet), not a dp floor: the ink is a small part of the em, so no font the
+     * badge disc (0.26 pitch) can seat puts 10.3 dp of ink on screen. The 10×10 step keeps its ink
+     * at ≥ 0.9 of the 8×8 ink. Computed font and measured ink (w × h, `=` then `×`) on a 328 dp
+     * phone board, from `TangoMarkInkTest`:
+     * - n4: 0.36 × 82.0 = 29.5 sp; 12.5 × 9.0 dp, 11.75 × 12.0 dp
+     * - n6: 0.36 × 54.7 = 19.7 sp; 8.25 × 6.0 dp, 7.75 × 7.75 dp
+     * - n8: 0.32 × 41.0 = 13.1 sp; 5.5 × 3.75 dp, 5.25 × 5.0 dp
+     * - n10: 0.37 × 32.8 = 12.1 sp; 5.25 × 3.5 dp, 4.75 × 5.0 dp
+     */
+    fun markTextFraction(n: Int): Float = when {
+        n >= 10 -> 0.37f // since M4-tango-25
+        n >= 8 -> 0.32f
+        else -> 0.36f
+    }
 
     /** Violation dashed border dash/gap, fractions of pitch (§2). */
     const val violationDashFraction: Float = 0.06f
@@ -96,9 +98,6 @@ object TangoBoardSpec {
 
     /** Glyph box size at a given pitch and board size. */
     fun glyphSize(pitch: Dp, n: Int): Dp = pitch * glyphSizeFraction(n)
-
-    /** Mark box size at a given pitch and board size. */
-    fun markSize(pitch: Dp, n: Int): Dp = pitch * markSizeFraction(n)
 
     /** Violation dash length at a given pitch. */
     fun violationDashLength(pitch: Dp): Dp = pitch * violationDashFraction

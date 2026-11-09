@@ -5,14 +5,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.test.TouchInjectionScope
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
@@ -23,6 +28,8 @@ import com.ivandsky.puzzlebox.games.tango.editor.TangoEditor
 import com.ivandsky.puzzlebox.games.tango.editor.cycleMarker
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.GridEdge
+import com.ivandsky.puzzlebox.gameui.GridGeometry
+import com.ivandsky.puzzlebox.games.tangoui.TangoBoardSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -52,12 +59,12 @@ class TangoEditorInputTest {
         rule.setContent { PuzzleBoxTheme { TangoEditorBoard(controller, Modifier.fillMaxWidth()) } }
     }
 
-    private fun TouchInjectionScope.centre(cell: Int) = Offset(
-        x = (cell % N + 0.5f) * width / N,
-        y = (cell / N + 0.5f) * height / N,
+    private fun TouchInjectionScope.centre(cell: Int, n: Int = N) = Offset(
+        x = (cell % n + 0.5f) * width / n,
+        y = (cell / n + 0.5f) * height / n,
     )
 
-    private fun TouchInjectionScope.rightEdge(cell: Int) = centre(cell) + Offset(width / N / 2f, 0f)
+    private fun TouchInjectionScope.rightEdge(cell: Int, n: Int = N) = centre(cell, n) + Offset(width / n / 2f, 0f)
 
     private fun TouchInjectionScope.bottomEdge(cell: Int) = centre(cell) + Offset(0f, height / N / 2f)
 
@@ -233,8 +240,176 @@ class TangoEditorInputTest {
         }
     }
 
+    @Test
+    fun `on a 328dp phone board at n10 a centre, a shared edge and a corner each hit their own target`() {
+        phoneTaps(n = 10, cell = 44)
+    }
+
+    @Test
+    fun `on a 328dp phone board at n4 a centre, a shared edge and a corner each hit their own target`() {
+        phoneTaps(n = 4, cell = 5)
+    }
+
+    @Test
+    fun `on a 328dp phone board at n8 a centre, a shared edge and a corner each hit their own target`() {
+        phoneTaps(n = 8, cell = 27)
+    }
+
+    @Test
+    fun `at n10 on a 328dp board the edge band is at least 14dp and the cell centre at least 18dp`() {
+        val pitch = PHONE_BOARD / 10
+        val band = pitch * (2 * TangoBoardSpec.editEdgeBandAcrossFraction)
+        val centre = pitch * (1 - 2 * TangoBoardSpec.editEdgeBandAcrossFraction)
+
+        assertTrue("band was $band", band >= 14.dp)
+        assertTrue("centre was $centre", centre >= 18.dp)
+    }
+
+    @Test
+    fun `at n4, n8 and n10 every point inside a drawn edge band hits that edge and every other point its cell`() {
+        val side = PHONE_BOARD.value
+        val steps = 400
+        for (n in listOf(4, 8, 10)) {
+            val geometry = GridGeometry(n, n, side, side)
+            val unit = side / n
+            val hit = HashSet<GridEdge>()
+            for (i in 0 until steps) {
+                for (j in 0 until steps) {
+                    val u = (i + 0.5f) * n / steps
+                    val v = (j + 0.5f) * n / steps
+                    val inside = drawnBandsAt(u, v, n, grow = -SLACK)
+                    if (inside != drawnBandsAt(u, v, n, grow = SLACK)) continue // on a band outline
+                    val edge = geometry.edgeAt(Offset(u * unit, v * unit), ACROSS, INSET)
+                    assertEquals("n=$n at ($u, $v)", inside.singleOrNull(), edge)
+                    edge?.let(hit::add)
+                }
+            }
+            assertEquals("n=$n bands hit", interiorEdges(n), hit)
+        }
+    }
+
+    @Test
+    fun `on a 4x4 board a press inside each drawn band previews its edge and just outside its square`() {
+        pressProbes(n = 4) { true }
+    }
+
+    @Test
+    fun `on an 8x8 board a press inside a drawn band previews its edge and just outside its square`() {
+        pressProbes(n = 8) { it.cell.row == it.cell.col }
+    }
+
+    @Test
+    fun `on a 10x10 board a press inside a drawn band previews its edge and just outside its square`() {
+        pressProbes(n = 10) { it.cell.row == it.cell.col }
+    }
+
+    /**
+     * Presses the 328 dp board of width [n] inside each [chosen] edge's drawn band (centre and the
+     * four corners just inside) and just outside it (past the inset, past the band edge), and reads
+     * the controller's preview: the edge inside, the square under the finger outside.
+     */
+    private fun pressProbes(n: Int, chosen: (GridEdge) -> Boolean) {
+        val sized = TangoEditorController(EditorDraft(TangoEditor, DraftState(TangoDraft(n, emptyMap(), emptyList())))) {}
+        rule.setContent { PuzzleBoxTheme { TangoEditorBoard(sized, Modifier.width(PHONE_BOARD)) } }
+        fun pressAt(u: Float, v: Float): TangoEditorTarget? {
+            rule.onNodeWithTag(BOARD).performTouchInput { down(Offset(u * width / n, v * height / n)) }
+            val target = sized.preview.value
+            sized.cancelPress()
+            rule.onNodeWithTag(BOARD).performTouchInput { up() }
+            return target
+        }
+        fun square(u: Float, v: Float) = TangoEditorTarget.Square(v.toInt() * n + u.toInt())
+        val edges = interiorEdges(n).filter(chosen)
+        assertTrue("no edges probed at n=$n", edges.isNotEmpty())
+        edges.forEach { edge ->
+            val band = bandRect(edge)
+            val near = band.deflate(PROBE)
+            listOf(near.center, near.topLeft, near.topRight, near.bottomLeft, near.bottomRight).forEach { p ->
+                assertEquals("n=$n $edge at $p", TangoEditorTarget.Edge(edge), pressAt(p.x, p.y))
+            }
+            val outside = when (edge.side) {
+                // Past the inset (along the line, a hair into the upper/left cell) and past the band edge.
+                GridEdge.Side.Right -> listOf(Offset(band.center.x - PROBE, band.top - PROBE), Offset(band.left - PROBE, band.center.y))
+                GridEdge.Side.Bottom -> listOf(Offset(band.left - PROBE, band.center.y - PROBE), Offset(band.center.x, band.top - PROBE))
+            }
+            outside.forEach { p -> assertEquals("n=$n off $edge at $p", square(p.x, p.y), pressAt(p.x, p.y)) }
+        }
+    }
+
+    /** Interior edges of an n×n board: each cell's right edge but the last column's, bottom edge but the last row's. */
+    private fun interiorEdges(n: Int): Set<GridEdge> = (0 until n).flatMap { row ->
+        (0 until n).flatMap { col ->
+            listOfNotNull(
+                GridEdge(GridCell(row, col), GridEdge.Side.Right).takeIf { col < n - 1 },
+                GridEdge(GridCell(row, col), GridEdge.Side.Bottom).takeIf { row < n - 1 },
+            )
+        }
+    }.toSet()
+
+    /** The band rect `TapZoneBands`/`PressWash` draw for [edge], in cell units. */
+    private fun bandRect(edge: GridEdge): Rect {
+        val row = edge.cell.row.toFloat()
+        val col = edge.cell.col.toFloat()
+        return when (edge.side) {
+            GridEdge.Side.Right -> Rect(Offset(col + 1 - ACROSS, row + INSET), Size(2 * ACROSS, 1 - 2 * INSET))
+            GridEdge.Side.Bottom -> Rect(Offset(col + INSET, row + 1 - ACROSS), Size(1 - 2 * INSET, 2 * ACROSS))
+        }
+    }
+
+    /** The interior edges whose drawn band, grown by [grow] cell units, holds (u, v); only the four nearest cells' edges can. */
+    private fun drawnBandsAt(u: Float, v: Float, n: Int, grow: Float): Set<GridEdge> {
+        val near = (v.toInt() - 1..v.toInt()).flatMap { row ->
+            (u.toInt() - 1..u.toInt()).filter { row in 0 until n && it in 0 until n }.flatMap { col ->
+                listOf(GridEdge(GridCell(row, col), GridEdge.Side.Right), GridEdge(GridCell(row, col), GridEdge.Side.Bottom))
+            }
+        }
+        return near.filter { edge ->
+            val interior = if (edge.side == GridEdge.Side.Right) edge.cell.col < n - 1 else edge.cell.row < n - 1
+            interior && bandRect(edge).inflate(grow).contains(Offset(u, v))
+        }.toSet()
+    }
+
+    /** A press shows the target's wash, a lift commits it: centre → sun, shared right edge → `=`, corner → moon. */
+    private fun phoneTaps(n: Int, cell: Int) {
+        val sized = TangoEditorController(EditorDraft(TangoEditor, DraftState(TangoDraft(n, emptyMap(), emptyList())))) {
+            edits += it
+        }
+        fun board() = sized.draft.value.state.draft as TangoDraft
+        rule.setContent { PuzzleBoxTheme { TangoEditorBoard(sized, Modifier.width(PHONE_BOARD)) } }
+        rule.onNodeWithTag(BOARD).assertWidthIsEqualTo(PHONE_BOARD).assertHeightIsEqualTo(PHONE_BOARD)
+
+        rule.onNodeWithTag(BOARD).performTouchInput { down(centre(cell, n)) }
+        rule.onAllNodesWithTag(squareTag(cell), useUnmergedTree = true).assertCountEquals(1)
+        rule.onNodeWithTag(BOARD).performTouchInput { up() }
+        assertEquals(mapOf(cell to TangoCell.SUN), board().givens)
+
+        rule.onNodeWithTag(BOARD).performTouchInput { down(rightEdge(cell, n)) }
+        rule.onAllNodesWithTag(edgeTag(cell, "right"), useUnmergedTree = true).assertCountEquals(1)
+        rule.onNodeWithTag(BOARD).performTouchInput { up() }
+        assertEquals(listOf(TangoMarker(cell, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME)), board().markers)
+
+        rule.onNodeWithTag(BOARD).performTouchInput {
+            down(centre(cell, n) + Offset(width / n * 0.45f, height / n * 0.45f))
+            up()
+        }
+        assertEquals(mapOf(cell to TangoCell.MOON), board().givens)
+        assertEquals(1, board().markers.size)
+        assertEquals(3, edits.size)
+    }
+
     private companion object {
         const val BOARD = "tango.editor.board"
         const val N = 6
+
+        /** A 360 dp phone pane less 2 × Spacing.lg. */
+        val PHONE_BOARD = 328.dp
+        val ACROSS = TangoBoardSpec.editEdgeBandAcrossFraction
+        val INSET = TangoBoardSpec.editEdgeBandInsetFraction
+
+        /** Sweep points within this many cell units of a band outline are skipped (float edge). */
+        const val SLACK = 1e-3f
+
+        /** How far inside or outside a band a press probe lands, in cell units (≈ 1 dp at n10). */
+        const val PROBE = 0.03f
     }
 }
