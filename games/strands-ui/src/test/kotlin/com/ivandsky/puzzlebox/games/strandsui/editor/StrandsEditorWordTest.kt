@@ -183,6 +183,7 @@ class StrandsEditorWordTest {
         val fit = rule.onNodeWithTag("strands.editor.word.fit", useUnmergedTree = true)
         assertEquals("TooLong", fit.state())
         fit.assertTextEquals(StrandsEditorCopy.overflow(4, 2))
+        rule.onNodeWithTag("strands.editor.word.check", useUnmergedTree = true).assertDoesNotExist()
         assertEquals("GO", board().letters.take(2))
         assertNull(board().paths.single().word)
 
