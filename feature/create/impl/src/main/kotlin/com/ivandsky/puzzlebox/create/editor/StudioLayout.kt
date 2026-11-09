@@ -184,7 +184,7 @@ private fun PreviewLayout(layout: PlayLayout) {
                 canRedo = false,
                 onUndo = {},
                 onRedo = {},
-                sizes = listOf(VariantId("queens/8")),
+                sizes = listOf(VariantId("queens/8"), VariantId("queens/9")),
                 size = VariantId("queens/8"),
                 sizeLabel = { "8×8" },
                 onResize = {},

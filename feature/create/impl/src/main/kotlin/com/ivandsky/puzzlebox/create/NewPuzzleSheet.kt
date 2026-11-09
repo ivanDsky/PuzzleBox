@@ -48,7 +48,8 @@ private val SizeRowMinHeight = 56.dp
 /**
  * The New puzzle sheet (spec A1, A5; 01 handoff "New puzzle sheet"): one [GameStartRow] per
  * game in [games] (glyph tile, one-line rule, default size), then the picked game's sizes,
- * exactly its editor's variants in order. Picking a size slides the sheet away, then reports
+ * exactly its editor's variants in order; a game with a single size has no sizes step, its
+ * row reports that size the way a size pick does. Picking a size slides the sheet away, then reports
  * it through [onPick], once per sheet; back on the sizes step returns to the games. When
  * [onImport] is set, the games end with a divider and an "Import from text" row that slides
  * the sheet away, then reports through [onImport]; null leaves the row out.
@@ -89,7 +90,11 @@ fun NewPuzzleSheet(
         NewPuzzleSheetContent(
             games = games,
             picked = picked,
-            onGame = { pickedId = it.value },
+            onGame = { id ->
+                val only = games.firstOrNull { it.id == id }?.sizes?.singleOrNull()
+                // One size is no choice: the game's tap starts its draft, with no size step.
+                if (only != null) slideAwayThen { onPick(id, only.variant) } else pickedId = id.value
+            },
             onBack = { pickedId = null },
             onSize = { variant ->
                 val game = picked ?: return@NewPuzzleSheetContent
@@ -154,7 +159,7 @@ private fun GamesStep(games: List<CreateUiState.NewGame>, onGame: (GameId) -> Un
         )
     }
     games.forEach { game ->
-        GameStartRow(game = game, tagRoot = "create.new", onClick = { onGame(game.id) }, chevron = true)
+        GameStartRow(game = game, tagRoot = "create.new", onClick = { onGame(game.id) }, chevron = game.sizes.size > 1)
     }
     onImport?.let { ImportRow(it) }
 }

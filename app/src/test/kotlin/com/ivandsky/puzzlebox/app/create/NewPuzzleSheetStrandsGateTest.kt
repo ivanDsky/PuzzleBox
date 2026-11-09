@@ -107,10 +107,11 @@ class NewPuzzleSheetStrandsGateTest {
     fun `with the flag on the Strands option opens the Strands editor`() {
         open(FakeReleaseFlags(ReleaseFlag.StrandsEditor))
         rule.onNodeWithTag(NEW).performClick()
+        // Strands has one size: its row opens the editor, with no size step between.
         rule.onNodeWithTag("$GAME${StrandsDefinition.id.value}").performClick()
-        rule.onNodeWithTag("$SIZE${StrandsDefinition.VARIANT.value}").performClick()
 
         rule.waitUntil(WAIT_MS) { count(BOARD) > 0 }
+        rule.onNodeWithTag("$SIZE${StrandsDefinition.VARIANT.value}").assertDoesNotExist()
         rule.onNodeWithTag(PILL).assertExists()
     }
 

@@ -112,7 +112,7 @@ private fun PreviewPane(verdict: Verdict) {
                 canRedo = false,
                 onUndo = {},
                 onRedo = {},
-                sizes = listOf(VariantId("queens/4")),
+                sizes = listOf(VariantId("queens/4"), VariantId("queens/5")),
                 size = VariantId("queens/4"),
                 sizeLabel = { "4×4" },
                 onResize = {},

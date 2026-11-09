@@ -67,6 +67,7 @@ import org.robolectric.annotation.Config
  * per game with a registered editor, in registration order, each with its glyph tile, its
  * default size and its one-line rule when one is written; a picked game lists exactly
  * its editor's variants, in order; picking a size stores that draft and pushes its Studio.
+ * A game with a single size (`solo`) has no sizes step: its row stores that draft directly.
  * `beta` ships without an editor and `gamma` has an editor but no editor UI: neither is
  * offered. One stored draft keeps the list (and its New puzzle button) on screen. The real
  * Queens sizes and labels are the app's NewPuzzleSheetQueensTest.
@@ -82,9 +83,11 @@ class NewPuzzleSheetTest {
     private val alpha = TestGames.alpha
     private val beta = TestGames.beta
     private val gamma = GameId("gamma")
+    private val solo = GameId("solo")
 
     private val queensSizes = (4..12).map { VariantId("queens/$it") }
     private val alphaSizes = listOf(VariantId("alpha/small"), VariantId("alpha/large"))
+    private val soloSize = VariantId("solo/only")
 
     private val drafts = FakeDraftRepository()
     private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey))))
@@ -97,9 +100,12 @@ class NewPuzzleSheetTest {
                 TestGames.plugin(beta),
                 withEditor(alpha, FakeGameEditor(alpha, alphaSizes)),
                 withEditor(gamma, FakeGameEditor(gamma, alphaSizes)),
+                withEditor(solo, FakeGameEditor(solo, listOf(soloSize))),
             ),
         )
-        val editors = GameEditorRegistry(listOf(FakeGameEditorUi(queens), FakeGameEditorUi(alpha)))
+        val editors = GameEditorRegistry(
+            listOf(FakeGameEditorUi(queens), FakeGameEditorUi(alpha), FakeGameEditorUi(solo)),
+        )
         var next = 0
         val createDraft = CreateDraft(games, drafts, newId = { "draft-${++next}" }, clock = { NOW })
         runBlocking { drafts.upsert(seed()) }
@@ -143,9 +149,9 @@ class NewPuzzleSheetTest {
         composeRule.onNodeWithTag(NEW).performClick()
         composeRule.onNodeWithTag(SHEET).assertExists()
 
-        assertEquals(listOf(queens, alpha).map { "$GAME${it.value}" }, tagsStartingWith(GAME))
-        assertEquals(listOf(queens, alpha).map { "$GLYPH${it.value}" }, tagsStartingWith(GLYPH))
-        assertEquals(listOf(queens, alpha).map { "$DEFAULT${it.value}" }, tagsStartingWith(DEFAULT))
+        assertEquals(listOf(queens, alpha, solo).map { "$GAME${it.value}" }, tagsStartingWith(GAME))
+        assertEquals(listOf(queens, alpha, solo).map { "$GLYPH${it.value}" }, tagsStartingWith(GLYPH))
+        assertEquals(listOf(queens, alpha, solo).map { "$DEFAULT${it.value}" }, tagsStartingWith(DEFAULT))
         // Only queens has a written rule line; a game without one shows none.
         assertEquals(listOf("$RULE${queens.value}"), tagsStartingWith(RULE))
         assertEquals(emptyList<String>(), tagsStartingWith(SIZE))
@@ -155,8 +161,24 @@ class NewPuzzleSheetTest {
         assertEquals(emptyList<String>(), tagsStartingWith(GAME))
 
         composeRule.onNodeWithTag(BACK).performClick()
-        assertEquals(listOf(queens, alpha).map { "$GAME${it.value}" }, tagsStartingWith(GAME))
+        assertEquals(listOf(queens, alpha, solo).map { "$GAME${it.value}" }, tagsStartingWith(GAME))
         assertEquals(emptyList<String>(), tagsStartingWith(SIZE))
+    }
+
+    @Test
+    fun `a game with one size has no size step, one tap stores its draft and opens its Studio`() {
+        composeRule.onNodeWithTag(NEW).performClick()
+        composeRule.onNodeWithTag("$GAME${solo.value}").performClick()
+
+        composeRule.waitUntil { drafts.rows.containsKey("draft-1") }
+        assertEquals(emptyList<String>(), tagsStartingWith(SIZE))
+        assertEquals(emptyList<String>(), tagsStartingWith(BACK))
+        val draft = drafts.rows.getValue("draft-1")
+        assertEquals(solo, draft.gameId)
+        assertEquals(soloSize, draft.variant)
+        composeRule.waitForIdle()
+        assertEquals(listOf(CreateKey, EditorKey("draft-1")), navigator.state.currentStack)
+        composeRule.onAllNodesWithTag(SHEET).fetchSemanticsNodes().let { assertEquals(0, it.size) }
     }
 
     @Test

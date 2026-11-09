@@ -56,9 +56,10 @@ private val ToolIconSize = 20.dp
  * The Studio tool strip under the board (prototype 02 A): a card with the studio accent
  * border holding Undo and Redo, each enabled only when [canUndo] / [canRedo] say a step
  * exists; Size, showing the open [size] and opening the [SizePopover] over [sizes] (the
- * game's variant table, A5) above the strip; and Clear. A size pick other than the open one
- * goes to [onResize]; Clear goes to [onClear]. Under the tools sits the game's one-line
- * [hint]. Tools give press feedback (scale [MotionTokens.PressScale]); reduced motion drops it.
+ * game's variant table, A5) above the strip, left out when [sizes] holds one size or none
+ * (nothing to pick); and Clear. A size pick other than the open one goes to [onResize];
+ * Clear goes to [onClear]. Under the tools sits the game's one-line [hint]. Tools give press
+ * feedback (scale [MotionTokens.PressScale]); reduced motion drops it.
  */
 @Composable
 fun ToolStrip(
@@ -87,8 +88,16 @@ fun ToolStrip(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 IconTool("Undo", PuzzleIcons.Undo, canUndo, onUndo, "create.tool.undo")
                 IconTool("Redo", PuzzleIcons.Redo, canRedo, onRedo, "create.tool.redo")
-                Tool("Size", enabled = true, active = picking, onClick = { picking = !picking }, tag = "create.tool.size") { ink ->
-                    Text(sizeLabel(size), style = MaterialTheme.typography.titleSmall, color = ink, maxLines = 1)
+                if (sizes.size > 1) {
+                    Tool(
+                        "Size",
+                        enabled = true,
+                        active = picking,
+                        onClick = { picking = !picking },
+                        tag = "create.tool.size",
+                    ) { ink ->
+                        Text(sizeLabel(size), style = MaterialTheme.typography.titleSmall, color = ink, maxLines = 1)
+                    }
                 }
                 IconTool("Clear", PuzzleIcons.Clear, enabled = true, onClick = onClear, tag = "create.tool.clear")
             }

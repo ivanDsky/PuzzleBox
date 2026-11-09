@@ -9,7 +9,6 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
@@ -101,9 +100,10 @@ class NewPuzzleSheetSudokuGateTest {
     fun `with SudokuEditor on the option opens the editor and a digit moves the pill`() {
         show(FakeReleaseFlags(ReleaseFlag.SudokuEditor))
         rule.onNodeWithTag(NEW).performClick()
+        // The mini board is Sudoku's one size: its row opens the editor, with no size step between.
         rule.onNodeWithTag("$GAME${mini.value}").performClick()
-        rule.onNodeWithTag("$SIZE${SudokuGames.MINI.variant.id.value}").performScrollTo().performClick()
         rule.waitUntil(TIMEOUT_MS) { navigator.state.currentStack.last() is EditorKey }
+        rule.onNodeWithTag("$SIZE${SudokuGames.MINI.variant.id.value}").assertDoesNotExist()
 
         awaitPill("Incomplete")
         rule.onNodeWithTag("sudoku.cell.0").performClick()
