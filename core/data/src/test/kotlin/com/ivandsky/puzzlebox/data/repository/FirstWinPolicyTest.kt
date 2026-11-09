@@ -19,11 +19,12 @@ class FirstWinPolicyTest {
     private val day = LocalDate.of(2026, 10, 31)
     private val refKey = "zip/2026-10-31/592"
 
-    private fun emitted(timeMs: Long, hints: Int) = CompletionRecord(
+    private fun emitted(timeMs: Long, hints: Int, matchCode: String? = null) = CompletionRecord(
         puzzleRef = Ref(GameId("zip"), PuzzleKey.Daily(day, 592)),
         time = timeMs,
         hints = hints,
         stats = RecordStats(schemaVersion = 1, blob = """{"v":1,"mistakes":3}"""),
+        matchCode = matchCode,
     )
 
     @Test
@@ -60,5 +61,23 @@ class FirstWinPolicyTest {
         assertNull(row.firstCompletedAtMs)
         assertEquals(71_000L, row.timeMs)
         assertEquals(67_000L, row.completedAtMs)
+    }
+
+    @Test
+    fun `record stamp carries the match code`() {
+        val row = policy.stamp(emitted(95_000L, 0, matchCode = "ABC123"), refKey, FirstWinPolicy.Decision.Record(7_000L))
+        assertEquals("ABC123", row.matchCode)
+    }
+
+    @Test
+    fun `replay stamp carries the match code`() {
+        val row = policy.stamp(emitted(71_000L, 0, matchCode = "XYZ789"), refKey, FirstWinPolicy.Decision.Replay(67_000L))
+        assertEquals("XYZ789", row.matchCode)
+    }
+
+    @Test
+    fun `a record without a match code stamps null`() {
+        val row = policy.stamp(emitted(95_000L, 0), refKey, FirstWinPolicy.Decision.Record(7_000L))
+        assertNull(row.matchCode)
     }
 }
