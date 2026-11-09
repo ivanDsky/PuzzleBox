@@ -10,7 +10,6 @@ import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
-import com.ivandsky.puzzlebox.designsystem.Spacing
 
 private enum class PaneSlot { Toolbar, Board }
 
@@ -30,7 +29,7 @@ internal fun ToolbarBoardPane(
     SubcomposeLayout(modifier) { constraints ->
         val width = constraints.maxWidth
         val height = constraints.maxHeight
-        val inset = Spacing.lg.roundToPx()
+        val inset = PlayBoardInset.roundToPx()
         val bar = if (toolbar != null) {
             subcompose(PaneSlot.Toolbar) { Box(Modifier.testTag("play.toolbar")) { toolbar() } }
         } else {

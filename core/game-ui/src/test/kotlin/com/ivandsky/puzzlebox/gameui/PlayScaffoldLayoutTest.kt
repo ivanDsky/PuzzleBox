@@ -75,7 +75,7 @@ class PlayScaffoldLayoutTest {
                     // Honours the cap the way Tango's and Zip's boards do.
                     board = { paneCap ->
                         val cap = paneCap ?: PlayBoardMaxWidth
-                        PlayBoardPane(Modifier.padding(horizontal = Spacing.lg)) {
+                        PlayBoardPane(Modifier.testTag("pane").padding(horizontal = Spacing.lg)) {
                             // A fixed size stands for a short board, smaller than its pane.
                             val size = boardSize?.let { Modifier.size(it) }
                                 ?: Modifier.widthIn(max = cap).heightIn(max = cap).aspectRatio(1f)
@@ -108,12 +108,11 @@ class PlayScaffoldLayoutTest {
     fun `a short board sits centred between the top chrome and the bottom controls on a phone`() {
         setScreen(PlayLayout.SinglePane, 360, 800, boardSize = 200.dp)
         val board = composeRule.onNodeWithTag("board").getUnclippedBoundsInRoot()
-        val chrome = composeRule.onNodeWithTag("play.side_panel").getUnclippedBoundsInRoot()
+        val pane = composeRule.onNodeWithTag("pane").getUnclippedBoundsInRoot()
 
-        val above = board.top - 0.dp
-        // The chrome's tag sits inside its own top margin, which is part of the space below.
-        val below = chrome.top - Spacing.sm - board.bottom
-        assertTrue("room to centre in: above $above below $below", above > Spacing.lg)
+        val above = board.top - pane.top
+        val below = pane.bottom - board.bottom
+        assertTrue("room to centre in: above $above below $below", above > PlayBoardInset)
         assertEquals("equal space above and below the board", above.value, below.value, 1f)
     }
 
@@ -125,7 +124,7 @@ class PlayScaffoldLayoutTest {
 
         val above = board.top - toolbar.bottom
         val below = 1000.dp - board.bottom
-        assertTrue("room to centre in: above $above below $below", above > Spacing.lg)
+        assertTrue("room to centre in: above $above below $below", above > PlayBoardInset)
         assertEquals("equal space above and below the board", above.value, below.value, 1f)
     }
 

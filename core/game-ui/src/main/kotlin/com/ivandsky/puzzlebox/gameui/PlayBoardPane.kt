@@ -16,16 +16,19 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
+/** The pane's equal inset above and below its board; [ToolbarBoardPane]'s cap maths reads the same value. */
+internal val PlayBoardInset = Spacing.lg
+
 /**
  * The board pane every game draws its board in: the full pane, [content] centred in it,
- * with an equal [Spacing.lg] inset above and below. A board shorter than its pane floats
+ * with an equal [PlayBoardInset] above and below. A board shorter than its pane floats
  * at its vertical middle — between the top chrome and the bottom controls — instead of
  * hugging the top; callers add only their own sideways gutter through [modifier].
  */
 @Composable
 fun PlayBoardPane(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
     Box(
-        modifier.fillMaxSize().padding(vertical = Spacing.lg),
+        modifier.fillMaxSize().padding(vertical = PlayBoardInset),
         contentAlignment = Alignment.Center,
         content = content,
     )
