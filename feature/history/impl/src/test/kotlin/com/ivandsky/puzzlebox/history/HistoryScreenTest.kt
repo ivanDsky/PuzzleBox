@@ -38,7 +38,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Robolectric compose coverage for the history browser (A17, A18, A28): the empty state,
  * the All timeline whatever the key's game, the stats and calendar cards, day groups,
- * the Best pill, and the detail's hand-off — "Play again" once solved, "Keep going"
+ * the Best pill, and the detail's hand-off — "See result" once solved, "Keep going"
  * while unfinished; both report the (game, day) to the shell and never build a session
  * blob (ticket 11), so cache state never blocks the tap.
  * Fix round 5, defect C: rows are per-game via the game-agnostic merged history — a
@@ -180,7 +180,8 @@ class HistoryScreenTest {
         awaitTag("history.score")
         awaitTag("history.detail.best")
         assertNoTag("history.keep_going")
-        composeRule.onNodeWithTag("history.play_again").performClick()
+        composeRule.onNodeWithTag("history.see_result").assertTextEquals("See result")
+        composeRule.onNodeWithTag("history.see_result").performClick()
         composeRule.waitForIdle()
 
         // The replayed DAY's identity, never today's (A4, N18).
@@ -215,14 +216,14 @@ class HistoryScreenTest {
         )
 
         openRow(TANGO)
-        composeRule.onNodeWithTag("history.play_again").performClick()
+        composeRule.onNodeWithTag("history.see_result").performClick()
         composeRule.waitForIdle()
 
         assertEquals(TANGO to day, handedToShell)
     }
 
     @Test
-    fun `unfinished day detail shows Keep going, never Play again`() {
+    fun `unfinished day detail shows Keep going, never See result`() {
         setContent(
             zips = listOf(HistoryTestSupport.entry(day)),
             cached = mapOf(ZIP to day to TestGames.puzzle(ZIP)),
@@ -230,7 +231,7 @@ class HistoryScreenTest {
 
         openRow(ZIP)
         awaitTag("history.score")
-        assertNoTag("history.play_again")
+        assertNoTag("history.see_result")
         assertNoTag("history.detail.best") // no solve yet, so no best to show
         composeRule.onNodeWithTag("history.keep_going").performClick()
         composeRule.waitForIdle()
@@ -257,7 +258,7 @@ class HistoryScreenTest {
         // The record alone lists the day (no capture anywhere).
         openRow(QUEENS)
         awaitTag("history.score")
-        awaitTag("history.play_again")
+        awaitTag("history.see_result")
         assertNull(handedToShell)
     }
 
@@ -273,7 +274,7 @@ class HistoryScreenTest {
         composeRule.onAllNodesWithTag(rowTag(ZIP, day)).assertCountEquals(1)
         assertNoTag("history.unfinished.zip/$day")
         openRow(ZIP)
-        awaitTag("history.play_again")
+        awaitTag("history.see_result")
     }
 
     @Test

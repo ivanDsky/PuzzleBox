@@ -223,6 +223,6 @@ private fun actionLabel(line: DayLine): String = when (line) {
     is DayLine.Today -> when (line.status) {
         null, TodayStatus.NotStarted, TodayStatus.Offline -> "Play"
         is TodayStatus.InProgress -> "Keep going"
-        is TodayStatus.Solved -> "Play again"
+        is TodayStatus.Solved -> "See result"
     }
 }
