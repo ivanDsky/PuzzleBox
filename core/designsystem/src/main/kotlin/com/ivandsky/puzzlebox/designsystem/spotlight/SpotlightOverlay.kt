@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -54,35 +55,31 @@ fun BoxScope.SpotlightOverlay(spotlight: Spotlight?, modifier: Modifier = Modifi
                     val dim = dimPath(spotlight, lit, size)
                     val hairline = hairlinePath(spotlight.hairlineEdges(), spotlight.rows, spotlight.cols, size)
                     val hairlineWidth = SpotlightTokens.HairlineWidth.toPx()
-                    val excluded = lit.filter { spotlight.roles[it] == SpotlightRole.EXCLUDED }.sorted()
+                    val excluded = RoleCells(spotlight, lit, SpotlightRole.EXCLUDED, size)
+                    val targets = RoleCells(spotlight, lit, SpotlightRole.TARGET, size)
+                    val culprits = RoleCells(spotlight, lit, SpotlightRole.CULPRIT, size)
+                    val dimColor = SpotlightTokens.dimOverlay(surface)
+                    val hairlineColor = SpotlightTokens.hairline(scheme)
+                    val excludedColor = SpotlightTokens.excluded(scheme)
+                    val ghostColor = SpotlightTokens.targetGhost(scheme)
+                    val culpritColor = SpotlightTokens.culprit(scheme)
+                    val badgeBar = SpotlightTokens.culpritBadgeBar(scheme)
                     onDrawBehind {
                         val ms = clock.value
                         val fade = sequence.fade(ms)
-                        drawPath(dim, SpotlightTokens.dimOverlay(surface), alpha = fade)
-                        drawHairline(hairline, SpotlightTokens.hairline(scheme).copy(alpha = fade), hairlineWidth)
-                        excluded.forEachIndexed { index, cell ->
-                            val p = sequence.excluded(index, ms)
-                            drawRole(spotlight, cell, scaleIn(SpotlightTokens.EXCLUDED_START_SCALE, p), SpotlightTokens.excluded(scheme), p)
+                        drawPath(dim, dimColor, alpha = fade)
+                        drawHairline(hairline, hairlineColor.copy(alpha = fade), hairlineWidth)
+                        for (i in excluded.cells.indices) {
+                            val p = sequence.excluded(i, ms)
+                            val scale = scaleIn(SpotlightTokens.EXCLUDED_START_SCALE, p)
+                            drawSpotlightGlyph(spotlight.glyphs, excluded.cells[i], SpotlightRole.EXCLUDED, excluded.rects[i], scale, excludedColor.faded(p))
                         }
                         val pulse = sequence.pulseScale(ms)
                         val pulseAlpha = sequence.pulseAlpha(ms)
-                        for (cell in lit) {
-                            when (spotlight.roles[cell]) {
-                                SpotlightRole.TARGET -> drawRole(spotlight, cell, pulse, SpotlightTokens.targetGhost(scheme), pulseAlpha)
-                                SpotlightRole.CULPRIT -> {
-                                    drawRole(spotlight, cell, pulse, SpotlightTokens.culprit(scheme), pulseAlpha)
-                                    val rect = cellRect(cell, spotlight.rows, spotlight.cols, size)
-                                    drawCulpritBadge(
-                                        rect = rect,
-                                        scale = pulse,
-                                        alpha = pulseAlpha,
-                                        disc = SpotlightTokens.culprit(scheme),
-                                        bar = SpotlightTokens.culpritBadgeBar(scheme),
-                                        halo = surface,
-                                    )
-                                }
-                                else -> Unit
-                            }
+                        drawCells(spotlight.glyphs, targets, SpotlightRole.TARGET, pulse, ghostColor.faded(pulseAlpha))
+                        drawCells(spotlight.glyphs, culprits, SpotlightRole.CULPRIT, pulse, culpritColor.faded(pulseAlpha))
+                        for (rect in culprits.rects) {
+                            drawCulpritBadge(rect, scale = pulse, alpha = pulseAlpha, disc = culpritColor, bar = badgeBar, halo = surface)
                         }
                     }
                 },
@@ -93,11 +90,17 @@ fun BoxScope.SpotlightOverlay(spotlight: Spotlight?, modifier: Modifier = Modifi
     }
 }
 
-private fun DrawScope.drawRole(spotlight: Spotlight, cell: Int, scale: Float, color: Color, alpha: Float) {
-    val role = spotlight.roles.getValue(cell)
-    val rect = cellRect(cell, spotlight.rows, spotlight.cols, size)
-    drawSpotlightGlyph(spotlight.glyphs, cell, role, rect, scale, color.copy(alpha = color.alpha * alpha))
+/** One role's on-board cells (ascending) and their rects, built once per size so the draw pass allocates nothing. */
+private class RoleCells(spotlight: Spotlight, lit: Set<Int>, role: SpotlightRole, size: Size) {
+    val cells: IntArray = lit.filter { spotlight.roles[it] == role }.sorted().toIntArray()
+    val rects: Array<Rect> = Array(cells.size) { cellRect(cells[it], spotlight.rows, spotlight.cols, size) }
 }
+
+private fun DrawScope.drawCells(glyphs: SpotlightGlyphs, cells: RoleCells, role: SpotlightRole, scale: Float, color: Color) {
+    for (i in cells.cells.indices) drawSpotlightGlyph(glyphs, cells.cells[i], role, cells.rects[i], scale, color)
+}
+
+private fun Color.faded(alpha: Float): Color = copy(alpha = this.alpha * alpha)
 
 // Preview — Studio tooling and the Catalog's Showkase browser. The four states on a 5×5 board with a stand-in glyph
 // (a disc, an ×) at their final frame, as previews run with no motion: deduction, elimination, culprit, reveal.

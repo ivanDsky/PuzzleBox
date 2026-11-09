@@ -40,8 +40,7 @@ internal fun SpotlightCalloutBubble(callout: SpotlightCallout, spotlight: Spotli
     Layout(
         content = {
             CalloutBody(callout.text, fill)
-            CalloutPointer(up = true, fill)
-            CalloutPointer(up = false, fill)
+            CalloutPointer(fill)
         },
     ) { measurables, constraints ->
         val width = constraints.maxWidth
@@ -51,8 +50,7 @@ internal fun SpotlightCalloutBubble(callout: SpotlightCallout, spotlight: Spotli
         val pointerH = pointerW / 2
         val inset = margin + SpotlightTokens.CalloutRadius.roundToPx() + pointerW / 2
         val body = measurables[0].measure(Constraints.fixedWidth((width - 2 * margin).coerceAtLeast(0)))
-        val up = measurables[1].measure(Constraints.fixed(pointerW, pointerH))
-        val down = measurables[2].measure(Constraints.fixed(pointerW, pointerH))
+        val pointer = measurables[1].measure(Constraints.fixed(pointerW, pointerH))
         val placement = spotlight.calloutPlacement(Size(width.toFloat(), height.toFloat()), (body.height + pointerH).toFloat())
         layout(width, height) {
             if (placement == null) return@layout
@@ -64,18 +62,25 @@ internal fun SpotlightCalloutBubble(callout: SpotlightCallout, spotlight: Spotli
                 CalloutSide.BELOW -> Offset(tipX.toFloat(), top.toFloat())
                 CalloutSide.OVER -> Offset(width / 2f, bodyY + body.height / 2f)
             }
-            fun Placeable.placeScaledIn(x: Int, y: Int) = placeWithLayer(x, y) { scaleIn(progress(), tip - Offset(x.toFloat(), y.toFloat()), this@placeScaledIn) }
+            fun Placeable.placeScaledIn(x: Int, y: Int, flip: Boolean = false) = placeWithLayer(x, y) {
+                applyCalloutScale(progress(), tip - Offset(x.toFloat(), y.toFloat()), this@placeScaledIn)
+                if (flip) rotationZ = HALF_TURN
+            }
             body.placeScaledIn(margin, bodyY)
+            // The pointer is drawn tip up, its tip at its top centre: the scale pivot. Below the bubble (ABOVE) it is
+            // placed with its tip on the anchor and turned half about that tip, so it hangs from the bubble tip down.
             when (placement.side) {
-                CalloutSide.ABOVE -> down.placeScaledIn(tipX - pointerW / 2, bodyY + body.height)
-                CalloutSide.BELOW -> up.placeScaledIn(tipX - pointerW / 2, top)
+                CalloutSide.ABOVE -> pointer.placeScaledIn(tipX - pointerW / 2, bodyY + body.height + pointerH, flip = true)
+                CalloutSide.BELOW -> pointer.placeScaledIn(tipX - pointerW / 2, top)
                 CalloutSide.OVER -> Unit
             }
         }
     }
 }
 
-private fun GraphicsLayerScope.scaleIn(progress: Float, pivot: Offset, placeable: Placeable) {
+private const val HALF_TURN = 180f
+
+private fun GraphicsLayerScope.applyCalloutScale(progress: Float, pivot: Offset, placeable: Placeable) {
     val scale = scaleIn(SpotlightTokens.CALLOUT_START_SCALE, progress)
     scaleX = scale
     scaleY = scale
@@ -116,17 +121,15 @@ private fun CalloutBody(text: String, fill: Color) {
     }
 }
 
-/** The pointer triangle; [up] points at an anchor above the bubble. */
+/** The pointer triangle, tip up at its top centre; the layout turns it to point down. */
 @Composable
-private fun CalloutPointer(up: Boolean, fill: Color) {
+private fun CalloutPointer(fill: Color) {
     Spacer(
         Modifier.drawWithCache {
-            val tipY = if (up) 0f else size.height
-            val baseY = size.height - tipY
             val path = Path().apply {
-                moveTo(size.width / 2, tipY)
-                lineTo(size.width, baseY)
-                lineTo(0f, baseY)
+                moveTo(size.width / 2, 0f)
+                lineTo(size.width, size.height)
+                lineTo(0f, size.height)
                 close()
             }
             onDrawBehind { drawPath(path, fill) }

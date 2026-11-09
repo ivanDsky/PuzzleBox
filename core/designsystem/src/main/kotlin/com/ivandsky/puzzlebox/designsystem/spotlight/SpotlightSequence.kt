@@ -21,12 +21,14 @@ import kotlin.math.min
  * elimination) has no Pulse and ends as soon as its marks and callout have settled. Never longer than TOTAL_MS.
  */
 internal class SpotlightSequence(spotlight: Spotlight) {
-    val pulses: Boolean = spotlight.roles.values.any { it == SpotlightRole.TARGET || it == SpotlightRole.CULPRIT }
+    private val onBoard: List<SpotlightRole> = spotlight.litCells().map(spotlight.roles::getValue)
+
+    val pulses: Boolean = onBoard.any { it == SpotlightRole.TARGET || it == SpotlightRole.CULPRIT }
 
     val endMs: Int = if (pulses) {
         SpotlightTokens.PULSE_DELAY_MS + SpotlightTokens.PULSE_DURATION_MS
     } else {
-        val excluded = spotlight.roles.values.count { it == SpotlightRole.EXCLUDED }
+        val excluded = onBoard.count { it == SpotlightRole.EXCLUDED }
         var end = SpotlightTokens.FADE_MS
         if (excluded > 0) end = max(end, excludedDelay(excluded - 1) + EXCLUDED_DURATION_MS)
         if (spotlight.callout != null) end = max(end, CALLOUT_DELAY_MS + CALLOUT_DURATION_MS)

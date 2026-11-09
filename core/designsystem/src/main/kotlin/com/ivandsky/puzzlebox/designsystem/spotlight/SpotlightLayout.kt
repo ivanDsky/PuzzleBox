@@ -40,8 +40,8 @@ internal fun cellRect(cell: Int, rows: Int, cols: Int, size: Size): Rect {
 
 /** The outer boundary of the lit set as unit edges; none on a culprit step (A14). */
 internal fun Spotlight.hairlineEdges(): List<GridEdge> {
-    if (SpotlightRole.CULPRIT in roles.values) return emptyList()
     val lit = litCells()
+    if (lit.any { roles[it] == SpotlightRole.CULPRIT }) return emptyList()
     fun isLit(row: Int, col: Int) = row in 0 until rows && col in 0 until cols && row * cols + col in lit
     return buildList {
         for (cell in lit.sorted()) {

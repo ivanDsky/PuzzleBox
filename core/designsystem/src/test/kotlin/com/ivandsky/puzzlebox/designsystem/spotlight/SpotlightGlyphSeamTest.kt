@@ -96,7 +96,13 @@ class SpotlightGlyphSeamTest {
     @Test
     fun `target, excluded and culprit ask the glyph for their own cells in their own colours`() {
         val glyphs = RecordingGlyphs()
-        val roles = mapOf(4 to SpotlightRole.TARGET, 0 to SpotlightRole.EXCLUDED, 2 to SpotlightRole.EXCLUDED, 3 to SpotlightRole.EVIDENCE)
+        val roles = mapOf(
+            4 to SpotlightRole.TARGET,
+            0 to SpotlightRole.EXCLUDED,
+            2 to SpotlightRole.EXCLUDED,
+            3 to SpotlightRole.EVIDENCE,
+            8 to SpotlightRole.CULPRIT,
+        )
         show(Spotlight(3, 3, roles, callout = null, glyphs = glyphs, playId = 0))
         glyphs.calls.clear()
         val cell = cellSize(capture(), 3)
@@ -105,18 +111,10 @@ class SpotlightGlyphSeamTest {
                 RecordingGlyphs.Call(4, SpotlightRole.TARGET, cell, SpotlightTokens.targetGhost(scheme)),
                 RecordingGlyphs.Call(0, SpotlightRole.EXCLUDED, cell, SpotlightTokens.excluded(scheme)),
                 RecordingGlyphs.Call(2, SpotlightRole.EXCLUDED, cell, SpotlightTokens.excluded(scheme)),
+                RecordingGlyphs.Call(8, SpotlightRole.CULPRIT, cell, SpotlightTokens.culprit(scheme)),
             ),
             glyphs.calls.toSet(),
         )
-    }
-
-    @Test
-    fun `a culprit asks the glyph for its cell in the error colour`() {
-        val glyphs = RecordingGlyphs()
-        show(Spotlight(3, 3, mapOf(4 to SpotlightRole.CULPRIT), callout = null, glyphs = glyphs, playId = 0))
-        glyphs.calls.clear()
-        val cell = cellSize(capture(), 3)
-        assertEquals(listOf(RecordingGlyphs.Call(4, SpotlightRole.CULPRIT, cell, SpotlightTokens.culprit(scheme))), glyphs.calls)
     }
 
     @Test
