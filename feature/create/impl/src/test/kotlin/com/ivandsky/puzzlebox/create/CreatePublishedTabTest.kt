@@ -64,6 +64,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
@@ -391,6 +392,7 @@ class CreatePublishedTabTest {
                         CreateViewModel(
                             games, editors, GamePlayRegistry(emptyList()), drafts, published,
                             CreateDraft(games, drafts, newId = { "new" }, clock = { NOW }), copyDraft, DefaultDispatcherProvider(),
+                            sharedText = FakeSharedTextStore(),
                             syncSolves = SyncSolvesCounts(published, boards, clock = { NOW }),
                             releaseFlags = FakeReleaseFlags(),
                             clock = { NOW },

@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import kotlinx.coroutines.CoroutineDispatcher
@@ -201,6 +202,7 @@ class EditorAutosaveTest {
         CreateDraft(games, drafts, newId = { "new" }, clock = { NOW }),
         copyDraft,
         lanes,
+        sharedText = FakeSharedTextStore(),
         syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
         releaseFlags = FakeReleaseFlags(),
         clock = { NOW },

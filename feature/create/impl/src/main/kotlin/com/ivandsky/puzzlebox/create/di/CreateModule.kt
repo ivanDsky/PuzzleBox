@@ -31,7 +31,7 @@ private val DraftSaves = named("create.draftSaves")
 val createModule: Module = module {
     // Process lifetime on main, like Play's slot writes: leaving the Studio never cancels its last save.
     single(DraftSaves) { CoroutineScope(SupervisorJob() + get<DispatcherProvider>().main) }
-    viewModel { CreateViewModel(get(), get(), get(), get(), get(), get(), get(), get(), syncSolves = get(), releaseFlags = get(), clock = { Instant.now() }) }
+    viewModel { CreateViewModel(get(), get(), get(), get(), get(), get(), get(), get(), syncSolves = get(), releaseFlags = get(), sharedText = get(), clock = { Instant.now() }) }
     factory { SyncSolvesCounts(published = get(), boards = get(), clock = { Instant.now() }) }
     factory {
         CreateSharedPuzzle(
