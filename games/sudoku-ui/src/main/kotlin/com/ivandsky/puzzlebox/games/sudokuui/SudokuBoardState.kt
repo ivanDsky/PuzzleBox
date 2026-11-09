@@ -35,9 +35,9 @@ import kotlinx.coroutines.CoroutineScope
  * Selection and the Notes toggle never reach it.
  *
  * [HintMode.Stepwise] with a [scope] (HintParity, Mini only) swaps the staged hint for [StepHints]:
- * a press shows a [spotlight] and never places (A1), a culprit's second press erases it as one
- * undo unit (A4), and every input above clears the Spotlight in the same call (A10). [hint] then
- * stays null, so the legacy wash, rings and caption never draw (A15).
+ * a press shows a [spotlight] and never places (A1), a culprit is only marked and a second press
+ * re-shows it for free (A4), and every input above clears the Spotlight in the same call (A10).
+ * [hint] then stays null, so the legacy wash, rings and caption never draw (A15).
  */
 class SudokuBoardState(
     initialSession: SudokuSession,
@@ -77,7 +77,7 @@ class SudokuBoardState(
     private val stepHints: StepHints<SudokuStep, SudokuSpotlightMapper.Key>? =
         (hintMode as? HintMode.Stepwise)?.let { mode ->
             scope?.let {
-                val game = SudokuStepGame(session = { session }, onEraseCulprit = ::eraseMistake)
+                val game = SudokuStepGame(session = { session })
                 StepHints(mode, it, game, used = { session.hintsUsed }, onCount = ::storeHintsUsed)
             }
         }
@@ -206,11 +206,6 @@ class SudokuBoardState(
         val command = SudokuMoves.reveal(session.board, cell, digit) ?: return
         record(command)
         hintRevealed = true
-    }
-
-    /** The culprit's second press (A4): one undoable Erase; a cell with nothing to erase records nothing. */
-    private fun eraseMistake(step: SudokuStep.Mistake) {
-        SudokuMoves.erase(session.board, step.cell)?.let(::record)
     }
 
     /** A newly counted Stepwise hint: through [settle] like the legacy count, never [commit], so the Spotlight stays. */

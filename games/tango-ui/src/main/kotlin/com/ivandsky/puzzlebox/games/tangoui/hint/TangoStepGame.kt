@@ -13,9 +13,8 @@ import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStep
 import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepper
 
 /**
- * Tango behind [StepHints]: snapshots the live [session], runs [TangoStepper] off the main thread, maps the step to its
- * Spotlight, and hands a culprit to [onEraseCulprit] (the caller records `TangoMove(idx, null)` through `withMove`, one
- * undo unit, A4). A press never places anything (A1).
+ * Tango behind [StepHints]: snapshots the live [session], runs [TangoStepper] off the main thread and maps the step to
+ * its Spotlight. A press never places or erases anything (A1, A4): a culprit is only marked.
  *
  * Tango stores no solution, so the compute block searches it once per puzzle (A19) with a poll-counting [Budget], never
  * wall-clock, so the answer is repeatable; no unique solution or a spent budget is null, and the stepper then accuses
@@ -24,7 +23,6 @@ import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepper
  */
 internal class TangoStepGame(
     private val session: () -> TangoSession,
-    private val onEraseCulprit: (TangoStep.Mistake) -> Unit,
     private val solve: (TangoPuzzle) -> List<TangoCell>? = { boundedSolution(it) },
 ) : StepHints.Game<TangoStep, TangoSpotlightMapper.Key> {
 
@@ -44,16 +42,10 @@ internal class TangoStepGame(
 
     override fun keyOf(step: TangoStep): TangoSpotlightMapper.Key? = TangoSpotlightMapper.keyOf(step)
 
-    override fun isCulprit(step: TangoStep): Boolean = step is TangoStep.Mistake
-
     /** The press-time board: any input invalidates the search before it delivers, so the live board is the snapshot. */
     override fun spotlight(step: TangoStep, playId: Int): Spotlight? {
         val current = session()
         return TangoSpotlightMapper.map(step, current.puzzle, current.grid(), playId)
-    }
-
-    override fun eraseCulprit(step: TangoStep) {
-        if (step is TangoStep.Mistake) onEraseCulprit(step)
     }
 
     private fun solutionOf(puzzle: TangoPuzzle): List<TangoCell>? {

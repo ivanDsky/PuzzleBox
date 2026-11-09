@@ -29,9 +29,9 @@ internal object QueensStepCopy {
     fun text(step: QueensStep): String = when (step) {
         is QueensStep.Deduction -> deductions.getValue(step.rung.captionKey)(unitWord(step.unit.kind))
         is QueensStep.Mistake -> when (step.kind) {
-            QueensStep.Mistake.Kind.OFF_SOLUTION -> "Wrong queen: this queen is not in the solution. Hint again removes it."
-            QueensStep.Mistake.Kind.RULE_BREAK -> "Wrong queen: these two queens clash. Hint again removes this one."
-            QueensStep.Mistake.Kind.WRONG_CROSS -> "Wrong ×: a queen belongs on this square. Hint again removes it."
+            QueensStep.Mistake.Kind.OFF_SOLUTION -> "Wrong queen: this queen is not in the solution."
+            QueensStep.Mistake.Kind.RULE_BREAK -> "Wrong queen: these two queens clash."
+            QueensStep.Mistake.Kind.WRONG_CROSS -> "Wrong ×: a queen belongs on this square."
         }
         is QueensStep.Reveal ->
             if (step.holdsQueen) "No simple step here: a queen belongs on this square."

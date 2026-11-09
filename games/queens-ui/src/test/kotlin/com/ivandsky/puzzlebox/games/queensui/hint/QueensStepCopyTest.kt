@@ -48,6 +48,16 @@ class QueensStepCopyTest {
     }
 
     @Test
+    fun `a mistake callout says only what is wrong, with no second-press instruction`() {
+        for (step in mistakes) {
+            val text = QueensStepCopy.text(step)
+            assertTrue(text, text.startsWith("Wrong"))
+            assertFalse(text, text.contains("hint", ignoreCase = true))
+            assertFalse(text, text.contains("remove", ignoreCase = true))
+        }
+    }
+
+    @Test
     fun `a solved or unavailable step has no callout`() {
         for (step in listOf(QueensStep.Solved, QueensStep.Unavailable)) {
             val thrown = runCatching { QueensStepCopy.text(step) }.exceptionOrNull()

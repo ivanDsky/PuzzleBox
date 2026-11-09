@@ -49,9 +49,9 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Pins the Stepwise wiring the controller owns (ticket 31): a press shows a Spotlight and places nothing (A1), counts
- * once through the persisted session (A9), erases a wrong entry on the second press as one undo unit (A4), clears on
- * every input (A10), hides the caption and the violation line while it shows (A11), and the board draws it without
- * taking taps. The press rules are StepHints' (04b) and the step search TangoStepGame's (30).
+ * once through the persisted session (A9), marks a wrong entry and re-shows the mark for free without touching the
+ * board (A4), clears on every input (A10), hides the caption and the violation line while it shows (A11), and the
+ * board draws it without taking taps. The press rules are StepHints' (04b) and the step search TangoStepGame's (30).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -164,29 +164,38 @@ class TangoStepwiseHintTest {
         assertEquals(255, (TangoSessionCodec.deserialize(s.persist()!!) as DecodeResult.Ok).value.hintsUsed)
     }
 
-    // Erase (A4)
+    // Culprit mark only (A4)
 
     @Test
-    fun `a wrong sun is shown as the culprit, then erased by the second press as one undo unit`() {
+    fun `a wrong sun is marked as the culprit, and the second press re-shows the mark and changes nothing`() {
         val s = withWrongSun()
 
         s.requestHint()
         assertEquals(setOf(WRONG_IDX), s.culprits())
         assertEquals(1, s.hintsUsed)
-        val historyBefore = s.session!!.history.done.size
+        val marked = s.session!!
+        val playId = checkNotNull(s.spotlight).playId
 
         s.requestHint()
 
+        assertEquals(setOf(WRONG_IDX), s.culprits())
+        assertEquals(playId + 1, s.spotlight?.playId)
+        assertEquals(TangoCell.SUN, s.session!!.placements[WRONG_IDX])
+        assertEquals(marked.history, s.session!!.history)
+        assertEquals(1, s.hintsUsed)
+        assertEquals(1, lastSaved().hintsUsed)
+    }
+
+    @Test
+    fun `the player's own clear takes the marked sun off and clears the mark`() {
+        val s = withWrongSun()
+        s.requestHint()
+        s.requestHint()
+
+        s.onPlacement(TangoPlacement(WRONG_IDX, null))
+
         assertNull(s.session!!.placements[WRONG_IDX])
         assertNull(s.spotlight)
-        assertEquals(1, s.hintsUsed)
-        assertEquals(historyBefore + 1, s.session!!.history.done.size)
-        assertTrue(s.canUndo)
-        assertEquals(s.session, lastSaved())
-
-        s.undo()
-
-        assertEquals(TangoCell.SUN, s.session!!.placements[WRONG_IDX])
         assertEquals(1, s.hintsUsed)
     }
 

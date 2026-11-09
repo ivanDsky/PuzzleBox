@@ -21,8 +21,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Pins what the Sudoku game adds to [StepHints]: `known` (A7), `lastMove`, the mapper wiring, the erase hook, and that a
- * press places nothing (A1). Driven through a real [StepHints] on [Dispatchers.Unconfined], so a press delivers at once.
+ * Pins what the Sudoku game adds to [StepHints]: `known` (A7), `lastMove`, the mapper wiring, and that a press places
+ * and erases nothing (A1, A4). Driven through a real [StepHints] on [Dispatchers.Unconfined], so a press delivers at once.
  */
 class SudokuStepGameTest {
 
@@ -52,9 +52,8 @@ class SudokuStepGameTest {
     /** One play: the live session, the game under test, and the real press flow around it. */
     private inner class Play(puzzle: SudokuPuzzle) {
         var session = SudokuSession(ref = null, puzzle = puzzle)
-        val erased = mutableListOf<SudokuStep.Mistake>()
         var used = 0
-        val game = SudokuStepGame(session = { session }, onEraseCulprit = { erased += it })
+        val game = SudokuStepGame(session = { session })
         val hints = StepHints(HintMode.Stepwise(Dispatchers.Unconfined), CoroutineScope(Dispatchers.Unconfined), game, { used }, { used = it })
 
         /** What the next press would find, read off the game's own pure block. */
@@ -213,7 +212,7 @@ class SudokuStepGameTest {
     // Wrong digit
 
     @Test
-    fun `a wrong digit is shown once as the culprit, then the second press hands it to the erase hook`() {
+    fun `a wrong digit is marked as the culprit, and the second press re-shows the same mark for free`() {
         val play = Play(peanut450)
         play.place(0, 1)
         val wrong = play.session
@@ -222,12 +221,13 @@ class SudokuStepGameTest {
 
         assertEquals(SudokuStep.Mistake(0, 1, 12), step)
         assertEquals(listOf(0), play.hints.spotlight?.roles?.filterValues { it == SpotlightRole.CULPRIT }?.keys?.toList())
-        assertTrue(play.erased.isEmpty())
+        assertEquals(1, play.used)
 
-        play.hints.press()
+        assertEquals(step, play.press())
 
-        assertEquals(listOf(step), play.erased)
-        assertNull(play.hints.spotlight)
+        assertEquals(listOf(0), play.hints.spotlight?.roles?.filterValues { it == SpotlightRole.CULPRIT }?.keys?.toList())
+        assertEquals(2, play.hints.spotlight?.playId)
+        assertEquals(1, play.used)
         assertEquals(wrong, play.session)
     }
 

@@ -8,9 +8,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 
 /**
- * The one press flow for every stepwise game (spec A9, A10, A17, A19): search off the main thread,
- * ask the [HintLedger] what the press means, hold the current [spotlight]. Never interprets a step
- * [S] or a key [K] (ADR-0001); it only hands steps to the [game] adapter.
+ * The one press flow for every stepwise game (spec A4, A9, A10, A17, A19): search off the main
+ * thread, ask the [HintLedger] what the press costs, hold the current [spotlight]. A press only
+ * ever shows; it never edits the board. Never interprets a step [S] or a key [K] (ADR-0001); it
+ * only hands steps to the [game] adapter.
  *
  * Confined to [scope]'s dispatcher (the controller's main thread), like [HintSearch] and
  * [HintLedger]. [spotlight] and the play id change only inside [press], [inputMade] and [reset].
@@ -30,14 +31,9 @@ class StepHints<S : Any, K : Any>(
         /** Null = nothing to show (solved / unavailable): no Spotlight, nothing counted. */
         fun keyOf(step: S): K?
 
-        fun isCulprit(step: S): Boolean
-
         fun spotlight(step: S, playId: Int): Spotlight?
 
-        /** One undo unit (A4). */
-        fun eraseCulprit(step: S)
-
-        /** Called by [StepHints.inputMade], after the ledger and search step and the Spotlight clear. */
+        /** Called by [StepHints.inputMade], after the search step and the Spotlight clear. */
         fun inputMade() {}
 
         /** Called by [StepHints.reset], after the ledger and search step and the Spotlight clear. */
@@ -57,9 +53,8 @@ class StepHints<S : Any, K : Any>(
         search.request(compute = { block.runCatchingStep() }, deliver = ::deliver)
     }
 
-    /** Any player input: forget what is shown (counted keys stay), drop a search in flight, clear the Spotlight. */
+    /** Any player input: drop a search in flight, clear the Spotlight; counted keys stay (A9, A10). */
     fun inputMade() {
-        ledger.inputMade()
         search.invalidate()
         spotlight = null
         game.inputMade()
@@ -79,15 +74,9 @@ class StepHints<S : Any, K : Any>(
             spotlight = null
             return
         }
-        val press = ledger.press(key, game.isCulprit(step), used())
-        when (press.action) {
-            HintPress.Action.SHOW -> spotlight = game.spotlight(step, ++playId)
-            HintPress.Action.ERASE_CULPRIT -> {
-                game.eraseCulprit(step)
-                inputMade()
-            }
-        }
-        if (press.used != used()) onCount(press.used)
+        val next = ledger.press(key, used())
+        spotlight = game.spotlight(step, ++playId)
+        if (next != used()) onCount(next)
     }
 
     /** A failing search is "no hint": HintSearch would rethrow into the scope, a press must not crash it. */
