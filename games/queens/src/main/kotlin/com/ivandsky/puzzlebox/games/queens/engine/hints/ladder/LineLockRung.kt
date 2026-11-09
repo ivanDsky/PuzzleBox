@@ -4,6 +4,8 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
+private typealias LockFound = Pair<QueensDeduction.Exclude, () -> Set<Int>>
+
 /**
  * Second rung (spec A9): a region whose open cells all lie in one row (or column) owes
  * that line its missing queens, so the rest of the line is excluded. The dual: a line whose
@@ -21,28 +23,29 @@ object LineLockRung : QueensRung {
     override val captionKey: String = "queens.hint.rung.line-lock"
 
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
-        proofs(puzzle, candidates).sortedWith(order(puzzle)).asSequence()
+        found(puzzle, candidates).sortedWith(order(puzzle)).asSequence().map { (deduction, evidence) -> QueensProof(deduction, evidence()) }
 
     override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
-        proofs(puzzle, candidates).minWithOrNull(order(puzzle))?.deduction
+        found(puzzle, candidates).minWithOrNull(order(puzzle))?.first
 
-    private fun order(puzzle: QueensPuzzle): Comparator<QueensProof> = compareBy(
-        { proof -> (proof.deduction as QueensDeduction.Exclude).cells.minOf { puzzle.regions[it] } },
-        { (it.deduction as QueensDeduction.Exclude).cells.min() },
-        { it.deduction.unit.kind },
+    private fun order(puzzle: QueensPuzzle): Comparator<LockFound> = compareBy(
+        { found -> found.first.cells.minOf { puzzle.regions[it] } },
+        { it.first.cells.min() },
+        { it.first.unit.kind },
     )
 
-    private fun proofs(puzzle: QueensPuzzle, candidates: QueensCandidates): List<QueensProof> {
+    /** Deductions with evidence still unbuilt, so [step] builds none for the losing candidates. */
+    private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<LockFound> {
         val n = puzzle.size
         val regions = List(n) { region -> puzzle.regions.indices.filter { puzzle.regions[it] == region } }
         fun missing(cells: List<Int>): Int = puzzle.queensPerUnit - cells.count { it in candidates.queens }
 
-        val found = ArrayList<QueensProof>()
+        val found = ArrayList<LockFound>()
         for (kind in listOf(HintReason.Kind.ROW, HintReason.Kind.COLUMN)) {
             val lineOf: (Int) -> Int = if (kind == HintReason.Kind.ROW) { cell -> cell / n } else { cell -> cell % n }
             val lines = List(n) { line -> (0 until n * n).filter { lineOf(it) == line } }
             fun lock(line: Int, cells: Set<Int>, evidence: List<Int>) {
-                if (cells.isNotEmpty()) found += QueensProof(QueensDeduction.Exclude(this, HintReason(kind, line, this), cells), evidence.toSet())
+                if (cells.isNotEmpty()) found += QueensDeduction.Exclude(this, HintReason(kind, line, this), cells) to { evidence.toSet() }
             }
             // A region locked into one line closes the rest of that line …
             regions.forEachIndexed { region, cells ->

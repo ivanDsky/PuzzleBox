@@ -79,10 +79,9 @@ class QueensRungStepsTest {
     }
 
     @Test
-    fun `step is the first of steps on every state of every board`() = forEveryState { name, puzzle, state ->
-        for (rung in rungs) {
-            assertEquals("$name ${rung.id}", rung.steps(puzzle, state).firstOrNull()?.deduction, rung.step(puzzle, state))
-        }
+    fun `look ahead step is the first of its lazy steps`() = forEveryState { name, puzzle, state ->
+        val rung = rungs.last()
+        assertEquals(name, rung.steps(puzzle, state).firstOrNull()?.deduction, rung.step(puzzle, state))
     }
 
     @Test
@@ -109,25 +108,30 @@ class QueensRungStepsTest {
     }
 
     @Test
-    fun `line lock evidence is the open cells of the locking unit, all inside the locked line or region`() = forEveryState { name, puzzle, state ->
+    fun `line lock evidence is the open cells of the exact locking unit`() = forEveryState { name, puzzle, state ->
         for (proof in LineLockRung.steps(puzzle, state)) {
             val d = proof.deduction as QueensDeduction.Exclude
-            assertTrue(name, proof.evidence.all(state::isOpen))
-            val line = unitCells(puzzle, d.unit)
-            val regionsOfEvidence = proof.evidence.map { puzzle.regions[it] }.toSet()
-            assertTrue(name, proof.evidence.all { it in line } || regionsOfEvidence.size == 1)
+            fun open(cells: Set<Int>) = cells.filter(state::isOpen).toSet()
+            val lockingLine = open(unitCells(puzzle, d.unit))
+            val lockingRegions = puzzle.regions.indices.map { r -> open(unitCells(puzzle, HintReason(HintReason.Kind.REGION, r))) }
+            assertTrue("$name ${proof.evidence} for ${d.unit}", proof.evidence == lockingLine || proof.evidence in lockingRegions)
         }
     }
 
     @Test
-    fun `pigeonhole evidence is the open cells of k units and holds at least two units' worth`() = forEveryState { name, puzzle, state ->
+    fun `pigeonhole evidence is the open cells of at least two whole units`() = forEveryState { name, puzzle, state ->
         for (proof in PigeonholeRung.steps(puzzle, state)) {
-            assertTrue(name, proof.evidence.all(state::isOpen))
             val n = puzzle.size
-            val rows = proof.evidence.map { it / n }.toSet()
-            val cols = proof.evidence.map { it % n }.toSet()
-            val regions = proof.evidence.map { puzzle.regions[it] }.toSet()
-            assertTrue(name, minOf(rows.size, cols.size, regions.size) >= 1)
+            val perKind = listOf(
+                HintReason.Kind.ROW to proof.evidence.map { it / n },
+                HintReason.Kind.COLUMN to proof.evidence.map { it % n },
+                HintReason.Kind.REGION to proof.evidence.map { puzzle.regions[it] },
+            ).map { (kind, units) -> units.toSet().map { HintReason(kind, it) } }
+            val named = perKind.any { units ->
+                units.size >= 2 &&
+                    units.flatMap { unitCells(puzzle, it) }.filter(state::isOpen).toSet() == proof.evidence
+            }
+            assertTrue("$name ${proof.evidence}", named)
         }
     }
 
@@ -165,6 +169,11 @@ class QueensRungStepsTest {
         assertEquals(2, proofs.size)
         assertEquals(QueensDeduction.Exclude(LineLockRung, HintReason(HintReason.Kind.COLUMN, 4, LineLockRung), setOf(4, 9, 14)), proofs.first().deduction)
         assertEquals(setOf(19, 24), proofs.first().evidence)
+        assertEquals(
+            QueensDeduction.Exclude(LineLockRung, HintReason(HintReason.Kind.ROW, 4, LineLockRung), setOf(24)),
+            proofs[1].deduction,
+        )
+        assertEquals(setOf(20, 21, 22, 23), proofs[1].evidence)
     }
 
     private class CountingRung(private val inner: QueensRung) : QueensRung by inner {

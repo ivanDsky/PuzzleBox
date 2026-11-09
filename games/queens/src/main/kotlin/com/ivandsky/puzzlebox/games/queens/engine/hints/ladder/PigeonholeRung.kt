@@ -4,6 +4,8 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
+private typealias ConfinementFound = Pair<QueensDeduction.Exclude, () -> Set<Int>>
+
 /**
  * Third rung: k ≥ 2 regions whose open cells lie in k rows (or columns) take those lines'
  * queens, so every other open cell there is excluded. Dually, k rows (or columns) whose
@@ -21,18 +23,19 @@ object PigeonholeRung : QueensRung {
     override val captionKey: String = "queens.hint.rung.pigeonhole"
 
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
-        proofs(puzzle, candidates).sortedWith(order(puzzle)).asSequence()
+        found(puzzle, candidates).sortedWith(order(puzzle)).asSequence().map { (deduction, evidence) -> QueensProof(deduction, evidence()) }
 
     override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
-        proofs(puzzle, candidates).minWithOrNull(order(puzzle))?.deduction
+        found(puzzle, candidates).minWithOrNull(order(puzzle))?.first
 
-    private fun order(puzzle: QueensPuzzle): Comparator<QueensProof> = compareBy(
-        { proof -> (proof.deduction as QueensDeduction.Exclude).cells.minOf(puzzle.regions::get) },
-        { (it.deduction as QueensDeduction.Exclude).cells.min() },
-        { it.deduction.unit.kind },
+    private fun order(puzzle: QueensPuzzle): Comparator<ConfinementFound> = compareBy(
+        { found -> found.first.cells.minOf(puzzle.regions::get) },
+        { it.first.cells.min() },
+        { it.first.unit.kind },
     )
 
-    private fun proofs(puzzle: QueensPuzzle, candidates: QueensCandidates): List<QueensProof> {
+    /** Deductions with evidence still unbuilt, so [step] builds none for the losing candidates. */
+    private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<ConfinementFound> {
         val n = puzzle.size
         val rows = List(n) { row -> List(n) { row * n + it } }
         val cols = List(n) { col -> List(n) { it * n + col } }
@@ -57,11 +60,11 @@ object PigeonholeRung : QueensRung {
         targets: List<List<Int>>,
         targetOf: (Int) -> Int,
         kind: HintReason.Kind,
-    ): List<QueensProof> {
+    ): List<ConfinementFound> {
         fun missing(unit: List<Int>): Int = puzzle.queensPerUnit - unit.count { it in candidates.queens }
         val open = groups.filter { missing(it) > 0 }
         val total = open.sumOf(::missing)
-        val found = ArrayList<QueensProof>()
+        val found = ArrayList<ConfinementFound>()
         for (mask in 1 until (1 shl open.size)) {
             if (Integer.bitCount(mask) < 2) continue
             val chosen = open.filterIndexed { i, _ -> mask and (1 shl i) != 0 }
@@ -73,7 +76,7 @@ object PigeonholeRung : QueensRung {
             val cells = lines.flatMap { targets[it] }.filter { candidates.isOpen(it) && it !in inside }.toSet()
             if (cells.isNotEmpty()) {
                 val deduction = QueensDeduction.Exclude(this, HintReason(kind, lines.first(), this), cells)
-                found += QueensProof(deduction, chosen.flatten().filter(candidates::isOpen).toSet())
+                found += deduction to { chosen.flatten().filter(candidates::isOpen).toSet() }
             }
         }
         return found
