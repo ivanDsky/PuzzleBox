@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain.di
 
+import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.domain.GetAppUpdate
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
 import com.ivandsky.puzzlebox.domain.ImportDraftFromText
@@ -35,7 +36,14 @@ import org.koin.dsl.module
  * UUID and its timestamp the wall clock. A duel's draw shuffles with [Random.Default].
  */
 val domainModule = module {
-    factory { ObserveGameHistory(registry = get(), daily = get(), completions = get()) }
+    factory {
+        ObserveGameHistory(
+            registry = get(),
+            daily = get(),
+            completions = get(),
+            duelOpponents = get<MatchLocalRepository>().opponentNames(),
+        )
+    }
     factory { GetFeaturedGame(registry = get()) }
     factory { GetPuzzleDay(registry = get()) }
     factory { GetNextRollover(registry = get()) }

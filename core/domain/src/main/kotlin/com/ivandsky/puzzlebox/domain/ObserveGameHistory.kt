@@ -31,6 +31,8 @@ data class GameHistoryDay(
     /** Played from the archive (A23) rather than captured as that day's daily; false for
      *  rows that exist only as a completion record. */
     val archived: Boolean = false,
+    /** Set when the day's record was solved in a duel; null for every other day. */
+    val duel: DuelOrigin? = null,
 )
 
 /**
@@ -50,6 +52,7 @@ class ObserveGameHistory(
     private val registry: GameRegistry,
     private val daily: DailyRepository,
     private val completions: CompletionRepository,
+    private val duelOpponents: Flow<Map<String, String>> = flowOf(emptyMap()),
 ) {
 
     operator fun invoke(): Flow<List<GameHistoryDay>> {
@@ -58,7 +61,7 @@ class ObserveGameHistory(
         val captured: Flow<List<DailyEntry>> =
             if (games.isEmpty()) flowOf(emptyList())
             else combine(games.map { daily.observeHistory(it) }) { perGame -> perGame.flatMap { it } }
-        return combine(captured, completions.observeRecords()) { entries, records ->
+        return combine(captured, completions.observeRecords(), duelOpponents) { entries, records, opponents ->
             val rows = LinkedHashMap<Pair<GameId, LocalDate>, GameHistoryDay>()
 
             // Every game's solved daily — typed identity straight off the ref's key; custom puzzles have no day.
@@ -66,8 +69,13 @@ class ObserveGameHistory(
                 val ref = record.puzzleRef
                 val key = ref.key
                 if (ref.gameId !in listed || key !is PuzzleKey.Daily) continue
-                rows[ref.gameId to key.date] =
-                    GameHistoryDay(ref.gameId, key.date, key.puzzleNumber, record)
+                rows[ref.gameId to key.date] = GameHistoryDay(
+                    gameId = ref.gameId,
+                    day = key.date,
+                    puzzleNumber = key.puzzleNumber,
+                    record = record,
+                    duel = record.matchCode?.let { DuelOrigin(it, opponents[it]) },
+                )
             }
 
             // Captured days keep their richer identity (edition number, replayable cache);
@@ -82,6 +90,7 @@ class ObserveGameHistory(
                     record = solved?.record,
                     fetchedAtMs = entry.fetchedAtMs,
                     archived = entry.archived,
+                    duel = solved?.duel,
                 )
             }
 
