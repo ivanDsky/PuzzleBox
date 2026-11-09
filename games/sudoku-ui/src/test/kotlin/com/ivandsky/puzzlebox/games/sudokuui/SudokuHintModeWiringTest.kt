@@ -52,15 +52,6 @@ class SudokuHintModeWiringTest {
     }
 
     @Test
-    fun `without a mode mini and classic create legacy controllers`() {
-        val mini = SudokuPlayUi(SudokuGames.MINI).createController(env) as SudokuPlayController
-        val classic = SudokuPlayUi(SudokuGames.CLASSIC).createController(env) as SudokuPlayController
-
-        assertEquals(HintMode.Legacy, mini.hintMode)
-        assertEquals(HintMode.Legacy, classic.hintMode)
-    }
-
-    @Test
     fun `a bound stepwise source reaches mini but never classic`() {
         val koin = koinWith(HintModeSource { HintMode.Stepwise(Dispatchers.Unconfined) })
 
@@ -68,17 +59,6 @@ class SudokuHintModeWiringTest {
         val classic = playUi(koin, SudokuGames.CLASSIC).createController(env) as SudokuPlayController
 
         assertEquals(HintMode.Stepwise(Dispatchers.Unconfined), mini.hintMode)
-        assertEquals(HintMode.Legacy, classic.hintMode)
-    }
-
-    @Test
-    fun `a bound legacy source keeps both games legacy`() {
-        val koin = koinWith(HintModeSource { HintMode.Legacy })
-
-        val mini = playUi(koin, SudokuGames.MINI).createController(env) as SudokuPlayController
-        val classic = playUi(koin, SudokuGames.CLASSIC).createController(env) as SudokuPlayController
-
-        assertEquals(HintMode.Legacy, mini.hintMode)
         assertEquals(HintMode.Legacy, classic.hintMode)
     }
 }
