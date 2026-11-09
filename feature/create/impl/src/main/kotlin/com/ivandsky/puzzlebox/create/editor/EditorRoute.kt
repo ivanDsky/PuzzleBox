@@ -165,6 +165,9 @@ internal fun EditorRoute(
                                 enabled = !publish.busy,
                                 paired = true,
                                 action = editBoardChip,
+                                history = {
+                                    UndoRedoButtons(canUndo, canRedo, onUndo = viewModel::undo, onRedo = viewModel::redo)
+                                },
                                 fields = { fieldsModifier -> ready.editor.PublishFields(ready.controller, !publish.busy, fieldsModifier) },
                             )
                         },

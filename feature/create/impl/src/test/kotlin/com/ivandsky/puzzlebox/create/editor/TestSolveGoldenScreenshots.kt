@@ -39,7 +39,8 @@ import java.io.File
  * The test solve on a phone, light and dark: the sandbox while playing and once its "Solved in
  * m:ss" stamp has landed; then the Studio after the pass, with the publish details in the tools'
  * slot, and after Edit board, with the tools back, the details folded to their summary line and
- * the passed status over Publish. The board is the Studio preview's placeholder square.
+ * the passed status over Publish; the details again at 320dp wide, light, where the header row
+ * is tightest. The board is the Studio preview's placeholder square.
  * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`;
  * goldens in `snapshots/test-solve/`.
  */
@@ -60,11 +61,14 @@ class TestSolveGoldenScreenshots {
     @Test fun `passed details light`() = capture("passed-details", dark = false) { PassedStudio(editBoard = false) }
     @Test fun `passed details dark`() = capture("passed-details", dark = true) { PassedStudio(editBoard = false) }
 
+    @Config(qualifiers = "w320dp-h640dp-xhdpi")
+    @Test fun `passed details narrow light`() = capture("passed-details", dark = false, device = "phone320") { PassedStudio(editBoard = false) }
+
     @Test fun `passed edit board light`() = capture("passed-edit-board", dark = false) { PassedStudio(editBoard = true) }
     @Test fun `passed edit board dark`() = capture("passed-edit-board", dark = true) { PassedStudio(editBoard = true) }
 
     @OptIn(ExperimentalRoborazziApi::class)
-    private fun capture(name: String, dark: Boolean, content: @Composable () -> Unit) {
+    private fun capture(name: String, dark: Boolean, device: String = "phone", content: @Composable () -> Unit) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         rule.mainClock.autoAdvance = false
@@ -81,7 +85,7 @@ class TestSolveGoldenScreenshots {
             }
         }
         rule.mainClock.advanceTimeBy(SETTLE_MS)
-        captureScreenRoboImage(out(name, dark))
+        captureScreenRoboImage(out(name, device, dark))
     }
 
     @Composable
@@ -119,6 +123,7 @@ class TestSolveGoldenScreenshots {
                             modifier = formModifier,
                             paired = true,
                             action = editBoardChip,
+                            history = { UndoRedoButtons(canUndo = true, canRedo = false, onUndo = {}, onRedo = {}) },
                         )
                     },
                     modifier = slotModifier,
@@ -163,9 +168,9 @@ class TestSolveGoldenScreenshots {
         }
     }
 
-    private fun out(name: String, dark: Boolean): String =
+    private fun out(name: String, device: String, dark: Boolean): String =
         File(checkNotNull(System.getProperty("user.dir")))
-            .resolve("snapshots/test-solve/$name-phone-${if (dark) "dark" else "light"}.png")
+            .resolve("snapshots/test-solve/$name-$device-${if (dark) "dark" else "light"}.png")
             .canonicalFile
             .also { checkNotNull(it.parentFile).mkdirs() }
             .absolutePath

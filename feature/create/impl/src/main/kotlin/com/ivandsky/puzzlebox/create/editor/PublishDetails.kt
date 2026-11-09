@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -47,7 +49,8 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
  * cap the field shows its inline error. Signed out ([signedIn] false) the author placeholder
  * says Google fills it. Fields are disabled while not [enabled] (a publish runs). [paired] sets
  * the title and the author side by side, for a short slot; an [action] heads the form, at the
- * end of its "Publish details" row. The game's own [fields] close the form.
+ * end of its "Publish details" row, after the [history] (Undo and Redo, reachable here while the
+ * tools are away); the row tells it to be `compact` when too narrow for its full form. The game's own [fields] close the form.
  *
  * Motion: the note row **Expands** in with a **Fade** (EnterDuration on the emphasized
  * decelerate curve); under reduced motion it only fades.
@@ -63,7 +66,8 @@ fun PublishDetails(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     paired: Boolean = false,
-    action: (@Composable () -> Unit)? = null,
+    action: (@Composable (compact: Boolean) -> Unit)? = null,
+    history: (@Composable () -> Unit)? = null,
     fields: @Composable (Modifier) -> Unit = {},
 ) {
     var renaming by rememberSaveable { mutableStateOf(false) }
@@ -71,14 +75,21 @@ fun PublishDetails(
     var focusNote by remember { mutableStateOf(false) }
     val blocked = remember(details.blocks) { details.blocks.map(PublishBlock::id).toSet() }
     Column(modifier.testTag("create.details"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        if (action != null) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "Publish details",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.weight(1f),
-                )
-                action()
+        if (action != null || history != null) {
+            // Below HeaderRoom the title would ellipsize: the action then shrinks to its compact form.
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val compact = maxWidth < HeaderRoom * LocalDensity.current.fontScale.coerceAtLeast(1f)
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Publish details",
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    history?.invoke()
+                    action?.invoke(compact)
+                }
             }
         }
         Paired(paired) { half ->
@@ -168,6 +179,9 @@ internal fun PublishDetailsSummary(title: String, authorName: String, onClick: (
 }
 
 private val SummaryIconSize = 16.dp
+
+/** The header's width, at font scale 1, that fits the title, Undo, Redo and the full Edit board chip. */
+private val HeaderRoom = 340.dp
 
 /** [content]'s two rows side by side, each half the width, while [paired]; else stacked full width. */
 @Composable

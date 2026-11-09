@@ -118,6 +118,7 @@ abstract class PublishGoldenScreenshots(private val layout: PlayLayout, private 
                             enabled = !publish.busy,
                             paired = true,
                             action = editBoardChip,
+                            history = { UndoRedoButtons(canUndo = true, canRedo = false, onUndo = {}, onRedo = {}) },
                         )
                     },
                     modifier = slotModifier,
