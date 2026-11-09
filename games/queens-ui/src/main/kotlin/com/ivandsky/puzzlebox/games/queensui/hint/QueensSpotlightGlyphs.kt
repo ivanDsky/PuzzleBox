@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightGlyphs
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightTokens
 import com.ivandsky.puzzlebox.games.queensui.QueensBoardDefaults
+import com.ivandsky.puzzlebox.games.queensui.buildQueenPath
 import com.ivandsky.puzzlebox.games.queensui.drawQueen
 import com.ivandsky.puzzlebox.games.queensui.drawX
 
@@ -44,14 +45,9 @@ internal data class QueensSpotlightGlyphs(val culpritIsCross: Boolean) : Spotlig
         drawQueen(color, QueensBoardDefaults.queenHeightFraction * scale, alpha = 1f, path = crownPath)
 
     private fun DrawScope.crownCovering(color: Color) {
-        crown(color, CULPRIT_SCALE)
-        drawQueen(
-            color,
-            QueensBoardDefaults.queenHeightFraction * CULPRIT_SCALE,
-            alpha = 1f,
-            path = crownPath,
-            style = rim(SpotlightTokens.HairlineWidth.toPx() * 2f),
-        )
+        buildQueenPath(QueensBoardDefaults.queenHeightFraction * CULPRIT_SCALE, crownPath)
+        drawPath(crownPath, color)
+        drawPath(crownPath, color, style = rim(SpotlightTokens.HairlineWidth.toPx() * 2f))
     }
 
     /** The covering stroke, rebuilt only when its [width] changes (a density change), never per draw. */
