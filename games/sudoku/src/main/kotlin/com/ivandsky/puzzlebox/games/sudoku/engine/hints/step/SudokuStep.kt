@@ -18,10 +18,15 @@ sealed interface SudokuStep {
      */
     data class Single(val place: SudokuHint.Place, val lastCell: SudokuUnit?, val blockers: Set<Int>) : SudokuStep
 
-    /** [technique] in [unit] clears [struck] (cell to digit mask); [evidence] are the cells that prove it. */
+    /**
+     * [technique] in [unit] clears [struck] (cell to digit mask); [evidence] are the cells that prove it. [group] is
+     * the digit mask the proof is about: the one digit of a pointing or claiming, the two digits of a naked pair,
+     * the two kept digits of a hidden pair. It is the engine's own, so it holds even after earlier strikes.
+     */
     data class Elimination(
         val technique: SudokuTechnique,
         val unit: SudokuUnit?,
+        val group: Int,
         val struck: Map<Int, Int>,
         val evidence: Set<Int>,
     ) : SudokuStep

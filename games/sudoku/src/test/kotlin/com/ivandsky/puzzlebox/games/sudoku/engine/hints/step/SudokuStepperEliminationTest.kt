@@ -98,7 +98,7 @@ class SudokuStepperEliminationTest {
     fun `pointing strikes the digit from the rest of the line the box confines it to`() {
         assertOnlyRung(pointing, IntersectionSteps.POINTING)
         assertEquals(
-            SudokuStep.Elimination(SudokuTechnique.POINTING, SudokuUnit(UnitKind.BOX, 0), mapOf(12 to six, 18 to six, 24 to six, 30 to six), setOf(0, 6)),
+            SudokuStep.Elimination(SudokuTechnique.POINTING, SudokuUnit(UnitKind.BOX, 0), six, mapOf(12 to six, 18 to six, 24 to six, 30 to six), setOf(0, 6)),
             elimination(pointing),
         )
     }
@@ -107,7 +107,7 @@ class SudokuStepperEliminationTest {
     fun `claiming strikes the digit from the rest of the box the line confines it to`() {
         assertOnlyRung(claiming, IntersectionSteps.CLAIMING)
         val step = elimination(claiming)
-        assertEquals(SudokuStep.Elimination(SudokuTechnique.CLAIMING, SudokuUnit(UnitKind.COLUMN, 0), mapOf(14 to 2, 20 to 2), setOf(12, 18)), step)
+        assertEquals(SudokuStep.Elimination(SudokuTechnique.CLAIMING, SudokuUnit(UnitKind.COLUMN, 0), 2, mapOf(14 to 2, 20 to 2), setOf(12, 18)), step)
         // The struck cells share the evidence's box and lie outside the claiming column.
         val box = claiming.puzzle.geometry.boxOf(step.evidence.first())
         assertTrue(step.struck.keys.all { claiming.puzzle.geometry.boxOf(it) == box && it !in cells(claiming, step.unit) })
@@ -117,7 +117,7 @@ class SudokuStepperEliminationTest {
     fun `a naked pair strikes its two digits from the rest of the unit`() {
         assertOnlyRung(nakedPair, SubsetSteps.NAKED_PAIR)
         val step = elimination(nakedPair)
-        assertEquals(SudokuStep.Elimination(SudokuTechnique.NAKED_PAIR, SudokuUnit(UnitKind.ROW, 3), mapOf(18 to 48, 20 to 48, 21 to 32), setOf(19, 22)), step)
+        assertEquals(SudokuStep.Elimination(SudokuTechnique.NAKED_PAIR, SudokuUnit(UnitKind.ROW, 3), 48, mapOf(18 to 48, 20 to 48, 21 to 32), setOf(19, 22)), step)
         val pairDigits = step.evidence.fold(0) { acc, cell -> acc or candidates(nakedPair)[cell] }
         assertEquals(2, Integer.bitCount(pairDigits))
         assertTrue(step.struck.all { (cell, mask) -> cell !in step.evidence && mask and pairDigits.inv() == 0 })
@@ -127,7 +127,7 @@ class SudokuStepperEliminationTest {
     fun `a hidden pair strikes every other digit from its two cells`() {
         assertOnlyRung(hiddenPair, SubsetSteps.HIDDEN_PAIR)
         val step = elimination(hiddenPair)
-        assertEquals(SudokuStep.Elimination(SudokuTechnique.HIDDEN_PAIR, SudokuUnit(UnitKind.ROW, 3), mapOf(22 to 24, 23 to 24), setOf(22, 23)), step)
+        assertEquals(SudokuStep.Elimination(SudokuTechnique.HIDDEN_PAIR, SudokuUnit(UnitKind.ROW, 3), 33, mapOf(22 to 24, 23 to 24), setOf(22, 23)), step)
         assertEquals(step.evidence, step.struck.keys)
     }
 
@@ -143,7 +143,7 @@ class SudokuStepperEliminationTest {
     fun `an elimination that unlocks a single beats a cheaper rung that unlocks nothing`() {
         assertTrue(rungs.all { fires(it, unlockLater) == (it != SubsetSteps.NAKED_PAIR) })
         val step = elimination(unlockLater)
-        assertEquals(SudokuStep.Elimination(SudokuTechnique.HIDDEN_PAIR, SudokuUnit(UnitKind.COLUMN, 1), mapOf(1 to 48, 19 to 40), setOf(1, 19)), step)
+        assertEquals(SudokuStep.Elimination(SudokuTechnique.HIDDEN_PAIR, SudokuUnit(UnitKind.COLUMN, 1), 5, mapOf(1 to 48, 19 to 40), setOf(1, 19)), step)
         assertTrue(next(unlockLater, known = merge(unlockLater.known, step.struck)) is SudokuStep.Single)
     }
 
@@ -151,7 +151,7 @@ class SudokuStepperEliminationTest {
     fun `with nothing unlocking the cheapest rung wins`() {
         assertTrue(fires(IntersectionSteps.POINTING, noneUnlock) && fires(IntersectionSteps.CLAIMING, noneUnlock))
         val step = elimination(noneUnlock)
-        assertEquals(SudokuStep.Elimination(SudokuTechnique.POINTING, SudokuUnit(UnitKind.BOX, 0), mapOf(4 to 1), setOf(0, 1)), step)
+        assertEquals(SudokuStep.Elimination(SudokuTechnique.POINTING, SudokuUnit(UnitKind.BOX, 0), 1, mapOf(4 to 1), setOf(0, 1)), step)
         assertFalse(next(noneUnlock, known = merge(noneUnlock.known, step.struck)) is SudokuStep.Single)
     }
 
