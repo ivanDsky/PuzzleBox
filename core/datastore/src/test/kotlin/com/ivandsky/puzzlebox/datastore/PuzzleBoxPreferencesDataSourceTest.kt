@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.datastore
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -87,5 +88,29 @@ class PuzzleBoxPreferencesDataSourceTest {
 
         val restartedProcess = newDataSource(file)
         assertFalse(restartedProcess.preferences.first().autoShowWitness)
+    }
+
+    @Test
+    fun `an unset game flag emits its default`() = runTest {
+        val dataSource = newDataSource(tempFile())
+
+        assertTrue(dataSource.gameFlag(GameId("g"), "aid", true).first())
+        assertFalse(dataSource.gameFlag(GameId("g"), "aid", false).first())
+    }
+
+    @Test
+    fun `a game flag persists and is independent per game`() = runTest {
+        val file = tempFile()
+        val firstScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + SupervisorJob())
+        val firstProcess = PuzzleBoxPreferencesDataSource(
+            PreferenceDataStoreFactory.create(scope = firstScope) { file },
+        )
+
+        firstProcess.setGameFlag(GameId("a"), "aid", false)
+        firstScope.cancel()
+
+        val restarted = newDataSource(file)
+        assertFalse(restarted.gameFlag(GameId("a"), "aid", true).first())
+        assertTrue(restarted.gameFlag(GameId("b"), "aid", true).first())
     }
 }

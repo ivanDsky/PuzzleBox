@@ -52,6 +52,16 @@ class PuzzleBoxPreferencesDataSource(
         dataStore.edit { preferences -> preferences[KEY_AUTO_SHOW_WITNESS] = on }
     }
 
+    /** A game's own boolean setting; [default] while it was never written. */
+    fun gameFlag(game: GameId, name: String, default: Boolean): Flow<Boolean> =
+        dataStore.data.map { it[gameFlagKey(game, name)] ?: default }
+
+    suspend fun setGameFlag(game: GameId, name: String, enabled: Boolean) {
+        dataStore.edit { it[gameFlagKey(game, name)] = enabled }
+    }
+
+    private fun gameFlagKey(game: GameId, name: String) = booleanPreferencesKey("game.${game.value}.$name")
+
     private companion object {
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         val KEY_TUTORIALS_SEEN = stringSetPreferencesKey("tutorials_seen")
