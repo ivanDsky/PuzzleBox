@@ -13,6 +13,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -53,6 +54,7 @@ fun LargeTopBar(
             }
         }
         actions()
+        LocalShellActions.current.invoke(this)
     }
 }
 
@@ -85,6 +87,7 @@ fun CompactTopBar(
             modifier = Modifier.weight(1f),
         )
         actions()
+        LocalShellActions.current.invoke(this)
     }
 }
 
@@ -131,5 +134,52 @@ internal fun CompactTopBarPreview() {
                 }
             },
         )
+    }
+}
+
+@ShowkaseComposable(name = "TopBarsShellActions", group = "TopBars")
+@PuzzleBoxPreviews
+@Composable
+internal fun TopBarsShellActionsPreview() {
+    PuzzleBoxTheme {
+        CompositionLocalProvider(
+            LocalShellActions provides {
+                IconButton(onClick = {}) {
+                    Icon(
+                        imageVector = PuzzleIcons.Settings,
+                        contentDescription = "Settings",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                LargeTopBar(
+                    title = "Today",
+                    subtitle = "Friday, October 31",
+                    actions = {
+                        IconButton(onClick = {}) {
+                            Icon(
+                                imageVector = PuzzleIcons.Appearance,
+                                contentDescription = "Appearance",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                )
+                CompactTopBar(
+                    title = "Daily Zip",
+                    actions = {
+                        IconButton(onClick = {}) {
+                            Icon(
+                                imageVector = PuzzleIcons.Appearance,
+                                contentDescription = "Appearance",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                )
+            }
+        }
     }
 }
