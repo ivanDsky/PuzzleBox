@@ -29,6 +29,7 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
+import com.ivandsky.puzzlebox.games.queensui.QueensSettings
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuHighlightSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -101,6 +102,8 @@ val appModule = module {
     }
     // Sudoku's two tint toggles live in the persisted preferences; its UI module only sees this seam.
     single<SudokuHighlightSettings> { PreferencesSudokuHighlightSettings(get<GameSettingsRepository>()) }
+    // Queens' Auto-cross lives in the persisted game settings; its UI module only sees this seam.
+    single<QueensSettings> { PreferencesQueensSettings(get<GameSettingsRepository>()) }
     // The HintParity flag as game controllers see it (spec A20): read inside current(), so each
     // controller's one call at creation picks up a debug override. UI modules never read the flag.
     single<HintModeSource> {

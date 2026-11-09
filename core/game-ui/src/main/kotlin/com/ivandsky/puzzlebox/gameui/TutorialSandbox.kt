@@ -13,7 +13,7 @@ class TutorialSandbox(private val ui: GamePlayUi, private val session: TutorialS
 
     /** A fresh controller holding [lesson]'s puzzle; [scope] is that lesson's lifetime. */
     fun controllerFor(lesson: TutorialState.Playing, scope: CoroutineScope): GamePlayController {
-        val controller = ui.createController(
+        val controller = ui.createLessonController(
             PlayEnvironment(
                 scope = scope,
                 onSessionChanged = {},

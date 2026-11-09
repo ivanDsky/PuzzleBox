@@ -24,6 +24,9 @@ import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
 import com.ivandsky.puzzlebox.games.queens.queensPlugin
 import java.time.Duration
 import java.time.Instant
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * The Queens play controller (queens-10 wiring; Zip controller shape): one adopted board
@@ -49,6 +52,8 @@ import java.time.Instant
  */
 class QueensPlayController(
     private val env: PlayEnvironment,
+    /** The player's Queens settings; null for a tutorial lesson, which keeps Auto-cross on. */
+    private val settings: QueensSettings?,
     private val now: () -> Instant = Instant::now,
     /** Read once at creation (spec A20); [HintMode.Stepwise] gives every board the Spotlight hint (28). */
     internal val hintMode: HintMode = HintMode.Legacy,
@@ -57,6 +62,33 @@ class QueensPlayController(
     /** The live interaction holder, null until a session is adopted. */
     var board by mutableStateOf<QueensBoardState?>(null)
         private set
+
+    /**
+     * Auto-cross as the player set it (on until switched off in the ⋮ menu). It follows [settings]
+     * live: every board, fresh or restored, derives under it, and a flip re-derives the open
+     * board at once. A lesson ([settings] null) stays on.
+     */
+    var autoCross by mutableStateOf(true)
+        private set
+
+    init {
+        settings?.let { s -> env.scope.launch { s.autoCross.collect(::applyAutoCross) } }
+    }
+
+    // Taps queue behind one lock (FIFO), so the store sees the writes in tap order.
+    private val autoCrossWrites = Mutex()
+
+    /** The ⋮ menu's Auto-cross item: the board repaints now, the write only makes it stick. */
+    fun chooseAutoCross(enabled: Boolean) {
+        applyAutoCross(enabled)
+        val s = settings ?: return
+        env.scope.launch { autoCrossWrites.withLock { s.setAutoCross(enabled) } }
+    }
+
+    private fun applyAutoCross(enabled: Boolean) {
+        autoCross = enabled
+        board?.setAutoCross(enabled)
+    }
 
     override val isComplete: Boolean get() = board?.session?.isComplete == true
 
@@ -75,7 +107,7 @@ class QueensPlayController(
             is DecodeResult.Ok -> decoded.value
             is DecodeResult.Err -> return Adopt.Rejected(BROKEN_PUZZLE_MESSAGE)
         }
-        val fresh = QueensSession(ref = ref as QueensPuzzleRef, puzzle = queens)
+        val fresh = QueensSession(ref = ref as QueensPuzzleRef, puzzle = queens, autoCross = autoCross)
         board = boardFor(fresh)
         publish(fresh)
         openWindow() // the clock runs from the moment the puzzle opens
@@ -88,7 +120,7 @@ class QueensPlayController(
     override fun adoptRestored(bytes: ByteArray): Restored? =
         when (val restored = QueensSessionCodec.deserialize(bytes)) {
             is DecodeResult.Ok -> {
-                val s = restored.value
+                val s = restored.value.withAutoCross(autoCross) // the saved board re-derives under the setting
                 runningSince = null
                 board = boardFor(s)
                 // The running clock is process-local (runningSince is not session state):
@@ -126,7 +158,7 @@ class QueensPlayController(
     override fun replay() {
         val current = board?.session ?: return
         runningSince = null
-        val fresh = QueensSession(ref = current.ref, puzzle = current.puzzle)
+        val fresh = QueensSession(ref = current.ref, puzzle = current.puzzle, autoCross = autoCross)
         board = boardFor(fresh)
         publish(fresh)
         openWindow()
