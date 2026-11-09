@@ -5,13 +5,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.tango.TangoCell
+import com.ivandsky.puzzlebox.games.tango.editor.TangoDraft
 import com.ivandsky.puzzlebox.games.tango.editor.TangoEditor
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import org.junit.Assert.assertEquals
@@ -46,8 +50,8 @@ class TangoEditorDiagnosticsTest {
         }
     }
 
-    private fun tagged(suffix: String): Set<Int> =
-        (0 until CELLS).filter { rule.onAllNodesWithTag("tango.editor.cell.$it.$suffix").fetchSemanticsNodes().isNotEmpty() }.toSet()
+    private fun tagged(suffix: String, cells: Int = CELLS): Set<Int> =
+        (0 until cells).filter { rule.onAllNodesWithTag("tango.editor.cell.$it.$suffix").fetchSemanticsNodes().isNotEmpty() }.toSet()
 
     @Test
     fun `a None verdict marks exactly the clash cells`() {
@@ -95,6 +99,60 @@ class TangoEditorDiagnosticsTest {
         controller.adoptOverlay(EditorOverlay(showOnBoard = false))
         rule.waitForIdle()
         assertEquals(emptySet<Int>(), tagged("witness"))
+    }
+
+    @Test
+    fun `on a 10x10 board clash rings land on the clashing cells`() {
+        val board = TangoDraft(10, (97..99).associateWith { TangoCell.SUN }, emptyList())
+        show(TangoEditorController(EditorDraft(TangoEditor, DraftState(board))) {}, Verdict.None(setOf(55)))
+
+        assertEquals(setOf(55, 97, 98, 99), tagged("clash", cells = 100))
+        val bounds = rule.onNodeWithTag("tango.editor.board").getUnclippedBoundsInRoot()
+        val pitch = (bounds.right - bounds.left).value / 10
+        listOf(55, 99).forEach { idx ->
+            val cell = rule.onNodeWithTag("tango.editor.cell.$idx.clash").getUnclippedBoundsInRoot()
+            assertEquals(bounds.left.value + pitch * (idx % 10), cell.left.value, 0.5f)
+            assertEquals(bounds.top.value + pitch * (idx / 10), cell.top.value, 0.5f)
+            assertEquals(pitch, (cell.right - cell.left).value, 0.5f)
+        }
+    }
+
+    @Test
+    fun `on a 4x4 board the differ shade and the witness land on their cells`() {
+        assertDiffAndWitnessAt(4)
+    }
+
+    @Test
+    fun `on an 8x8 board the differ shade and the witness land on their cells`() {
+        assertDiffAndWitnessAt(8)
+    }
+
+    @Test
+    fun `on a 10x10 board the differ shade and the witness land on their cells`() {
+        assertDiffAndWitnessAt(10)
+    }
+
+    /** A Multiple verdict on an n×n board with a given in cell 0: shade on the differing cells, witness in every other cell. */
+    private fun assertDiffAndWitnessAt(n: Int) {
+        val cells = n * n
+        val last = cells - 1
+        val differing = setOf(1, n - 1, cells - n, last)
+        val shown = Verdict.Multiple(Solution(List(cells) { it % 2 }), Solution(List(cells) { (it + 1) % 2 }), differing)
+        val board = TangoDraft(n, mapOf(0 to TangoCell.SUN), emptyList())
+        val controller = TangoEditorController(EditorDraft(TangoEditor, DraftState(board))) {}
+        controller.adoptOverlay(EditorOverlay(showOnBoard = true))
+        show(controller, shown)
+
+        assertEquals(differing, tagged("diff", cells = cells))
+        assertEquals((1 until cells).toSet(), tagged("witness", cells = cells))
+        val bounds = rule.onNodeWithTag("tango.editor.board").getUnclippedBoundsInRoot()
+        val pitch = (bounds.right - bounds.left).value / n
+        listOf("diff" to n - 1, "witness" to last).forEach { (suffix, idx) ->
+            val cell = rule.onNodeWithTag("tango.editor.cell.$idx.$suffix").getUnclippedBoundsInRoot()
+            assertEquals("$suffix $idx left", bounds.left.value + pitch * (idx % n), cell.left.value, 0.5f)
+            assertEquals("$suffix $idx top", bounds.top.value + pitch * (idx / n), cell.top.value, 0.5f)
+            assertEquals("$suffix $idx width", pitch, (cell.right - cell.left).value, 0.5f)
+        }
     }
 
     private companion object {
