@@ -3,6 +3,8 @@
 Date: 2026-11-04 · Status: accepted · Source: navigation-ux run (design-it-twice nav A/B/C and
 play A/B/C, stage-B review rulings) · Supersedes ADR-0010 (kept sessions)
 
+*(Amended 2026-11-09 by ADR-0027: where content lives is decided by one owner per content type, a placement table and chrome types; the tab set becomes Today · Games · History · Create behind `NavV2`. The reducer and its verbs are unchanged.)*
+
 ## Context
 Up to 0.8 the app kept one `NavBackStack<NavKey>`: picking a tab reset the stack to that tab's
 root, so leaving a half-played game for Home lost the board, and back from History on Home
