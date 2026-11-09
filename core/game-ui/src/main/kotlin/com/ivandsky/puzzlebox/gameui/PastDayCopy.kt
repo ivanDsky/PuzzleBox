@@ -16,9 +16,9 @@ fun pastDayStatusLine(status: PastDayStatus): String = when (status) {
     PastDayStatus.NeedsConnection -> "Needs a connection the first time"
 }
 
-/** The day's one action: "Play again" once solved, "Keep going" while in progress, else "Play". */
+/** The day's one action: "See result" once solved, "Keep going" while in progress, else "Play". */
 fun pastDayAction(status: PastDayStatus): String = when (status) {
-    is PastDayStatus.Solved -> "Play again"
+    is PastDayStatus.Solved -> "See result"
     is PastDayStatus.InProgress -> "Keep going"
     PastDayStatus.Stored, PastDayStatus.NeedsConnection -> "Play"
 }

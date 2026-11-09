@@ -77,7 +77,7 @@ internal fun DetailHint(
 /**
  * One game's day (history.md §3): the game, its number and day, the Time / Hints of the
  * solve, and that game's best ([gameBest], its best numbered solve under the game's ranking). The action
- * follows the state: "Play again" once solved, "Keep going" while unfinished — both
+ * follows the state: "See result" once solved, "Keep going" while unfinished — both
  * report the (game, day) through [onReplay]; the play store resumes or rebuilds it.
  */
 @Composable
@@ -171,7 +171,7 @@ internal fun DayDetailPane(
 
 /**
  * The detail's one action, full width in the game's accent (the hub's pill pattern): a
- * tonal accent-container "Play again" once solved, a filled accent "Keep going" while
+ * tonal accent-container "See result" once solved, a filled accent "Keep going" while
  * the day is unfinished.
  */
 @Composable
@@ -186,8 +186,8 @@ private fun ReplayButton(row: HistoryDayRow, onReplay: () -> Unit) {
                 containerColor = accent.container,
                 contentColor = accent.onContainer,
             ),
-            modifier = size.testTag("history.play_again"),
-        ) { Text(text = "Play again", style = MaterialTheme.typography.labelLarge) }
+            modifier = size.testTag("history.see_result"),
+        ) { Text(text = "See result", style = MaterialTheme.typography.labelLarge) }
     } else {
         Button(
             onClick = onReplay,
