@@ -13,30 +13,28 @@ import com.ivandsky.puzzlebox.games.strands.render.StrandsLink
 import com.ivandsky.puzzlebox.games.strandsui.FoundEvent
 
 /**
- * A found word's link [elapsedMs] into its settle. The link is drawn from its letters' own
- * frames ([spec] is theirs), so a bar never shows ahead of the tiles it joins or stays
- * thicker than they have shrunk.
+ * A found word's link [elapsedMs] into its settle. It is drawn from its letters' own frames
+ * ([spec] is theirs): it carries on the trace line until its letters start, then dips and
+ * swells with them, never thicker than the tiles it joins.
  */
 internal class LinkSettle(val link: StrandsLink, val spec: StrandsCellSpec, val elapsedMs: Int) {
 
-    /**
-     * Each step's thickness as a fraction of its rest width: the thinner of its two letters'
-     * [StrandsCellFrame.scale] × [StrandsCellFrame.lit], so it is 0 before they start and 1 once they rest.
-     */
-    fun stepWidths(): FloatArray {
-        val count = link.cells.size
-        val reach = FloatArray(count) {
-            val frame = spec.frame(elapsedMs, StrandsMotionCue(it, count), reduceMotion = false)
-            frame.scale * frame.lit
-        }
-        return FloatArray(count - 1) { minOf(reach[it], reach[it + 1]) }
+    private fun frames(): List<StrandsCellFrame> = List(link.cells.size) {
+        spec.frame(elapsedMs, StrandsMotionCue(it, link.cells.size), reduceMotion = false)
     }
+
+    /** Each step's thickness relative to rest: the smaller [StrandsCellFrame.scale] of its two letters. */
+    fun stepScales(): FloatArray = frames().let { f -> FloatArray(f.size - 1) { minOf(f[it].scale, f[it + 1].scale) } }
+
+    /** How far each step has turned from the trace's look to the link's own: the lesser [StrandsCellFrame.lit] of its two letters. */
+    fun stepLit(): FloatArray = frames().let { f -> FloatArray(f.size - 1) { minOf(f[it].lit, f[it + 1].lit) } }
 }
 
 /**
- * [found]'s link settling on the frame clock, beside its letters' own (same start frame, same
- * timeline), once per found word (a later change of [links] never replays it); null before it, after it, under reduced motion and from the first touch-down.
- * Read in the draw phase, so a frame redraws the connectors without recomposing the board.
+ * [found]'s link settling on the frame clock, beside its letters' own: same start frame,
+ * same timeline. It is null before the word is found, after the settle ends, under reduced
+ * motion and from the first touch-down. Read in the draw phase, so a frame redraws the
+ * connectors without recomposing the board.
  */
 @Composable
 internal fun rememberLinkSettle(
@@ -59,9 +57,10 @@ internal fun rememberLinkSettle(
         val total = first.spec.motionMs(StrandsMotionCue(first.link.cells.lastIndex, first.link.cells.size))
         val start = withFrameMillis { it }
         var elapsed = 0L
-        while (elapsed < total && touchSeq.intValue == bornTouch) {
-            settle.value = LinkSettle(first.link, first.spec, elapsed.toInt())
+        while (elapsed < total) {
             elapsed = withFrameMillis { it } - start
+            if (touchSeq.intValue != bornTouch) break
+            settle.value = LinkSettle(first.link, first.spec, elapsed.toInt())
         }
         settle.value = null
     }
