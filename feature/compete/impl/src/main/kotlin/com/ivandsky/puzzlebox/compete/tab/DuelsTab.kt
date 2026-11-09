@@ -6,11 +6,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
+import com.ivandsky.puzzlebox.compete.create.NewDuelSheet
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.DuelRow
 import com.ivandsky.puzzlebox.domain.DuelRowKind
@@ -30,17 +35,19 @@ fun DuelsTab(
 ) {
     val viewModel: DuelsTabViewModel = koinViewModel()
     val state = viewModel.state.collectAsStateWithLifecycle()
+    var newDuelOpen by rememberSaveable { mutableStateOf(false) }
     DuelsTabContent(
         rows = state.value.rows,
         signedIn = state.value.signedIn,
         // Read only inside each row's time-left text, so the minute tick redraws that text and nothing else.
         now = { state.value.now },
-        // The New duel sheet is wired here by the create-duel ticket; until then the card is drawn and tappable.
-        onNewDuel = {},
+        onNewDuel = { newDuelOpen = true },
         onOpenDuel = onOpenDuel,
         onOpenReveal = onOpenReveal,
         modifier = modifier,
     )
+    // The created duel's code is dropped here for now: the share sheet (ticket 39) takes it from this callback.
+    if (newDuelOpen) NewDuelSheet(onDismiss = { newDuelOpen = false }, onCreated = { newDuelOpen = false })
 }
 
 /** The stateless tab: [rows] and [signedIn] in, taps out; [now] is read only by the time-left text. */
