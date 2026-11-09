@@ -13,10 +13,11 @@ import com.ivandsky.puzzlebox.gameui.GridGeometry
 
 /**
  * §3.1 edge layer (F-1), drawn above the opaque region fills: a [QueensBoardDefaults.cellGridLineWeight]
- * hairline on every cell edge (the lattice plus the board outline) in low-alpha ink,
- * a full-contrast [QueensBoardDefaults.regionBorderWeight] stroke on every interior edge
- * between two different regions so region shapes read, and the hinted region's boundary
- * in [QueensBoardDefaults.hintBorderWeight] boardSelection (§5.5) on top of that.
+ * hairline on every interior cell edge in low-alpha ink, a full-contrast
+ * [QueensBoardDefaults.regionBorderWeight] stroke on every interior edge
+ * between two different regions so region shapes read, the hinted region's boundary
+ * in [QueensBoardDefaults.hintBorderWeight] boardSelection (§5.5) on top of that, and the
+ * board outline in full ink at [QueensBoardDefaults.regionBorderWeight] (the Tango/Zip frame weight).
  * The [drawRegionTexture] dots go down first, so the lattice and borders stay on top.
  */
 internal fun DrawScope.drawCellEdges(model: QueensBoardModel, hintColor: Color, ink: Color) {
@@ -38,10 +39,10 @@ internal fun DrawScope.drawCellEdges(model: QueensBoardModel, hintColor: Color, 
     }
     // Board outline, inset half a stroke so nothing clips outside the canvas.
     drawRect(
-        faint,
-        topLeft = Offset(hairline / 2f, hairline / 2f),
-        size = Size(size.width - hairline, size.height - hairline),
-        style = Stroke(width = hairline),
+        ink,
+        topLeft = Offset(regionWeight / 2f, regionWeight / 2f),
+        size = Size(size.width - regionWeight, size.height - regionWeight),
+        style = Stroke(width = regionWeight),
     )
     // Interior edges toward a different region: region boundary at full-contrast ink
     // (each interior edge visited once — right/down neighbors only), upgraded to the
