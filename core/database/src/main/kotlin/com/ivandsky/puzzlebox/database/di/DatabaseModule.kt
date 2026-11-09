@@ -21,4 +21,5 @@ val databaseModule = module {
     single { get<PuzzleBoxDatabase>().draftDao() }
     single { get<PuzzleBoxDatabase>().publishedPuzzleDao() }
     single { get<PuzzleBoxDatabase>().receivedPuzzleDao() }
+    single { get<PuzzleBoxDatabase>().matchLocalDao() }
 }
