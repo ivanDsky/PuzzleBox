@@ -66,12 +66,12 @@ class ImportSheetTest {
             PuzzleBoxTheme {
                 ImportSheet(
                     ui = ui,
-                    onEdit = {},
-                    onSubmit = {},
-                    onDismiss = { dismissed++ },
-                    onClipboard = { offers += it },
-                    onPaste = { pasted++ },
-                    onDismissClipboard = { bannerDismissed++ },
+                    actions = ImportSheetActions(
+                        onDismiss = { dismissed++ },
+                        onClipboard = { offers += it },
+                        onPaste = { pasted++ },
+                        onDismissClipboard = { bannerDismissed++ },
+                    ),
                 )
             }
         }
@@ -79,15 +79,7 @@ class ImportSheetTest {
     }
 
     @Composable
-    private fun sheet(ui: ImportSheetUi) = ImportSheet(
-        ui = ui,
-        onEdit = {},
-        onSubmit = {},
-        onDismiss = {},
-        onClipboard = { offers += it },
-        onPaste = {},
-        onDismissClipboard = {},
-    )
+    private fun sheet(ui: ImportSheetUi) = ImportSheet(ui = ui, actions = ImportSheetActions(onClipboard = { offers += it }))
 
     /** Counts the full clip reads, the ones that show Android's paste toast. */
     private class CountingClipboard(private val delegate: Clipboard, private val reads: AtomicInteger) :
@@ -195,15 +187,7 @@ class ImportSheetTest {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             PuzzleBoxTheme {
-                ImportSheet(
-                    ui = ui,
-                    onEdit = {},
-                    onSubmit = {},
-                    onDismiss = {},
-                    onClipboard = {},
-                    onPaste = {},
-                    onDismissClipboard = {},
-                )
+                ImportSheet(ui = ui, actions = ImportSheetActions())
             }
         }
         composeRule.mainClock.advanceTimeBy(SHEET_SETTLE_MS)
@@ -312,15 +296,7 @@ class ImportSheetTest {
         var shown by mutableStateOf<ImportResult?>(null)
         composeRule.setContent {
             PuzzleBoxTheme {
-                ImportSheet(
-                    ui = ImportSheetUi(visible = true, error = shown),
-                    onEdit = {},
-                    onSubmit = {},
-                    onDismiss = {},
-                    onClipboard = {},
-                    onPaste = {},
-                    onDismissClipboard = {},
-                )
+                ImportSheet(ui = ImportSheetUi(visible = true, error = shown), actions = ImportSheetActions())
             }
         }
         kinds.forEach { (kind, error) ->

@@ -56,6 +56,7 @@ val createModule: Module = module {
             idTokens = get(),
             updatePublishState = get(),
             validatePublish = get(),
+            releaseFlags = get(),
         )
     }
     viewModel { (key: PublishedPuzzleKey) ->

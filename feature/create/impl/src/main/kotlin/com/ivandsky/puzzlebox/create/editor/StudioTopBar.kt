@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.AppDropdownMenu
 import com.ivandsky.puzzlebox.designsystem.AppShapes
+import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -43,16 +44,18 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
 
 private val StudioTopBarHeight = 64.dp
 private val TagHorizontalPadding = 6.dp
+private val ChipVerticalPadding = 2.dp
 
 /**
  * The Studio's compact bar (02 handoff "Top bar"): Back, the title block — a button that opens
  * Rename ([onRename]), the [title] on one line over a `STUDIO` tag, the [subtitle]
  * ("Queens 7×7") and the autosave indicator ("Saving…" while [saving], then "✓ Saved") — then
- * the [pill] slot and the overflow ⋮ with Rename, Duplicate as new draft ([onDuplicate]) and
- * Delete draft ([onDelete], in the error colour). A published puzzle is immutable and its
- * draft is the record its published page shows, so [readOnly] the title opens nothing and the
- * menu holds Duplicate and, while the code is live, Unpublish… ([onUnpublish], in the error
- * colour; null once unpublished).
+ * the [pill] slot and the overflow ⋮ with Rename, Duplicate as new draft ([onDuplicate]), Import
+ * from text ([onImport]; null draws no item) and Delete draft ([onDelete], in the error colour).
+ * An [imported] draft shows an Imported chip beside the title. A published puzzle is immutable
+ * and its draft is the record its published page shows, so [readOnly] the title opens nothing
+ * and the menu holds Duplicate, Import and, while the code is live, Unpublish… ([onUnpublish],
+ * in the error colour; null once unpublished).
  *
  * Motion: the title block's press is **Press feedback** at MotionTokens.PressScale; the menu's
  * origin-aware **Scale in + Fade in** from the ⋮ is AppDropdownMenu's own.
@@ -70,6 +73,8 @@ fun StudioTopBar(
     modifier: Modifier = Modifier,
     readOnly: Boolean = false,
     onUnpublish: (() -> Unit)? = null,
+    onImport: (() -> Unit)? = null,
+    imported: Boolean = false,
 ) {
     Row(
         modifier = modifier
@@ -82,11 +87,19 @@ fun StudioTopBar(
         IconButton(onClick = onBack, modifier = Modifier.testTag("create.editor.back")) {
             Icon(PuzzleIcons.Back, contentDescription = "Back")
         }
-        TitleBlock(title = title, subtitle = subtitle, saving = saving, onClick = onRename.takeUnless { readOnly }, modifier = Modifier.weight(1f))
+        TitleBlock(
+            title = title,
+            subtitle = subtitle,
+            saving = saving,
+            imported = imported,
+            onClick = onRename.takeUnless { readOnly },
+            modifier = Modifier.weight(1f),
+        )
         pill()
         OverflowMenu(
             onRename = onRename.takeUnless { readOnly },
             onDuplicate = onDuplicate,
+            onImport = onImport,
             onDelete = onDelete.takeUnless { readOnly },
             onUnpublish = onUnpublish.takeIf { readOnly },
         )
@@ -94,7 +107,7 @@ fun StudioTopBar(
 }
 
 @Composable
-private fun TitleBlock(title: String, subtitle: String, saving: Boolean, onClick: (() -> Unit)?, modifier: Modifier) {
+private fun TitleBlock(title: String, subtitle: String, saving: Boolean, imported: Boolean, onClick: (() -> Unit)?, modifier: Modifier) {
     val interactionSource = remember { MutableInteractionSource() }
     val press = if (onClick == null) {
         Modifier
@@ -112,13 +125,17 @@ private fun TitleBlock(title: String, subtitle: String, saving: Boolean, onClick
             .padding(horizontal = Spacing.xs),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            if (imported) ImportedChip()
+        }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             StudioTag()
             Text(
@@ -160,8 +177,29 @@ private fun StudioTag() {
     }
 }
 
+/** The Imported assist chip beside the title: the draft was copied in from text, not drawn here. */
 @Composable
-private fun OverflowMenu(onRename: (() -> Unit)?, onDuplicate: () -> Unit, onDelete: (() -> Unit)?, onUnpublish: (() -> Unit)?) {
+private fun ImportedChip() {
+    Text(
+        text = "Imported",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSecondaryContainer,
+        maxLines = 1,
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.secondaryContainer, PillShape)
+            .padding(horizontal = Spacing.sm, vertical = ChipVerticalPadding)
+            .testTag("create.studio.imported"),
+    )
+}
+
+@Composable
+private fun OverflowMenu(
+    onRename: (() -> Unit)?,
+    onDuplicate: () -> Unit,
+    onImport: (() -> Unit)?,
+    onDelete: (() -> Unit)?,
+    onUnpublish: (() -> Unit)?,
+) {
     var open by remember { mutableStateOf(false) }
     val pick: (() -> Unit) -> () -> Unit = { action -> { open = false; action() } }
     Box {
@@ -181,6 +219,13 @@ private fun OverflowMenu(onRename: (() -> Unit)?, onDuplicate: () -> Unit, onDel
                 onClick = pick(onDuplicate),
                 modifier = Modifier.testTag("create.studio.duplicate"),
             )
+            onImport?.let {
+                DropdownMenuItem(
+                    text = { Text("Import from text") },
+                    onClick = pick(it),
+                    modifier = Modifier.testTag("create.studio.import"),
+                )
+            }
             onUnpublish?.let {
                 DropdownMenuItem(
                     text = { Text("Unpublish…", color = MaterialTheme.colorScheme.error) },

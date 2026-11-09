@@ -301,6 +301,7 @@ class PublishedStudioTest {
                             updatePublishState = signedOutUnpublishing(),
                         ).also { vm = it }
                     }
+                    idleCreateRoot(drafts)
                 },
             )
         }

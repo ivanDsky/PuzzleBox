@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -54,7 +55,8 @@ import kotlinx.coroutines.launch
  * counts in the background; the list never waits for it, and the cached counts show meanwhile.
  *
  * [importText] owns the Import from text sheet; the header pill shows while [importEnabled]
- * ([ReleaseFlag.TextImport]). An imported draft is sent on [created], like a new one.
+ * ([ReleaseFlag.TextImport]). An imported draft is sent on [created], like a new one. A Studio's
+ * import hands its draft to the next Studio through [importedNotice].
  */
 class CreateViewModel(
     private val games: GameRegistry,
@@ -189,6 +191,25 @@ class CreateViewModel(
         undoWindow?.cancel()
         deleted.value = null
         viewModelScope.launch { drafts.upsert(draft) }
+    }
+
+    private val importedDraft = MutableStateFlow<String?>(null)
+
+    /**
+     * The id of the draft a Studio's Import from text just stored, until the Studio that opens
+     * it takes the notice with [consumeImportedNotice]. This ViewModel outlives the Studio that
+     * imported (it is the activity's, like the delete Undo), so the notice crosses the swap.
+     */
+    val importedNotice: StateFlow<String?> = importedDraft.asStateFlow()
+
+    /** Records that [draftId] was just imported from a Studio; its Studio will show the toast. */
+    fun noteImported(draftId: String) {
+        importedDraft.value = draftId
+    }
+
+    /** Clears the notice for [draftId] only, so a newer import's notice is never lost. */
+    fun consumeImportedNotice(draftId: String) {
+        importedDraft.compareAndSet(draftId, null)
     }
 
     /** The Published tab showing (on a switch or a return to Create) asks for fresh counts; one sync at a time. */

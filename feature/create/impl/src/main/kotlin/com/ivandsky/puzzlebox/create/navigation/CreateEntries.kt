@@ -3,7 +3,9 @@ package com.ivandsky.puzzlebox.create.navigation
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.create.CreateRoute
@@ -35,11 +37,15 @@ fun EntryProviderScope<NavKey>.createEntry(navigator: Navigator) {
 
 /**
  * The Studio for one draft; back pops to the Create root. Duplicate opens the copy in the
- * Studio's place; Delete pops to the Create root, which deletes the draft and offers Undo.
+ * Studio's place; so does Import from text, which first leaves a notice on the Create root's
+ * view model for the new Studio's toast, so back goes to the Create root, not the draft
+ * imported from; Delete pops to the Create root, which deletes the draft and offers Undo.
  */
 fun EntryProviderScope<NavKey>.editorEntry(navigator: Navigator, layout: PlayLayout) {
     entry<EditorKey> { key ->
         val activity = createOwner()
+        val create = remember(activity) { activity.createViewModel() }
+        val notice by create.importedNotice.collectAsStateWithLifecycle()
         EditorRoute(
             key = key,
             layout = layout,
@@ -47,8 +53,14 @@ fun EntryProviderScope<NavKey>.editorEntry(navigator: Navigator, layout: PlayLay
             onOpen = { draftId -> navigator.replaceTop(EditorKey(draftId)) },
             onDelete = { draftId ->
                 navigator.pop()
-                activity.createViewModel().delete(draftId)
+                create.delete(draftId)
             },
+            onImported = { draftId ->
+                create.noteImported(draftId)
+                navigator.replaceTop(EditorKey(draftId))
+            },
+            importedPending = notice == key.draftId,
+            onImportedShown = { create.consumeImportedNotice(key.draftId) },
         )
     }
 }
