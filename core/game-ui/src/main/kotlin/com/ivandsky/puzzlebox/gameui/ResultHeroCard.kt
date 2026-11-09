@@ -27,13 +27,13 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.NewBestBurst
 import com.ivandsky.puzzlebox.designsystem.PillShape
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.ResultBeats
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.Stamp
@@ -67,6 +67,7 @@ private val BurstOrigin = Offset(0.3f, 0.5f)
  * once and skips the pulse, burst and sweep band; a preview shows the end state. A null
  * [ResultHeroModel.primary] keeps the actions in place but invisible and inert until known.
  * [wide] sets the 96 sp time of a wide container over the phone's 76 sp.
+ * [actions] false draws no action row; a duel result's buttons sit in a card below the hero.
  */
 @Composable
 internal fun ResultHeroCard(
@@ -78,6 +79,7 @@ internal fun ResultHeroCard(
     rolloverAt: Instant?,
     modifier: Modifier = Modifier,
     wide: Boolean = false,
+    actions: Boolean = true,
 ) {
     val accent = brand.accent.colors()
     val shape = MaterialTheme.shapes.large
@@ -135,17 +137,19 @@ internal fun ResultHeroCard(
                     HeroChipTile(chip, Modifier.weight(1f).resultBeat(ResultBeats.Blocks, index))
                 }
             }
-            val pending = model.primary == null
-            ResultActions(
-                primary = model.primary ?: ResultPrimaryAction.Done,
-                onPrimary = { if (!pending) onPrimary() },
-                onShare = { if (!pending) onShare() },
-                onPlayAgain = onPlayAgain?.let { again -> { if (!pending) again() } },
-                rolloverAt = rolloverAt,
-                modifier = (if (pending) Modifier.alpha(0f).clearAndSetSemantics {} else Modifier)
-                    .padding(top = Spacing.lg)
-                    .resultBeat(ResultBeats.Actions),
-            )
+            if (actions) {
+                val pending = model.primary == null
+                ResultActions(
+                    primary = model.primary ?: ResultPrimaryAction.Done,
+                    onPrimary = { if (!pending) onPrimary() },
+                    onShare = { if (!pending) onShare() },
+                    onPlayAgain = onPlayAgain?.let { again -> { if (!pending) again() } },
+                    rolloverAt = rolloverAt,
+                    modifier = (if (pending) Modifier.alpha(0f).clearAndSetSemantics {} else Modifier)
+                        .padding(top = Spacing.lg)
+                        .resultBeat(ResultBeats.Actions),
+                )
+            }
         }
     }
 }
@@ -202,7 +206,7 @@ private fun HeroPill(text: String, brand: GameBrand, modifier: Modifier = Modifi
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                painter = painterResource(R.drawable.ic_result_record),
+                imageVector = PuzzleIcons.Trophy,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
             )

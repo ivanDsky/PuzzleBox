@@ -65,8 +65,13 @@ internal data class ResultHeroModel(
  * pill, streak, spread or rank. A replay counts nothing either but shows the spread: no
  * pill, streak or rank. The streak, spread and rank wait for their data, so none shows a
  * placeholder; the Average chip hides on a first solve.
+ * A non-null [chip] (a duel's count) replaces the Today chip with its own "In this duel" chip.
  */
-internal fun resultHeroModel(facts: ResultHeroFacts, locale: Locale = Locale.getDefault()): ResultHeroModel {
+internal fun resultHeroModel(
+    facts: ResultHeroFacts,
+    locale: Locale = Locale.getDefault(),
+    chip: String? = null,
+): ResultHeroModel {
     val counts = !facts.practice && !facts.replay
     val insights = facts.insights.takeUnless { facts.practice }
     val verdict = facts.verdict.takeUnless { facts.practice }
@@ -88,7 +93,7 @@ internal fun resultHeroModel(facts: ResultHeroFacts, locale: Locale = Locale.get
             )
         },
         bestImproved = counts && verdict == RecordVerdict.NewBest,
-        chips = chips(facts, insights),
+        chips = chips(facts, insights, chip),
         streak = insights?.takeIf { counts }?.let { streak(it, locale) },
         spread = insights?.let { spread(facts, it) },
         rank = if (counts) rank(facts.rank) else null,
@@ -98,7 +103,7 @@ internal fun resultHeroModel(facts: ResultHeroFacts, locale: Locale = Locale.get
     )
 }
 
-private fun chips(facts: ResultHeroFacts, insights: ResultInsights?): List<HeroChip> = buildList {
+private fun chips(facts: ResultHeroFacts, insights: ResultInsights?, duel: String?): List<HeroChip> = buildList {
     add(
         HeroChip(
             tag = "result.hero.chip.hints",
@@ -106,7 +111,9 @@ private fun chips(facts: ResultHeroFacts, insights: ResultInsights?): List<HeroC
             label = if (facts.hintsUsed == 1) "Hint" else "Hints",
         ),
     )
-    if (facts.doneToday != null && facts.total != null && facts.total > 0) {
+    if (duel != null) {
+        add(HeroChip("result.hero.chip.duel", duel, "In this duel"))
+    } else if (facts.doneToday != null && facts.total != null && facts.total > 0) {
         add(HeroChip("result.hero.chip.today", "${facts.doneToday} of ${facts.total}", "Today"))
     }
     insights?.averageMs?.let { add(HeroChip("result.hero.chip.average", formatDuration(it), "Average")) }
