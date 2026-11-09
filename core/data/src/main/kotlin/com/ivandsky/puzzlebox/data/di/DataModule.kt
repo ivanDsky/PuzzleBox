@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.data.di
 
 import com.ivandsky.puzzlebox.data.calendar.CadenceGameCalendar
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
+import com.ivandsky.puzzlebox.data.match.RoomMatchLocalRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.InMemorySharedTextStore
@@ -57,6 +59,8 @@ val dataModule = module {
     single<PublishedPuzzleRepository> { RoomPublishedPuzzleRepository(get()) }
     // Friends' puzzles opened here; they keep playing offline after their author unpublishes.
     single<ReceivedPuzzleRepository> { RoomReceivedPuzzleRepository(get()) }
+    // This device's memory of duels (invite opened, reveal seen, dismissed).
+    single<MatchLocalRepository> { RoomMatchLocalRepository(get()) }
     // Process-wide so the 15-minute update-check throttle survives screen changes.
     single<AppReleaseRepository> { NetworkAppReleaseRepository(get()) }
     // Shared-text hand-off (M5-08): app puts, the Create root takes it exactly once. In memory

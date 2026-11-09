@@ -36,6 +36,8 @@ abstract class PuzzleBoxDatabase : RoomDatabase() {
 
     abstract fun receivedPuzzleDao(): ReceivedPuzzleDao
 
+    abstract fun matchLocalDao(): MatchLocalDao
+
     companion object {
         const val NAME = "puzzlebox.db"
     }
