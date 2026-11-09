@@ -42,7 +42,7 @@ internal object StrandsBoardSpec {
      * Drag acceptance (A5, prototype 02 variant E), in cell pitches from the tail's centre
      * unless named otherwise. The direction is the finger's travel over TravelWindowCells,
      * so a diagonal drawn beside the centre line, wobbling, still reads as diagonal. A side
-     * letter needs both a heading inside its narrow cone and the finger deep in its token,
+     * letter needs both a heading inside its cone and the finger deep in its token,
      * so it never steals a corner-cutting diagonal.
      */
     const val TravelWindowCells: Float = 0.25f

@@ -115,18 +115,18 @@ class StrandsTraceWalkTest {
     }
 
     @Test
-    fun `a side drag up to 22_5 degrees off its axis joins the side letter, not the diagonal`() {
-        // F1: a heading near the cone edge must still read as the side.
-        val heading = Math.toRadians(20.0).let { Offset(cos(it).toFloat(), sin(it).toFloat()) }
+    fun `a side drag within 22 and a half degrees of its axis joins the side letter, not the diagonal`() {
+        // 21.5° sits just inside the cone but outside the old 20° one.
+        val heading = Math.toRadians(21.5).let { Offset(cos(it).toFloat(), sin(it).toFloat()) }
         val finger = polyline(listOf(centre(Coord(3, 1)), centre(Coord(3, 1)) + heading), FINE)
         assertEquals(listOf(Coord(3, 1), Coord(3, 2)), drag(finger))
     }
 
     @Test
-    fun `a horizontal drag wobbling 15 degrees at the 48dp phone pitch never joins a diagonal`() {
-        // 48dp is the phone's pitch floor, so a finger's ~4dp of lateral shake is 0.08 cell.
+    fun `a horizontal drag wobbling up to 22 degrees at the 48dp phone pitch never joins a diagonal`() {
+        // 48dp is the phone's pitch floor: 4dp of shake is 0.08 cell; the heading alone must not read diagonal.
         val shake = 4f / 48f
-        for (wobble in listOf(15f, -15f)) {
+        for (wobble in listOf(15f, 22f, -22f)) {
             for (offset in listOf(0f, shake, -shake)) {
                 for (pitch in listOf(FINE, SPARSE)) {
                     val finger = zigzag(Coord(2, 0), Coord(2, 4), offset, wobble, pitch)
