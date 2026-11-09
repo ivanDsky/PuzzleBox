@@ -13,8 +13,8 @@ import kotlinx.coroutines.flow.flowOf
  * day ([GameCalendar.observeToday]), and the slot's own board through [ObserveLeaderboard]'s
  * identity gate — the slot's game, not the featured one, since every daily is posted.
  * The board emits its loading state at once, so the local parts never wait on the network.
- * A [PlaySlot.Custom] puzzle has no daily board: its [PlayStats.board] is null and it is
- * never [PlayStats.solved].
+ * A [PlaySlot.Custom] or [PlaySlot.Leg] puzzle has no daily board: its [PlayStats.board] is
+ * null and it is never [PlayStats.solved].
  */
 class ObservePlayStats(
     private val todaySet: ObserveTodaySet,
@@ -31,7 +31,7 @@ class ObservePlayStats(
         calendar.observeToday(slot.gameId),
         when (slot) {
             is PlaySlot.Daily -> leaderboard(slot.gameId, slot.day)
-            is PlaySlot.Custom -> flowOf(null)
+            is PlaySlot.Custom, is PlaySlot.Leg -> flowOf(null)
         },
     ) { set, game, days, today, board ->
         val own = days.filter { it.gameId == slot.gameId }

@@ -10,10 +10,11 @@ import kotlinx.coroutines.flow.update
 
 /**
  * In-memory [SavedPlayRepository]. It never evicts a [PlaySlot.Daily] (the per-game daily cap
- * is a Room-adapter detail), but keeps only the newest [CUSTOM_CAP] [PlaySlot.Custom] slots,
- * since the contract pins that a friend save never evicts a daily (A13). [rows] exposes every
- * stored blob for assertions; it passes the same contract test as the Room adapter, so it
- * cannot drift (A12).
+ * is a Room-adapter detail), but keeps only the newest [CAP] [PlaySlot.Custom] slots and,
+ * apart from them, the newest [CAP] [PlaySlot.Leg] slots, since the contract pins that a
+ * friend save never evicts a daily (A13) and that a duel save never evicts, nor is evicted by,
+ * another kind (A8). [rows] exposes every stored blob for assertions; it passes the same
+ * contract test as the Room adapter, so it cannot drift (A12).
  */
 class FakeSavedPlayRepository : SavedPlayRepository {
 
@@ -27,7 +28,8 @@ class FakeSavedPlayRepository : SavedPlayRepository {
     override suspend fun save(slot: PlaySlot, blob: ByteArray, elapsedMs: Long) {
         state.update { rows ->
             val saved = (rows - slot) + (slot to Row(blob.copyOf(), elapsedMs))
-            val evicted = saved.keys.filterIsInstance<PlaySlot.Custom>().dropLast(CUSTOM_CAP)
+            val evicted = saved.keys.filterIsInstance<PlaySlot.Custom>().dropLast(CAP) +
+                saved.keys.filterIsInstance<PlaySlot.Leg>().dropLast(CAP)
             saved - evicted.toSet()
         }
     }
@@ -42,6 +44,6 @@ class FakeSavedPlayRepository : SavedPlayRepository {
         state.map { rows -> rows.mapValues { it.value.elapsedMs } }.distinctUntilChanged()
 
     private companion object {
-        const val CUSTOM_CAP = 8
+        const val CAP = 8
     }
 }
