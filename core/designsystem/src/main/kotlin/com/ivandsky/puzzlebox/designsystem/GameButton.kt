@@ -6,7 +6,6 @@ import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -60,6 +59,21 @@ internal fun gameButtonColors(accent: GameAccent?, scheme: ColorScheme, neutralL
     }
 
 /**
+ * What the face animates toward. Disabled is a muted onSurface wash; its lip keeps the
+ * enabled hue at alpha 0 so the lerp fades out instead of passing through black.
+ */
+internal fun gameButtonTarget(colors: GameButtonColors, enabled: Boolean, scheme: ColorScheme): GameButtonColors =
+    if (enabled) {
+        colors
+    } else {
+        GameButtonColors(
+            fill = scheme.onSurface.copy(alpha = DISABLED_FILL_ALPHA),
+            content = scheme.onSurface.copy(alpha = DISABLED_CONTENT_ALPHA),
+            lip = colors.lip.copy(alpha = 0f),
+        )
+    }
+
+/**
  * The in-game button (spec A12, A14): a face on a 4dp lip of the same hue, icon over a
  * short label. [accent] null is the neutral well (Undo, Erase); a game's slot fills it
  * with that accent (Hint). A press sinks the face into its lip; disabled sits flat
@@ -99,7 +113,7 @@ internal fun Modifier.gameButtonClick(interactionSource: MutableInteractionSourc
 /**
  * The face every game button draws; [modifier] already carries its click or toggle, and
  * [describe] names it [label] when no visible label does. The sink is the press feedback
- * (MotionTokens: Press, chunky); colour changes crossfade like Select. Reduced motion makes
+ * (MotionTokens: Press, chunky); fill, ink and lip ride the same spring. Reduced motion makes
  * both instant. The rim draws over [content], so a fill reaching the edge sits inside it.
  */
 @Composable
@@ -116,15 +130,13 @@ internal fun GameButtonFace(
     val reduced = rememberReducedMotion()
     val scheme = MaterialTheme.colorScheme
     val pressed by interactionSource.collectIsPressedAsState()
-    val sink by animateDpAsState(
-        targetValue = if (pressed || !enabled) GameButtonLipDepth else 0.dp,
-        animationSpec = if (reduced) snap() else spring(MotionTokens.SpringDampingDefault, MotionTokens.SpringStiffnessDefault),
-        label = "game-button-sink",
-    )
-    val crossfade: AnimationSpec<Color> = if (reduced) snap() else tween(MotionTokens.SelectDuration, easing = MotionTokens.EasingStandard)
-    val fill by animateColorAsState(if (enabled) colors.fill else scheme.onSurface.copy(alpha = DISABLED_FILL_ALPHA), crossfade, label = "game-button-fill")
-    val ink by animateColorAsState(if (enabled) colors.content else scheme.onSurface.copy(alpha = DISABLED_CONTENT_ALPHA), crossfade, label = "game-button-content")
-    val lip by animateColorAsState(if (enabled) colors.lip else Color.Transparent, crossfade, label = "game-button-lip")
+    // One spring for sink and all three colours so enable/disable lands as a single motion.
+    fun <T> spec(): AnimationSpec<T> = if (reduced) snap() else spring(MotionTokens.SpringDampingDefault, MotionTokens.SpringStiffnessDefault)
+    val sink by animateDpAsState(if (pressed || !enabled) GameButtonLipDepth else 0.dp, spec(), label = "game-button-sink")
+    val target = gameButtonTarget(colors, enabled, scheme)
+    val fill by animateColorAsState(target.fill, spec(), label = "game-button-fill")
+    val ink by animateColorAsState(target.content, spec(), label = "game-button-content")
+    val lip by animateColorAsState(target.lip, spec(), label = "game-button-lip")
     val shape = MaterialTheme.shapes.medium
     Box(
         modifier = modifier
