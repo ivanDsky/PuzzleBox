@@ -41,7 +41,6 @@ import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.ResultBeats
@@ -70,8 +69,8 @@ private const val VsStampDelayMs = 160L
 
 /**
  * The reveal at one instant of the machine's [state] (handoff 03-reveal §4–§5): the chrome, then the VS intro, or the
- * last race card's puzzle with the running score. At End it keeps the last card with the final score and a Done button;
- * 38 swaps that branch for the summary. [wide] is the tablet layout. It draws [state] and animates only its own entrances.
+ * last race card's puzzle with the running score. The route shows the summary at End instead.
+ * [wide] is the tablet layout. It draws [state] and animates only its own entrances.
  */
 @Composable
 internal fun RevealStage(
@@ -80,30 +79,28 @@ internal fun RevealStage(
     brands: GamePlayRegistry,
     wide: Boolean,
     onSkip: () -> Unit,
-    onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val ended = state.phase == RevealPhase.End
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-        RevealTopBar(plan, ended, onSkip)
+        RevealTopBar(plan, onSkip)
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             when (val phase = state.phase) {
                 RevealPhase.VsIntro -> VsIntro(plan, brands, wide)
                 else -> {
                     val index = (phase as? RevealPhase.Leg)?.index ?: plan.cards.lastIndex
-                    RaceBody(plan, state, index, brands, wide, onDone)
+                    RaceBody(plan, state, index, brands, wide)
                 }
             }
-            if (!ended && state.speed == 1) {
+            if (state.speed == 1) {
                 SpeedUpHint(Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.xl))
             }
         }
     }
 }
 
-/** "{Me} vs {Opponent}" over "Duel · Best of {N}", and Skip until the run ends. */
+/** "{Me} vs {Opponent}" over "Duel · Best of {N}", and Skip. */
 @Composable
-private fun RevealTopBar(plan: RevealPlan, ended: Boolean, onSkip: () -> Unit) {
+private fun RevealTopBar(plan: RevealPlan, onSkip: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().height(TopBarHeight).padding(horizontal = Spacing.lg),
         verticalAlignment = Alignment.CenterVertically,
@@ -124,7 +121,7 @@ private fun RevealTopBar(plan: RevealPlan, ended: Boolean, onSkip: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (!ended) AppTextButton("Skip", onSkip, Modifier.testTag("reveal.skip"))
+        AppTextButton("Skip", onSkip, Modifier.testTag("reveal.skip"))
     }
 }
 
@@ -217,10 +214,9 @@ private fun IntroPlayer(player: Player, label: String, tone: DuelTone, wide: Boo
     }
 }
 
-/** The race: the running score over puzzle [index]'s card, and Done once the run has ended. */
+/** The race: the running score over puzzle [index]'s card. */
 @Composable
-private fun RaceBody(plan: RevealPlan, state: RevealState, index: Int, brands: GamePlayRegistry, wide: Boolean, onDone: () -> Unit) {
-    val ended = state.phase == RevealPhase.End
+private fun RaceBody(plan: RevealPlan, state: RevealState, index: Int, brands: GamePlayRegistry, wide: Boolean) {
     Column(
         modifier = Modifier
             .widthIn(max = if (wide) TabletMaxWidth else PhoneMaxWidth)
@@ -230,11 +226,10 @@ private fun RaceBody(plan: RevealPlan, state: RevealState, index: Int, brands: G
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        ScoreRow(plan, state, if (ended) "Final score" else "Best of ${plan.cards.size}")
+        ScoreRow(plan, state, "Best of ${plan.cards.size}")
         key(index) {
             RaceCard(plan, plan.cards[index], state, position = index + 1, brands.brandOf(plan.cards[index].leg.gameId), wide)
         }
-        if (ended) PrimaryButton("Done", onDone, Modifier.fillMaxWidth().testTag("reveal.done"))
     }
 }
 
@@ -271,17 +266,11 @@ private val previewRaceState = RevealState(RevealPhase.Leg(0), 58_000, 72_000, S
 @PuzzleBoxPreviews
 @Composable
 internal fun RevealIntroPreview() = PuzzleBoxTheme {
-    RevealStage(previewPlan, RevealState(RevealPhase.VsIntro, 0, 0, null, 1, 0, 0), GamePlayRegistry(emptyList()), false, {}, {})
+    RevealStage(previewPlan, RevealState(RevealPhase.VsIntro, 0, 0, null, 1, 0, 0), GamePlayRegistry(emptyList()), false, {})
 }
 
 @PuzzleBoxPreviews
 @Composable
 internal fun RevealRacePreview() = PuzzleBoxTheme {
-    RevealStage(previewPlan, previewRaceState, GamePlayRegistry(emptyList()), false, {}, {})
-}
-
-@PuzzleBoxPreviews
-@Composable
-internal fun RevealEndPreview() = PuzzleBoxTheme {
-    RevealStage(previewPlan, RevealState(RevealPhase.End, 0, 0, null, 1, 1, 1), GamePlayRegistry(emptyList()), true, {}, {})
+    RevealStage(previewPlan, previewRaceState, GamePlayRegistry(emptyList()), false, {})
 }
