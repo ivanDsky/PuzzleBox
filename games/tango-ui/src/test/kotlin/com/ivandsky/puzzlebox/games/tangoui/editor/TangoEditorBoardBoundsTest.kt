@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.games.tangoui.editor
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertHeightIsEqualTo
@@ -40,19 +40,24 @@ class TangoEditorBoardBoundsTest {
     private fun show() {
         rule.setContent {
             PuzzleBoxTheme {
+                // The Studio's SquareBoardSlot: the smaller of the pane's width and height, filled.
                 Box(Modifier.size(PaneWidth, PaneHeight)) {
-                    val verdict = Verdict.None(setOf(0, 1, 2))
-                    TangoEditorBoard(controller, Modifier.fillMaxWidth(), verdict)
+                    Box(Modifier.size(minOf(PaneWidth, PaneHeight))) {
+                        val verdict = Verdict.None(setOf(0, 1, 2))
+                        TangoEditorBoard(controller, Modifier.fillMaxSize(), verdict)
+                    }
                 }
             }
         }
     }
 
     @Test
-    fun `a wide pane does not stretch the board past its cap`() {
+    fun `the board fills the square slot of a wide pane`() {
         show()
 
-        rule.onNodeWithTag("tango.editor.board").assertWidthIsEqualTo(480.dp)
+        val board = rule.onNodeWithTag("tango.editor.board")
+        board.assertWidthIsEqualTo(minOf(PaneWidth, PaneHeight))
+        board.assertHeightIsEqualTo(minOf(PaneWidth, PaneHeight))
     }
 
     @Test
@@ -76,6 +81,6 @@ class TangoEditorBoardBoundsTest {
 
     private companion object {
         val PaneWidth = 876.dp
-        val PaneHeight = 900.dp
+        val PaneHeight = 720.dp
     }
 }
