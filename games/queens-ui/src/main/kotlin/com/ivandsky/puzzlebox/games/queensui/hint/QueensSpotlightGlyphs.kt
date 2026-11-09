@@ -46,8 +46,9 @@ internal data class QueensSpotlightGlyphs(val culpritIsCross: Boolean) : Spotlig
 
     private fun DrawScope.crownCovering(color: Color) {
         buildQueenPath(QueensBoardDefaults.queenHeightFraction * CULPRIT_SCALE, crownPath)
-        drawPath(crownPath, color)
-        drawPath(crownPath, color, style = rim(SpotlightTokens.HairlineWidth.toPx() * 2f))
+        val opaque = color.copy(alpha = 1f) // the overlay fades the colour; a culprit covers its glyph fully
+        drawPath(crownPath, opaque)
+        drawPath(crownPath, opaque, style = rim(SpotlightTokens.HairlineWidth.toPx() * 2f))
     }
 
     /** The covering stroke, rebuilt only when its [width] changes (a density change), never per draw. */
