@@ -65,15 +65,48 @@ class ZipDraftAnalyzerTest {
     }
 
     @Test
-    fun `two paths are Multiple with both and the cells whose position differs`() {
+    fun `a path-less board with two paths is Multiple with both and the cells whose next cell differs`() {
         val verdict = analyze(open3(listOf(0, 8)))
 
         val multiple = verdict as Verdict.Multiple
-        assertEquals(
-            setOf(Solution(listOf(0, 1, 2, 5, 4, 3, 6, 7, 8)), Solution(listOf(0, 3, 6, 7, 4, 1, 2, 5, 8))),
-            setOf(multiple.solutionA, multiple.solutionB),
-        )
-        assertEquals(setOf(1, 2, 3, 5, 6, 7), multiple.differingCells)
+        assertEquals(setOf(Solution(ROWS_SNAKE), Solution(COLUMNS_SNAKE)), setOf(multiple.solutionA, multiple.solutionB))
+        assertEquals(setOf(0, 4, 5, 7), multiple.differingCells)
+    }
+
+    @Test
+    fun `a drawn board with another path is Multiple against the author's path`() {
+        for ((authored, other) in listOf(ROWS_SNAKE to COLUMNS_SNAKE, COLUMNS_SNAKE to ROWS_SNAKE)) {
+            val verdict = analyze(open3(listOf(0, 8), path = authored))
+
+            assertEquals(Verdict.Multiple(Solution(authored), Solution(other), setOf(0, 4, 5, 7)), verdict)
+        }
+    }
+
+    /** The board the emulator answered "Couldn't decide" on, then "2+ solutions" one stroke later. */
+    @Test
+    fun `a slow clock does not change the verdict`() {
+        var now = 0L
+        val slowClock = { now.also { now += 1_000_000_000L } }
+
+        val fast = ZipDraftAnalyzer.analyze(numberedSnake, Budget.within(1_500, { 0L }))
+        val slow = ZipDraftAnalyzer.analyze(numberedSnake, Budget.within(1_500, slowClock))
+
+        assertEquals(Verdict.Unique(Solution(snake(7))), fast)
+        assertEquals(fast, slow)
+    }
+
+    @Test
+    fun `a board past the node budget is Undetermined even with time to spare`() {
+        val wideOpen = ZipDraft(8, emptySet(), emptyList(), listOf(0, 7))
+
+        assertEquals(Verdict.Undetermined, analyze(wideOpen))
+    }
+
+    @Test
+    fun `a cancelled budget is Undetermined`() {
+        val verdict = ZipDraftAnalyzer.analyze(numberedSnake, Budget.within(1_500, { 0L }, cancelled = { true }))
+
+        assertEquals(Verdict.Undetermined, verdict)
     }
 
     @Test
@@ -93,5 +126,19 @@ class ZipDraftAnalyzerTest {
     @Test
     fun `reasonIds lists every reason the analyzer emits`() {
         assertTrue(ZipDraftAnalyzer.reasonIds == setOf(ZipDraftAnalyzer.UNCOVERED, ZipDraftAnalyzer.WAYPOINTS))
+    }
+
+    private companion object {
+        val ROWS_SNAKE = listOf(0, 1, 2, 5, 4, 3, 6, 7, 8)
+        val COLUMNS_SNAKE = listOf(0, 3, 6, 7, 4, 1, 2, 5, 8)
+
+        /** Row by row, even rows left to right and odd rows right to left. */
+        fun snake(n: Int): List<Int> = (0 until n).flatMap { row ->
+            val cols = if (row % 2 == 0) 0 until n else (n - 1 downTo 0)
+            cols.map { row * n + it }
+        }
+
+        /** 7×7 open board, the row snake drawn, a number on most of its turns: unique, ~161k nodes. */
+        val numberedSnake = ZipDraft(7, emptySet(), snake(7), listOf(0, 6, 7, 20, 21, 34, 38, 35, 42, 48))
     }
 }

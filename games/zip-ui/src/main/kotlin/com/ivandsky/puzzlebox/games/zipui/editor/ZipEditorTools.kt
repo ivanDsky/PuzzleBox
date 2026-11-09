@@ -71,13 +71,26 @@ internal fun ZipEditorTools(
     }
 }
 
-/** How much of the board the path covers: [covered] of [total] cells. */
-internal data class ZipEditorHintState(val covered: Int, val total: Int) {
-    /** True once the path covers every cell, when the hint names the next step. */
-    val complete: Boolean get() = covered == total
-
+/**
+ * How much of the board the path covers, [covered] of [total] cells, and the step the stepper
+ * (04 handoff: 1 Path → 2 Numbers → 3 Walls) asks for next, or null while the path is short
+ * or once every step has work on it.
+ */
+internal data class ZipEditorHintState(val covered: Int, val total: Int, val next: ZipEditorStep? = null) {
     companion object {
-        fun of(board: ZipDraft): ZipEditorHintState = ZipEditorHintState(board.path.size, board.n * board.n)
+        fun of(board: ZipDraft): ZipEditorHintState {
+            val total = board.n * board.n
+            val next = when {
+                board.path.size < total -> null
+                board.waypoints.size <= ENDS -> ZipEditorStep.Numbers
+                board.walls.isEmpty() -> ZipEditorStep.Walls
+                else -> null
+            }
+            return ZipEditorHintState(board.path.size, total, next)
+        }
+
+        /** The two path ends, always numbered; more numbers means the author marked a middle cell. */
+        private const val ENDS = 2
     }
 }
 
@@ -101,9 +114,14 @@ internal fun ZipEditorHint(state: ZipEditorHintState, modifier: Modifier = Modif
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        if (state.complete) {
+        state.next?.let { next ->
+            val label = when (next) {
+                ZipEditorStep.Path -> "Path"
+                ZipEditorStep.Numbers -> "Numbers"
+                ZipEditorStep.Walls -> "Walls"
+            }
             Text(
-                "Next: Numbers",
+                "Next: $label",
                 Modifier.testTag("zip.editor.hint.next"),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
@@ -131,7 +149,7 @@ private fun ZipEditorToolsNumbersPreview() {
     PuzzleBoxTheme {
         Column {
             ZipEditorTools(ZipEditorStep.Numbers, {}, {}, {}, {})
-            ZipEditorHint(ZipEditorHintState(covered = 25, total = 25))
+            ZipEditorHint(ZipEditorHintState(covered = 25, total = 25, next = ZipEditorStep.Numbers))
         }
     }
 }
