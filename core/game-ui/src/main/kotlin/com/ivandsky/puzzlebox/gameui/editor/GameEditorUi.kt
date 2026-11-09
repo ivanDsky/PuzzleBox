@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
@@ -25,6 +26,26 @@ interface GameEditorUi {
 
     @Composable
     fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier)
+
+    /**
+     * The board in the Studio's [layout]; the default is [Board]. In [PlayLayout.TwoPane] the
+     * host draws [PaneTools] in the side pane, so a game that has them leaves them off this board.
+     */
+    @Composable fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) {
+        Board(controller, verdict, modifier)
+    }
+
+    /**
+     * Authoring controls the tablet ([PlayLayout.TwoPane]) Studio draws in its side pane, under
+     * the tool strip and away with it while the publish details show; the default draws nothing.
+     */
+    @Composable fun PaneTools(controller: GameEditorController, modifier: Modifier) {}
+
+    /**
+     * The game's own publish details, at the foot of the Studio's details form once the test
+     * passes; disabled while not [enabled] (a publish runs). The default draws nothing.
+     */
+    @Composable fun PublishFields(controller: GameEditorController, enabled: Boolean, modifier: Modifier) {}
 
     /** Context line beside the tool strip; the default draws nothing. */
     @Composable fun ToolHint(controller: GameEditorController, modifier: Modifier) {}

@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.strandsui.editor
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -22,8 +23,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The editor's accessibility floor: a blank draft still shows a grid, the word and clue fields
- * are distinguishable without sight, and the path rows meet the touch-target floor.
+ * The editor's accessibility floor: a blank draft still shows a grid, the word field and the
+ * publish details' clue field are distinguishable without sight, and the path rows meet the
+ * touch-target floor.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -53,7 +55,14 @@ class StrandsEditorA11yTest {
 
     @Test
     fun `the word and clue fields announce distinct labels`() {
-        show()
+        rule.setContent {
+            PuzzleBoxTheme {
+                Column {
+                    StrandsEditorUi.Board(controller, Verdict.Checking, Modifier.weight(1f))
+                    StrandsEditorUi.PublishFields(controller, enabled = true, modifier = Modifier)
+                }
+            }
+        }
         rule.onNodeWithTag("strands.editor.word.label", useUnmergedTree = true).assertExists()
         rule.onNodeWithTag("strands.editor.clue.label", useUnmergedTree = true).assertExists()
         val word = rule.onNodeWithTag("strands.editor.word.label", useUnmergedTree = true).fetchSemanticsNode()
@@ -72,15 +81,16 @@ class StrandsEditorA11yTest {
     }
 
     @Test
-    fun `every path row is a full touch target`() {
+    fun `every path chip is a full touch target`() {
         path(0, 1)
         path(6, 7, 8)
         show()
         val floor = with(rule.density) { 48.dp.toPx() }
-        for (row in 0..1) {
-            val bounds = rule.onNodeWithTag("strands.editor.path.$row").performScrollTo()
-                .fetchSemanticsNode().boundsInRoot
-            assertTrue("row $row is ${bounds.height}px, floor $floor", bounds.height >= floor)
+        for (chip in 0..1) {
+            // The chip's laid-out size: its 48 dp touch floor around the drawn pill.
+            val height = rule.onNodeWithTag("strands.editor.path.$chip").performScrollTo()
+                .fetchSemanticsNode().layoutInfo.height
+            assertTrue("chip $chip is ${height}px, floor $floor", height >= floor)
         }
     }
 }

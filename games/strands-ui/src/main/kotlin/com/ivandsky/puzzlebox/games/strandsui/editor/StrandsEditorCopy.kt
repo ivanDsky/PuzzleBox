@@ -17,6 +17,12 @@ internal object StrandsEditorCopy {
     /** The clue field's label, so the two boxes tell themselves apart. */
     const val CLUE_FIELD = "Theme clue"
 
+    /** Under a blank clue field: no error yet, but publishing waits for it. */
+    const val CLUE_NEEDED = "Needed to publish"
+
+    /** Under a clue past its cap. */
+    const val CLUE_TOO_LONG = "Up to ${StrandsPublishGates.MAX_CLUE} characters"
+
     /**
      * The row for [id] with its [count] and the [word] a word block is about; null for an id
      * Strands has no copy for.

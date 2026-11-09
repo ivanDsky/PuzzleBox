@@ -4,10 +4,11 @@ import android.content.Context
 import android.content.res.Configuration
 import android.provider.Settings
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -44,10 +45,12 @@ import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
 /**
- * The Strands editor's looks, on a 411 dp phone and in the tablet Studio's left pane, light and
- * dark: the blank board, a trace in progress, a selected path with its "+N" handle, pockets, the
- * paths panel with the credit, Unique, Multiple, None and each witness on the board. Every
- * verdict comes from [StrandsDraftAnalyzer] on a real draft, asserted before the capture.
+ * The Strands editor's looks, on a 411 dp phone and in the tablet Studio's 876×720 left pane,
+ * light and dark: the blank board, a trace in progress, a selected path with its "+N" handle,
+ * pockets, the paths panel, Unique, Multiple, None and each witness on the board. The phone's
+ * board carries its authoring tools; the tablet's is the board alone (they sit in the side pane).
+ * The publish fields, blank and over the clue's cap, at the phone's and the side pane's width.
+ * Every verdict comes from [StrandsDraftAnalyzer] on a real draft, asserted before the capture.
  * Recorded by default, verified with `-Proborazzi.verify=true`; goldens in `snapshots/editor/`.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -83,8 +86,14 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
     @Test fun `pockets light`() = pockets(dark = false)
     @Test fun `pockets dark`() = pockets(dark = true)
 
-    @Test fun `paths panel and credit light`() = panel(dark = false)
-    @Test fun `paths panel and credit dark`() = panel(dark = true)
+    @Test fun `paths panel light`() = panel(dark = false)
+    @Test fun `paths panel dark`() = panel(dark = true)
+
+    @Test fun `publish fields blank light`() = publishFields("publish-fields-blank", "", dark = false)
+    @Test fun `publish fields blank dark`() = publishFields("publish-fields-blank", "", dark = true)
+
+    @Test fun `publish fields over the cap light`() = publishFields("publish-fields-over", OVER_CAP, dark = false)
+    @Test fun `publish fields over the cap dark`() = publishFields("publish-fields-over", OVER_CAP, dark = true)
 
     @Test fun `unique light`() = unique(dark = false)
     @Test fun `unique dark`() = unique(dark = true)
@@ -179,8 +188,17 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
     /** Phone only: on the tablet the board is all the capture holds, the same as Unique. */
     private fun panel(dark: Boolean) {
         assumeTrue(device == "phone")
-        val draft = board(WORDS, startRow = 0).copy(clue = "Around the house", spangram = SPANGRAM)
+        val draft = board(WORDS, startRow = 0).copy(spangram = SPANGRAM)
         capture("paths-panel", dark, draft, analyzed<Verdict.Unique>(draft))
+    }
+
+    /** The clue and the credit as the publish details close with them. */
+    private fun publishFields(name: String, clue: String, dark: Boolean) {
+        val draft = board(WORDS, startRow = 0).copy(clue = clue, spangram = SPANGRAM)
+        show(dark, draft, analyzed<Verdict.Unique>(draft)) { controller ->
+            StrandsPublishFields(controller, enabled = true, modifier = Modifier.width(if (device == "tablet") SidePaneWidth else PhoneWidth))
+        }
+        rule.onNodeWithTag(GOLDEN).captureRoboImage(out(name, dark))
     }
 
     private fun unique(dark: Boolean) {
@@ -242,12 +260,23 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
         rule.onNodeWithTag(GOLDEN).captureRoboImage(out(name, dark))
     }
 
-    /** The editor over [draft], settled: its word check run and every mark at rest. */
+    /**
+     * The editor over [draft], settled: its word check run and every mark at rest. The phone's
+     * board has its tools under it; the tablet's fills the left pane alone. [content] replaces the
+     * board.
+     */
     private fun show(
         dark: Boolean,
         draft: StrandsDraft,
         verdict: Verdict,
         setUp: (StrandsEditorController) -> Unit = {},
+        content: @Composable (StrandsEditorController) -> Unit = { controller ->
+            if (device == "tablet") {
+                StrandsEditorBoard(controller, Modifier.size(TabletPaneWidth, TabletPaneHeight), verdict, withTools = false)
+            } else {
+                StrandsEditorBoard(controller, Modifier.width(PhoneWidth), verdict)
+            }
+        },
     ) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
@@ -266,9 +295,7 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
             ) {
                 PuzzleBoxTheme(darkTheme = dark) {
                     Surface(Modifier.testTag(GOLDEN)) {
-                        Column(Modifier.padding(Spacing.md).width(if (device == "tablet") TabletPaneWidth else PhoneWidth)) {
-                            StrandsEditorBoard(controller, Modifier.fillMaxWidth(), verdict)
-                        }
+                        Column(Modifier.padding(Spacing.md)) { content(controller) }
                     }
                 }
             }
@@ -301,6 +328,15 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
 
         /** The tablet Studio's left pane (1280 − the 372 dp side pane) less the padding. */
         val TabletPaneWidth = 876.dp
+
+        /** The tablet Studio's left pane below its top bar, less the padding. */
+        val TabletPaneHeight = 720.dp
+
+        /** The tablet Studio's 372 dp side pane less its padding. */
+        val SidePaneWidth = 340.dp
+
+        /** One character over the clue's 40. */
+        val OVER_CAP = "Rooms, gardens and all around the houses!"
 
         val BLANK_LETTERS = StrandsDraft.BLANK.toString().repeat(StrandsDraft.ROWS * StrandsDraft.COLS)
 

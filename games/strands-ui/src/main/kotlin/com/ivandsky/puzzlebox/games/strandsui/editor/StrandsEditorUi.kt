@@ -27,11 +27,16 @@ import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraftAnalyzer
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsPublishGates
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.model.GameId
 
-/** Strands' editor UI: the play board over a [StrandsEditorController]. */
+/**
+ * Strands' editor UI: the play board over a [StrandsEditorController]. The authoring tools sit
+ * under the board on a phone and in the side pane on a tablet; the clue and the word list
+ * credit wait for the publish details.
+ */
 object StrandsEditorUi : GameEditorUi {
 
     override val gameId: GameId = StrandsDefinition.id
@@ -46,6 +51,24 @@ object StrandsEditorUi : GameEditorUi {
     @Composable
     override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) {
         StrandsEditorBoard(controller as StrandsEditorController, modifier, verdict)
+    }
+
+    /** The grid and, on a phone, the [StrandsAuthoringTools] under it; on a tablet the grid alone. */
+    @Composable
+    override fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) {
+        StrandsEditorBoard(controller as StrandsEditorController, modifier, verdict, withTools = layout == PlayLayout.SinglePane)
+    }
+
+    /** The tablet's [StrandsAuthoringTools]: spangram toggle, word field and path rows. */
+    @Composable
+    override fun PaneTools(controller: GameEditorController, modifier: Modifier) {
+        StrandsAuthoringTools(controller as StrandsEditorController, modifier)
+    }
+
+    /** The theme clue and the word list credit. */
+    @Composable
+    override fun PublishFields(controller: GameEditorController, enabled: Boolean, modifier: Modifier) {
+        StrandsPublishFields(controller as StrandsEditorController, enabled, modifier)
     }
 
     /** "Trace a word", or the selected path's word and length with a Remove action. */
