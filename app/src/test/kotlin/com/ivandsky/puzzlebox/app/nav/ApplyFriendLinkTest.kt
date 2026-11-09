@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app.nav
 
 import androidx.navigation3.runtime.NavKey
+import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
@@ -69,6 +70,31 @@ class ApplyFriendLinkTest {
     }
 
     @Test
+    fun `a match link selects Play and pushes the duel`() {
+        val before = stacks(CreateKey, create = listOf(CreateKey, EditorKey("castle")), play = listOf(PlayKey, GameKey("zip")))
+
+        val after = before.applying(MATCH)
+
+        assertEquals(PlayKey, after.tab)
+        assertEquals(listOf(PlayKey, GameKey("zip"), DUEL), after.stackOf(PlayKey))
+        assertEquals(before.stackOf(CreateKey), after.stackOf(CreateKey))
+    }
+
+    @Test
+    fun `a match link already on Play's stack only selects Play`() {
+        val playing = stacks(HomeKey, play = listOf(PlayKey, DUEL, GameKey("zip")))
+
+        assertEquals(playing.copy(tab = PlayKey), playing.applying(MATCH))
+    }
+
+    @Test
+    fun `a match link with matches disabled changes nothing`() {
+        val before = stacks(CreateKey, create = listOf(CreateKey, EditorKey("castle")))
+
+        assertEquals(before, before.applying(MATCH, matchesEnabled = false))
+    }
+
+    @Test
     fun `text that is not a code selects Play's root and keeps every other stack`() {
         listOf(
             stacks(HomeKey, home = listOf(HomeKey, HistoryKey())),
@@ -84,8 +110,8 @@ class ApplyFriendLinkTest {
         }
     }
 
-    private fun NavigationState.applying(link: FriendLink): NavigationState =
-        Navigator(this).apply { applyFriendLink(link) }.state
+    private fun NavigationState.applying(link: FriendLink, matchesEnabled: Boolean = true): NavigationState =
+        Navigator(this).apply { applyFriendLink(link, matchesEnabled) }.state
 
     private fun stacks(
         tab: NavKey,
@@ -98,6 +124,8 @@ class ApplyFriendLinkTest {
     private companion object {
         fun code(value: String): ShareCode = checkNotNull(ShareCode.parse(value))
         val K7Q2MX = FriendLink.Code(code("K7Q2MX"))
+        val MATCH = FriendLink.Match(code("K7Q2MX"))
+        val DUEL = DuelKey("K7Q2MX")
         val CARD = FriendPuzzleKey("K7Q2MX")
     }
 }
