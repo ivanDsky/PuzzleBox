@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.strandsui.editor
 
+import androidx.compose.ui.geometry.Offset
 import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
@@ -23,10 +24,11 @@ import kotlinx.coroutines.flow.asStateFlow
  * [trace] cell by cell over cells no path holds yet; [endTrace] lifts it: a trace of two or
  * more cells becomes one path, the [word] typed so far written onto the path's blank cells,
  * as one undoable step: an [StrandsDraftCommand.AddPath], or a [ReplaceDraft] when the word
- * also wrote letters. A tap on a traced cell selects its path ([selectedPath]); [removePath]
- * drops it as one [StrandsDraftCommand.RemovePath]; [toggleSpangram] marks or unmarks one;
- * [setClue] sets the theme clue. Every edit goes out through `onEdit`; the VM hands
- * replacement drafts back through [adopt].
+ * also wrote letters. A tap on a traced cell selects its path ([selectedPath]); a drag from
+ * the selected path's first or last cell shortens or extends it at that end ([StrandsEndGrip]),
+ * one undoable step per drag; [removePath] drops it as one [StrandsDraftCommand.RemovePath];
+ * [toggleSpangram] marks or unmarks one; [setClue] sets the theme clue. Every edit goes out
+ * through `onEdit`; the VM hands replacement drafts back through [adopt].
  */
 class StrandsEditorController(
     initial: EditorDraft<*>,
@@ -38,6 +40,9 @@ class StrandsEditorController(
     private val typedWord = MutableStateFlow("")
     private val selected = MutableStateFlow<Int?>(null)
     private val shownOverlay = MutableStateFlow(EditorOverlay())
+
+    /** The selected path's end drag, armed by a touch going down on an end. */
+    private val grip = StrandsEndGrip()
 
     override val draft: StateFlow<EditorDraft<*>> = current.asStateFlow()
 
@@ -55,6 +60,7 @@ class StrandsEditorController(
     override fun adopt(draft: EditorDraft<*>) {
         current.value = typed(draft)
         tracing.value = emptyList()
+        grip.drop()
         select(selected.value)
     }
 
@@ -132,8 +138,7 @@ class StrandsEditorController(
      * Takes the word field's [text], letters A-Z only (any case, anything else dropped), upper
      * case. With a path selected the letters go onto its blank cells (and over the ones an
      * earlier typing wrote) as one undoable step; the path is named once the text is exactly as
-     * long as the path. Longer text keeps its overflow for [extend]. With none selected the text
-     * waits for the next lift.
+     * long as the path. With none selected the text waits for the next lift.
      */
     fun typeWord(text: String) {
         val previous = typedWord.value
@@ -152,28 +157,6 @@ class StrandsEditorController(
             }
         }
         edit(index, path.cells, String(board), letters)
-    }
-
-    /**
-     * Grows the selected path by one cell at its end, into the first free neighbour (row-major)
-     * that is blank or already holds the next letter of the [word]; a no-op when the word is
-     * not longer than the path or no neighbour fits. One undoable step.
-     */
-    fun extend() {
-        val index = selected.value ?: return
-        val before = current.value.state.draft
-        val cells = before.paths[index].cells
-        val letter = typedWord.value.getOrNull(cells.size) ?: return
-        val tail = cells.last()
-        val taken = held()
-        val next = (0 until StrandsDraft.ROWS * StrandsDraft.COLS).firstOrNull { cell ->
-            cell !in taken &&
-                kotlin.math.abs(cell / StrandsDraft.COLS - tail / StrandsDraft.COLS) <= 1 &&
-                kotlin.math.abs(cell % StrandsDraft.COLS - tail % StrandsDraft.COLS) <= 1 &&
-                before.letters[cell].let { it == StrandsDraft.BLANK || it == letter }
-        } ?: return
-        val board = before.letters.toCharArray().also { it[next] = letter }
-        edit(index, cells + next, String(board), typedWord.value)
     }
 
     /**
@@ -204,17 +187,24 @@ class StrandsEditorController(
 
     /** Replaces the trace with [path]; refused whole when it touches a cell a path already holds. */
     internal fun show(path: List<Coord>) {
-        val cells = path.map { it.row * StrandsDraft.COLS + it.col }
+        val cells = path.map(::cellOf)
         if (cells.any { it in held() }) return
         tracing.value = cells
         if (cells.isNotEmpty()) select(null)
     }
 
-    /** One step of the play board's touch: a lone traced cell a path holds selects that path. */
+    /**
+     * One step of the play board's touch: a lone traced cell a path holds selects that path. A
+     * step of an end drag ([StrandsEndGrip]) only shows its trace; its finger moves it ([fingerAt]).
+     */
     internal fun step(step: TraceStep) {
+        grip.take(step, current.value, selected.value)?.let {
+            tracing.value = it
+            return
+        }
         when (step) {
             is TraceStep.Updated -> {
-                val lone = step.trace.path.singleOrNull()?.let { it.row * StrandsDraft.COLS + it.col }
+                val lone = step.trace.path.singleOrNull()?.let(::cellOf)
                 val owner = if (lone == null) -1 else current.value.state.draft.paths.indexOfFirst { lone in it.cells }
                 if (owner >= 0) selectPath(owner) else show(step.trace.path)
             }
@@ -224,6 +214,24 @@ class StrandsEditorController(
             }
             TraceStep.Cleared -> clearTrace()
         }
+    }
+
+    /**
+     * The board's dragging finger, in cell units; null at the lift. It moves a running end drag's
+     * end, each move replacing the drag's one undoable step; the lift ends the drag.
+     */
+    internal fun fingerAt(at: Offset?) {
+        val drag = grip.drag ?: return
+        if (at == null) {
+            grip.drop()
+            tracing.value = emptyList()
+            return
+        }
+        val next = drag.fingerAt(at) ?: return
+        tracing.value = drag.trace
+        current.value = next
+        typedWord.value = next.state.draft.spelled(drag.index)
+        onEdit(next)
     }
 
     /** A tap on [cell], as the play board would take it. */
@@ -257,9 +265,6 @@ class StrandsEditorController(
         typedWord.value = ""
         onEdit(next)
     }
-
-    private fun StrandsDraft.spelled(index: Int): String =
-        paths[index].cells.map { letters[it] }.takeWhile { it != StrandsDraft.BLANK }.joinToString("")
 
     private fun held(): Set<Int> = current.value.state.draft.paths.flatMapTo(HashSet()) { it.cells }
 
