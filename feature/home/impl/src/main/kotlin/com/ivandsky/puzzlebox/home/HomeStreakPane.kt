@@ -60,6 +60,7 @@ private val EntranceSlide = 24.dp
 internal fun HomeStreakPane(
     state: HomeUiState,
     modifier: Modifier = Modifier,
+    showBests: Boolean = true,
 ) {
     val scheme = MaterialTheme.colorScheme
     // The pane sits one step off the app background: lifted in dark, paper-white in light.
@@ -93,9 +94,11 @@ internal fun HomeStreakPane(
             modifier = Modifier.testTag("home.pane_week"),
         )
         StatTiles(state.stats)
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Eyebrow("YOUR BESTS")
-            HomeBestsList(rows = state.today)
+        if (showBests) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Eyebrow("YOUR BESTS")
+                HomeBestsList(rows = state.today)
+            }
         }
     }
 }

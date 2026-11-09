@@ -18,10 +18,12 @@ import com.ivandsky.puzzlebox.profile.api.ProfileKey
 fun EntryProviderScope<NavKey>.homeEntry(
     navigator: Navigator,
     layout: HomeLayout,
+    hideOwnedElsewhere: Boolean = false,
 ) {
     entry<HomeKey> {
         HomeRoute(
             layout = layout,
+            hideOwnedElsewhere = hideOwnedElsewhere,
             onOpenGame = { id -> navigator.pushOnce(GameKey(id.value)) },
             // A6: the account card is a tab switch, not a push. Home's stack is untouched,
             // so Home (bar or back from the Profile root) returns to it as it was.

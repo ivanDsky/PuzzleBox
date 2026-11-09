@@ -29,6 +29,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 internal fun DetailPane(
     selected: HistoryDay?,
     state: HomeUiState,
+    hideOwnedElsewhere: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val risePx = with(LocalDensity.current) { MotionTokens.MixTabRise.roundToPx() }
@@ -40,7 +41,8 @@ internal fun DetailPane(
             slideInVertically(tween(MotionTokens.MixTabIn, easing = MotionTokens.EasingStandard)) { risePx }
     }
     AnimatedContent(
-        targetState = selected,
+        // Hidden: the day detail does not exist, so the pane is always the streak and stats.
+        targetState = selected.takeUnless { hideOwnedElsewhere },
         modifier = modifier
             .testTag("home.detail_pane"),
         // The leaving pane does not animate; it is only held, beneath, until the rise lands.
@@ -49,7 +51,11 @@ internal fun DetailPane(
         contentKey = { it?.isoDay },
     ) { day ->
         if (day == null) {
-            HomeStreakPane(state = state, modifier = Modifier.fillMaxSize().padding(Spacing.sm))
+            HomeStreakPane(
+                state = state,
+                modifier = Modifier.fillMaxSize().padding(Spacing.sm),
+                showBests = !hideOwnedElsewhere,
+            )
         } else {
             // Opaque like the streak pane, so the pane beneath never shows through as it rises.
             DayDetail(day = day, modifier = Modifier.fillMaxSize().background(background))
