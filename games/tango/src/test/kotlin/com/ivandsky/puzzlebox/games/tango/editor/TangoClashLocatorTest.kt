@@ -71,14 +71,14 @@ class TangoClashLocatorTest {
 
     @Test
     fun `the analyzer returns None carrying the clash cells`() {
-        val draft = TangoDraft((7..9).associateWith { TangoCell.MOON }, emptyList())
+        val draft = TangoDraft(6, (7..9).associateWith { TangoCell.MOON }, emptyList())
 
         assertEquals(Verdict.None(setOf(7, 8, 9)), TangoDraftAnalyzer.analyze(draft, Budget.Unlimited))
     }
 
     @Test
     fun `the analyzer reports a clash without spending the budget`() {
-        val draft = TangoDraft((7..9).associateWith { TangoCell.MOON }, emptyList())
+        val draft = TangoDraft(6, (7..9).associateWith { TangoCell.MOON }, emptyList())
 
         assertEquals(Verdict.None(setOf(7, 8, 9)), TangoDraftAnalyzer.analyze(draft) { true })
     }

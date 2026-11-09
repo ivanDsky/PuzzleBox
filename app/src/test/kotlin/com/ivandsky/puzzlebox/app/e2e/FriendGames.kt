@@ -78,7 +78,7 @@ object TangoSunMoon : FriendGame("Tango", ReleaseFlag.TangoEditor) {
         TangoMarker(34, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME),
     )
 
-    override val board = EditorDraft(TangoEditor, DraftState(TangoDraft(GIVENS.associateWith { SOLUTION[it] }, MARKERS)))
+    override val board = EditorDraft(TangoEditor, DraftState(TangoDraft(6, GIVENS.associateWith { SOLUTION[it] }, MARKERS)))
 
     override fun ShellRobot.solve(slot: PlaySlot.Custom) {
         val controller = awaitController<TangoPlayController>(slot) { it.session != null }

@@ -16,8 +16,9 @@ import org.junit.Test
 
 class TangoDraftCodecTest {
 
-    private val blank = TangoDraft(emptyMap(), emptyList())
+    private val blank = TangoDraft(6, emptyMap(), emptyList())
     private val seeded = TangoDraft(
+        6,
         givens = mapOf(0 to TangoCell.SUN, 35 to TangoCell.MOON),
         markers = listOf(
             TangoMarker(2, TangoEdgeSide.DOWN, TangoMarkerKind.OPPOSITE),
@@ -69,7 +70,7 @@ class TangoDraftCodecTest {
         assertErr(byteArrayOf()) { it is DecodeError.Malformed }
         assertErr(bytes.copyOf(bytes.size - 1)) { it is DecodeError.Malformed }
         assertErr(bytes + 0) { it is DecodeError.Malformed }
-        val offBoard = TangoDraftCodec.encode(DraftState(TangoDraft(emptyMap(), listOf(TangoMarker(5, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME)))))
+        val offBoard = TangoDraftCodec.encode(DraftState(TangoDraft(6, emptyMap(), listOf(TangoMarker(5, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME)))))
         assertErr(offBoard) { it is DecodeError.Malformed }
     }
 
@@ -97,6 +98,7 @@ class TangoDraftCodecTest {
             TangoDraftCommand.SetCell(8, TangoCell.SUN, null),
         )
         val board = TangoDraft(
+            6,
             givens = mapOf(3 to TangoCell.MOON),
             markers = listOf(TangoMarker(7, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME)),
         )

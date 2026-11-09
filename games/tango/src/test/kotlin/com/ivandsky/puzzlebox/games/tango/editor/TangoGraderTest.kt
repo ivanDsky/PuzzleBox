@@ -186,9 +186,9 @@ class TangoGraderTest {
             )
         }
 
-        fun draft(): TangoDraft = TangoDraft(givens, markerList)
+        fun draft(): TangoDraft = TangoDraft(6, givens, markerList)
 
         fun puzzle(): TangoPuzzle =
-            TangoPuzzle(VariantId("tango/n${TangoDraft.N}"), TangoDraft.N, givens, markerList)
+            TangoPuzzle(VariantId("tango/n6"), 6, givens, markerList)
     }
 }

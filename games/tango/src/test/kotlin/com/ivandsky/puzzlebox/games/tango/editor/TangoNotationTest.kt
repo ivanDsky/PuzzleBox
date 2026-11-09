@@ -72,11 +72,12 @@ class TangoNotationTest {
 
     private fun draft(vararg rows: String, markers: List<TangoMarker> = emptyList()): TangoDraft =
         TangoDraft(
+            6,
             givens = rows.flatMapIndexed { r, row ->
                 row.mapIndexedNotNull { c, ch ->
                     when (ch) {
-                        'S' -> r * TangoDraft.N + c to TangoCell.SUN
-                        'M' -> r * TangoDraft.N + c to TangoCell.MOON
+                        'S' -> r * 6 + c to TangoCell.SUN
+                        'M' -> r * 6 + c to TangoCell.MOON
                         else -> null
                     }
                 }
@@ -234,6 +235,6 @@ class TangoNotationTest {
     fun `notation version is 1 and columns is N`() {
         assertEquals(1, TangoNotation.notationVersion)
         val d = draft("......", "......", "......", "......", "......", "......")
-        assertEquals(TangoDraft.N, TangoNotation.columns(d))
+        assertEquals(6, TangoNotation.columns(d))
     }
 }

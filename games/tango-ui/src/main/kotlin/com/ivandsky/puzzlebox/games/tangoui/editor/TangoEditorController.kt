@@ -79,6 +79,9 @@ class TangoEditorController(
         pressed.value = null
     }
 
+    /** The current draft's width; the board reads it per gesture. */
+    internal val n: Int get() = current.value.state.draft.n
+
     /** The cycle step a lift on [target] would commit against the current draft. */
     internal fun commandFor(target: TangoEditorTarget): TangoDraftCommand {
         val board = current.value.state.draft
@@ -90,7 +93,7 @@ class TangoEditorController(
                     GridEdge.Side.Right -> TangoEdgeSide.RIGHT
                     GridEdge.Side.Bottom -> TangoEdgeSide.DOWN
                 }
-                board.cycleMarker(cell.row * TangoDraft.N + cell.col, side)
+                board.cycleMarker(cell.row * board.n + cell.col, side)
             }
         }
     }

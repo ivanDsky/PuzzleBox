@@ -18,31 +18,31 @@ import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
- * Tango's pure editor (ADR-0019): one 6×6 variant, a new board has no givens and no markers,
- * drafts persist through [TangoDraftCodec], analysis is [TangoDraftAnalyzer] and publishing
- * is gated by [TangoPublishGates]. A unique draft exports through [TangoCodec] so test solve
- * plays a real puzzle, and shares as givens-and-markers [TangoShareCodec] bytes. Its text form
- * is [TangoNotation] (M5-12-a).
+ * Tango's pure editor (ADR-0019): [variants] offers only 6×6 for now (a draft carries any
+ * [TangoDraft.SIZES] width), a new board has no givens and no markers, drafts persist through
+ * [TangoDraftCodec], analysis is [TangoDraftAnalyzer] and publishing is gated by
+ * [TangoPublishGates]. A unique draft exports through [TangoCodec] so test solve plays a real
+ * puzzle, and shares as givens-and-markers [TangoShareCodec] bytes. Its text form is
+ * [TangoNotation] (M5-12-a).
  */
 object TangoEditor :
     GameEditor<TangoDraft>,
     DraftExport<TangoDraft>,
     EditorShareCodec<TangoDraft> by TangoShareCodec,
     EditorNotation<TangoDraft> by TangoNotation {
-    private val N6 = VariantId("tango/n${TangoDraft.N}")
-
     override val gameId: GameId get() = TangoDefinition.id
 
-    override val variants: List<VariantId> = listOf(N6)
+    override val variants: List<VariantId> = listOf(TangoDraft.variantOf(6))
 
     override val draftFormatVersion: Int get() = TangoDraftCodec.VERSION
 
     override fun newDraft(variant: VariantId): TangoDraft {
-        require(variant == N6) { "unknown Tango variant $variant" }
-        return TangoDraft(emptyMap(), emptyList())
+        val n = TangoDraft.sizeOf(variant)
+        require(n != null && variant in variants) { "unknown Tango variant $variant" }
+        return TangoDraft(n, emptyMap(), emptyList())
     }
 
-    override fun variantOf(draft: TangoDraft): VariantId = N6
+    override fun variantOf(draft: TangoDraft): VariantId = TangoDraft.variantOf(draft.n)
 
     override fun encodeDraft(state: DraftState<TangoDraft>): ByteArray = TangoDraftCodec.encode(state)
 
@@ -55,10 +55,11 @@ object TangoEditor :
 
     /** TangoCodec bytes of the givens and markers; the solution is re-derived on load, not stored. */
     override fun toPuzzle(draft: TangoDraft, solution: Solution): Puzzle {
-        val puzzle = TangoPuzzle(N6, TangoDraft.N, draft.givens, draft.markers)
+        val variant = variantOf(draft)
+        val puzzle = TangoPuzzle(variant, draft.n, draft.givens, draft.markers)
         return Puzzle(
             gameId = gameId,
-            variant = N6,
+            variant = variant,
             formatVersion = TangoCodec.VERSION,
             payload = TangoCodec.encode(puzzle),
         )

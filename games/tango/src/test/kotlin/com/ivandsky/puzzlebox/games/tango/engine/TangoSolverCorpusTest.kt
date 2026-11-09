@@ -159,7 +159,7 @@ class TangoSolverCorpusTest {
             return TangoPuzzle(VariantId("tango/n${rows.size}"), rows.size, givens, markers)
         }
 
-        fun puzzleOf(draft: TangoDraft) = TangoPuzzle(VariantId("tango/n${TangoDraft.N}"), TangoDraft.N, draft.givens, draft.markers)
+        fun puzzleOf(draft: TangoDraft) = TangoPuzzle(TangoDraft.variantOf(draft.n), draft.n, draft.givens, draft.markers)
 
         fun cell(ch: Char): TangoCell = if (ch == 'S') TangoCell.SUN else TangoCell.MOON
 

@@ -235,6 +235,6 @@ class TangoEditorInputTest {
 
     private companion object {
         const val BOARD = "tango.editor.board"
-        const val N = TangoDraft.N
+        const val N = 6
     }
 }

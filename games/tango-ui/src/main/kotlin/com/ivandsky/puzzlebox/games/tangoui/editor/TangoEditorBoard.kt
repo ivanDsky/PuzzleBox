@@ -80,19 +80,18 @@ internal fun TangoEditorBoard(
             .tangoEditorGestures(controller),
     ) {
         renderer.Content(model = model, modifier = Modifier.fillMaxWidth())
-        TangoForcedLayer(forced.keys)
-        TangoDiagnosticsLayer(diagnostics)
-        if (zones) TapZoneBands()
-        if (target != null) PressWash(target)
+        TangoForcedLayer(forced.keys, board.n)
+        TangoDiagnosticsLayer(diagnostics, board.n)
+        if (zones) TapZoneBands(board.n)
+        if (target != null) PressWash(target, board.n)
     }
 }
 
 /** Outlines every interior edge's hit band, so the author sees where a tap lands. */
 @Composable
-private fun BoxScope.TapZoneBands() {
+private fun BoxScope.TapZoneBands(n: Int) {
     val color = MaterialTheme.colorScheme.primary
     Canvas(Modifier.matchParentSize().testTag("tango.editor.tapZones.bands")) {
-        val n = TangoDraft.N
         val pitch = size.width / n
         val across = TangoBoardSpec.editEdgeBandAcrossFraction
         val inset = TangoBoardSpec.editEdgeBandInsetFraction
@@ -122,22 +121,22 @@ private fun BoxScope.TapZoneBands() {
 
 /** A faint wash over the pressed square or the pressed edge's hit band. */
 @Composable
-private fun BoxScope.PressWash(target: TangoEditorTarget) {
+private fun BoxScope.PressWash(target: TangoEditorTarget, n: Int) {
     BoxWithConstraints(Modifier.matchParentSize()) {
-        val pitch = maxWidth / TangoDraft.N
+        val pitch = maxWidth / n
         val across = TangoBoardSpec.editEdgeBandAcrossFraction
         val inset = TangoBoardSpec.editEdgeBandInsetFraction
         val wash = Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = TangoBoardSpec.editPressWashAlpha))
         val (tag, frame) = when (target) {
             is TangoEditorTarget.Square -> {
-                val row = target.cell / TangoDraft.N
-                val col = target.cell % TangoDraft.N
+                val row = target.cell / n
+                val col = target.cell % n
                 "tango.editor.cell.${target.cell}.preview" to
                     Modifier.offset(pitch * col, pitch * row).size(pitch)
             }
             is TangoEditorTarget.Edge -> {
                 val cell = target.edge.cell
-                val idx = cell.row * TangoDraft.N + cell.col
+                val idx = cell.row * n + cell.col
                 when (target.edge.side) {
                     GridEdge.Side.Right -> "tango.editor.edge.$idx.right" to
                         Modifier
@@ -155,16 +154,16 @@ private fun BoxScope.PressWash(target: TangoEditorTarget) {
 }
 
 /**
- * Press previews, lift commits, and moving past the touch slop cancels. The geometry is read
- * per gesture so a resize or rotation never leaves it stale. What is under the
- * finger is the edge [GridGeometry.edgeAt] finds at the [TangoBoardSpec] band and inset,
- * else the square.
+ * Press previews, lift commits, and moving past the touch slop cancels. The geometry and the
+ * board's width are read per gesture so a resize, a rotation or a new draft never leaves them
+ * stale. What is under the finger is the edge [GridGeometry.edgeAt] finds at the
+ * [TangoBoardSpec] band and inset, else the square.
  */
 private fun Modifier.tangoEditorGestures(controller: TangoEditorController): Modifier =
     pointerInput(controller) {
-        val n = TangoDraft.N
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false)
+            val n = controller.n
             val geometry = GridGeometry(n, n, size.width.toFloat(), size.height.toFloat())
             val edge = geometry.edgeAt(
                 down.position,
@@ -190,8 +189,8 @@ private fun Modifier.tangoEditorGestures(controller: TangoEditorController): Mod
     }
 
 private fun modelOf(board: TangoDraft, witness: Map<Int, TangoCell>): TangoRendererModel = TangoRendererModel(
-    n = TangoDraft.N,
-    cells = List(TangoDraft.N * TangoDraft.N) { TangoRendererModel.CellRender(board.givens[it], isGiven = false) },
+    n = board.n,
+    cells = List(board.n * board.n) { TangoRendererModel.CellRender(board.givens[it], isGiven = false) },
     markers = board.markers
         .sortedWith(compareBy({ it.cell }, { it.side.ordinal }))
         .map { TangoRendererModel.MarkerRender(it.cell, it.side, it.kind) },
