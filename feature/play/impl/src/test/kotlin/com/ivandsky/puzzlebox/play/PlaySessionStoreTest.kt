@@ -4,6 +4,8 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
+import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.model.PlaySlot
@@ -12,8 +14,11 @@ import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -53,7 +58,12 @@ class PlaySessionStoreTest {
         return PlaySessionStore(
             games = fakes.games,
             ui = ui,
-            opening = SlotOpening(daily, LoadPastDay(daily, fakes.games), saved, calendar, fakes.games, lane, FakeReceivedPuzzleRepository()),
+            opening = SlotOpening(
+                daily, LoadPastDay(daily, fakes.games), saved, calendar, fakes.games, lane, FakeReceivedPuzzleRepository(),
+                FakeMatchRepository(),
+                LoadSharedPuzzle(fakes.games, FakeSharedPuzzleRepository(), FakeReceivedPuzzleRepository(), { Budget.Unlimited }, { Instant.EPOCH }),
+                testDispatchers(dispatcher),
+            ),
             writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
             completions = FakeCompletionRepository(),
             calendar = calendar,

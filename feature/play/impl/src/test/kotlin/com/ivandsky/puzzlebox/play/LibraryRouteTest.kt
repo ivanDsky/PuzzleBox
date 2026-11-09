@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
@@ -47,6 +48,7 @@ import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
@@ -113,6 +115,7 @@ class LibraryRouteTest {
                     single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
                     // The code sheet's check (EnterCodeViewModel) loads through it.
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
+                    single<MatchRepository> { FakeMatchRepository() }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
                     single<GameCalendar> { FakeGameCalendar(today) }
                     factory { LoadPastDay(get(), get()) }
