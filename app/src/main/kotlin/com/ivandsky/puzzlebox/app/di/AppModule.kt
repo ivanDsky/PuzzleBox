@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.MatchResultSync
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
+import com.ivandsky.puzzlebox.data.repository.GameSettingsRepository
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -28,6 +29,7 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
+import com.ivandsky.puzzlebox.games.sudokuui.SudokuHighlightSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
@@ -97,6 +99,8 @@ val appModule = module {
         val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
         AppBuild(versionName = packageInfo.versionName.orEmpty(), checksForUpdates = buildTypeChecksForUpdates)
     }
+    // Sudoku's two tint toggles live in the persisted preferences; its UI module only sees this seam.
+    single<SudokuHighlightSettings> { PreferencesSudokuHighlightSettings(get<GameSettingsRepository>()) }
     // The HintParity flag as game controllers see it (spec A20): read inside current(), so each
     // controller's one call at creation picks up a debug override. UI modules never read the flag.
     single<HintModeSource> {

@@ -24,6 +24,9 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuSessionCodec
 import java.time.Duration
 import java.time.Instant
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Plays one [definition]'s board: adopt / restore / replay and the clock. Every game decision
@@ -33,12 +36,39 @@ import java.time.Instant
 class SudokuPlayController(
     private val definition: SudokuDefinition,
     private val env: PlayEnvironment,
+    private val highlights: SudokuHighlightSettings,
     private val now: () -> Instant = Instant::now,
     hintMode: HintMode = HintMode.Legacy,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
     /** The hint path every board this controller builds runs (ticket 34); CLASSIC always gets Legacy (A24). */
     internal val hintMode: HintMode = hintMode
+
+    /** The two board tints; true until the player switches one off in the ⋮ menu. */
+    var peerHighlight by mutableStateOf(true)
+        private set
+
+    var sameDigitHighlight by mutableStateOf(true)
+        private set
+
+    init {
+        env.scope.launch { highlights.peer.collect { peerHighlight = it } }
+        env.scope.launch { highlights.sameDigit.collect { sameDigitHighlight = it } }
+    }
+
+    // Taps queue behind one lock (FIFO), so DataStore sees the writes in tap order.
+    private val highlightWrites = Mutex()
+
+    // The local flag flips first so the board repaints now; the write only makes it stick.
+    fun choosePeerHighlight(enabled: Boolean) {
+        peerHighlight = enabled
+        env.scope.launch { highlightWrites.withLock { highlights.setPeer(enabled) } }
+    }
+
+    fun chooseSameDigitHighlight(enabled: Boolean) {
+        sameDigitHighlight = enabled
+        env.scope.launch { highlightWrites.withLock { highlights.setSameDigit(enabled) } }
+    }
 
     /** The live interaction holder, null until a session is adopted. */
     var board by mutableStateOf<SudokuBoardState?>(null)
@@ -106,6 +136,8 @@ class SudokuPlayController(
         settle = ::settle,
         hintMode = hintMode,
         scope = env.scope,
+        peerHighlight = { peerHighlight },
+        sameDigitHighlight = { sameDigitHighlight },
     )
 
     private fun publish(s: SudokuSession) {
