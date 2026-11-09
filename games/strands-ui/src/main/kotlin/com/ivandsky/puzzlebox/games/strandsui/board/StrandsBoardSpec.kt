@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.strandsui.board
 
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -37,6 +38,13 @@ internal object StrandsBoardSpec {
     /** The spangram's second cue (A32): a ring inset inside the gold token. */
     val SpangramRingWidth: Dp = 2.dp
     val SpangramRingInset: Dp = 4.dp
+
+    /**
+     * The pitch the connector, ring and outline widths above are named for. At it and above
+     * they keep them; a smaller pitch (the phone Studio's board beside its publish details)
+     * thins them with the cell ([strandsStroke]), so no line or ring outgrows the token it marks.
+     */
+    val StrokePitch: Dp = 48.dp
 
     /*
      * Drag acceptance (A5, prototype 02 variant E), in cell pitches from the tail's centre
@@ -76,3 +84,11 @@ internal object StrandsBoardSpec {
     /** Cap on a large pane: a tablet's board grows to finger-sized cells, not a phone's. */
     val CellMaxSize: Dp = 96.dp
 }
+
+/** [width] in px on a cell [pitchPx] wide: as named from [StrandsBoardSpec.StrokePitch] up, in proportion below it. */
+internal fun Density.strandsStroke(width: Dp, pitchPx: Float): Float =
+    width.toPx() * (pitchPx / StrandsBoardSpec.StrokePitch.toPx()).coerceAtMost(1f)
+
+/** [strandsStroke] on the cell of a token of half-side [tokenRadius]. */
+internal fun Density.tokenStroke(width: Dp, tokenRadius: Float): Float =
+    strandsStroke(width, tokenRadius * 2 / StrandsBoardSpec.TokenFraction)
