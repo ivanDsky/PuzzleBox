@@ -13,4 +13,5 @@ data object ProfileKey : NavKey
 /** Registers Profile's keys for back-stack saved state. */
 fun PolymorphicModuleBuilder<NavKey>.profileNavKeys() {
     subclass(ProfileKey::class, ProfileKey.serializer())
+    subclass(SettingsKey::class, SettingsKey.serializer())
 }
