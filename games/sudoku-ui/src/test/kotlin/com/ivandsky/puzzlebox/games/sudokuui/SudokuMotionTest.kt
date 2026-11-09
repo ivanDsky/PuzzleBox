@@ -155,7 +155,7 @@ class SudokuMotionTest {
     fun `the solve sweeps, confirms, then hands off within 400 ms while the win record is immediate`() {
         val won = ArrayList<CompletionRecord>()
         val solved = ArrayList<Pair<Long, Int>>()
-        val ui = SudokuPlayUi(SudokuGames.MINI)
+        val ui = SudokuPlayUi(SudokuGames.MINI, InMemorySudokuHighlightSettings())
         val controller = ui.createController(PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, { won += it })) as SudokuPlayController
         val envelope = Puzzle(ui.gameId, peanut450.variant.id, SudokuCodec.VERSION, SudokuCodec.encode(peanut450))
         assertEquals(Adopt.Adopted, controller.adoptToday(envelope, ref))

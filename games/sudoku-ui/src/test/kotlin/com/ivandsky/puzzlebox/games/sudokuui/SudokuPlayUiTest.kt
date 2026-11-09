@@ -62,7 +62,7 @@ class SudokuPlayUiTest {
     private val solution = grid("463251 521436 142563 356142 234615 615324")
     private val peanut450 = SudokuPuzzle(SudokuGames.MINI.variant, givens, solution)
     private val ref = SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(LocalDate.of(2026, 11, 4), 450))
-    private val ui = SudokuPlayUi(SudokuGames.MINI)
+    private val ui = SudokuPlayUi(SudokuGames.MINI, InMemorySudokuHighlightSettings())
     private val solved = ArrayList<Pair<Long, Int>>()
 
     private fun grid(text: String): List<Int> = text.filterNot { it.isWhitespace() }.map { if (it == '.') 0 else it.digitToInt() }
@@ -99,7 +99,7 @@ class SudokuPlayUiTest {
     @Test
     @Config(qualifiers = "w360dp-h640dp-mdpi")
     fun `the 9x9 fits a 360x640 phone with grid, keypad and chrome apart`() {
-        val classic = SudokuPlayUi(SudokuGames.CLASSIC)
+        val classic = SudokuPlayUi(SudokuGames.CLASSIC, InMemorySudokuHighlightSettings())
         assertFitsSinglePane(classic, adopted(classic, SudokuSamples.classic, SudokuPuzzleRef(SudokuGames.CLASSIC.id, PuzzleKey.Daily((ref.key as PuzzleKey.Daily).date, null))), size = 9)
     }
 
@@ -110,7 +110,7 @@ class SudokuPlayUiTest {
 
     @Test
     fun `the 9x9 cell takes all the height the 411x891 chrome leaves`() {
-        val classic = SudokuPlayUi(SudokuGames.CLASSIC)
+        val classic = SudokuPlayUi(SudokuGames.CLASSIC, InMemorySudokuHighlightSettings())
         assertFitsSinglePane(classic, adopted(classic, SudokuSamples.classic, SudokuPuzzleRef(SudokuGames.CLASSIC.id, PuzzleKey.Daily((ref.key as PuzzleKey.Daily).date, null))), size = 9)
     }
 

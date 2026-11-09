@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.games.sudokuui
 
 import androidx.compose.runtime.Composable
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.tooling.preview.Preview
@@ -26,11 +28,21 @@ private val PREVIEW_PUZZLE = SudokuPuzzle(SudokuGames.MINI.variant, PREVIEW_GIVE
 
 private fun previewState(puzzle: SudokuPuzzle = PREVIEW_PUZZLE) = SudokuBoardState(SudokuSession(ref = null, puzzle = puzzle))
 
+/** Previews show the default tints and persist nothing. */
+private object PreviewHighlights : SudokuHighlightSettings {
+    override val peer: Flow<Boolean> = flowOf(true)
+    override val sameDigit: Flow<Boolean> = flowOf(true)
+
+    override suspend fun setPeer(enabled: Boolean) = Unit
+
+    override suspend fun setSameDigit(enabled: Boolean) = Unit
+}
+
 @Composable
 private fun rememberPreviewController(definition: SudokuDefinition, puzzle: SudokuPuzzle, edition: Int?): SudokuPlayController {
     val scope = rememberCoroutineScope()
     return remember {
-        SudokuPlayController(definition, PlayEnvironment(scope, {}, {})).apply {
+        SudokuPlayController(definition, PlayEnvironment(scope, {}, {}), PreviewHighlights).apply {
             val envelope = Puzzle(definition.id, puzzle.variant.id, SudokuCodec.VERSION, SudokuCodec.encode(puzzle))
             adoptToday(envelope, SudokuPuzzleRef(definition.id, PuzzleKey.Daily(LocalDate.of(2026, 11, 4), edition)))
         }

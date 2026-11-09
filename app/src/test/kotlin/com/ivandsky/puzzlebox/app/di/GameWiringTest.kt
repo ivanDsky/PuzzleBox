@@ -8,6 +8,8 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
+import com.ivandsky.puzzlebox.games.sudokuui.SudokuHighlightSettings
+import com.ivandsky.puzzlebox.testing.repository.FakeGameSettingsRepository
 import com.ivandsky.puzzlebox.games.sudokuui.miniSudokuUiModule
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
 import com.ivandsky.puzzlebox.games.zip.zipPlugin
@@ -44,7 +46,7 @@ class GameWiringTest {
     @Test
     fun `debug has a 9x9 editor beside mini`() {
         val koin = koinApplication {
-            modules(listOf(miniSudokuUiModule, module { single { HintModeSource { HintMode.Legacy } } }) + buildTypeGameModules)
+            modules(listOf(miniSudokuUiModule, module { single { HintModeSource { HintMode.Legacy } }; single<SudokuHighlightSettings> { PreferencesSudokuHighlightSettings(FakeGameSettingsRepository()) } }) + buildTypeGameModules)
         }.koin
         val editors = GameEditorRegistry(koin.getAll<GameEditorUi>())
         assertNotNull(editors[SudokuGames.MINI.id])
