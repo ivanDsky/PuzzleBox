@@ -2,9 +2,11 @@ package com.ivandsky.puzzlebox.play.navigation
 
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.GameRoute
 import com.ivandsky.puzzlebox.play.LibraryRoute
 import com.ivandsky.puzzlebox.play.ResultRoute
@@ -28,7 +30,10 @@ import com.ivandsky.puzzlebox.play.friend.FriendPuzzleRoute
  * [FriendPuzzleKey] card; its Play pushes the puzzle's [CustomGameKey] board, and solving
  * replaces the board with its [CustomResultKey] result, whose Done pops back to the card and
  * whose Play again replaces it with the board again. The library opens its code sheet on
- * [codeDraft]'s text and hands it back through [onCodeDraftTaken].
+ * [codeDraft]'s text and hands it back through [onCodeDraftTaken]. A [duels] slot turns the
+ * library into the Dailies, Friends and Duels tabs; without one it is the single games list.
+ * [onOpenDuel] is the flag's signal for Enter code (null = off, matches are never tried); it
+ * is only carried here.
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
@@ -36,6 +41,8 @@ fun EntryProviderScope<NavKey>.playEntry(
     onOpenHistory: () -> Unit,
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
+    duels: DuelsSlot? = null,
+    onOpenDuel: ((DuelKey) -> Unit)? = null,
 ) {
     entry<PlayKey> {
         LibraryRoute(
@@ -44,6 +51,8 @@ fun EntryProviderScope<NavKey>.playEntry(
             onOpenCode = { code -> navigator.pushOnce(FriendPuzzleKey(code.value)) },
             codeDraft = codeDraft(),
             onCodeDraftTaken = onCodeDraftTaken,
+            duels = duels,
+            onOpenDuel = onOpenDuel,
         )
     }
     entry<FriendPuzzleKey> { key ->

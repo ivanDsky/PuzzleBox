@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -64,6 +65,8 @@ internal fun LibraryRoute(
     modifier: Modifier = Modifier,
     codeDraft: String? = null,
     onCodeDraftTaken: () -> Unit = {},
+    duels: DuelsSlot? = null,
+    onOpenDuel: ((DuelKey) -> Unit)? = null,
 ) {
     val viewModel: LibraryViewModel = koinViewModel()
     val registry: GamePlayRegistry = koinInject()
@@ -108,6 +111,8 @@ internal fun LibraryRoute(
             friends = friends,
             onOpenFriend = onOpenCode,
             onRemoveFriend = viewModel::removeFriend,
+            duels = duels,
+            onOpenDuel = onOpenDuel,
         )
         FriendRemovedSnackbar(removedFriend, onUndo = viewModel::undoRemoveFriend, modifier = Modifier.align(Alignment.BottomCenter))
         if (enteringCode) {
@@ -146,7 +151,9 @@ internal class CalendarActions(
  * [page] is the selected game's calendar and [month] the one it asked for (null = today's);
  * on the phone a picked day scrolls the page up to the day card. The header's Enter code shows
  * only with an [onEnterCode]. [friends] heads the list as From friends, each card opening its
- * puzzle through [onOpenFriend] and removing it through [onRemoveFriend].
+ * puzzle through [onOpenFriend] and removing it through [onRemoveFriend]. A [duels] slot turns
+ * the list into the Dailies, Friends and Duels tabs (the tab is saved here, so it survives a
+ * page push); [onOpenDuel] is carried for Enter code and unused here.
  */
 @Composable
 internal fun LibraryScreen(
@@ -165,6 +172,8 @@ internal fun LibraryScreen(
     friends: List<FriendCardModel> = emptyList(),
     onOpenFriend: (ShareCode) -> Unit = {},
     onRemoveFriend: (ShareCode) -> Unit = {},
+    duels: DuelsSlot? = null,
+    onOpenDuel: ((DuelKey) -> Unit)? = null,
 ) {
     val listScroll = rememberScrollState()
     val enterCode: @Composable () -> Unit = {
@@ -233,9 +242,16 @@ internal fun LibraryScreen(
         )
     }
     val selected = state.rows.firstOrNull { it.card.game == state.selected } ?: state.rows.firstOrNull()
+    var tab by rememberSaveable { mutableStateOf(GamesTab.Dailies) }
+    val friendsTab: @Composable () -> Unit = { FriendsTabBody(friends, onOpenFriend, onRemoveFriend, onEnterCode ?: {}) }
+    @Composable
+    fun GamesList(onRow: (GameId) -> Unit, modifier: Modifier = Modifier) = LibraryList(
+        state, layout, listScroll, onRow, modifier, headerAction = enterCode, friends = fromFriends,
+        duels = duels, tab = tab, onTab = { tab = it }, friendsTab = friendsTab, friendCount = friends.size,
+    )
     if (layout == PlayLayout.TwoPane) {
         Row(modifier.fillMaxSize().padding(start = Spacing.xl, top = Spacing.lg, end = Spacing.xxl, bottom = Spacing.xl)) {
-            LibraryList(state, layout, listScroll, onRow, Modifier.width(400.dp), headerAction = enterCode, friends = fromFriends)
+            GamesList(onRow, Modifier.width(400.dp))
             Spacer(Modifier.width(Spacing.xl))
             if (selected != null) {
                 key(selected.card.game) {
@@ -256,17 +272,10 @@ internal fun LibraryScreen(
             if (open && selected != null) {
                 Page(selected, onBack = { pageOpen = false })
             } else {
-                LibraryList(
-                    state = state,
-                    layout = layout,
-                    scroll = listScroll,
-                    onRow = { game ->
-                        onRow(game)
-                        pageOpen = true
-                    },
-                    headerAction = enterCode,
-                    friends = fromFriends,
-                )
+                GamesList(onRow = { game ->
+                    onRow(game)
+                    pageOpen = true
+                })
             }
         }
     }
