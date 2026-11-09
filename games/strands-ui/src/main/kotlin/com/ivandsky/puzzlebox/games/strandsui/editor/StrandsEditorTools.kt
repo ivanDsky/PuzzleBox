@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -12,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -23,10 +25,11 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDictionary
+import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import kotlinx.coroutines.withContext
 
-/** What the dictionary says of the text typed so far. */
-internal enum class WordCheck { Empty, Prefix, Word, Unknown }
+/** What the word field says of the text typed so far: the dictionary's verdict, or [NoPath] with no path to type onto. */
+internal enum class WordCheck { Empty, NoPath, Prefix, Word, Unknown }
 
 /** [text] is a dictionary word, the start of one, or neither. */
 internal fun wordCheck(text: String): WordCheck = when {
@@ -44,18 +47,28 @@ internal val LocalEditorDispatchers = staticCompositionLocalOf<DispatcherProvide
 /**
  * The word field (`strands.editor.word`): letters only, checked against the dictionary as
  * they are typed; the verdict is on `strands.editor.word.check` as its state description.
+ * With no path selected the field is off and says so ([WordCheck.NoPath]): nothing waits for a
+ * later trace. Text longer than the selected path stays in the field, and
+ * `strands.editor.word.fit` ([StrandsEditorCopy.overflow], state `TooLong`) replaces the
+ * dictionary line to say how much of it the path takes.
  */
 @Composable
 internal fun StrandsWordField(controller: StrandsEditorController, modifier: Modifier = Modifier) {
     val word by controller.word.collectAsState()
+    val selected by controller.selectedPath.collectAsState()
+    val editorDraft by controller.draft.collectAsState()
+    val cells = selected?.let { (editorDraft.state.draft as StrandsDraft).paths.getOrNull(it)?.cells?.size }
+    val overflow = cells != null && word.length > cells
     val dispatchers = LocalEditorDispatchers.current
     // The first lookup loads the word set; it runs off the main thread, Empty until it answers.
-    val check by produceState(WordCheck.Empty, word) {
+    val lookup by produceState(WordCheck.Empty, word) {
         value = withContext(dispatchers.default) { wordCheck(word) }
     }
+    val check = if (cells == null) WordCheck.NoPath else lookup
     OutlinedTextField(
         value = word,
         onValueChange = controller::typeWord,
+        enabled = cells != null,
         singleLine = true,
         label = {
             Text(
@@ -63,19 +76,32 @@ internal fun StrandsWordField(controller: StrandsEditorController, modifier: Mod
                 Modifier.testTag("strands.editor.word.label"),
             )
         },
-        isError = check == WordCheck.Unknown,
+        isError = check == WordCheck.Unknown || overflow,
         supportingText = {
-            Text(
-                text = when (check) {
-                    WordCheck.Empty -> ""
-                    WordCheck.Prefix -> "Keep typing"
-                    WordCheck.Word -> "In the dictionary"
-                    WordCheck.Unknown -> "Not in the dictionary"
-                },
-                modifier = Modifier
-                    .testTag("strands.editor.word.check")
-                    .semantics { stateDescription = check.name },
-            )
+            // Too long, the dictionary verdict is moot: only the fit line shows.
+            if (overflow && cells != null) {
+                Text(
+                    text = StrandsEditorCopy.overflow(word.length, cells),
+                    modifier = Modifier
+                        .testTag("strands.editor.word.fit")
+                        .semantics { stateDescription = "TooLong" },
+                )
+            } else {
+                Text(
+                    text = when (check) {
+                        WordCheck.Empty -> ""
+                        WordCheck.NoPath -> StrandsEditorCopy.TRACE_FIRST
+                        WordCheck.Prefix -> "Keep typing"
+                        WordCheck.Word -> "In the dictionary"
+                        WordCheck.Unknown -> "Not in the dictionary"
+                    },
+                    // The off field dims its supporting text below 4.5:1; the hint must stay readable.
+                    color = if (check == WordCheck.NoPath) MaterialTheme.colorScheme.onSurfaceVariant else Color.Unspecified,
+                    modifier = Modifier
+                        .testTag("strands.editor.word.check")
+                        .semantics { stateDescription = check.name },
+                )
+            }
         },
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
         modifier = modifier.fillMaxWidth().padding(top = Spacing.sm).testTag("strands.editor.word"),

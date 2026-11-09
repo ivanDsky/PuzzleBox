@@ -6,6 +6,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -145,12 +149,47 @@ class StrandsEditorWordTest {
     }
 
     @Test
-    fun `without a selection the typed word waits for the next lift`() {
+    fun `with no selection the field is off and says to trace a word first`() {
         show()
-        rule.onNodeWithTag("strands.editor.word").performTextInput("go")
+        rule.onNodeWithTag("strands.editor.word").assertIsNotEnabled()
+        answerLookups()
+        val check = rule.onNodeWithTag("strands.editor.word.check", useUnmergedTree = true)
+        assertEquals(WordCheck.NoPath.name, check.state())
+        check.assertTextEquals(StrandsEditorCopy.TRACE_FIRST)
+        assertEquals("", controller.word.value)
+    }
+
+    @Test
+    fun `a lift selects the new path and the field then names it with no extra tap`() {
+        show()
         tap(0, 1, 1)
 
+        assertEquals(0, controller.selectedPath.value)
+        rule.onNodeWithTag("strands.editor.word").assertIsEnabled()
+        rule.onNodeWithTag("strands.editor.word").performTextInput("go")
+
         assertEquals("GO", board().paths.single().word)
-        assertEquals("", controller.word.value)
+        assertEquals("GO", board().letters.take(2))
+    }
+
+    @Test
+    fun `text longer than the path stays in the field, is flagged, and writes only what fits`() {
+        show()
+        tap(0, 1, 1)
+        rule.onNodeWithTag("strands.editor.word").performTextInput("gold")
+        answerLookups()
+
+        rule.onNodeWithTag("strands.editor.word").assertTextContains("GOLD")
+        val fit = rule.onNodeWithTag("strands.editor.word.fit", useUnmergedTree = true)
+        assertEquals("TooLong", fit.state())
+        fit.assertTextEquals(StrandsEditorCopy.overflow(4, 2))
+        rule.onNodeWithTag("strands.editor.word.check", useUnmergedTree = true).assertDoesNotExist()
+        assertEquals("GO", board().letters.take(2))
+        assertNull(board().paths.single().word)
+
+        rule.onNodeWithTag("strands.editor.word").performTextClearance()
+        rule.onNodeWithTag("strands.editor.word").performTextInput("go")
+        rule.onNodeWithTag("strands.editor.word.fit", useUnmergedTree = true).assertDoesNotExist()
+        assertEquals("GO", board().paths.single().word)
     }
 }

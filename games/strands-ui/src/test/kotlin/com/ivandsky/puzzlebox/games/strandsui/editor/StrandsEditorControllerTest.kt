@@ -21,27 +21,90 @@ class StrandsEditorControllerTest {
     private fun trace(vararg cells: Int) = cells.forEach(controller::traceTo)
 
     @Test
-    fun `lifting a two-cell trace commits one path with the typed word on its blank cells`() {
-        controller.typeWord("go")
+    fun `lifting a two-cell trace commits one blank path and selects it`() {
         trace(0, 1)
         controller.endTrace()
 
         assertEquals(1, edits.size)
         assertEquals(listOf(0, 1), board().paths.single().cells)
-        assertEquals("GO", board().paths.single().word)
-        assertEquals("GO", board().letters.take(2))
+        assertEquals(StrandsDraft.BLANK.toString().repeat(2), board().letters.take(2))
+        assertNull(board().paths.single().word)
         assertTrue(controller.trace.value.isEmpty())
+        assertEquals(0, controller.selectedPath.value)
         assertEquals("", controller.word.value)
     }
 
     @Test
-    fun `a word shorter than the trace leaves the path unnamed`() {
-        controller.typeWord("g")
+    fun `typing right after a lift names the new path`() {
+        trace(0, 1)
+        controller.endTrace()
+        controller.typeWord("go")
+
+        assertEquals("GO", board().paths.single().word)
+        assertEquals("GO", board().letters.take(2))
+        assertEquals("GO", controller.word.value)
+    }
+
+    @Test
+    fun `each lift selects the path it just made`() {
+        trace(0, 1)
+        controller.endTrace()
+        trace(6, 7, 8)
+        controller.endTrace()
+
+        assertEquals(1, controller.selectedPath.value)
+        controller.typeWord("cat")
+        assertEquals(listOf(null, "CAT"), board().paths.map { it.word })
+    }
+
+    @Test
+    fun `typed text longer than the path is kept whole and writes only the letters that fit`() {
+        trace(0, 1)
+        controller.endTrace()
+        controller.typeWord("gold")
+
+        assertEquals("GOLD", controller.word.value)
+        assertEquals("GO", board().letters.take(2))
+        assertEquals(StrandsDraft.BLANK, board().letters[2])
+        assertNull(board().paths.single().word)
+    }
+
+    @Test
+    fun `trimming overflow text back to the path length names it`() {
+        trace(0, 1)
+        controller.endTrace()
+        controller.typeWord("gold")
+        controller.typeWord("go")
+
+        assertEquals("GO", board().paths.single().word)
+    }
+
+    @Test
+    fun `with no selection typing is ignored and nothing waits for a lift`() {
+        controller.typeWord("go")
+        assertEquals("", controller.word.value)
+        assertTrue(edits.isEmpty())
+
         trace(0, 1)
         controller.endTrace()
 
+        assertEquals("", controller.word.value)
+        assertEquals(StrandsDraft.BLANK.toString().repeat(2), board().letters.take(2))
         assertNull(board().paths.single().word)
     }
+
+    @Test
+    fun `dropping the selection clears the field`() {
+        trace(0, 1)
+        controller.endTrace()
+        controller.typeWord("go")
+        controller.selectPath(null)
+        controller.typeWord("xy")
+
+        assertEquals("", controller.word.value)
+        assertEquals("GO", board().letters.take(2))
+    }
+
 
     @Test
     fun `a lone cell lifts without an edit`() {
@@ -79,6 +142,8 @@ class StrandsEditorControllerTest {
 
     @Test
     fun `typed word keeps only letters A to Z, upper case`() {
+        trace(0, 1, 2, 3)
+        controller.endTrace()
         controller.typeWord("c-a\u00E9f\u00C9e1")
 
         assertEquals("CAFE", controller.word.value)
@@ -124,9 +189,9 @@ class StrandsEditorControllerTest {
 
     @Test
     fun `a draft built from typed CAFE-acute and a pasted clue prints text that parses back`() {
-        controller.typeWord("CAF\u00C9")
-        trace(0, 1, 2)
+        trace(0, 1, 2, 3)
         controller.endTrace()
+        controller.typeWord("CAF\u00C9")
         controller.setClue("a\nb")
 
         val draft = board()

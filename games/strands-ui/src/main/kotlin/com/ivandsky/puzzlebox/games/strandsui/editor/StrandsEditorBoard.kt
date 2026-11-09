@@ -86,8 +86,8 @@ internal fun StrandsEditorBoard(
 
 /**
  * The authoring controls under the grid: the selected path's spangram toggle, the word field
- * ([StrandsWordField]), which names the selected path or, with none, the word the next lift
- * writes, and [StrandsPathsPanel], one row per path.
+ * ([StrandsWordField]), which names the selected path and is off while none is selected, and
+ * [StrandsPathsPanel], one row per path.
  */
 @Composable
 internal fun StrandsAuthoringTools(controller: StrandsEditorController, modifier: Modifier = Modifier) {

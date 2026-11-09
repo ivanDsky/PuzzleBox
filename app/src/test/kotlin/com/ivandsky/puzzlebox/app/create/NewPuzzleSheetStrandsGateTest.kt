@@ -124,13 +124,12 @@ class NewPuzzleSheetStrandsGateTest {
         rule.waitUntil(WAIT_MS) { count(BOARD) > 0 }
         rule.waitUntil(WAIT_MS) { pill() == INCOMPLETE }
 
-        rule.onNodeWithTag(WORD).performTextInput(LAST_WORD)
-        // The word check answers off the main thread and its line resizes the board; a tap
-        // that straddles the resize is cancelled, so the taps wait for the answer.
-        rule.waitUntil(WAIT_MS) { wordCheck() != CHECK_EMPTY }
+        // The lift selects the new path, so the word typed next names it with no extra tap.
         val last = StrandsDraft.ROWS - 1
         (0 until StrandsDraft.COLS).forEach { rule.onNodeWithTag("$CELL$last.$it").performClick() }
         rule.onNodeWithTag("$CELL$last.${StrandsDraft.COLS - 1}").performClick()
+        rule.waitUntil(WAIT_MS) { wordCheck() != CHECK_NO_PATH }
+        rule.onNodeWithTag(WORD).performTextInput(LAST_WORD)
 
         rule.waitUntil(WAIT_MS) { pill() != INCOMPLETE && pill() != CHECKING }
         assertNotEquals(INCOMPLETE, pill())
@@ -246,7 +245,7 @@ class NewPuzzleSheetStrandsGateTest {
         const val BOARD = "strands.editor.board"
         const val WORD = "strands.editor.word"
         const val WORD_CHECK = "strands.editor.word.check"
-        const val CHECK_EMPTY = "Empty"
+        const val CHECK_NO_PATH = "NoPath"
         const val CELL = "strands.cell."
         const val INCOMPLETE = "Incomplete"
         const val CHECKING = "Checking"

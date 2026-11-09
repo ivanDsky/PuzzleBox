@@ -4,7 +4,6 @@ import androidx.compose.ui.geometry.Offset
 import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
-import com.ivandsky.puzzlebox.game.editor.ReplaceDraft
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraftCommand
@@ -22,13 +21,13 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * The Strands editor screen's live draft, trace and word text. [traceTo] grows the live
  * [trace] cell by cell over cells no path holds yet; [endTrace] lifts it: a trace of two or
- * more cells becomes one path, the [word] typed so far written onto the path's blank cells,
- * as one undoable step: an [StrandsDraftCommand.AddPath], or a [ReplaceDraft] when the word
- * also wrote letters. A tap on a traced cell selects its path ([selectedPath]); a drag from
- * the selected path's first or last cell shortens or extends it at that end ([StrandsEndGrip]),
- * one undoable step per drag; [removePath] drops it as one [StrandsDraftCommand.RemovePath];
- * [toggleSpangram] marks or unmarks one; [setClue] sets the theme clue. Every edit goes out
- * through `onEdit`; the VM hands replacement drafts back through [adopt].
+ * more cells becomes one path (an [StrandsDraftCommand.AddPath], one undoable step) and is
+ * selected, so the [word] typed next names it. A tap on a traced cell selects its path
+ * ([selectedPath]); a drag from the selected path's first or last cell shortens or extends it
+ * at that end ([StrandsEndGrip]), one undoable step per drag; [removePath] drops it as one
+ * [StrandsDraftCommand.RemovePath]; [toggleSpangram] marks or unmarks one; [setClue] sets the
+ * theme clue. Every edit goes out through `onEdit`; the VM hands replacement drafts back
+ * through [adopt].
  */
 class StrandsEditorController(
     initial: EditorDraft<*>,
@@ -51,7 +50,7 @@ class StrandsEditorController(
     /** The cells of the trace under the finger, row-major, in trace order; never persisted. */
     val trace: StateFlow<List<Int>> = tracing.asStateFlow()
 
-    /** The word text the next lift writes onto the path's blank cells. */
+    /** The selected path's word text; blank while none is selected. */
     val word: StateFlow<String> = typedWord.asStateFlow()
 
     /** The index of the selected path, null when none is; never persisted. */
@@ -136,15 +135,17 @@ class StrandsEditorController(
 
     /**
      * Takes the word field's [text], letters A-Z only (any case, anything else dropped), upper
-     * case. With a path selected the letters go onto its blank cells (and over the ones an
-     * earlier typing wrote) as one undoable step; the path is named once the text is exactly as
-     * long as the path. With none selected the text waits for the next lift.
+     * case, onto the selected path: the letters that fit go onto its blank cells (and over the
+     * ones an earlier typing wrote) as one undoable step; the path is named once the text is
+     * exactly as long as the path. Text longer than the path stays whole in [word], only its first
+     * letters are written, and the path stays unnamed. With no path selected there is nothing to
+     * type onto: the text is ignored and no text waits for a later lift.
      */
     fun typeWord(text: String) {
+        val index = selected.value ?: return
         val previous = typedWord.value
         val letters = text.filter { it in 'A'..'Z' || it in 'a'..'z' }.uppercase()
         typedWord.value = letters
-        val index = selected.value ?: return
         val before = current.value.state.draft
         val path = before.paths[index]
         val board = before.letters.toCharArray()
@@ -242,27 +243,20 @@ class StrandsEditorController(
         tracing.value = emptyList()
     }
 
-    /** Lifts the finger: commits the trace as one path when it has two or more cells, then clears it. */
+    /**
+     * Lifts the finger: commits the trace as one path when it has two or more cells, clears it, and
+     * selects the new path so the word field targets it.
+     */
     fun endTrace() {
         val cells = tracing.value
         tracing.value = emptyList()
         if (cells.size < 2) return
-        val before = current.value.state.draft
-        val letters = before.letters.toCharArray()
-        val text = typedWord.value
-        cells.forEachIndexed { index, cell ->
-            if (letters[cell] == StrandsDraft.BLANK && index < text.length) letters[cell] = text[index]
-        }
+        val letters = current.value.state.draft.letters
         val spelled = cells.map { letters[it] }.joinToString("")
         val path = StrandsDraftPath(cells, spelled.takeIf { StrandsDraft.BLANK !in it })
-        val next = if (String(letters) == before.letters) {
-            current.value.apply(StrandsDraftCommand.AddPath(path))
-        } else {
-            current.value.apply(ReplaceDraft(before, before.copy(letters = String(letters), paths = before.paths + path)))
-        }
+        val next = current.value.apply(StrandsDraftCommand.AddPath(path))
         current.value = next
-        selected.value = null
-        typedWord.value = ""
+        select(next.state.draft.paths.lastIndex)
         onEdit(next)
     }
 
