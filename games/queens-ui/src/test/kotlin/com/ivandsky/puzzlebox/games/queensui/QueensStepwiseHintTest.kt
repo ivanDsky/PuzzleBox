@@ -18,9 +18,13 @@ import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.MarkKind
+import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
+import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRules
+import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRulesVerdict
+import com.ivandsky.puzzlebox.games.queensui.hint.QueensStepGame
 import java.time.Instant
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -29,6 +33,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -56,12 +61,15 @@ class QueensStepwiseHintTest {
 
     private val saved = ArrayList<ByteArray>()
 
-    private fun stepwise(compute: CoroutineDispatcher = Dispatchers.Unconfined) = QueensPlayController(
+    private fun stepwise(
+        compute: CoroutineDispatcher = Dispatchers.Unconfined,
+        puzzle: QueensPuzzle = QueensPlayFixtures.puzzle(),
+    ) = QueensPlayController(
         env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), { saved += it }, {}),
         settings = InMemoryQueensSettings(),
         now = { Instant.EPOCH },
         hintMode = HintMode.Stepwise(compute),
-    ).also { assertEquals(Adopt.Adopted, it.adoptToday(QueensPlayFixtures.envelope(), QueensPlayFixtures.ref())) }
+    ).also { assertEquals(Adopt.Adopted, it.adoptToday(QueensPlayFixtures.envelope(puzzle), QueensPlayFixtures.ref())) }
 
     private val QueensPlayController.state: QueensBoardState get() = checkNotNull(board)
 
@@ -307,7 +315,7 @@ class QueensStepwiseHintTest {
     /** Won with a valid layout that is not the stored solution: the step is Solved, not a mistake against the store. */
     @Test
     fun `a board won off the stored solution offers no hint and a press shows nothing`() {
-        val c = stepwise()
+        val c = stepwise(puzzle = QueensPlayFixtures.rowsPuzzle())
         OTHER_SOLUTION.forEach { c.state.placeQueen(it) }
         assertTrue(c.isComplete)
         val solved = c.state.session
@@ -373,6 +381,18 @@ class QueensStepwiseHintTest {
         assertFalse(calloutShown(text))
     }
 
+    // Fixtures (ticket 43: a stored solution is judged against only when it is the board's one solution)
+
+    @Test
+    fun `the play fixture has one layout and the rows board has another`() {
+        val fixture = QueensPlayFixtures.puzzle()
+        assertEquals(fixture.solution!!.toSet(), QueensStepGame.boundedSolution(fixture.copy(solution = null)))
+
+        val rows = QueensPlayFixtures.rowsPuzzle()
+        assertEquals(QueensRulesVerdict.Valid, QueensRules.evaluate(rows, OTHER_SOLUTION.map(::Cell).toSet()))
+        assertNotEquals(rows.solution!!.toSet(), OTHER_SOLUTION.map(::Cell).toSet())
+    }
+
     private companion object {
         /** Row 0, column 1: off the fixture's solution (column 0 in row 0). */
         const val WRONG_QUEEN = 1
@@ -386,7 +406,7 @@ class QueensStepwiseHintTest {
         /** Row 1, column 1: off the solution and off the first step, which stays the one shown after a × here. */
         const val UNRELATED_CROSS = 9
 
-        /** Columns 1 3 5 7 2 0 6 4 by row: one queen per row (= region) and column, no two touching. */
+        /** Columns 1 3 5 7 2 0 6 4 by row: on [QueensPlayFixtures.rowsPuzzle] one queen per row (= region) and column, no two touching. */
         val OTHER_SOLUTION = listOf(1, 11, 21, 31, 34, 40, 54, 60)
 
         const val BOARD_TAG = "queens.test.board"
