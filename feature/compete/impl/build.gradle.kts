@@ -11,6 +11,8 @@ android {
 dependencies {
     // DuelKey and DuelRevealKey (I2) and the entry keys the navigation extension registers.
     implementation(projects.feature.compete.api)
+    // GoogleIdTokenProvider: a signed-out player signs in from the New duel sheet (31).
+    implementation(projects.core.auth)
     // MatchRepository, MatchResultOutbox and the match models the Duels screens observe (30 onward).
     implementation(projects.core.data)
     // ObserveMyDuels, ComputeMatchOutcome and the other use cases the view models call (30 onward).
