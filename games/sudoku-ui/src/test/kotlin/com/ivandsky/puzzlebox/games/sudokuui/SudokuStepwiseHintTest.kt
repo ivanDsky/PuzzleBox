@@ -2,7 +2,9 @@ package com.ivandsky.puzzlebox.games.sudokuui
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
@@ -325,8 +327,35 @@ class SudokuStepwiseHintTest {
         assertEquals(before, semanticsTree())
     }
 
+    /** Red: the board's violation digit and the culprit glyph, not their anti-aliased fringe. */
+    private fun redPixels(): Set<Int> {
+        val pixels = cell(0).captureToImage().toPixelMap()
+        return (0 until pixels.width * pixels.height).filterTo(HashSet()) {
+            val c = pixels[it % pixels.width, it / pixels.width]
+            c.red > RED_MIN && c.green < OTHER_MAX && c.blue < OTHER_MAX
+        }
+    }
+
+    @Test
+    fun `the culprit glyph covers every red pixel of the board's own wrong digit`() {
+        val s = withWrongOne()
+        s.select(20)
+        show(s)
+        val board = redPixels()
+        assertTrue("the wrong digit is red without a Spotlight", board.isNotEmpty())
+
+        s.requestHint()
+        composeRule.waitForIdle()
+        assertEquals(setOf(0), s.culprits())
+        val covered = redPixels()
+
+        assertEquals("board pixels not red under the culprit", emptySet<Int>(), board - covered)
+    }
+
     private companion object {
         /** Not cell 0's solution (4), and a clash with the given 1 in column 1. */
         const val WRONG_DIGIT = 1
+        const val RED_MIN = 0.5f
+        const val OTHER_MAX = 0.35f
     }
 }
