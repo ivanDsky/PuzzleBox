@@ -1,19 +1,24 @@
 package com.ivandsky.puzzlebox.games.strandsui.board
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.CacheDrawScope
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.util.lerp
@@ -36,10 +41,12 @@ import com.ivandsky.puzzlebox.gameui.GridGeometry
  *
  * The live trace is [StrandsLineMotion]'s: while a drag runs, [finger] (cell units, read in
  * the draw phase) leans its end along one legal direction from the last letter — never at a
- * [found] letter — and [animate] turns on grow-in, retract and the tip's return home; reduced
- * motion keeps only the tip. [links] are built in a draw cache, rebuilt only on a size or
- * link change. The [settle]ing link, a word's own while its letters bounce, is drawn
- * from their frames instead ([LinkSettle]): it never stays thick behind a tile that has shrunk.
+ * [found] letter — and [animate] turns on grow-in, retract and the tip's return home (and the
+ * fade of [dim]'s links; reduced motion keeps only the tip and snaps the fade). [links] are
+ * built in a draw cache, rebuilt only on a size or link change. The [settle]ing link, a
+ * word's own while its letters bounce, is drawn from their frames instead ([LinkSettle]): it
+ * never stays thick behind a tile that has shrunk (and is never faded: only a play board
+ * settles, and it has no [dim]).
  */
 @Composable
 internal fun StrandsConnectors(
@@ -52,7 +59,11 @@ internal fun StrandsConnectors(
     found: (cell: Coord) -> Boolean = { false },
     animate: Boolean = false,
     settle: () -> LinkSettle?,
+    dim: StrandsDim = StrandsDim.None,
 ) {
+    // One alpha per link, read in the draw phase: a fade redraws the lines, nothing recomposes.
+    val spec = dimSpec(reduceMotion = !animate)
+    val alphas = links.map { link -> key(link) { animateFloatAsState(if (link in dim.links) dim.alpha else 1f, spec, label = "dim") } }
     val scope = rememberCoroutineScope()
     val motion = remember { StrandsLineMotion(scope) }
     Spacer(
@@ -61,16 +72,17 @@ internal fun StrandsConnectors(
             .drawWithCache {
                 val geometry = GridGeometry(rows, cols, size.width, size.height)
                 val alt = altThemeLinks(links)
-                val visible = links.filter { it.cells.size >= 2 }
-                val drawn = visible.map { linkDrawing(it, geometry, colors, it in alt) }
+                val visible = links.withIndex().filter { it.value.cells.size >= 2 }
+                val drawn = visible.map { (_, link) -> linkDrawing(link, geometry, colors, link in alt) }
                 onDrawBehind {
                     val settling = settle()
                     for (i in drawn.indices) {
-                        if (settling != null && visible[i] == settling.link) {
-                            val color = linkColor(visible[i], colors, visible[i] in alt)
+                        val (index, link) = visible[i]
+                        if (settling != null && link == settling.link) {
+                            val color = linkColor(link, colors, link in alt)
                             drawSettling(settling, geometry, color, connectorColor(LinkKind.Trace, colors))
                         } else {
-                            drawn[i](this)
+                            drawn[i](this, alphas[index].value)
                         }
                     }
                 }
@@ -85,19 +97,33 @@ internal fun StrandsConnectors(
     )
 }
 
-/** One link's draw call over geometry built once: a stroked polyline, or a hint's trimmed butt-capped pieces. */
-private fun CacheDrawScope.linkDrawing(link: StrandsLink, geometry: GridGeometry, colors: BoardColors, alt: Boolean): DrawScope.() -> Unit {
+/** One link's draw call, taking its alpha, over geometry built once: a stroked polyline, or a hint's trimmed butt-capped pieces. */
+private fun CacheDrawScope.linkDrawing(link: StrandsLink, geometry: GridGeometry, colors: BoardColors, alt: Boolean): DrawScope.(Float) -> Unit {
     val color = linkColor(link, colors, alt)
+    val tokenRadius = minOf(geometry.cellWidth, geometry.cellHeight) * StrandsBoardSpec.TokenFraction / 2
     if (link.kind != LinkKind.Hint) {
         val path = Path().polylineThrough(link.cells, geometry)
         val stroke = roundStroke(link.kind)
-        return { drawPath(path, color, style = stroke) }
+        // A faded token shows what is under it, so the line is cut out of the tokens it runs
+        // under; at full strength the opaque tokens hide it anyway and nothing is cut.
+        // Built on the first faded draw: play never fades, so it never pays for it.
+        val tokens by lazy(LazyThreadSafetyMode.NONE) {
+            Path().apply {
+                link.cells.forEach { cell ->
+                    val c = geometry.centerOf(GridCell(cell.row, cell.col))
+                    addRect(Rect(c.x - tokenRadius, c.y - tokenRadius, c.x + tokenRadius, c.y + tokenRadius))
+                }
+            }
+        }
+        return { alpha ->
+            if (alpha >= 1f) drawPath(path, color, alpha, stroke)
+            else clipPath(tokens, ClipOp.Difference) { drawPath(path, color, alpha, stroke) }
+        }
     }
-    val tokenRadius = minOf(geometry.cellWidth, geometry.cellHeight) * StrandsBoardSpec.TokenFraction / 2
     val pieces = hintSegments(link.cells.map { geometry.centerOf(GridCell(it.row, it.col)) }, tokenRadius)
     val width = connectorWidth(link.kind).toPx()
-    return {
-        for (i in pieces.indices) drawLine(color, pieces[i].first, pieces[i].second, strokeWidth = width, cap = StrokeCap.Butt)
+    return { alpha ->
+        for (i in pieces.indices) drawLine(color, pieces[i].first, pieces[i].second, strokeWidth = width, cap = StrokeCap.Butt, alpha = alpha)
     }
 }
 

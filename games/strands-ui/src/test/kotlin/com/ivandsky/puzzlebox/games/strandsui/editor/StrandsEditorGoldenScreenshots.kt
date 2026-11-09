@@ -83,6 +83,9 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
     @Test fun `selected path with end rings light`() = selected(dark = false)
     @Test fun `selected path with end rings dark`() = selected(dark = true)
 
+    @Test fun `selected word with the rest dimmed light`() = selectedDim(dark = false)
+    @Test fun `selected word with the rest dimmed dark`() = selectedDim(dark = true)
+
     @Test fun `pockets light`() = pockets(dark = false)
     @Test fun `pockets dark`() = pockets(dark = true)
 
@@ -172,6 +175,12 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
             it.selectPath(0)
             it.typeWord("HEAT")
         }
+    }
+
+    /** A full board with its second word selected: that word and its line at full strength, every other word, line and letter faded. */
+    private fun selectedDim(dark: Boolean) {
+        val draft = board(WORDS, startRow = 0).copy(spangram = SPANGRAM)
+        capture("selected-dim", dark, draft, analyzed<Verdict.Unique>(draft)) { it.selectPath(1) }
     }
 
     /** Row 0's word starts at its third cell: cells 0 and 1 are too few for any word, a pocket. */

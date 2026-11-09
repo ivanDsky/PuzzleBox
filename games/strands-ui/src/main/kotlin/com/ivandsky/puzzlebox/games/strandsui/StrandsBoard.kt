@@ -27,6 +27,7 @@ import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsConnectors
+import com.ivandsky.puzzlebox.games.strandsui.board.StrandsDim
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsGestureLayer
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsHaptics
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsTraceEndConnector
@@ -80,6 +81,8 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
  * [tiles] draws first in the board's underlay, under every connector and letter (the
  * editor's empty tiles), so the live line is never covered. [onFinger] gets the dragging
  * finger in cell units after each move's steps, and null at the lift, before the lift's step.
+ * [dim] fades the letters and connectors it names (the editor's unselected paths); the live
+ * trace is never faded.
  */
 @Composable
 internal fun StrandsBoardContent(
@@ -91,6 +94,7 @@ internal fun StrandsBoardContent(
     traceEnd: () -> TraceEnd? = { null },
     tiles: @Composable BoxScope.() -> Unit = {},
     onFinger: (Offset?) -> Unit = {},
+    dim: StrandsDim = StrandsDim.None,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalBoardColors.current
@@ -122,13 +126,14 @@ internal fun StrandsBoardContent(
                 colors = colors.copy(boardGridLine = Color.Transparent),
                 underlay = {
                     tiles()
-                    StrandsConnectors(model.rows, model.cols, model.links, trace, colors, { finger.value }, foundLetter, animate = !reduceMotion, settle = { settle.value })
+                    StrandsConnectors(model.rows, model.cols, model.links, trace, colors, { finger.value }, foundLetter, animate = !reduceMotion, settle = { settle.value }, dim = dim)
                     StrandsTraceEndConnector(model.rows, model.cols, { end.value }, colors)
                 },
                 cellContent = { row, col ->
                     LetterToken(
                         cell = model.cells[row * model.cols + col],
                         altTheme = Coord(row, col) in altCells,
+                        dim = dim,
                         pitch = cell,
                         found = found,
                         reduceMotion = reduceMotion,

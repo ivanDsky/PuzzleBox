@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.strandsui
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -34,11 +35,13 @@ import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSpec
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsCellDrawing
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsCellFrame
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsCellSpec
+import com.ivandsky.puzzlebox.games.strandsui.board.StrandsDim
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsMotionCue
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsMotionTrigger
 import com.ivandsky.puzzlebox.games.strandsui.board.TraceEndFrame
 import com.ivandsky.puzzlebox.games.strandsui.board.TraceOverlaySpec
 import com.ivandsky.puzzlebox.games.strandsui.board.at
+import com.ivandsky.puzzlebox.games.strandsui.board.dimSpec
 import com.ivandsky.puzzlebox.games.strandsui.board.drawTokenSquare
 import com.ivandsky.puzzlebox.games.strandsui.board.tokenColor
 
@@ -47,7 +50,8 @@ internal val LocalTokenComposed = staticCompositionLocalOf<(Coord) -> Unit> { {}
 
 /**
  * One letter's token: its cell state's look, the join fill and pop while it is on the trace,
- * and, once its path is submitted, [end]'s refusal or fade-out in place of both.
+ * and, once its path is submitted, [end]'s refusal or fade-out in place of both. A letter on
+ * [dim]'s cells is faded to its alpha, unless it is on the trace.
  */
 @Composable
 internal fun LetterToken(
@@ -59,6 +63,7 @@ internal fun LetterToken(
     end: State<TraceEndFrame?>,
     colors: BoardColors,
     altTheme: Boolean,
+    dim: StrandsDim,
     trace: () -> Trace,
     onTrace: (TraceStep) -> Unit,
 ) {
@@ -79,11 +84,14 @@ internal fun LetterToken(
     val tokenSize = pitch * StrandsBoardSpec.TokenFraction
     // Pitch-proportional and immune to font scale, like the token it sits in.
     val letterSize = with(LocalDensity.current) { (pitch * StrandsBoardSpec.LetterFraction).toSp() }
+    // A letter on the live trace is never faded; the others fade and recover on [dimSpec].
+    val dimmed = !traced && cell.coord in dim.cells
+    val faded = animateFloatAsState(if (cell.coord in dim.cells) dim.alpha else 1f, dimSpec(reduceMotion), label = "dim")
     Box(
         Modifier
             .fillMaxSize()
             .testTag("strands.cell.${cell.coord.row}.${cell.coord.col}")
-            .letterButton(cell.copy(traceIndex = traceIndex), onTap),
+            .letterButton(cell.copy(traceIndex = traceIndex), dimmed, onTap),
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -95,7 +103,7 @@ internal fun LetterToken(
                     scaleX = scale
                     scaleY = scale
                     translationX = ended?.offsetPx ?: 0f
-                    alpha = ended?.alpha ?: 1f
+                    alpha = (ended?.alpha ?: 1f) * if (traced) 1f else faded.value
                 }
                 .drawBehind {
                     val frame = base.value
