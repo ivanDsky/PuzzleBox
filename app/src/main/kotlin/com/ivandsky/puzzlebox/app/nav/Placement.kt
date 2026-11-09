@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
+import com.ivandsky.puzzlebox.profile.api.SettingsKey
 import kotlin.reflect.KClass
 
 /**
@@ -76,6 +77,7 @@ internal val placementRows: List<PlacementRow> = listOf(
     PlacementRow(CreateKey::class, Placement(TabRoot(Tab.Create), Chrome.Browse)),
     PlacementRow(HistoryKey::class, Placement(PushedOn(Tab.History), Chrome.Browse)),
     PlacementRow(ProfileKey::class, Placement(Shell, Chrome.Tool)),
+    PlacementRow(SettingsKey::class, Placement(Shell, Chrome.Tool)),
     PlacementRow(GameKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(ResultKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(CustomGameKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
