@@ -17,7 +17,7 @@ class PastDayCopyTest {
 
     @Test
     fun `each status has one action`() {
-        assertEquals("Play again", pastDayAction(PastDayStatus.Solved(95_000)))
+        assertEquals("See result", pastDayAction(PastDayStatus.Solved(95_000)))
         assertEquals("Keep going", pastDayAction(PastDayStatus.InProgress(42_000)))
         assertEquals("Play", pastDayAction(PastDayStatus.Stored))
         assertEquals("Play", pastDayAction(PastDayStatus.NeedsConnection))
