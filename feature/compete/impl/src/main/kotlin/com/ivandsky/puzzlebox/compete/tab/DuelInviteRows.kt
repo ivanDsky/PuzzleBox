@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.compete.tab
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -9,7 +11,9 @@ import com.ivandsky.puzzlebox.compete.share.UNKNOWN_INVITER
 import com.ivandsky.puzzlebox.compete.share.inviteText
 import com.ivandsky.puzzlebox.compete.share.shareInvite
 import com.ivandsky.puzzlebox.designsystem.DuelTone
+import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
+import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.DuelRow
 import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 import java.time.ZoneId
@@ -17,17 +21,52 @@ import java.util.Locale
 
 private val AvatarSize = 48.dp
 
-/** A link invite this device opened: "{Name} challenged you" over "Best of n"; tapping opens the duel screen. */
+/**
+ * A duel invite for me: "{Name} challenged you" over "Best of n", or over [note] after a call that left the row in
+ * place. Accept and Decline are disabled while [inFlight]; tapping the row opens the duel screen.
+ */
 @Composable
-internal fun InvitedRow(row: DuelRow, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun InvitedRow(
+    row: DuelRow,
+    inFlight: Boolean,
+    note: InviteNote?,
+    onAccept: () -> Unit,
+    onDecline: () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val name = row.opponent?.name ?: "A friend"
     DuelRowShell(
         title = "$name challenged you",
-        sub = "Best of ${row.legs}",
+        sub = note?.text() ?: "Best of ${row.legs}",
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.testTag("duel.invited"),
         avatar = { PlayerAvatar(name, row.opponent?.photoUrl, size = AvatarSize, tone = DuelTone.Them) },
+        trailing = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                PrimaryButton(
+                    text = "Accept",
+                    onClick = onAccept,
+                    enabled = !inFlight,
+                    modifier = Modifier.testTag("duel.invited.accept"),
+                )
+                SecondaryButton(
+                    text = "Decline",
+                    onClick = onDecline,
+                    enabled = !inFlight,
+                    modifier = Modifier.testTag("duel.invited.decline"),
+                )
+            }
+        },
     )
+}
+
+private fun InviteNote.text(): String = when (this) {
+    InviteNote.AlreadyTaken -> "Already taken"
+    InviteNote.Cancelled -> "Cancelled"
+    InviteNote.Closed -> "Closed"
+    InviteNote.AcceptFailed -> "Couldn't accept · try again"
+    InviteNote.DeclineFailed -> "Couldn't decline · try again"
 }
 
 /**

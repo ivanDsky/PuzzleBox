@@ -14,7 +14,9 @@ import org.koin.dsl.module
  * sheet's and the duel screen's view models are bound here (the duel screen's by its code).
  */
 val competeModule: Module = module {
-    viewModel { DuelsTabViewModel(observeMyDuels = get(), identity = get(), clock = { Instant.now() }) }
+    viewModel {
+        DuelsTabViewModel(observeMyDuels = get(), updateSeat = get(), identity = get(), clock = { Instant.now() })
+    }
     viewModel {
         NewDuelViewModel(
             createMatch = get(),
