@@ -117,6 +117,44 @@ class TangoEditorDiagnosticsTest {
         }
     }
 
+    @Test
+    fun `on a 4x4 board the differ shade and the witness land on their cells`() {
+        assertDiffAndWitnessAt(4)
+    }
+
+    @Test
+    fun `on an 8x8 board the differ shade and the witness land on their cells`() {
+        assertDiffAndWitnessAt(8)
+    }
+
+    @Test
+    fun `on a 10x10 board the differ shade and the witness land on their cells`() {
+        assertDiffAndWitnessAt(10)
+    }
+
+    /** A Multiple verdict on an n×n board with a given in cell 0: shade on the differing cells, witness in every other cell. */
+    private fun assertDiffAndWitnessAt(n: Int) {
+        val cells = n * n
+        val last = cells - 1
+        val differing = setOf(1, n - 1, cells - n, last)
+        val shown = Verdict.Multiple(Solution(List(cells) { it % 2 }), Solution(List(cells) { (it + 1) % 2 }), differing)
+        val board = TangoDraft(n, mapOf(0 to TangoCell.SUN), emptyList())
+        val controller = TangoEditorController(EditorDraft(TangoEditor, DraftState(board))) {}
+        controller.adoptOverlay(EditorOverlay(showOnBoard = true))
+        show(controller, shown)
+
+        assertEquals(differing, tagged("diff", cells = cells))
+        assertEquals((1 until cells).toSet(), tagged("witness", cells = cells))
+        val bounds = rule.onNodeWithTag("tango.editor.board").getUnclippedBoundsInRoot()
+        val pitch = (bounds.right - bounds.left).value / n
+        listOf("diff" to n - 1, "witness" to last).forEach { (suffix, idx) ->
+            val cell = rule.onNodeWithTag("tango.editor.cell.$idx.$suffix").getUnclippedBoundsInRoot()
+            assertEquals("$suffix $idx left", bounds.left.value + pitch * (idx % n), cell.left.value, 0.5f)
+            assertEquals("$suffix $idx top", bounds.top.value + pitch * (idx / n), cell.top.value, 0.5f)
+            assertEquals("$suffix $idx width", pitch, (cell.right - cell.left).value, 0.5f)
+        }
+    }
+
     private companion object {
         const val CELLS = 6 * 6
         val A = Solution(List(CELLS) { it % 2 })

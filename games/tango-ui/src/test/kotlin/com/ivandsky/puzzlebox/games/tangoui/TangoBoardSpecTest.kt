@@ -26,16 +26,6 @@ class TangoBoardSpecTest {
         assertTrue("pitch was $pitchN6", pitchN6 >= TangoBoardSpec.touchTargetFloor)
     }
 
-    /** §10.4: mark cap ≥ 10.3 dp at every editor size on a 360 dp phone. */
-    @Test
-    fun `mark height clears the legibility floor at every size`() {
-        for (n in TangoDraft.SIZES) {
-            val pitch = board328 / n
-            val mark = TangoBoardSpec.markSize(pitch, n)
-            assertTrue("n=$n mark was $mark", mark >= TangoBoardSpec.markHeightFloor)
-        }
-    }
-
     /** §10.4: glyph ≥ 0.60 × pitch at every editor size on a 360 dp phone. */
     @Test
     fun `glyph size stays at or above the n6 fraction at every n`() {
@@ -46,20 +36,12 @@ class TangoBoardSpecTest {
         }
     }
 
-    /** Computed worst case from §1: n8 mark = 0.30 × 41.0 = 12.3 dp ≥ 10.3. */
+    /** The 328 dp phone board's pitches the KDoc floors are computed on. */
     @Test
-    fun `n8 worst case matches the doc arithmetic`() {
-        assertEquals(12.3f, TangoBoardSpec.markSize(pitchN8, 8).value, 0.05f)
+    fun `phone pitches match the doc arithmetic`() {
         assertEquals(54.7f, pitchN6.value, 0.1f)
         assertEquals(41.0f, pitchN8.value, 0.1f)
-    }
-
-    /** Worst case (spec §6): n10 on a 360 dp phone, mark = 0.32 × 32.8 = 10.5 dp ≥ 10.3. */
-    @Test
-    fun `n10 worst case matches the doc arithmetic`() {
         assertEquals(32.8f, pitchN10.value, 0.05f)
-        assertEquals(10.5f, TangoBoardSpec.markSize(pitchN10, 10).value, 0.05f)
-        assertTrue(TangoBoardSpec.markSize(pitchN10, 10) >= TangoBoardSpec.markHeightFloor)
     }
 
     /** The smallest solid glyph ink, the sun disc, clears the floor at every size (n10: 0.66 × 32.8 × 0.64 = 13.9 dp). */
@@ -67,7 +49,7 @@ class TangoBoardSpecTest {
     fun `glyph ink clears the legibility floor at every size`() {
         for (n in TangoDraft.SIZES) {
             val disc = TangoBoardSpec.glyphSize(board328 / n, n) * TangoBoardSpec.sunDiscFraction
-            assertTrue("n=$n sun disc was $disc", disc >= TangoBoardSpec.markHeightFloor)
+            assertTrue("n=$n sun disc was $disc", disc >= TangoBoardSpec.glyphInkFloor)
         }
         assertEquals(21.6f, TangoBoardSpec.glyphSize(pitchN10, 10).value, 0.05f)
         assertEquals(13.9f, (TangoBoardSpec.glyphSize(pitchN10, 10) * TangoBoardSpec.sunDiscFraction).value, 0.05f)
