@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -71,6 +72,7 @@ private const val CHIP_POP_FROM_SCALE = 0.85f
 /**
  * One friend's puzzle: game glyph and name, its title over "by <author>", and its status chip;
  * the whole card is the target. A long press offers Remove ([onRemove]) in a menu at the card.
+ * [fillWidth] stretches the card to its parent instead of the carousel's fixed width.
  */
 @Composable
 internal fun FriendCard(
@@ -79,6 +81,7 @@ internal fun FriendCard(
     onClick: () -> Unit,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
+    fillWidth: Boolean = false,
 ) {
     val code = card.row.code.value
     val haptics = LocalHapticFeedback.current
@@ -88,7 +91,7 @@ internal fun FriendCard(
             shape = AppShapes.large,
             color = MaterialTheme.colorScheme.surfaceContainerLow,
             modifier = Modifier
-                .width(CardWidth)
+                .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier.width(CardWidth))
                 .clip(AppShapes.large)
                 .combinedClickable(
                     onClick = onClick,
