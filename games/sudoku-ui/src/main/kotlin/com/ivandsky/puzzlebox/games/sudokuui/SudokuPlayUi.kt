@@ -10,6 +10,8 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
+import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import com.ivandsky.puzzlebox.games.sudoku.SudokuDefinition
 import com.ivandsky.puzzlebox.model.GameId
 
@@ -21,10 +23,12 @@ import com.ivandsky.puzzlebox.model.GameId
 class SudokuPlayUi(
     private val definition: SudokuDefinition,
     override val brand: GameBrand = GameBrand.Neutral,
+    private val hintMode: HintModeSource = HintModeSource { HintMode.Legacy },
 ) : GamePlayUi {
     override val gameId: GameId get() = definition.id
 
-    override fun createController(env: PlayEnvironment): GamePlayController = SudokuPlayController(definition, env)
+    override fun createController(env: PlayEnvironment): GamePlayController =
+        SudokuPlayController(definition, env, hintMode = hintMode.current())
 
     override val tutorial: List<TutorialStep> by lazy { sudokuTutorial(definition) }
 
