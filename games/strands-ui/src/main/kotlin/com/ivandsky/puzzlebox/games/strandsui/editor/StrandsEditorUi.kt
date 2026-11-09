@@ -54,7 +54,7 @@ object StrandsEditorUi : GameEditorUi {
         StrandsEditorBoard(controller as StrandsEditorController, modifier, verdict, withTools = layout == PlayLayout.SinglePane)
     }
 
-    /** The tablet's [StrandsAuthoringTools]: spangram toggle, word field and path rows. */
+    /** The tablet's [StrandsAuthoringTools]: word field, spangram toggle and path rows. */
     @Composable
     override fun PaneTools(controller: GameEditorController, modifier: Modifier) {
         StrandsAuthoringTools(controller as StrandsEditorController, modifier)

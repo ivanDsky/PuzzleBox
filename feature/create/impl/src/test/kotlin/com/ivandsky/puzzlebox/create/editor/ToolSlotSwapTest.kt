@@ -220,7 +220,7 @@ class ToolSlotSwapTest {
         val slot = composeRule.onNodeWithTag(TOOL_SLOT).fetchSemanticsNode().boundsInRoot
         val strip = composeRule.onNodeWithTag(STRIP).fetchSemanticsNode().boundsInRoot
         assertTrue("tool slot $slot holds more than the tools $strip", slot.height <= strip.height + 1f)
-        assertTrue("board ${boardBounds()} shorter than with the details $withDetails", boardBounds().height >= withDetails.height)
+        assertTrue("board ${boardBounds()} no taller than with the details $withDetails", boardBounds().height > withDetails.height)
     }
 
     private fun boardBounds(): Rect = composeRule.onNodeWithTag(BOARD).fetchSemanticsNode().boundsInRoot

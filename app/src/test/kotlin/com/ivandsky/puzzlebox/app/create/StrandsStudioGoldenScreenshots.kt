@@ -59,7 +59,7 @@ import java.io.File
 /**
  * The real Strands editor inside the Studio chrome, on a 411 dp phone and the two-pane tablet,
  * light and dark, over a Unique eight-word board whose WINDOW spangram is selected. Authoring:
- * on the tablet the board fills the left pane alone and the spangram toggle, the word field and
+ * on the tablet the board fills the left pane alone and the word field, the spangram toggle and
  * the eight path rows follow the tool strip in the side pane, nothing scrolled (asserted); on the
  * phone they sit under the board. Publish: after a passed test the Route's [ToolSlot] swaps the
  * tools for the details, headed with the Edit board chip, which close with the theme clue and

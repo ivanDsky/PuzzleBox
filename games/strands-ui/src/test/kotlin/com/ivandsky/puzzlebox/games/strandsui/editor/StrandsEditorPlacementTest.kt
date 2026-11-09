@@ -24,7 +24,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Where the authoring controls sit (user F8b): on a phone the spangram toggle, word field and
+ * Where the authoring controls sit (user F8b): on a phone the word field, spangram toggle and
  * path rows follow the board; on a tablet the board is alone and the side pane's
  * [StrandsEditorUi.PaneTools] hold them. The clue and the credit are on neither: they wait for
  * the publish details.

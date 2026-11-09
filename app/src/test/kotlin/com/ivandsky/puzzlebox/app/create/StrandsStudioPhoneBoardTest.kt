@@ -71,6 +71,7 @@ class StrandsStudioPhoneBoardTest {
     val rule = createAndroidComposeRule<ComponentActivity>()
 
     private lateinit var view: View
+    private lateinit var controller: StrandsEditorController
     private var editBoard by mutableStateOf(false)
 
     @Test
@@ -78,6 +79,18 @@ class StrandsStudioPhoneBoardTest {
         show(tested = false)
 
         assertEveryRowInTheSlot()
+        assertWordFieldInTheSlot()
+    }
+
+    @Test
+    fun `a path just traced keeps its word field inside the board slot`() {
+        show(tested = false, traced = StrandsDraft.ROWS - 1)
+        val lastRow = (StrandsDraft.ROWS - 1) * StrandsDraft.COLS until StrandsDraft.ROWS * StrandsDraft.COLS
+        lastRow.forEach { rule.onNodeWithTag("strands.editor.cell.$it").performClick() }
+        rule.onNodeWithTag("strands.editor.cell.${lastRow.last}").performClick()
+        rule.mainClock.advanceTimeBy(SETTLE_MS)
+
+        assertTrue("the traced path is not selected", controller.selectedPath.value != null)
         assertWordFieldInTheSlot()
     }
 
@@ -145,16 +158,17 @@ class StrandsStudioPhoneBoardTest {
         rule.mainClock.advanceTimeBy(SETTLE_MS)
     }
 
-    private fun show(tested: Boolean) {
+    /** The Studio over the [WORDS] board with its first [traced] rows as paths (Unique when all are). */
+    private fun show(tested: Boolean, traced: Int = StrandsDraft.ROWS) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         val letters = WORDS.joinToString("")
-        val paths = WORDS.mapIndexed { row, word -> StrandsDraftPath(List(StrandsDraft.COLS) { row * StrandsDraft.COLS + it }, word) }
+        val paths = WORDS.take(traced).mapIndexed { row, word -> StrandsDraftPath(List(StrandsDraft.COLS) { row * StrandsDraft.COLS + it }, word) }
         val draft = StrandsDraft(letters, CLUE, paths, SPANGRAM)
         val verdict = StrandsDraftAnalyzer.analyze(draft, Budget.Unlimited)
-        assertTrue("expected Unique, got $verdict", verdict is Verdict.Unique)
+        if (traced == StrandsDraft.ROWS) assertTrue("expected Unique, got $verdict", verdict is Verdict.Unique)
         val editorDraft = EditorDraft(StrandsEditor, DraftState(draft))
-        val controller = StrandsEditorController(editorDraft) {}
+        controller = StrandsEditorController(editorDraft) {}
         val passed = TestSolve(editorDraft.layoutKey, timeMs = 42_000, hints = 0).takeIf { tested }
         rule.mainClock.autoAdvance = false
         rule.setContent {

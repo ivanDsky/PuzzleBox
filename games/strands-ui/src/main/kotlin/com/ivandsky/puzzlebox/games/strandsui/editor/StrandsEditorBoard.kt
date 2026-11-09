@@ -88,8 +88,9 @@ internal fun StrandsEditorBoard(
 }
 
 /**
- * The authoring controls under the grid: the selected path's spangram toggle, the word field
- * ([StrandsWordField]), which names the selected path and is off while none is selected, and
+ * The authoring controls under the grid: the word field ([StrandsWordField]), which names the
+ * selected path and is off while none is selected, first, so the selection that turns it on
+ * never pushes it out of view; then the selected path's spangram toggle and
  * [StrandsPathsPanel], one row per path.
  */
 @Composable
@@ -98,6 +99,7 @@ internal fun StrandsAuthoringTools(controller: StrandsEditorController, modifier
     val selected by controller.selectedPath.collectAsState()
     val board = draft.state.draft as StrandsDraft
     Column(modifier) {
+        StrandsWordField(controller)
         selected?.let { index ->
             StrandsSpangramToggle(
                 index = index,
@@ -106,7 +108,6 @@ internal fun StrandsAuthoringTools(controller: StrandsEditorController, modifier
                 modifier = Modifier.padding(top = Spacing.sm),
             )
         }
-        StrandsWordField(controller)
         StrandsPathsPanel(
             board = board,
             selected = selected,
