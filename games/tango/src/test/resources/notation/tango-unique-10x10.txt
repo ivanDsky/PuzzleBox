@@ -1,0 +1,30 @@
+# verdict: unique
+puzzlebox tango v1
+...S..M..S
+.M..SS....
+.........M
+M.....M...
+...S....SS
+..........
+SS...M....
+S.S.......
+....M..M..
+..M.......
+x 2,6 right
+x 3,2 right
+= 3,8 down
+= 4,6 down
+= 5,2 right
+x 5,7 down
+= 5,8 down
+x 6,2 down
+= 6,3 right
+x 6,8 right
+= 6,9 right
+x 7,4 right
+x 8,2 down
+x 8,4 down
+= 8,9 right
+x 9,6 right
+x 9,8 down
+x 10,5 right

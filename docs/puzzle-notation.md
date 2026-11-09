@@ -189,10 +189,44 @@ path 1,1 1,2 1,3 1,4 1,5 1,6 2,6 2,5 2,4 2,3 2,2 2,1 3,1 3,2 3,3 3,4 3,5 3,6 4,6
 
 ## Tango (`tango`)
 
-The body is 6 rows of 6 characters: `S` (sun), `M` (moon) or `.` (empty). No spaces inside a row.
+The body is n rows of n characters: `S` (sun), `M` (moon) or `.` (empty). No spaces inside a row.
+The first row's width sets n, and n must be 4, 6, 8 or 10. A first row of any other width is an
+error on that row, at column 1: `board is 5 wide; Tango sizes are 4, 6, 8, 10`. Every later row
+must then have n cells too (`row 3 has 7 cells, expected 8`), and there must be n rows
+(`board is 7 rows; expected 8`). The header stays `v1` at every size, so a 6×6 text reads the
+same in every build. An older build that reads only 6×6 answers 8×8 text with
+`row 1 has 8 cells, expected 6`.
+
 After the rows, each marker is one line: `= r,c right|down` for two cells that must match, or
 `x r,c right|down` for two cells that must differ. The marker sits on the right or bottom edge of
-cell `r,c`. A border edge is an error, and so is a second marker on one edge.
+cell `r,c`, with `r` and `c` from 1 to n. A border edge is an error, and so is a second marker on
+one edge.
+
+The app and `puzzle-cli` offer 6×6 only for now. Until the editor offers the other sizes, a 4×4,
+8×8 or 10×10 text parses but is answered `unsupported size`. A unique 8×8 board:
+
+```text
+puzzlebox tango v1
+.....S..
+...S..S.
+S.......
+...M....
+S....S..
+...S...M
+........
+..M...M.
+= 1,2 down
+x 2,5 right
+x 3,3 down
+= 5,2 down
+= 5,6 down
+= 5,7 down
+x 6,2 right
+x 6,3 right
+x 7,4 right
+x 8,4 right
+x 8,7 right
+```
 
 A unique board that the hint ladder can finish. It is rated `hard` and has no blocks:
 
