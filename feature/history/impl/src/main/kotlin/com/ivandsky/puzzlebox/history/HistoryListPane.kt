@@ -45,7 +45,7 @@ internal fun ListPane(
     onSelectDay: (LocalDate?) -> Unit,
     selectedKey: String?,
     onDayClick: (HistoryDayRow) -> Unit,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     cardColor: Color,
     modifier: Modifier = Modifier,
 ) {
@@ -60,13 +60,18 @@ internal fun ListPane(
         item(key = "top") {
             CompactTopBar(
                 title = "History",
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = PuzzleIcons.Back,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                // A tab root has nothing to go back to: no arrow.
+                navigationIcon = if (onBack == null) {
+                    null
+                } else {
+                    {
+                        IconButton(onClick = onBack, modifier = Modifier.testTag("history.back")) {
+                            Icon(
+                                imageVector = PuzzleIcons.Back,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 },
             )

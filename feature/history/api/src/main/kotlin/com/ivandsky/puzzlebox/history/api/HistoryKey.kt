@@ -17,4 +17,5 @@ data class HistoryKey(val gameId: String? = null) : NavKey
 /** Registers History's keys for back-stack saved state. */
 fun PolymorphicModuleBuilder<NavKey>.historyNavKeys() {
     subclass(HistoryKey::class, HistoryKey.serializer())
+    subclass(HistoryRootKey::class, HistoryRootKey.serializer())
 }

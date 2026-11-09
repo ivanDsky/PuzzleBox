@@ -24,7 +24,7 @@ import org.koin.androidx.compose.koinViewModel
 fun HistoryRoute(
     key: HistoryKey,
     layout: HistoryLayout,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onReplay: (GameId, LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HistoryViewModel = koinViewModel(key = key.toString()),

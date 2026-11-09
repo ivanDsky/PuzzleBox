@@ -79,6 +79,7 @@ class HistoryScreenTest {
         cached: Map<Pair<GameId, LocalDate>, Puzzle> = emptyMap(),
         key: HistoryKey = HistoryKey(),
         hintsRanked: Set<GameId> = emptySet(),
+        onBack: (() -> Unit)? = {},
     ) {
         handedToShell = null
         shellBacks = 0
@@ -96,7 +97,7 @@ class HistoryScreenTest {
                 HistoryRoute(
                     key = key,
                     layout = layout,
-                    onBack = {},
+                    onBack = onBack,
                     onReplay = { game, replayed -> handedToShell = game to replayed },
                     viewModel = viewModel,
                 )
@@ -323,6 +324,26 @@ class HistoryScreenTest {
         awaitTag("history.best.zip/$fewestHints")
         awaitRow(ZIP, quicker)
         assertNoTag("history.best.zip/$quicker")
+    }
+
+    @Test
+    fun `a tab root has no back control`() {
+        setContent(onBack = null)
+
+        awaitTag("history.list")
+        assertNoTag("history.back")
+    }
+
+    @Test
+    fun `a pushed history shows the back control and tapping it goes back once`() {
+        var backs = 0
+        setContent(onBack = { backs++ })
+
+        awaitTag("history.back")
+        composeRule.onNodeWithTag("history.back", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(1, backs)
     }
 
     @Test
