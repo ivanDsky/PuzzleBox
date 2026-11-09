@@ -107,14 +107,16 @@ internal fun DrawScope.drawX(color: Color, weightPx: Float, lengthFraction: Floa
 }
 
 /** Crown silhouette, single path: three points + band base, height = fraction of cell.
- *  [style] Fill is a placed queen; a dashed Stroke is the ghost, "a queen goes here". */
-internal fun DrawScope.drawQueen(color: Color, heightFraction: Float, alpha: Float, style: DrawStyle = Fill) {
+ *  [style] Fill is a placed queen; a dashed Stroke is the ghost, "a queen goes here".
+ *  [path] is the caller's scratch, rewound on every draw and held across them so a redrawing caller allocates it once. */
+internal fun DrawScope.drawQueen(color: Color, heightFraction: Float, alpha: Float, path: Path, style: DrawStyle = Fill) {
     val h = size.minDimension * heightFraction
     val w = h * 1.15f
     val left = (size.width - w) / 2f
     val top = (size.height - h) / 2f
     val band = h * 0.16f
-    val path = Path().apply {
+    path.apply {
+        rewind()
         moveTo(left, top + h * 0.62f) // left base of crown body
         lineTo(left, top + h * 0.18f)
         lineTo(left + w * 0.26f, top + h * 0.42f) // left valley

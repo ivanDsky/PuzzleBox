@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -113,6 +114,7 @@ internal fun QueensClashWash(idx: Int, diagnostics: QueensDiagnostics, reducedMo
 @Composable
 internal fun QueensCellDiagnostics(idx: Int, diagnostics: QueensDiagnostics, reducedMotion: Boolean) {
     val tokens = LocalBoardColors.current
+    val crownPath = remember { Path() }
     if (idx in diagnostics.split) {
         val scrim = MaterialTheme.colorScheme.scrim
         Canvas(Modifier.fillMaxSize().testTag("queens.editor.cell.$idx.split")) {
@@ -132,7 +134,7 @@ internal fun QueensCellDiagnostics(idx: Int, diagnostics: QueensDiagnostics, red
     }
     if (idx in diagnostics.witness) {
         FadingMark("queens.editor.cell.$idx.witness", reducedMotion) {
-            drawQueen(tokens.editorDiffRing, QueensBoardDefaults.queenHeightFraction, alpha = 1f)
+            drawQueen(tokens.editorDiffRing, QueensBoardDefaults.queenHeightFraction, alpha = 1f, path = crownPath)
         }
     }
     QueensGhostLayer(idx, idx in diagnostics.ghosts, reducedMotion)
