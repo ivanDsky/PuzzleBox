@@ -20,10 +20,10 @@ tutorial-3 1 SSMMMMSSSMSMMSMS
 n10-hard-seed26.bin 1 SMSSMMSSMMSMSMMSMMSSMSMMSMSSMSMMSSMSMSSMSSMMSSMMSMSMMSSMSMMSMSSMMSMSSMSSMSMSMMSMMMSMSMSSMSMSMSSMSMMS
 parity-n4 0 -
 parity-n6 0 -
-odd-n3-full 1 -
-clash-full-triple 1 SSSSMMSSMSMMMMSMSSSSMMSMMMSSMSMMSMSS
-clash-marker-on-givens 1 SSMSMMSSMSMMMMSMSSSSMMSMMMSSMSMMSMSS
-clash-row-triple 2 -
+odd-n3-full 0 -
+clash-full-triple 0 -
+clash-marker-on-givens 0 -
+clash-row-triple 0 -
 odd-n5-empty 0 -
 gen-n6-s10-min-99d538d0 1 SMMSMSMMSMSSSSMMSMSMSSMMMSMSMSMSSMSM
 gen-n6-s10-mult-6e42423d 2 -
