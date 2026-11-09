@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,7 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -40,7 +39,6 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.friend.EnterCodeSheet
 import java.time.LocalDate
 import java.time.YearMonth
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 
@@ -54,8 +52,8 @@ import org.koin.compose.koinInject
  * today's uncached puzzles ([LibraryViewModel.syncToday], A12). "Open the lesson" runs
  * the game's tutorial over the library. The header's Enter code opens the code sheet, whose
  * Open is [onOpenCode]. A From friends card's Remove shows "Removed <code>" with Undo. A
- * [codeDraft] opens
- * the sheet with that text already in the field, then is taken ([onCodeDraftTaken]).
+ * [codeDraft] opens the sheet with that text already in the field, then is taken
+ * ([onCodeDraftTaken]); a [request] opens a game's page or a tab, then is taken ([onRequestTaken]).
  */
 @Composable
 internal fun LibraryRoute(
@@ -67,6 +65,8 @@ internal fun LibraryRoute(
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
     onOpenDuel: ((DuelKey) -> Unit)? = null,
+    request: LibraryRequest? = null,
+    onRequestTaken: () -> Unit = {},
 ) {
     val viewModel: LibraryViewModel = koinViewModel()
     val registry: GamePlayRegistry = koinInject()
@@ -113,6 +113,8 @@ internal fun LibraryRoute(
             onRemoveFriend = viewModel::removeFriend,
             duels = duels,
             onOpenDuel = onOpenDuel,
+            request = request,
+            onRequestTaken = onRequestTaken,
         )
         FriendRemovedSnackbar(removedFriend, onUndo = viewModel::undoRemoveFriend, modifier = Modifier.align(Alignment.BottomCenter))
         if (enteringCode) {
@@ -145,13 +147,6 @@ internal fun LibraryRoute(
     }
 }
 
-/** The calendar's callbacks: page a month, pick the day card's day, return to today. */
-internal class CalendarActions(
-    val onShowMonth: (YearMonth) -> Unit = {},
-    val onPick: (LocalDate) -> Unit = {},
-    val onBackToToday: () -> Unit = {},
-)
-
 /**
  * The library for [state]: list and page side by side, or the phone's list → page push.
  * [page] is the selected game's calendar and [month] the one it asked for (null = today's);
@@ -159,7 +154,8 @@ internal class CalendarActions(
  * only with an [onEnterCode]. [friends] heads the list as From friends, each card opening its
  * puzzle through [onOpenFriend] and removing it through [onRemoveFriend]. A [duels] slot turns
  * the list into the Dailies, Friends and Duels tabs (the tab is saved here, so it survives a
- * page push); [onOpenDuel] is carried for Enter code and unused here.
+ * page push); [onOpenDuel] is carried for Enter code and unused here. A [request] acts once
+ * ([ConsumeLibraryRequest]; a section needs [duels]) and is reported taken ([onRequestTaken]).
  */
 @Composable
 internal fun LibraryScreen(
@@ -180,6 +176,8 @@ internal fun LibraryScreen(
     onRemoveFriend: (ShareCode) -> Unit = {},
     duels: DuelsSlot? = null,
     onOpenDuel: ((DuelKey) -> Unit)? = null,
+    request: LibraryRequest? = null,
+    onRequestTaken: () -> Unit = {},
 ) {
     val listScroll = rememberScrollState()
     val enterCode: @Composable () -> Unit = {
@@ -193,62 +191,29 @@ internal fun LibraryScreen(
         }
     }
     @Composable
-    fun Page(row: LibraryRowModel, onBack: (() -> Unit)?) {
-        val game = row.card.game
-        val shown = page?.takeIf { it.game == game }
-        val past = shown?.picked
-        // This game's source, not the library's: another game's failed today says nothing about it.
-        val unreachable = row.card.status == TodayStatus.Offline
-        val scroll = rememberScrollState()
-        val scope = rememberCoroutineScope()
-        val reduced = rememberReducedMotion()
-        GamePage(
-            row = row,
-            layout = layout,
-            dayCard = {
-                ArchiveDayCard(
-                    row = row,
-                    today = row.progress?.range?.endInclusive,
-                    past = past,
-                    offline = unreachable,
-                    onPlay = { onPlay(game, past?.date) },
-                    onRetry = onRetry,
-                    onBackToToday = calendar.onBackToToday,
-                )
-            },
-            calendar = {
-                val range = row.progress?.range
-                if (range != null) {
-                    val shownMonth = month ?: YearMonth.from(range.endInclusive)
-                    ArchiveMonthCalendar(
-                        range = range,
-                        month = shownMonth,
-                        // Until the month's days load, its discs draw as outside rather than the old month's.
-                        days = shown?.takeIf { it.month == shownMonth }?.days.orEmpty(),
-                        picked = past?.date,
-                        offline = unreachable,
-                        accent = libraryCardColors(row.card.brand).fill,
-                        compact = layout == PlayLayout.SinglePane,
-                        onMonth = calendar.onShowMonth,
-                        onPick = { day ->
-                            calendar.onPick(day)
-                            if (layout == PlayLayout.SinglePane) {
-                                scope.launch { if (reduced) scroll.scrollTo(0) else scroll.animateScrollTo(0) }
-                            }
-                        },
-                        modifier = if (layout == PlayLayout.TwoPane) Modifier.fillMaxHeight() else Modifier,
-                    )
-                }
-            },
-            onBack = onBack,
-            onOpenLesson = { onOpenLesson(game) },
-            offline = state.offline,
-            hasLesson = hasLesson(game),
-            scroll = scroll,
-        )
-    }
+    fun Page(row: LibraryRowModel, onBack: (() -> Unit)?) = LibraryGamePage(
+        row, page, month, layout, calendar, onPlay, onRetry, onOpenLesson, onBack,
+        offline = state.offline, hasLesson = hasLesson(row.card.game),
+    )
     val selected = state.rows.firstOrNull { it.card.game == state.selected } ?: state.rows.firstOrNull()
     var tab by rememberSaveable { mutableStateOf(GamesTab.Dailies) }
+    var pageOpen by rememberSaveable { mutableStateOf(false) }
+    ConsumeLibraryRequest(
+        request = request,
+        rows = remember(state.rows) { state.rows.map { it.card.game } },
+        onGamePage = { game ->
+            onRow(game)
+            tab = GamesTab.Dailies
+            if (layout == PlayLayout.SinglePane) pageOpen = true
+        },
+        onSection = { next ->
+            if (duels != null) {
+                tab = next
+                pageOpen = false
+            }
+        },
+        onTaken = onRequestTaken,
+    )
     val friendsTab: @Composable () -> Unit = { FriendsTabBody(friends, onOpenFriend, onRemoveFriend, onEnterCode ?: {}) }
     @Composable
     fun GamesList(onRow: (GameId) -> Unit, modifier: Modifier = Modifier) = LibraryList(
@@ -266,7 +231,6 @@ internal fun LibraryScreen(
             }
         }
     } else {
-        var pageOpen by rememberSaveable { mutableStateOf(false) }
         BackHandler(enabled = pageOpen) { pageOpen = false }
         val reduced = rememberReducedMotion()
         AnimatedContent(
