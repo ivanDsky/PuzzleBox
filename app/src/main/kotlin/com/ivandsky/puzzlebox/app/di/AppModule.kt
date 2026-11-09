@@ -5,6 +5,9 @@ import com.ivandsky.puzzlebox.app.buildTypeUnlistedGames
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.HintParity
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
@@ -19,6 +22,8 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
+import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
@@ -77,6 +82,17 @@ val appModule = module {
         val context = androidContext()
         val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
         AppBuild(versionName = packageInfo.versionName.orEmpty(), checksForUpdates = buildTypeChecksForUpdates)
+    }
+    // The HintParity flag as game controllers see it (spec A20): read inside current(), so each
+    // controller's one call at creation picks up a debug override. UI modules never read the flag.
+    single<HintModeSource> {
+        HintModeSource {
+            if (get<ReleaseFlags>().isEnabled(HintParity)) {
+                HintMode.Stepwise(get<DispatcherProvider>().default)
+            } else {
+                HintMode.Legacy
+            }
+        }
     }
 }
 
