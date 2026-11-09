@@ -20,7 +20,19 @@ object PigeonholeRung : QueensRung {
     override val level: Difficulty.Level = Difficulty.Level.Hard
     override val captionKey: String = "queens.hint.rung.pigeonhole"
 
-    override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? {
+    override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
+        proofs(puzzle, candidates).sortedWith(order(puzzle)).asSequence()
+
+    override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
+        proofs(puzzle, candidates).minWithOrNull(order(puzzle))?.deduction
+
+    private fun order(puzzle: QueensPuzzle): Comparator<QueensProof> = compareBy(
+        { proof -> (proof.deduction as QueensDeduction.Exclude).cells.minOf(puzzle.regions::get) },
+        { (it.deduction as QueensDeduction.Exclude).cells.min() },
+        { it.deduction.unit.kind },
+    )
+
+    private fun proofs(puzzle: QueensPuzzle, candidates: QueensCandidates): List<QueensProof> {
         val n = puzzle.size
         val rows = List(n) { row -> List(n) { row * n + it } }
         val cols = List(n) { col -> List(n) { it * n + col } }
@@ -30,9 +42,7 @@ object PigeonholeRung : QueensRung {
                 confined(puzzle, candidates, regions, cols, { it % n }, HintReason.Kind.COLUMN) +
                 confined(puzzle, candidates, rows, regions, puzzle.regions::get, HintReason.Kind.REGION) +
                 confined(puzzle, candidates, cols, regions, puzzle.regions::get, HintReason.Kind.REGION)
-        return confinements.minWithOrNull(
-            compareBy({ it.cells.minOf(puzzle.regions::get) }, { it.cells.min() }, { it.unit.kind }),
-        )
+        return confinements
     }
 
     /**
@@ -47,11 +57,11 @@ object PigeonholeRung : QueensRung {
         targets: List<List<Int>>,
         targetOf: (Int) -> Int,
         kind: HintReason.Kind,
-    ): List<QueensDeduction.Exclude> {
+    ): List<QueensProof> {
         fun missing(unit: List<Int>): Int = puzzle.queensPerUnit - unit.count { it in candidates.queens }
         val open = groups.filter { missing(it) > 0 }
         val total = open.sumOf(::missing)
-        val found = ArrayList<QueensDeduction.Exclude>()
+        val found = ArrayList<QueensProof>()
         for (mask in 1 until (1 shl open.size)) {
             if (Integer.bitCount(mask) < 2) continue
             val chosen = open.filterIndexed { i, _ -> mask and (1 shl i) != 0 }
@@ -61,7 +71,10 @@ object PigeonholeRung : QueensRung {
             val lines = inside.filter(candidates::isOpen).map(targetOf).toSortedSet()
             if (lines.sumOf { missing(targets[it]) } != need) continue
             val cells = lines.flatMap { targets[it] }.filter { candidates.isOpen(it) && it !in inside }.toSet()
-            if (cells.isNotEmpty()) found += QueensDeduction.Exclude(this, HintReason(kind, lines.first(), this), cells)
+            if (cells.isNotEmpty()) {
+                val deduction = QueensDeduction.Exclude(this, HintReason(kind, lines.first(), this), cells)
+                found += QueensProof(deduction, chosen.flatten().filter(candidates::isOpen).toSet())
+            }
         }
         return found
     }

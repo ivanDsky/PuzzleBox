@@ -20,17 +20,29 @@ object LineLockRung : QueensRung {
     override val level: Difficulty.Level = Difficulty.Level.Medium
     override val captionKey: String = "queens.hint.rung.line-lock"
 
-    override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? {
+    override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
+        proofs(puzzle, candidates).sortedWith(order(puzzle)).asSequence()
+
+    override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
+        proofs(puzzle, candidates).minWithOrNull(order(puzzle))?.deduction
+
+    private fun order(puzzle: QueensPuzzle): Comparator<QueensProof> = compareBy(
+        { proof -> (proof.deduction as QueensDeduction.Exclude).cells.minOf { puzzle.regions[it] } },
+        { (it.deduction as QueensDeduction.Exclude).cells.min() },
+        { it.deduction.unit.kind },
+    )
+
+    private fun proofs(puzzle: QueensPuzzle, candidates: QueensCandidates): List<QueensProof> {
         val n = puzzle.size
         val regions = List(n) { region -> puzzle.regions.indices.filter { puzzle.regions[it] == region } }
         fun missing(cells: List<Int>): Int = puzzle.queensPerUnit - cells.count { it in candidates.queens }
 
-        val found = ArrayList<QueensDeduction.Exclude>()
+        val found = ArrayList<QueensProof>()
         for (kind in listOf(HintReason.Kind.ROW, HintReason.Kind.COLUMN)) {
             val lineOf: (Int) -> Int = if (kind == HintReason.Kind.ROW) { cell -> cell / n } else { cell -> cell % n }
             val lines = List(n) { line -> (0 until n * n).filter { lineOf(it) == line } }
-            fun lock(line: Int, cells: Set<Int>) {
-                if (cells.isNotEmpty()) found += QueensDeduction.Exclude(this, HintReason(kind, line, this), cells)
+            fun lock(line: Int, cells: Set<Int>, evidence: List<Int>) {
+                if (cells.isNotEmpty()) found += QueensProof(QueensDeduction.Exclude(this, HintReason(kind, line, this), cells), evidence.toSet())
             }
             // A region locked into one line closes the rest of that line …
             regions.forEachIndexed { region, cells ->
@@ -38,7 +50,7 @@ object LineLockRung : QueensRung {
                 val line = open.map(lineOf).distinct().singleOrNull() ?: return@forEachIndexed
                 val need = missing(cells)
                 if (need > 0 && open.size > need && missing(lines[line]) == need) {
-                    lock(line, lines[line].filter { candidates.isOpen(it) && puzzle.regions[it] != region }.toSet())
+                    lock(line, lines[line].filter { candidates.isOpen(it) && puzzle.regions[it] != region }.toSet(), open)
                 }
             }
             // … and a line locked into one region closes the rest of that region.
@@ -47,12 +59,10 @@ object LineLockRung : QueensRung {
                 val region = open.map { puzzle.regions[it] }.distinct().singleOrNull() ?: return@forEachIndexed
                 val need = missing(cells)
                 if (need > 0 && open.size > need && missing(regions[region]) == need) {
-                    lock(line, regions[region].filter { candidates.isOpen(it) && lineOf(it) != line }.toSet())
+                    lock(line, regions[region].filter { candidates.isOpen(it) && lineOf(it) != line }.toSet(), open)
                 }
             }
         }
-        return found.minWithOrNull(
-            compareBy({ it.cells.minOf { cell -> puzzle.regions[cell] } }, { it.cells.min() }, { it.unit.kind }),
-        )
+        return found
     }
 }

@@ -16,17 +16,27 @@ object SinglesRung : QueensRung {
     override val level: Difficulty.Level = Difficulty.Level.Easy
     override val captionKey: String = "queens.hint.rung.singles"
 
-    override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? {
+    override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
+        proofs(puzzle, candidates).sortedWith(order(puzzle)).asSequence()
+
+    override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
+        proofs(puzzle, candidates).minWithOrNull(order(puzzle))?.deduction
+
+    private fun order(puzzle: QueensPuzzle): Comparator<QueensProof> = compareBy(
+        { puzzle.regions[(it.deduction as QueensDeduction.Place).cell] },
+        { (it.deduction as QueensDeduction.Place).cell },
+        { it.deduction.unit.kind },
+    )
+
+    private fun proofs(puzzle: QueensPuzzle, candidates: QueensCandidates): List<QueensProof> {
         val n = puzzle.size
         val units = List(n) { row -> HintReason(HintReason.Kind.ROW, row) to List(n) { row * n + it } } +
             List(n) { col -> HintReason(HintReason.Kind.COLUMN, col) to List(n) { it * n + col } } +
             List(n) { region -> HintReason(HintReason.Kind.REGION, region) to puzzle.regions.indices.filter { puzzle.regions[it] == region } }
-        return units
-            .mapNotNull { (unit, cells) ->
-                val missing = puzzle.queensPerUnit - cells.count { it in candidates.queens }
-                val open = cells.filter(candidates::isOpen)
-                if (missing > 0 && open.size == missing) QueensDeduction.Place(this, unit, open.first()) else null
-            }
-            .minWithOrNull(compareBy({ puzzle.regions[it.cell] }, { it.cell }, { it.unit.kind }))
+        return units.mapNotNull { (unit, cells) ->
+            val missing = puzzle.queensPerUnit - cells.count { it in candidates.queens }
+            val open = cells.filter(candidates::isOpen)
+            if (missing > 0 && open.size == missing) QueensProof(QueensDeduction.Place(this, unit, open.first()), cells.toSet()) else null
+        }
     }
 }
