@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.games.sudoku.UnitKind
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHint
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuTechnique
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStep
+import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.emittedEliminationTechniques
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -48,14 +49,10 @@ class SudokuStepCopyTest {
             SudokuStep.Single(place(2, 4, technique, unit), null, setOf(0, 1))
         }
         val struck = mapOf(45 to bit(1), 46 to bit(1))
-        val eliminations = listOf(SudokuTechnique.POINTING, SudokuTechnique.CLAIMING, SudokuTechnique.NAKED_PAIR, SudokuTechnique.HIDDEN_PAIR)
+        val eliminations = emittedEliminationTechniques
             .associate { technique ->
                 val unit = if (technique == SudokuTechnique.POINTING) box0 else col3
-                val group = when (technique) {
-                    SudokuTechnique.POINTING, SudokuTechnique.CLAIMING -> bit(1)
-                    SudokuTechnique.NAKED_PAIR, SudokuTechnique.HIDDEN_PAIR -> bit(7) or bit(8)
-                    else -> error("not emitted: $technique")
-                }
+                val group = if (technique == SudokuTechnique.POINTING || technique == SudokuTechnique.CLAIMING) bit(1) else bit(7) or bit(8)
                 "$technique" to SudokuStep.Elimination(technique, unit, group, if (technique == SudokuTechnique.POINTING || technique == SudokuTechnique.CLAIMING) struck else mapOf(9 to bit(7)), setOf(2, 3))
             }
         return mapOf(
@@ -72,7 +69,6 @@ class SudokuStepCopyTest {
     @Test
     fun `every technique and the last cell has copy`() {
         val steps = everyStep()
-        for (technique in setOf(SudokuTechnique.POINTING, SudokuTechnique.CLAIMING, SudokuTechnique.NAKED_PAIR, SudokuTechnique.HIDDEN_PAIR)) assertTrue("$technique has a step", technique.name in steps)
         for ((name, step) in steps) assertFalse("$name has text", text(step).isBlank())
     }
 
