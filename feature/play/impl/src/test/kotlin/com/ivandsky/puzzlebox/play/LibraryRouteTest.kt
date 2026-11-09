@@ -1,6 +1,14 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
+import com.ivandsky.puzzlebox.designsystem.LocalShellActions
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
@@ -141,10 +149,12 @@ class LibraryRouteTest {
         koin?.close()
     }
 
-    private fun setContent(layout: PlayLayout) {
+    private fun setContent(layout: PlayLayout, shell: (@Composable RowScope.() -> Unit)? = null) {
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false) {
-                LibraryRoute(layout = layout, onPlay = { game, day -> played.add(game to day) }, onOpenCode = {})
+            CompositionLocalProvider(LocalShellActions provides (shell ?: {})) {
+                PuzzleBoxTheme(darkTheme = false) {
+                    LibraryRoute(layout = layout, onPlay = { game, day -> played.add(game to day) }, onOpenCode = {})
+                }
             }
         }
     }
@@ -360,5 +370,34 @@ class LibraryRouteTest {
         awaitTag("library.day_card.day.$yesterday")
         tap("library.play")
         assertEquals(listOf(zip to yesterday), played)
+    }
+
+    @Test
+    fun `the phone draws the shell actions once on the list and once on an open page`() {
+        setContent(PlayLayout.SinglePane, shell = shellAction)
+        awaitTag("library.list")
+        assertShellCount(1)
+
+        tap("library.row.alpha")
+        awaitTag("library.page.alpha")
+        composeRule.onNodeWithTag("library.list").assertDoesNotExist()
+        assertShellCount(1)
+    }
+
+    @Test
+    fun `the tablet draws the shell actions once, on the list, and none on the page`() {
+        setContent(PlayLayout.TwoPane, shell = shellAction)
+        awaitTag("library.page.zip")
+        assertShellCount(1)
+
+        tap("library.row.alpha")
+        awaitTag("library.page.alpha")
+        assertShellCount(1)
+    }
+
+    private val shellAction: @Composable RowScope.() -> Unit = { Box(Modifier.testTag("test.shellAction")) }
+
+    private fun assertShellCount(count: Int) {
+        composeRule.onAllNodesWithTag("test.shellAction", useUnmergedTree = true).assertCountEquals(count)
     }
 }
