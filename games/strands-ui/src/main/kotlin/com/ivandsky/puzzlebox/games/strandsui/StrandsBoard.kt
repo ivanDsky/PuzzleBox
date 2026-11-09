@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.strandsui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -75,6 +76,8 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
  * whole width being its touch area. [found] is the word just found, whose letters settle or
  * sweep. [trace] is never read here: each letter derives its own place in it and the trace
  * connector reads it while drawing, so a trace step recomposes only the letters it changes.
+ * [tiles] draws first in the board's underlay, under every connector and letter (the
+ * editor's empty tiles), so the live line is never covered.
  */
 @Composable
 internal fun StrandsBoardContent(
@@ -84,6 +87,7 @@ internal fun StrandsBoardContent(
     trace: () -> Trace,
     onTrace: (TraceStep) -> Unit,
     traceEnd: () -> TraceEnd? = { null },
+    tiles: @Composable BoxScope.() -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalBoardColors.current
@@ -113,6 +117,7 @@ internal fun StrandsBoardContent(
                 // Strands has no grid: the letters float on the bare board.
                 colors = colors.copy(boardGridLine = Color.Transparent),
                 underlay = {
+                    tiles()
                     StrandsConnectors(model.rows, model.cols, model.links, trace, colors, { finger.value }, foundLetter, animate = !reduceMotion)
                     StrandsTraceEndConnector(model.rows, model.cols, { end.value }, colors)
                 },
