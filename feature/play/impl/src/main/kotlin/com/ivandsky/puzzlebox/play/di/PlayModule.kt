@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.GameViewModel
 import com.ivandsky.puzzlebox.play.LibraryViewModel
+import com.ivandsky.puzzlebox.play.MatchLegResultViewModel
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.PlayStatsViewModel
 import com.ivandsky.puzzlebox.play.ResultViewModel
@@ -14,6 +15,7 @@ import com.ivandsky.puzzlebox.play.SlotOpening
 import com.ivandsky.puzzlebox.play.SlotWriter
 import com.ivandsky.puzzlebox.play.WriteLane
 import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -85,5 +87,8 @@ val playModule = module {
             posts = get(),
             board = get(),
         )
+    }
+    viewModel { (key: MatchLegResultKey) ->
+        MatchLegResultViewModel(key = key, store = get(), observeMatch = get(), games = get(), ui = get())
     }
 }
