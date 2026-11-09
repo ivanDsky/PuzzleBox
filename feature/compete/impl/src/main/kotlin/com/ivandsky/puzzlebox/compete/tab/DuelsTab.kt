@@ -39,6 +39,7 @@ fun DuelsTab(
     DuelsTabContent(
         rows = state.value.rows,
         signedIn = state.value.signedIn,
+        inviter = state.value.inviter,
         // Read only inside each row's time-left text, so the minute tick redraws that text and nothing else.
         now = { state.value.now },
         onNewDuel = { newDuelOpen = true },
@@ -46,8 +47,7 @@ fun DuelsTab(
         onOpenReveal = onOpenReveal,
         modifier = modifier,
     )
-    // The created duel's code is dropped here for now: the share sheet (ticket 39) takes it from this callback.
-    if (newDuelOpen) NewDuelSheet(onDismiss = { newDuelOpen = false }, onCreated = { newDuelOpen = false })
+    if (newDuelOpen) NewDuelSheet(inviter = state.value.inviter, onDismiss = { newDuelOpen = false })
 }
 
 /** The stateless tab: [rows] and [signedIn] in, taps out; [now] is read only by the time-left text. */
@@ -55,6 +55,7 @@ fun DuelsTab(
 internal fun DuelsTabContent(
     rows: List<DuelRow>,
     signedIn: Boolean,
+    inviter: String?,
     now: () -> Instant,
     onNewDuel: () -> Unit,
     onOpenDuel: (DuelKey) -> Unit,
@@ -71,7 +72,7 @@ internal fun DuelsTabContent(
             val open = { onOpenDuel(DuelKey(row.code.value)) }
             when (row.kind) {
                 DuelRowKind.Invited -> InvitedRow(row, onClick = open)
-                DuelRowKind.Unclaimed -> UnclaimedRow(row, onClick = open)
+                DuelRowKind.Unclaimed -> UnclaimedRow(row, inviter, onClick = open)
                 DuelRowKind.RevealReady ->
                     DuelCard(row, now, onClick = { onOpenReveal(DuelRevealKey(row.code.value)) })
                 DuelRowKind.YourMove, DuelRowKind.Waiting -> DuelCard(row, now, onClick = open)

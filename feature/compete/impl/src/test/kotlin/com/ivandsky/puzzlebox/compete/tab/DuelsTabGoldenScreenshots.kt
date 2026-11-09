@@ -82,6 +82,7 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
                 DuelsTabContent(
                     rows = state.rows,
                     signedIn = state.signedIn,
+                    inviter = state.inviter,
                     now = { state.now },
                     onNewDuel = {},
                     onOpenDuel = {},
@@ -107,7 +108,7 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
             deadline = NOW + left,
         )
 
-        val EMPTY = DuelsTabState(rows = emptyList(), signedIn = true, now = NOW)
+        val EMPTY = DuelsTabState(rows = emptyList(), signedIn = true, now = NOW, inviter = "Ivan")
 
         val POPULATED = EMPTY.copy(
             rows = listOf(

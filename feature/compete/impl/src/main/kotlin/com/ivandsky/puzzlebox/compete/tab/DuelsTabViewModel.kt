@@ -21,6 +21,8 @@ internal data class DuelsTabState(
     val rows: List<DuelRow>,
     val signedIn: Boolean,
     val now: Instant,
+    /** The signed-in player's name, for the invite text; null while signed out. */
+    val inviter: String?,
 )
 
 private const val NOW_REFRESH_MS = 60_000L
@@ -46,10 +48,17 @@ internal class DuelsTabViewModel(
                 delay(NOW_REFRESH_MS)
             }
         },
-    ) { duels, who, now -> DuelsTabState(rows = duels.rows, signedIn = who != null, now = now) }
+    ) { duels, who, now ->
+        DuelsTabState(rows = duels.rows, signedIn = who != null, now = now, inviter = who?.displayName)
+    }
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-            DuelsTabState(rows = emptyList(), signedIn = identity.current.value != null, now = clock()),
+            DuelsTabState(
+                rows = emptyList(),
+                signedIn = identity.current.value != null,
+                now = clock(),
+                inviter = identity.current.value?.displayName,
+            ),
         )
 }
