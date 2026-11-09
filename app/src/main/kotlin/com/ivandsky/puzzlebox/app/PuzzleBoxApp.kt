@@ -46,7 +46,13 @@ import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
 import com.ivandsky.puzzlebox.app.nav.applyFriendLink
 import com.ivandsky.puzzlebox.app.nav.applySharedText
 import com.ivandsky.puzzlebox.app.nav.isImmersive
+import com.ivandsky.puzzlebox.app.nav.playTabBadged
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.Competitions
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.compete.api.DuelKey
+import com.ivandsky.puzzlebox.compete.tab.DuelsTab
+import com.ivandsky.puzzlebox.compete.tab.rememberDuelsNeedYou
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -56,6 +62,7 @@ import com.ivandsky.puzzlebox.history.historyLayoutFor
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.homeLayoutFor
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.map
@@ -134,7 +141,23 @@ fun PuzzleBoxApp(
     val anyInProgress by remember(todaySet) {
         todaySet().map { entries -> entries.any { it.status is TodayStatus.InProgress } }
     }.collectAsStateWithLifecycle(initialValue = false)
-    val badged = if (anyInProgress) setOf(PlayKey) else emptySet()
+    val competitions = Competitions in koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle().value
+    val duels = if (competitions) {
+        remember(navigator) {
+            DuelsSlot(
+                content = { DuelsTab(onOpenDuel = navigator::pushOnce, onOpenReveal = navigator::pushOnce) },
+                needYou = { rememberDuelsNeedYou() },
+            )
+        }
+    } else {
+        null
+    }
+    val onOpenDuel: ((DuelKey) -> Unit)? = if (competitions) {
+        { navigator.pushOnce(it) }
+    } else {
+        null
+    }
+    val badged = playTabBadged(anyInProgress, duelsNeedYou = duels?.needYou?.invoke() ?: 0)
 
     val reduceMotion = rememberReducedMotion()
     val previousTab = remember { TabRef(selected) }
@@ -185,6 +208,8 @@ fun PuzzleBoxApp(
                     modifier = Modifier.fillMaxSize(),
                     codeDraft = { codeDraft },
                     onCodeDraftTaken = { codeDraft = null },
+                    duels = duels,
+                    onOpenDuel = onOpenDuel,
                 )
             }
         }

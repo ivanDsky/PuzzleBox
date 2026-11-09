@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.navigation3.ui.NavDisplay
+import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.designsystem.LocalNavLift
 import com.ivandsky.puzzlebox.designsystem.NavLift
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -19,6 +20,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import org.koin.compose.koinInject
 
@@ -37,6 +39,8 @@ import org.koin.compose.koinInject
  * throttled save is never lost.
  *
  * [codeDraft] and [onCodeDraftTaken] reach the Play library: a draft opens its code sheet.
+ * [duels] and [onOpenDuel] (both null with the Competitions flag off) add the Duels tab and
+ * let Enter code open a duel.
  */
 @Composable
 internal fun PuzzleBoxNavShell(
@@ -47,6 +51,8 @@ internal fun PuzzleBoxNavShell(
     modifier: Modifier = Modifier,
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
+    duels: DuelsSlot? = null,
+    onOpenDuel: ((DuelKey) -> Unit)? = null,
     store: PlaySessionStore = koinInject(),
 ) {
     val reduceMotion = rememberReducedMotion()
@@ -65,6 +71,8 @@ internal fun PuzzleBoxNavShell(
             historyLayout = historyLayout,
             codeDraft = codeDraft,
             onCodeDraftTaken = onCodeDraftTaken,
+            duels = duels,
+            onOpenDuel = onOpenDuel,
         ),
     )
     val motion = remember { mutableStateOf(NavMotion.Idle) }

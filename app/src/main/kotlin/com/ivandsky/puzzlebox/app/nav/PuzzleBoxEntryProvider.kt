@@ -4,6 +4,7 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.app.CatalogScreen
+import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.compete.navigation.competeEntry
 import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
@@ -15,6 +16,7 @@ import com.ivandsky.puzzlebox.history.navigation.historyEntry
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.play.navigation.resultEntry
@@ -43,6 +45,8 @@ internal fun puzzleBoxEntryProvider(
     historyLayout: HistoryLayout,
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
+    duels: DuelsSlot? = null,
+    onOpenDuel: ((DuelKey) -> Unit)? = null,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     homeEntry(navigator, homeLayout)
     historyEntry(navigator, historyLayout)
@@ -52,6 +56,8 @@ internal fun puzzleBoxEntryProvider(
         onOpenHistory = { navigator.pushOnce(HistoryKey()) },
         codeDraft = codeDraft,
         onCodeDraftTaken = onCodeDraftTaken,
+        duels = duels,
+        onOpenDuel = onOpenDuel,
     )
     resultEntry(navigator)
     createEntry(navigator)
