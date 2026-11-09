@@ -40,6 +40,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.nav.NAVIGATION_STATE_KEY
+import com.ivandsky.puzzlebox.app.nav.TopLevelDestination
 import com.ivandsky.puzzlebox.app.nav.isImmersive
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
@@ -70,19 +71,22 @@ import org.robolectric.Shadows.shadowOf
  * Runs [block] against the real app shell — [PuzzleBoxApp], its Navigator, NavDisplay and
  * every feature entry — over [graph] (the production Koin modules with fakes on the
  * edges), starting at [state]. The width class comes from the real window, so a row's
- * `@Config(qualifiers = …)` picks bar or rail. The caller's test class runs on
- * Robolectric with a plain `Application` (`@Config(application = Application::class)`),
- * so the merged manifest's application never starts a second Koin.
+ * `@Config(qualifiers = …)` picks bar or rail. [destinations] is the tab set the shell
+ * shows: the flag-off set by default; a run with NavV2 on in [graph] passes the flag-on
+ * one. The caller's test class runs on Robolectric with a plain `Application`
+ * (`@Config(application = Application::class)`), so the merged manifest's application
+ * never starts a second Koin.
  */
-fun shellRobot(
+internal fun shellRobot(
     state: NavigationState = puzzleBoxNavigationState(),
     today: LocalDate = E2E_TODAY,
     graph: E2eKoinGraph = E2eKoinGraph(today),
+    destinations: List<TopLevelDestination> = topLevelDestinations,
     block: ShellRobot.() -> Unit,
 ) {
     graph.start()
     try {
-        val robot = ShellRobot(graph, state)
+        val robot = ShellRobot(graph, state, destinations)
         val run = object : Statement() {
             override fun evaluate() {
                 robot.launch()
@@ -108,6 +112,7 @@ fun shellRobot(
 class ShellRobot internal constructor(
     val graph: E2eKoinGraph,
     private val initial: NavigationState,
+    private val destinations: List<TopLevelDestination>,
 ) {
     val rule = createAndroidComposeRule<ComponentActivity>()
 
@@ -151,7 +156,7 @@ class ShellRobot internal constructor(
     }
 
     fun tapTab(key: NavKey) {
-        tap(topLevelDestinations.single { it.key == key }.tag)
+        tap(destinations.single { it.key == key }.tag)
     }
 
     /**
@@ -370,7 +375,7 @@ class ShellRobot internal constructor(
             assertNoNavigation()
             return
         }
-        val selected = topLevelDestinations.filter { destination ->
+        val selected = destinations.filter { destination ->
             val nodes = rule.onAllNodesWithTag(destination.tag).fetchSemanticsNodes()
             assertEquals("tab ${destination.label} shown once (state $state)", 1, nodes.size)
             nodes.single().config.getOrNull(SemanticsProperties.Selected) == true
@@ -380,7 +385,7 @@ class ShellRobot internal constructor(
 
     /** N2: neither bar nor rail shows a tab. */
     fun assertNoNavigation() {
-        topLevelDestinations.forEach { destination ->
+        destinations.forEach { destination ->
             val nodes = rule.onAllNodesWithTag(destination.tag).fetchSemanticsNodes()
             assertEquals("tab ${destination.label} hidden (state $state)", 0, nodes.size)
         }
@@ -418,7 +423,7 @@ class ShellRobot internal constructor(
         assertTrue("rail hugs the start: $tabs in $window", tabs.first().right <= window.left + window.width / 4)
     }
 
-    private fun tabBounds(): List<Rect> = topLevelDestinations.map {
+    private fun tabBounds(): List<Rect> = destinations.map {
         rule.onNodeWithTag(it.tag).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
     }
 

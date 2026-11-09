@@ -7,6 +7,10 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.serialization.NavBackStackSerializer
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
+import com.ivandsky.puzzlebox.app.nav.Home
+import com.ivandsky.puzzlebox.app.nav.Tab
+import com.ivandsky.puzzlebox.app.nav.TopLevelDestination
+import com.ivandsky.puzzlebox.app.nav.placementOf
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavKeys
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.history.api.HistoryKey
@@ -36,18 +40,27 @@ class NavKeySavedStateTest {
     /**
      * Every key in the placement table. A live root (a key of [topLevelDestinations], which
      * includes ProfileKey with the flag off) sits at index 0 of its own stack, because I4
-     * allows a root only there; every other key goes mid-stack on stack 0.
+     * allows a root only there; every other key goes on the stack of the destination whose
+     * [TopLevelDestination.tab] is the key's home tab, or on stack 0 when that tab is not in
+     * the set (History with the flag off) or the key has no tab (Shell, DebugOnly).
      */
     private val everyKey: NavigationState = run {
         val roots = topLevelDestinations.map { it.key }
-        val pushed = PlacementSamples.everyRow().filter { it !in roots }
+        // A per-game History key keeps the nullable payload covered (A8).
+        val pushed = PlacementSamples.everyRow().filter { it !in roots } + HistoryKey("zip")
+        val stackOf = { key: NavKey ->
+            topLevelDestinations.indexOfFirst { it.tab != null && it.tab == homeTab(key) }.coerceAtLeast(0)
+        }
         NavigationState(
             tab = PlayKey,
-            stacks = roots.mapIndexed { index, root ->
-                // A per-game History key keeps the nullable payload covered (A8).
-                if (index == 0) listOf(root) + pushed + HistoryKey("zip") else listOf(root)
-            },
+            stacks = roots.mapIndexed { index, root -> listOf(root) + pushed.filter { stackOf(it) == index } },
         )
+    }
+
+    private fun homeTab(key: NavKey): Tab? = when (val home = placementOf(key).home) {
+        is Home.TabRoot -> home.tab
+        is Home.PushedOn -> home.tab
+        Home.Shell, Home.DebugOnly -> null
     }
 
     /**
