@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
+import com.ivandsky.puzzlebox.gameui.PlayBoardPane
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
 import com.ivandsky.puzzlebox.gameui.PlayClear
@@ -35,7 +36,6 @@ import com.ivandsky.puzzlebox.gameui.PlaySolveFrame
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
-import com.ivandsky.puzzlebox.gameui.playBoardPane
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.delay
@@ -134,15 +134,13 @@ private fun BoxScope.BoardArea(
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
 ) {
     val board = controller.board
-    Box(
+    PlayBoardPane(
         Modifier
-            .playBoardPane()
             .testTag("queens.board_area")
             // The daily pane's §6 gutter lives here, not in the board: the tutorial host
-            // pads its own board pane, as it does for every game. Sideways only, so the
-            // board's top lines up with every game's (A14).
+            // pads its own board pane, as it does for every game. Sideways only; the
+            // shared pane owns the vertical centring.
             .padding(horizontal = board?.let { queensPanePaddingFor(it.session.puzzle.size) / 2 } ?: 0.dp),
-        contentAlignment = Alignment.TopCenter,
     ) {
         if (status is PlayBoardStatus.Ready && board != null) {
             // The live solve's orchestration (A13) owns the board first: the frame sees the

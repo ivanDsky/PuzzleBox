@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.unit.Dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -21,6 +20,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
+import com.ivandsky.puzzlebox.gameui.PlayBoardPane
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
 import com.ivandsky.puzzlebox.gameui.PlayClear
@@ -30,7 +30,6 @@ import com.ivandsky.puzzlebox.gameui.PlaySolveFrame
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
-import com.ivandsky.puzzlebox.gameui.playBoardPane
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.model.GameId
 
@@ -118,13 +117,11 @@ private fun BoxScope.TangoBoardArea(
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
 ) {
-    Box(
+    PlayBoardPane(
         Modifier
-            .playBoardPane()
             .testTag("play.board_area")
             // A4: standard pane margins; the cap below is a max, not a fixed width.
             .padding(horizontal = Spacing.lg),
-        contentAlignment = Alignment.TopCenter,
     ) {
         val session = controller.session
         if (status is PlayBoardStatus.Ready && session != null) {
