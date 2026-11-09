@@ -53,4 +53,6 @@ data class CompletionRecord(
     val stats: RecordStats,
     val firstCompletedAt: Instant? = null,
     val isRecord: Boolean = false,
+    /** The duel match this play belongs to; null for a normal play. */
+    val matchCode: String? = null,
 )
