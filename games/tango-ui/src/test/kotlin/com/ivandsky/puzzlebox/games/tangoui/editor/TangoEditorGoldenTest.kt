@@ -1,12 +1,16 @@
 package com.ivandsky.puzzlebox.games.tangoui.editor
 
 import android.content.res.Configuration
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
@@ -193,8 +197,15 @@ abstract class TangoEditorGoldenTest(private val device: String) {
             ) {
                 PuzzleBoxTheme(darkTheme = dark) {
                     Surface(Modifier.testTag(GOLDEN)) {
-                        Column(Modifier.padding(Spacing.md).then(frame())) {
-                            TangoEditorUi.Board(controller, verdict, Modifier.fillMaxWidth())
+                        Column(Modifier.padding(Spacing.md).then(frame()), horizontalAlignment = Alignment.CenterHorizontally) {
+                            if (device == "tablet") {
+                                // The Studio's SquareBoardSlot: the smaller of the pane's width and height, filled.
+                                Box(Modifier.size(minOf(TabletPaneWidth, TabletPaneHeight))) {
+                                    TangoEditorUi.Board(controller, verdict, Modifier.fillMaxSize())
+                                }
+                            } else {
+                                TangoEditorUi.Board(controller, verdict, Modifier.fillMaxWidth())
+                            }
                             TangoEditorUi.ToolHint(controller, Modifier.fillMaxWidth())
                             TangoEditorUi.Issues(
                                 controller,
@@ -229,6 +240,9 @@ abstract class TangoEditorGoldenTest(private val device: String) {
 
         /** The tablet Studio's left pane (1280 − the 372 dp side pane) less the padding. */
         val TabletPaneWidth = 876.dp
+
+        /** The tablet Studio's pane height: the board slot's square is the smaller side. */
+        val TabletPaneHeight = 720.dp
 
         /** The bundled sample: unique, graded by its hardest rung. */
         val SAMPLE = TangoDraft(
