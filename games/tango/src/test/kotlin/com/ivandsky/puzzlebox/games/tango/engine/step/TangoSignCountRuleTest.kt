@@ -67,6 +67,47 @@ class TangoSignCountRuleTest {
     }
 
     @Test
+    fun `two disjoint opposite pairs both count toward the line`() {
+        val puzzle = board(
+            6,
+            TangoMarker(0, TangoEdgeSide.RIGHT, TangoMarkerKind.OPPOSITE),
+            TangoMarker(3, TangoEdgeSide.RIGHT, TangoMarkerKind.OPPOSITE),
+        )
+
+        val steps = TangoSignCountRule.forced(puzzle, grid(puzzle, 2 to SUN))
+
+        assertEquals(listOf(step(5, MOON, setOf(0, 1, 3, 4), row = 0)), steps)
+    }
+
+    @Test
+    fun `touching opposite pairs are counted once from each end of the line`() {
+        val puzzle = board(
+            6,
+            TangoMarker(0, TangoEdgeSide.RIGHT, TangoMarkerKind.OPPOSITE),
+            TangoMarker(1, TangoEdgeSide.RIGHT, TangoMarkerKind.OPPOSITE),
+        )
+
+        val steps = TangoSignCountRule.forced(puzzle, grid(puzzle, 3 to SUN, 4 to SUN))
+
+        assertEquals(
+            listOf(
+                step(2, MOON, setOf(0, 1), row = 0),
+                step(5, MOON, setOf(0, 1), row = 0),
+                step(0, MOON, setOf(1, 2), row = 0),
+                step(5, MOON, setOf(1, 2), row = 0),
+            ),
+            steps,
+        )
+    }
+
+    @Test
+    fun `a row over its sun count beside an opposite pair yields nothing`() {
+        val puzzle = board(6, TangoMarker(4, TangoEdgeSide.RIGHT, TangoMarkerKind.OPPOSITE))
+
+        assertTrue(TangoSignCountRule.forced(puzzle, grid(puzzle, 0 to SUN, 1 to SUN, 3 to SUN)).isEmpty())
+    }
+
+    @Test
     fun `an opposite pair whose line count leaves both values open yields nothing`() {
         val puzzle = board(6, TangoMarker(1, TangoEdgeSide.RIGHT, TangoMarkerKind.OPPOSITE))
 

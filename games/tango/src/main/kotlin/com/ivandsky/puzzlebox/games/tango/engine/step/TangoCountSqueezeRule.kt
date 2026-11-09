@@ -33,12 +33,10 @@ object TangoCountSqueezeRule : TangoStepRule {
                         moons -> TangoCell.SUN
                         else -> continue
                     }
-                    val filled = LinkedHashSet<Int>()
-                    for (q in 0 until n) if (vals[q] == null) {
-                        vals[q] = fill
-                        filled += cells[q]
-                    }
+                    for (q in 0 until n) if (vals[q] == null) vals[q] = fill
                     if (!breaks(puzzle, cells, vals)) continue
+                    val filled = LinkedHashSet<Int>()
+                    for (q in 0 until n) if (q != j && grid[cells[q]] == null) filled += cells[q]
                     found += TangoStep.Deduction(
                         TangoStepRung.COUNT_SQUEEZE, cells[j], value.other(), filled,
                         row = line.takeIf { it < n },

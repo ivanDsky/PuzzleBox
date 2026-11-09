@@ -54,6 +54,27 @@ class TangoCountSqueezeRuleTest {
     }
 
     @Test
+    fun `a forced fill that breaks an equal marker squeezes the cell`() {
+        val puzzle = board(6, TangoMarker(2, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME))
+
+        val steps = TangoCountSqueezeRule.forced(puzzle, grid(puzzle, 0 to SUN, 2 to SUN))
+
+        assertEquals(
+            listOf(step(1, MOON, setOf(3, 4, 5), row = 0), step(4, MOON, setOf(1, 3, 5), row = 0), step(5, MOON, setOf(1, 3, 4), row = 0)),
+            steps,
+        )
+    }
+
+    @Test
+    fun `a what-if on the last empty cell of a line has no fill to show`() {
+        val puzzle = board(6, TangoMarker(4, TangoEdgeSide.RIGHT, TangoMarkerKind.OPPOSITE))
+
+        val steps = TangoCountSqueezeRule.forced(puzzle, grid(puzzle, 0 to SUN, 1 to SUN, 2 to MOON, 3 to SUN, 4 to MOON))
+
+        assertEquals(listOf(step(5, SUN, emptySet(), row = 0)), steps)
+    }
+
+    @Test
     fun `a what-if that only breaks the plain count yields nothing`() {
         val puzzle = board()
 

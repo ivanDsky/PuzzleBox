@@ -35,7 +35,8 @@ object TangoSignCountRule : TangoStepRule {
             for (pairs in oppositePairings(puzzle, grid, line)) {
                 val sunsLeft = n / 2 - suns - pairs.size
                 val moonsLeft = n / 2 - moons - pairs.size
-                if (sunsLeft < 0 || moonsLeft < 0) continue
+                // No over-full guard: single cells number sunsLeft + moonsLeft, so with either one
+                // negative no rest cell and no `=` pair of singles is left to emit.
                 fun left(value: TangoCell) = if (value == TangoCell.SUN) sunsLeft else moonsLeft
                 val inPair = BooleanArray(n)
                 val pairCells = LinkedHashSet<Int>()
