@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.games.tango.editor
 
-import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
@@ -27,7 +26,7 @@ object TangoDraftAnalyzer {
 
     fun analyze(draft: TangoDraft, budget: Budget): Verdict {
         if (draft.givens.isEmpty() && draft.markers.isEmpty()) return Verdict.Incomplete(IncompleteReason(EMPTY, 0))
-        val puzzle = TangoPuzzle(VariantId("tango/n${TangoDraft.N}"), TangoDraft.N, draft.givens, draft.markers)
+        val puzzle = TangoPuzzle(TangoDraft.variantOf(draft.n), draft.n, draft.givens, draft.markers)
         val clash = TangoClashLocator.conflicts(puzzle)
         if (clash.isNotEmpty()) return Verdict.None(clash)
         val outcome = TangoUniqueness.bounded(puzzle, limit = 2, budget = budget)

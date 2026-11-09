@@ -34,7 +34,7 @@ class TangoEditorBoardBoundsTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private val draft = TangoDraft((0..2).associateWith { TangoCell.SUN }, emptyList())
+    private val draft = TangoDraft(6, (0..2).associateWith { TangoCell.SUN }, emptyList())
     private val controller = TangoEditorController(EditorDraft(TangoEditor, DraftState(draft))) {}
 
     private fun show() {
@@ -67,7 +67,7 @@ class TangoEditorBoardBoundsTest {
         val board = rule.onNodeWithTag("tango.editor.board").getUnclippedBoundsInRoot()
         val cell = rule.onNodeWithTag("tango.editor.cell.0.clash").getUnclippedBoundsInRoot()
         val boardWidth = (board.right - board.left).value
-        assertEquals(boardWidth / TangoDraft.N, (cell.right - cell.left).value, 0.5f)
+        assertEquals(boardWidth / 6, (cell.right - cell.left).value, 0.5f)
     }
 
     @Test

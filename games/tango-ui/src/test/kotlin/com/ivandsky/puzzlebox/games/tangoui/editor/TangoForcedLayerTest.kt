@@ -65,7 +65,7 @@ class TangoForcedLayerTest {
     private fun assertTagged(tags: Set<String>) {
         rule.waitForIdle()
         tags.forEach { rule.onAllNodesWithTag(it, useUnmergedTree = true).assertCountEquals(1) }
-        (0 until TangoDraft.N * TangoDraft.N).map { "tango.editor.cell.$it.forced" }
+        (0 until 6 * 6).map { "tango.editor.cell.$it.forced" }
             .filter { it !in tags }
             .forEach { rule.onAllNodesWithTag(it, useUnmergedTree = true).assertCountEquals(0) }
     }
@@ -127,7 +127,7 @@ class TangoForcedLayerTest {
     }
 
     private fun TouchInjectionScope.centre(cell: Int) = Offset(
-        x = (cell % TangoDraft.N + 0.5f) * width / TangoDraft.N,
-        y = (cell / TangoDraft.N + 0.5f) * height / TangoDraft.N,
+        x = (cell % 6 + 0.5f) * width / 6,
+        y = (cell / 6 + 0.5f) * height / 6,
     )
 }

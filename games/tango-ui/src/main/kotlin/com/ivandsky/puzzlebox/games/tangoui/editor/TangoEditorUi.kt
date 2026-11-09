@@ -35,7 +35,10 @@ object TangoEditorUi : GameEditorUi {
 
     override val gameId: GameId = TangoDefinition.id
 
-    override fun sizeLabel(variant: VariantId): String = "${TangoDraft.N}×${TangoDraft.N}"
+    override fun sizeLabel(variant: VariantId): String {
+        val n = TangoDraft.sizeOf(variant) ?: return variant.value
+        return "$n×$n"
+    }
 
     override fun createController(
         initial: EditorDraft<*>,

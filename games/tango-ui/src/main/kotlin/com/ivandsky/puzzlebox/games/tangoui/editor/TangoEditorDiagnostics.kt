@@ -15,7 +15,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
-import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
@@ -45,7 +44,7 @@ internal fun tangoDiagnostics(
     held: Verdict?,
     overlay: EditorOverlay,
 ): TangoDiagnostics {
-    val puzzle = TangoPuzzle(VariantId("tango/n${TangoDraft.N}"), TangoDraft.N, board.givens, board.markers)
+    val puzzle = TangoPuzzle(TangoDraft.variantOf(board.n), board.n, board.givens, board.markers)
     val shown = (held as? Verdict.Multiple)?.takeIf { overlay.showOnBoard }
     val answer = shown?.let { if (overlay.witness == EditorOverlay.Witness.B) it.solutionB else it.solutionA }
     return TangoDiagnostics(
@@ -59,18 +58,18 @@ internal fun tangoDiagnostics(
 }
 
 /**
- * The marks over the play board: per cell `tango.editor.cell.<idx>.clash` (an inset error
- * ring, so the given stays legible), `.diff` (the shade) and `.witness` (the faint symbol the
- * renderer draws from [TangoDiagnostics.witness]).
+ * The marks over the play board of width [n]: per cell `tango.editor.cell.<idx>.clash` (an
+ * inset error ring, so the given stays legible), `.diff` (the shade) and `.witness` (the faint
+ * symbol the renderer draws from [TangoDiagnostics.witness]).
  */
 @Composable
-internal fun BoxScope.TangoDiagnosticsLayer(diagnostics: TangoDiagnostics) {
+internal fun BoxScope.TangoDiagnosticsLayer(diagnostics: TangoDiagnostics, n: Int) {
     val colors = LocalBoardColors.current
     val error = MaterialTheme.colorScheme.error
     BoxWithConstraints(Modifier.matchParentSize()) {
-        val pitch = maxWidth / TangoDraft.N
+        val pitch = maxWidth / n
         fun Modifier.cell(idx: Int) =
-            offset(pitch * (idx % TangoDraft.N), pitch * (idx / TangoDraft.N)).size(pitch)
+            offset(pitch * (idx % n), pitch * (idx / n)).size(pitch)
         diagnostics.diff.forEach { idx ->
             Canvas(Modifier.cell(idx).testTag("tango.editor.cell.$idx.diff")) {
                 drawRect(colors.editorDiffRing.copy(alpha = TangoBoardSpec.editDifferAlpha))
