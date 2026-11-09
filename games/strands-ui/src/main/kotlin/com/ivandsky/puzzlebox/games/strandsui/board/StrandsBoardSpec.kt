@@ -46,14 +46,14 @@ internal object StrandsBoardSpec {
      * so it never steals a corner-cutting diagonal.
      */
     const val TravelWindowCells: Float = 0.25f
-    const val SideConeDegrees: Float = 20f
+    const val SideConeDegrees: Float = 22.5f
     const val SideJoinCells: Float = 0.40f
 
     /** What the side cone leaves of the 45° between an axis and a diagonal: the cones tile the circle, so every heading decides one. */
     const val DiagonalConeDegrees: Float = 45f - SideConeDegrees
 
     /** Of the diagonal step (√2 pitches): the diagonal letter joins this far along it. */
-    const val DiagonalJoinFraction: Float = 0.40f
+    const val DiagonalJoinFraction: Float = 0.55f
 
     /** A joined letter grows the trace only once the finger comes this close to its centre. */
     const val ArriveCells: Float = 0.55f
