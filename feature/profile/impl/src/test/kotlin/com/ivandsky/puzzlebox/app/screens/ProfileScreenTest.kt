@@ -78,7 +78,12 @@ class ProfileScreenTest {
         ),
     )
 
-    private fun setContent(state: ProfileUiState, showCatalog: Boolean = true) {
+    private fun setContent(
+        state: ProfileUiState,
+        showCatalog: Boolean = true,
+        slim: Boolean = false,
+        onBack: (() -> Unit)? = null,
+    ) {
         signInClicks = 0
         signOutClicks = 0
         catalogClicks = 0
@@ -92,6 +97,8 @@ class ProfileScreenTest {
                     onOpenHistory = { openedHistory += it },
                     onSelectGame = { picked += it },
                     onOpenCatalog = if (showCatalog) ({ catalogClicks++ }) else null,
+                    slim = slim,
+                    onBack = onBack,
                 )
             }
         }
@@ -299,6 +306,67 @@ class ProfileScreenTest {
 
         composeRule.onNodeWithText("Sign in with Google to put your times on the leaderboards.").assertExists()
         composeRule.onNodeWithTag("profile-board-chip-zip").assertDoesNotExist()
+    }
+
+    private fun stateOf(account: ProfileUiState.Account) = ProfileUiState(
+        account = account,
+        stats = ProfileUiState.NO_STATS.copy(solved = 4, playingSince = LocalDate.of(2026, 3, 9)),
+        games = games,
+        perGameBoard = PerGameBoard(null, RankOrder.TimeThenHints, DailyBoardState.Loading),
+    )
+
+    @Test
+    fun `slim signed out shows the header and sign-in and none of the record blocks`() {
+        setContent(stateOf(ProfileUiState.Account.SignedOut()), showCatalog = true, slim = true)
+
+        composeRule.onNodeWithTag("profile.header").assertExists()
+        composeRule.onNodeWithTag("profile-signed-out").assertExists()
+        composeRule.onNodeWithTag("profile.stats").assertDoesNotExist()
+        composeRule.onNodeWithTag("profile.games").assertDoesNotExist()
+        composeRule.onNodeWithTag("profile.appearance").assertDoesNotExist()
+        composeRule.onNodeWithTag("profile.catalog").assertDoesNotExist()
+        composeRule.onNodeWithTag("profile-board").assertDoesNotExist()
+    }
+
+    @Test
+    fun `slim signed in shows the name and sign-out and no board`() {
+        setContent(stateOf(signedIn), slim = true)
+
+        composeRule.onNodeWithTag("profile-signed-in").assertExists()
+        composeRule.onAllNodesWithText("Ann").onFirst().assertExists()
+        composeRule.onNodeWithText("Sign out").assertExists()
+        composeRule.onNodeWithTag("profile-board").assertDoesNotExist()
+        composeRule.onNodeWithTag("profile.stats").assertDoesNotExist()
+        composeRule.onNodeWithTag("profile.games").assertDoesNotExist()
+        composeRule.onNodeWithTag("profile.appearance").assertDoesNotExist()
+        composeRule.onNodeWithTag("profile.catalog").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the back icon calls the back callback once`() {
+        var backs = 0
+        setContent(stateOf(signedIn), onBack = { backs++ })
+
+        composeRule.onNodeWithTag("profile.back").performClick()
+
+        composeRule.runOnIdle { assertEquals(1, backs) }
+    }
+
+    @Test
+    fun `the back icon shows in the slim form too`() {
+        var backs = 0
+        setContent(stateOf(signedIn), slim = true, onBack = { backs++ })
+
+        composeRule.onNodeWithTag("profile.back").performClick()
+
+        composeRule.runOnIdle { assertEquals(1, backs) }
+    }
+
+    @Test
+    fun `without a back callback there is no back icon`() {
+        setContent(stateOf(signedIn))
+
+        composeRule.onNodeWithTag("profile.back").assertDoesNotExist()
     }
 
 }
