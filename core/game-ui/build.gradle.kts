@@ -15,6 +15,8 @@ dependencies {
     // TodayStatus: todayStatusLine is the one status copy Home and the library share.
     implementation(projects.core.domain)
 
+    // PlayerAvatar draws a remote photo with Coil's AsyncImage.
+    implementation(libs.coil.compose)
     implementation(libs.androidx.compose.material3.windowsizeclass)
     implementation(libs.kotlinx.coroutines.core)
 
