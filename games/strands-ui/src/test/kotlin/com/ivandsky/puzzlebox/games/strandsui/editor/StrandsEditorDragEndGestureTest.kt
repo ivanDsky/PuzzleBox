@@ -21,6 +21,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.math.PI
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * A real drag on the selected path's tail, through the board's own touch: back two cells, then
@@ -103,6 +106,56 @@ class StrandsEditorDragEndGestureTest {
         assertEquals(before.letters, board().letters)
         assertEquals(steps, controller.draft.value.state.history.done.size)
         assertEquals(0, controller.selectedPath.value)
+    }
+
+    /**
+     * Path (1,0),(1,1), tail grabbed; a swipe along row 1, 0.3 off the cells' centres, at 0.9
+     * pitch per event. It jumps (1,5)'s circle between two events (x 5.1 then 5.9), yet the end
+     * still takes every cell it crosses.
+     */
+    @Test
+    fun `a fast swipe along a row extends by every cell it crosses`() {
+        listOf(6, 7).forEach(controller::traceTo)
+        controller.endTrace()
+        controller.selectPath(0)
+        show()
+
+        rule.onNodeWithTag(BOARD).performTouchInput {
+            down(cellPoint(1.5f, 1.8f))
+            listOf(2.4f, 3.3f, 4.2f, 5.1f, 5.9f).forEach { moveTo(cellPoint(it, 1.8f)) }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag(BOARD).performTouchInput { up() }
+        rule.waitForIdle()
+
+        assertEquals(listOf(6, 7, 8, 9, 10, 11), board().paths.single().cells)
+    }
+
+    /**
+     * Path (1,0),(1,1),(2,1), tail grabbed; the finger goes on diagonally to (3,2), the line
+     * bulging 0.3 pitch toward the free side cell (2,2). Only the diagonal cell is added: the
+     * side cell it grazed is no zig-zag.
+     */
+    @Test
+    fun `a diagonal bulging toward a free side cell extends only the diagonal cell`() {
+        listOf(6, 7, 13).forEach(controller::traceTo)
+        controller.endTrace()
+        controller.selectPath(0)
+        show()
+
+        rule.onNodeWithTag(BOARD).performTouchInput {
+            down(cellPoint(1.5f, 2.5f))
+            // Off the line from (1.5, 2.5) to (2.5, 3.5) by 0.3·sin(πt) toward (2.5, 2.5).
+            listOf(0.25f, 0.5f, 0.75f, 1f).forEach { t ->
+                val bulge = 0.3f * sin(PI.toFloat() * t) / sqrt(2f)
+                moveTo(cellPoint(1.5f + t + bulge, 2.5f + t - bulge))
+            }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag(BOARD).performTouchInput { up() }
+        rule.waitForIdle()
+
+        assertEquals(listOf(6, 7, 13, 20), board().paths.single().cells)
     }
 
     private fun show() {
