@@ -9,14 +9,18 @@ import kotlin.random.Random
 value class ShareCode private constructor(val value: String) {
     val display: String get() = value.substring(0, 3) + "-" + value.substring(3)
     val link: String get() = LINK_PREFIX + value
+    val matchLink: String get() = MATCH_LINK_PREFIX + value
 
     companion object {
         const val LENGTH: Int = 6
         const val LINK_PREFIX: String = "https://puzzlebox-f3356.web.app/p/"
 
+        const val MATCH_LINK_PREFIX: String = "https://puzzlebox-f3356.web.app/m/"
+
         private const val ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
         private const val HOST = "puzzlebox-f3356.web.app"
         private const val PATH_PREFIX = "/p/"
+        private const val MATCH_PATH_PREFIX = "/m/"
 
         /** Case-insensitive; ignores '-' and spaces; O→0, I/L→1; null when invalid. */
         fun parse(input: String): ShareCode? {
@@ -31,7 +35,12 @@ value class ShareCode private constructor(val value: String) {
         }
 
         /** https, host puzzlebox-f3356.web.app, path /p/<code>[/]; the code goes through [parse]; null otherwise. */
-        fun fromLink(uri: String): ShareCode? {
+        fun fromLink(uri: String): ShareCode? = fromPath(uri, PATH_PREFIX)
+
+        /** Same rules as [fromLink] for a match link: path /m/<code>[/]. */
+        fun fromMatchLink(uri: String): ShareCode? = fromPath(uri, MATCH_PATH_PREFIX)
+
+        private fun fromPath(uri: String, pathPrefix: String): ShareCode? {
             val parsed = try {
                 URI(uri)
             } catch (_: URISyntaxException) {
@@ -41,8 +50,8 @@ value class ShareCode private constructor(val value: String) {
             if (!parsed.host.equals(HOST, ignoreCase = true)) return null
             if (parsed.rawUserInfo != null || parsed.port != -1) return null
             val path = parsed.rawPath ?: return null
-            if (!path.startsWith(PATH_PREFIX)) return null
-            return parse(path.removePrefix(PATH_PREFIX).removeSuffix("/"))
+            if (!path.startsWith(pathPrefix)) return null
+            return parse(path.removePrefix(pathPrefix).removeSuffix("/"))
         }
 
         fun random(random: Random): ShareCode =
