@@ -35,7 +35,12 @@ class SavedPlayRepositoryContractTest(private val adapter: String) : SavedPlayRe
                     .allowMainThreadQueries()
                     .build()
                 db = database
-                RoomSavedPlayRepository(database.savedPlayDao(), database.customSavedPlayDao(), clock = { ++nowMs })
+                RoomSavedPlayRepository(
+                    database.savedPlayDao(),
+                    database.customSavedPlayDao(),
+                    database.legSavedPlayDao(),
+                    clock = { ++nowMs },
+                )
             }
             else -> FakeSavedPlayRepository()
         }

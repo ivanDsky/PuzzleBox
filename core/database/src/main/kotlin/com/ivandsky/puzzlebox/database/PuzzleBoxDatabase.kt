@@ -28,6 +28,8 @@ abstract class PuzzleBoxDatabase : RoomDatabase() {
 
     abstract fun customSavedPlayDao(): CustomSavedPlayDao
 
+    abstract fun legSavedPlayDao(): LegSavedPlayDao
+
     abstract fun draftDao(): DraftDao
 
     abstract fun publishedPuzzleDao(): PublishedPuzzleDao

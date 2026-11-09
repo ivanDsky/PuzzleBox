@@ -50,7 +50,7 @@ val dataModule = module {
     single<CompletionRepository> { RoomCompletionRepository(get(), get(), get()) }
     single<UserPreferencesRepository> { OfflineUserPreferencesRepository(get()) }
     // Saved in-progress plays (A10); the slot cap is private to the Room adapter.
-    single<SavedPlayRepository> { RoomSavedPlayRepository(get(), get()) }
+    single<SavedPlayRepository> { RoomSavedPlayRepository(get(), get(), get()) }
     // Editor drafts (A5): features read and write through the port, never Room.
     single<DraftRepository> { RoomDraftRepository(get()) }
     // The author's published listing; the board stays on the kept, read-only draft.

@@ -132,6 +132,7 @@ class ActivePlay internal constructor(
         val resolved = when (val slot = slot) {
             is PlaySlot.Daily -> plugin.refOf(PuzzleKey.Daily(slot.day, fetched.puzzleNumber))
             is PlaySlot.Custom -> plugin.refOf(PuzzleKey.Custom(slot.puzzleId))
+            is PlaySlot.Leg -> error("legs open Restored")
         }
         if (controller !== this.controller) return PlayBoardStatus.Loading // superseded; never shown
         return when (val adopted = controller.adoptToday(fetched.puzzle, resolved)) {

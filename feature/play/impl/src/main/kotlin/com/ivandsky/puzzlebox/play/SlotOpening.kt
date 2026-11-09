@@ -33,7 +33,8 @@ import kotlinx.coroutines.flow.first
  *    carrying the day's puzzleNumber from the cache so the record identity (ADR-0004)
  *    survives keys that name only game and day (arch-2);
  * 4. a friend's puzzle ([PlaySlot.Custom]) from the [received] puzzles stored when it opened;
- * 5. otherwise [Origin.Unavailable], whose copy names the cause.
+ * 5. otherwise [Origin.Unavailable], whose copy names the cause; a duel puzzle ([PlaySlot.Leg])
+ *    with no saved row is unavailable here for now.
  */
 internal class SlotOpening(
     private val daily: DailyRepository,
@@ -63,6 +64,7 @@ internal class SlotOpening(
         restore(slot, plugin)?.let { return Origin.Restored(it) }
         return when (slot) {
             is PlaySlot.Custom -> friend(slot)
+            is PlaySlot.Leg -> Origin.Unavailable(DUEL_PUZZLE_UNAVAILABLE, retryable = false)
             is PlaySlot.Daily -> {
                 val today = calendar.today(slot.gameId) ?: return Origin.Unavailable(UNREGISTERED)
                 if (slot.day == today) fetch(slot) else build(slot)
@@ -126,6 +128,7 @@ internal class SlotOpening(
         const val DAY_MISSING = "That day is no longer saved on this device."
         const val DAY_UNREADABLE = "This day didn't load right, so it can't be played again."
         const val FRIEND_MISSING = "This puzzle is no longer saved on this device."
+        const val DUEL_PUZZLE_UNAVAILABLE = "This puzzle isn't available here yet."
     }
 }
 
