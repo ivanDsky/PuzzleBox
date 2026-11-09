@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.NotationResult
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
@@ -108,6 +109,24 @@ abstract class TangoEditorGoldenTest(private val device: String) {
     @Test fun `witness on board light`() = witness(dark = false)
     @Test fun `witness on board dark`() = witness(dark = true)
 
+    @Test fun `empty 4x4 light`() = emptySized(4, dark = false)
+    @Test fun `empty 4x4 dark`() = emptySized(4, dark = true)
+
+    @Test fun `empty 8x8 light`() = emptySized(8, dark = false)
+    @Test fun `empty 8x8 dark`() = emptySized(8, dark = true)
+
+    @Test fun `empty 10x10 light`() = emptySized(10, dark = false)
+    @Test fun `empty 10x10 dark`() = emptySized(10, dark = true)
+
+    @Test fun `unique 8x8 light`() = unique8(dark = false)
+    @Test fun `unique 8x8 dark`() = unique8(dark = true)
+
+    @Test fun `tap zones 10x10 light`() = tapZones10(dark = false)
+    @Test fun `tap zones 10x10 dark`() = tapZones10(dark = true)
+
+    @Test fun `forced cells 10x10 light`() = forcedCells10(dark = false)
+    @Test fun `forced cells 10x10 dark`() = forcedCells10(dark = true)
+
     private fun empty(dark: Boolean) {
         val draft = TangoDraft(6, emptyMap(), emptyList())
         capture("empty", dark, draft, analyzed<Verdict.Incomplete>(draft))
@@ -169,6 +188,33 @@ abstract class TangoEditorGoldenTest(private val device: String) {
         capture("witness-on-board", dark, draft, analyzed<Verdict.Multiple>(draft)) {
             adoptOverlay(EditorOverlay(EditorOverlay.Witness.B, showOnBoard = true))
         }
+    }
+
+    private fun emptySized(n: Int, dark: Boolean) {
+        val draft = TangoDraft(n, emptyMap(), emptyList())
+        capture("empty-n$n", dark, draft, analyzed<Verdict.Incomplete>(draft))
+    }
+
+    /** The 8×8 fixture: givens and markers, unique. */
+    private fun unique8(dark: Boolean) {
+        val draft = UNIQUE_8
+        assertTrue("the board has givens and markers", draft.givens.isNotEmpty() && draft.markers.isNotEmpty())
+        capture("unique-n8", dark, draft, analyzed<Verdict.Unique>(draft))
+    }
+
+    private fun tapZones10(dark: Boolean) {
+        val draft = UNIQUE_10
+        assertTrue("the board has at least 20 givens", draft.givens.size >= 20)
+        capture("tap-zones-n10", dark, draft, analyzed<Verdict.Unique>(draft)) { toggleTapZones() }
+    }
+
+    /** The fixture is forced whole by the hint ladder, so every empty cell wears a forced mark. */
+    private fun forcedCells10(dark: Boolean) {
+        val draft = UNIQUE_10
+        val forced = TangoForcedCells.of(draft)
+        assertTrue("the board forces some cells", forced.isNotEmpty())
+        assertEquals("every empty cell is forced", 10 * 10, forced.size + draft.givens.size)
+        capture("forced-cells-n10", dark, draft, analyzed<Verdict.Unique>(draft)) { toggleForcedView() }
     }
 
     private inline fun <reified V : Verdict> analyzed(draft: TangoDraft): V {
@@ -244,6 +290,71 @@ abstract class TangoEditorGoldenTest(private val device: String) {
 
         /** The tablet Studio's pane height: the board slot's square is the smaller side. */
         val TabletPaneHeight = 720.dp
+
+        /** The rows and marker lines of `games/tango/src/test/resources/notation/tango-unique-8x8.txt`. */
+        val UNIQUE_8 = notation(
+            """
+            .....S..
+            ...S..S.
+            S.......
+            ...M....
+            S....S..
+            ...S...M
+            ........
+            ..M...M.
+            = 1,2 down
+            x 2,5 right
+            x 3,3 down
+            = 5,2 down
+            = 5,6 down
+            = 5,7 down
+            x 6,2 right
+            x 6,3 right
+            x 7,4 right
+            x 8,4 right
+            x 8,7 right
+            """,
+        )
+
+        /** The rows and marker lines of `games/tango/src/test/resources/notation/tango-unique-10x10.txt`. */
+        val UNIQUE_10 = notation(
+            """
+            ...S..M..S
+            .M..SS....
+            .........M
+            M.....M...
+            ...S....SS
+            ..........
+            SS...M....
+            S.S.......
+            ....M..M..
+            ..M.......
+            x 2,6 right
+            x 3,2 right
+            = 3,8 down
+            = 4,6 down
+            = 5,2 right
+            x 5,7 down
+            = 5,8 down
+            x 6,2 down
+            = 6,3 right
+            x 6,8 right
+            = 6,9 right
+            x 7,4 right
+            x 8,2 down
+            x 8,4 down
+            = 8,9 right
+            x 9,6 right
+            x 9,8 down
+            x 10,5 right
+            """,
+        )
+
+        private fun notation(text: String): TangoDraft =
+            when (val parsed = TangoEditor.parse(text.trimIndent().trim())) {
+                is NotationResult.Ok -> parsed.draft
+                is NotationResult.Err -> error("fixture does not parse: $parsed")
+            }
 
         /** The bundled sample: unique, graded by its hardest rung. */
         val SAMPLE = TangoDraft(
