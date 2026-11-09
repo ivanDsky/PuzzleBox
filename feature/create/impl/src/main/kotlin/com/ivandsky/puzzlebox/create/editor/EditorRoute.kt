@@ -50,7 +50,8 @@ import org.koin.core.parameter.parametersOf
  * "Unpublished" toast shows in the same slot. The overflow's Import from text opens the
  * [ImportSheet] over the Studio; the draft it stores is reported to [onImported], which opens it
  * in the Studio's place. That Studio, [importedPending] set, shows the [ImportedToast] once and
- * reports [onImportedShown]. The holders stay here: the screen gets their state and events.
+ * reports [onImportedShown]. A Size pick that would blank a board with content opens the
+ * [ResizeConfirmDialog] first. The holders stay here: the screen gets their state and events.
  */
 @Composable
 internal fun EditorRoute(
@@ -78,6 +79,7 @@ internal fun EditorRoute(
     val autoShow by viewModel.autoShowWitness.collectAsStateWithLifecycle()
     val ticket by viewModel.ticket.collectAsStateWithLifecycle()
     val unpublish by viewModel.unpublish.state.collectAsStateWithLifecycle()
+    val resizing by viewModel.resizes.pending.collectAsStateWithLifecycle()
     // Each Copy code bumps it, so the same code copied twice still toasts twice.
     var copies by remember { mutableIntStateOf(0) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flush() }
@@ -228,6 +230,11 @@ internal fun EditorRoute(
             onConfirm = viewModel::confirmUnpublish,
             onCancel = viewModel.unpublish::cancel,
         )
+    }
+    resizing?.let { size ->
+        (state as? EditorUiState.Ready)?.let { ready ->
+            ResizeConfirmDialog(ready.editor.sizeLabel(size), onConfirm = viewModel.resizes::confirm, onCancel = viewModel.resizes::cancel)
+        }
     }
 }
 

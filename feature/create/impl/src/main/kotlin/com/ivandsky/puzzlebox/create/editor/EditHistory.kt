@@ -9,10 +9,11 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * The open draft's undo and redo (spec S3): it holds the current [EditorDraft] and walks the
  * draft's own command history one step at a time, so no screen keeps a second stack. Resize
- * and clear (A5) are steps on that same history. [canUndo] and [canRedo] follow the current
+ * and clear (A5) are steps on that same history. Every move hands its board to [adopt]; while
+ * [locked] (a published draft) nothing moves. [canUndo] and [canRedo] follow the current
  * draft; both are false until [open].
  */
-internal class EditHistory {
+internal class EditHistory(private val locked: () -> Boolean, private val adopt: (EditorDraft<*>) -> Unit) {
 
     private var current: EditorDraft<*>? = null
 
@@ -28,28 +29,36 @@ internal class EditHistory {
     /** An edit the game's controller has already applied to the current draft. */
     fun record(next: EditorDraft<*>) = moveTo(next)
 
-    /** One step back; null when there is nothing to undo. */
-    fun undo(): EditorDraft<*>? = current?.undo()?.also(::moveTo)
+    /** One step back; nothing moves when there is nothing to undo. */
+    fun undo() = move { it.undo() }
 
-    /** The undone step again; null when there is nothing to redo. */
-    fun redo(): EditorDraft<*>? = current?.redo()?.also(::moveTo)
+    /** The undone step again; nothing moves when there is nothing to redo. */
+    fun redo() = move { it.redo() }
 
     /**
-     * Back to the nearest earlier step [target] accepts, however many steps that takes; null,
-     * with nothing moved, when no earlier step does.
+     * Back to the nearest earlier step [target] accepts, however many steps that takes; nothing
+     * moves when no earlier step does.
      */
-    fun undoTo(target: (EditorDraft<*>) -> Boolean): EditorDraft<*>? {
-        var step = current?.undo()
+    fun undoTo(target: (EditorDraft<*>) -> Boolean) = move { draft ->
+        var step = draft.undo()
         while (step != null && !target(step)) step = step.undo()
-        return step?.also(::moveTo)
+        step
     }
 
-    /** A blank [variant] board as one step; null before [open] or when the draft already has that size. */
-    fun resize(variant: VariantId): EditorDraft<*>? =
-        current?.takeIf { it.variant != variant }?.resize(variant)?.also(::moveTo)
+    /** A [variant] board as one step ([EditorDraft.resize]); nothing moves when the draft already has that size. */
+    fun resize(variant: VariantId) = move { draft -> draft.takeIf { it.variant != variant }?.resize(variant) }
 
-    /** A blank board of the same size as one step; null before [open]. */
-    fun clear(): EditorDraft<*>? = current?.clear()?.also(::moveTo)
+    /** A blank board of the same size as one step. */
+    fun clear() = move { it.clear() }
+
+    /** The board [step] makes of the current draft becomes current and goes to [adopt]; none before [open]. */
+    private fun move(step: (EditorDraft<*>) -> EditorDraft<*>?) {
+        if (locked()) return
+        current?.let(step)?.let { next ->
+            moveTo(next)
+            adopt(next)
+        }
+    }
 
     private fun moveTo(draft: EditorDraft<*>) {
         current = draft
