@@ -30,4 +30,6 @@ data class CompletionEntity(
     /** A4 stamp — set only on the record row; replay rows keep null, as emitted. */
     val firstCompletedAtMs: Long?,
     val isRecord: Boolean,
+    /** Schema v8: the duel's match code when this puzzle was played as a duel leg, else null. */
+    val matchCode: String? = null,
 )
