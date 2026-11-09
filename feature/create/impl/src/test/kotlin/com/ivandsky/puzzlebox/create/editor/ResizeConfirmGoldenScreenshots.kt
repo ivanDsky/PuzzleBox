@@ -29,9 +29,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The resize confirm ("Start a blank board?") over a 6×6 Studio with content, picking 8×8:
- * phone (single pane) and tablet (two panes), light and dark. The board is the Studio
- * goldens' placeholder square. Goldens in `snapshots/studio/`.
+ * The resize confirm ("Start a blank board?") over a 6×6 Studio, picking 8×8: phone (single
+ * pane) and tablet (two panes), light and dark. The board is the Studio goldens' placeholder
+ * square standing in for a board with content. Goldens in `snapshots/studio/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

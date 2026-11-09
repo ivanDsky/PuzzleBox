@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.create.editor
 
 import androidx.activity.ComponentActivity
+import androidx.activity.ComponentDialog
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
@@ -66,6 +67,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowDialog
 import org.robolectric.shadows.ShadowLooper
 
 /**
@@ -186,6 +188,18 @@ class ResizeClearTest {
     }
 
     @Test
+    fun `back closes the dialog and changes nothing`() {
+        pick(NINE)
+        val dialog = ShadowDialog.getLatestDialog() as ComponentDialog
+        composeRule.runOnUiThread { dialog.onBackPressedDispatcher.onBackPressed() }
+
+        composeRule.onAllNodesWithTag(DIALOG).assertCountEquals(0)
+        assertEquals(SEVEN, board())
+        composeRule.onNodeWithTag(UNDO).assertIsNotEnabled()
+        assertTrue(controller().adopted.isEmpty())
+    }
+
+    @Test
     fun `a blank board resizes at once with no dialog`() {
         composeRule.onNodeWithTag(CLEAR).performClick()
         assertEquals(Grid(7), board())
@@ -202,7 +216,6 @@ class ResizeClearTest {
 
         composeRule.onNodeWithTag(HINT).assertExists()
     }
-
 
     @Test
     fun `clear is one step and undo restores the exact board`() {
