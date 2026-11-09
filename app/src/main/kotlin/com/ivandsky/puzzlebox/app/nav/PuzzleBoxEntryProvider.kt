@@ -47,6 +47,8 @@ internal fun puzzleBoxEntryProvider(
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
     onOpenDuel: ((DuelKey) -> Unit)? = null,
+    navV2: Boolean = false,
+    libraryRequests: LibraryRequests = LibraryRequests(),
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     homeEntry(navigator, homeLayout)
     historyEntry(navigator, historyLayout)
@@ -55,6 +57,8 @@ internal fun puzzleBoxEntryProvider(
         playLayout,
         onOpenHistory = { navigator.pushOnce(HistoryKey()) },
         codeDraft = codeDraft,
+        libraryRequest = { libraryRequests.pending },
+        onLibraryRequestTaken = libraryRequests::take,
         onCodeDraftTaken = onCodeDraftTaken,
         duels = duels,
         onOpenDuel = onOpenDuel,
