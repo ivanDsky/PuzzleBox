@@ -18,7 +18,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.data.identity.Identity
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.TodayStatus
@@ -58,16 +64,19 @@ class HomeScreenTest {
         identity: Identity? = null,
         onOpenGame: (GameId) -> Unit = {},
         onOpenProfile: () -> Unit = {},
+        reselect: SharedFlow<Unit> = MutableSharedFlow(),
     ) {
         composeRule.setContent {
-            PuzzleBoxTheme {
-                HomeScreen(
-                    layout = layout,
-                    state = state(today.value, history, playTarget, identity),
-                    onOpenGame = onOpenGame,
-                    onOpenProfile = onOpenProfile,
-                    modifier = Modifier,
-                )
+            CompositionLocalProvider(LocalTabReselect provides reselect) {
+                PuzzleBoxTheme {
+                    HomeScreen(
+                        layout = layout,
+                        state = state(today.value, history, playTarget, identity),
+                        onOpenGame = onOpenGame,
+                        onOpenProfile = onOpenProfile,
+                        modifier = Modifier,
+                    )
+                }
             }
         }
     }
@@ -328,6 +337,18 @@ class HomeScreenTest {
         composeRule.onNodeWithText("Ivan D.").assertExists()
         composeRule.onNodeWithText("Competing on leaderboards.").assertExists()
         composeRule.onNodeWithText("Profile").assertExists()
+    }
+
+    @Test
+    fun `a tab reselect scrolls the list back to its header`() {
+        val reselect = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        setContent(HomeLayout.SinglePane, reselect = reselect)
+        composeRule.onNodeWithText("Guest player").performScrollTo()
+        composeRule.onNodeWithText("PuzzleBox").assertIsNotDisplayed()
+
+        composeRule.runOnIdle { reselect.tryEmit(Unit) }
+
+        composeRule.onNodeWithText("PuzzleBox").assertIsDisplayed()
     }
 
     private companion object {
