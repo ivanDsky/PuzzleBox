@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
+import com.ivandsky.puzzlebox.app.match.MatchResultPoster
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.create.CreateViewModel
@@ -11,6 +12,7 @@ import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.editor.EditorViewModel
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.match.MatchResultSync
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -157,6 +159,8 @@ class DiGraphTest : KoinTest {
             assertEquals(false, koin.get<AppBuild>().checksForUpdates)
             // Today's featured game (Profile's board, the leaderboard) is the registry's first.
             assertEquals(GameId("zip"), koin.get<GetFeaturedGame>()().id)
+            // Duel results: onCreate starts the poster on every launch, and the duel screen pokes the same instance.
+            assertSame(koin.get<MatchResultPoster>(), koin.get<MatchResultSync>())
 
             // Game aggregation (ADR-0001): every game module's plugin lands in the
             // registry in picker order, and every game's play UI is registered — a
