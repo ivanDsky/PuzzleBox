@@ -197,11 +197,11 @@ private fun margin(basis: LegBasis, mine: DuelSideState.Time?, them: DuelSideSta
 }
 
 /**
- * The raw gap between two times in seconds, rounded up: a puzzle decided on whole seconds is at least 1 s
- * apart, however close the raw times look (59.9 vs 60.1 is "1 s", never "0 s").
+ * The gap between two times in whole seconds, each floored first: the figures shown (0:59, 1:00) and the outcome's
+ * rule both work in whole seconds, so 59.0 vs 60.9 is "1 s" and 59.9 vs 60.1 is "1 s" (a same-second pair is a draw).
  */
 internal fun timeMarginSeconds(mineMs: Long, themMs: Long): Long =
-    (kotlin.math.abs(mineMs - themMs) + MS_PER_SECOND - 1) / MS_PER_SECOND
+    kotlin.math.abs(mineMs / MS_PER_SECOND - themMs / MS_PER_SECOND)
 
 private const val MS_PER_SECOND = 1_000L
 

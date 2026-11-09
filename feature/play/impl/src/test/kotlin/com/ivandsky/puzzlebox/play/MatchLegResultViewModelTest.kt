@@ -265,10 +265,10 @@ class MatchLegResultViewModelTest {
     }
 
     @Test
-    fun theTimeMarginIsTheRawGapRoundedUp() {
+    fun theTimeMarginIsTheGapOfWholeSeconds() {
         assertEquals(1L, timeMarginSeconds(59_900, 60_100))
-        assertEquals(1L, timeMarginSeconds(60_900, 60_100))
-        assertEquals(2L, timeMarginSeconds(59_000, 60_900))
+        assertEquals(1L, timeMarginSeconds(59_000, 60_900))
+        assertEquals(1L, timeMarginSeconds(60_900, 59_000))
         assertEquals(3L, timeMarginSeconds(70_000, 67_000))
     }
 }
