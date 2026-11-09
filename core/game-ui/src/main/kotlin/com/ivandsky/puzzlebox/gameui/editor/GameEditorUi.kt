@@ -43,6 +43,12 @@ interface GameEditorUi {
      */
     @Composable fun PublishFields(controller: GameEditorController, enabled: Boolean, modifier: Modifier) {}
 
+    /**
+     * Readiness-line copy for the game's blocks that its [PublishFields] fix, by block id: the
+     * Studio shows each as its own phrase instead of folding it into "Fix the board". Empty by default.
+     */
+    val publishFieldCopy: Map<String, String> get() = emptyMap()
+
     /** Context line beside the tool strip; the default draws nothing. */
     @Composable fun ToolHint(controller: GameEditorController, modifier: Modifier) {}
 

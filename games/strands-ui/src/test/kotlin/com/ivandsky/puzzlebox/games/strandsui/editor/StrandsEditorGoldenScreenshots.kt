@@ -35,7 +35,6 @@ import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraftPath
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -47,8 +46,9 @@ import java.io.File
 /**
  * The Strands editor's looks, on a 411 dp phone and in the tablet Studio's 876×720 left pane,
  * light and dark: the blank board, a trace in progress, a selected path with its "+N" handle,
- * pockets, the paths panel, Unique, Multiple, None and each witness on the board. The phone's
- * board carries its authoring tools; the tablet's is the board alone (they sit in the side pane).
+ * pockets, Unique, Multiple, None and each witness on the board. The phone's board carries its
+ * authoring tools, so its Unique shows the paths panel; the tablet's is the board alone (they
+ * sit in the side pane).
  * The publish fields, blank and over the clue's cap, at the phone's and the side pane's width.
  * Every verdict comes from [StrandsDraftAnalyzer] on a real draft, asserted before the capture.
  * Recorded by default, verified with `-Proborazzi.verify=true`; goldens in `snapshots/editor/`.
@@ -85,9 +85,6 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
 
     @Test fun `pockets light`() = pockets(dark = false)
     @Test fun `pockets dark`() = pockets(dark = true)
-
-    @Test fun `paths panel light`() = panel(dark = false)
-    @Test fun `paths panel dark`() = panel(dark = true)
 
     @Test fun `publish fields blank light`() = publishFields("publish-fields-blank", "", dark = false)
     @Test fun `publish fields blank dark`() = publishFields("publish-fields-blank", "", dark = true)
@@ -183,13 +180,6 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
         val ring = StrandsDraftPath(listOf(2, 3, 4, 5), "RING")
         val draft = base.copy(paths = listOf(ring) + base.paths.drop(1))
         capture("pockets", dark, draft, analyzed<Verdict.Incomplete>(draft))
-    }
-
-    /** Phone only: on the tablet the board is all the capture holds, the same as Unique. */
-    private fun panel(dark: Boolean) {
-        assumeTrue(device == "phone")
-        val draft = board(WORDS, startRow = 0).copy(spangram = SPANGRAM)
-        capture("paths-panel", dark, draft, analyzed<Verdict.Unique>(draft))
     }
 
     /** The clue and the credit as the publish details close with them. */

@@ -190,6 +190,7 @@ internal fun EditorRoute(
                             onPublish = { viewModel.publish.publish(draft, ready.verdict) },
                             title = title,
                             onShowDetails = { editBoard = false }.takeIf { detailsReady && editBoard },
+                            fieldCopy = ready.editor.publishFieldCopy,
                         )
                     }
                 },

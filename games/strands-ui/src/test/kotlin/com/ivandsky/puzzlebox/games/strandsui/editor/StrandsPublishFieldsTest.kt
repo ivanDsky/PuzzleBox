@@ -65,7 +65,8 @@ class StrandsPublishFieldsTest {
         show()
         rule.onNodeWithTag(CLUE).performTextInput("Kitchen")
         assertEquals("Kitchen", board().clue)
-        assertTrue("every keystroke is an edit", edits.isNotEmpty())
+        assertEquals("every keystroke is an edit", "Kitchen", (edits.last().state.draft as StrandsDraft).clue)
+        assertEquals("the typing is one undo step", 1, controller.draft.value.state.history.done.size)
         assertFalse(clueBlocked())
         rule.onNodeWithTag(COUNTER, useUnmergedTree = true).assertTextEquals("7/40")
     }

@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.games.strandsui.editor
 
+import com.ivandsky.puzzlebox.game.CommandHistory
+import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.ReplaceDraft
 import com.ivandsky.puzzlebox.games.strands.Coord
@@ -100,14 +102,24 @@ class StrandsEditorController(
     }
 
     /**
-     * Sets the theme clue as one undoable step; a no-op when [text] is the clue already. Line
+     * Sets the theme clue; a no-op when [text] is the clue already. Consecutive clue edits are
+     * one undoable step: a keystroke after a clue edit replaces that step, so one undo takes the
+     * whole typing back, and typing back to the clue before it leaves no step at all. Line
      * breaks are dropped: the notation writes the clue on one line.
      */
     fun setClue(text: String) {
         val clue = text.filter { it != '\n' && it != '\r' }
         val before = current.value.state.draft.clue
         if (clue == before) return
-        val next = current.value.apply(StrandsDraftCommand.SetClue(clue, before))
+        val last = current.value.state.history.done.lastOrNull() as? StrandsDraftCommand.SetClue
+        val base = if (last != null) checkNotNull(current.value.undo()) else current.value
+        val origin = last?.before ?: before
+        val next = if (clue == origin) {
+            // Typed back to where it started: the step goes, and with it the redo the undo left.
+            EditorDraft(base.editor, DraftState(base.state.draft, CommandHistory(base.state.history.done)))
+        } else {
+            base.apply(StrandsDraftCommand.SetClue(clue, origin))
+        }
         current.value = next
         onEdit(next)
     }

@@ -66,6 +66,9 @@ object StrandsEditorUi : GameEditorUi {
         StrandsPublishFields(controller as StrandsEditorController, enabled, modifier)
     }
 
+    /** A missing or too-long clue reads as a field to fill, not a board to fix. */
+    override val publishFieldCopy: Map<String, String> = mapOf(StrandsPublishGates.CLUE_LENGTH to StrandsEditorCopy.CLUE_READINESS)
+
     /** "Trace a word", or the selected path's word and length with a Remove action. */
     @Composable
     override fun ToolHint(controller: GameEditorController, modifier: Modifier) {
@@ -118,7 +121,8 @@ private fun strandsFixRows(draft: StrandsDraft, verdict: Verdict, blocks: List<P
             val path = if (reason.id == StrandsDraftAnalyzer.UNNAMED) unnamed.takeIf { it >= 0 } else null
             StrandsEditorCopy.fix(reason.id, reason.count, "")?.let { add(StrandsFixRow(reason.id, it, path)) }
         }
-        blocks.filter { it.id in StrandsPublishGates.blockIds }.forEach { block ->
+        // The clue is a publish field, not the board: the readiness line names it (publishFieldCopy).
+        blocks.filter { it.id in StrandsPublishGates.blockIds && it.id != StrandsPublishGates.CLUE_LENGTH }.forEach { block ->
             val path = block.subject.takeIf { it in draft.paths.indices }
             val word = path?.let { draft.paths[it].word } ?: "Word ${block.subject + 1}"
             StrandsEditorCopy.fix(block.id, block.count, word)?.let { add(StrandsFixRow(block.id, it, path)) }

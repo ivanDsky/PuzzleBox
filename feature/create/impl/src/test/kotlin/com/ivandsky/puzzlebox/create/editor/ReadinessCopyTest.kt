@@ -34,10 +34,10 @@ class ReadinessCopyTest {
         node.config.getOrElse(SemanticsProperties.Text) { emptyList() }.any { it.text.isNotBlank() }
     }
 
-    private fun show(blocks: List<PublishBlock>) {
+    private fun show(blocks: List<PublishBlock>, fieldCopy: Map<String, String> = emptyMap()) {
         compose.setContent {
             PuzzleBoxTheme {
-                ActionArea(passed = null, canTestSolve = false, onTestSolve = {}, blocks = blocks)
+                ActionArea(passed = null, canTestSolve = false, onTestSolve = {}, blocks = blocks, fieldCopy = fieldCopy)
             }
         }
     }
@@ -63,6 +63,20 @@ class ReadinessCopyTest {
         compose.onAllNodesWithTag("create.readiness.board").assertCountEquals(1)
         compose.onNodeWithTag("create.readiness.board").assert(nonEmptyText)
         compose.onAllNodesWithTag("create.readiness.fake.unknown").assertCountEquals(0)
+    }
+
+    @Test
+    fun aPublishFieldBlockReadsAsItsOwnPhraseBesideTheBoard() {
+        show(listOf(PublishBlock("fake.field"), PublishBlock("fake.unknown")), fieldCopy = mapOf("fake.field" to "Fill the field"))
+        compose.onNodeWithTag("create.readiness.fake.field").assert(nonEmptyText)
+        compose.onAllNodesWithTag("create.readiness.board").assertCountEquals(1)
+    }
+
+    @Test
+    fun aPublishFieldBlockAloneIsNotTheBoard() {
+        show(listOf(PublishBlock("fake.field")), fieldCopy = mapOf("fake.field" to "Fill the field"))
+        compose.onNodeWithTag("create.readiness.fake.field").assert(nonEmptyText)
+        compose.onAllNodesWithTag("create.readiness.board").assertCountEquals(0)
     }
 
     @Test

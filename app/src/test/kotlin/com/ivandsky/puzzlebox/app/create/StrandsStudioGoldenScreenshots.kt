@@ -28,6 +28,7 @@ import com.ivandsky.puzzlebox.create.editor.ActionArea
 import com.ivandsky.puzzlebox.create.editor.PublishDetails
 import com.ivandsky.puzzlebox.create.editor.PublishSession
 import com.ivandsky.puzzlebox.create.editor.StudioScreen
+import com.ivandsky.puzzlebox.create.editor.ToolSlot
 import com.ivandsky.puzzlebox.create.editor.ToolStrip
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -59,8 +60,9 @@ import java.io.File
  * light and dark, over a Unique eight-word board whose WINDOW spangram is selected. Authoring:
  * on the tablet the board fills the left pane alone and the spangram toggle, the word field and
  * the eight path rows follow the tool strip in the side pane, nothing scrolled (asserted); on the
- * phone they sit under the board. Publish: after a passed test the details take the tools' place
- * and close with the theme clue and the word list credit. Readiness is the domain's
+ * phone they sit under the board. Publish: after a passed test the Route's [ToolSlot] swaps the
+ * tools for the details, headed with the Edit board chip, which close with the theme clue and
+ * the word list credit. Readiness is the domain's
  * [ValidatePublish]. Recorded with `-Proborazzi.record=true`, verified with
  * `-Proborazzi.verify=true`; goldens in `snapshots/studio/`.
  */
@@ -178,37 +180,47 @@ abstract class StrandsStudioGoldenScreenshots(private val layout: PlayLayout, pr
             onDuplicate = {},
             onDelete = {},
             board = { boardModifier -> StrandsEditorUi.Board(controller, verdict, layout, boardModifier) },
-            toolStrip = { stripModifier ->
-                if (passed != null) {
-                    PublishDetails(
-                        title = TITLE,
-                        details = PublishSession.Details(authorName = "Ivan"),
-                        signedIn = true,
-                        onRename = {},
-                        onAuthorName = {},
-                        onNote = {},
-                        modifier = stripModifier,
-                        paired = true,
-                        fields = { fieldsModifier -> StrandsEditorUi.PublishFields(controller, true, fieldsModifier) },
-                    )
-                } else {
-                    Column(stripModifier) {
-                        ToolStrip(
-                            canUndo = true,
-                            canRedo = false,
-                            onUndo = {},
-                            onRedo = {},
-                            sizes = StrandsEditor.variants,
-                            size = editorDraft.variant,
-                            sizeLabel = StrandsEditorUi::sizeLabel,
-                            onResize = {},
-                            onClear = {},
-                            hint = { hintModifier -> StrandsEditorUi.ToolHint(controller, hintModifier) },
-                            modifier = Modifier.fillMaxWidth(),
+            // The Route's own host: the tools, or once the test passes the details in their place,
+            // headed "Publish details" with the Edit board chip, the slot holding the taller of the two.
+            toolStrip = { slotModifier ->
+                ToolSlot(
+                    open = passed != null,
+                    editBoard = false,
+                    onEditBoard = {},
+                    tools = { stripModifier ->
+                        Column(stripModifier) {
+                            ToolStrip(
+                                canUndo = true,
+                                canRedo = false,
+                                onUndo = {},
+                                onRedo = {},
+                                sizes = StrandsEditor.variants,
+                                size = editorDraft.variant,
+                                sizeLabel = StrandsEditorUi::sizeLabel,
+                                onResize = {},
+                                onClear = {},
+                                hint = { hintModifier -> StrandsEditorUi.ToolHint(controller, hintModifier) },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            if (layout == PlayLayout.TwoPane) StrandsEditorUi.PaneTools(controller, Modifier.fillMaxWidth())
+                        }
+                    },
+                    form = { formModifier, editBoardChip ->
+                        PublishDetails(
+                            title = TITLE,
+                            details = PublishSession.Details(authorName = "Ivan"),
+                            signedIn = true,
+                            onRename = {},
+                            onAuthorName = {},
+                            onNote = {},
+                            modifier = formModifier,
+                            paired = true,
+                            action = editBoardChip,
+                            fields = { fieldsModifier -> StrandsEditorUi.PublishFields(controller, true, fieldsModifier) },
                         )
-                        if (layout == PlayLayout.TwoPane) StrandsEditorUi.PaneTools(controller, Modifier.fillMaxWidth())
-                    }
-                }
+                    },
+                    modifier = slotModifier,
+                )
             },
             issues = { issuesModifier ->
                 StrandsEditorUi.Issues(controller, verdict, editorDraft.publishBlocks(verdict), {}, issuesModifier)
@@ -222,6 +234,7 @@ abstract class StrandsStudioGoldenScreenshots(private val layout: PlayLayout, pr
                     modifier = areaModifier,
                     publish = PublishSession.State().takeIf { passed != null },
                     title = TITLE,
+                    fieldCopy = StrandsEditorUi.publishFieldCopy,
                 )
             },
         )
