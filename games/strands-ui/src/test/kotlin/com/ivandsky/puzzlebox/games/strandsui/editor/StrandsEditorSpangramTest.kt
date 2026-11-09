@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraftPath
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -40,7 +41,7 @@ class StrandsEditorSpangramTest {
     private fun board() = controller.draft.value.state.draft as StrandsDraft
 
     private fun show() = rule.setContent {
-        PuzzleBoxTheme { Column { StrandsEditorUi.Board(controller, Verdict.Checking, Modifier.weight(1f)) } }
+        PuzzleBoxTheme { Column { StrandsEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier.weight(1f)) } }
     }
 
     private fun path(vararg cells: Int) {

@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -22,7 +23,7 @@ private class FakeEditorUi(override val gameId: GameId) : GameEditorUi {
         error("unused")
 
     @Composable
-    override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) = Unit
+    override fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) = Unit
 }
 
 /** S18: one editor UI per game id; a duplicate is a wiring bug. */

@@ -61,18 +61,67 @@ private const val BLANK_GLYPH = ' '
  * tokens. Touch is the play board's: a drag or taps trace cells, a lift commits the
  * path ([StrandsEditorController.endTrace]); a tap on a traced cell or its chip selects that
  * path, drawn outlined; uncovered areas too small for a word get a dashed outline
- * (`strands.editor.cell.<idx>.pocket`). Under the grid, the word field ([StrandsWordField])
- * names the selected path or, with none, the word the next lift writes; a "+N" handle at a
- * short path's end ([StrandsExtendHandle]) extends it. Below, [StrandsPathsPanel] lists the
- * paths and holds the clue field. The [verdict] and the card's witness choice
- * ([StrandsEditorController.overlay]) are drawn by [StrandsDiagnosticsLayer].
+ * (`strands.editor.cell.<idx>.pocket`); a "+N" handle at a short path's end
+ * ([StrandsExtendHandle]) extends it. The [verdict] and the card's witness choice
+ * ([StrandsEditorController.overlay]) are drawn by [StrandsDiagnosticsLayer]. With [withTools]
+ * the [StrandsAuthoringTools] follow the grid in one scroll and the grid keeps its width's touch
+ * size; without them (the tablet Studio draws them in its side pane) the grid alone fits the
+ * width and the height, centred, with no scroll.
  */
 @Composable
 internal fun StrandsEditorBoard(
     controller: StrandsEditorController,
     modifier: Modifier = Modifier,
     verdict: Verdict = Verdict.Checking,
+    withTools: Boolean = true,
 ) {
+    BoxWithConstraints(modifier) {
+        if (withTools) {
+            // The grid keeps its touch size and the column scrolls, so the tools never squeeze the board.
+            val cell = strandsCellSizeFor(maxWidth, Dp.Infinity, StrandsDraft.ROWS, StrandsDraft.COLS)
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                StrandsEditorGrid(controller, verdict, Modifier.fillMaxWidth().height(cell * StrandsDraft.ROWS))
+                StrandsAuthoringTools(controller)
+            }
+        } else {
+            val cell = strandsCellSizeFor(maxWidth, maxHeight, StrandsDraft.ROWS, StrandsDraft.COLS)
+            StrandsEditorGrid(controller, verdict, Modifier.align(Alignment.Center).fillMaxWidth().height(cell * StrandsDraft.ROWS))
+        }
+    }
+}
+
+/**
+ * The authoring controls under the grid: the selected path's spangram toggle, the word field
+ * ([StrandsWordField]), which names the selected path or, with none, the word the next lift
+ * writes, and [StrandsPathsPanel], one row per path.
+ */
+@Composable
+internal fun StrandsAuthoringTools(controller: StrandsEditorController, modifier: Modifier = Modifier) {
+    val draft by controller.draft.collectAsState()
+    val selected by controller.selectedPath.collectAsState()
+    val board = draft.state.draft as StrandsDraft
+    Column(modifier) {
+        selected?.let { index ->
+            StrandsSpangramToggle(
+                index = index,
+                isSpangram = board.spangram == index,
+                onToggle = { controller.toggleSpangram(index) },
+                modifier = Modifier.padding(top = Spacing.sm),
+            )
+        }
+        StrandsWordField(controller)
+        StrandsPathsPanel(
+            board = board,
+            selected = selected,
+            onSelect = controller::selectPath,
+            modifier = Modifier.padding(top = Spacing.sm),
+        )
+    }
+}
+
+/** The 8×6 grid with its diagnostics and cell taps, filling [modifier]. */
+@Composable
+private fun StrandsEditorGrid(controller: StrandsEditorController, verdict: Verdict, modifier: Modifier) {
     val draft by controller.draft.collectAsState()
     val live by controller.trace.collectAsState()
     val word by controller.word.collectAsState()
@@ -91,49 +140,27 @@ internal fun StrandsEditorBoard(
     // A token derives its trace place from this lambda, and the flow's value is no snapshot
     // read: keyed on the collected trace, each step hands the tokens a new one to derive from.
     val trace = remember(live) { { Trace(controller.trace.value.map(::coordOf)) } }
-    // The grid keeps its touch size and the column scrolls, so the panel never squeezes the board.
-    BoxWithConstraints(modifier) {
-        val cell = strandsCellSizeFor(maxWidth, Dp.Infinity, StrandsDraft.ROWS, StrandsDraft.COLS)
-        Column(Modifier.verticalScroll(rememberScrollState())) {
-            Box(Modifier.fillMaxWidth().height(cell * StrandsDraft.ROWS)) {
-                StrandsBoardContent(
-                    model = model,
-                    found = null,
-                    reduceMotion = rememberReducedMotion(),
-                    trace = trace,
-                    onTrace = controller::step,
-                    tiles = { StrandsIdleTiles(idle, Modifier.fillMaxSize()) },
-                    modifier = Modifier.fillMaxSize().testTag("strands.editor.board"),
-                )
-                val tail = selected?.let { board.paths[it] }
-                StrandsDiagnosticsLayer(diagnostics, Modifier.fillMaxSize())
-                val missing = (tail?.let { word.length - it.cells.size } ?: 0).coerceAtLeast(0)
-                CellTaps(
-                    onTap = controller::tapCell,
-                    extendAt = tail?.cells?.last()?.takeIf { missing > 0 },
-                    missing = missing,
-                    onExtend = controller::extend,
-                    pockets = pockets,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-            selected?.let { index ->
-                StrandsSpangramToggle(
-                    index = index,
-                    isSpangram = board.spangram == index,
-                    onToggle = { controller.toggleSpangram(index) },
-                    modifier = Modifier.padding(top = Spacing.sm),
-                )
-            }
-            StrandsWordField(controller)
-            StrandsPathsPanel(
-                board = board,
-                selected = selected,
-                onSelect = controller::selectPath,
-                onClue = controller::setClue,
-                modifier = Modifier.padding(top = Spacing.sm),
-            )
-        }
+    Box(modifier) {
+        StrandsBoardContent(
+            model = model,
+            found = null,
+            reduceMotion = rememberReducedMotion(),
+            trace = trace,
+            onTrace = controller::step,
+            tiles = { StrandsIdleTiles(idle, Modifier.fillMaxSize()) },
+            modifier = Modifier.fillMaxSize().testTag("strands.editor.board"),
+        )
+        val tail = selected?.let { board.paths[it] }
+        StrandsDiagnosticsLayer(diagnostics, Modifier.fillMaxSize())
+        val missing = (tail?.let { word.length - it.cells.size } ?: 0).coerceAtLeast(0)
+        CellTaps(
+            onTap = controller::tapCell,
+            extendAt = tail?.cells?.last()?.takeIf { missing > 0 },
+            missing = missing,
+            onExtend = controller::extend,
+            pockets = pockets,
+            modifier = Modifier.fillMaxSize(),
+        )
     }
 }
 

@@ -177,7 +177,7 @@ abstract class PublishedPageGoldenScreenshots(private val layout: PlayLayout, pr
     /** The fake editor with the Studio previews' placeholder square for its board. */
     private class PlaceholderEditorUi(base: FakeGameEditorUi) : GameEditorUi by base {
         @Composable
-        override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) {
+        override fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) {
             Box(modifier, contentAlignment = Alignment.Center) {
                 Box(Modifier.aspectRatio(1f, matchHeightConstraintsFirst = true).background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))
             }

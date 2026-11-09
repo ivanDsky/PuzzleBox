@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuDraftAnalyzer
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuEditor
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuForcedCells
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuPublishGates
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -214,7 +215,7 @@ abstract class SudokuEditorGoldenScreenshots(private val device: String) {
                     Surface(Modifier.testTag(GOLDEN)) {
                         Column(Modifier.padding(Spacing.md).then(frame())) {
                             val fill = Modifier.fillMaxWidth()
-                            ui.Board(shown.controller, verdict, fill.weight(1f, fill = false))
+                            ui.Board(shown.controller, verdict, PlayLayout.SinglePane, fill.weight(1f, fill = false))
                             if (fixList) {
                                 ui.Issues(shown.controller, verdict, blocks, onSelect = {}, fill)
                             }

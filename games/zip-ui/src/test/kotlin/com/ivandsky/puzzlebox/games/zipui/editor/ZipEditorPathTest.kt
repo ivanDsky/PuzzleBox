@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.zip.editor.ZipDraft
 import com.ivandsky.puzzlebox.games.zip.editor.ZipDraftCommand
 import com.ivandsky.puzzlebox.games.zip.editor.ZipEditor
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -51,7 +52,7 @@ class ZipEditorPathTest {
             PuzzleBoxTheme {
                 Column(Modifier.fillMaxSize()) {
                     ZipEditorUi.ToolHint(controller, Modifier.fillMaxWidth())
-                    ZipEditorUi.Board(controller, Verdict.Checking, Modifier.fillMaxWidth().weight(1f))
+                    ZipEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier.fillMaxWidth().weight(1f))
                 }
             }
         }

@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -43,7 +44,7 @@ class StrandsEditorTraceTest {
     private fun show() = rule.setContent {
         PuzzleBoxTheme {
             Column {
-                StrandsEditorUi.Board(controller, Verdict.Checking, Modifier.weight(1f))
+                StrandsEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier.weight(1f))
                 StrandsEditorUi.ToolHint(controller, Modifier.fillMaxWidth())
             }
         }

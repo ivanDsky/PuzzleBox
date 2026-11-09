@@ -31,8 +31,8 @@ import org.robolectric.annotation.Config
 
 /**
  * Every id the Strands editor can hand the fix list has copy: a reason
- * ([StrandsDraftAnalyzer.reasonIds]) or block ([StrandsPublishGates.blockIds]) without a row
- * fails here.
+ * ([StrandsDraftAnalyzer.reasonIds]) or block ([StrandsPublishGates.blockIds]) without a row,
+ * or for a block the publish fields fix without a readiness phrase, fails here.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -73,13 +73,23 @@ class StrandsCopyCoverageTest {
     }
 
     @Test
-    fun `every block renders a non-empty fix row`() {
+    fun `every block renders a non-empty fix row or has a readiness phrase`() {
         val ids = StrandsPublishGates.blockIds
         show(Verdict.Checking, ids.map { PublishBlock(it, subject = 0, count = 1) })
+        val fields = StrandsEditorUi.publishFieldCopy
 
-        val missing = ids.filter { id -> rowText("strands.editor.fix.$id").isBlank() }
+        val missing = ids.filter { id ->
+            if (id in fields) fields.getValue(id).isBlank() else rowText("strands.editor.fix.$id").isBlank()
+        }
 
         assertEquals(emptyList<String>(), missing)
+    }
+
+    @Test
+    fun `a block the publish fields fix draws no fix row`() {
+        show(Verdict.Checking, listOf(PublishBlock(StrandsPublishGates.CLUE_LENGTH)))
+
+        assertTrue(rule.onAllNodesWithTag("strands.editor.fix.${StrandsPublishGates.CLUE_LENGTH}").fetchSemanticsNodes().isEmpty())
     }
 
     @Test

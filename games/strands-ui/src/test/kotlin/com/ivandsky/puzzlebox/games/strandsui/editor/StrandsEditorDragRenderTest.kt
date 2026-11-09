@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSpec
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -56,7 +57,7 @@ class StrandsEditorDragRenderTest {
         rule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 colors = LocalBoardColors.current
-                StrandsEditorUi.Board(controller, Verdict.Checking, Modifier)
+                StrandsEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier)
             }
         }
         rule.waitForIdle()

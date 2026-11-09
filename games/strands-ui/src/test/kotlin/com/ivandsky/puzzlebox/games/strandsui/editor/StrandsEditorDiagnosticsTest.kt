@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -38,7 +39,7 @@ class StrandsEditorDiagnosticsTest {
     private fun show(shown: Verdict) {
         verdict = shown
         rule.setContent {
-            PuzzleBoxTheme { StrandsEditorUi.Board(controller, verdict, Modifier) }
+            PuzzleBoxTheme { StrandsEditorUi.Board(controller, verdict, PlayLayout.SinglePane, Modifier) }
         }
     }
 

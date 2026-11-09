@@ -47,7 +47,7 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
  * cap the field shows its inline error. Signed out ([signedIn] false) the author placeholder
  * says Google fills it. Fields are disabled while not [enabled] (a publish runs). [paired] sets
  * the title and the author side by side, for a short slot; an [action] heads the form, at the
- * end of its "Publish details" row.
+ * end of its "Publish details" row. The game's own [fields] close the form.
  *
  * Motion: the note row **Expands** in with a **Fade** (EnterDuration on the emphasized
  * decelerate curve); under reduced motion it only fades.
@@ -64,6 +64,7 @@ fun PublishDetails(
     enabled: Boolean = true,
     paired: Boolean = false,
     action: (@Composable () -> Unit)? = null,
+    fields: @Composable (Modifier) -> Unit = {},
 ) {
     var renaming by rememberSaveable { mutableStateOf(false) }
     var noteOpen by rememberSaveable { mutableStateOf(details.note.isNotEmpty()) }
@@ -133,6 +134,7 @@ fun PublishDetails(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+        fields(Modifier.fillMaxWidth())
     }
     if (renaming) {
         RenameSheet(

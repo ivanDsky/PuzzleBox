@@ -19,7 +19,9 @@ object StrandsPublishGates {
     /** Every PublishBlock id [blocks] can emit, so a copy table can prove it covers them all. */
     val blockIds: Set<String> = setOf(PublishBlock.BLOCKLISTED, CLUE_LENGTH, WORD_SHAPE, DUPLICATE_WORD, SPANGRAM_EDGES)
 
-    private const val MAX_CLUE = 40
+    /** The theme clue's cap: a non-blank clue of at most this many characters publishes. */
+    const val MAX_CLUE: Int = 40
+
     private val WORD_LENGTHS = 4..24
 
     fun blocks(draft: StrandsDraft, verdict: Verdict): List<PublishBlock> {
