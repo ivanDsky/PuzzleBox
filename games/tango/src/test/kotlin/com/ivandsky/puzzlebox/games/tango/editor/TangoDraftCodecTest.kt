@@ -58,10 +58,34 @@ class TangoDraftCodecTest {
     }
 
     @Test
+    fun `a resize that falls off the history cap leaves v1 bytes that still decode`() {
+        val blank8 = TangoDraft(8, emptyMap(), emptyList())
+        val steps = listOf(ReplaceDraft(blank8, blank)) + List(TangoDraftCodec.MAX_HISTORY) { ReplaceDraft(blank, blank) }
+
+        val bytes = TangoDraftCodec.encode(DraftState(blank, CommandHistory(steps, emptyList())))
+
+        assertEquals(1, bytes[0].toInt())
+        val decoded = (TangoDraftCodec.decode(bytes) as DecodeResult.Ok).value
+        assertEquals(TangoDraftCodec.MAX_HISTORY, decoded.history.done.size)
+    }
+
+    @Test
+    fun `a v2 history cut at the cap still decodes`() {
+        val blank8 = TangoDraft(8, emptyMap(), emptyList())
+        val steps = listOf(ReplaceDraft(blank, blank8)) + List(TangoDraftCodec.MAX_HISTORY) { ReplaceDraft(blank8, blank8) }
+
+        val bytes = TangoDraftCodec.encode(DraftState(blank8, CommandHistory(steps, emptyList())))
+
+        assertEquals(2, bytes[0].toInt())
+        val decoded = (TangoDraftCodec.decode(bytes) as DecodeResult.Ok).value
+        assertEquals(TangoDraftCodec.MAX_HISTORY, decoded.history.done.size)
+    }
+
+    @Test
     fun `an unknown version is UnsupportedVersion`() {
         val bytes = TangoDraftCodec.encode(DraftState(seeded))
         bytes[0] = (TangoDraftCodec.VERSION + 1).toByte()
-        assertErr(bytes) { it is DecodeError.UnsupportedVersion }
+        assertErr(bytes) { it == DecodeError.UnsupportedVersion(TangoDraftCodec.VERSION + 1, TangoDraftCodec.VERSION) }
     }
 
     @Test
@@ -187,15 +211,11 @@ class TangoDraftCodecTest {
     }
 
     @Test
-    fun `version 3 is UnsupportedVersion`() {
-        val bytes = fixture("tango-draft-v2.bin").also { it[0] = 3 }
-        assertErr(bytes) { it is DecodeError.UnsupportedVersion }
-    }
-
-    @Test
     fun `a v2 board size outside SIZES is Malformed`() {
-        val bytes = fixture("tango-draft-v2.bin").also { it[1] = 7 }
-        assertErr(bytes) { it is DecodeError.Malformed }
+        // Index 1 sizes the current board; 12 and 15 size the before and after boards of the resize.
+        listOf(1, 12, 15).forEach { at ->
+            assertErr(fixture("tango-draft-v2.bin").also { it[at] = 7 }) { it is DecodeError.Malformed }
+        }
     }
 
     @Test
@@ -207,10 +227,14 @@ class TangoDraftCodecTest {
             blank8,
             CommandHistory(emptyList(), listOf(TangoDraftCommand.SetMarker(5, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME, null), ReplaceDraft(blank8, blank))),
         )
+        val markerDownOn6 = DraftState(
+            blank8,
+            CommandHistory(emptyList(), listOf(TangoDraftCommand.SetMarker(32, TangoEdgeSide.DOWN, TangoMarkerKind.SAME, null), ReplaceDraft(blank8, blank))),
+        )
         val replaceMismatch = DraftState(blank, CommandHistory(listOf(ReplaceDraft(blank, blank8))))
         val redoMismatch = DraftState(blank, CommandHistory(emptyList(), listOf(ReplaceDraft(blank8, blank))))
 
-        listOf(cellOn6, markerOn6, replaceMismatch, redoMismatch).forEach { state ->
+        listOf(cellOn6, markerOn6, markerDownOn6, replaceMismatch, redoMismatch).forEach { state ->
             assertErr(TangoDraftCodec.encode(state)) { it is DecodeError.Malformed }
         }
     }

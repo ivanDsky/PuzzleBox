@@ -59,13 +59,16 @@ object TangoDraftCodec {
     private const val V1 = 1
     private const val V1_N = 6
 
+    /** From v2 on, every board carries its size; pinned apart from [VERSION] so a later bump keeps reading v2. */
+    private const val V2 = 2
+
     /** History entries: TangoDraftCommand.SetCell/SetMarker and ReplaceDraft<TangoDraft>, each with a tag byte. */
     fun encode(state: DraftState<TangoDraft>): ByteArray {
         val done = state.history.done.takeLast(MAX_HISTORY)
         val undone = state.history.undone.takeLast(MAX_HISTORY)
         val sized = state.draft.n != V1_N || done.any(::holdsOtherSize) || undone.any(::holdsOtherSize)
         val out = ByteArrayOutputStream()
-        out.write(if (sized) VERSION else V1)
+        out.write(if (sized) V2 else V1)
         writeBoard(out, state.draft, sized)
         writeSteps(out, done, sized)
         writeSteps(out, undone, sized)
@@ -76,7 +79,7 @@ object TangoDraftCodec {
         val cursor = Cursor(bytes)
         val version = cursor.u8() ?: return malformed("empty draft bytes")
         if (version !in V1..VERSION) return DecodeResult.Err(DecodeError.UnsupportedVersion(version, VERSION))
-        val sized = version == VERSION
+        val sized = version >= V2
         val draft = readBoard(cursor, sized) ?: return malformed("malformed board")
         val done = readSteps(cursor, sized) ?: return malformed("malformed undo history")
         val undone = readSteps(cursor, sized) ?: return malformed("malformed redo history")
