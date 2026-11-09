@@ -24,4 +24,9 @@ class LongLookAheadRung(private val cheap: List<QueensRung>) : QueensRung {
 
     override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
         steps(puzzle, candidates).firstOrNull()?.deduction
+
+    /** The [steps] whose chains break at the fewest rounds, lowest cell first. */
+    internal fun stepsAtFirstBreak(puzzle: QueensPuzzle, candidates: QueensCandidates): List<QueensProof> =
+        LookAheadChain.breaksAtFirstDepth(puzzle, candidates, cheap, minRounds = 2, maxRounds = LookAheadChain.CAP)
+            .map { it.proof(this, puzzle, candidates) }
 }

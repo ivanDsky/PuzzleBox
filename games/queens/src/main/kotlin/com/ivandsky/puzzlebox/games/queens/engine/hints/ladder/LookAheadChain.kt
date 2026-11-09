@@ -43,6 +43,19 @@ internal object LookAheadChain {
         return generateSequence(0) { it + 1 }.map { probe.breakAt(it, maxRounds) }.takeWhile { it != null }.map { it!! }
     }
 
+    /**
+     * Every break at the shallowest round count in [minRounds]..[maxRounds], lowest cell first,
+     * or empty. The chains run only until that round count has been checked in full, on the
+     * same kept [Probe] as [breaks].
+     */
+    fun breaksAtFirstDepth(
+        puzzle: QueensPuzzle,
+        candidates: QueensCandidates,
+        cheap: List<QueensRung>,
+        minRounds: Int,
+        maxRounds: Int,
+    ): List<Break> = probe(puzzle, candidates, cheap).atFirstDepth(minRounds, maxRounds)
+
     /** The chain from a queen on the open [cell]: its break within [cap] rounds, or null when it stalls or runs out of rounds. */
     fun run(
         puzzle: QueensPuzzle,
@@ -130,6 +143,21 @@ internal object LookAheadChain {
                 nextRound()
             }
             return found.getOrNull(index)?.takeIf { it.rounds <= maxRounds }
+        }
+
+        @Synchronized
+        fun atFirstDepth(minRounds: Int, maxRounds: Int): List<Break> {
+            fun shallowest(): Break? = found.firstOrNull { it.rounds in minRounds..maxRounds }
+            // A depth below the current round count was checked in full by an earlier call.
+            if ((shallowest()?.rounds ?: rounds) >= rounds) {
+                while (!done) {
+                    if (checkNext()) continue
+                    if (shallowest() != null || rounds >= maxRounds) break
+                    nextRound()
+                }
+            }
+            val depth = shallowest()?.rounds ?: return emptyList()
+            return found.filter { it.rounds == depth }
         }
 
         /** Checks the next chain at this round count; false when every chain has been checked. */
