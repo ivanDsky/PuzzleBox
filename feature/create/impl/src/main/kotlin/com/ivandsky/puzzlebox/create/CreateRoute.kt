@@ -13,7 +13,8 @@ import com.ivandsky.puzzlebox.create.importtext.ImportSheetActions
 /**
  * The Create root's entry point over the activity-scoped [viewModel] (CreateEntries); [onOpen]
  * opens a draft's Studio, new ones included once the view model has stored them;
- * [onOpenPublished] opens a published puzzle's page by its share code.
+ * [onOpenPublished] opens a published puzzle's page by its share code. While it shows it also
+ * imports the text another app shared ([CreateViewModel.importSharedText]).
  */
 @Composable
 internal fun CreateRoute(
@@ -27,6 +28,7 @@ internal fun CreateRoute(
     val importSheet by viewModel.importText.ui.collectAsStateWithLifecycle()
     val open by rememberUpdatedState(onOpen)
     LaunchedEffect(viewModel) { viewModel.created.collect { open(it) } }
+    LaunchedEffect(viewModel) { viewModel.importSharedText() }
     CreateScreen(
         state = state,
         onNew = viewModel::newPuzzle,

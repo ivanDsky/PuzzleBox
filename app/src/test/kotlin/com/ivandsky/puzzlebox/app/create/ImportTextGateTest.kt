@@ -29,6 +29,7 @@ import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
 import java.time.Instant
 import org.junit.After
 import org.junit.Rule
@@ -95,6 +96,7 @@ class ImportTextGateTest {
                             createDraft,
                             CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW }),
                             DefaultDispatcherProvider(),
+                            sharedText = FakeSharedTextStore(),
                             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
                             releaseFlags = flags,
                             clock = { NOW },
