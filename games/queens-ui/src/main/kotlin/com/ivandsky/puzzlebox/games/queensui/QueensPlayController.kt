@@ -50,7 +50,7 @@ import java.time.Instant
 class QueensPlayController(
     private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
-    /** Read once at creation (spec A20); stored and not yet used — the Stepwise hint path (28) reads it. */
+    /** Read once at creation (spec A20); [HintMode.Stepwise] gives every board the Spotlight hint (28). */
     internal val hintMode: HintMode = HintMode.Legacy,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
@@ -101,14 +101,21 @@ class QueensPlayController(
             is DecodeResult.Err -> null
         }
 
-    private fun boardFor(session: QueensSession): QueensBoardState = QueensBoardState(
-        initialSession = session,
-        score = queensPlugin.score,
-        onWinRecord = { env.onWon(it) },
-        now = now,
-        onSessionChanged = ::publish,
-        settle = this::settle,
-    )
+    /** A fresh holder per board (adopt, restore, replay); the old one's search in flight is dropped first, so it can
+     *  neither show nor save the old session after the swap (A10). */
+    private fun boardFor(session: QueensSession): QueensBoardState {
+        board?.stepHints?.reset()
+        return QueensBoardState(
+            initialSession = session,
+            score = queensPlugin.score,
+            onWinRecord = { env.onWon(it) },
+            now = now,
+            onSessionChanged = ::publish,
+            settle = this::settle,
+            hintMode = hintMode,
+            scope = env.scope,
+        )
+    }
 
     private fun publish(session: QueensSession) {
         env.onSessionChanged(QueensSessionCodec.serialize(session))
@@ -196,9 +203,10 @@ class QueensPlayController(
 
     /** A14 always-on conflict line (R-2): live while any rule break stands; derived from
      *  the observable board session, so the shared caption slot recomposes with it. A
-     *  guided lesson has no rule yet, so it never shows the line. */
+     *  guided lesson has no rule yet, so it never shows the line. While a Spotlight shows,
+     *  its callout is the one message on screen (A11). */
     override val violation: String?
-        get() = board?.let { b ->
+        get() = board?.takeIf { it.spotlight == null }?.let { b ->
             RULE_CONFLICT.takeIf {
                 QueensBoardModel.of(b.session, b.hint, b.hintPointed, b.guide).violations.isNotEmpty()
             }

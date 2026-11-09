@@ -3,16 +3,23 @@ package com.ivandsky.puzzlebox.games.queensui
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.ScoreModel
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
+import com.ivandsky.puzzlebox.gameui.hint.StepHints
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHints
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.SinglesRung
+import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
 import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSolver
+import com.ivandsky.puzzlebox.games.queensui.hint.QueensSpotlightMapper
+import com.ivandsky.puzzlebox.games.queensui.hint.QueensStepGame
 import java.time.Instant
+import kotlinx.coroutines.CoroutineScope
 
 /**
  * The Queens board state holder (ZipPlayController precedent): the [QueensSession] is the
@@ -39,6 +46,9 @@ import java.time.Instant
  * escalates to stage 2 — [hintPointed] renders the crown ghost directly on the cell.
  * Any board action clears the hint. A NEW presented hint counts into the session's
  * result facts ([QueensSession.hintsUsed]); the stage-2 repeat is presentation only.
+ * [HintMode.Stepwise] with a [scope] (HintParity) swaps the ladder for [StepHints]: a press shows a [spotlight] and
+ * never places (A1), a culprit's second press erases it as one undo unit (A4), every input clears it in the same call
+ * (A10). [hint] and [hintPointed] then stay unset, so the region pulse, crown ghost and caption never draw (A15).
  *
  * Clock: the owner (the play state) holds the running window; [settle] is its hook on
  * every committed session — start the window, or fold it into the session's banked
@@ -64,6 +74,8 @@ class QueensBoardState(
     private val now: () -> Instant = Instant::now,
     private val onSessionChanged: (QueensSession) -> Unit = {},
     private val settle: (QueensSession) -> QueensSession = { it },
+    hintMode: HintMode = HintMode.Legacy,
+    scope: CoroutineScope? = null,
 ) {
 
     var session by mutableStateOf(initialSession)
@@ -97,6 +109,13 @@ class QueensBoardState(
         private set
 
     private var lastHintCellIdx: Int? = null
+
+    internal val stepHints: StepHints<QueensStep, QueensSpotlightMapper.Key>? = (hintMode as? HintMode.Stepwise)?.let { mode ->
+        scope?.let { StepHints(mode, it, QueensStepGame({ session }, ::eraseCulprit), { session.hintsUsed }, ::storeHintsUsed) }
+    }
+
+    /** The Stepwise hint on screen; null in Legacy mode and after any input. */
+    val spotlight: Spotlight? get() = stepHints?.spotlight
 
     /** Turns on the guided lesson (spec A12): the solver's answer becomes [guide]. */
     fun guide() {
@@ -168,6 +187,7 @@ class QueensBoardState(
      * repeat does not. The hint changes no cell, so it is not an undo unit.
      */
     fun requestHint() {
+        stepHints?.let { it.press(); return } // a won board's step is Solved, which shows nothing
         val next = hints.hint(session.puzzle, session.queens)
         val regionCell = (next as? QueensHint.Region)?.cell
         val repeat = regionCell != null && regionCell.idx == lastHintCellIdx
@@ -206,6 +226,21 @@ class QueensBoardState(
         hint = null
         hintPointed = false
         lastHintCellIdx = null
+        stepHints?.inputMade()
+    }
+
+    /** A4: a wrong queen or a wrong manual × comes off through the tap cycle's own command, one undo unit. */
+    private fun eraseCulprit(mistake: QueensStep.Mistake) {
+        val cell = mistake.cell
+        val cross = mistake.kind == QueensStep.Mistake.Kind.WRONG_CROSS
+        lastPlacedQueen = null
+        lastRemovedQueen = if (cross) null else cell.idx
+        commit(if (cross) session.withCrossToggled(cell, now()) else session.withQueenRemoved(cell, now()))
+    }
+
+    /** A newly counted Stepwise hint: through [settle] like the legacy count, never [commit], so the Spotlight stays. */
+    private fun storeHintsUsed(used: Int) {
+        store(settle(session.copy(hintsUsed = used)))
     }
 
     private fun commit(next: QueensSession) {
