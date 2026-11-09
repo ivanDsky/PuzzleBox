@@ -95,12 +95,23 @@ class LookAheadChainTest {
         assertFalse(14 in crossed(short, puzzle, state) + crossed(long, puzzle, state))
     }
 
+    // HallViolation's subset tables are 1 shl size, so no board small enough to probe runs 24 forced rounds; these pin the boundary at a cap equal to the break round, the same check CAP takes.
     @Test
-    fun `a chain still unbroken at the cap proves nothing`() {
+    fun `a break found only after the last round the cap allows proves nothing`() {
         assertEquals(24, LookAheadChain.CAP)
         val scratch = HallViolation.Scratch(five)
-        assertNull(LookAheadChain.run(five, cheapThenForced, 0, cheap, scratch, cap = 1))
-        assertEquals(2, LookAheadChain.run(five, cheapThenForced, 0, cheap, scratch, cap = 2)?.rounds)
+        assertNull(LookAheadChain.run(five, oneRound, 0, cheap, scratch, cap = 1))
+        assertEquals(1, LookAheadChain.run(five, oneRound, 0, cheap, scratch, cap = 2)?.rounds)
+        assertNull(LookAheadChain.run(five, cheapThenForced, 0, cheap, scratch, cap = 2))
+        assertEquals(2, LookAheadChain.run(five, cheapThenForced, 0, cheap, scratch, cap = 3)?.rounds)
+    }
+
+    @Test
+    fun `a collision on the last round the cap allows still breaks`() {
+        assertEquals(
+            LookAheadChain.Break(0, 1, listOf(7), Violation(Kind.ROW, listOf(2), Kind.REGION, emptyList())),
+            LookAheadChain.run(five, collision, 0, cheap, cap = 1),
+        )
     }
 
     @Test

@@ -18,7 +18,7 @@ class LongLookAheadRung(private val cheap: List<QueensRung>) : QueensRung {
     override val captionKey: String = "queens.hint.rung.long-look-ahead"
 
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
-        LookAheadChain.breaks(puzzle, candidates, cheap, LookAheadChain.CAP).asSequence()
+        LookAheadChain.breaks(puzzle, candidates, cheap, LookAheadChain.CAP)
             .filter { it.rounds >= 2 }
             .map { it.proof(this, puzzle, candidates) }
 

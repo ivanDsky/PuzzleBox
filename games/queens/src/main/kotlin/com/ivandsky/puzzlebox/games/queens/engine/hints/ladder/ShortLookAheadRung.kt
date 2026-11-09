@@ -16,9 +16,9 @@ class ShortLookAheadRung(private val cheap: List<QueensRung>) : QueensRung {
     override val level: Difficulty.Level = Difficulty.Level.Expert
     override val captionKey: String = "queens.hint.rung.short-look-ahead"
 
-    // Capping the chains at one round gives the same breaks as a full chain filtered to ≤ 1 round, without the long tails.
+    // Lazy: step() stops at the first break, often a round-0 one, without probing the other cells.
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
-        LookAheadChain.breaks(puzzle, candidates, cheap, cap = 1).asSequence().map { it.proof(this, puzzle, candidates) }
+        LookAheadChain.breaks(puzzle, candidates, cheap, maxRounds = 1).map { it.proof(this, puzzle, candidates) }
 
     override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
         steps(puzzle, candidates).firstOrNull()?.deduction

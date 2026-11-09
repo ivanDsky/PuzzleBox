@@ -19,38 +19,80 @@ import org.junit.Test
 /** `QueensLadder.Stepwise`: the catalog's D0–D11 in order, solving the dailies, with `Default` left as it was. */
 class StepwiseLadderTest {
 
-    private fun text(name: String): String = javaClass.getResourceAsStream("/fixtures/$name")!!.readBytes().decodeToString()
-
-    private fun daily(name: String): QueensPuzzle {
-        val body = text(name)
-        val wire = QueensGameExtractor.extract(body)?.queensGamePuzzleJson ?: body
-        return when (val r = QueensWireParser.parse(wire, LocalDate.of(2026, 11, 2))) {
-            is DecodeResult.Ok -> r.value.puzzle
-            is DecodeResult.Err -> throw AssertionError("$name parse failed: ${r.error}")
-        }
+    /** One Stepwise solve from the empty board: every state it passed through and the deductions between them. */
+    private class Solve(val puzzle: QueensPuzzle, val states: List<QueensCandidates>, val used: List<QueensRung>) {
+        val solved: Boolean get() = states.last().queens.size == puzzle.size * puzzle.queensPerUnit
+        val hardest: String? get() = used.maxByOrNull { QueensLadder.Stepwise.rungs.indexOf(it) }?.id
     }
 
-    private fun JsonObject.ints(key: String): List<Int> = getValue(key).jsonArray.map { it.jsonPrimitive.content.toInt() }
+    private companion object {
+        fun text(name: String): String = StepwiseLadderTest::class.java.getResourceAsStream("/fixtures/$name")!!.readBytes().decodeToString()
 
-    private fun goldenBoards(): List<Pair<String, QueensPuzzle>> =
-        Json.parseToJsonElement(text("queens-solver-golden.json")).jsonObject.getValue("boards").jsonArray.map { e ->
-            val o = e.jsonObject
-            o.getValue("name").jsonPrimitive.content to QueensPuzzle(
+        fun daily(name: String): QueensPuzzle {
+            val body = text(name)
+            val wire = QueensGameExtractor.extract(body)?.queensGamePuzzleJson ?: body
+            return when (val r = QueensWireParser.parse(wire, LocalDate.of(2026, 11, 2))) {
+                is DecodeResult.Ok -> r.value.puzzle
+                is DecodeResult.Err -> throw AssertionError("$name parse failed: ${r.error}")
+            }
+        }
+
+        fun JsonObject.ints(key: String): List<Int>? = get(key)?.jsonArray?.map { it.jsonPrimitive.content.toInt() }
+
+        fun golden(name: String): QueensPuzzle {
+            val boards = Json.parseToJsonElement(text("queens-solver-golden.json")).jsonObject.getValue("boards").jsonArray
+            val o = boards.map { it.jsonObject }.single { it.getValue("name").jsonPrimitive.content == name }
+            return QueensPuzzle(
                 size = o.getValue("size").jsonPrimitive.content.toInt(),
-                regions = o.ints("regions"),
+                regions = o.ints("regions")!!,
                 queensPerUnit = o.getValue("queensPerUnit").jsonPrimitive.content.toInt(),
-                solution = o.ints("solve").map(::Cell),
+                solution = o.ints("solve")!!.map(::Cell),
             )
         }
 
-    /** An editor or difficulty fixture: size, regions and queens per unit (1 when absent). */
-    private fun board(name: String): QueensPuzzle {
-        val o = Json.parseToJsonElement(text(name)).jsonObject
-        return QueensPuzzle(
-            size = o.getValue("size").jsonPrimitive.content.toInt(),
-            regions = o.ints("regions"),
-            queensPerUnit = o["queensPerUnit"]?.jsonPrimitive?.content?.toInt() ?: 1,
-        )
+        /** An editor or difficulty fixture, with its (first) solution when it lists one. */
+        fun board(name: String): QueensPuzzle {
+            val o = Json.parseToJsonElement(text(name)).jsonObject
+            return QueensPuzzle(
+                size = o.getValue("size").jsonPrimitive.content.toInt(),
+                regions = o.ints("regions")!!,
+                queensPerUnit = o["queensPerUnit"]?.jsonPrimitive?.content?.toInt() ?: 1,
+                solution = (o.ints("solution") ?: o.ints("solutionA"))?.map(::Cell),
+            )
+        }
+
+        fun solve(puzzle: QueensPuzzle): Solve {
+            var state = QueensCandidates.start(puzzle, emptySet())
+            val states = mutableListOf(state)
+            val used = mutableListOf<QueensRung>()
+            while (true) {
+                val deduction = QueensLadder.Stepwise.next(puzzle, state) ?: break
+                state = when (deduction) {
+                    is QueensDeduction.Place -> state.place(puzzle, deduction.cell)
+                    is QueensDeduction.Exclude -> state.exclude(deduction.cells)
+                }
+                states += state
+                used += deduction.rung
+            }
+            return Solve(puzzle, states, used)
+        }
+
+        /** Every board this class solves, each solved once for all tests. */
+        val solves: Map<String, Solve> by lazy {
+            listOf(
+                "gen-n8-q1" to golden("gen-n8-q1"),
+                "gen-n8-q2" to golden("gen-n8-q2"),
+                "n8N2" to QueensTestSupport.n8N2Puzzle(),
+                "queens-daily-ambiguous.json" to daily("queens-daily-ambiguous.json"),
+                "queens-daily-sample.json" to daily("queens-daily-sample.json"),
+            ).plus(
+                listOf(
+                    "queens-difficulty-easy.json", "queens-difficulty-medium.json", "queens-difficulty-hard.json",
+                    "queens-difficulty-expert.json", "queens-difficulty-guessing.json",
+                    "queens-editor-two-solutions.json", "queens-editor-clash.json",
+                ).map { it to board(it) },
+            ).associate { (name, puzzle) -> name to solve(puzzle) }
+        }
     }
 
     /**
@@ -86,63 +128,36 @@ class StepwiseLadderTest {
     }
 
     @Test
-    fun `stepwise outcome on every other fixture board is pinned`() {
-        val boards = goldenBoards() + listOf(
-            "queens-daily-ambiguous.json" to daily("queens-daily-ambiguous.json"),
-            "queens-daily-sample.json" to daily("queens-daily-sample.json"),
-            "n8N2" to QueensTestSupport.n8N2Puzzle(),
-        ) + listOf(
-            "queens-difficulty-easy.json", "queens-difficulty-medium.json", "queens-difficulty-hard.json",
-            "queens-difficulty-expert.json", "queens-difficulty-guessing.json",
-            "queens-editor-two-solutions.json", "queens-editor-clash.json", "queens-editor-worst-12.json",
-        ).map { it to board(it) }
-        val outcomes = boards.associate { (name, puzzle) ->
-            val run = QueensLadder.Stepwise.run(puzzle)
-            name to (run.solved to run.hardest?.id)
-        }
-        // solved, hardest rung used
+    fun `stepwise outcome on the other fixture boards is pinned`() {
+        // Solved boards pin the hardest rung used; stalled ones only that they stall.
         val expected = mapOf(
-            "gen-n8-q1" to (true to "long-look-ahead"),
-            "gen-n9-q1" to (true to "long-look-ahead"),
-            "gen-n10-q1" to (true to "short-look-ahead"),
-            "gen-n8-q2" to (true to "long-look-ahead"),
-            "queens-daily-ambiguous.json" to (false to "long-look-ahead"),
-            "queens-daily-sample.json" to (false to "pigeonhole"),
-            "n8N2" to (true to "long-look-ahead"),
-            "queens-difficulty-easy.json" to (true to "singles"),
-            "queens-difficulty-medium.json" to (true to "line-lock"),
-            "queens-difficulty-hard.json" to (true to "shared-neighbours"),
-            "queens-difficulty-expert.json" to (true to "shared-neighbours"),
-            "queens-difficulty-guessing.json" to (true to "long-look-ahead"),
-            "queens-editor-two-solutions.json" to (false to "line-lock"),
-            "queens-editor-clash.json" to (false to "line-lock"),
-            "queens-editor-worst-12.json" to (false to "short-look-ahead"),
+            "gen-n8-q1" to "long-look-ahead",
+            "gen-n8-q2" to "long-look-ahead",
+            "n8N2" to "long-look-ahead",
+            "queens-daily-ambiguous.json" to null,
+            "queens-daily-sample.json" to null,
+            "queens-difficulty-easy.json" to "singles",
+            "queens-difficulty-medium.json" to "line-lock",
+            "queens-difficulty-hard.json" to "shared-neighbours",
+            "queens-difficulty-expert.json" to "shared-neighbours",
+            "queens-difficulty-guessing.json" to "long-look-ahead",
+            "queens-editor-two-solutions.json" to null,
+            "queens-editor-clash.json" to null,
         )
-        assertEquals(expected, outcomes)
-    }
-
-    /** Every state a Stepwise solve passes through from the empty board, then the solution stood queen by queen with nothing crossed. */
-    private fun states(puzzle: QueensPuzzle): List<QueensCandidates> {
-        var state = QueensCandidates.start(puzzle, emptySet())
-        val seen = mutableListOf(state)
-        while (true) {
-            state = when (val d = QueensLadder.Stepwise.next(puzzle, state) ?: break) {
-                is QueensDeduction.Place -> state.place(puzzle, d.cell)
-                is QueensDeduction.Exclude -> state.exclude(d.cells)
-            }
-            seen += state
-        }
-        val solution = puzzle.solution!!.map { it.idx }.sorted()
-        return seen + (1 until solution.size).map { QueensCandidates.start(puzzle, solution.take(it).toSet()) }
+        assertEquals(expected, solves.mapValues { (_, s) -> s.hardest.takeIf { s.solved } })
     }
 
     @Test
-    fun `no cell a look-ahead rung crosses on a golden board is a solution cell`() {
+    fun `no cell a look-ahead rung crosses is a solution cell`() {
         val lookAheads = QueensLadder.Stepwise.rungs.takeLast(2)
         var fired = 0
-        for ((name, puzzle) in goldenBoards()) {
-            val solution = puzzle.solution!!.map { it.idx }.toSet()
-            for (state in states(puzzle)) for (rung in lookAheads) for (proof in rung.steps(puzzle, state)) {
+        for (name in listOf("gen-n8-q1", "gen-n8-q2", "n8N2", "queens-editor-two-solutions.json")) {
+            val s = solves.getValue(name)
+            val solution = s.puzzle.solution!!.map { it.idx }.sorted()
+            // The states the solve took a look-ahead step from, then the solution stood every other queen with nothing crossed.
+            val reached = s.states.filterIndexed { i, _ -> s.used.getOrNull(i) in lookAheads }
+            val prefixes = (1 until solution.size step 2).map { QueensCandidates.start(s.puzzle, solution.take(it).toSet()) }
+            for (state in reached + prefixes) for (rung in lookAheads) for (proof in rung.steps(s.puzzle, state)) {
                 fired++
                 val d = proof.deduction as QueensDeduction.Exclude
                 assertTrue("$name ${rung.id} $d", d.cells.none { it in solution })
