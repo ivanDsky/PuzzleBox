@@ -35,6 +35,7 @@ import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraftPath
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,7 +46,8 @@ import java.io.File
 
 /**
  * The Strands editor's looks, on a 411 dp phone and in the tablet Studio's 876×720 left pane,
- * light and dark: the blank board, a trace in progress, a selected path with its end rings,
+ * light and dark: the blank board, a trace in progress, a selected path with its end rings (on
+ * the phone also with overflow text in the word field),
  * pockets, Unique, Multiple, None and each witness on the board. The phone's board carries its
  * authoring tools, so its Unique shows the paths panel; the tablet's is the board alone (they
  * sit in the side pane).
@@ -85,6 +87,9 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
 
     @Test fun `selected word with the rest dimmed light`() = selectedDim(dark = false)
     @Test fun `selected word with the rest dimmed dark`() = selectedDim(dark = true)
+
+    @Test fun `selected path with overflow text light`() = overflow(dark = false)
+    @Test fun `selected path with overflow text dark`() = overflow(dark = true)
 
     @Test fun `pockets light`() = pockets(dark = false)
     @Test fun `pockets dark`() = pockets(dark = true)
@@ -164,16 +169,27 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
     }
 
     /** A four-cell path, one turn down, selected and named: a ring in its tint on either end. */
-    private fun selected(dark: Boolean) {
+    private fun selected(dark: Boolean) = selected("selected-ends", "HEAT", dark)
+
+    /**
+     * The same path with six letters typed: the field keeps them all and says the last two aren't
+     * written. The word field is in the phone's board only.
+     */
+    private fun overflow(dark: Boolean) {
+        assumeTrue(device == "phone")
+        selected("selected-overflow", "HEATER", dark)
+    }
+
+    private fun selected(name: String, text: String, dark: Boolean) {
         val draft = StrandsDraft(
             letters = BLANK_LETTERS,
             clue = "",
             paths = listOf(StrandsDraftPath(listOf(12, 13, 19, 20), null)),
             spangram = StrandsDraft.NO_SPANGRAM,
         )
-        capture("selected-ends", dark, draft, analyzed<Verdict.Incomplete>(draft)) {
+        capture(name, dark, draft, analyzed<Verdict.Incomplete>(draft)) {
             it.selectPath(0)
-            it.typeWord("HEAT")
+            it.typeWord(text)
         }
     }
 

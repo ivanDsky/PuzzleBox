@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.games.strandsui.editor
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -129,10 +130,24 @@ class StrandsEditorTraceTest {
     }
 
     @Test
+    fun `a lifted trace selects its path with end rings and a hint, no tap needed`() {
+        show()
+        trace(0, 1, 2)
+
+        assertEquals(0, controller.selectedPath.value)
+        rule.onNodeWithTag("strands.editor.cell.0.end").assertExists()
+        rule.onNodeWithTag("strands.editor.cell.2.end").assertExists()
+        rule.onNodeWithTag("strands.editor.cell.1.end").assertDoesNotExist()
+        rule.onNodeWithTag("strands.editor.hint").assertTextEquals("Unnamed · 3")
+        rule.onNodeWithTag("strands.editor.remove").assertExists()
+    }
+
+    @Test
     fun `tapping a path chip selects it and a second tap lets it go`() {
         show()
         trace(0, 1)
         trace(6, 7)
+        controller.selectPath(null)
 
         rule.onNodeWithTag("strands.editor.path.1").performScrollTo().performClick()
         assertEquals(1, controller.selectedPath.value)

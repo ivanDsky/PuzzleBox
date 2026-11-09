@@ -15,6 +15,13 @@ internal object StrandsEditorCopy {
     /** The word field's label and resting placeholder, so the two boxes tell themselves apart. */
     const val WORD_FIELD = "Word for this path…"
 
+    /** Under the off word field: typing needs a selected path, so there is nothing to wait for. */
+    const val TRACE_FIRST = "Trace a word first"
+
+    /** Under the word field when [letters] outrun the selected path's [cells]: the extra ones are kept, not written. */
+    fun overflow(letters: Int, cells: Int): String =
+        "$letters letters, path has $cells: the extra ${letters - cells} aren't written"
+
     /** The clue field's label, so the two boxes tell themselves apart. */
     const val CLUE_FIELD = "Theme clue"
 

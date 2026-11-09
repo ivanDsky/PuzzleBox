@@ -36,9 +36,11 @@ class StrandsEditorSelectionDimTest {
 
     private val controller = StrandsEditorController(EditorDraft.fresh(StrandsEditor, StrandsDefinition.VARIANT)) {}
 
+    /** A path lifted onto the board, then left unselected: a lift selects its path, these tests pick their own. */
     private fun path(vararg cells: Int) {
         cells.forEach(controller::traceTo)
         controller.endTrace()
+        controller.selectPath(null)
     }
 
     private fun show() = rule.setContent {

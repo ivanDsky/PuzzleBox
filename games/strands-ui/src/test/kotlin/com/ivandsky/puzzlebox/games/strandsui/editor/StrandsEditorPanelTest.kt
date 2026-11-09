@@ -74,6 +74,7 @@ class StrandsEditorPanelTest {
     fun `a tap selects the row and a second tap lets it go`() {
         path(0, 1)
         path(6, 7)
+        controller.selectPath(null)
         show()
         rule.onNodeWithTag("strands.editor.path.1").performScrollTo().assertIsNotSelected().performClick()
         rule.onNodeWithTag("strands.editor.path.1").assertIsSelected()

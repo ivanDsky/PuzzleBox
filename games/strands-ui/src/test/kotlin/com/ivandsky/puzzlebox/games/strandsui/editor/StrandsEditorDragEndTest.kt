@@ -231,12 +231,12 @@ class StrandsEditorDragEndTest {
     }
 
     @Test
-    fun `a drag from a free cell starts a new trace and lets the selection go`() {
+    fun `a drag from a free cell starts a new trace and the new path takes the selection`() {
         selectedStar()
         drag(24, 25, 26)
 
         assertEquals(listOf(listOf(0, 1, 2, 3), listOf(24, 25, 26)), board().paths.map { it.cells })
-        assertNull(controller.selectedPath.value)
+        assertEquals(1, controller.selectedPath.value)
     }
 
     @Test
@@ -253,6 +253,7 @@ class StrandsEditorDragEndTest {
     @Test
     fun `an end of a path not selected is no handle`() {
         path(0, 1, 2, 3)
+        controller.selectPath(null)
         drag(3, 9)
 
         assertEquals(listOf(0, 1, 2, 3), board().paths.single().cells)
