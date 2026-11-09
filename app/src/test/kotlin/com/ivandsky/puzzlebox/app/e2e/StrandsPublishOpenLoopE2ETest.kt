@@ -20,11 +20,13 @@ import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraftPath
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
+import com.ivandsky.puzzlebox.games.strands.editor.StrandsPublishGates
 import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayController
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
@@ -132,9 +134,25 @@ class StrandsPublishOpenLoopE2ETest {
             assertRoute("route.friend")
         }
 
-    private fun seedReadyDraft() {
+    @Test
+    fun `an unclued Strands draft reads its clue as a field to fill, not a board to fix`() =
+        shellRobot(graph = graph) {
+            seedReadyDraft(clue = "")
+
+            tapTab(CreateKey)
+            tap("create.draft.row")
+            fun count(tag: String) = rule.onAllNodesWithTag(tag).fetchSemanticsNodes().size
+            // Unique: the Not unique block is gone and the clue's own phrase stands in the line.
+            rule.waitUntil(TIMEOUT_MS) {
+                count("create.readiness.$CLUE_BLOCK") == 1 && count("create.readiness.${PublishBlock.NOT_UNIQUE}") == 0
+            }
+            assertEquals("a missing clue is not the board's to fix", 0, count("create.readiness.board"))
+            assertEquals("the clue still blocks", 0, count("create.readiness.ready"))
+        }
+
+    private fun seedReadyDraft(clue: String = "Autumn walk in the woods") {
         val editor = checkNotNull(graph.koin.get<GameRegistry>()[StrandsDefinition.id]?.editor)
-        val board = EditorDraft(StrandsEditor, DraftState(draft()))
+        val board = EditorDraft(StrandsEditor, DraftState(draft(clue)))
         runBlocking {
             drafts.upsert(
                 Draft(
@@ -155,11 +173,11 @@ class StrandsPublishOpenLoopE2ETest {
         }
     }
 
-    private fun draft(): StrandsDraft {
+    private fun draft(clue: String): StrandsDraft {
         val words = THEME.zip(THEME_WORDS) + (SPANGRAM to SPANGRAM_WORD)
         return StrandsDraft(
             letters = LETTERS.joinToString(""),
-            clue = "Autumn walk in the woods",
+            clue = clue,
             paths = words.map { (cells, word) -> StrandsDraftPath(cells.map { it.row * COLS + it.col }, word) },
             spangram = words.lastIndex,
         )
@@ -189,6 +207,7 @@ class StrandsPublishOpenLoopE2ETest {
         const val AUTHOR = "author"
         const val TITLE = "Woods"
         const val TIMEOUT_MS = 10_000L
+        const val CLUE_BLOCK = StrandsPublishGates.CLUE_LENGTH
         const val BOARD = "strands.board"
         const val ROWS = 8
         const val COLS = 6

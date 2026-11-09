@@ -37,6 +37,7 @@ import com.ivandsky.puzzlebox.games.tangoui.GoldenCompare
 import com.ivandsky.puzzlebox.games.tangoui.TestInlineDispatcherProvider
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.GridEdge
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import java.io.File
 import org.junit.Assert.assertEquals
@@ -201,10 +202,10 @@ abstract class TangoEditorGoldenTest(private val device: String) {
                             if (device == "tablet") {
                                 // The Studio's SquareBoardSlot: the smaller of the pane's width and height, filled.
                                 Box(Modifier.size(minOf(TabletPaneWidth, TabletPaneHeight))) {
-                                    TangoEditorUi.Board(controller, verdict, Modifier.fillMaxSize())
+                                    TangoEditorUi.Board(controller, verdict, PlayLayout.TwoPane, Modifier.fillMaxSize())
                                 }
                             } else {
-                                TangoEditorUi.Board(controller, verdict, Modifier.fillMaxWidth())
+                                TangoEditorUi.Board(controller, verdict, PlayLayout.SinglePane, Modifier.fillMaxWidth())
                             }
                             TangoEditorUi.ToolHint(controller, Modifier.fillMaxWidth())
                             TangoEditorUi.Issues(

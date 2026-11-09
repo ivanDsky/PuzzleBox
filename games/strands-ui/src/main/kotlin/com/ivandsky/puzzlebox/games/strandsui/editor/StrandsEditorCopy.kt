@@ -6,7 +6,8 @@ import com.ivandsky.puzzlebox.games.strands.editor.StrandsPublishGates
 
 /**
  * Fix-list copy for the Strands reason and block ids. Adding an id to
- * [StrandsDraftAnalyzer.reasonIds] or [StrandsPublishGates.blockIds] needs a line here;
+ * [StrandsDraftAnalyzer.reasonIds] or [StrandsPublishGates.blockIds] needs a line here, or for
+ * a block the publish fields fix, a readiness phrase like [CLUE_READINESS];
  * StrandsCopyCoverageTest fails while it is missing.
  */
 internal object StrandsEditorCopy {
@@ -17,6 +18,15 @@ internal object StrandsEditorCopy {
     /** The clue field's label, so the two boxes tell themselves apart. */
     const val CLUE_FIELD = "Theme clue"
 
+    /** Under a blank clue field: no error yet, but publishing waits for it. */
+    const val CLUE_NEEDED = "Needed to publish"
+
+    /** Under a clue past its cap. */
+    const val CLUE_TOO_LONG = "Up to ${StrandsPublishGates.MAX_CLUE} characters"
+
+    /** The readiness line's phrase for [StrandsPublishGates.CLUE_LENGTH]: a field to fill, not the board. */
+    const val CLUE_READINESS = "Add a theme clue"
+
     /**
      * The row for [id] with its [count] and the [word] a word block is about; null for an id
      * Strands has no copy for.
@@ -25,7 +35,6 @@ internal object StrandsEditorCopy {
         StrandsDraftAnalyzer.BLANK_CELLS -> if (count == 1) "1 cell has no letter yet" else "$count cells have no letter yet"
         StrandsDraftAnalyzer.UNNAMED -> if (count == 1) "1 path still needs its word" else "$count paths still need their words"
         StrandsDraftAnalyzer.NO_SPANGRAM -> "Mark one word as the spangram"
-        StrandsPublishGates.CLUE_LENGTH -> "The theme clue needs 1 to 40 characters"
         StrandsPublishGates.WORD_SHAPE -> "$word needs 4 to 24 letters, A to Z only"
         PublishBlock.BLOCKLISTED -> "$word can't be used"
         StrandsPublishGates.DUPLICATE_WORD -> "$word is in the puzzle twice"

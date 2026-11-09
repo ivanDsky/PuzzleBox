@@ -25,6 +25,8 @@ import com.ivandsky.puzzlebox.model.GameId
  * no paths; drafts persist through [StrandsDraftCodec], analysis is [StrandsDraftAnalyzer] and a
  * draft shares as paths-free [StrandsShareCodec] bytes whose tiling the recipient re-derives.
  * [toPuzzle] bakes [StrandsValidWords] in, so it loads the dictionary: call it off the main thread.
+ * The clue is a publish detail, written after the test solve, so it is no part of the layout
+ * ([layoutOf]) and editing it keeps the test.
  */
 object StrandsEditor :
     GameEditor<StrandsDraft>,
@@ -60,6 +62,8 @@ object StrandsEditor :
 
     override fun publishBlocks(draft: StrandsDraft, verdict: Verdict): List<PublishBlock> =
         StrandsPublishGates.blocks(draft, verdict)
+
+    override fun layoutOf(draft: StrandsDraft): StrandsDraft = draft.copy(clue = "")
 
     /**
      * StrandsCodec bytes of the draft with the words [solution] tiles it into, in drawn order;

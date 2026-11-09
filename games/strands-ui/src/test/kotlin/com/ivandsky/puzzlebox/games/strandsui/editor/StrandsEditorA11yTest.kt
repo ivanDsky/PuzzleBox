@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.strandsui.editor
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -12,6 +13,7 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -22,8 +24,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The editor's accessibility floor: a blank draft still shows a grid, the word and clue fields
- * are distinguishable without sight, and the path rows meet the touch-target floor.
+ * The editor's accessibility floor: a blank draft still shows a grid, the word field and the
+ * publish details' clue field are distinguishable without sight, and the path rows meet the
+ * touch-target floor.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -36,7 +39,7 @@ class StrandsEditorA11yTest {
     private val controller = StrandsEditorController(EditorDraft.fresh(StrandsEditor, StrandsDefinition.VARIANT)) {}
 
     private fun show() = rule.setContent {
-        PuzzleBoxTheme { StrandsEditorUi.Board(controller, Verdict.Checking, Modifier) }
+        PuzzleBoxTheme { StrandsEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier) }
     }
 
     private fun path(vararg cells: Int) {
@@ -53,7 +56,14 @@ class StrandsEditorA11yTest {
 
     @Test
     fun `the word and clue fields announce distinct labels`() {
-        show()
+        rule.setContent {
+            PuzzleBoxTheme {
+                Column {
+                    StrandsEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier.weight(1f))
+                    StrandsEditorUi.PublishFields(controller, enabled = true, modifier = Modifier)
+                }
+            }
+        }
         rule.onNodeWithTag("strands.editor.word.label", useUnmergedTree = true).assertExists()
         rule.onNodeWithTag("strands.editor.clue.label", useUnmergedTree = true).assertExists()
         val word = rule.onNodeWithTag("strands.editor.word.label", useUnmergedTree = true).fetchSemanticsNode()
@@ -72,15 +82,16 @@ class StrandsEditorA11yTest {
     }
 
     @Test
-    fun `every path row is a full touch target`() {
+    fun `every path chip is a full touch target`() {
         path(0, 1)
         path(6, 7, 8)
         show()
         val floor = with(rule.density) { 48.dp.toPx() }
-        for (row in 0..1) {
-            val bounds = rule.onNodeWithTag("strands.editor.path.$row").performScrollTo()
-                .fetchSemanticsNode().boundsInRoot
-            assertTrue("row $row is ${bounds.height}px, floor $floor", bounds.height >= floor)
+        for (chip in 0..1) {
+            // The chip's laid-out size: its 48 dp touch floor around the drawn pill.
+            val height = rule.onNodeWithTag("strands.editor.path.$chip").performScrollTo()
+                .fetchSemanticsNode().layoutInfo.height
+            assertTrue("chip $chip is ${height}px, floor $floor", height >= floor)
         }
     }
 }

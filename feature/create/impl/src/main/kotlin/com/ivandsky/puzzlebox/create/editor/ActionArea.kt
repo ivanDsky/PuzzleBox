@@ -29,7 +29,8 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
  * status — "Not tested", or "Solved in 1:42 · 0 hints" for the test [passed] on this layout —
  * over Test solve, then the readiness line: one short phrase per publish block in [blocks]
  * ("Not unique", "Title is empty"), every game-owned block read together as "Fix the board"
- * (its detail lives in the game's fix list), or Ready when none remain (spec A8, A10, A25).
+ * (its detail lives in the game's fix list) but those the game's publish fields fix, which read
+ * as their [fieldCopy] phrase, or Ready when none remain (spec A8, A10, A25).
  * Test solve is the next step, so it is Primary until a test passes, then it reads Test again in
  * the quiet style; it is enabled only when [canTestSolve] (a Unique board of a game that exports
  * puzzles). When the Studio can publish ([publish] is its state), the [PublishDetails] blocks
@@ -49,6 +50,7 @@ fun ActionArea(
     onPublish: () -> Unit = {},
     title: String = "",
     onShowDetails: (() -> Unit)? = null,
+    fieldCopy: Map<String, String> = emptyMap(),
 ) {
     val detailBlocks = publish?.blocks.orEmpty()
     val shown = remember(blocks, detailBlocks) { blocks + detailBlocks }
@@ -70,10 +72,10 @@ fun ActionArea(
         if (publish != null && onShowDetails != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 PublishDetailsSummary(title, publish.details.authorName, onShowDetails, Modifier.weight(1f, fill = false))
-                ReadinessLine(shown, Modifier.weight(1f, fill = false))
+                ReadinessLine(shown, fieldCopy, Modifier.weight(1f, fill = false))
             }
         } else {
-            ReadinessLine(shown, Modifier.fillMaxWidth())
+            ReadinessLine(shown, fieldCopy, Modifier.fillMaxWidth())
         }
         if (publish != null) PublishCta(publish, ready = shown.isEmpty(), onPublish = onPublish, modifier = Modifier.fillMaxWidth())
     }
@@ -85,8 +87,8 @@ fun ActionArea(
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ReadinessLine(blocks: List<PublishBlock>, modifier: Modifier) {
-    val entries = remember(blocks) { readinessOf(blocks) }
+private fun ReadinessLine(blocks: List<PublishBlock>, fieldCopy: Map<String, String>, modifier: Modifier) {
+    val entries = remember(blocks, fieldCopy) { readinessOf(blocks, fieldCopy) }
     if (entries.isEmpty() && blocks.isNotEmpty()) return
     FlowRow(modifier.testTag("create.readiness"), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         if (entries.isEmpty()) {
@@ -109,12 +111,15 @@ private fun ReadinessLine(blocks: List<PublishBlock>, modifier: Modifier) {
     }
 }
 
-/** Board blocks first, collapsed into one entry; then each domain block once, in order, but Not tested. */
-private fun readinessOf(blocks: List<PublishBlock>): List<Pair<String, String>> {
-    val (domain, board) = blocks.partition { it.id in DOMAIN_COPY }
+/**
+ * Board blocks first, collapsed into one entry; then each domain or [fieldCopy] block once, in
+ * order, but Not tested.
+ */
+private fun readinessOf(blocks: List<PublishBlock>, fieldCopy: Map<String, String>): List<Pair<String, String>> {
+    val (named, board) = blocks.partition { it.id in DOMAIN_COPY || it.id in fieldCopy }
     val boardEntry = if (board.isEmpty()) emptyList() else listOf(BOARD_TAG to "Fix the board")
-    val listed = domain.map { it.id }.distinct() - PublishBlock.NOT_TESTED
-    return boardEntry + listed.map { it to DOMAIN_COPY.getValue(it) }
+    val listed = named.map { it.id }.distinct() - PublishBlock.NOT_TESTED
+    return boardEntry + listed.map { it to (DOMAIN_COPY[it] ?: fieldCopy.getValue(it)) }
 }
 
 private const val BOARD_TAG = "board"

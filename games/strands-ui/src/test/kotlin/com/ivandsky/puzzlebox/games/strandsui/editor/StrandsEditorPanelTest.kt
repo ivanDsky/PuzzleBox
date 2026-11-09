@@ -8,15 +8,14 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performTextInput
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -26,7 +25,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The paths panel, the clue field and the credit line, through the editor's tags. */
+/** The paths panel through the editor's tags. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w360dp-h640dp-420dpi")
@@ -43,7 +42,7 @@ class StrandsEditorPanelTest {
     private fun board() = controller.draft.value.state.draft as StrandsDraft
 
     private fun show() = rule.setContent {
-        PuzzleBoxTheme { Column { StrandsEditorUi.Board(controller, Verdict.Checking, Modifier.weight(1f)) } }
+        PuzzleBoxTheme { Column { StrandsEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier.weight(1f)) } }
     }
 
     private fun path(vararg cells: Int) {
@@ -84,43 +83,10 @@ class StrandsEditorPanelTest {
     }
 
     @Test
-    fun `a committed clue is one undoable step`() {
-        show()
-        rule.onNodeWithTag("strands.editor.clue").performTextInput("Kitchen")
-        assertEquals(0, edits.size)
-        rule.onNodeWithTag("strands.editor.clue").performImeAction()
-
-        assertEquals("Kitchen", board().clue)
-        assertEquals(1, edits.size)
-        controller.adopt(checkNotNull(controller.draft.value.undo()))
-        assertEquals("", board().clue)
-    }
-
-    @Test
-    fun `a clue commits when focus leaves the field`() {
-        show()
-        rule.onNodeWithTag("strands.editor.clue").performClick()
-        rule.onNodeWithTag("strands.editor.clue").performTextInput("Kitchen")
-        assertEquals(0, edits.size)
-        rule.onNodeWithTag("strands.editor.word").performClick()
-
-        assertEquals("Kitchen", board().clue)
-        assertEquals(1, edits.size)
-        controller.adopt(checkNotNull(controller.draft.value.undo()))
-        assertEquals("", board().clue)
-    }
-
-    @Test
     fun `committing an unchanged clue makes no step`() {
         controller.setClue("")
         controller.setClue("Kitchen")
         controller.setClue("Kitchen")
         assertEquals(1, edits.size)
-    }
-
-    @Test
-    fun `the credit line is in the panel`() {
-        show()
-        rule.onNodeWithTag("strands.editor.credit").assertExists()
     }
 }

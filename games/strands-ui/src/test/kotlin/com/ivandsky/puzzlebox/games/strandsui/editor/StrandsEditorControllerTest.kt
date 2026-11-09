@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -88,6 +89,37 @@ class StrandsEditorControllerTest {
         controller.setClue("a\nb\r\nc\rd")
 
         assertEquals("abcd", board().clue)
+    }
+
+    @Test
+    fun `a clue typed key by key is one undo step`() {
+        "Kitchen".indices.forEach { controller.setClue("Kitchen".take(it + 1)) }
+
+        assertEquals("Kitchen", board().clue)
+        assertEquals(1, controller.draft.value.state.history.done.size)
+        val undone = checkNotNull(controller.draft.value.undo())
+        assertEquals("", (undone.state.draft as StrandsDraft).clue)
+    }
+
+    @Test
+    fun `a clue typed back to where it started leaves no step to undo or redo`() {
+        controller.setClue("K")
+        controller.setClue("")
+
+        assertFalse(controller.draft.value.canUndo)
+        assertFalse(controller.draft.value.canRedo)
+    }
+
+    @Test
+    fun `a clue edit after a board edit is its own step`() {
+        trace(0, 1)
+        controller.endTrace()
+        controller.setClue("K")
+        controller.setClue("Ki")
+
+        val undone = checkNotNull(controller.draft.value.undo()).state.draft as StrandsDraft
+        assertEquals("", undone.clue)
+        assertEquals(1, undone.paths.size)
     }
 
     @Test

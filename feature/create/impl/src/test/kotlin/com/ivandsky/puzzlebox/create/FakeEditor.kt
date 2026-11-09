@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
@@ -74,8 +75,16 @@ class FakeGameEditor(
     }
 }
 
-/** The Compose half: a board that shows the draft's mark count under `fake.editor.board`. */
-class FakeGameEditorUi(override val gameId: GameId = GameId("fake")) : GameEditorUi {
+/**
+ * The Compose half: a board that shows the draft's mark count under `fake.editor.board`. With
+ * [gameSlots] it also draws its pane tools (`fake.editor.paneTools`) and publish fields
+ * (`fake.editor.publishFields`, `.disabled` while not enabled), and its board names the layout
+ * it was drawn in (`fake.editor.board.<layout>`).
+ */
+class FakeGameEditorUi(
+    override val gameId: GameId = GameId("fake"),
+    private val gameSlots: Boolean = false,
+) : GameEditorUi {
 
     val controllers = mutableListOf<FakeEditorController>()
 
@@ -85,8 +94,19 @@ class FakeGameEditorUi(override val gameId: GameId = GameId("fake")) : GameEdito
         FakeEditorController(initial, onEdit).also { controllers += it }
 
     @Composable
-    override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) {
-        Text("${controller.draft.value.encode().last()}", modifier.testTag("fake.editor.board"))
+    override fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) {
+        val tag = if (gameSlots) "fake.editor.board.$layout" else "fake.editor.board"
+        Text("${controller.draft.value.encode().last()}", modifier.testTag(tag))
+    }
+
+    @Composable
+    override fun PaneTools(controller: GameEditorController, modifier: Modifier) {
+        if (gameSlots) Text("Pane tools", modifier.testTag("fake.editor.paneTools"))
+    }
+
+    @Composable
+    override fun PublishFields(controller: GameEditorController, enabled: Boolean, modifier: Modifier) {
+        if (gameSlots) Text("Game fields", modifier.testTag(if (enabled) "fake.editor.publishFields" else "fake.editor.publishFields.disabled"))
     }
 
     /** One fix row whose Select selects [FakeEditorController.FIX_CELLS], then calls [onSelect]. */

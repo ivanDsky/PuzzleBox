@@ -1,7 +1,9 @@
 package com.ivandsky.puzzlebox.create.editor
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -38,7 +40,8 @@ import org.koin.core.parameter.parametersOf
  * export puzzles) replaces the Studio with the [TestSolveScreen] sandbox on the game's real play
  * board until its Back; a board edit that invalidates the test shows the toast whose Undo brings
  * the board back to the tested layout. On a phone the passed test's publish details take the
- * tools' [ToolSlot] until Edit board, which holds until that test changes. Publish while signed
+ * tools' [ToolSlot] until Edit board, which holds until that test changes; the game's publish
+ * fields close the details, and on a tablet its pane tools follow the strip. Publish while signed
  * out opens the
  * [SignInPublishSheet]; a failed sign-in shows its reason in the Studio's toast slot. Once
  * published the action area morphs into the [PublishedTicket] (Copy code toasts in the same slot)
@@ -122,7 +125,7 @@ internal fun EditorRoute(
                 onRename = viewModel.meta::rename,
                 onDuplicate = { viewModel.duplicate(onOpen) },
                 onDelete = { viewModel.delete(onDelete) },
-                board = { boardModifier -> ready.editor.Board(ready.controller, ready.verdict, boardModifier) },
+                board = { boardModifier -> ready.editor.Board(ready.controller, ready.verdict, layout, boardModifier) },
                 toolStrip = { slotModifier ->
                     ToolSlot(
                         open = detailsReady,
@@ -131,19 +134,22 @@ internal fun EditorRoute(
                         tools = { stripModifier ->
                             // The board's controller adopts every resize and undo, so its draft names the open size.
                             val draft by ready.controller.draft.collectAsStateWithLifecycle()
-                            ToolStrip(
-                                canUndo = canUndo,
-                                canRedo = canRedo,
-                                onUndo = viewModel::undo,
-                                onRedo = viewModel::redo,
-                                sizes = draft.editor.variants,
-                                size = draft.variant,
-                                sizeLabel = ready.editor::sizeLabel,
-                                onResize = viewModel::resize,
-                                onClear = viewModel::clear,
-                                hint = { hintModifier -> ready.editor.ToolHint(ready.controller, hintModifier) },
-                                modifier = stripModifier,
-                            )
+                            Column(stripModifier) {
+                                ToolStrip(
+                                    canUndo = canUndo,
+                                    canRedo = canRedo,
+                                    onUndo = viewModel::undo,
+                                    onRedo = viewModel::redo,
+                                    sizes = draft.editor.variants,
+                                    size = draft.variant,
+                                    sizeLabel = ready.editor::sizeLabel,
+                                    onResize = viewModel::resize,
+                                    onClear = viewModel::clear,
+                                    hint = { hintModifier -> ready.editor.ToolHint(ready.controller, hintModifier) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                if (layout == PlayLayout.TwoPane) ready.editor.PaneTools(ready.controller, Modifier.fillMaxWidth())
+                            }
                         },
                         form = { formModifier, editBoardChip ->
                             PublishDetails(
@@ -157,6 +163,7 @@ internal fun EditorRoute(
                                 enabled = !publish.busy,
                                 paired = true,
                                 action = editBoardChip,
+                                fields = { fieldsModifier -> ready.editor.PublishFields(ready.controller, !publish.busy, fieldsModifier) },
                             )
                         },
                         modifier = slotModifier,
@@ -183,6 +190,7 @@ internal fun EditorRoute(
                             onPublish = { viewModel.publish.publish(draft, ready.verdict) },
                             title = title,
                             onShowDetails = { editBoard = false }.takeIf { detailsReady && editBoard },
+                            fieldCopy = ready.editor.publishFieldCopy,
                         )
                     }
                 },

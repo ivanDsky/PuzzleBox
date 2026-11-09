@@ -27,11 +27,16 @@ import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraftAnalyzer
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsPublishGates
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.model.GameId
 
-/** Strands' editor UI: the play board over a [StrandsEditorController]. */
+/**
+ * Strands' editor UI: the play board over a [StrandsEditorController]. The authoring tools sit
+ * under the board on a phone and in the side pane on a tablet; the clue and the word list
+ * credit wait for the publish details.
+ */
 object StrandsEditorUi : GameEditorUi {
 
     override val gameId: GameId = StrandsDefinition.id
@@ -43,10 +48,26 @@ object StrandsEditorUi : GameEditorUi {
         onEdit: (EditorDraft<*>) -> Unit,
     ): GameEditorController = StrandsEditorController(initial, onEdit)
 
+    /** The grid and, on a phone, the [StrandsAuthoringTools] under it; on a tablet the grid alone. */
     @Composable
-    override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) {
-        StrandsEditorBoard(controller as StrandsEditorController, modifier, verdict)
+    override fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) {
+        StrandsEditorBoard(controller as StrandsEditorController, modifier, verdict, withTools = layout == PlayLayout.SinglePane)
     }
+
+    /** The tablet's [StrandsAuthoringTools]: spangram toggle, word field and path rows. */
+    @Composable
+    override fun PaneTools(controller: GameEditorController, modifier: Modifier) {
+        StrandsAuthoringTools(controller as StrandsEditorController, modifier)
+    }
+
+    /** The theme clue and the word list credit. */
+    @Composable
+    override fun PublishFields(controller: GameEditorController, enabled: Boolean, modifier: Modifier) {
+        StrandsPublishFields(controller as StrandsEditorController, enabled, modifier)
+    }
+
+    /** A missing or too-long clue reads as a field to fill, not a board to fix. */
+    override val publishFieldCopy: Map<String, String> = mapOf(StrandsPublishGates.CLUE_LENGTH to StrandsEditorCopy.CLUE_READINESS)
 
     /** "Trace a word", or the selected path's word and length with a Remove action. */
     @Composable
@@ -100,7 +121,8 @@ private fun strandsFixRows(draft: StrandsDraft, verdict: Verdict, blocks: List<P
             val path = if (reason.id == StrandsDraftAnalyzer.UNNAMED) unnamed.takeIf { it >= 0 } else null
             StrandsEditorCopy.fix(reason.id, reason.count, "")?.let { add(StrandsFixRow(reason.id, it, path)) }
         }
-        blocks.filter { it.id in StrandsPublishGates.blockIds }.forEach { block ->
+        // The clue is a publish field, not the board: the readiness line names it (publishFieldCopy).
+        blocks.filter { it.id in StrandsPublishGates.blockIds && it.id != StrandsPublishGates.CLUE_LENGTH }.forEach { block ->
             val path = block.subject.takeIf { it in draft.paths.indices }
             val word = path?.let { draft.paths[it].word } ?: "Word ${block.subject + 1}"
             StrandsEditorCopy.fix(block.id, block.count, word)?.let { add(StrandsFixRow(block.id, it, path)) }
