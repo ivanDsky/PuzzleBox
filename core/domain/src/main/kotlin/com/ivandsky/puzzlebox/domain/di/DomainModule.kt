@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLatestSolvedToday
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
+import com.ivandsky.puzzlebox.domain.ObserveMatch
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
@@ -86,6 +87,16 @@ val domainModule = module {
     }
     factory { CreateDraftCopy(drafts = get(), newId = { UUID.randomUUID().toString() }, clock = { Instant.now() }) }
     factory { FinishLeg(outbox = get(), identity = get(), clock = { Instant.now() }) }
+    factory {
+        ObserveMatch(
+            repo = get(),
+            outbox = get(),
+            local = get(),
+            identity = get(),
+            registry = get(),
+            clock = { Instant.now() },
+        )
+    }
     factory { ImportDraftFromText(registry = get(), createDraft = get(), drafts = get(), dispatchers = get()) }
     factory { ValidatePublish() }
     factory {
