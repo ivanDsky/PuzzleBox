@@ -9,4 +9,9 @@ class ShippedReleaseFlagsTest {
     fun `shipped flags exclude HintParity until its flip ticket`() {
         assertFalse(ShippedReleaseFlags.enabled.value.contains(ReleaseFlag.HintParity))
     }
+
+    @Test
+    fun `shipped flags exclude Competitions until its flip ticket`() {
+        assertFalse(ShippedReleaseFlags.enabled.value.contains(ReleaseFlag.Competitions))
+    }
 }
