@@ -43,6 +43,7 @@ internal fun ListPane(
     showStreak: Boolean,
     onOpenGame: (GameId) -> Unit,
     onOpenProfile: () -> Unit,
+    hideOwnedElsewhere: Boolean,
     modifier: Modifier = Modifier,
     onOpenUpdate: (String) -> Unit = {},
 ) {
@@ -76,17 +77,20 @@ internal fun ListPane(
                     HomeStreakSection(stats = state.stats, week = state.week, total = state.today.size)
                 }
             }
-            StaggeredItem(2) {
-                HomeRecentSection(
-                    days = state.history,
-                    onSeeAll = onOpenHistory,
-                    selectedDay = selectedDay,
-                    onDayClick = onDayClick,
-                    selectable = selectable,
-                )
-            }
-            StaggeredItem(3) {
-                AccountCard(identity = state.identity, onOpenProfile = onOpenProfile)
+            // History owns past plays and Profile owns identity once the nav is v2.
+            if (!hideOwnedElsewhere) {
+                StaggeredItem(2) {
+                    HomeRecentSection(
+                        days = state.history,
+                        onSeeAll = onOpenHistory,
+                        selectedDay = selectedDay,
+                        onDayClick = onDayClick,
+                        selectable = selectable,
+                    )
+                }
+                StaggeredItem(3) {
+                    AccountCard(identity = state.identity, onOpenProfile = onOpenProfile)
+                }
             }
         }
     }
