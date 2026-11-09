@@ -1,7 +1,10 @@
 package com.ivandsky.puzzlebox.history
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
@@ -11,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
@@ -25,6 +29,8 @@ import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import java.time.LocalDate
 import java.util.TimeZone
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -80,6 +86,7 @@ class HistoryScreenTest {
         key: HistoryKey = HistoryKey(),
         hintsRanked: Set<GameId> = emptySet(),
         onBack: (() -> Unit)? = {},
+        reselect: SharedFlow<Unit> = MutableSharedFlow(),
     ) {
         handedToShell = null
         shellBacks = 0
@@ -93,14 +100,16 @@ class HistoryScreenTest {
             // Stand-in for the shell's NavDisplay pop: registered first, so History's own
             // handler (registered later) wins while it is enabled.
             BackHandler { shellBacks++ }
-            PuzzleBoxTheme {
-                HistoryRoute(
-                    key = key,
-                    layout = layout,
-                    onBack = onBack,
-                    onReplay = { game, replayed -> handedToShell = game to replayed },
-                    viewModel = viewModel,
-                )
+            CompositionLocalProvider(LocalTabReselect provides reselect) {
+                PuzzleBoxTheme {
+                    HistoryRoute(
+                        key = key,
+                        layout = layout,
+                        onBack = onBack,
+                        onReplay = { game, replayed -> handedToShell = game to replayed },
+                        viewModel = viewModel,
+                    )
+                }
             }
         }
     }
@@ -398,6 +407,19 @@ class HistoryScreenTest {
         assertNoTag("history.archived.zip/$day")
         openRow(ZIP)
         assertNoTag("history.detail.archived")
+    }
+
+    @Test
+    fun `a tab reselect scrolls the list back to its top`() {
+        val reselect = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        val days = (0L..9L).map { day.minusDays(it) }
+        setContent(days.map { HistoryTestSupport.entry(it) }, reselect = reselect)
+        awaitRow(ZIP, days.last())
+        composeRule.onNodeWithTag("history.stats", useUnmergedTree = true).assertIsNotDisplayed()
+
+        composeRule.runOnIdle { reselect.tryEmit(Unit) }
+
+        composeRule.onNodeWithTag("history.stats", useUnmergedTree = true).assertIsDisplayed()
     }
 
     private companion object {
