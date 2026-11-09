@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.create.editor
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
-import com.ivandsky.puzzlebox.data.repository.SharedTextStore
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
@@ -25,10 +24,7 @@ private val IdleNow: Instant = Instant.parse("2026-11-08T10:00:00Z")
  * Undo and the import notice ride on it), over [drafts] and no games. For Studio tests that
  * never list drafts: it holds nothing they look at.
  */
-internal fun Module.idleCreateRoot(
-    drafts: DraftRepository,
-    sharedText: SharedTextStore = FakeSharedTextStore(),
-) {
+internal fun Module.idleCreateRoot(drafts: DraftRepository) {
     viewModel {
         val games = GameRegistry(emptyList())
         CreateViewModel(
@@ -40,7 +36,7 @@ internal fun Module.idleCreateRoot(
             CreateDraft(games, drafts, newId = { "new-1" }, clock = { IdleNow }),
             CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { IdleNow }),
             DefaultDispatcherProvider(),
-            sharedText = sharedText,
+            sharedText = FakeSharedTextStore(),
             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { IdleNow }),
             releaseFlags = FakeReleaseFlags(),
             clock = { IdleNow },

@@ -1,10 +1,15 @@
 package com.ivandsky.puzzlebox.create
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -34,6 +39,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
 import java.time.Instant
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -68,6 +74,7 @@ class SharedTextImportTest {
     private val store = FakeSharedTextStore()
     private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey))))
     private lateinit var vm: CreateViewModel
+    private val editor = NotatedEditor()
 
     @After
     fun tearDown() {
@@ -164,8 +171,50 @@ class SharedTextImportTest {
         assertEquals(listOf<NavKey>(CreateKey), navigator.state.currentStack)
     }
 
-    private fun show() {
-        val editor = NotatedEditor()
+    @Test
+    fun `a root that is only started takes nothing until it is resumed`() {
+        val owner = ManualLifecycle(Lifecycle.State.STARTED)
+        store.put(NOTATION)
+        show(owner)
+        awaitTag(ROOT)
+        idle()
+
+        assertEquals(NOTATION, store.pending.value)
+        assertEquals(emptySet<String>(), drafts.rows.keys)
+
+        composeRule.runOnUiThread { owner.moveTo(Lifecycle.State.RESUMED) }
+        awaitTrue { navigator.state.currentStack.last() != CreateKey }
+
+        assertEquals(setOf("draft-1"), drafts.rows.keys)
+        assertNull(store.pending.value)
+    }
+
+    @Test
+    fun `a text shared during a check waits for it, then imports after the first`() {
+        show()
+        awaitTag(ROOT)
+        store.put(BLOCKED)
+        awaitTrue { editor.entered.count == 0L }
+        assertTrue(vm.importText.ui.value.checking)
+
+        store.put(NOTATION)
+        idle()
+
+        assertEquals(NOTATION, store.pending.value)
+        assertEquals(emptySet<String>(), drafts.rows.keys)
+
+        editor.release.countDown()
+        awaitTrue {
+            // The first Studio may cover the root before the waiting text is taken; it waits there.
+            if (store.pending.value != null && navigator.state.currentStack.last() != CreateKey) navigator.pop()
+            drafts.rows.size == 2 && store.pending.value == null
+        }
+
+        assertEquals(listOf<Byte>(1, 5), drafts.rows.getValue("draft-1").blob.toList())
+        assertEquals(listOf<Byte>(1, 3), drafts.rows.getValue("draft-2").blob.toList())
+    }
+
+    private fun show(owner: LifecycleOwner? = null) {
         val games = GameRegistry(listOf(pluginOf(editor)))
         var ids = 0
         startKoin {
@@ -196,7 +245,13 @@ class SharedTextImportTest {
         composeRule.setContent {
             PuzzleBoxTheme {
                 val top = navigator.state.currentStack.last()
-                key(top) { entries(top).Content() }
+                if (owner == null) {
+                    key(top) { entries(top).Content() }
+                } else {
+                    CompositionLocalProvider(LocalLifecycleOwner provides owner) {
+                        key(top) { entries(top).Content() }
+                    }
+                }
             }
         }
     }
@@ -227,7 +282,15 @@ class SharedTextImportTest {
     ) : GameEditor<TestDraft> by base, EditorNotation<TestDraft> {
         override val notationVersion: Int = 1
 
+        /** Counts down when a [BLOCKED] parse starts; that parse then waits for [release]. */
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+
         override fun parse(text: String): NotationResult<TestDraft> {
+            if (text.lines().any { it.trim() == BLOCK_MARKS }) {
+                entered.countDown()
+                release.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            }
             val marks = text.lines().firstOrNull { it.isNotBlank() }?.trim()?.toIntOrNull()
                 ?: return NotationResult.Err(2, 1, "expected a mark count")
             return NotationResult.Ok(TestDraft(marks))
@@ -236,6 +299,16 @@ class SharedTextImportTest {
         override fun print(draft: TestDraft): String = HEADER + "${draft.marks}\n"
 
         override fun columns(draft: TestDraft): Int = 1
+    }
+
+    /** A lifecycle the test moves by hand, standing in for the screen's own. */
+    private class ManualLifecycle(initial: Lifecycle.State) : LifecycleOwner {
+        private val registry = LifecycleRegistry.createUnsafe(this).also { it.currentState = initial }
+        override val lifecycle: Lifecycle get() = registry
+
+        fun moveTo(state: Lifecycle.State) {
+            registry.currentState = state
+        }
     }
 
     private fun pluginOf(editor: GameEditor<TestDraft>): GamePlugin<*, *, *> {
@@ -258,6 +331,10 @@ class SharedTextImportTest {
         val NOW: Instant = Instant.parse("2026-11-08T10:00:00Z")
         val HEADER = NotationHeader("fake", 1).line + "\n"
         val NOTATION = HEADER + "3\n"
+        const val BLOCK_MARKS = "5"
+
+        /** Its parse waits for the test's release, so a check can be held mid-flight. */
+        val BLOCKED = HEADER + "$BLOCK_MARKS\n"
         const val OVERSIZE = 70 * 1024
         const val TIMEOUT_MS = 5_000L
         const val FRAME_MS = 16L

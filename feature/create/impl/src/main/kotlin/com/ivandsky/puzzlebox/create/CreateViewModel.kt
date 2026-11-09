@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -59,7 +60,8 @@ import kotlinx.coroutines.launch
  * [importText] owns the Import from text sheet; the header pill shows while [importEnabled]
  * ([ReleaseFlag.TextImport]). An imported draft is sent on [created], like a new one. A Studio's
  * import hands its draft to the next Studio through [importedNotice]. Text another app shared
- * ([SharedTextStore]) goes through that same sheet while the root shows ([importSharedText]).
+ * ([SharedTextStore]) goes through that same sheet while the root is resumed
+ * ([importSharedText]).
  */
 class CreateViewModel(
     private val games: GameRegistry,
@@ -158,11 +160,15 @@ class CreateViewModel(
     /**
      * Imports the text another app shared, the way a paste would: each text waiting in
      * [SharedTextStore] is taken once, then [importText] opens the sheet and submits it, so a
-     * good one is sent on [created] and an error stays on the open sheet. Runs until cancelled;
-     * the Create root runs it while it shows, so nothing is taken while another screen covers it.
+     * good one is sent on [created] and an error stays on the open sheet. A text that arrives
+     * during a check stays in the store until that check ends, so two shares import one after
+     * the other. Runs until cancelled; the Create root runs it while it is resumed, so nothing
+     * is taken while another screen covers it or a transition is still settling.
      */
     suspend fun importSharedText() {
         sharedText.pending.filterNotNull().collect {
+            importText.ui.first { !it.checking }
+            // No suspension from here to submit, so a cancel never splits take from import.
             val text = sharedText.take() ?: return@collect
             importText.open()
             importText.submit(text)
