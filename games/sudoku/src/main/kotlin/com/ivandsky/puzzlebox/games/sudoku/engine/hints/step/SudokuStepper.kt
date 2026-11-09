@@ -69,26 +69,32 @@ object SudokuStepper {
         private val lastMove: Int?,
     ) {
 
-        private val order = compareBy<SudokuStep.Single>(
-            { it.blockers.size },
-            { geometry.distance(it.place.cell, lastMove) },
-            { it.place.cell },
+        /** [cost] is what the step shows to justify itself: ringed blockers plus strike-only excluded marks. */
+        class Ranked(val single: SudokuStep.Single, val cost: Int)
+
+        private val order = compareBy<Ranked>(
+            { it.cost },
+            { geometry.distance(it.single.place.cell, lastMove) },
+            { it.single.place.cell },
         )
 
-        fun cheapest(singles: List<SudokuStep.Single>): SudokuStep.Single? = singles.minWithOrNull(order)
+        fun cheapest(found: List<Ranked>): SudokuStep.Single? = found.minWithOrNull(order)?.single
 
         /** D0: a unit with one empty cell. Its candidates are the one digit the unit lacks, as it sees the rest. */
-        fun lastCells(): List<SudokuStep.Single> = geometry.units.mapNotNull { unit ->
+        fun lastCells(): List<Ranked> = geometry.units.mapNotNull { unit ->
             val cell = geometry.cellsOf(unit).singleOrNull { board.digitAt(it) == 0 } ?: return@mapNotNull null
             val mask = candidates[cell]
             if (Integer.bitCount(mask) != 1) return@mapNotNull null
-            SudokuStep.Single(place(cell, digitOf(mask), hiddenTechnique(unit), unit), unit, emptySet())
+            Ranked(SudokuStep.Single(place(cell, digitOf(mask), hiddenTechnique(unit), unit), unit, emptySet()), 0)
         }
 
-        /** D1 or D2: a digit with one home in a box, or in a row or column. */
-        fun hiddenSingles(technique: SudokuTechnique): List<SudokuStep.Single> {
+        /**
+         * D1 or D2: a digit with one home in a box, or in a row or column. An other open cell no placed digit
+         * explains lost the digit to a known strike; it needs no blocker but costs one excluded mark.
+         */
+        fun hiddenSingles(technique: SudokuTechnique): List<Ranked> {
             val inBox = technique == SudokuTechnique.HIDDEN_SINGLE_BOX
-            val found = mutableListOf<SudokuStep.Single>()
+            val found = mutableListOf<Ranked>()
             for (unit in geometry.units) {
                 if ((unit.kind == UnitKind.BOX) != inBox) continue
                 val cells = geometry.cellsOf(unit)
@@ -96,14 +102,21 @@ object SudokuStepper {
                     val bit = 1 shl (digit - 1)
                     val target = cells.singleOrNull { candidates[it] and bit != 0 } ?: continue
                     val others = cells.filter { it != target && board.digitAt(it) == 0 }
-                    found += SudokuStep.Single(place(target, digit, technique, unit), null, blockers(others, digit))
+                    val holders = candidates.indices.filter { board.digitAt(it) == digit }
+                    val explained = others.filter { cell -> holders.any { sees(it, cell) } }
+                    val blockers = blockers(explained, holders)
+                    val single = SudokuStep.Single(place(target, digit, technique, unit), null, blockers)
+                    found += Ranked(single, blockers.size + others.size - explained.size)
                 }
             }
             return found
         }
 
-        /** D3: a cell with one candidate; per digit it sees, the nearest peer holding it, lowest index on a tie. */
-        fun nakedSingles(): List<SudokuStep.Single> = candidates.indices
+        /**
+         * D3: a cell with one candidate; per digit it sees, the nearest peer holding it, lowest index on a tie.
+         * Every other digit is either a blocker or a strike mark, so all naked singles cost the same.
+         */
+        fun nakedSingles(): List<Ranked> = candidates.indices
             .filter { Integer.bitCount(candidates[it]) == 1 }
             .map { cell ->
                 val digit = digitOf(candidates[cell])
@@ -111,17 +124,15 @@ object SudokuStepper {
                 val blockers = (1..geometry.size).filter { it != digit }.mapNotNullTo(LinkedHashSet()) { seen ->
                     peers.filter { board.digitAt(it) == seen }.minByOrNull { geometry.distance(it, cell) }
                 }
-                SudokuStep.Single(place(cell, digit, SudokuTechnique.NAKED_SINGLE, null), null, blockers)
+                Ranked(SudokuStep.Single(place(cell, digit, SudokuTechnique.NAKED_SINGLE, null), null, blockers), geometry.size - 1)
             }
 
         /**
-         * The placed [digit]s that rule it out of [others], picked greedily: each pick explains the most cells
-         * still unexplained, nearest the last move, lowest index. A cell whose digit only a known strike
-         * removed needs no blocker; the strike is drawn as its own excluded mark.
+         * The [holders] that rule their digit out of [explained], picked greedily: each pick explains the most
+         * cells still unexplained, nearest the last move, lowest index.
          */
-        private fun blockers(others: List<Int>, digit: Int): Set<Int> {
-            val holders = candidates.indices.filter { board.digitAt(it) == digit }
-            var unexplained = others.filter { cell -> holders.any { sees(it, cell) } }
+        private fun blockers(explained: List<Int>, holders: List<Int>): Set<Int> {
+            var unexplained = explained
             val chosen = LinkedHashSet<Int>()
             while (unexplained.isNotEmpty()) {
                 val pick = holders.minWith(

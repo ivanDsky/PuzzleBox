@@ -158,6 +158,19 @@ class SudokuStepperTest {
     }
 
     @Test
+    fun `on a blocker tie a strike-only cell costs one mark, so the single without one wins`() {
+        // As above without the 6 at r4c1: a strike keeps 6 out of cell 7 instead, so box 0's single on
+        // cell 0 rings one blocker (r2c2) plus one strike mark against box 5's single on one blocker alone.
+        val puzzle = puzzle(shifted, mapOf(1 to 1, 6 to 3, 8 to 5, 14 to 6, 30 to 2, 28 to 3, 29 to 4, 35 to 1))
+        val known = mapOf(7 to digit6)
+        val box5 = single(27, 2, SudokuTechnique.HIDDEN_SINGLE_BOX, unit(UnitKind.BOX, 5), null, setOf(30))
+        assertEquals(box5, next(puzzle, lastMove = null, known = known))
+        assertEquals(box5, next(puzzle, lastMove = 1, known = known))
+        // Without the strike box 0 has no single at all.
+        assertEquals(box5, next(puzzle, lastMove = 1))
+    }
+
+    @Test
     fun `a known strike removes its digit, so a single that needs it appears, and no strikes changes nothing`() {
         val puzzle = puzzle(shifted, lineAndNaked)
         val line = single(0, 6, SudokuTechnique.HIDDEN_SINGLE_LINE, unit(UnitKind.COLUMN, 0), null, setOf(9))
