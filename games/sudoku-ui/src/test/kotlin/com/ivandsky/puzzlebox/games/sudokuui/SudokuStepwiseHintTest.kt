@@ -16,7 +16,6 @@ import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
-import com.ivandsky.puzzlebox.games.sudoku.SudokuCommand
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.SudokuMoves
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
@@ -43,9 +42,9 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Pins the Stepwise wiring the board state owns (ticket 34): a press shows a Spotlight and places nothing (A1), counts
- * once through the session (A9), erases a wrong digit as one undo unit (A4), clears on every input (A10), hides the
- * caption and the violation line while it shows (A11), and the grid draws it without taking taps. The press rules
- * themselves are StepHints' (04b) and the game's `known` is SudokuStepGame's (33).
+ * once through the session (A9), marks a wrong digit and re-shows the mark for free without touching the board (A4),
+ * clears on every input (A10), hides the caption and the violation line while it shows (A11), and the grid draws it
+ * without taking taps. The press rules themselves are StepHints' (04b) and the game's `known` is SudokuStepGame's (33).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -127,27 +126,38 @@ class SudokuStepwiseHintTest {
         assertEquals(1, s.session.hintsUsed)
     }
 
-    // Wrong digit (A4)
+    // Wrong digit: mark only (A4)
 
     @Test
-    fun `the second press on a wrong digit erases it as one undo unit and costs nothing more`() {
+    fun `the second press on a wrong digit re-shows the mark for free and changes nothing`() {
         val s = withWrongOne()
-        val history = s.session.history.done.size
 
         s.requestHint()
         assertEquals(setOf(0), s.culprits())
         assertEquals(1, s.session.hintsUsed)
+        val marked = s.session
+        val playId = checkNotNull(s.spotlight).playId
 
         s.requestHint()
+        assertEquals(setOf(0), s.culprits())
+        assertEquals(playId + 1, s.spotlight?.playId)
+        assertEquals(WRONG_DIGIT, s.session.board.digitAt(0))
+        assertEquals(marked.board, s.session.board)
+        assertEquals(marked.history, s.session.history)
+        assertEquals(1, s.session.hintsUsed)
+    }
+
+    @Test
+    fun `the player's own erase takes the marked digit off and clears the mark`() {
+        val s = withWrongOne()
+        s.requestHint()
+        s.requestHint()
+
+        s.select(0)
+        s.erase()
+
         assertEquals(SudokuCell.Empty, s.session.board.cells[0])
         assertNull(s.spotlight)
-        assertEquals(history + 1, s.session.history.done.size)
-        assertTrue(s.session.history.done.last() is SudokuCommand.Erase)
-        assertTrue(s.canUndo)
-        assertEquals(1, s.session.hintsUsed)
-
-        s.undo()
-        assertEquals(WRONG_DIGIT, s.session.board.digitAt(0))
         assertEquals(1, s.session.hintsUsed)
     }
 

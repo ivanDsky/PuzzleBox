@@ -39,10 +39,10 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Pins the Stepwise wiring through the controller (ticket 28): a press shows a Spotlight and never reaches the legacy
- * region pulse or crown ghost (A1, A15), counts once into the saved session (A9), erases a wrong queen or cross as one
- * undo unit (A4), clears on every board input (A10), hides the rule-conflict line while it shows (A11), and the board
- * draws it over the cell grid without taking taps. The press rules themselves are StepHints' (04b), the step is
- * QueensStepGame's (27).
+ * region pulse or crown ghost (A1, A15), counts once into the saved session (A9), marks a wrong queen or cross and
+ * re-shows it for free without touching the board (A4), clears on every board input (A10), hides the rule-conflict
+ * line while it shows (A11), and the board draws it over the cell grid without taking taps. The press rules
+ * themselves are StepHints' (04b), the step is QueensStepGame's (27).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -104,44 +104,55 @@ class QueensStepwiseHintTest {
         assertEquals(1, c.hintsUsed)
     }
 
-    // Erase (A4)
+    // Culprit mark only (A4)
 
     @Test
-    fun `the second press on a wrong queen removes it as one undo unit and costs nothing more`() {
+    fun `the second press on a wrong queen re-shows the mark for free and changes nothing`() {
         val c = stepwise()
         c.state.placeQueen(WRONG_QUEEN)
-        val history = c.state.session.history.done.size
 
         c.requestHint()
         assertEquals(setOf(WRONG_QUEEN), c.state.culprits())
         assertEquals(1, c.hintsUsed)
+        val marked = c.state.session
+        val playId = checkNotNull(c.state.spotlight).playId
 
         c.requestHint()
-        assertFalse(Cell(WRONG_QUEEN) in c.state.session.queens)
-        assertNull(c.state.spotlight)
-        assertEquals(history + 1, c.state.session.history.done.size)
-        assertTrue(c.canUndo)
+        assertEquals(setOf(WRONG_QUEEN), c.state.culprits())
+        assertEquals(playId + 1, c.state.spotlight?.playId)
+        assertEquals(marked.board, c.state.session.board)
+        assertEquals(marked.history, c.state.session.history)
         assertEquals(1, c.hintsUsed)
-
-        c.undo()
-        assertTrue(Cell(WRONG_QUEEN) in c.state.session.queens)
-        assertEquals(1, c.hintsUsed)
+        assertEquals(1, savedSession().hintsUsed)
     }
 
     @Test
-    fun `the second press on a wrong cross removes it and one undo brings it back`() {
+    fun `the second press on a wrong cross re-shows the mark and leaves the cross and undo alone`() {
         val c = stepwise()
         c.state.onTap(SOLUTION_CELL) // a manual × on a solution cell
-        assertEquals(MarkKind.MANUAL, c.state.session.markAt(Cell(SOLUTION_CELL))?.kind)
+        val crossed = c.state.session
 
         c.requestHint()
         assertEquals(setOf(SOLUTION_CELL), c.state.culprits())
         c.requestHint()
-        assertNull(c.state.session.markAt(Cell(SOLUTION_CELL)))
-        assertEquals(1, c.hintsUsed)
-
-        c.undo()
+        assertEquals(setOf(SOLUTION_CELL), c.state.culprits())
         assertEquals(MarkKind.MANUAL, c.state.session.markAt(Cell(SOLUTION_CELL))?.kind)
+        assertEquals(crossed.history, c.state.session.history)
+        assertEquals(1, c.hintsUsed)
+    }
+
+    @Test
+    fun `the player's own tap takes the marked queen off and clears the mark`() {
+        val c = stepwise()
+        c.state.placeQueen(WRONG_QUEEN)
+        c.requestHint()
+        c.requestHint()
+
+        c.state.onTap(WRONG_QUEEN)
+
+        assertFalse(Cell(WRONG_QUEEN) in c.state.session.queens)
+        assertNull(c.state.spotlight)
+        assertEquals(1, c.hintsUsed)
     }
 
     // Caption (A11)

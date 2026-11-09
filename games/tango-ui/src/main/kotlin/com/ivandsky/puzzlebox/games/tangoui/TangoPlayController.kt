@@ -211,10 +211,7 @@ class TangoPlayController(
         legacyHint.resolve(current, now(), ::commit)
     }
 
-    /** A culprit erase is a board change like undo: the rejection verdict on that cell goes too (A4). */
-    private fun newStepHints(mode: HintMode.Stepwise) = tangoStepHints(
-        mode, env.scope, { session }, now, erase = { lastRejection = null; commit(it) }, count = ::updateSession,
-    )
+    private fun newStepHints(mode: HintMode.Stepwise) = tangoStepHints(mode, env.scope, { session }, count = ::updateSession)
 
     //region timer (F2 §2: active foreground play only)
 

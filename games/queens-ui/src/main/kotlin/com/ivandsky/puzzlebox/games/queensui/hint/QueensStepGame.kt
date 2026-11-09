@@ -13,9 +13,8 @@ import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSearchOutcome
 import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSolver
 
 /**
- * Queens behind [StepHints]: snapshots the live [session], runs [QueensStepper] off the main thread, maps the step to
- * its Spotlight, and hands a culprit to [onEraseCulprit] (the caller removes a wrong queen with `withQueenRemoved` or a
- * wrong cross with `withCrossToggled`, one undo unit, A4). A press never places anything (A1).
+ * Queens behind [StepHints]: snapshots the live [session], runs [QueensStepper] off the main thread and maps the step
+ * to its Spotlight. A press never places or removes anything (A1, A4): a culprit is only marked.
  *
  * The solution is resolved once per puzzle (A19) inside the compute block: the stored one when the puzzle carries it,
  * else a search bounded by a poll-counting [Budget], never wall-clock, so the answer is repeatable. The search keeps a
@@ -26,7 +25,6 @@ import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSolver
  */
 internal class QueensStepGame(
     private val session: () -> QueensSession,
-    private val onEraseCulprit: (QueensStep.Mistake) -> Unit,
     private val solve: (QueensPuzzle) -> Set<Cell>? = { boundedSolution(it) },
 ) : StepHints.Game<QueensStep, QueensSpotlightMapper.Key> {
 
@@ -47,14 +45,8 @@ internal class QueensStepGame(
 
     override fun keyOf(step: QueensStep): QueensSpotlightMapper.Key? = QueensSpotlightMapper.keyOf(step)
 
-    override fun isCulprit(step: QueensStep): Boolean = step is QueensStep.Mistake
-
     override fun spotlight(step: QueensStep, playId: Int): Spotlight? =
         QueensSpotlightMapper.map(step, session().puzzle, playId)
-
-    override fun eraseCulprit(step: QueensStep) {
-        if (step is QueensStep.Mistake) onEraseCulprit(step)
-    }
 
     private fun solutionOf(puzzle: QueensPuzzle): Set<Cell>? {
         solved?.takeIf { it.puzzle == puzzle }?.let { return it.solution }

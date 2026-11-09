@@ -21,7 +21,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Pins the press flow's counting, free repeat, culprit erase and stale-result rules (spec A1, A4, A9, A10, A19). */
+/** Pins the press flow's counting, free repeat, show-only and stale-result rules (spec A1, A4, A9, A10, A19). */
 class StepHintsTest {
 
     private val scheduler = TestCoroutineScheduler()
@@ -71,25 +71,18 @@ class StepHintsTest {
     }
 
     @Test
-    fun `a culprit pressed again erases once, clears, is free, and the next press is never a second erase`() {
+    fun `every press of the same key searches again, re-shows it for free and is never an input`() {
         game.step = "c"
-        game.culprits += "c"
         press()
-        assertEquals(listOf(1), counts)
-        assertTrue(game.erased.isEmpty())
-        assertEquals(1, hints.spotlight?.playId)
-
         press()
-        assertEquals(listOf("c"), game.erased)
-        assertNull(hints.spotlight)
-        assertEquals(listOf(1), counts)
-
         val capturesBefore = game.captures
         press()
+
         assertEquals(capturesBefore + 1, game.captures)
-        assertEquals(listOf("c"), game.erased)
-        assertEquals(2, hints.spotlight?.playId)
+        assertEquals(listOf("c", "c", "c"), game.spotlighted)
+        assertEquals(3, hints.spotlight?.playId)
         assertEquals(listOf(1), counts)
+        assertTrue(game.spotlightSeenInInputMade.isEmpty())
     }
 
     @Test
@@ -144,19 +137,6 @@ class StepHintsTest {
     }
 
     @Test
-    fun `a culprit shown then inputMade is a plain free show, not an erase`() {
-        game.step = "c"
-        game.culprits += "c"
-        press()
-        hints.inputMade()
-        press()
-
-        assertTrue(game.erased.isEmpty())
-        assertEquals(2, hints.spotlight?.playId)
-        assertEquals(listOf(1), counts)
-    }
-
-    @Test
     fun `reset clears the spotlight and forgets counted keys`() {
         game.step = "a"
         press()
@@ -185,23 +165,11 @@ class StepHintsTest {
     }
 
     @Test
-    fun `a culprit erase calls game inputMade once`() {
-        game.step = "c"
-        game.culprits += "c"
-        press()
-        press()
-
-        assertEquals(1, game.spotlightSeenInInputMade.size)
-    }
-
-    @Test
     fun `a game without hook overrides works`() {
         val plain = object : StepHints.Game<String, String> {
             override fun capture(): () -> String = { "a" }
             override fun keyOf(step: String) = step
-            override fun isCulprit(step: String) = false
             override fun spotlight(step: String, playId: Int) = spotlight(playId)
-            override fun eraseCulprit(step: String) = Unit
         }
         val plainHints = StepHints(HintMode.Stepwise(compute), scope, plain, used = { used }, onCount = { counts += it })
 
@@ -274,9 +242,7 @@ class StepHintsTest {
     private inner class FakeGame : StepHints.Game<String, String> {
         var step = ""
         var throwing = false
-        val culprits = mutableSetOf<String>()
         val nullKeys = mutableSetOf<String>()
-        val erased = mutableListOf<String>()
         val spotlighted = mutableListOf<String>()
         val spotlightSeenInInputMade = mutableListOf<Spotlight?>()
         var spotlightSeenInReset: Spotlight? = Spotlight(0, 0, emptyMap(), null, NoGlyphs, 0)
@@ -300,14 +266,9 @@ class StepHintsTest {
         }
 
         override fun keyOf(step: String): String? = step.takeUnless { it in nullKeys }
-        override fun isCulprit(step: String) = step in culprits
         override fun spotlight(step: String, playId: Int): Spotlight {
             spotlighted += step
             return spotlight(playId)
-        }
-
-        override fun eraseCulprit(step: String) {
-            erased += step
         }
 
         override fun inputMade() {

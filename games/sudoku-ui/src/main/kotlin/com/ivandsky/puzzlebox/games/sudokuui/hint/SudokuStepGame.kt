@@ -8,9 +8,8 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStep
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStepper
 
 /**
- * Mini Sudoku behind [StepHints]: snapshots the live [session], runs [SudokuStepper] off the main thread, maps the step
- * to its Spotlight, and hands a culprit to [onEraseCulprit] (the caller records `SudokuMoves.erase` as one undo unit, A4).
- * A press never places anything, a reveal included (A1).
+ * Mini Sudoku behind [StepHints]: snapshots the live [session], runs [SudokuStepper] off the main thread and maps the
+ * step to its Spotlight. A press never places or erases anything, a reveal included (A1); a culprit is only marked (A4).
  *
  * It also owns `known` (A7): the engine ignores notes, so a shown elimination leaves nothing it can read, and it would
  * come back on every press. The struck masks of the elimination on screen are remembered on the next input and fed
@@ -18,7 +17,6 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStepper
  */
 internal class SudokuStepGame(
     private val session: () -> SudokuSession,
-    private val onEraseCulprit: (SudokuStep.Mistake) -> Unit,
 ) : StepHints.Game<SudokuStep, SudokuSpotlightMapper.Key> {
 
     /** Cell to struck digit mask. Replaced, never mutated, so a captured reference is a snapshot. */
@@ -38,17 +36,11 @@ internal class SudokuStepGame(
 
     override fun keyOf(step: SudokuStep): SudokuSpotlightMapper.Key? = SudokuSpotlightMapper.keyOf(step)
 
-    override fun isCulprit(step: SudokuStep): Boolean = step is SudokuStep.Mistake
-
     /** The press-time board: any input invalidates the search before it delivers, so the live board is the snapshot. */
     override fun spotlight(step: SudokuStep, playId: Int): Spotlight? {
         val current = session()
         shown = step
         return SudokuSpotlightMapper.map(step, current.puzzle, current.board, playId)
-    }
-
-    override fun eraseCulprit(step: SudokuStep) {
-        if (step is SudokuStep.Mistake) onEraseCulprit(step)
     }
 
     /** A re-press of the same step is no input, so only the next real input accepts a shown elimination. */
