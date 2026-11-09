@@ -53,9 +53,15 @@ private val SpotlightOnBoard = Modifier.wrapContentSize(Alignment.TopStart).aspe
  * violations as tint + dashed border (the rule-naming caption is the shared
  * chrome's, via [TangoPlayController.violation]), a guided lesson's answer as faint
  * ghost glyphs ([TangoRendererModel.ghosts]), per-cell TalkBack semantics (§9),
- * tap-cycle placement via [TangoTapPolicy].
+ * tap-cycle placement via [onTap] (the owner reads the live session — [TangoPlayController.onTap]).
+ *
+ * [onTap] gets the tapped cell index, never a model-derived placement: a step computed from
+ * the model this board last composed with is stale until the next frame, so a fast second
+ * tap repeated the first and no-opped (M4-tango-28). [onPlacement] lands TalkBack's custom
+ * actions; null for both = an inert board (the editor's preview).
  */
 class TangoBoardRenderer(
+    private val onTap: ((idx: Int) -> Unit)? = null,
     private val onPlacement: ((TangoPlacement) -> Unit)? = null,
     private val spotlight: () -> Spotlight? = { null },
 ) {
@@ -65,6 +71,10 @@ class TangoBoardRenderer(
         val tango = model as? TangoRendererModel
             ?: error("TangoBoardRenderer expects TangoRendererModel, got ${model::class.simpleName}")
         val commit = onPlacement
+        val n = tango.n
+        // Stable across placements: BoardGrid keys its tap detector on this lambda, and a
+        // new one per model restarted the detector, dropping a tap in flight (M4-tango-28).
+        val onCellTap = remember(this, n) { onTap?.let { tap -> { row: Int, col: Int -> tap(row * n + col) } } }
 
         Column(modifier) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -108,11 +118,7 @@ class TangoBoardRenderer(
                             },
                         )
                     },
-                    onCellTap = commit?.let { onCommit ->
-                        { row: Int, col: Int ->
-                            TangoTapPolicy.onTap(tango, row * tango.n + col).forEach(onCommit)
-                        }
-                    },
+                    onCellTap = onCellTap,
                     cellContent = { row, col ->
                         Cell(
                             model = tango,
