@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.strandsui.editor
 
+import androidx.compose.ui.geometry.Offset
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.strands.Coord
@@ -9,6 +10,7 @@ import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraftPath
 import com.ivandsky.puzzlebox.games.strandsui.Trace
 import com.ivandsky.puzzlebox.games.strandsui.TraceInput
+import com.ivandsky.puzzlebox.games.strandsui.TraceStep
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -28,7 +30,7 @@ class StrandsEditorDragEndTest {
 
     private fun coord(cell: Int) = Coord(cell / StrandsDraft.COLS, cell % StrandsDraft.COLS)
 
-    private fun live() = Trace(controller.trace.value.map(::coord))
+    private fun live(on: StrandsEditorController = controller) = Trace(on.trace.value.map(::coord))
 
     /** Commits a path over [cells] by tracing them and lifting. */
     private fun path(vararg cells: Int) {
@@ -44,20 +46,23 @@ class StrandsEditorDragEndTest {
     }
 
     /**
-     * A touch on [from] whose finger joins each of [over] in turn, then lifts: the steps the
-     * board's drag session sends. The first join starts the drag at [from]; each later one is a
-     * [TraceInput.dragTo] on the live trace the controller shows.
+     * A touch on [from] whose finger goes to the centre of each of [over] in turn, then lifts,
+     * in [on]'s order of the play board's calls: the drag session's steps (the first join starts
+     * the drag at [from], later ones a [TraceInput.dragTo] on the live trace), then the finger;
+     * at the lift the finger's null, then the session's last step. No join is a tap.
      */
-    private fun drag(from: Int, vararg over: Int) {
+    private fun drag(from: Int, vararg over: Int, on: StrandsEditorController = controller) {
         over.forEachIndexed { index, cell ->
             if (index == 0) {
-                controller.step(TraceInput.dragStart(coord(from)))
-                controller.step(TraceInput.dragTo(Trace(listOf(coord(from))), coord(cell)))
+                on.step(TraceInput.dragStart(coord(from)))
+                on.step(TraceInput.dragTo(Trace(listOf(coord(from))), coord(cell)))
             } else {
-                controller.step(TraceInput.dragTo(live(), coord(cell)))
+                on.step(TraceInput.dragTo(live(on), coord(cell)))
             }
+            on.fingerAt(Offset(cell % StrandsDraft.COLS + 0.5f, cell / StrandsDraft.COLS + 0.5f))
         }
-        controller.step(if (over.isEmpty()) TraceInput.tap(live(), coord(from)) else TraceInput.dragEnd(live()))
+        if (over.isNotEmpty()) on.fingerAt(null)
+        on.step(if (over.isEmpty()) TraceInput.tap(live(on), coord(from)) else TraceInput.dragEnd(live(on)))
     }
 
     @Test
@@ -90,9 +95,7 @@ class StrandsEditorDragEndTest {
         val draft = StrandsDraft(letters, "", listOf(StrandsDraftPath(listOf(0, 1, 2, 3), "STAR")), StrandsDraft.NO_SPANGRAM)
         val controller = StrandsEditorController(EditorDraft(StrandsEditor, DraftState(draft))) {}
         controller.selectPath(0)
-        controller.step(TraceInput.dragStart(coord(3)))
-        controller.step(TraceInput.dragTo(Trace(listOf(coord(3))), coord(4)))
-        controller.step(TraceInput.dragEnd(Trace(controller.trace.value.map(::coord))))
+        drag(3, 4, on = controller)
 
         val after = controller.draft.value.state.draft as StrandsDraft
         assertEquals(StrandsDraftPath(listOf(0, 1, 2, 3, 4), "STARE"), after.paths.single())
@@ -131,6 +134,36 @@ class StrandsEditorDragEndTest {
 
         assertEquals(listOf(4, 10), board().paths[0].cells)
         assertEquals(listOf(0, 1, 2, 3, 9, 15), board().paths[1].cells)
+    }
+
+    /** A walk that took a held cell for joined reroutes: its pop and push are not the finger's. */
+    @Test
+    fun `the walk's own pops and pushes never move the end, only the finger does`() {
+        selectedStar()
+        val count = edits.size
+        controller.step(TraceInput.dragStart(coord(3)))
+        controller.step(TraceInput.dragTo(Trace(listOf(coord(3))), coord(9)))
+        controller.step(TraceInput.dragTo(live(), coord(2)))
+        controller.step(TraceStep.Updated(Trace(listOf(0, 1, 2, 8).map(::coord))))
+        assertEquals(listOf(0, 1, 2, 3), controller.trace.value)
+        controller.fingerAt(null)
+        controller.step(TraceInput.dragEnd(live()))
+
+        assertEquals(listOf(0, 1, 2, 3), board().paths.single().cells)
+        assertEquals("STAR", board().letters.take(4))
+        assertEquals(count, edits.size)
+    }
+
+    @Test
+    fun `a finger off every cell centre leaves the end where it is`() {
+        selectedStar()
+        controller.step(TraceInput.dragStart(coord(3)))
+        controller.step(TraceInput.dragTo(Trace(listOf(coord(3))), coord(9)))
+        // The corner (0, 3) shares with (1, 3), (1, 4) and (0, 4): on no cell's circle.
+        controller.fingerAt(Offset(4f, 1f))
+        assertEquals(listOf(0, 1, 2, 3), controller.trace.value)
+        controller.fingerAt(Offset(4.5f, 1.5f))
+        assertEquals(listOf(0, 1, 2, 3, 10), controller.trace.value)
     }
 
     @Test

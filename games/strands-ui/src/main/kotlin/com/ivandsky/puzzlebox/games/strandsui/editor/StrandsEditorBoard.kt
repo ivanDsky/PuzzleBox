@@ -147,6 +147,7 @@ private fun StrandsEditorGrid(controller: StrandsEditorController, verdict: Verd
             trace = trace,
             onTrace = controller::step,
             tiles = { StrandsIdleTiles(idle, Modifier.fillMaxSize()) },
+            onFinger = controller::fingerAt,
             modifier = Modifier.fillMaxSize().testTag("strands.editor.board"),
         )
         StrandsDiagnosticsLayer(diagnostics, Modifier.fillMaxSize())

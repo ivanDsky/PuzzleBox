@@ -77,7 +77,8 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
  * sweep. [trace] is never read here: each letter derives its own place in it and the trace
  * connector reads it while drawing, so a trace step recomposes only the letters it changes.
  * [tiles] draws first in the board's underlay, under every connector and letter (the
- * editor's empty tiles), so the live line is never covered.
+ * editor's empty tiles), so the live line is never covered. [onFinger] gets the dragging
+ * finger in cell units after each move's steps, and null at the lift, before the lift's step.
  */
 @Composable
 internal fun StrandsBoardContent(
@@ -88,6 +89,7 @@ internal fun StrandsBoardContent(
     onTrace: (TraceStep) -> Unit,
     traceEnd: () -> TraceEnd? = { null },
     tiles: @Composable BoxScope.() -> Unit = {},
+    onFinger: (Offset?) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalBoardColors.current
@@ -143,7 +145,10 @@ internal fun StrandsBoardContent(
                 trace = trace,
                 onTrace = onTrace,
                 onTouch = { touchSeq.intValue++ },
-                onFinger = { finger.value = it },
+                onFinger = {
+                    finger.value = it
+                    onFinger(it)
+                },
             )
         }
     }

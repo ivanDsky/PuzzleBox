@@ -45,7 +45,7 @@ import java.io.File
 
 /**
  * The Strands editor's looks, on a 411 dp phone and in the tablet Studio's 876×720 left pane,
- * light and dark: the blank board, a trace in progress, a selected path with its "+N" handle,
+ * light and dark: the blank board, a trace in progress, a selected path with its end rings,
  * pockets, Unique, Multiple, None and each witness on the board. The phone's board carries its
  * authoring tools, so its Unique shows the paths panel; the tablet's is the board alone (they
  * sit in the side pane).

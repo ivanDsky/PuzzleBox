@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.strandsui.editor
 
+import androidx.compose.ui.geometry.Offset
 import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
@@ -24,7 +25,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * more cells becomes one path, the [word] typed so far written onto the path's blank cells,
  * as one undoable step: an [StrandsDraftCommand.AddPath], or a [ReplaceDraft] when the word
  * also wrote letters. A tap on a traced cell selects its path ([selectedPath]); a drag from
- * the selected path's first or last cell shortens or extends it at that end ([StrandsEndDrag]),
+ * the selected path's first or last cell shortens or extends it at that end ([StrandsEndGrip]),
  * one undoable step per drag; [removePath] drops it as one [StrandsDraftCommand.RemovePath];
  * [toggleSpangram] marks or unmarks one; [setClue] sets the theme clue. Every edit goes out
  * through `onEdit`; the VM hands replacement drafts back through [adopt].
@@ -40,9 +41,8 @@ class StrandsEditorController(
     private val selected = MutableStateFlow<Int?>(null)
     private val shownOverlay = MutableStateFlow(EditorOverlay())
 
-    /** The running drag of the selected path's end, and the end a touch went down on until its first join. */
-    private var endDrag: StrandsEndDrag? = null
-    private var grabbable: Int? = null
+    /** The selected path's end drag, armed by a touch going down on an end. */
+    private val grip = StrandsEndGrip()
 
     override val draft: StateFlow<EditorDraft<*>> = current.asStateFlow()
 
@@ -60,8 +60,7 @@ class StrandsEditorController(
     override fun adopt(draft: EditorDraft<*>) {
         current.value = typed(draft)
         tracing.value = emptyList()
-        endDrag = null
-        grabbable = null
+        grip.drop()
         select(selected.value)
     }
 
@@ -195,24 +194,19 @@ class StrandsEditorController(
     }
 
     /**
-     * One step of the play board's touch: a lone traced cell a path holds selects that path; on
-     * an end of the path already selected it arms that end, and the drag's first join starts a
-     * [StrandsEndDrag] there ([dragEnd]).
+     * One step of the play board's touch: a lone traced cell a path holds selects that path. A
+     * step of an end drag ([StrandsEndGrip]) only shows its trace; its finger moves it ([fingerAt]).
      */
     internal fun step(step: TraceStep) {
-        endDrag?.let { return dragEnd(it, step) }
-        val armed = grabbable
-        grabbable = null
+        grip.take(step, current.value, selected.value)?.let {
+            tracing.value = it
+            return
+        }
         when (step) {
             is TraceStep.Updated -> {
-                val cells = step.trace.path.map(::cellOf)
-                if (armed != null && cells.size == 2 && cells[0] == armed) return startEndDrag(armed, cells[1])
-                val paths = current.value.state.draft.paths
-                val lone = cells.singleOrNull()
-                val owner = if (lone == null) -1 else paths.indexOfFirst { lone in it.cells }
-                if (owner < 0) return show(step.trace.path)
-                if (owner == selected.value && StrandsEndDrag.grabs(paths[owner], cells[0])) grabbable = cells[0]
-                selectPath(owner)
+                val lone = step.trace.path.singleOrNull()?.let(::cellOf)
+                val owner = if (lone == null) -1 else current.value.state.draft.paths.indexOfFirst { lone in it.cells }
+                if (owner >= 0) selectPath(owner) else show(step.trace.path)
             }
             is TraceStep.Submit -> {
                 show(step.path)
@@ -222,28 +216,19 @@ class StrandsEditorController(
         }
     }
 
-    private fun startEndDrag(end: Int, over: Int) {
-        val drag = StrandsEndDrag(selected.value ?: return, current.value, end).also { endDrag = it }
-        tracing.value = drag.trace
-        if (drag.over(over)) moveEnd(drag)
-    }
-
-    /** A step of the running end drag ([StrandsEndDrag.step]); its lift drops the trace. */
-    private fun dragEnd(drag: StrandsEndDrag, step: TraceStep) {
-        when (drag.step(step)) {
-            true -> moveEnd(drag)
-            false -> Unit
-            null -> {
-                endDrag = null
-                tracing.value = emptyList()
-            }
+    /**
+     * The board's dragging finger, in cell units; null at the lift. It moves a running end drag's
+     * end, each move replacing the drag's one undoable step; the lift ends the drag.
+     */
+    internal fun fingerAt(at: Offset?) {
+        val drag = grip.drag ?: return
+        if (at == null) {
+            grip.drop()
+            tracing.value = emptyList()
+            return
         }
-    }
-
-    /** The drag's end moved: its draft replaces the drag's one undoable step. */
-    private fun moveEnd(drag: StrandsEndDrag) {
+        val next = drag.fingerAt(at) ?: return
         tracing.value = drag.trace
-        val next = drag.draft()
         current.value = next
         typedWord.value = next.state.draft.spelled(drag.index)
         onEdit(next)
@@ -280,9 +265,6 @@ class StrandsEditorController(
         typedWord.value = ""
         onEdit(next)
     }
-
-    private fun StrandsDraft.spelled(index: Int): String =
-        paths[index].cells.map { letters[it] }.takeWhile { it != StrandsDraft.BLANK }.joinToString("")
 
     private fun held(): Set<Int> = current.value.state.draft.paths.flatMapTo(HashSet()) { it.cells }
 

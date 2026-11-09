@@ -71,6 +71,49 @@ class StrandsEditorDragEndGestureTest {
         assertEquals(steps + 1, controller.draft.value.state.history.done.size)
     }
 
+    /**
+     * Path (1,0),(1,1); another word holds (0,2). Turning the tail 45° north-east onto (0,2)
+     * leaves the word alone: the end stays on (1,1) with its letter, and (0,1), a cell the
+     * finger never touched, is never added.
+     */
+    @Test
+    fun `turning the tail onto a cell another word holds and on leaves the word as it was`() {
+        listOf(6, 7).forEach(controller::traceTo)
+        controller.endTrace()
+        listOf(2, 3).forEach(controller::traceTo)
+        controller.endTrace()
+        controller.selectPath(0)
+        controller.typeWord("ab")
+        val before = board()
+        val steps = controller.draft.value.state.history.done.size
+        show()
+
+        rule.onNodeWithTag(BOARD).performTouchInput {
+            down(cellPoint(1.5f, 1.5f))
+            moveTo(cellPoint(2.0f, 1.0f))
+            moveTo(cellPoint(2.5f, 0.5f))
+            moveTo(cellPoint(2.7f, 0.4f))
+            moveTo(cellPoint(2.9f, 0.3f))
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag(BOARD).performTouchInput { up() }
+        rule.waitForIdle()
+
+        assertEquals(listOf(6, 7), board().paths[0].cells)
+        assertEquals(before.letters, board().letters)
+        assertEquals(steps, controller.draft.value.state.history.done.size)
+        assertEquals(0, controller.selectedPath.value)
+    }
+
+    private fun show() {
+        rule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                StrandsEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier)
+            }
+        }
+        rule.waitForIdle()
+    }
+
     @Test
     fun `the selected path wears a ring on both ends only while selected`() {
         listOf(0, 1, 2, 3).forEach(controller::traceTo)
