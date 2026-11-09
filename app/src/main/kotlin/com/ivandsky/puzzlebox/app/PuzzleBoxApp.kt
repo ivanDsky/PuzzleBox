@@ -100,9 +100,10 @@ fun PuzzleBoxApp(
 ) {
     var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
     if (pendingLink != null) {
+        val matchesEnabled = Competitions in koinInject<ReleaseFlags>().enabled.value
         remember(pendingLink) {
             FriendLink.of(pendingLink)?.let { link ->
-                navigator.applyFriendLink(link)
+                navigator.applyFriendLink(link, matchesEnabled)
                 if (link is FriendLink.Invalid) codeDraft = link.text
             }
         }

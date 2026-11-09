@@ -33,6 +33,39 @@ class FriendLinkTest {
     }
 
     @Test
+    fun `a match link is a match friend link`() {
+        val match = FriendLink.Match(checkNotNull(ShareCode.parse("K7Q2MX")))
+        listOf(
+            "https://puzzlebox-f3356.web.app/m/K7Q2MX",
+            "https://puzzlebox-f3356.web.app/m/k7q2mx",
+            "https://puzzlebox-f3356.web.app/m/K7Q2MX/",
+            "https://puzzlebox-f3356.web.app/m/K7Q2MX?utm_source=chat",
+            "https://puzzlebox-f3356.web.app/m/K7Q2MX#top",
+        ).forEach { uri -> assertEquals(uri, match, FriendLink.of(uri)) }
+    }
+
+    @Test
+    fun `a match link that cannot open a duel is not a friend link`() {
+        listOf(
+            "https://puzzlebox-f3356.web.app/m/K7Q2M",
+            "https://puzzlebox-f3356.web.app/m/",
+            "https://puzzlebox-f3356.web.app/m",
+            "http://puzzlebox-f3356.web.app/m/K7Q2MX",
+            "https://example.com/m/K7Q2MX",
+            "https://puzzlebox-f3356.web.app:8443/m/K7Q2MX",
+            "https://someone@puzzlebox-f3356.web.app/m/K7Q2MX",
+        ).forEach { uri -> assertEquals(uri, null, FriendLink.of(uri)) }
+    }
+
+    @Test
+    fun `a puzzle link still parses as a code`() {
+        assertEquals(
+            FriendLink.Code(checkNotNull(ShareCode.parse("K7Q2MX"))),
+            FriendLink.of("https://puzzlebox-f3356.web.app/p/K7Q2MX"),
+        )
+    }
+
+    @Test
     fun `any other URI is not a friend link`() {
         listOf(
             null,
