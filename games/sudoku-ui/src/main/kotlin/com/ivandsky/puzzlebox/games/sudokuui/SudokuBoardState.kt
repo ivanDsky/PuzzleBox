@@ -77,7 +77,7 @@ class SudokuBoardState(
     // Survives the hint being cleared, so looking away and asking again does not count twice.
     private val countedTargets = HashSet<Pair<Class<out SudokuHint>, List<Int>>>()
 
-    private val stepHints: StepHints<SudokuStep, SudokuSpotlightMapper.Key>? =
+    internal val stepHints: StepHints<SudokuStep, SudokuSpotlightMapper.Key>? =
         (hintMode as? HintMode.Stepwise)?.let { mode ->
             scope?.let {
                 val game = SudokuStepGame(session = { session })
