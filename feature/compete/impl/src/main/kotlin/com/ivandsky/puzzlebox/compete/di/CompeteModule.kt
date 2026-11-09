@@ -11,7 +11,8 @@ import org.koin.dsl.module
 /**
  * Compete feature wiring. [com.ivandsky.puzzlebox.domain.ObserveMyDuels], ObserveMatch and UpdateMatchSeat come from
  * :core:domain's domainModule and the identity service from the app's aggregation; the Duels tab's, the New duel
- * sheet's and the duel screen's view models are bound here (the duel screen's by its code).
+ * sheet's and the duel screen's view models are bound here (the duel screen's by its code). The saved plays come from
+ * :core:data and the result sync from the app, which binds it to the result poster.
  */
 val competeModule: Module = module {
     viewModel {
@@ -34,6 +35,8 @@ val competeModule: Module = module {
             code = code,
             observeMatch = get(),
             updateSeat = get(),
+            savedPlays = get(),
+            resultSync = get(),
             completions = get(),
             identity = get(),
             idTokens = get(),

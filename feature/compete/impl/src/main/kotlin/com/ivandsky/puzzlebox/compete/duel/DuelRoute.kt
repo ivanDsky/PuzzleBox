@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.compete.duel
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,18 +21,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
+import com.ivandsky.puzzlebox.compete.share.shareInvite
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.ErrorState
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-/** The duel at [code]: the invite card for a viewer with no seat; a seat holder gets the puzzles screen (ticket 36). */
+/** The duel at [code]: the invite card for a viewer with no seat; a seat holder gets the puzzles screen. */
 @Composable
-internal fun DuelRoute(code: String, navigator: Navigator) {
+internal fun DuelRoute(code: String, navigator: Navigator, layout: PlayLayout) {
     val vm: DuelViewModel = koinViewModel(key = code, parameters = { parametersOf(code) })
     val state by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -57,13 +62,7 @@ internal fun DuelRoute(code: String, navigator: Navigator) {
             when (val current = state) {
                 DuelUiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
                 is DuelUiState.Invite -> DuelInviteCard(current, actions, Modifier.verticalScroll(rememberScrollState()))
-                // Ticket 36 replaces this with the puzzles screen.
-                is DuelUiState.Participant -> EmptyState(
-                    title = "Duel with ${opponentName(current)}",
-                    message = "Your puzzles are on the way.",
-                    actionLabel = "Close",
-                    onAction = navigator::pop,
-                )
+                is DuelUiState.Participant -> DuelLegs(current, layout, legsActions(current, context, navigator), Modifier.fillMaxSize())
                 DuelUiState.NotFound -> EmptyState("This duel link doesn't work", "Check the code with your friend and try again.")
                 DuelUiState.Offline -> ErrorState(
                     title = "You're offline",
@@ -77,7 +76,12 @@ internal fun DuelRoute(code: String, navigator: Navigator) {
     }
 }
 
-private fun opponentName(state: DuelUiState.Participant): String {
-    val match = state.view.match
-    return (if (match.challenger.uid == state.view.me) match.opponent?.name else match.challenger.name) ?: "a friend"
-}
+/** Start and Resume push the puzzle's play screen (the game id from the match's own puzzle); the footer buttons share and open the reveal. */
+private fun legsActions(state: DuelUiState.Participant, context: Context, navigator: Navigator) = LegsActions(
+    onOpenLeg = { row ->
+        val match = state.view.match
+        navigator.pushOnce(MatchLegKey(match.code.value, row.legIndex, match.legs[row.legIndex].ref.gameId.value))
+    },
+    onNudge = context::shareInvite,
+    onReveal = { navigator.push(DuelRevealKey(state.view.match.code.value)) },
+)
