@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -21,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
@@ -29,6 +31,8 @@ import androidx.compose.ui.semantics.stateDescription
 import com.ivandsky.puzzlebox.designsystem.BoardTokens
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
+import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightOverlay
 import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.EdgeOverlay
@@ -51,6 +55,7 @@ import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
  */
 class TangoBoardRenderer(
     private val onPlacement: ((TangoPlacement) -> Unit)? = null,
+    private val spotlight: () -> Spotlight? = { null },
 ) {
 
     @Composable
@@ -115,6 +120,12 @@ class TangoBoardRenderer(
                             col = col,
                         )
                     },
+                )
+                // Above cells, marks, tint and frame; no pointer input, so taps reach the board. The square
+                // keeps it on the board when the pane is wider than the board is tall (00 §3).
+                SpotlightOverlay(
+                    spotlight(),
+                    Modifier.wrapContentSize(Alignment.TopStart).aspectRatio(1f).testTag("tango.spotlight"),
                 )
             }
         }
