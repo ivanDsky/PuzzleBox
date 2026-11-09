@@ -11,6 +11,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +26,7 @@ import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
@@ -45,6 +48,10 @@ import java.time.LocalDate
  * Profile (A20), top to bottom: the name and "Playing since", the lifetime grid, one row
  * per game ([onOpenHistory], N3), the account (sign-in and today's board), Appearance
  * (N4), and — only when [onOpenCatalog] is given (debug builds) — the catalog link.
+ *
+ * [slim] keeps only the header and the account line: it hides the lifetime grid, the game
+ * rows, today's board, Appearance and the catalog link. A non-null [onBack] draws a back
+ * icon at the top left, in either form.
  */
 @Composable
 internal fun ProfileContent(
@@ -56,6 +63,8 @@ internal fun ProfileContent(
     onSelectGame: (GameId) -> Unit,
     onOpenCatalog: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    slim: Boolean = false,
+    onBack: (() -> Unit)? = null,
 ) {
     val account = state.account
     Column(
@@ -66,28 +75,42 @@ internal fun ProfileContent(
             .padding(horizontal = Spacing.xl, vertical = Spacing.xxl),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
+        if (onBack != null) {
+            IconButton(onClick = onBack, modifier = Modifier.testTag("profile.back")) {
+                Icon(
+                    imageVector = PuzzleIcons.Back,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         val name = when (account) {
             is ProfileUiState.Account.SignedIn -> account.identity.displayName.ifEmpty { "Player" }
             is ProfileUiState.Account.SignedOut -> "Guest player"
         }
         ProfileHeader(name = name, playingSince = state.stats.playingSince)
-        LifetimeGrid(stats = state.stats, daysPlayed = state.daysPlayed)
-        if (state.games.isNotEmpty()) {
-            GameRows(games = state.games, onOpenHistory = onOpenHistory)
+        if (!slim) {
+            LifetimeGrid(stats = state.stats, daysPlayed = state.daysPlayed)
+            if (state.games.isNotEmpty()) {
+                GameRows(games = state.games, onOpenHistory = onOpenHistory)
+            }
+            HorizontalDivider()
         }
-        HorizontalDivider()
         when (account) {
             is ProfileUiState.Account.SignedOut -> SignedOutSection(account, onSignIn)
-            is ProfileUiState.Account.SignedIn -> SignedInSection(account, onSignOut, state.games, state.perGameBoard, onSelectGame)
+            is ProfileUiState.Account.SignedIn ->
+                SignedInSection(account, onSignOut, state.games, state.perGameBoard, onSelectGame, showBoard = !slim)
         }
-        HorizontalDivider()
-        AppearanceRow(current = state.themeMode, onSelect = onSetThemeMode)
-        if (onOpenCatalog != null) {
-            SecondaryButton(
-                text = "Design system catalog",
-                onClick = onOpenCatalog,
-                modifier = Modifier.fillMaxWidth().testTag("profile.catalog"),
-            )
+        if (!slim) {
+            HorizontalDivider()
+            AppearanceRow(current = state.themeMode, onSelect = onSetThemeMode)
+            if (onOpenCatalog != null) {
+                SecondaryButton(
+                    text = "Design system catalog",
+                    onClick = onOpenCatalog,
+                    modifier = Modifier.fillMaxWidth().testTag("profile.catalog"),
+                )
+            }
         }
     }
 }
@@ -126,6 +149,7 @@ private fun SignedInSection(
     games: List<GameRow>,
     perGameBoard: PerGameBoard,
     onSelectGame: (GameId) -> Unit,
+    showBoard: Boolean,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().testTag("profile-signed-in"),
@@ -143,7 +167,9 @@ private fun SignedInSection(
             )
             AppTextButton(text = "Sign out", onClick = onSignOut)
         }
-        ProfileDailyBoard(games = games, board = perGameBoard, onSelect = onSelectGame)
+        if (showBoard) {
+            ProfileDailyBoard(games = games, board = perGameBoard, onSelect = onSelectGame)
+        }
     }
 }
 
