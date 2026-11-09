@@ -27,7 +27,10 @@ class SudokuHintModeWiringTest {
     private val koins = mutableListOf<Koin>()
 
     private fun koinWith(source: HintModeSource): Koin = koinApplication {
-        modules(miniSudokuUiModule, sudokuUiModule, module { single { source } })
+        modules(miniSudokuUiModule, sudokuUiModule, module {
+            single { source }
+            single<SudokuHighlightSettings> { InMemorySudokuHighlightSettings() }
+        })
     }.koin.also { koins += it }
 
     @OptIn(KoinInternalApi::class)
@@ -51,7 +54,7 @@ class SudokuHintModeWiringTest {
     fun `the mode source is invoked exactly once per controller and the controller carries its value`() {
         var calls = 0
         val stepwise = HintMode.Stepwise(Dispatchers.Unconfined)
-        val ui = SudokuPlayUi(SudokuGames.MINI, MiniSudokuBrand) { calls++; stepwise }
+        val ui = SudokuPlayUi(SudokuGames.MINI, InMemorySudokuHighlightSettings(), MiniSudokuBrand) { calls++; stepwise }
 
         val controller = ui.createController(env) as SudokuPlayController
 

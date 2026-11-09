@@ -124,4 +124,34 @@ class SudokuBoardModelTest {
         assertEquals(setOf(3, 4, 5), model.where { it.hintUnit })
         assertEquals(setOf(1, 7), model.where { it.hintStruck })
     }
+
+    @Test
+    fun `peer off clears the row, column and box tint but keeps selection, same digit and conflicts`() {
+        val clash = classic.copy(board = classic.board.with(1, SudokuCell.Entry(5)))
+        val model = sudokuBoardModel(clash, selected = 0, peerHighlight = false)
+
+        assertTrue(model.where { it.peer }.isEmpty())
+        assertEquals(setOf(0), model.where { it.selected })
+        assertTrue(model.where { it.sameDigit }.isNotEmpty())
+        assertTrue(model.cells[1].conflict)
+    }
+
+    @Test
+    fun `same digit off clears that tint but keeps peers`() {
+        val model = sudokuBoardModel(classic, selected = 0, sameDigitHighlight = false)
+
+        assertTrue(model.where { it.sameDigit }.isEmpty())
+        assertTrue(model.where { it.peer }.isNotEmpty())
+    }
+
+    @Test
+    fun `hint paint ignores both highlight flags`() {
+        val model = sudokuBoardModel(
+            mini, selected = null, hintTarget = 4, hintCells = setOf(3, 5),
+            peerHighlight = false, sameDigitHighlight = false,
+        )
+
+        assertEquals(setOf(4), model.where { it.hintTarget })
+        assertEquals(setOf(3, 5), model.where { it.hintUnit })
+    }
 }

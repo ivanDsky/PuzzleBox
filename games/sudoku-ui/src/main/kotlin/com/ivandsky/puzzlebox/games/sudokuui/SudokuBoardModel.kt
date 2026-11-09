@@ -11,7 +11,8 @@ data class SudokuBoardModel(val size: Int, val boxRows: Int, val boxCols: Int, v
 /**
  * Flattens [session] into paint decisions. Peers and same-digit cells exclude the selection
  * itself, whose own tint wins. [hintTarget], [hintCells] and [hintStruck] come pre-mapped
- * from the hint.
+ * from the hint. The two highlight flags are the player's settings; they gate only the peer and
+ * same-digit tints, never selection, conflict or hint paint.
  */
 fun sudokuBoardModel(
     session: SudokuSession,
@@ -19,11 +20,13 @@ fun sudokuBoardModel(
     hintTarget: Int? = null,
     hintCells: Set<Int> = emptySet(),
     hintStruck: Set<Int> = emptySet(),
+    peerHighlight: Boolean = true,
+    sameDigitHighlight: Boolean = true,
 ): SudokuBoardModel {
     val board = session.board
     val geometry = board.geometry
     val peers = BooleanArray(geometry.cellCount)
-    selected?.let { for (peer in geometry.peersOf(it)) peers[peer] = true }
+    if (peerHighlight) selected?.let { for (peer in geometry.peersOf(it)) peers[peer] = true }
     val selectedDigit = selected?.let(board::digitAt) ?: 0
     val conflicts = SudokuConflicts.cellsIn(SudokuConflicts.find(board))
     val cells = board.cells.mapIndexed { idx, cell ->
@@ -34,7 +37,7 @@ fun sudokuBoardModel(
             given = cell is SudokuCell.Given,
             selected = idx == selected,
             peer = peers[idx],
-            sameDigit = selectedDigit != 0 && idx != selected && cell.digit == selectedDigit,
+            sameDigit = sameDigitHighlight && selectedDigit != 0 && idx != selected && cell.digit == selectedDigit,
             conflict = idx in conflicts,
             hintTarget = idx == hintTarget,
             hintUnit = idx in hintCells,

@@ -103,7 +103,7 @@ abstract class SudokuGoldenScenes(private val widthLabel: String) {
 
     private fun adopt(definition: SudokuDefinition, puzzle: SudokuPuzzle, number: Int?): SudokuPlayController {
         val env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {})
-        val controller = SudokuPlayController(definition, env, now = { clock })
+        val controller = SudokuPlayController(definition, env, InMemorySudokuHighlightSettings(), now = { clock })
         val envelope = Puzzle(definition.id, puzzle.variant.id, SudokuCodec.VERSION, SudokuCodec.encode(puzzle))
         assertEquals(Adopt.Adopted, controller.adoptToday(envelope, SudokuPuzzleRef(definition.id, PuzzleKey.Daily(date, number))))
         return controller
@@ -167,7 +167,7 @@ abstract class SudokuGoldenScenes(private val widthLabel: String) {
         layout: PlayLayout = PlayLayout.SinglePane,
         game: SudokuDefinition = SudokuGames.MINI,
     ) {
-        val ui = SudokuPlayUi(game)
+        val ui = SudokuPlayUi(game, InMemorySudokuHighlightSettings())
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             // Dark captures set the night uiMode too, as a device would, so the theme and

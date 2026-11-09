@@ -19,7 +19,10 @@ import org.koin.dsl.module
 class SudokuBrandTest {
 
     private val koin = koinApplication {
-        modules(miniSudokuUiModule, sudokuUiModule, module { single { HintModeSource { HintMode.Legacy } } })
+        modules(miniSudokuUiModule, sudokuUiModule, module {
+            single { HintModeSource { HintMode.Legacy } }
+            single<SudokuHighlightSettings> { InMemorySudokuHighlightSettings() }
+        })
     }.koin
     private val mini: GamePlayUi = koin.get(qualifier(SudokuGames.MINI.id.value))
     private val classic: GamePlayUi = koin.get(qualifier(SudokuGames.CLASSIC.id.value))

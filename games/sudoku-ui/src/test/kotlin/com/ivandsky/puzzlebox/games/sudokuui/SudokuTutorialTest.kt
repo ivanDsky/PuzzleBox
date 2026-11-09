@@ -83,7 +83,7 @@ class SudokuTutorialTest {
     @Test
     fun `each game ships three lessons through its play registration`() {
         for (game in expected) {
-            val tutorial = SudokuPlayUi(game.definition).tutorial
+            val tutorial = SudokuPlayUi(game.definition, InMemorySudokuHighlightSettings()).tutorial
             assertEquals(3, tutorial.size)
             assertEquals(sudokuTutorial(game.definition).map { it.instruction }, tutorial.map { it.instruction })
         }
@@ -227,7 +227,7 @@ class SudokuTutorialTest {
     fun `the play controller adopts every lesson`() {
         val env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), onSessionChanged = {}, onWon = {})
         for (game in expected) {
-            val ui = SudokuPlayUi(game.definition)
+            val ui = SudokuPlayUi(game.definition, InMemorySudokuHighlightSettings())
             for (step in ui.tutorial) {
                 assertEquals(step.instruction, Adopt.Adopted, ui.createController(env).adoptToday(step.puzzle, step.ref))
             }

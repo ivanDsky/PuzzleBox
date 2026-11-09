@@ -49,6 +49,9 @@ class SudokuBoardState(
     private val settle: (SudokuSession) -> SudokuSession = { it },
     hintMode: HintMode = HintMode.Legacy,
     scope: CoroutineScope? = null,
+    // Read when the model is built, so a toggle repaints the board without rebuilding the state.
+    private val peerHighlight: () -> Boolean = { true },
+    private val sameDigitHighlight: () -> Boolean = { true },
 ) {
 
     var session by mutableStateOf(initialSession)
@@ -122,7 +125,8 @@ class SudokuBoardState(
     val hintStruck: Set<Int>
         get() = (hint as? SudokuHint.Place)?.takeUnless { hintRevealed }?.struck?.toSet().orEmpty()
 
-    val model: SudokuBoardModel get() = sudokuBoardModel(session, selected, hintTarget, hintCells, hintStruck)
+    val model: SudokuBoardModel
+        get() = sudokuBoardModel(session, selected, hintTarget, hintCells, hintStruck, peerHighlight(), sameDigitHighlight())
 
     //region input
 

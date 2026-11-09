@@ -52,6 +52,7 @@ class SudokuPlayControllerTest {
     private fun controller() = SudokuPlayController(
         definition = SudokuGames.MINI,
         env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), { saved += it }, { won += it }),
+        highlights = InMemorySudokuHighlightSettings(),
         now = { Instant.ofEpochMilli(clockMs) },
     )
 
@@ -275,12 +276,12 @@ class SudokuPlayControllerTest {
     )
 
     private fun stepwiseMini(puzzle: SudokuPuzzle = peanut450): SudokuPlayController =
-        SudokuPlayController(SudokuGames.MINI, env, now = { Instant.ofEpochMilli(clockMs) }, hintMode = stepwiseSource.current())
+        SudokuPlayController(SudokuGames.MINI, env, InMemorySudokuHighlightSettings(), now = { Instant.ofEpochMilli(clockMs) }, hintMode = stepwiseSource.current())
             .also { assertEquals(Adopt.Adopted, it.adoptToday(envelope(puzzle), ref)) }
 
     @Test
     fun `a stepwise mini press shows a spotlight, places nothing and publishes the count`() {
-        val c = SudokuPlayUi(SudokuGames.MINI, MiniSudokuBrand, stepwiseSource).createController(env) as SudokuPlayController
+        val c = SudokuPlayUi(SudokuGames.MINI, InMemorySudokuHighlightSettings(), MiniSudokuBrand, stepwiseSource).createController(env) as SudokuPlayController
         assertEquals(Adopt.Adopted, c.adoptToday(envelope(), ref))
         val board = c.board!!.session.board
 
@@ -329,7 +330,7 @@ class SudokuPlayControllerTest {
     @OptIn(KoinInternalApi::class)
     @Test
     fun `classic keeps the legacy hint under a stepwise source`() {
-        val koin = koinApplication { modules(miniSudokuUiModule, sudokuUiModule, module { single { stepwiseSource } }) }.koin
+        val koin = koinApplication { modules(miniSudokuUiModule, sudokuUiModule, module { single { stepwiseSource }; single<SudokuHighlightSettings> { InMemorySudokuHighlightSettings() } }) }.koin
         try {
             val c = koin.get<GamePlayUi>(qualifier(SudokuGames.CLASSIC.id.value)).createController(env) as SudokuPlayController
             val classicRef = SudokuPuzzleRef(SudokuGames.CLASSIC.id, ref.key)
