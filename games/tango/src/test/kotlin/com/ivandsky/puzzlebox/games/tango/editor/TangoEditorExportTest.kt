@@ -63,8 +63,8 @@ class TangoEditorExportTest {
 
     @Test
     fun `a newer share version on the fixture needs an update`() {
-        val result = SharedOpen.verify(TangoEditor, TangoEditor.shareFormatVersion, fixture().also { it[0] = 2 }, Budget.Unlimited)
+        val result = SharedOpen.verify(TangoEditor, TangoEditor.shareFormatVersion, fixture().also { it[0] = 3 }, Budget.Unlimited)
 
-        assertEquals(SharedOpenResult.NeedsUpdate(found = 2, maxKnown = 1), result)
+        assertEquals(SharedOpenResult.NeedsUpdate(found = 3, maxKnown = 2), result)
     }
 }
