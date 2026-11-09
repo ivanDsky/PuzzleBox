@@ -50,7 +50,7 @@ class SudokuHints internal constructor(private val steps: List<EliminationStep>)
         }
     }
 
-    private fun single(
+    internal fun single(
         geometry: SudokuGeometry,
         candidates: IntArray,
         via: SudokuTechnique?,
