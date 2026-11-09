@@ -13,6 +13,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.navigation3.ui.NavDisplay
 import com.ivandsky.puzzlebox.compete.api.DuelKey
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.designsystem.LocalNavLift
 import com.ivandsky.puzzlebox.designsystem.NavLift
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -41,7 +42,8 @@ import org.koin.compose.koinInject
  * [codeDraft] and [onCodeDraftTaken] reach the Play library: a draft opens its code sheet.
  * [duels] and [onOpenDuel] (both null with the Competitions flag off) add the Duels tab and
  * let Enter code open a duel. [navV2] is the NavV2 value the app read once at launch
- * ([rememberNavV2]); the shell never reads the flag itself.
+ * ([rememberNavV2]); the shell never reads the flag itself. With it on, Browse screens get
+ * the avatar and gear ([shellChromeDecorator]) over [identityService]'s signed-in player.
  */
 @Composable
 internal fun PuzzleBoxNavShell(
@@ -56,6 +58,7 @@ internal fun PuzzleBoxNavShell(
     onOpenDuel: ((DuelKey) -> Unit)? = null,
     navV2: Boolean = false,
     store: PlaySessionStore = koinInject(),
+    identityService: IdentityService = koinInject(),
 ) {
     val reduceMotion = rememberReducedMotion()
     val layoutDirection = LocalLayoutDirection.current
@@ -64,6 +67,11 @@ internal fun PuzzleBoxNavShell(
     val state = navigator.state
     LaunchedEffect(state.allKeys) { store.retain(state.allKeys) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { store.flush() }
+    val shellChrome = if (navV2) {
+        remember(navigator, identityService) { shellChromeDecorator(navigator, identityService.current) }
+    } else {
+        null
+    }
     val entries = rememberTabEntries(
         state = navigator.state,
         entryProvider = puzzleBoxEntryProvider(
@@ -76,6 +84,7 @@ internal fun PuzzleBoxNavShell(
             duels = duels,
             onOpenDuel = onOpenDuel,
         ),
+        shellChrome = shellChrome,
     )
     val motion = remember { mutableStateOf(NavMotion.Idle) }
     // The board that lifted in last: only it shrinks back into a card on its pop.
