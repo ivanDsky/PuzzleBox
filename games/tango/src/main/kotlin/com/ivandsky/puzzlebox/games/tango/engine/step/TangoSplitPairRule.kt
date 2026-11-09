@@ -11,32 +11,51 @@ import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
  */
 object TangoSplitPairRule : TangoStepRule {
 
-    /** Two adjacent empty cells known to hold one sun and one moon; [ends] are the split's flanks, null for a `×` pair. */
+    /** Two adjacent empty cells at line positions [at], [at]+1 holding one sun and one moon; [ends] flank a split, null for a `×` pair. */
     private class OneOfEach(val at: Int, val ends: List<Int>?)
 
     /** Rows first then columns; a target set already emitted by an earlier line or scan is not repeated. */
     override fun forced(puzzle: TangoPuzzle, grid: List<TangoCell?>): List<TangoStep.Deduction> {
-        val half = puzzle.n / 2
+        val n = puzzle.n
         val found = mutableListOf<TangoStep.Deduction>()
         val seen = mutableSetOf<Map<Int, TangoCell>>()
-        for ((index, line) in lines(puzzle.n).withIndex()) {
-            val isRow = index < puzzle.n
+        for (line in 0 until 2 * n) {
+            var suns = 0
+            var moons = 0
+            for (j in 0 until n) when (grid[cellAt(n, line, j)]) {
+                TangoCell.SUN -> suns++
+                TangoCell.MOON -> moons++
+                null -> Unit
+            }
             for (pairs in pairings(puzzle, grid, line)) {
                 if (pairs.none { it.ends != null }) continue
-                val inPair = pairs.flatMap { listOf(line[it.at], line[it.at + 1]) }.toSet()
-                val rest = line.filter { grid[it] == null && it !in inPair }
-                if (rest.isEmpty()) continue
-                val need = TangoCell.entries.associateWith { v -> half - line.count { grid[it] == v } - pairs.size }
-                if (need.values.any { it < 0 }) continue
-                val usedUp = need.entries.firstOrNull { it.value == 0 }?.key ?: continue
-                val targets = rest.associateWith { usedUp.other() }
-                if (!seen.add(targets)) continue
-                val evidence = pairs.flatMap { listOf(line[it.at], line[it.at + 1]) + it.ends.orEmpty() }.toSet()
-                targets.forEach { (idx, value) ->
+                // No over-full guard: filled and paired cells share the line's n cells, so a value
+                // can only overflow once no rest cell is left.
+                val usedUp = when (n / 2 - pairs.size) {
+                    suns -> TangoCell.SUN
+                    moons -> TangoCell.MOON
+                    else -> continue
+                }
+                val inPair = BooleanArray(n)
+                val evidence = LinkedHashSet<Int>()
+                for (pair in pairs) {
+                    inPair[pair.at] = true
+                    inPair[pair.at + 1] = true
+                    evidence += cellAt(n, line, pair.at)
+                    evidence += cellAt(n, line, pair.at + 1)
+                    pair.ends?.let { evidence += it }
+                }
+                val targets = LinkedHashMap<Int, TangoCell>()
+                for (j in 0 until n) {
+                    val idx = cellAt(n, line, j)
+                    if (grid[idx] == null && !inPair[j]) targets[idx] = usedUp.other()
+                }
+                if (targets.isEmpty() || !seen.add(targets)) continue
+                for ((idx, value) in targets) {
                     found += TangoStep.Deduction(
                         TangoStepRung.SPLIT_PAIR, idx, value, evidence,
-                        row = index.takeIf { isRow },
-                        col = (index - puzzle.n).takeIf { !isRow },
+                        row = line.takeIf { it < n },
+                        col = (line - n).takeIf { it >= 0 },
                         options = null,
                     )
                 }
@@ -49,20 +68,21 @@ object TangoSplitPairRule : TangoStepRule {
      * Greedy disjoint pairings scanned from each end of the line; the two scans can pair a run of
      * empty cells differently, and each pairing is a sound count on its own.
      */
-    private fun pairings(puzzle: TangoPuzzle, grid: List<TangoCell?>, line: List<Int>): List<List<OneOfEach>> {
-        val starts = (0 until line.size - 1).toList()
-        return listOf(starts, starts.reversed()).map { order ->
-            val used = BooleanArray(line.size)
+    private fun pairings(puzzle: TangoPuzzle, grid: List<TangoCell?>, line: Int): List<List<OneOfEach>> {
+        val n = puzzle.n
+        return listOf(0 until n - 1, (0 until n - 1).reversed()).map { order ->
+            val used = BooleanArray(n)
             val pairs = mutableListOf<OneOfEach>()
             for (j in order) {
-                val a = line[j]
-                val b = line[j + 1]
+                val a = cellAt(n, line, j)
+                val b = cellAt(n, line, j + 1)
                 if (grid[a] != null || grid[b] != null || used[j] || used[j + 1]) continue
-                val before = line.getOrNull(j - 1)?.let { grid[it] }
-                val after = line.getOrNull(j + 2)?.let { grid[it] }
+                val before = if (j > 0) cellAt(n, line, j - 1) else -1
+                val after = if (j + 2 < n) cellAt(n, line, j + 2) else -1
                 val pair = when {
                     puzzle.markerBetween(a, b) == TangoMarkerKind.OPPOSITE -> OneOfEach(j, ends = null)
-                    before != null && after != null && before != after -> OneOfEach(j, ends = listOf(line[j - 1], line[j + 2]))
+                    before >= 0 && after >= 0 && grid[before] != null && grid[after] != null && grid[before] != grid[after] ->
+                        OneOfEach(j, ends = listOf(before, after))
                     else -> continue
                 }
                 pairs += pair
@@ -73,9 +93,8 @@ object TangoSplitPairRule : TangoStepRule {
         }
     }
 
-    /** Every row then every column of an n×n board, as row-major cell indices. */
-    private fun lines(n: Int): List<List<Int>> =
-        (0 until n).map { r -> (0 until n).map { c -> r * n + c } } + (0 until n).map { c -> (0 until n).map { r -> r * n + c } }
+    /** Row-major index of position [j] in [line]: lines 0 until n are rows, n until 2n columns. */
+    private fun cellAt(n: Int, line: Int, j: Int): Int = if (line < n) line * n + j else j * n + (line - n)
 
     private fun TangoCell.other(): TangoCell = if (this == TangoCell.SUN) TangoCell.MOON else TangoCell.SUN
 }

@@ -53,6 +53,18 @@ class TangoEqualPairRuleTest {
     }
 
     @Test
+    fun `known cells on both sides each pin the pair under their own evidence`() {
+        val puzzle = board(TangoMarker(1, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME))
+
+        val steps = TangoEqualPairRule.forced(puzzle, grid(puzzle, 0 to MOON, 3 to MOON))
+
+        assertEquals(
+            listOf(step(1, SUN, 0, 1, 2), step(2, SUN, 0, 1, 2), step(1, SUN, 3, 1, 2), step(2, SUN, 3, 1, 2)),
+            steps,
+        )
+    }
+
+    @Test
     fun `an equal pair with no known neighbour yields nothing`() {
         val puzzle = board(TangoMarker(1, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME))
 

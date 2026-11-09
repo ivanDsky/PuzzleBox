@@ -90,6 +90,13 @@ class TangoSplitPairRuleTest {
     }
 
     @Test
+    fun `a line already over its sun count yields nothing`() {
+        val puzzle = board(8)
+
+        assertTrue(TangoSplitPairRule.forced(puzzle, grid(puzzle, 0 to SUN, 3 to MOON, 4 to SUN, 6 to SUN, 7 to SUN)).isEmpty())
+    }
+
+    @Test
     fun `an opposite pair alone is sign count and yields nothing`() {
         val puzzle = board(6, TangoMarker(1, TangoEdgeSide.RIGHT, TangoMarkerKind.OPPOSITE))
 

@@ -14,29 +14,28 @@ object TangoEqualPairRule : TangoStepRule {
     override fun forced(puzzle: TangoPuzzle, grid: List<TangoCell?>): List<TangoStep.Deduction> {
         val n = puzzle.n
         val found = mutableListOf<TangoStep.Deduction>()
-        for (line in lines(n)) {
+        for (line in 0 until 2 * n) {
             for (j in 0 until n - 1) {
-                val a = line[j]
-                val b = line[j + 1]
+                val a = cellAt(n, line, j)
+                val b = cellAt(n, line, j + 1)
                 if (grid[a] != null || grid[b] != null || puzzle.markerBetween(a, b) != TangoMarkerKind.SAME) continue
-                for (side in listOf(j - 1, j + 2)) {
-                    val beside = line.getOrNull(side) ?: continue
-                    val known = grid[beside] ?: continue
-                    val evidence = setOf(beside, a, b)
-                    found += deduction(a, known.other(), evidence)
-                    found += deduction(b, known.other(), evidence)
-                }
+                if (j > 0) pinBy(cellAt(n, line, j - 1), a, b, grid, found)
+                if (j + 2 < n) pinBy(cellAt(n, line, j + 2), a, b, grid, found)
             }
         }
         return found
     }
 
-    private fun deduction(idx: Int, value: TangoCell, evidence: Set<Int>) =
-        TangoStep.Deduction(TangoStepRung.EQUAL_PAIR, idx, value, evidence, row = null, col = null, options = null)
+    /** Both pair cells take the value opposite the known cell at [beside], if it is known. */
+    private fun pinBy(beside: Int, a: Int, b: Int, grid: List<TangoCell?>, found: MutableList<TangoStep.Deduction>) {
+        val value = grid[beside]?.other() ?: return
+        val evidence = setOf(beside, a, b)
+        found += TangoStep.Deduction(TangoStepRung.EQUAL_PAIR, a, value, evidence, row = null, col = null, options = null)
+        found += TangoStep.Deduction(TangoStepRung.EQUAL_PAIR, b, value, evidence, row = null, col = null, options = null)
+    }
 
-    /** Every row then every column of an n×n board, as row-major cell indices. */
-    private fun lines(n: Int): List<List<Int>> =
-        (0 until n).map { r -> (0 until n).map { c -> r * n + c } } + (0 until n).map { c -> (0 until n).map { r -> r * n + c } }
+    /** Row-major index of position [j] in [line]: lines 0 until n are rows, n until 2n columns. */
+    private fun cellAt(n: Int, line: Int, j: Int): Int = if (line < n) line * n + j else j * n + (line - n)
 
     private fun TangoCell.other(): TangoCell = if (this == TangoCell.SUN) TangoCell.MOON else TangoCell.SUN
 }
