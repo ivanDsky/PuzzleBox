@@ -49,6 +49,9 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * The store's live plays by slot on virtual time (A9–A11, N21): one play per (game, day)
@@ -57,6 +60,9 @@ import org.junit.Test
  * app-stop flush folding the clock before it writes.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+// Robolectric: the store logs a failed records snapshot through android.util.Log.
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class PlaySessionStoreSlotsTest {
 
     private val alpha = TestGames.alpha

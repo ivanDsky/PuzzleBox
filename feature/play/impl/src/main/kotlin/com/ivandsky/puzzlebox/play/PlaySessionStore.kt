@@ -30,10 +30,9 @@ import kotlinx.coroutines.launch
  * Owner of the play feature's live plays: one [ActivePlay] per [PlaySlot] (A9, N21), so
  * every stack that shows a game's day shares its board. A play outlives its entry's
  * composition: the record write is fire-and-observe (a navigation must not cancel it),
- * the badge lands on the result screen, and [replay] (Result's "Play again") resets in
- * place. A Koin single
- * is the process lifetime; [retain] releases what no back stack names (fold → flush →
- * cancel) and [flush] writes every pending save at app stop (A10).
+ * the badge lands on the result screen, and [replay] (Result's "Play again") resets in place.
+ * A Koin single is the process lifetime; [retain] releases what no back stack names (fold →
+ * flush → cancel) and [flush] writes every pending save at app stop (A10).
  *
  * Confined to [DispatcherProvider.main] (immediate where it has one): the plays, their
  * [SlotWriter]s and the release/flush jobs all run on that one thread.
