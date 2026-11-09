@@ -146,7 +146,7 @@ class TestSolveGoldenScreenshots {
             canRedo = false,
             onUndo = {},
             onRedo = {},
-            sizes = listOf(SIZE),
+            sizes = listOf(SIZE, VariantId("queens/7")),
             size = SIZE,
             sizeLabel = { "6×6" },
             onResize = {},

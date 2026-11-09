@@ -158,7 +158,7 @@ private fun PreviewTools(modifier: Modifier) {
         canRedo = false,
         onUndo = {},
         onRedo = {},
-        sizes = listOf(VariantId("queens/6")),
+        sizes = listOf(VariantId("queens/6"), VariantId("queens/7")),
         size = VariantId("queens/6"),
         sizeLabel = { "6×6" },
         onResize = {},
