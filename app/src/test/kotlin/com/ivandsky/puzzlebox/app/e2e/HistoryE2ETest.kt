@@ -6,10 +6,13 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollToNode
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
+import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.ZipSession
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
 import com.ivandsky.puzzlebox.history.api.HistoryKey
@@ -73,6 +76,32 @@ class HistoryE2ETest {
             assertState(history)
             assertRoute(HISTORY)
         }
+
+    @Test
+    fun `a solved day with only a record opens its result in place, and back returns to History`() {
+        val graph = replayableGraph().apply {
+            records.setRecords(
+                listOf(
+                    CompletionRecord(
+                        puzzleRef = ZipPuzzleRef(PuzzleKey.Daily(REPLAY_DAY, 1)),
+                        time = 61_000,
+                        hints = 2,
+                        stats = RecordStats(schemaVersion = 1, blob = "{}"),
+                    ),
+                ),
+            )
+        }
+        shellRobot(replaying, graph = graph) {
+            awaitTag(RESULT)
+
+            val result = ResultKey(ZIP, "$REPLAY_DAY", 61_000, 2)
+            assertEquals(listOf(HomeKey, HistoryKey(), result), state.currentStack)
+
+            back()
+            assertState(history)
+            assertRoute(HISTORY)
+        }
+    }
 
     @Test
     fun `N17 compact back closes the day's detail, then leaves History`() = shellRobot(history, graph = replayableGraph()) {

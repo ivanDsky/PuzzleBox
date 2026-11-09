@@ -121,11 +121,11 @@ class RealGamesResultRouteTest {
             composeRule.onNodeWithTag("result.hero.time").assertExists()
             composeRule.onNodeWithTag("result.hero.pill").assertExists()
 
-            // "Play again": navigation is handed back; the game's reopen is a fresh session.
+            // "Play again": navigation is handed back; the explicit replay is a fresh session.
             composeRule.onNodeWithTag("result.playAgain").performScrollTo().performClick()
             composeRule.runOnIdle {
                 assertTrue(replayed)
-                store.open(gameKey)
+                store.replay(ResultKey(ZipDefinition.id.value, today.toString(), solved.elapsedMs, solved.hintsUsed))
                 assertTrue(zip().session?.path?.isEmpty() == true)
                 assertTrue(zip().session?.isComplete == false)
             }
