@@ -129,7 +129,7 @@ class TangoPublishOpenLoopE2ETest {
 
     private fun seedReadyDraft() {
         val editor = checkNotNull(graph.koin.get<GameRegistry>()[TangoDefinition.id]?.editor)
-        val board = EditorDraft(TangoEditor, DraftState(TangoDraft(GIVENS.associateWith { SOLUTION[it] }, MARKERS)))
+        val board = EditorDraft(TangoEditor, DraftState(TangoDraft(6, GIVENS.associateWith { SOLUTION[it] }, MARKERS)))
         runBlocking {
             drafts.upsert(
                 Draft(

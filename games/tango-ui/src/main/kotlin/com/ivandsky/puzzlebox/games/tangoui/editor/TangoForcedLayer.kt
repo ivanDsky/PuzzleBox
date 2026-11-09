@@ -38,18 +38,19 @@ internal fun rememberForcedCells(board: TangoDraft, enabled: Boolean): State<Map
 }
 
 /**
- * Marks the forced cells: `tango.editor.forced` wraps one `tango.editor.cell.<idx>.forced`
- * per cell; the faint symbols themselves come from the play renderer's ghost drawing.
+ * Marks the forced cells of a board [n] wide: `tango.editor.forced` wraps one
+ * `tango.editor.cell.<idx>.forced` per cell; the faint symbols themselves come from the play
+ * renderer's ghost drawing.
  */
 @Composable
-internal fun BoxScope.TangoForcedLayer(forced: Set<Int>) {
+internal fun BoxScope.TangoForcedLayer(forced: Set<Int>, n: Int) {
     if (forced.isEmpty()) return
     BoxWithConstraints(Modifier.matchParentSize().testTag("tango.editor.forced")) {
-        val pitch = maxWidth / TangoDraft.N
+        val pitch = maxWidth / n
         forced.forEach { idx ->
             Box(
                 Modifier
-                    .offset(pitch * (idx % TangoDraft.N), pitch * (idx / TangoDraft.N))
+                    .offset(pitch * (idx % n), pitch * (idx / n))
                     .size(pitch)
                     .testTag("tango.editor.cell.$idx.forced"),
             )

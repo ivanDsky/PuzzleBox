@@ -19,7 +19,7 @@ class TangoDraftAnalyzerTest {
     fun `an empty board is Incomplete`() {
         assertEquals(
             Verdict.Incomplete(IncompleteReason(TangoDraftAnalyzer.EMPTY, 0)),
-            analyze(TangoDraft(emptyMap(), emptyList())),
+            analyze(TangoDraft(6, emptyMap(), emptyList())),
         )
     }
 
@@ -27,7 +27,7 @@ class TangoDraftAnalyzerTest {
     fun `the sample board is Unique with one ordinal per cell`() {
         val sample = TangoTestSupport.sample
 
-        val verdict = analyze(TangoDraft(sample.givens, sample.markers))
+        val verdict = analyze(TangoDraft(6, sample.givens, sample.markers))
 
         assertEquals(
             Solution(TangoTestSupport.solution.map { it.ordinal }),
@@ -37,7 +37,7 @@ class TangoDraftAnalyzerTest {
 
     @Test
     fun `a single given is Multiple with the cells the two solutions differ on`() {
-        val verdict = analyze(TangoDraft(mapOf(0 to TangoCell.SUN), emptyList()))
+        val verdict = analyze(TangoDraft(6, mapOf(0 to TangoCell.SUN), emptyList()))
 
         val multiple = verdict as Verdict.Multiple
         val a = multiple.solutionA.values
@@ -49,13 +49,13 @@ class TangoDraftAnalyzerTest {
 
     @Test
     fun `three suns in a row is None with those cells`() {
-        val draft = TangoDraft((0..2).associateWith { TangoCell.SUN }, emptyList())
+        val draft = TangoDraft(6, (0..2).associateWith { TangoCell.SUN }, emptyList())
 
         assertEquals(Verdict.None(setOf(0, 1, 2)), analyze(draft))
     }
 
     @Test
     fun `a spent budget is Undetermined`() {
-        assertEquals(Verdict.Undetermined, TangoDraftAnalyzer.analyze(TangoDraft(mapOf(0 to TangoCell.SUN), emptyList())) { true })
+        assertEquals(Verdict.Undetermined, TangoDraftAnalyzer.analyze(TangoDraft(6, mapOf(0 to TangoCell.SUN), emptyList())) { true })
     }
 }

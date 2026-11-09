@@ -14,7 +14,7 @@ import java.io.ByteArrayOutputStream
 
 /**
  * Versioned Tango draft bytes (ADR-0005), integers big-endian, cells row-major on the
- * [TangoDraft.N] × [TangoDraft.N] board:
+ * [V1_N] × [V1_N] board (v1 bytes are always 6×6):
  *
  * ```
  * v1: [u8 VERSION] board  [u16 n][n × step] done (oldest first)  [u16 m][m × step] undone
@@ -45,7 +45,10 @@ object TangoDraftCodec {
     private const val TAG_SET_MARKER = 0x04
     private const val NO_CELL = 0
     private const val NO_MARKER = 0xFF
-    private const val CELLS = TangoDraft.N * TangoDraft.N
+
+    /** v1 bytes are always 6×6. */
+    private const val V1_N = 6
+    private const val CELLS = V1_N * V1_N
 
     /** History entries: TangoDraftCommand.SetCell/SetMarker and ReplaceDraft<TangoDraft>, each with a tag byte. */
     fun encode(state: DraftState<TangoDraft>): ByteArray {
@@ -69,6 +72,7 @@ object TangoDraftCodec {
     }
 
     private fun writeBoard(out: ByteArrayOutputStream, draft: TangoDraft) {
+        require(draft.n == V1_N) { "v1 draft bytes hold a $V1_N×$V1_N board, not ${draft.n}×${draft.n}" }
         out.write(draft.givens.size)
         draft.givens.toSortedMap().forEach { (cell, value) ->
             out.write(cell)
@@ -130,7 +134,7 @@ object TangoDraftCodec {
             if (!onBoard(cell, side)) return null
             markers.add(TangoMarker(cell, side, kind))
         }
-        return TangoDraft(givens, markers.canonicalMarkers())
+        return TangoDraft(V1_N, givens, markers.canonicalMarkers())
     }
 
     private fun readSteps(cursor: Cursor): List<Command<TangoDraft>>? {
@@ -186,8 +190,8 @@ object TangoDraftCodec {
 
     /** The marker's neighbor exists: RIGHT needs a column to the right, DOWN a row below. */
     private fun onBoard(cell: Int, side: TangoEdgeSide): Boolean = cell < CELLS && when (side) {
-        TangoEdgeSide.RIGHT -> cell % TangoDraft.N < TangoDraft.N - 1
-        TangoEdgeSide.DOWN -> cell / TangoDraft.N < TangoDraft.N - 1
+        TangoEdgeSide.RIGHT -> cell % V1_N < V1_N - 1
+        TangoEdgeSide.DOWN -> cell / V1_N < V1_N - 1
     }
 
     private fun malformed(detail: String): DecodeResult.Err = DecodeResult.Err(DecodeError.Malformed(detail))

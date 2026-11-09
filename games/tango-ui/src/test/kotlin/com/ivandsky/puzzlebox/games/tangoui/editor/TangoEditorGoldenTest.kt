@@ -108,7 +108,7 @@ abstract class TangoEditorGoldenTest(private val device: String) {
     @Test fun `witness on board dark`() = witness(dark = true)
 
     private fun empty(dark: Boolean) {
-        val draft = TangoDraft(emptyMap(), emptyList())
+        val draft = TangoDraft(6, emptyMap(), emptyList())
         capture("empty", dark, draft, analyzed<Verdict.Incomplete>(draft))
     }
 
@@ -152,19 +152,19 @@ abstract class TangoEditorGoldenTest(private val device: String) {
     }
 
     private fun multiple(dark: Boolean) {
-        val draft = TangoDraft(mapOf(0 to TangoCell.SUN), emptyList())
+        val draft = TangoDraft(6, mapOf(0 to TangoCell.SUN), emptyList())
         capture("multiple-differ", dark, draft, analyzed<Verdict.Multiple>(draft))
     }
 
     private fun none(dark: Boolean) {
-        val draft = TangoDraft((0..2).associateWith { TangoCell.SUN }, emptyList())
+        val draft = TangoDraft(6, (0..2).associateWith { TangoCell.SUN }, emptyList())
         val verdict = analyzed<Verdict.None>(draft)
         assertEquals("the three suns clash", setOf(0, 1, 2), verdict.conflicts)
         capture("none-clashes", dark, draft, verdict)
     }
 
     private fun witness(dark: Boolean) {
-        val draft = TangoDraft(mapOf(0 to TangoCell.SUN), emptyList())
+        val draft = TangoDraft(6, mapOf(0 to TangoCell.SUN), emptyList())
         capture("witness-on-board", dark, draft, analyzed<Verdict.Multiple>(draft)) {
             adoptOverlay(EditorOverlay(EditorOverlay.Witness.B, showOnBoard = true))
         }
@@ -233,7 +233,7 @@ abstract class TangoEditorGoldenTest(private val device: String) {
 
     private companion object {
         const val GOLDEN = "golden"
-        const val CELLS = TangoDraft.N * TangoDraft.N
+        const val CELLS = 6 * 6
 
         /** The 411 dp phone less the capture's padding. */
         val PhoneWidth = 379.dp
@@ -246,6 +246,7 @@ abstract class TangoEditorGoldenTest(private val device: String) {
 
         /** The bundled sample: unique, graded by its hardest rung. */
         val SAMPLE = TangoDraft(
+            6,
             givens = listOf(0, 1, 6, 7, 14, 16, 22, 29, 32).associateWith { TangoCell.SUN } +
                 (33 to TangoCell.MOON),
             markers = listOf(
@@ -258,6 +259,7 @@ abstract class TangoEditorGoldenTest(private val device: String) {
 
         /** A unique board no hint rung forces. */
         val STUCK = TangoDraft(
+            6,
             givens = mapOf(
                 0 to TangoCell.SUN, 7 to TangoCell.SUN, 15 to TangoCell.MOON,
                 23 to TangoCell.MOON, 34 to TangoCell.SUN, 35 to TangoCell.SUN,

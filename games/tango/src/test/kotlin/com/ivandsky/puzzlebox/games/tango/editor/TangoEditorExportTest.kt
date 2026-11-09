@@ -20,7 +20,7 @@ import org.junit.Test
 
 class TangoEditorExportTest {
 
-    private val sample = TangoDraft(TangoTestSupport.sample.givens, TangoTestSupport.sample.markers)
+    private val sample = TangoDraft(6, TangoTestSupport.sample.givens, TangoTestSupport.sample.markers)
     private val solution = Solution(TangoTestSupport.solution.map { it.ordinal })
 
     private fun fixture(): ByteArray =

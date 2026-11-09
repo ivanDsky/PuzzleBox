@@ -11,7 +11,7 @@ import java.io.ByteArrayOutputStream
 
 /**
  * Versioned givens-and-markers Tango share bytes (ADR-0005, ADR-0020) on the fixed
- * [TangoDraft.N] × [TangoDraft.N] board, cells row-major:
+ * [V1_N] × [V1_N] board (v1 bytes are always 6×6), cells row-major:
  *
  * ```
  * v1: [u8 version] [u8 g][g × (u8 cell, u8 TangoCell byte)]
@@ -25,9 +25,12 @@ import java.io.ByteArrayOutputStream
 internal object TangoShareCodec : EditorShareCodec<TangoDraft> {
     override val shareFormatVersion: Int = 1
 
-    private const val CELLS = TangoDraft.N * TangoDraft.N
+    /** v1 bytes are always 6×6. */
+    private const val V1_N = 6
+    private const val CELLS = V1_N * V1_N
 
     override fun encodeShare(draft: TangoDraft): ByteArray {
+        require(draft.n == V1_N) { "v1 share bytes hold a $V1_N×$V1_N board, not ${draft.n}×${draft.n}" }
         val out = ByteArrayOutputStream()
         out.write(shareFormatVersion)
         out.write(draft.givens.size)
@@ -74,13 +77,13 @@ internal object TangoShareCodec : EditorShareCodec<TangoDraft> {
             markers.add(TangoMarker(cell, side, kind))
         }
         if (pos != bytes.size) return malformed("${bytes.size - pos} trailing bytes")
-        return DecodeResult.Ok(TangoDraft(givens, markers))
+        return DecodeResult.Ok(TangoDraft(V1_N, givens, markers))
     }
 
     /** The marker's neighbor exists: RIGHT needs a column to the right, DOWN a row below. */
     private fun onBoard(cell: Int, side: TangoEdgeSide): Boolean = cell < CELLS && when (side) {
-        TangoEdgeSide.RIGHT -> cell % TangoDraft.N < TangoDraft.N - 1
-        TangoEdgeSide.DOWN -> cell / TangoDraft.N < TangoDraft.N - 1
+        TangoEdgeSide.RIGHT -> cell % V1_N < V1_N - 1
+        TangoEdgeSide.DOWN -> cell / V1_N < V1_N - 1
     }
 
     private fun malformed(detail: String): DecodeResult.Err = DecodeResult.Err(DecodeError.Malformed(detail))

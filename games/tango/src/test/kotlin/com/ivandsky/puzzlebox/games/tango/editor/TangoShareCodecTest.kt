@@ -15,7 +15,7 @@ import org.junit.Test
 /** Share codec v1 (ADR-0020): givens and markers only; unknown versions are typed (ADR-0005). */
 class TangoShareCodecTest {
 
-    private val sample = TangoDraft(TangoTestSupport.sample.givens, TangoTestSupport.sample.markers)
+    private val sample = TangoDraft(6, TangoTestSupport.sample.givens, TangoTestSupport.sample.markers)
 
     private fun fixture(): ByteArray =
         TangoShareCodecTest::class.java.getResourceAsStream("/editor/tango-share-v1.bin")!!.use { it.readBytes() }
@@ -47,6 +47,7 @@ class TangoShareCodecTest {
     @Test
     fun `givens and markers travel in canonical order whatever the draft order`() {
         val shuffled = TangoDraft(
+            6,
             givens = sample.givens.entries.reversed().associate { it.key to it.value },
             markers = sample.markers.reversed(),
         )
@@ -56,7 +57,7 @@ class TangoShareCodecTest {
 
     @Test
     fun `an empty board round-trips`() {
-        val empty = TangoDraft(emptyMap(), emptyList())
+        val empty = TangoDraft(6, emptyMap(), emptyList())
 
         assertEquals(empty, decodeOk(TangoShareCodec.encodeShare(empty)))
     }
@@ -94,8 +95,8 @@ class TangoShareCodecTest {
 
     @Test
     fun `a marker off the board edge is malformed`() {
-        val rightOnLastColumn = TangoDraft(emptyMap(), listOf(TangoMarker(5, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME)))
-        val downOnLastRow = TangoDraft(emptyMap(), listOf(TangoMarker(30, TangoEdgeSide.DOWN, TangoMarkerKind.SAME)))
+        val rightOnLastColumn = TangoDraft(6, emptyMap(), listOf(TangoMarker(5, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME)))
+        val downOnLastRow = TangoDraft(6, emptyMap(), listOf(TangoMarker(30, TangoEdgeSide.DOWN, TangoMarkerKind.SAME)))
 
         assertMalformed(TangoShareCodec.encodeShare(rightOnLastColumn))
         assertMalformed(TangoShareCodec.encodeShare(downOnLastRow))
@@ -129,8 +130,9 @@ class TangoShareCodecTest {
 
     @Test
     fun `the largest board stays far under the share size cap`() {
-        val n = TangoDraft.N
+        val n = 6
         val full = TangoDraft(
+            6,
             givens = (0 until n * n).associateWith { TangoCell.SUN },
             markers = (0 until n * n).flatMap { cell ->
                 listOfNotNull(

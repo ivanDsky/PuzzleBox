@@ -9,7 +9,6 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
-import com.ivandsky.puzzlebox.games.tango.editor.TangoDraft
 import com.ivandsky.puzzlebox.games.tango.editor.TangoEditor
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -45,7 +44,7 @@ class TangoEditorA11yTest {
     fun editorCellsExposeNoCustomActions() {
         show()
         val cells = rule.onAllNodes(hasContentDescription("Row ", substring = true))
-        cells.assertCountEquals(TangoDraft.N * TangoDraft.N)
+        cells.assertCountEquals(6 * 6)
         cells.fetchSemanticsNodes().forEach { node ->
             assertTrue(node.config.getOrNull(SemanticsActions.CustomActions).orEmpty().isEmpty())
         }

@@ -18,8 +18,9 @@ import org.junit.Test
 /** Tango draft history on disk: the frozen v1 bytes and the commands the codec stores by tag. */
 class TangoDraftCommandTest {
 
-    private val blank = TangoDraft(emptyMap(), emptyList())
+    private val blank = TangoDraft(6, emptyMap(), emptyList())
     private val seeded = TangoDraft(
+        6,
         givens = mapOf(0 to TangoCell.SUN, 35 to TangoCell.MOON),
         markers = listOf(
             TangoMarker(2, TangoEdgeSide.DOWN, TangoMarkerKind.OPPOSITE),
@@ -34,8 +35,9 @@ class TangoDraftCommandTest {
 
     /** What `tango-draft-v1.bin` holds: two replace steps done, one undone, markers in (cell, side) order. */
     private fun fixtureState(): DraftState<TangoDraft> {
-        val one = TangoDraft(mapOf(0 to TangoCell.SUN), emptyList())
+        val one = TangoDraft(6, mapOf(0 to TangoCell.SUN), emptyList())
         val board = TangoDraft(
+            6,
             mapOf(0 to TangoCell.SUN, 35 to TangoCell.MOON),
             listOf(TangoMarker(2, TangoEdgeSide.DOWN, TangoMarkerKind.OPPOSITE), TangoMarker(7, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME)),
         )
@@ -215,7 +217,7 @@ class TangoDraftCommandTest {
             val markers = edges.shuffled(random).take(random.nextInt(9)).map { (cell, side) ->
                 TangoMarker(cell, side, TangoMarkerKind.entries[random.nextInt(2)])
             }
-            decodeOk(TangoDraftCodec.encode(DraftState(TangoDraft(emptyMap(), markers)))).draft
+            decodeOk(TangoDraftCodec.encode(DraftState(TangoDraft(6, emptyMap(), markers)))).draft
         }
         for (draft in drafts) {
             for ((cell, side) in edges.shuffled(random).take(6)) {

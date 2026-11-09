@@ -12,7 +12,6 @@ import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.tango.TangoCell
-import com.ivandsky.puzzlebox.games.tango.editor.TangoDraft
 import com.ivandsky.puzzlebox.games.tango.editor.TangoEditor
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import org.junit.Assert.assertEquals
@@ -99,7 +98,7 @@ class TangoEditorDiagnosticsTest {
     }
 
     private companion object {
-        const val CELLS = TangoDraft.N * TangoDraft.N
+        const val CELLS = 6 * 6
         val A = Solution(List(CELLS) { it % 2 })
         val B = Solution(List(CELLS) { (it + if (it < 4) 1 else 0) % 2 })
         val MULTIPLE = Verdict.Multiple(A, B, setOf(0, 1, 2, 3))
