@@ -35,19 +35,25 @@ internal object TangoNotation : EditorNotation<TangoDraft> {
             .filter { it.value.isNotBlank() && !it.value.trimStart().startsWith("#") }
             .map { IndexedLine(it.index + 1, it.value.trimEnd()) }
         val first = content.firstOrNull() ?: return NotationResult.Err(1, 1, "no rows after the header")
+        badCharacter(first)?.let { return it }
         val n = first.row.length
         if (n !in TangoDraft.SIZES) {
             val sizes = TangoDraft.SIZES.joinToString()
             return NotationResult.Err(first.line, 1, "board is $n wide; Tango sizes are $sizes")
         }
         val rowLines = content.take(n)
+        for ((index, entry) in rowLines.withIndex()) {
+            badCharacter(entry)?.let { return it }
+            if (entry.row.length != n) {
+                return NotationResult.Err(entry.line, 1, "row ${index + 1} has ${entry.row.length} cells, expected $n")
+            }
+        }
         if (rowLines.size < n) {
             return NotationResult.Err(rowLines.last().line, 1, "board is ${rowLines.size} rows; expected $n")
         }
         val givens = HashMap<Int, TangoCell>()
         for ((index, entry) in rowLines.withIndex()) {
-            val row = parseRow(entry, n) ?: return errRow(entry, index, n)
-            for ((col, ch) in row.withIndex()) {
+            for ((col, ch) in entry.row.withIndex()) {
                 when (ch) {
                     SUN_CHAR -> givens[index * n + col] = TangoCell.SUN
                     MOON_CHAR -> givens[index * n + col] = TangoCell.MOON
@@ -67,19 +73,14 @@ internal object TangoNotation : EditorNotation<TangoDraft> {
         return NotationResult.Ok(TangoDraft(n, givens, markers.canonicalMarkers()))
     }
 
-    /** The row's characters, or null when the length or a character breaks the grammar. */
-    private fun parseRow(entry: IndexedLine, n: Int): String? {
-        if (entry.row.length != n) return null
-        if (entry.row.any { it !in listOf(SUN_CHAR, MOON_CHAR, EMPTY_CHAR) }) return null
-        return entry.row
-    }
-
-    private fun errRow(entry: IndexedLine, index: Int, n: Int): NotationResult.Err {
-        if (entry.row.length != n) {
-            return NotationResult.Err(entry.line, 1, "row ${index + 1} has ${entry.row.length} cells, expected $n")
-        }
-        val col = entry.row.indexOfFirst { it !in listOf(SUN_CHAR, MOON_CHAR, EMPTY_CHAR) }
-        return NotationResult.Err(entry.line, col + 1, "unexpected character '${entry.row[col]}'")
+    /**
+     * The first character of a board row that is not `S`, `M` or `.`, as an error at its column.
+     * It is checked before the row's width and the row count, so a stray marker line or a space
+     * is named where it stands instead of reading as a board of the wrong size.
+     */
+    private fun badCharacter(entry: IndexedLine): NotationResult.Err? {
+        val col = entry.row.indexOfFirst { it != SUN_CHAR && it != MOON_CHAR && it != EMPTY_CHAR }
+        return if (col < 0) null else NotationResult.Err(entry.line, col + 1, "unexpected character '${entry.row[col]}'")
     }
 
     /** A grammar error at [MarkerError.col]; null [TangoMarker] means [MarkerError] applies. */

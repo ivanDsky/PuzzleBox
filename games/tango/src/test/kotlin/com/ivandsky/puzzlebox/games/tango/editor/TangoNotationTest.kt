@@ -271,9 +271,44 @@ class TangoNotationTest {
     }
 
     @Test
-    fun `unexpected marker line before the rows errors as a board width`() {
+    fun `unexpected marker line before the rows errors at the marker`() {
         val err = parse(blanked("", "= 1,1 right", "......", "......", "......", "......", "......"))
-        assertEquals(NotationResult.Err(2, 1, "board is 11 wide; Tango sizes are 4, 6, 8, 10"), err)
+        assertEquals(NotationResult.Err(2, 1, "unexpected character '='"), err)
+    }
+
+    @Test
+    fun `a 10-char marker line before 6x6 rows errors at the marker, not as a 10-row board`() {
+        val err = parse(blanked("", "= 1,2 down", "......", "......", "......", "......", "......", "......"))
+        assertEquals(NotationResult.Err(2, 1, "unexpected character '='"), err)
+    }
+
+    @Test
+    fun `a leading space in the first row errors at the space`() {
+        val err = parse(blanked("", " SMSM", "MSMS", "SMSM", "MSMS"))
+        assertEquals(NotationResult.Err(2, 1, "unexpected character ' '"), err)
+    }
+
+    @Test
+    fun `a spaced first row errors at the first space, not as a board width`() {
+        val err = parse(blanked("", "S M S M S M", "MSMSMS", "SMSMSM", "MSMSMS", "SMSMSM", "MSMSMS"))
+        assertEquals(NotationResult.Err(2, 2, "unexpected character ' '"), err)
+    }
+
+    @Test
+    fun `CRLF text parses at its row width`() {
+        val text = listOf("", "S...", "....", "....", "...M", "= 1,1 right", "").joinToString("\r\n")
+        val wanted = TangoDraft(
+            4,
+            givens = mapOf(0 to TangoCell.SUN, 15 to TangoCell.MOON),
+            markers = listOf(TangoMarker(0, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME)),
+        )
+        assertEquals(NotationResult.Ok(wanted), parse(text))
+    }
+
+    @Test
+    fun `a first row narrower than the rest sets n and the next row errors`() {
+        val err = parse(blanked("", "....", "........", "........", "........"))
+        assertEquals(NotationResult.Err(3, 1, "row 2 has 8 cells, expected 4"), err)
     }
 
     // --- size from the first row's width -------------------------------------------------------
