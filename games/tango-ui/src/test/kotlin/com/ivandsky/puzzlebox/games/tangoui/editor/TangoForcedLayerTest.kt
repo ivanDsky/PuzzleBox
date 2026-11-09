@@ -41,7 +41,7 @@ class TangoForcedLayerTest {
 
     private val edits = ArrayList<EditorDraft<*>>()
     private val start: EditorDraft<TangoDraft> =
-        EditorDraft.fresh(TangoEditor, TangoEditor.variants.first()).let { fresh ->
+        EditorDraft.fresh(TangoEditor, TangoEditor.defaultVariant).let { fresh ->
             val givens = mapOf(0 to TangoCell.SUN, 1 to TangoCell.SUN)
             val board = fresh.state.draft.copy(givens = givens)
             EditorDraft(TangoEditor, fresh.state.copy(draft = board))

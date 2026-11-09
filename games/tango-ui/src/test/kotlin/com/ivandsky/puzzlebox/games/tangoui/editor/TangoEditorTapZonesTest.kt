@@ -34,7 +34,7 @@ class TangoEditorTapZonesTest {
     val rule = createComposeRule()
 
     private val controller =
-        TangoEditorController(EditorDraft.fresh(TangoEditor, TangoEditor.variants.first())) {}
+        TangoEditorController(EditorDraft.fresh(TangoEditor, TangoEditor.defaultVariant)) {}
 
     private fun count(tag: String) = rule.onAllNodesWithTag(tag).fetchSemanticsNodes().size
 

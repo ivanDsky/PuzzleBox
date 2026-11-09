@@ -106,7 +106,7 @@ class NewPuzzleSheetTangoGateTest {
         rule.onNodeWithTag(NEW).performClick()
         rule.onNodeWithTag("$GAME${tango.value}").performClick()
         assertEquals(TangoEditor.variants.map { "$SIZE${it.value}" }, tagsStartingWith(SIZE))
-        rule.onNodeWithTag("$SIZE${TangoEditor.variants.first().value}").performClick()
+        rule.onNodeWithTag("$SIZE${TangoEditor.defaultVariant.value}").performClick()
 
         rule.waitUntil(TIMEOUT_MS) { tagsStartingWith(BOARD).isNotEmpty() }
         rule.waitUntil(TIMEOUT_MS) { pillState() == INCOMPLETE }

@@ -203,7 +203,7 @@ private fun modelOf(board: TangoDraft, witness: Map<Int, TangoCell>): TangoRende
 @Preview(name = "Tango editor board", widthDp = 360, heightDp = 420, showBackground = true)
 @Composable
 private fun TangoEditorBoardPreview() {
-    val blank = EditorDraft.fresh(TangoEditor, TangoEditor.variants.first())
+    val blank = EditorDraft.fresh(TangoEditor, TangoEditor.defaultVariant)
     val givens = mapOf(0 to TangoCell.SUN, 1 to TangoCell.MOON, 14 to TangoCell.SUN)
     val draft = EditorDraft(TangoEditor, blank.state.copy(draft = blank.state.draft.copy(givens = givens)))
     PuzzleBoxTheme { TangoEditorBoard(TangoEditorController(draft) {}) }

@@ -1,4 +1,4 @@
-# verdict: unique
+# expect: unique
 puzzlebox tango v1
 .....S..
 ...S..S.

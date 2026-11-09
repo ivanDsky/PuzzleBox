@@ -12,7 +12,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Tango notation v1 (M5-12-a): parse/print round trips, the four canonical fixtures and the
+ * Tango notation v1 (M5-12-a): parse/print round trips, the canonical fixtures at every size and the
  * error coordinates. The whole-text blanking (header + `#` lines → "") is simulated here the
  * same way [com.ivandsky.puzzlebox.game.editor.NotationText] does it, so line numbers are
  * whole-text and 1-based, exactly what the real caller passes.
@@ -35,7 +35,7 @@ class TangoNotationTest {
 
     @Test
     fun `round trip blank draft`() {
-        val d = TangoEditor.newDraft(TangoEditor.variants.single())
+        val d = TangoEditor.newDraft(TangoEditor.defaultVariant)
         assertEquals(NotationResult.Ok(d), parse(blanked(TangoNotation.print(d))))
     }
 
@@ -58,7 +58,7 @@ class TangoNotationTest {
 
     @Test
     fun `round trip partly set draft built through editor commands`() {
-        var d = TangoEditor.newDraft(TangoEditor.variants.single())
+        var d = TangoEditor.newDraft(TangoEditor.defaultVariant)
         for (command in listOf(
             d.cycleCell(0),
             d.cycleCell(1),
@@ -94,6 +94,9 @@ class TangoNotationTest {
             "tango-needs-guessing.txt",
             "tango-multiple.txt",
             "tango-none.txt",
+            "tango-unique-4x4.txt",
+            "tango-unique-8x8.txt",
+            "tango-unique-10x10.txt",
         )) {
             val text = fixture(name)
             val expect = text.lineSequence().first { it.startsWith("# expect:") }
@@ -115,37 +118,6 @@ class TangoNotationTest {
             assertEquals("$name verdict", wantedVerdict, verdict::class.simpleName!!.lowercase())
             val blockIds = TangoEditor.publishBlocks(d, verdict).map { it.id }
             assertEquals("$name blocks", wantedBlocks, blockIds)
-        }
-    }
-
-    /**
-     * The 4×4, 8×8 and 10×10 fixtures carry `# verdict:`, not `# expect:`, so the CLI parity and
-     * doc tests skip them until M4-tango-27 offers those sizes (NotationText answers "unsupported
-     * size" and the v1 draft codec holds only 6×6 before then). The verdict is checked here.
-     */
-    @Test
-    fun `sized fixtures parse, print byte-identically and are unique with no block`() {
-        for ((name, n) in listOf(
-            "tango-unique-4x4.txt" to 4,
-            "tango-unique-8x8.txt" to 8,
-            "tango-unique-10x10.txt" to 10,
-        )) {
-            val text = fixture(name)
-            val wanted = text.lineSequence().first { it.startsWith("# verdict:") }.removePrefix("# verdict:").trim()
-
-            val parsed = parse(blanked(text))
-            assertTrue("$name should parse, got $parsed", parsed is NotationResult.Ok)
-            val d = (parsed as NotationResult.Ok).draft
-            assertEquals("$name size", n, d.n)
-            assertEquals(
-                "$name print not byte-identical",
-                text.trimEnd('\n').lines().filterNot { it.startsWith("#") }.joinToString("\n") + "\n",
-                TangoNotation.print(d),
-            )
-
-            val verdict = TangoEditor.analyze(d, Budget.Unlimited)
-            assertEquals("$name verdict", wanted, verdict::class.simpleName!!.lowercase())
-            assertEquals("$name blocks", emptyList<String>(), TangoEditor.publishBlocks(d, verdict).map { it.id })
         }
     }
 

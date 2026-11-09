@@ -38,7 +38,7 @@ class TangoEditorDiagnosticsTest {
     private var verdict by mutableStateOf<Verdict>(Verdict.Checking)
 
     private fun controllerOf(givens: Map<Int, TangoCell>): TangoEditorController {
-        val blank = EditorDraft.fresh(TangoEditor, TangoEditor.variants.first())
+        val blank = EditorDraft.fresh(TangoEditor, TangoEditor.defaultVariant)
         val draft = EditorDraft(TangoEditor, blank.state.copy(draft = blank.state.draft.copy(givens = givens)))
         return TangoEditorController(draft) {}
     }

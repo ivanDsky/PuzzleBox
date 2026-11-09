@@ -31,13 +31,4 @@ class TangoDraftTest {
     fun `a variant outside the size table has no size`() {
         assertNull(TangoDraft.sizeOf(VariantId("tango/n7")))
     }
-
-    @Test
-    fun `the editor still offers only 6x6 and its drafts carry their width`() {
-        assertEquals(listOf(VariantId("tango/n6")), TangoEditor.variants)
-        val fresh = TangoEditor.newDraft(VariantId("tango/n6"))
-        assertEquals(6, fresh.n)
-        assertEquals(VariantId("tango/n6"), TangoEditor.variantOf(fresh))
-        assertThrows(IllegalArgumentException::class.java) { TangoEditor.newDraft(VariantId("tango/n8")) }
-    }
 }

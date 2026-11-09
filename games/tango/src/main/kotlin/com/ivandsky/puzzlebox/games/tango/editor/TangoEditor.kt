@@ -18,9 +18,10 @@ import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
- * Tango's pure editor (ADR-0019): [variants] offers only 6×6 for now (a draft carries any
- * [TangoDraft.SIZES] width), a new board has no givens and no markers, drafts persist through
- * [TangoDraftCodec], analysis is [TangoDraftAnalyzer] and publishing is gated by
+ * Tango's pure editor (ADR-0019): [variants] offers every [TangoDraft.SIZES] width (4×4, 6×6,
+ * 8×8, 10×10) with 6×6 as [defaultVariant]. A new board has no givens and no markers, and a
+ * resize is the blank `newDraft` board (no `DraftResize`), one undoable step. Drafts persist
+ * through [TangoDraftCodec], analysis is [TangoDraftAnalyzer] and publishing is gated by
  * [TangoPublishGates]. A unique draft exports through [TangoCodec] so test solve plays a real
  * puzzle, and shares as givens-and-markers [TangoShareCodec] bytes. Its text form is
  * [TangoNotation] (M5-12-a).
@@ -32,7 +33,9 @@ object TangoEditor :
     EditorNotation<TangoDraft> by TangoNotation {
     override val gameId: GameId get() = TangoDefinition.id
 
-    override val variants: List<VariantId> = listOf(TangoDraft.variantOf(6))
+    override val variants: List<VariantId> = TangoDraft.SIZES.map(TangoDraft::variantOf)
+
+    override val defaultVariant: VariantId = TangoDraft.variantOf(6)
 
     override val draftFormatVersion: Int get() = TangoDraftCodec.VERSION
 

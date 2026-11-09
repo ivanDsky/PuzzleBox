@@ -12,7 +12,7 @@ import org.junit.Test
 class TangoEditorControllerTest {
 
     private val edits = ArrayList<EditorDraft<*>>()
-    private val controller = TangoEditorController(EditorDraft.fresh(TangoEditor, TangoEditor.variants.first())) { edits += it }
+    private val controller = TangoEditorController(EditorDraft.fresh(TangoEditor, TangoEditor.defaultVariant)) { edits += it }
 
     private fun givens(draft: EditorDraft<*>): Map<Int, TangoCell> = (draft.state.draft as TangoDraft).givens
 
