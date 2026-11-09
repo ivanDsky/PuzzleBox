@@ -34,6 +34,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
@@ -50,6 +52,7 @@ import com.ivandsky.puzzlebox.game.VariantId
 private val StripBorder = 2.dp
 private val ToolWidth = 64.dp
 private val ToolHeight = 56.dp
+private val CompactTool = 48.dp
 private val ToolIconSize = 20.dp
 
 /**
@@ -121,15 +124,16 @@ fun ToolStrip(
 }
 
 @Composable
-private fun IconTool(label: String, icon: ImageVector, enabled: Boolean, onClick: () -> Unit, tag: String) {
-    Tool(label, enabled, active = false, onClick, tag) { ink ->
+internal fun IconTool(label: String, icon: ImageVector, enabled: Boolean, onClick: () -> Unit, tag: String, compact: Boolean = false) {
+    Tool(label, enabled, active = false, onClick, tag, compact) { ink ->
         Icon(icon, contentDescription = null, tint = ink, modifier = Modifier.size(ToolIconSize))
     }
 }
 
 /**
- * One 64×56dp tool: [glyph] over label; a disabled tool keeps readable onSurfaceVariant ink,
- * an [active] one (its popover is open) sits on the studio accent container.
+ * One 64×56dp tool: [glyph] over label; [compact], a 48dp square of the glyph alone, the label
+ * its description. A disabled tool keeps readable onSurfaceVariant ink, an [active] one (its
+ * popover is open) sits on the studio accent container.
  */
 @Composable
 private fun Tool(
@@ -138,6 +142,7 @@ private fun Tool(
     active: Boolean,
     onClick: () -> Unit,
     tag: String,
+    compact: Boolean = false,
     glyph: @Composable (ink: Color) -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -156,7 +161,7 @@ private fun Tool(
     }
     Column(
         modifier = Modifier
-            .size(ToolWidth, ToolHeight)
+            .size(if (compact) CompactTool else ToolWidth, if (compact) CompactTool else ToolHeight)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -170,18 +175,21 @@ private fun Tool(
                 role = Role.Button,
                 onClick = onClick,
             )
+            .then(if (compact) Modifier.semantics { contentDescription = label } else Modifier)
             .testTag(tag),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Box(Modifier.height(ToolIconSize), contentAlignment = Alignment.Center) { glyph(ink) }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = ink,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        if (!compact) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

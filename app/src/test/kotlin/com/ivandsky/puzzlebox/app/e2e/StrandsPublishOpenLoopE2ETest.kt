@@ -1,12 +1,16 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.TouchInjectionScope
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.create.api.CreateKey
@@ -148,6 +152,32 @@ class StrandsPublishOpenLoopE2ETest {
             }
             assertEquals("a missing clue is not the board's to fix", 0, count("create.readiness.board"))
             assertEquals("the clue still blocks", 0, count("create.readiness.ready"))
+        }
+
+    @Test
+    fun `Undo and Redo stay reachable with the details and revert a clue edit`() =
+        shellRobot(graph = graph) {
+            seedReadyDraft()
+            fun clue() = rule.onNodeWithTag("strands.editor.clue").fetchSemanticsNode().config[SemanticsProperties.EditableText].text
+
+            tapTab(CreateKey)
+            tap("create.draft.row")
+            awaitTag("create.details")
+            rule.waitUntil(TIMEOUT_MS) { rule.onAllNodesWithTag("create.tool.strip").fetchSemanticsNodes().isEmpty() }
+            rule.onNodeWithTag("create.tool.undo").assertIsNotEnabled()
+
+            rule.onNodeWithTag("strands.editor.clue").performTextReplacement("Autumn walk in the woods at dusk")
+            rule.waitForIdle()
+            assertEquals("Autumn walk in the woods at dusk", clue())
+            rule.onNodeWithTag("create.tool.undo").assertIsEnabled()
+
+            tap("create.tool.undo")
+            assertEquals("Autumn walk in the woods", clue())
+            rule.onNodeWithTag("create.tool.undo").assertIsNotEnabled()
+            rule.onNodeWithTag("create.tool.redo").assertIsEnabled()
+
+            tap("create.tool.redo")
+            assertEquals("Autumn walk in the woods at dusk", clue())
         }
 
     private fun seedReadyDraft(clue: String = "Autumn walk in the woods") {

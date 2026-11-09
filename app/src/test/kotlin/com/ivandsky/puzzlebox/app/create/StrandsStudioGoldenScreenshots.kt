@@ -30,6 +30,7 @@ import com.ivandsky.puzzlebox.create.editor.PublishSession
 import com.ivandsky.puzzlebox.create.editor.StudioScreen
 import com.ivandsky.puzzlebox.create.editor.ToolSlot
 import com.ivandsky.puzzlebox.create.editor.ToolStrip
+import com.ivandsky.puzzlebox.create.editor.UndoRedoButtons
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ValidatePublish
@@ -216,6 +217,7 @@ abstract class StrandsStudioGoldenScreenshots(private val layout: PlayLayout, pr
                             modifier = formModifier,
                             paired = true,
                             action = editBoardChip,
+                            history = { UndoRedoButtons(canUndo = true, canRedo = false, onUndo = {}, onRedo = {}) },
                             fields = { fieldsModifier -> StrandsEditorUi.PublishFields(controller, true, fieldsModifier) },
                         )
                     },

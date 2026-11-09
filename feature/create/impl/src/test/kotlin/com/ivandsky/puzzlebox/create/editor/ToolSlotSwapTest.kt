@@ -4,6 +4,10 @@ import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.key
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
@@ -150,6 +154,34 @@ class ToolSlotSwapTest {
     }
 
     @Test
+    fun `Undo and Redo stay reachable with the details and revert an edit that keeps the test`() {
+        editor.marksAreAids = true
+        open(PlayLayout.SinglePane)
+        awaitTag(EDIT_BOARD)
+        awaitGone(STRIP)
+        awaitTag(UNDO)
+        composeRule.onNodeWithTag(UNDO).assertIsNotEnabled()
+        composeRule.onNodeWithTag(REDO).assertIsNotEnabled()
+
+        val opened = editor.draft(marks = 1)
+        composeRule.runOnIdle { ui.controllers.single().edit(opened.apply(ReplaceDraft(opened.state.draft, TestDraft(marks = 2)))) }
+
+        awaitTrue { composeRule.onNodeWithTag(UNDO).fetchSemanticsNode().config.getOrNull(SemanticsProperties.Disabled) == null }
+        composeRule.onNodeWithTag(UNDO).assertIsEnabled()
+        assertNotNull("the edit keeps the test", vm.testSolve.passed.value)
+        awaitTag(DETAILS)
+
+        composeRule.onNodeWithTag(UNDO).performClick()
+
+        awaitTrue { ui.controllers.single().draft.value.encode().last().toInt() == 1 }
+        awaitTrue { composeRule.onNodeWithTag(REDO).fetchSemanticsNode().config.getOrNull(SemanticsProperties.Disabled) == null }
+        composeRule.onNodeWithTag(UNDO).assertIsNotEnabled()
+        composeRule.onNodeWithTag(REDO).assertIsEnabled()
+        awaitTag(DETAILS)
+        awaitGone(STRIP)
+    }
+
+    @Test
     fun `on a 360 by 640 phone the board keeps its size across the swap`() {
         assertBoardKeepsItsSize()
     }
@@ -262,6 +294,11 @@ class ToolSlotSwapTest {
         override fun toPuzzle(draft: TestDraft, solution: Solution): Puzzle =
             Puzzle(gameId, variants.first(), shareFormatVersion, encodeShare(draft))
 
+        /** While set, the mark count is an author-only aid: editing it keeps a test solve, as a Strands clue does. */
+        var marksAreAids = false
+
+        override fun layoutOf(draft: TestDraft): TestDraft = if (marksAreAids) TestDraft() else draft
+
         fun draft(marks: Int): EditorDraft<TestDraft> = EditorDraft(this, DraftState(TestDraft(marks)))
     }
 
@@ -273,6 +310,8 @@ class ToolSlotSwapTest {
         const val TIMEOUT_MS = 5_000L
         const val FRAME_MS = 16L
         const val DETAILS = "create.details"
+        const val UNDO = "create.tool.undo"
+        const val REDO = "create.tool.redo"
         const val STRIP = "create.tool.strip"
         const val EDIT_BOARD = "create.tool.editBoard"
         const val SUMMARY = "create.details.summary"
