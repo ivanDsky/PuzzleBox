@@ -8,9 +8,11 @@ import com.ivandsky.puzzlebox.data.match.RoomMatchLocalRepository
 import com.ivandsky.puzzlebox.data.match.RoomMatchResultOutbox
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.GameSettingsRepository
 import com.ivandsky.puzzlebox.data.repository.InMemorySharedTextStore
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineFirstDailyRepository
+import com.ivandsky.puzzlebox.data.repository.OfflineGameSettingsRepository
 import com.ivandsky.puzzlebox.data.repository.OfflineUserPreferencesRepository
 import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
@@ -53,6 +55,7 @@ val dataModule = module {
     // feature modules consume the interface only (pinned ticket-15 contract).
     single<CompletionRepository> { RoomCompletionRepository(get(), get(), get()) }
     single<UserPreferencesRepository> { OfflineUserPreferencesRepository(get()) }
+    single<GameSettingsRepository> { OfflineGameSettingsRepository(get()) }
     // Saved in-progress plays (A10); the slot cap is private to the Room adapter.
     single<SavedPlayRepository> { RoomSavedPlayRepository(get(), get(), get()) }
     // Editor drafts (A5): features read and write through the port, never Room.
