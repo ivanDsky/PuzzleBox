@@ -10,7 +10,6 @@ import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.Restored
-import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.playCaption
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
@@ -171,19 +170,7 @@ class TangoPlayControllerTest {
         assertNotNull(s.hintCell)
         assertNotNull(s.hintWhy)
         assertNotNull(s.hintCaption)
-    }
-
-    @Test
-    fun `the default Legacy mode auto-places as today and never shows a spotlight`() {
-        val s = loaded()
-        assertEquals(HintMode.Legacy, s.hintMode)
-
-        s.requestHint()
-
-        assertTrue(s.session!!.placements.isNotEmpty())
-        assertNotNull(s.hintCell)
-        assertNotNull(s.hintWhy)
-        assertNull(s.spotlight)
+        assertNull(s.spotlight) // the default Legacy mode never shows one
     }
 
     @Test

@@ -43,6 +43,8 @@ import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 
+/** The overlay's box is the board's: square and top-start, even in a pane wider than the board is tall (00 §3). */
+private val SpotlightOnBoard = Modifier.wrapContentSize(Alignment.TopStart).aspectRatio(1f).testTag("tango.spotlight")
 
 /**
  * Maps [TangoRendererModel] onto the shared game-ui [BoardGrid] (design-direction
@@ -121,12 +123,8 @@ class TangoBoardRenderer(
                         )
                     },
                 )
-                // Above cells, marks, tint and frame; no pointer input, so taps reach the board. The square
-                // keeps it on the board when the pane is wider than the board is tall (00 §3).
-                SpotlightOverlay(
-                    spotlight(),
-                    Modifier.wrapContentSize(Alignment.TopStart).aspectRatio(1f).testTag("tango.spotlight"),
-                )
+                // Above cells, marks, tint and frame; no pointer input, so taps reach the board.
+                SpotlightOverlay(spotlight(), SpotlightOnBoard)
             }
         }
     }

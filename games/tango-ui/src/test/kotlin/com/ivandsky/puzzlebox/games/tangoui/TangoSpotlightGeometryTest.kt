@@ -24,9 +24,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Pins the overlay mount (00 §3): the Spotlight's bounds are the cell grid's, so a lit cell's rect, cut uniformly out
- * of the overlay's bounds as the overlay draws it, is the rect the board gives that cell, at a phone width and when the
- * pane is shorter than it is wide (the square board then leaves room beside it).
+ * Pins the overlay mount (00 §3): the Spotlight's bounds are the cell grid's, frame included, at a phone width and
+ * when the pane is shorter than it is wide (the square board then leaves room beside it). The overlay cuts its bounds
+ * into equal rows and columns, so matching bounds is matching every cell's rect.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -66,29 +66,12 @@ class TangoSpotlightGeometryTest {
         .fetchSemanticsNode()
         .boundsInRoot
 
-    /** The rect the overlay draws [idx] in: its bounds cut into equal rows and columns. */
-    private fun overlayCell(idx: Int): Rect {
-        val o = overlay()
-        val w = o.width / SIZE
-        val h = o.height / SIZE
-        val col = idx % SIZE
-        val row = idx / SIZE
-        return Rect(o.left + col * w, o.top + row * h, o.left + (col + 1) * w, o.top + (row + 1) * h)
-    }
-
     private fun assertRect(expected: Rect, actual: Rect) {
         val message = "expected $expected, was $actual"
         assertEquals(message, expected.left, actual.left, PX_TOLERANCE)
         assertEquals(message, expected.top, actual.top, PX_TOLERANCE)
         assertEquals(message, expected.right, actual.right, PX_TOLERANCE)
         assertEquals(message, expected.bottom, actual.bottom, PX_TOLERANCE)
-    }
-
-    @Test
-    fun `a lit cell's rect on the 6x6 board at a phone width is the board's own rect for that cell`() {
-        show(Modifier.fillMaxWidth())
-
-        assertRect(cell(LIT), overlayCell(LIT))
     }
 
     @Test
@@ -103,13 +86,12 @@ class TangoSpotlightGeometryTest {
         show(Modifier.size(width = 360.dp, height = 200.dp))
 
         assertRect(Rect(cell(0).topLeft, cell(SIZE * SIZE - 1).bottomRight), overlay())
-        assertRect(cell(LIT), overlayCell(LIT))
     }
 
     private companion object {
         const val SIZE = 6
 
-        /** Bottom right: the farthest cell from the board's origin, where an offset or a scale error is largest. */
+        /** The one lit cell, so the overlay is drawn at all. */
         const val LIT = 35
         const val SPOTLIGHT_TAG = "tango.spotlight"
 

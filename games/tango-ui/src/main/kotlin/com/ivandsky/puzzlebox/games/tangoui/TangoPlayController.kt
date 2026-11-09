@@ -18,7 +18,6 @@ import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
-import com.ivandsky.puzzlebox.gameui.hint.StepHints
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.TangoSession
@@ -30,10 +29,9 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
-import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStep
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
-import com.ivandsky.puzzlebox.games.tangoui.hint.TangoStepGame
+import com.ivandsky.puzzlebox.games.tangoui.hint.tangoStepHints
 import java.time.Instant
 
 /**
@@ -203,19 +201,9 @@ class TangoPlayController(
         legacyHint.resolve(current, now(), ::commit)
     }
 
-    /** The culprit's second Stepwise press (A4): the erase is one validated, undoable move and counts nothing. */
-    private fun eraseMistake(step: TangoStep.Mistake) {
-        val current = session ?: return
-        val move = TangoMove(step.idx, null)
-        if (rules.validate(move, TangoState(current.puzzle, current.grid())) !is TangoVerdict.Valid) return
-        lastRejection = null
-        commit(current.withMove(move, now()))
-    }
-
-    private fun newStepHints(mode: HintMode.Stepwise) = StepHints(
-        mode, env.scope, TangoStepGame(session = { session!! }, onEraseCulprit = ::eraseMistake),
-        used = { session?.hintsUsed ?: 0 },
-        onCount = { used -> session?.let { updateSession(it.copy(hintsUsed = used)) } }, // not commit: it clears the Spotlight
+    /** A culprit erase is a board change like undo: the rejection verdict on that cell goes too (A4). */
+    private fun newStepHints(mode: HintMode.Stepwise) = tangoStepHints(
+        mode, env.scope, { session }, now, erase = { lastRejection = null; commit(it) }, count = ::updateSession,
     )
 
     //region timer (F2 §2: active foreground play only)

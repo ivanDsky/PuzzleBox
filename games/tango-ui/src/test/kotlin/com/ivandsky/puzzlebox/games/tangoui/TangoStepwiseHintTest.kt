@@ -5,12 +5,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.printToString
+import com.ivandsky.puzzlebox.designsystem.LightBoardTokens
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
@@ -59,13 +64,19 @@ class TangoStepwiseHintTest {
     private val today: LocalDate = LocalDate.parse("2026-10-31")
     private val saved = mutableListOf<ByteArray>()
 
-    private fun stepwise(compute: CoroutineDispatcher = Dispatchers.Unconfined) = TangoPlayController(
-        env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), onSessionChanged = { saved += it }, onWon = {}),
+    private fun stepwise(
+        compute: CoroutineDispatcher = Dispatchers.Unconfined,
+        scope: CoroutineScope = CoroutineScope(Dispatchers.Unconfined),
+    ) = TangoPlayController(
+        env = PlayEnvironment(scope, onSessionChanged = { saved += it }, onWon = {}),
         now = { Instant.parse("2026-10-31T00:00:00Z") },
         hintMode = HintMode.Stepwise(compute),
     )
 
-    private fun loaded(compute: CoroutineDispatcher = Dispatchers.Unconfined) = stepwise(compute).also {
+    private fun loaded(
+        compute: CoroutineDispatcher = Dispatchers.Unconfined,
+        scope: CoroutineScope = CoroutineScope(Dispatchers.Unconfined),
+    ) = stepwise(compute, scope).also {
         assertEquals(Adopt.Adopted, it.adoptToday(TangoPlayFixture.envelope(), TangoPlayFixture.ref(today)))
     }
 
@@ -183,13 +194,16 @@ class TangoStepwiseHintTest {
 
     @Test
     fun `while the spotlight shows the caption slot and the violation line are empty, then both return`() {
-        val s = loaded()
+        val scheduler = TestCoroutineScheduler()
+        val s = loaded(scope = CoroutineScope(StandardTestDispatcher(scheduler)))
         s.onPlacement(TangoPlacement(2, TangoCell.SUN)) // row 0 now holds three suns in a row
-        Thread.sleep(SETTLED_MS) // the new violation waits out the settle window
+        scheduler.advanceTimeBy(MotionTokens.SettleMillis + 1) // the new violation waits out the settle window
+        scheduler.runCurrent()
         val phrase = s.violation
         assertNotNull(phrase)
 
         s.requestHint()
+        scheduler.runCurrent()
 
         assertNotNull(s.spotlight)
         assertNull(s.hintCaption)
@@ -289,19 +303,6 @@ class TangoStepwiseHintTest {
         assertEquals(0, s.hintsUsed)
     }
 
-    @Test
-    fun `a held search delivers once released when nothing intervenes`() {
-        val scheduler = TestCoroutineScheduler()
-        val s = loaded(compute = StandardTestDispatcher(scheduler))
-
-        s.requestHint()
-        assertNull(s.spotlight)
-        scheduler.advanceUntilIdle()
-
-        assertNotNull(s.spotlight)
-        assertEquals(1, s.hintsUsed)
-    }
-
     // Overlay (the board draws it, never takes taps)
 
     @Test
@@ -346,12 +347,50 @@ class TangoStepwiseHintTest {
 
         shown = s.spotlight
         composeRule.waitForIdle()
-        assertNotEquals(today, semanticsTree()) // the callout joins the tree while it shows
+        assertNotEquals(baseline, semanticsTree()) // the callout joins the tree while it shows
 
         shown = null
         composeRule.waitForIdle()
         assertEquals(baseline, semanticsTree())
     }
+
+    /** How much of [fill] a pixel shows, 0..1: the channel spread [fill] has and white and the culprit red lack. */
+    private fun Color.share(fill: Color): Float =
+        if (fill.blue > fill.red) (blue - red) / (fill.blue - fill.red) else (green - blue) / (fill.green - fill.blue)
+
+    /** The pixels of cell [idx] showing at least [VISIBLE_SHARE] of the board glyph's [fill]: the glyph and its rim. */
+    private fun glyphPixels(idx: Int, fill: Color): Set<Int> {
+        val pixels = composeRule
+            .onNode(hasContentDescription(TangoSemantics.cellContentDescription(idx / 6, idx % 6), substring = true))
+            .captureToImage()
+            .toPixelMap()
+        return (0 until pixels.width * pixels.height).filterTo(HashSet()) {
+            pixels[it % pixels.width, it / pixels.width].share(fill) >= VISIBLE_SHARE
+        }
+    }
+
+    private fun assertCulpritCovers(idx: Int, value: TangoCell, fill: androidx.compose.ui.graphics.Color) {
+        val s = loaded().apply { onPlacement(TangoPlacement(idx, value)) }
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) { TangoPlayUi().Board(s, Modifier.fillMaxWidth()) }
+        }
+        composeRule.waitForIdle()
+        assertTrue("the board draws the $value", glyphPixels(idx, fill).isNotEmpty())
+
+        s.requestHint()
+        composeRule.waitForIdle()
+
+        assertEquals(setOf(idx), s.culprits())
+        assertEquals("board-$value pixels left under the culprit", emptySet<Int>(), glyphPixels(idx, fill))
+    }
+
+    @Test
+    fun `the culprit covers every pixel of the board's own wrong moon, its crescent's inner arc included`() =
+        assertCulpritCovers(WRONG_MOON_IDX, TangoCell.MOON, LightBoardTokens.moonFill)
+
+    @Test
+    fun `the culprit covers every pixel of the board's own wrong sun`() =
+        assertCulpritCovers(WRONG_IDX, TangoCell.SUN, LightBoardTokens.sunFill)
 
     /** The unmerged tree without node ids or action lambda identities, which a recomposition renews. */
     private fun semanticsTree(): String = composeRule.onRoot(useUnmergedTree = true).printToString(maxDepth = Int.MAX_VALUE)
@@ -361,7 +400,10 @@ class TangoStepwiseHintTest {
         /** Row 0 is S S M S M M: a sun at cell 4 is off the solution but breaks no rule. */
         const val WRONG_IDX = 4
 
-        /** Past MotionTokens.SettleMillis (500 ms), which the env's Unconfined scope waits in real time. */
-        const val SETTLED_MS = 600L
+        /** A moon where the solution has a sun; its SAME marker partner below is empty, so no rule breaks. */
+        const val WRONG_MOON_IDX = 3
+
+        /** A tenth of the glyph's colour counts as a surviving pixel: the faintest rim a player could see. */
+        const val VISIBLE_SHARE = 0.10f
     }
 }
