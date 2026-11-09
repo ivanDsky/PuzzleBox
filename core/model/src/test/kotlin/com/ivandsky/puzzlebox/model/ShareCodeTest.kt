@@ -117,4 +117,37 @@ class ShareCodeTest {
         )
         rejected.forEach { uri -> assertNull(uri, ShareCode.fromLink(uri)) }
     }
+
+    @Test
+    fun `accepted match links`() {
+        val accepted = listOf(
+            "https://puzzlebox-f3356.web.app/m/K7Q2MX",
+            "https://puzzlebox-f3356.web.app/m/k7q2mx",
+            "https://puzzlebox-f3356.web.app/m/K7Q2MX/",
+            "https://puzzlebox-f3356.web.app/m/K7Q2MX?utm=share",
+            "https://puzzlebox-f3356.web.app/m/K7Q2MX#top",
+        )
+        accepted.forEach { uri -> assertEquals(uri, "K7Q2MX", ShareCode.fromMatchLink(uri)?.value) }
+        val code = ShareCode.parse("K7Q2MX")!!
+        assertEquals(code, ShareCode.fromMatchLink(code.matchLink))
+    }
+
+    @Test
+    fun `rejected match links`() {
+        val rejected = listOf(
+            "https://user@puzzlebox-f3356.web.app/m/K7Q2MX",
+            "https://puzzlebox-f3356.web.app:8443/m/K7Q2MX",
+            "https://example.com/m/K7Q2MX",
+            "http://puzzlebox-f3356.web.app/m/K7Q2MX",
+            "https://puzzlebox-f3356.web.app/p/K7Q2MX",
+            "https://puzzlebox-f3356.web.app/m/K7Q2MU",
+            "https://puzzlebox-f3356.web.app/m/",
+        )
+        rejected.forEach { uri -> assertNull(uri, ShareCode.fromMatchLink(uri)) }
+    }
+
+    @Test
+    fun `puzzle and match links are not interchangeable`() {
+        assertNull(ShareCode.fromLink("https://puzzlebox-f3356.web.app/m/K7Q2MX"))
+    }
 }
