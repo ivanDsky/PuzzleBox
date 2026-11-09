@@ -1,27 +1,17 @@
 package com.ivandsky.puzzlebox.games.strandsui.editor
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FiniteAnimationSpec
-import androidx.compose.animation.core.repeatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -29,12 +19,9 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDictionary
 import kotlinx.coroutines.withContext
 
@@ -52,16 +39,6 @@ internal fun wordCheck(text: String): WordCheck = when {
 /** The dispatchers the editor tools work on; tests swap in their own. */
 internal val LocalEditorDispatchers = staticCompositionLocalOf<DispatcherProvider> {
     DefaultDispatcherProvider()
-}
-
-/** The extend handle's entrance: one finite pass when it appears, never a loop. */
-internal object ExtendHandleMotion {
-    const val FROM_SCALE = 0.6f
-
-    val spec: FiniteAnimationSpec<Float> = repeatable(
-        iterations = 1,
-        animation = tween(MotionTokens.DurationMedium),
-    )
 }
 
 /**
@@ -105,39 +82,6 @@ internal fun StrandsWordField(controller: StrandsEditorController, modifier: Mod
     )
 }
 
-/**
- * The "+N" handle (`strands.editor.extend`): N cells the word has beyond its path, a tap
- * grows the path by one. It pops in once when it appears; reduced motion skips the pop.
- */
-@Composable
-internal fun StrandsExtendHandle(count: Int, onExtend: () -> Unit, modifier: Modifier = Modifier) {
-    val reduced = rememberReducedMotion()
-    val pop = remember { Animatable(if (reduced) 1f else 0f) }
-    LaunchedEffect(Unit) { pop.animateTo(1f, ExtendHandleMotion.spec) }
-    Surface(
-        onClick = onExtend,
-        shape = PillShape,
-        color = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary,
-        modifier = modifier
-            .graphicsLayer {
-                val scale = ExtendHandleMotion.FROM_SCALE + (1f - ExtendHandleMotion.FROM_SCALE) * pop.value
-                scaleX = scale
-                scaleY = scale
-                alpha = pop.value
-            }
-            .sizeIn(minWidth = Spacing.xxl, minHeight = Spacing.xxl)
-            .testTag("strands.editor.extend")
-            .semantics { stateDescription = count.toString() },
-    ) {
-        Text(
-            text = "+$count",
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-        )
-    }
-}
-
 /** The spangram switch (`strands.editor.spangram.<index>`) of the selected path. */
 @Composable
 internal fun StrandsSpangramToggle(
@@ -152,13 +96,6 @@ internal fun StrandsSpangramToggle(
         label = { Text("Spangram") },
         modifier = modifier.testTag("strands.editor.spangram.$index"),
     )
-}
-
-@PuzzleBoxPreviews
-@Preview(name = "Three cells missing", showBackground = true, group = "Strands extend handle")
-@Composable
-private fun StrandsExtendHandlePreview() {
-    PuzzleBoxTheme { StrandsExtendHandle(count = 3, onExtend = {}, modifier = Modifier.padding(Spacing.md)) }
 }
 
 @PuzzleBoxPreviews

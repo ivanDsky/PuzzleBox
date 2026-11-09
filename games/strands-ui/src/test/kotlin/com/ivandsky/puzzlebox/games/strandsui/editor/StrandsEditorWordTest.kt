@@ -1,7 +1,5 @@
 package com.ivandsky.puzzlebox.games.strandsui.editor
 
-import androidx.compose.animation.core.InfiniteRepeatableSpec
-import androidx.compose.animation.core.RepeatableSpec
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
@@ -21,7 +19,6 @@ import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -31,7 +28,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Typing into the word field, the dictionary check, and the "+N" handle, through the tags. */
+/** Typing into the word field and the dictionary check, through the tags. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w360dp-h640dp-420dpi")
@@ -145,74 +142,6 @@ class StrandsEditorWordTest {
         controller.typeWord("xqzv")
         answerLookups()
         assertEquals(WordCheck.Unknown.name, rule.onNodeWithTag("strands.editor.word.check", useUnmergedTree = true).state())
-    }
-
-    @Test
-    fun `a longer word shows how many cells are missing and each tap extends by one`() {
-        selectedPath()
-        rule.onNodeWithTag("strands.editor.extend").assertDoesNotExist()
-        rule.onNodeWithTag("strands.editor.word").performTextInput("starsx")
-
-        assertNull(board().paths.single().word)
-        assertEquals("2", rule.onNodeWithTag("strands.editor.extend").state())
-
-        rule.onNodeWithTag("strands.editor.extend").performClick()
-        assertEquals(5, board().paths.single().cells.size)
-        assertEquals("1", rule.onNodeWithTag("strands.editor.extend").state())
-        assertEquals("S", board().letters[board().paths.single().cells.last()].toString())
-
-        rule.onNodeWithTag("strands.editor.extend").performClick()
-        assertEquals(6, board().paths.single().cells.size)
-        assertEquals("STARSX", board().paths.single().word)
-        rule.onNodeWithTag("strands.editor.extend").assertDoesNotExist()
-    }
-
-    @Test
-    fun `one extend is one undo step`() {
-        selectedPath()
-        controller.typeWord("stars")
-        val before = edits.size
-        controller.extend()
-
-        assertEquals(before + 1, edits.size)
-        val undone = controller.draft.value.undo()!!.state.draft as StrandsDraft
-        assertEquals(4, undone.paths.single().cells.size)
-        assertEquals("STAR", undone.letters.take(4))
-        assertEquals("....", undone.letters.drop(4).take(4))
-    }
-
-    @Test
-    fun `extend skips cells other paths hold`() {
-        show()
-        tap(4, 10, 10)
-        tap(0, 1, 2, 3, 3)
-        tap(0)
-        controller.typeWord("stars")
-        controller.extend()
-
-        assertEquals(listOf(0, 1, 2, 3, 8), board().paths.last().cells)
-    }
-
-    @Test
-    fun `extend with nothing missing or nothing selected changes nothing`() {
-        show()
-        controller.extend()
-        assertTrue(edits.isEmpty())
-        tap(0, 1, 2, 3, 3)
-        tap(0)
-        controller.typeWord("star")
-        val before = edits.size
-        controller.extend()
-
-        assertEquals(before, edits.size)
-    }
-
-    @Test
-    fun `the handle animates a finite number of times`() {
-        val spec = ExtendHandleMotion.spec
-
-        assertFalse(spec is InfiniteRepeatableSpec<*>)
-        assertTrue(spec is RepeatableSpec<*> && spec.iterations == 1)
     }
 
     @Test
