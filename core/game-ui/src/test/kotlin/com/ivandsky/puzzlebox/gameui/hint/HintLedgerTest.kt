@@ -92,11 +92,6 @@ class HintLedgerTest {
     }
 
     @Test
-    fun `the ceiling is 255`() {
-        assertEquals(255, MAX_HINTS_USED)
-    }
-
-    @Test
     fun `a new key at one below the ceiling reaches the ceiling`() {
         assertEquals(HintPress(SHOW, used = 255), ledger.press(a, culprit = false, used = 254))
     }
