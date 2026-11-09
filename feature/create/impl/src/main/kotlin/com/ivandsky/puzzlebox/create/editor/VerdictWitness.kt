@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.create.editor
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
@@ -39,8 +41,11 @@ import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
  * violet while on) has the board draw it. Both report through [onChange]. Beside it the
  * **Auto-show** switch (`create.verdict.autoShow`, announced as a switch with its On/Off state)
  * reads the saved [autoShow] and reports a flip through [onAutoShow]; switching it on also puts
- * this verdict's witness on the board at once. No motion: the selection swaps at once.
+ * this verdict's witness on the board at once. The chip and the switch share a [FlowRow], so on
+ * a narrow sheet or at a large font scale the switch wraps under the chip instead of spilling
+ * past the card. No motion: the selection swaps at once.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun VerdictWitness(
     overlay: EditorOverlay,
@@ -63,7 +68,10 @@ internal fun VerdictWitness(
                 ) { Text("Solution ${witness.name}", maxLines = 1) }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
             FilterChip(
                 selected = overlay.showOnBoard,
                 onClick = { onChange(overlay.copy(showOnBoard = !overlay.showOnBoard)) },
@@ -86,10 +94,16 @@ internal fun VerdictWitness(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Auto-show", style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                Text(
+                    "Auto-show",
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1,
+                    modifier = Modifier.testTag("create.verdict.autoShow.label"),
+                )
                 Switch(
                     checked = autoShow,
                     onCheckedChange = null,
+                    modifier = Modifier.testTag("create.verdict.autoShow.switch"),
                     colors = SwitchDefaults.colors(checkedTrackColor = accent.accent, checkedThumbColor = accent.onAccent),
                 )
             }
