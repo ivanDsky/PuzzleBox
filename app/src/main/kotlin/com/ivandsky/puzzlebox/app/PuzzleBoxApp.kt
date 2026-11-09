@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.nav.FriendLink
 import com.ivandsky.puzzlebox.app.nav.LocalChromePadding
 import com.ivandsky.puzzlebox.app.nav.PuzzleBoxNavShell
@@ -44,6 +45,7 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.compete.tab.DuelsTab
 import com.ivandsky.puzzlebox.compete.tab.rememberDuelsNeedYou
+import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.TodayStatus
@@ -54,6 +56,7 @@ import com.ivandsky.puzzlebox.home.homeLayoutFor
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.api.PlayKey
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.map
 import org.koin.compose.koinInject
 
@@ -154,6 +157,14 @@ fun PuzzleBoxApp(
         null
     }
     val badged = playTabBadged(anyInProgress, duelsNeedYou = duels?.needYou?.invoke() ?: 0)
+    // A tap on the selected tab at its root is a reducer no-op, so the shell spots it here
+    // and tells the roots (NavV2 only); the tap still goes through selectTab.
+    val tabReselect = remember { MutableSharedFlow<Unit>(extraBufferCapacity = 1) }
+    val onSelect = { tab: NavKey ->
+        val atRoot = tab == navigator.state.tab && navigator.state.currentStack.size == 1
+        navigator.selectTab(tab)
+        if (navV2 && atRoot) tabReselect.tryEmit(Unit)
+    }
 
     val reduceMotion = rememberReducedMotion()
     val previousTab = remember { TabRef(selected) }
@@ -175,7 +186,7 @@ fun PuzzleBoxApp(
             ) {
                 TopLevelNavBar(
                     selected = selected,
-                    onSelect = navigator::selectTab,
+                    onSelect = onSelect,
                     badged = badged,
                     destinations = destinations,
                     modifier = Modifier.onSizeChanged { barHeight = with(density) { it.height.toDp() } },
@@ -189,7 +200,7 @@ fun PuzzleBoxApp(
             ) {
                 TopLevelNavRail(
                     selected = selected,
-                    onSelect = navigator::selectTab,
+                    onSelect = onSelect,
                     badged = badged,
                     destinations = destinations,
                     modifier = Modifier
@@ -197,7 +208,10 @@ fun PuzzleBoxApp(
                         .onSizeChanged { railWidth = with(density) { it.width.toDp() } },
                 )
             }
-            CompositionLocalProvider(LocalChromePadding provides chromePadding(expanded, barHeight, railWidth)) {
+            CompositionLocalProvider(
+                LocalChromePadding provides chromePadding(expanded, barHeight, railWidth),
+                LocalTabReselect provides tabReselect,
+            ) {
                 PuzzleBoxNavShell(
                     navigator = navigator,
                     homeLayout = layout,

@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import com.ivandsky.puzzlebox.designsystem.LargeTopBar
+import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -45,10 +46,15 @@ internal fun ListPane(
     modifier: Modifier = Modifier,
     onOpenUpdate: (String) -> Unit = {},
 ) {
+    val scroll = rememberScrollState()
+    val reselect = LocalTabReselect.current
+    LaunchedEffect(reselect, scroll) {
+        reselect.collect { scroll.animateScrollTo(0) }
+    }
     Column(
         modifier = modifier
             .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(scroll),
     ) {
         LargeTopBar(
             title = "PuzzleBox",
