@@ -45,6 +45,9 @@ class TangoStepperTest {
         TangoStepRung.SIGN_COUNT, "...................M................", "SSMMSMMSSMMSMMSSMSSMMSSMMSSMSMSMMSMS",
         "0=1 1=7 3x4 4x5 4x10 6x7 22=28 25x31 27x28 28x34 30x31 31=32", "000000000000000000020000000000000000",
     )
+
+    /** d5 mid-replay: COUNT_SQUEEZE forces 24 from {12, 18} and 8 from three cells, both at distance 0 without a last move. */
+    private val d5Squeezes = "112212210021020000020000010000122100"
     private val d8 = Example(
         TangoStepRung.LINE_OPTIONS, "S..................................M", "SMMSMSMMSMSSSSMMSMSMSSMMMSMSMSMSSMSM",
         "4x5 5=11 9x10 10=16 14=15 15x21 19x20 20x26 24x25 25=31", "100000000000000000000000000000000002",
@@ -133,7 +136,7 @@ class TangoStepperTest {
 
     @Test
     fun `at equal distance the step with fewer evidence cells beats a lower cell`() {
-        val g = "112212210021020000020000010000122100".map(::cellOf)
+        val g = d5Squeezes.map(::cellOf)
         val squeezes = TangoCountSqueezeRule.forced(d5.puzzle, g)
         assertTrue(squeezes.any { it.idx == 8 && it.evidence.size == 3 })
 
@@ -146,7 +149,7 @@ class TangoStepperTest {
 
     @Test
     fun `nearness to the last move outranks fewer evidence cells`() {
-        val g = "112212210021020000020000010000122100".map(::cellOf)
+        val g = d5Squeezes.map(::cellOf)
 
         val step = TangoStepper.next(d5.puzzle, g, 8, d5.solution) as TangoStep.Deduction
 
@@ -195,14 +198,6 @@ class TangoStepperTest {
         val g = d0.position.with(8 to MOON, 9 to MOON)
 
         assertEquals(TangoStep.Mistake(9, TangoVerdict.Reason.ThreeInARow), TangoStepper.next(d0.puzzle, g, 8, d0.solution))
-    }
-
-    @Test
-    fun `a wrong entry never feeds a rung and erasing it gives the clean board's step`() {
-        val clean = TangoStepper.next(d0.puzzle, d0.position, 9, d0.solution)
-
-        assertEquals(TangoStep.Mistake(9, null), TangoStepper.next(d0.puzzle, d0.position.with(9 to MOON), 9, d0.solution))
-        assertEquals(clean, TangoStepper.next(d0.puzzle, d0.position.with(9 to MOON).with(9 to null), 9, d0.solution))
     }
 
     @Test

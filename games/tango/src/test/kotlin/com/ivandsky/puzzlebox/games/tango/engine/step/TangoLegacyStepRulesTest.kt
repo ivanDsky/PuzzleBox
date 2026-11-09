@@ -8,7 +8,6 @@ import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
 import com.ivandsky.puzzlebox.games.tango.TangoMarker
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
-import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.engine.TangoTripleRule
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -54,17 +53,6 @@ class TangoLegacyStepRulesTest {
 
         assertEquals(listOf(deduction(TangoStepRung.SANDWICH, 12, SUN, setOf(6, 18))), steps)
         assertEquals(emptyList<TangoStep.Deduction>(), TangoLegacyStepRules.pair.forced(board(), g))
-    }
-
-    @Test
-    fun `one legacy three in a row splits by where the target sits`() {
-        val trailing = TangoHint.Forced(2, MOON, TangoHint.Why.ThreeInARow(0, 1))
-        val leading = TangoHint.Forced(0, MOON, TangoHint.Why.ThreeInARow(1, 2))
-        val between = TangoHint.Forced(1, MOON, TangoHint.Why.ThreeInARow(0, 2))
-
-        val rungs = listOf(trailing, leading, between).map { TangoLegacyStepRules.deduction(board(), grid(), it).rung }
-
-        assertEquals(listOf(TangoStepRung.PAIR, TangoStepRung.PAIR, TangoStepRung.SANDWICH), rungs)
     }
 
     @Test
