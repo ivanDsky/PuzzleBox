@@ -28,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -37,13 +38,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.compete.share.DuelCreatedSheet
+import com.ivandsky.puzzlebox.compete.share.createdInviteSaver
+import com.ivandsky.puzzlebox.compete.share.createdInviteText
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -62,16 +65,15 @@ internal class NewDuelActions(
 
 /**
  * New duel: a Quick duel, today's puzzles, or Customize, then Create duel. A signed-out player meets the sign-in
- * panel first. [onCreated] gets the new duel's code once it exists and the sheet has hidden; [onDismiss] runs on a
- * swipe, the scrim or Cancel, and the sheet starts from the Quick duel again the next time.
- *
+ * panel first. Once created, the sheet becomes "Duel created"; [onDismiss] runs on a swipe, the scrim, Cancel or Done,
+ * and the sheet starts from the Quick duel again. [inviter] names the sender in the invite text.
  * Motion: the sheet's **Slide in / Slide out** and the scrim's **Fade** are ModalBottomSheet's own.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun NewDuelSheet(
+    inviter: String?,
     onDismiss: () -> Unit,
-    onCreated: (ShareCode) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: NewDuelViewModel = koinViewModel(),
 ) {
@@ -79,12 +81,13 @@ internal fun NewDuelSheet(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val who by rememberUpdatedState(inviter)
+    var shared by rememberSaveable(stateSaver = createdInviteSaver) { mutableStateOf<Pair<String, String>?>(null) }
     LaunchedEffect(viewModel) {
         viewModel.created.collect { code ->
-            scope.launch { sheetState.hide() }.invokeOnCompletion {
-                onCreated(code)
-                viewModel.reset()
-            }
+            val s = viewModel.state.value
+            val games = s.games.filter { it.id in s.draft.games }.map { it.name }
+            shared = createdInviteText(who, s.draft.count, games, s.draft.deadlineHours, code) to code.matchLink
         }
     }
     val dismiss = {
@@ -102,8 +105,13 @@ internal fun NewDuelSheet(
         onGoogle = { scope.launch { viewModel.signIn(context) } },
         onCancel = dismiss,
     )
-    ModalBottomSheet(onDismissRequest = dismiss, modifier = modifier.testTag("duel.new.sheet"), sheetState = sheetState) {
-        NewDuelContent(state, actions)
+    val created = shared
+    if (created == null) {
+        ModalBottomSheet(onDismissRequest = dismiss, modifier = modifier.testTag("duel.new.sheet"), sheetState = sheetState) {
+            NewDuelContent(state, actions)
+        }
+    } else {
+        DuelCreatedSheet(text = created.first, link = created.second, onDone = dismiss)
     }
 }
 
