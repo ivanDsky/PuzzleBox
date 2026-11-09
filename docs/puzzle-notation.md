@@ -202,10 +202,23 @@ After the rows, each marker is one line: `= r,c right|down` for two cells that m
 cell `r,c`, with `r` and `c` from 1 to n. A border edge is an error, and so is a second marker on
 one edge.
 
-The app and `puzzle-cli` offer 6×6 only for now. Until the editor offers the other sizes, a 4×4,
-8×8 or 10×10 text parses but is answered `unsupported size`. A unique 8×8 board:
+The app and `puzzle-cli` read every size. A unique 4×4 board:
 
-```text
+```puzzlebox
+# expect: unique
+puzzlebox tango v1
+....
+..MM
+....
+S...
+= 1,3 right
+= 4,1 right
+```
+
+A unique 8×8 board:
+
+```puzzlebox
+# expect: unique
 puzzlebox tango v1
 .....S..
 ...S..S.
@@ -228,7 +241,48 @@ x 8,4 right
 x 8,7 right
 ```
 
-A unique board that the hint ladder can finish. It is rated `hard` and has no blocks:
+The JSON line for it:
+
+```json tango-unique-8x8 validate
+{"schema":1,"game":"tango","verdict":"unique","difficulty":"hard","needsGuessing":false,"differingCells":[],"conflicts":[],"blocks":[],"errors":[]}
+```
+
+A unique 10×10 board:
+
+```puzzlebox
+# expect: unique
+puzzlebox tango v1
+...S..M..S
+.M..SS....
+.........M
+M.....M...
+...S....SS
+..........
+SS...M....
+S.S.......
+....M..M..
+..M.......
+x 2,6 right
+x 3,2 right
+= 3,8 down
+= 4,6 down
+= 5,2 right
+x 5,7 down
+= 5,8 down
+x 6,2 down
+= 6,3 right
+x 6,8 right
+= 6,9 right
+x 7,4 right
+x 8,2 down
+x 8,4 down
+= 8,9 right
+x 9,6 right
+x 9,8 down
+x 10,5 right
+```
+
+A unique 6×6 board that the hint ladder can finish. It is rated `hard` and has no blocks:
 
 ```puzzlebox
 # expect: unique

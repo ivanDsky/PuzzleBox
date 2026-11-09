@@ -32,7 +32,7 @@ class TangoEditorA11yTest {
     val rule = createComposeRule()
 
     private val controller =
-        TangoEditorController(EditorDraft.fresh(TangoEditor, TangoEditor.variants.first())) {}
+        TangoEditorController(EditorDraft.fresh(TangoEditor, TangoEditor.defaultVariant)) {}
 
     private fun show() {
         rule.setContent {
