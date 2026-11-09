@@ -1,6 +1,6 @@
 # ADR-0009 — In-module structure rules (`:konsist`)
 
-Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix
+Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix
 
 ## Context
 ADR-0008 guards the edges between modules. It says nothing about what is inside a module:
@@ -74,7 +74,7 @@ returns these findings:
   fixtures are protected files: a worker does not edit them to make a test pass.
 
 Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1.
-S0, S6, S7, P3, P4, P7 and P8 have none.
+S0, S6, S7, P3, P4, P7, P8 and P9 have none.
 
 ### Payload cross-reference
 The `design-architecture` payload (`references/rules-architecture.md`) states four of these as
@@ -86,7 +86,7 @@ prose rules; the tests are their mechanical form and add no stricter bar:
 - Rule 20, one public top-level type per file (private helpers, extensions, typealiases and
   previews excepted): S1.
 
-The other rules (S0, S4, S5, S6, S7, P1, P4–P8) have no payload twin. Dependency direction between
+The other rules (S0, S4, S5, S6, S7, P1, P4–P9) have no payload twin. Dependency direction between
 modules stays in ADR-0008.
 
 ### Adding a rule
@@ -339,6 +339,25 @@ Navigation keys carry only ids, ISO day strings and primitives (navigation-ux sp
   named like a primitive (`String`), passes. A string that is not an id or an ISO day is not seen.
 - **How to fix:** pass the id or the day as a string and load the rest in the destination's
   ViewModel. Saved state and process death restore the key, so it must stay small and stable.
+
+## P9
+Every navigation key has a row in the placement table (ADR-0027).
+
+- **Scope:** production classes and objects with a direct `NavKey` supertype, plain or qualified,
+  judged against the placement file `app/src/main/kotlin/com/ivandsky/puzzlebox/app/nav/Placement.kt`.
+  A type that holds NavKeys (such as `NavigationState`) is not a key.
+- **Detection:** the placement file's code (comments and string contents removed) is read for every
+  `<Name>::class` token. A key whose simple name is not among them is a violation. A mention in a
+  comment or a string is not a row. One violation per key file, naming the keys with no row. If
+  the placement file does not exist, every key is a violation, so deleting the table does not turn
+  the rule green.
+- **Accepted misses:** a key reached through an intermediate supertype is not judged (as in P8).
+  Keys are matched by simple name, so two keys with one name in different packages share a row, and
+  a `<Name>::class` token that sits in the file outside `placementRows` counts. The other direction
+  is not checked: a row for a key that no longer exists is a compile error in the table.
+- **How to fix:** add a `PlacementRow(<Name>::class, Placement(home, chrome))` entry to
+  `placementRows` in the placement file, in the same change that adds the key. The homes and
+  chromes are ADR-0027's.
 
 ## Consequences
 - A structure regression fails `./gradlew :konsist:test` with the rule, the file, a fix hint and
