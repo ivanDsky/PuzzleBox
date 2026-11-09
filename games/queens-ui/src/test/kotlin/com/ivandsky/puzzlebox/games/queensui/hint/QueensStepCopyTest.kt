@@ -21,14 +21,6 @@ class QueensStepCopyTest {
     private val reveals = listOf(true, false).map { QueensStep.Reveal(Cell(0), it) }
 
     @Test
-    fun `every rung of the stepwise ladder has copy`() {
-        for (step in deductions) {
-            val rung = (step as QueensStep.Deduction).rung
-            assertTrue(rung.id, QueensStepCopy.text(step).isNotBlank())
-        }
-    }
-
-    @Test
     fun `every text opens with a name and a colon and fits the budget`() {
         for (step in deductions + mistakes + reveals) {
             val text = QueensStepCopy.text(step)

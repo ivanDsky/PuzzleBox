@@ -28,6 +28,8 @@ internal data class QueensSpotlightGlyphs(val culpritIsCross: Boolean) : Spotlig
 
     // Scratch reused by every frame's draw; not part of equality.
     private val crownPath = Path()
+    private var rimWidth = 0f
+    private var rimStroke = Stroke(rimWidth, join = StrokeJoin.Round)
 
     override fun DrawScope.draw(cell: Int, role: SpotlightRole, size: Size, color: Color) {
         when (role) {
@@ -48,8 +50,17 @@ internal data class QueensSpotlightGlyphs(val culpritIsCross: Boolean) : Spotlig
             QueensBoardDefaults.queenHeightFraction * CULPRIT_SCALE,
             alpha = 1f,
             path = crownPath,
-            style = Stroke(SpotlightTokens.HairlineWidth.toPx() * 2f, join = StrokeJoin.Round),
+            style = rim(SpotlightTokens.HairlineWidth.toPx() * 2f),
         )
+    }
+
+    /** The covering stroke, rebuilt only when its [width] changes (a density change), never per draw. */
+    private fun rim(width: Float): Stroke {
+        if (width != rimWidth) {
+            rimWidth = width
+            rimStroke = Stroke(width, join = StrokeJoin.Round)
+        }
+        return rimStroke
     }
 
     private fun DrawScope.cross(color: Color, scale: Float, hairline: Boolean) {

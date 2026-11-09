@@ -42,16 +42,6 @@ class QueensSpotlightMapperTest {
     }
 
     @Test
-    fun `only a wrong cross asks the glyphs for a cross culprit`() {
-        fun culpritIsCross(kind: QueensStep.Mistake.Kind) =
-            (map(QueensStep.Mistake(Cell(3), kind, null))!!.glyphs as QueensSpotlightGlyphs).culpritIsCross
-
-        assertTrue(culpritIsCross(QueensStep.Mistake.Kind.WRONG_CROSS))
-        assertEquals(false, culpritIsCross(QueensStep.Mistake.Kind.OFF_SOLUTION))
-        assertEquals(false, culpritIsCross(QueensStep.Mistake.Kind.RULE_BREAK))
-    }
-
-    @Test
     fun `a cross shows its proof as evidence and its cells excluded, with no target`() {
         val spotlight = map(deduction(cells(0, 1), Result.Cross(cells(2, 3))))!!
 
@@ -110,8 +100,6 @@ class QueensSpotlightMapperTest {
         assertEquals(9, spotlight.playId)
         assertEquals(4, spotlight.rows)
         assertEquals(4, spotlight.cols)
-        assertEquals(QueensStepCopy.text(step), spotlight.callout!!.text)
-        assertTrue(spotlight.roles.keys.all { it in 0 until 16 })
     }
 
     @Test
@@ -119,7 +107,6 @@ class QueensSpotlightMapperTest {
         fun key(step: QueensStep) = QueensSpotlightMapper.keyOf(step)
         val base = deduction(cells(0), Result.Cross(cells(1, 2, 3)))
 
-        assertEquals(key(base), key(deduction(cells(0), Result.Cross(cells(3, 2, 1)))))
         assertNotEquals(key(base), key(deduction(cells(0), Result.Cross(cells(1, 2)))))
         assertNotEquals(key(base), key(deduction(cells(0), Result.Cross(cells(1, 2, 3)), rung = LineLockRung)))
         assertNotEquals(

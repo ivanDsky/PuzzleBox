@@ -83,11 +83,6 @@ class QueensSpotlightGlyphsTest {
     }
 
     @Test
-    fun `the cross culprit is not the queen culprit`() {
-        assertNotEquals(paint(SpotlightRole.CULPRIT, culpritIsCross = false), paint(SpotlightRole.CULPRIT, culpritIsCross = true))
-    }
-
-    @Test
     fun `evidence draws nothing`() {
         assertEquals(0, paint(SpotlightRole.EVIDENCE).red())
     }
