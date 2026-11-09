@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PuzzleBox duel</title>
+<meta property="og:title" content="A PuzzleBox duel from a friend">
+<meta property="og:description" content="A friend challenged you to a duel. Open PuzzleBox and enter the code to play.">
+<meta property="og:type" content="website">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #faf7f2;
+    --fg: #222;
+    --muted: #666;
+    --button-bg: #222;
+    --button-fg: #faf7f2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1a17;
+      --fg: #f0ece4;
+      --muted: #a49e93;
+      --button-bg: #f0ece4;
+      --button-fg: #1c1a17;
+    }
+  }
+  body { font-family: system-ui, sans-serif; margin: 0; min-height: 100vh; display: flex;
+         align-items: center; justify-content: center; text-align: center;
+         background: var(--bg); color: var(--fg); }
+  main { padding: 24px; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 8px; }
+  #code { font-size: 3.5rem; font-weight: 700; letter-spacing: 0.12em; margin: 16px 0;
+          font-family: ui-monospace, monospace; }
+  #code:empty { display: none; }
+  #copy { display: inline-block; margin: 0 0 24px; padding: 10px 20px; font-size: 1rem;
+          border: none; border-radius: 8px; background: var(--button-bg);
+          color: var(--button-fg); cursor: pointer; }
+  #copy[hidden] { display: none; }
+  .steps { color: var(--muted); margin: 0; }
+  body.invalid #code, body.invalid #copy { display: none; }
+  .invalid-message { display: none; }
+  body.invalid .invalid-message { display: block; }
+</style>
+</head>
+<body>
+<main>
+  <h1>A PuzzleBox duel from a friend</h1>
+  <p id="code"></p>
+  <button id="copy" hidden>Copy code</button>
+  <p class="invalid-message">This link doesn't contain a valid PuzzleBox code</p>
+  <p class="steps">Open PuzzleBox &rarr; Play &rarr; Enter code</p>
+  <p><a href="https://github.com/ivanDsky/PuzzleBox/releases/latest" target="_blank" rel="noopener">Get PuzzleBox</a></p>
+</main>
+<noscript>
+  <p>Open PuzzleBox &rarr; Play &rarr; Enter code</p>
+</noscript>
+<script type="module" src="/m/code.js"></script>
+</body>
+</html>

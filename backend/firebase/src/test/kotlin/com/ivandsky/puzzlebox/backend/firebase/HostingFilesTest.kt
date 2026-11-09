@@ -44,6 +44,7 @@ class HostingFilesTest {
         assertTrue(config.contains("\"firestore\":{\"rules\":\"firestore.rules\",\"indexes\":\"firestore.indexes.json\"}"))
         assertTrue(config.contains("\"hosting\":{\"public\":\"hosting\""))
         assertTrue(config.contains("{\"source\":\"/p/**\",\"destination\":\"/p/index.html\"}"))
+        assertTrue(config.contains("{\"source\":\"/m/**\",\"destination\":\"/m/index.html\"}"))
     }
 
     @Test
@@ -56,28 +57,32 @@ class HostingFilesTest {
         assertTrue(File("hosting/.well-known/assetlinks.json").isFile)
     }
 
+    private val pages = listOf("p", "m")
+
     @Test
-    fun landingPageHasOnlySameOriginModuleScript() {
-        val page = read("hosting/p/index.html")
+    fun landingPageHasOnlySameOriginModuleScript() = pages.forEach { dir ->
+        val page = read("hosting/$dir/index.html")
         val srcs = Regex("<script[^>]*\\bsrc\\s*=\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE)
             .findAll(page).map { it.groupValues[1] }.toList()
-        assertEquals(listOf("/p/code.js"), srcs)
+        assertEquals(listOf("/$dir/code.js"), srcs)
         assertFalse(Regex("<link[^>]*stylesheet", RegexOption.IGNORE_CASE).containsMatchIn(page))
     }
 
     @Test
-    fun landingPageHasOgCardDarkModeAndNoScriptSteps() {
-        val page = read("hosting/p/index.html")
-        assertTrue(page.contains("<meta property=\"og:title\" content=\"A PuzzleBox puzzle from a friend\">"))
+    fun landingPageHasOgCardDarkModeAndNoScriptSteps() = pages.forEach { dir ->
+        val page = read("hosting/$dir/index.html")
+        val ogTitle = if (dir == "p") "A PuzzleBox puzzle from a friend" else "A PuzzleBox duel from a friend"
+        val steps = if (dir == "p") "Enter a code" else "Enter code"
+        assertTrue(page.contains("<meta property=\"og:title\" content=\"$ogTitle\">"))
         assertTrue(page.contains("<meta property=\"og:description\""))
         assertTrue(page.contains("@media (prefers-color-scheme: dark)"))
-        assertTrue(Regex("<noscript>[\\s\\S]*?Enter a code[\\s\\S]*?</noscript>").containsMatchIn(page))
+        assertTrue(Regex("<noscript>[\\s\\S]*?$steps[\\s\\S]*?</noscript>").containsMatchIn(page))
         assertTrue(page.contains("This link doesn't contain a valid PuzzleBox code"))
     }
 
     @Test
-    fun landingPageLinksToTheLatestGitHubRelease() {
-        val page = read("hosting/p/index.html")
+    fun landingPageLinksToTheLatestGitHubRelease() = pages.forEach { dir ->
+        val page = read("hosting/$dir/index.html")
         val hrefs = Regex("<a[^>]*\\bhref\\s*=\\s*\"([^\"]+)\"[^>]*>").findAll(page).map { it.groupValues[1] }.toList()
         val link = hrefs.single { Regex("https://github\\.com/[^/]+/[^/]+/.*").matches(it) }
         val url = java.net.URI(link)
