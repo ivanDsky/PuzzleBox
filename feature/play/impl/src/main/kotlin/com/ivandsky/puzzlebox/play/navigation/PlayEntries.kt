@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.GameRoute
 import com.ivandsky.puzzlebox.play.LibraryRoute
+import com.ivandsky.puzzlebox.play.MatchLegResultRoute
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.ResultRoute
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
@@ -97,6 +98,7 @@ fun EntryProviderScope<NavKey>.playEntry(
             onTaken = { result -> navigator.replaceTop(result) },
         )
     }
+    entry<MatchLegResultKey> { key -> MatchLegResultRoute(key, navigator) }
 }
 
 /**
