@@ -43,7 +43,7 @@ internal fun VerdictCheckingCue(running: Boolean, reducedMotion: Boolean, modifi
     if (!running || !graced) return
     val cue = modifier.fillMaxWidth().height(Spacing.xs).testTag("create.verdict.progress")
     val color = MaterialTheme.colorScheme.primary
-    val track = MaterialTheme.colorScheme.surfaceContainerHighest
+    val track = MaterialTheme.colorScheme.outlineVariant
     if (reducedMotion) {
         Box(cue.clip(CircleShape).background(track), contentAlignment = Alignment.Center) {
             Box(Modifier.fillMaxWidth(STILL_SEGMENT_FRACTION).fillMaxHeight().clip(CircleShape).background(color))
