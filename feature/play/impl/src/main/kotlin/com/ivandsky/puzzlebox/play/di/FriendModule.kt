@@ -33,7 +33,7 @@ val friendModule = module {
             clock = { Instant.now() },
         )
     }
-    viewModel { EnterCodeViewModel(get(), get()) }
+    viewModel { EnterCodeViewModel(get(), get(), get()) }
     factory { ComputeCustomBoard() }
     factory { FriendPuzzleBoard(get(), get(), get(), get()) }
     factory { SyncReceivedStatus(get(), get()) }
