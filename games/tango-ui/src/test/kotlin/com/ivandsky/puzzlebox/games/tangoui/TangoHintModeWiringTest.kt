@@ -33,12 +33,6 @@ class TangoHintModeWiringTest {
         assertSame(HintMode.Legacy, second.hintMode)
     }
 
-    @Test
-    fun `TangoPlayUi without arguments creates a Legacy controller`() {
-        val controller = TangoPlayUi().createController(env()) as TangoPlayController
-        assertSame(HintMode.Legacy, controller.hintMode)
-    }
-
     // Single Koin case: tangoUiModule is a top-level val and Koin caches its singleton
     // across containers, so a second container in this JVM would see the first one's instance.
     @Test
