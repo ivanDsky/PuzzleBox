@@ -231,4 +231,32 @@ class TangoDraftCommandTest {
             }
         }
     }
+
+    @Test
+    fun `the frozen v2 history undoes through the resize to a blank 6x6 board`() {
+        val state = decodeOk(fixture("tango-draft-v2.bin"))
+        assertEquals(8, state.draft.n)
+
+        var step = CommandHistory.Step(state.draft, state.history)
+        while (step.history.canUndo) step = step.history.undo(step.state)!!
+
+        assertEquals(blank, step.state)
+    }
+
+    @Test
+    fun `the frozen v2 history redoes forward from blank 6x6 through the resize and the redo stack`() {
+        val state = decodeOk(fixture("tango-draft-v2.bin"))
+        var step = CommandHistory.Step(state.draft, state.history)
+        while (step.history.canUndo) step = step.history.undo(step.state)!!
+
+        while (step.history.canRedo) step = step.history.redo(step.state)!!
+
+        val expected = TangoDraft(
+            8,
+            mapOf(45 to TangoCell.SUN, 63 to TangoCell.MOON),
+            listOf(TangoMarker(62, TangoEdgeSide.RIGHT, TangoMarkerKind.OPPOSITE)),
+        )
+        assertEquals(expected, step.state)
+        assertEquals(4, step.history.done.size)
+    }
 }
