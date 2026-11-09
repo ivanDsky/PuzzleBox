@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.games.strandsui.board.StrandsHaptics
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsTraceEndConnector
 import com.ivandsky.puzzlebox.games.strandsui.board.altThemeCells
 import com.ivandsky.puzzlebox.games.strandsui.board.altThemeLinks
+import com.ivandsky.puzzlebox.games.strandsui.board.rememberLinkSettle
 import com.ivandsky.puzzlebox.games.strandsui.board.rememberTraceEndFrame
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 
@@ -108,6 +109,7 @@ internal fun StrandsBoardContent(
         isFound
     }
     val end = rememberTraceEndFrame(traceEnd(), reduceMotion, touchSeq)
+    val settle = rememberLinkSettle(found, model.links, reduceMotion, touchSeq)
     BoxWithConstraints(modifier.fillMaxWidth()) {
         val cell = strandsCellSizeFor(maxWidth, maxHeight, model.rows, model.cols)
         val boardSize = DpSize(cell * model.cols, cell * model.rows)
@@ -120,7 +122,7 @@ internal fun StrandsBoardContent(
                 colors = colors.copy(boardGridLine = Color.Transparent),
                 underlay = {
                     tiles()
-                    StrandsConnectors(model.rows, model.cols, model.links, trace, colors, { finger.value }, foundLetter, animate = !reduceMotion)
+                    StrandsConnectors(model.rows, model.cols, model.links, trace, colors, { finger.value }, foundLetter, animate = !reduceMotion, settle = { settle.value })
                     StrandsTraceEndConnector(model.rows, model.cols, { end.value }, colors)
                 },
                 cellContent = { row, col ->

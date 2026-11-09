@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.util.lerp
 import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.BoardColors
 import com.ivandsky.puzzlebox.games.strands.Coord
@@ -36,7 +38,8 @@ import com.ivandsky.puzzlebox.gameui.GridGeometry
  * the draw phase) leans its end along one legal direction from the last letter — never at a
  * [found] letter — and [animate] turns on grow-in, retract and the tip's return home; reduced
  * motion keeps only the tip. [links] are built in a draw cache, rebuilt only on a size or
- * link change.
+ * link change. The [settle]ing link, a word's own while its letters bounce, is drawn
+ * from their frames instead ([LinkSettle]): it never stays thick behind a tile that has shrunk.
  */
 @Composable
 internal fun StrandsConnectors(
@@ -48,6 +51,7 @@ internal fun StrandsConnectors(
     finger: () -> Offset? = { null },
     found: (cell: Coord) -> Boolean = { false },
     animate: Boolean = false,
+    settle: () -> LinkSettle?,
 ) {
     val scope = rememberCoroutineScope()
     val motion = remember { StrandsLineMotion(scope) }
@@ -57,8 +61,19 @@ internal fun StrandsConnectors(
             .drawWithCache {
                 val geometry = GridGeometry(rows, cols, size.width, size.height)
                 val alt = altThemeLinks(links)
-                val drawn = links.filter { it.cells.size >= 2 }.map { linkDrawing(it, geometry, colors, it in alt) }
-                onDrawBehind { for (i in drawn.indices) drawn[i](this) }
+                val visible = links.filter { it.cells.size >= 2 }
+                val drawn = visible.map { linkDrawing(it, geometry, colors, it in alt) }
+                onDrawBehind {
+                    val settling = settle()
+                    for (i in drawn.indices) {
+                        if (settling != null && visible[i] == settling.link) {
+                            val color = linkColor(visible[i], colors, visible[i] in alt)
+                            drawSettling(settling, geometry, color, connectorColor(LinkKind.Trace, colors))
+                        } else {
+                            drawn[i](this)
+                        }
+                    }
+                }
             }
             .drawWithCache {
                 val color = connectorColor(LinkKind.Trace, colors)
@@ -72,7 +87,7 @@ internal fun StrandsConnectors(
 
 /** One link's draw call over geometry built once: a stroked polyline, or a hint's trimmed butt-capped pieces. */
 private fun CacheDrawScope.linkDrawing(link: StrandsLink, geometry: GridGeometry, colors: BoardColors, alt: Boolean): DrawScope.() -> Unit {
-    val color = if (alt) colors.strandsThemeAltConnector else connectorColor(link.kind, colors)
+    val color = linkColor(link, colors, alt)
     if (link.kind != LinkKind.Hint) {
         val path = Path().polylineThrough(link.cells, geometry)
         val stroke = roundStroke(link.kind)
@@ -83,6 +98,33 @@ private fun CacheDrawScope.linkDrawing(link: StrandsLink, geometry: GridGeometry
     val width = connectorWidth(link.kind).toPx()
     return {
         for (i in pieces.indices) drawLine(color, pieces[i].first, pieces[i].second, strokeWidth = width, cap = StrokeCap.Butt)
+    }
+}
+
+private fun linkColor(link: StrandsLink, colors: BoardColors, alt: Boolean): Color =
+    if (alt) colors.strandsThemeAltConnector else connectorColor(link.kind, colors)
+
+/**
+ * A settling link's steps, round-capped like the link at rest. Until its letters light a step
+ * is the trace line the player just drew ([LinkKind.Trace]'s colour and width); it turns into
+ * the link's own with them, and is as thick as the thinner of its two tiles is scaled.
+ */
+private fun DrawScope.drawSettling(
+    settle: LinkSettle,
+    geometry: GridGeometry,
+    color: Color,
+    traceColor: Color,
+) {
+    val scales = settle.stepScales()
+    val lit = settle.stepLit()
+    val traceWidth = connectorWidth(LinkKind.Trace).toPx()
+    val restWidth = connectorWidth(settle.link.kind).toPx()
+    val cells = settle.link.cells
+    for (i in scales.indices) {
+        val from = geometry.centerOf(GridCell(cells[i].row, cells[i].col))
+        val to = geometry.centerOf(GridCell(cells[i + 1].row, cells[i + 1].col))
+        val width = lerp(traceWidth, restWidth, lit[i]) * scales[i]
+        drawLine(lerp(traceColor, color, lit[i]), from, to, strokeWidth = width, cap = StrokeCap.Round)
     }
 }
 
