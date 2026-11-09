@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.games.tangoui
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
@@ -30,11 +29,7 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
-import java.time.Duration
 import java.time.Instant
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
  * The Tango play controller (tango-05): one adopted board → engine → win transition,
@@ -63,15 +58,11 @@ class TangoPlayController(
 
     var session by mutableStateOf<TangoSession?>(null)
         private set
-    var hintCell by mutableStateOf<Int?>(null)
-        private set
+    val hintCell: Int? get() = legacyHint.cell
 
     /** The last hint's WHY (§6 hint caption — the reveal names the deduction class). */
-    var hintWhy by mutableStateOf<TangoHint.Why?>(null)
-        private set
+    val hintWhy: TangoHint.Why? get() = legacyHint.why
     var lastRejection by mutableStateOf<TangoVerdict.Rejected?>(null)
-        private set
-    var nowMs by mutableStateOf(0L)
         private set
 
     override val isComplete: Boolean get() = session?.isComplete == true
@@ -79,26 +70,18 @@ class TangoPlayController(
     private val rules = TangoRules
     internal val guidance = TangoGuide()
 
-    /** The running timer window; folds into [TangoSession.elapsedMs] on pause/background.
-     *  Compose state on purpose: the clock loop keys off [clockWindow], so every change
-     *  here must be observable — the timer lives and dies by reactivity. */
-    private var runningSince: Instant? by mutableStateOf(null)
+    private val clock = TangoRunClock(now)
+    private val settle = TangoSettle(env.scope)
+    private val legacyHint = TangoLegacyHint()
 
     //region input (placements land; violations are state-driven, §6)
 
-    // Settle debounce, diff-based (user QA 2026-11-02): ONLY violations newly introduced
-    // by the last placement are suppressed for 0.5 s. Violations that already existed
-    // stay on screen until the grid change actually fixes them — an unfixed error never
-    // disappears because the user touched elsewhere.
-    var suppressedSets by mutableStateOf<Set<Set<Int>>>(emptySet())
-        private set
-    private var settleJob: Job? = null
+    val suppressedSets: Set<Set<Int>> get() = settle.suppressed
 
     fun onPlacement(placement: TangoPlacement) {
         lastRejection = null // next input clears the violation verdict (Zip hintArrow discipline)
-        hintCell = null
-        hintWhy = null
-        armSettle()
+        legacyHint.clear()
+        settle.arm()
         val current = session ?: return
         if (current.isComplete) return
         val puzzle = current.puzzle
@@ -130,8 +113,8 @@ class TangoPlayController(
         val next = if (mistake != null) moved.withRejection() else moved
         if (next == current) return // nothing changed (e.g. a hinted-equal placement)
         // Suppress only the NEW violations this move introduced (after − before).
-        suppressedSets = violatingSets(current.puzzle, next.grid()) - before
-        updateSession(if (next.isComplete) foldRunning(next) else next)
+        settle.suppress(violatingSets(current.puzzle, next.grid()) - before)
+        updateSession(if (next.isComplete) clock.fold(next) else next)
         if (mistake != null) lastRejection = TangoVerdict.Rejected(mistake, move.idx)
     }
 
@@ -145,17 +128,9 @@ class TangoPlayController(
         val next = step(current)
         if (next == current) return // nothing to move, or the session is complete
         lastRejection = null
-        armSettle()
-        suppressedSets = violatingSets(current.puzzle, next.grid()) - violatingSets(current.puzzle, current.grid())
+        settle.arm()
+        settle.suppress(violatingSets(current.puzzle, next.grid()) - violatingSets(current.puzzle, current.grid()))
         commit(next)
-    }
-
-    private fun armSettle() {
-        settleJob?.cancel()
-        settleJob = env.scope.launch {
-            delay(MotionTokens.SettleMillis) // (re)started window after which new violations show
-            suppressedSets = emptySet()
-        }
     }
 
     override val canUndo: Boolean get() = session?.let { !it.isComplete && it.history.canUndo } ?: false
@@ -182,7 +157,7 @@ class TangoPlayController(
         // Round-trip the initial session through the callback too: the route's saveable
         // must exist from load, not first placement (C1 process-death window).
         updateSession(TangoSession(ref = ref as TangoPuzzleRef, puzzle = tango))
-        runningSince = now() // the clock runs from the moment the puzzle opens
+        clock.start() // the clock runs from the moment the puzzle opens
         return Adopt.Adopted
     }
 
@@ -194,10 +169,9 @@ class TangoPlayController(
             is DecodeResult.Ok -> {
                 val s = restored.value
                 session = s
-                // The running clock is process-local (runningSince ≠ session state): a
-                // restored in-progress session restarts its window now, or the timer
-                // reads frozen forever (user QA 2026-11-02).
-                runningSince = if (s.isComplete) null else now()
+                // The running clock is process-local (≠ session state): a restored in-progress
+                // session restarts its window now, or the timer reads frozen forever (user QA 2026-11-02).
+                if (s.isComplete) clock.stop() else clock.start()
                 Restored(s.ref)
             }
 
@@ -206,80 +180,39 @@ class TangoPlayController(
 
     //endregion
 
-    /**
-     * Hint (spec hints bullet, Zip parity): the ONE counted hint AUTO-PLACES the forced move as an ordinary,
-     * undoable [TangoPlace], highlights it and captions its WHY until the next input. Undo refunds nothing.
-     */
+    /** Hint (spec hints bullet, Zip parity): the ONE counted hint; [TangoLegacyHint] auto-places the forced move. */
     override fun requestHint() {
         val current = session ?: return
         if (current.isComplete) return
-        if (runningSince == null) runningSince = now() // a hint that places is play
-        when (val resolved = rules.hint(TangoState(current.puzzle, current.grid()))) {
-            is TangoHint.Forced -> {
-                val move = TangoMove(resolved.idx, resolved.value)
-                if (rules.validate(move, TangoState(current.puzzle, current.grid())) is TangoVerdict.Valid) {
-                    commit(current.withMove(move, now()).withHintApplied(resolved))
-                } else {
-                    commit(current.withHintApplied(resolved))
-                }
-                hintCell = resolved.idx
-                hintWhy = resolved.why
-            }
-
-            // No forced move exists — the ladder answer costs the player nothing (I7).
-            TangoHint.Stuck -> commit(current.withHintApplied(resolved))
-        }
+        clock.resume() // a hint that places is play
+        legacyHint.resolve(current, now(), ::commit)
     }
 
     //region timer (F2 §2: active foreground play only)
 
-    override fun tick() {
-        nowMs = now().toEpochMilli()
-    }
+    override fun tick() = clock.tick()
 
     override fun onBackground() {
         val current = session ?: return
-        if (runningSince != null) updateSession(foldRunning(current))
+        if (clock.since != null) updateSession(clock.fold(current))
     }
 
     override fun onForeground() {
         val current = session ?: return
-        if (runningSince == null && !current.isComplete) runningSince = now()
+        if (!current.isComplete) clock.resume()
     }
 
     /** The running window's identity — the loop restarts each time it (re)opens. */
-    override val clockWindow: Any?
-        get() = runningSince
+    override val clockWindow: Any? get() = clock.since
 
-    /** What TimerBar draws right now (banked + running window). Never negative. */
-    override fun displayedElapsedMs(): Long {
-        val current = session ?: return 0L
-        val window = runningSince?.let { Duration.between(it, Instant.ofEpochMilli(nowMs)).toMillis() } ?: 0L
-        return (current.elapsedMs + window).coerceAtLeast(0L)
-    }
-
-    /** Folds the running window into the session's banked elapsed and stops the clock. */
-    private fun foldRunning(target: TangoSession): TangoSession {
-        val rs = runningSince ?: return target
-        runningSince = null
-        return target.copy(elapsedMs = target.elapsedMs + Duration.between(rs, now()).toMillis())
-    }
+    override fun displayedElapsedMs(): Long = session?.let { clock.displayedElapsedMs(it.elapsedMs) } ?: 0L
 
     //endregion
 
     //region PlayHints + PlayFeedback + PlayGuide
     override val hintsUsed: Int get() = session?.hintsUsed ?: 0
     override val hintEnabled: Boolean get() = session?.isComplete == false
-    /** The hint's WHY sentence (§6), shown by the shared chrome until the next input. */
-    override val hintCaption: String?
-        get() {
-            val why = hintWhy ?: return null
-            val current = session ?: return null
-            return TangoSemantics.hintPhrase(
-                TangoRendererModel.of(TangoState(current.puzzle, current.grid()), hint = null),
-                why,
-            )
-        }
+    override val hintCaption: String? get() = session?.let(legacyHint::caption)
     /** §6 state-driven live-grid violation (outranks [hintCaption]); placements LAND, so no [rejection]. */
     override val violation: String? get() = rendererModel()?.let(TangoSemantics::firstViolationPhrase)
     override val rejection: String? get() = null
@@ -290,10 +223,9 @@ class TangoPlayController(
      *  cleared and a fresh clock window open — the next win is a new transition and emits again. */
     override fun replay() {
         val current = session ?: return
-        hintCell = null
-        hintWhy = null
+        legacyHint.clear()
         lastRejection = null
-        runningSince = now()
+        clock.start()
         commit(TangoSession(ref = current.ref, puzzle = current.puzzle))
     }
 
@@ -302,14 +234,10 @@ class TangoPlayController(
     /** The renderer model the board draws — built here (F2: the state→model call site). */
     fun rendererModel(): TangoRendererModel? {
         val current = session ?: return null
-        // The hint rides the renderer model for the cell highlight (§7 HintReveal); its WHY
-        // sentence is shown once, by the shared chrome's [hintCaption], not the board's slot.
-        val hint = hintCell?.let { idx ->
-            hintWhy?.let { why -> current.grid()[idx]?.let { value -> TangoHint.Forced(idx, value, why) } }
-        }
+        // The hint rides the renderer model for the cell highlight (§7 HintReveal).
         return TangoRendererModel.of(
             TangoState(current.puzzle, current.grid()),
-            hint = hint,
+            hint = legacyHint.forced(current),
             verdict = lastRejection,
             suppressedSets = suppressedSets,
         ).copy(hintWhy = null).let(guidance::apply)
@@ -323,8 +251,7 @@ class TangoPlayController(
     //region internals
 
     private fun commit(next: TangoSession) {
-        hintCell = null
-        hintWhy = null
+        legacyHint.clear()
         updateSession(next)
     }
 
