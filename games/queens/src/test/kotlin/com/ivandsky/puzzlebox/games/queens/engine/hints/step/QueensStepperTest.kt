@@ -56,6 +56,22 @@ class QueensStepperTest {
             QueensPuzzle(size = 6, regions = o.ints("regions")!!, solution = o.ints("solutionA")!!.map(::Cell))
         }
 
+        /** [twoSolutions]' other valid solution. */
+        val solutionB: List<Cell> by lazy {
+            Json.parseToJsonElement(text("queens-editor-two-solutions.json")).jsonObject.ints("solutionB")!!.map(::Cell)
+        }
+
+        /** Where Stepwise stalls on [twoSolutions] from empty: no rung, D10 and D11 included, has a proof. */
+        val stall: QueensCandidates by lazy {
+            generateSequence(QueensCandidates.start(twoSolutions, emptySet())) { state ->
+                when (val d = QueensLadder.Stepwise.next(twoSolutions, state)) {
+                    null -> null
+                    is QueensDeduction.Place -> state.place(twoSolutions, d.cell)
+                    is QueensDeduction.Exclude -> state.exclude(d.cells)
+                }
+            }.last()
+        }
+
         /** gen-n8-q1, N=1. Solution: 5, 10, 16, 28, 39, 43, 49, 62. */
         val n8: QueensPuzzle by lazy { golden("gen-n8-q1") }
 
@@ -142,6 +158,14 @@ class QueensStepperTest {
         assertEquals(QueensStep.Solved, next(full, autoCross = false, solution = null))
     }
 
+    @Test
+    fun `the other valid solution of a two-solution board is solved too`() {
+        val b = QueensBoard(solutionB)
+        assertNotEquals(twoSolutions.solution!!.toSet(), solutionB.toSet())
+        assertEquals(QueensStep.Solved, QueensStepper.next(twoSolutions, b, true, null, twoSolutions.solution!!.toSet()))
+        assertEquals(QueensStep.Solved, QueensStepper.next(twoSolutions, b, false, null, null))
+    }
+
     // ---- mistakes ----
 
     @Test
@@ -169,6 +193,14 @@ class QueensStepperTest {
     fun `a wrong queen attacking queens is a rule break naming the nearest one`() {
         // 13 is off the solution, touches 5 and shares row 1 with 10; the correct 5 and 10 are not accused.
         assertEquals(QueensStep.Mistake(Cell(13), Kind.RULE_BREAK, Cell(5)), next(board(queens = listOf(5, 10, 13)), lastMove = Cell(5)))
+        // Nearest is measured from 13, not from the last move: 10 sits on the last move, 5 is still named.
+        assertEquals(QueensStep.Mistake(Cell(13), Kind.RULE_BREAK, Cell(5)), next(board(queens = listOf(5, 10, 13)), lastMove = Cell(10)))
+    }
+
+    @Test
+    fun `a rule break between equally near attacked queens names the lower cell`() {
+        // Column 5 holds 5, 13 and 21; 5 and 21 are both one step from 13.
+        assertEquals(QueensStep.Mistake(Cell(13), Kind.RULE_BREAK, Cell(5)), next(board(queens = listOf(21, 13, 5)), lastMove = Cell(13)))
     }
 
     @Test
@@ -297,18 +329,20 @@ class QueensStepperTest {
 
     @Test
     fun `where the ladder stalls, no solution is unavailable and a solution gives a sound reveal`() {
-        val stall = generateSequence(QueensCandidates.start(twoSolutions, emptySet())) { state ->
-            when (val d = QueensLadder.Stepwise.next(twoSolutions, state)) {
-                null -> null
-                is QueensDeduction.Place -> state.place(twoSolutions, d.cell)
-                is QueensDeduction.Exclude -> state.exclude(d.cells)
-            }
-        }.last()
         val board = QueensBoard(stall.queens.sorted().map(::Cell), stall.excluded.map(::Cell).toSet())
         assertEquals(QueensStep.Unavailable, QueensStepper.next(twoSolutions, board, true, null, null))
         val solution = twoSolutions.solution!!.toSet()
         val reveal = QueensStepper.next(twoSolutions, board, true, null, solution) as QueensStep.Reveal
         assertTrue("$reveal", stall.isOpen(reveal.cell.idx) && reveal.cell !in solution && !reveal.holdsQueen)
+    }
+
+    @Test
+    fun `first-break proofs are empty where no chain breaks`() {
+        val short = QueensLadder.Stepwise.rungs.single { it is ShortLookAheadRung } as ShortLookAheadRung
+        val long = QueensLadder.Stepwise.rungs.single { it is LongLookAheadRung } as LongLookAheadRung
+        assertTrue(stall.excluded.size + stall.queens.size < twoSolutions.cellCount)
+        assertEquals(emptyList<QueensProof>(), short.stepsAtFirstBreak(twoSolutions, stall))
+        assertEquals(emptyList<QueensProof>(), long.stepsAtFirstBreak(twoSolutions, stall))
     }
 
     @Test

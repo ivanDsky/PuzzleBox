@@ -38,14 +38,16 @@ object QueensStepper {
         val crosses = board.manual.mapNotNullTo(HashSet(board.manual.size * 2)) { cell -> cell.idx.takeIf { it !in queens } }
         val clash = Clash(puzzle, queens)
         if (queens.size == puzzle.size * puzzle.queensPerUnit && queens.none { clash.attacked(it) != null }) return QueensStep.Solved
-        mistake(puzzle, queens, crosses, clash, lastMove, solution)?.let { return it }
+        val onSolution = solution?.let { s -> BooleanArray(puzzle.cellCount).also { a -> for (cell in s) a[cell.idx] = true } }
+        mistake(puzzle, queens, crosses, clash, lastMove, onSolution)?.let { return it }
         // Every entry left is unaccused (with a solution: correct), so all of them seed the ladder (A5).
         // Auto-cross off stands the queens bare, so D0 lists the crosses the player still owes.
         val seeded = if (autoCross) QueensCandidates.start(puzzle, queens) else QueensCandidates(puzzle.size, queens, emptySet())
         val candidates = seeded.exclude(crosses)
         deduction(puzzle, candidates, ladder, lastMove)?.let { return it }
-        if (solution == null) return QueensStep.Unavailable
-        return reveal(puzzle, candidates, lastMove, solution) ?: QueensStep.Unavailable
+        if (onSolution == null) return QueensStep.Unavailable
+        // Unreachable: entries are all correct here and the board is unsolved, so an open off-solution cell remains.
+        return reveal(puzzle, candidates, lastMove, onSolution) ?: QueensStep.Unavailable
     }
 
     /** The entry to accuse: nearest [lastMove], a queen before a cross, then lowest cell. Auto marks are never judged (A5). */
@@ -55,7 +57,7 @@ object QueensStepper {
         crosses: Set<Int>,
         clash: Clash,
         lastMove: Cell?,
-        solution: Set<Cell>?,
+        onSolution: BooleanArray?,
     ): QueensStep.Mistake? {
         val n = puzzle.size
         var best: QueensStep.Mistake? = null
@@ -70,12 +72,12 @@ object QueensStepper {
         for (queen in queens) {
             val other = clash.attacked(queen)
             when {
-                other != null && (solution == null || Cell(queen) !in solution) -> offer(queen, false, QueensStep.Mistake.Kind.RULE_BREAK, other)
-                solution != null && Cell(queen) !in solution -> offer(queen, false, QueensStep.Mistake.Kind.OFF_SOLUTION, null)
+                other != null && (onSolution == null || !onSolution[queen]) -> offer(queen, false, QueensStep.Mistake.Kind.RULE_BREAK, other)
+                onSolution != null && !onSolution[queen] -> offer(queen, false, QueensStep.Mistake.Kind.OFF_SOLUTION, null)
             }
         }
-        if (solution != null) {
-            for (cross in crosses) if (Cell(cross) in solution) offer(cross, true, QueensStep.Mistake.Kind.WRONG_CROSS, null)
+        if (onSolution != null) {
+            for (cross in crosses) if (onSolution[cross]) offer(cross, true, QueensStep.Mistake.Kind.WRONG_CROSS, null)
         }
         return best
     }
@@ -87,13 +89,14 @@ object QueensStepper {
      */
     private fun deduction(puzzle: QueensPuzzle, candidates: QueensCandidates, ladder: QueensLadder, lastMove: Cell?): QueensStep.Deduction? {
         val n = puzzle.size
+        val nearest = compareBy<Int>({ chebyshev(n, it, lastMove) }, { it })
         for (rung in ladder.rungs) {
             var best: QueensProof? = null
             var bestKey = Long.MAX_VALUE
             for (proof in candidateProofs(rung, puzzle, candidates)) {
                 val near = when (val d = proof.deduction) {
                     is QueensDeduction.Place -> d.cell
-                    is QueensDeduction.Exclude -> d.cells.minWith(compareBy({ chebyshev(n, it, lastMove) }, { it }))
+                    is QueensDeduction.Exclude -> d.cells.minWith(nearest)
                 }
                 val key = (proof.evidence.size.toLong() shl 40) or (chebyshev(n, near, lastMove).toLong() shl 20) or near.toLong()
                 if (key < bestKey) {
@@ -126,10 +129,10 @@ object QueensStepper {
     }
 
     /**
-     * An open cell off the [solution] in the unsolved unit with the fewest open cells, then
+     * An open cell off the solution ([onSolution] by index) in the unsolved unit with the fewest open cells, then
      * nearest [lastMove], then lowest cell (A8). Null only when no such cell exists.
      */
-    private fun reveal(puzzle: QueensPuzzle, candidates: QueensCandidates, lastMove: Cell?, solution: Set<Cell>): QueensStep.Reveal? {
+    private fun reveal(puzzle: QueensPuzzle, candidates: QueensCandidates, lastMove: Cell?, onSolution: BooleanArray): QueensStep.Reveal? {
         val n = puzzle.size
         // Units 0 until n are rows, n until 2n columns, 2n until 3n regions.
         val queensIn = IntArray(3 * n)
@@ -144,14 +147,18 @@ object QueensStepper {
             tally[n + cell % n]++
             tally[2 * n + puzzle.regions[cell]]++
         }
+        val k = puzzle.queensPerUnit
         var best = -1
         var bestKey = Long.MAX_VALUE
         for (cell in 0 until n * n) {
-            if (!candidates.isOpen(cell) || Cell(cell) in solution) continue
+            if (!candidates.isOpen(cell) || onSolution[cell]) continue
+            val row = cell / n
+            val column = n + cell % n
+            val region = 2 * n + puzzle.regions[cell]
             var smallest = Int.MAX_VALUE
-            for (unit in intArrayOf(cell / n, n + cell % n, 2 * n + puzzle.regions[cell])) {
-                if (queensIn[unit] < puzzle.queensPerUnit) smallest = minOf(smallest, openIn[unit])
-            }
+            if (queensIn[row] < k) smallest = openIn[row]
+            if (queensIn[column] < k) smallest = minOf(smallest, openIn[column])
+            if (queensIn[region] < k) smallest = minOf(smallest, openIn[region])
             if (smallest == Int.MAX_VALUE) continue
             val key = (smallest.toLong() shl 40) or (chebyshev(n, cell, lastMove).toLong() shl 20) or cell.toLong()
             if (key < bestKey) {
