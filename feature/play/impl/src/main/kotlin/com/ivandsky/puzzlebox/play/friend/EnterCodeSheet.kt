@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -46,8 +47,9 @@ import org.koin.androidx.compose.koinViewModel
  * Open a friend's puzzle by its code: one field and Open, enabled once the field parses as a
  * [ShareCode] or a share link (case, dashes and spaces don't matter). Open checks the code
  * first; [onOpen] gets it once it opened and the sheet hid, and a code that can't open says why
- * in the sheet. The IME's Go submits too. The field starts at [initialText], trimmed to its
- * last path segment and capped.
+ * in the sheet. With [onOpenDuel] (duels on), a code that is no puzzle is looked up as a duel
+ * and hands its `DuelKey` there once the sheet hid. The IME's Go submits too. The field starts
+ * at [initialText], trimmed to its last path segment and capped.
  *
  * Motion: the sheet's **Slide in / Slide out** and the scrim's **Fade** are ModalBottomSheet's own.
  */
@@ -58,6 +60,7 @@ internal fun EnterCodeSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     initialText: String = "",
+    onOpenDuel: ((DuelKey) -> Unit)? = null,
     viewModel: EnterCodeViewModel = koinViewModel(),
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -65,10 +68,18 @@ internal fun EnterCodeSheet(
     val uriHandler = LocalUriHandler.current
     val check by viewModel.state.collectAsStateWithLifecycle()
     val opened = check as? CodeCheck.Opened
+    val openedDuel = check as? CodeCheck.MatchOpened
     LaunchedEffect(opened) {
         val code = opened?.code ?: return@LaunchedEffect
         scope.launch { sheetState.hide() }.invokeOnCompletion {
             onOpen(code)
+            viewModel.reset()
+        }
+    }
+    LaunchedEffect(openedDuel) {
+        val code = openedDuel?.code ?: return@LaunchedEffect
+        scope.launch { sheetState.hide() }.invokeOnCompletion {
+            onOpenDuel?.invoke(DuelKey(code.value))
             viewModel.reset()
         }
     }
@@ -82,7 +93,7 @@ internal fun EnterCodeSheet(
     ) {
         EnterCodeContent(
             check = check,
-            onCheck = viewModel::open,
+            onCheck = { viewModel.open(it, tryMatch = onOpenDuel != null) },
             onEdited = viewModel::edited,
             onUpdate = { uriHandler.openStoreListing() },
             autoFocus = true,
@@ -117,7 +128,7 @@ private fun EnterCodeContent(
 ) {
     var text by rememberSaveable { mutableStateOf(codePrefill(initialText)) }
     val code = ShareCode.parse(text) ?: ShareCode.fromLink(text.trim())
-    val busy = check is CodeCheck.Checking || check is CodeCheck.Opened
+    val busy = check is CodeCheck.Checking || check is CodeCheck.Opened || check is CodeCheck.MatchOpened
     val failure = check as? CodeCheck.Failed
     val unknown = failure?.outcome == OpenOutcome.NotFound
     val notice = failure?.takeUnless { unknown }?.let { it.outcome.errorCopy(it.code) }
