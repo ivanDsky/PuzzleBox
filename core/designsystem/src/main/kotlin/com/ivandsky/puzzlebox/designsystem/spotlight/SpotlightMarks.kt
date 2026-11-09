@@ -29,8 +29,8 @@ internal fun hairlinePath(edges: List<GridEdge>, rows: Int, cols: Int, size: Siz
     }
 }
 
-internal fun DrawScope.drawHairline(path: Path, color: Color, width: Float) {
-    drawPath(path, color, style = Stroke(width = width, cap = StrokeCap.Square))
+internal fun DrawScope.drawHairline(path: Path, color: Color, stroke: Stroke) {
+    drawPath(path, color, style = stroke)
 }
 
 /**

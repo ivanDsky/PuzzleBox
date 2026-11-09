@@ -19,7 +19,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import com.ivandsky.puzzlebox.designsystem.BoardTokens
@@ -43,7 +45,7 @@ fun BoxScope.SpotlightOverlay(spotlight: Spotlight?, modifier: Modifier = Modifi
     if (spotlight == null) return
     val lit = remember(spotlight) { spotlight.litCells() }
     if (lit.isEmpty()) return
-    val sequence = remember(spotlight) { SpotlightSequence(spotlight) }
+    val sequence = remember(spotlight) { SpotlightSequence(spotlight, lit) }
     val clock = rememberSequenceClock(spotlight.playId, sequence.endMs)
     val scheme = MaterialTheme.colorScheme
     val surface = LocalBoardColors.current.boardSurface
@@ -53,8 +55,8 @@ fun BoxScope.SpotlightOverlay(spotlight: Spotlight?, modifier: Modifier = Modifi
                 .fillMaxSize()
                 .drawWithCache {
                     val dim = dimPath(spotlight, lit, size)
-                    val hairline = hairlinePath(spotlight.hairlineEdges(), spotlight.rows, spotlight.cols, size)
-                    val hairlineWidth = SpotlightTokens.HairlineWidth.toPx()
+                    val hairline = hairlinePath(spotlight.hairlineEdges(lit), spotlight.rows, spotlight.cols, size)
+                    val hairlineStroke = Stroke(width = SpotlightTokens.HairlineWidth.toPx(), cap = StrokeCap.Square)
                     val excluded = RoleCells(spotlight, lit, SpotlightRole.EXCLUDED, size)
                     val targets = RoleCells(spotlight, lit, SpotlightRole.TARGET, size)
                     val culprits = RoleCells(spotlight, lit, SpotlightRole.CULPRIT, size)
@@ -68,7 +70,7 @@ fun BoxScope.SpotlightOverlay(spotlight: Spotlight?, modifier: Modifier = Modifi
                         val ms = clock.value
                         val fade = sequence.fade(ms)
                         drawPath(dim, dimColor, alpha = fade)
-                        drawHairline(hairline, hairlineColor.copy(alpha = fade), hairlineWidth)
+                        drawHairline(hairline, hairlineColor.copy(alpha = fade), hairlineStroke)
                         for (i in excluded.cells.indices) {
                             val p = sequence.excluded(i, ms)
                             val scale = scaleIn(SpotlightTokens.EXCLUDED_START_SCALE, p)
@@ -85,7 +87,7 @@ fun BoxScope.SpotlightOverlay(spotlight: Spotlight?, modifier: Modifier = Modifi
                 },
         )
         spotlight.callout?.let { callout ->
-            SpotlightCalloutBubble(callout, spotlight) { sequence.callout(clock.value) }
+            SpotlightCalloutBubble(callout, spotlight, lit) { sequence.callout(clock.value) }
         }
     }
 }

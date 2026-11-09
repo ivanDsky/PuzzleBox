@@ -135,7 +135,7 @@ class SpotlightOverlayTest {
         val roles = mapOf(1 to SpotlightRole.EVIDENCE, 4 to SpotlightRole.EXCLUDED, 8 to SpotlightRole.EXCLUDED)
         show(spotlight(roles))
         val cell = cellSize()
-        val settleMs = SpotlightSequence(spotlight(roles)).endMs
+        val settleMs = spotlight(roles).let { SpotlightSequence(it, it.litCells()) }.endMs
         assertTrue(settleMs < SpotlightTokens.TOTAL_MS)
         val frames = framesFor(settleMs + 2 * FRAME_MS)
         assertTrue(frames.flatten().all { it.role == SpotlightRole.EXCLUDED && it.size.width <= cell.width })
