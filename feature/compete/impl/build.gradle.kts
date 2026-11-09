@@ -11,6 +11,8 @@ android {
 dependencies {
     // DuelKey and DuelRevealKey (I2) and the entry keys the navigation extension registers.
     implementation(projects.feature.compete.api)
+    // MatchLegKey: Start and Resume on the duel screen open a puzzle's play screen (36).
+    implementation(projects.feature.play.api)
     // GoogleIdTokenProvider: a signed-out player signs in from the New duel sheet (31).
     implementation(projects.core.auth)
     // MatchRepository, MatchResultOutbox and the match models the Duels screens observe (30 onward).

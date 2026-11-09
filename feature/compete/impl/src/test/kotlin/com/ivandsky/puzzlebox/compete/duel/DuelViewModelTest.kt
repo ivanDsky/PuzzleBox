@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.MatchRepository
+import com.ivandsky.puzzlebox.data.match.MatchResultSync
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.domain.ObserveMatch
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
@@ -30,6 +31,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
+import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import java.time.LocalDate
@@ -89,6 +91,8 @@ class DuelViewModelTest {
         code = rawCode,
         observeMatch = ObserveMatch(repo, FakeMatchResultOutbox(), local, identity, registry) { now },
         updateSeat = UpdateMatchSeat(repo, local, identity),
+        savedPlays = FakeSavedPlayRepository(),
+        resultSync = MatchResultSync { },
         completions = completions,
         identity = identity,
         idTokens = idTokens,
