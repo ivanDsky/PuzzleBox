@@ -1,0 +1,201 @@
+package com.ivandsky.puzzlebox.app.nav
+
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.navigation3.runtime.NavKey
+import com.ivandsky.puzzlebox.app.e2e.E2E_TODAY
+import com.ivandsky.puzzlebox.app.e2e.E2eKoinGraph
+import com.ivandsky.puzzlebox.app.e2e.ShellRobot
+import com.ivandsky.puzzlebox.app.e2e.shellRobot
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.NavV2
+import com.ivandsky.puzzlebox.create.api.CreateKey
+import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.history.api.HistoryKey
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
+import com.ivandsky.puzzlebox.home.api.HomeKey
+import com.ivandsky.puzzlebox.navigation.NavigationState
+import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
+import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.profile.api.ProfileKey
+import com.ivandsky.puzzlebox.profile.api.SettingsKey
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/**
+ * With NavV2 on, every Browse screen carries the shell's avatar (`shell.avatar`) and gear
+ * (`shell.settings`) in its top bar; immersive and Tool screens carry neither. The avatar
+ * opens Profile and the gear opens Settings on the tab the player is on, so Back returns to
+ * the screen they left. With the flag off no screen shows either.
+ *
+ * The Games root is not listed: its Library header is a custom one that renders the slot
+ * only once ticket 14 lands. Rows run on a phone: until 14, two-pane History draws the slot
+ * in both panes.
+ */
+@RunWith(RobolectricTestRunner::class)
+// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h891dp")
+class ShellChromeTest {
+
+    @Test
+    fun `the Today, History and Create roots show the avatar and the gear`() = flagOn {
+        assertRoute(HOME)
+        assertShellActions(shown = true)
+
+        tapTab(HistoryRootKey)
+        assertRoute(HISTORY)
+        assertShellActions(shown = true)
+
+        tapTab(CreateKey)
+        assertRoute(CREATE)
+        assertShellActions(shown = true)
+    }
+
+    @Test
+    fun `a pushed friend puzzle shows the avatar and the gear`() =
+        flagOn(at(PlayKey, FriendPuzzleKey("K7Q2MX"))) {
+            assertRoute(FRIEND)
+            assertShellActions(shown = true)
+        }
+
+    @Test
+    fun `a pushed History shows the avatar and the gear`() = flagOn(at(HomeKey, HistoryKey())) {
+        assertRoute(HISTORY)
+        assertShellActions(shown = true)
+    }
+
+    @Test
+    fun `a game board shows neither`() = flagOn(at(PlayKey, GameKey(ZIP))) {
+        assertRoute(GAME)
+        assertShellActions(shown = false)
+    }
+
+    @Test
+    fun `a result shows neither`() =
+        flagOn(at(PlayKey, ResultKey(ZIP, E2E_TODAY.toString(), timeMs = 61_000, hintsUsed = 0))) {
+            assertRoute(RESULT)
+            assertShellActions(shown = false)
+        }
+
+    @Test
+    fun `Profile shows neither`() = flagOn(at(HomeKey, ProfileKey)) {
+        assertRoute(PROFILE)
+        assertShellActions(shown = false)
+    }
+
+    @Test
+    fun `Settings shows neither`() = flagOn(at(HomeKey, SettingsKey)) {
+        assertRoute(SETTINGS)
+        assertShellActions(shown = false)
+    }
+
+    @Test
+    fun `the avatar opens Profile on the current tab and Back returns to the screen left`() =
+        flagOn(at(HomeKey, HistoryKey())) {
+            assertRoute(HISTORY)
+
+            tap(AVATAR)
+
+            assertState(at(HomeKey, HistoryKey(), ProfileKey))
+            assertRoute(PROFILE)
+
+            back()
+
+            assertState(at(HomeKey, HistoryKey()))
+            assertRoute(HISTORY)
+        }
+
+    @Test
+    fun `the gear opens Settings on the current tab and Back returns to the screen left`() =
+        flagOn(at(PlayKey, FriendPuzzleKey("K7Q2MX"))) {
+            assertRoute(FRIEND)
+
+            tap(GEAR)
+
+            assertState(at(PlayKey, FriendPuzzleKey("K7Q2MX"), SettingsKey))
+            assertRoute(SETTINGS)
+
+            back()
+
+            assertState(at(PlayKey, FriendPuzzleKey("K7Q2MX")))
+            assertRoute(FRIEND)
+        }
+
+    @Test
+    fun `signed out the avatar is the Profile icon, signed in it draws the player's initial`() = flagOn {
+        assertRoute(HOME)
+        awaitTag(AVATAR)
+        assertNull("signed out the avatar draws no initial", avatarText())
+        assertEquals(listOf("Profile"), avatarSemantics().getOrNull(SemanticsProperties.ContentDescription))
+
+        graph.identity.currentIdentity = Identity(uid = "ada", displayName = "Ada Lovelace", photoUrl = null)
+        rule.waitForIdle()
+
+        assertEquals("signed in the avatar draws the player's initial", listOf("A"), avatarText())
+    }
+
+    @Test
+    fun `with the flag off no browse screen shows either`() = shellRobot {
+        assertRoute(HOME)
+        assertShellActions(shown = false)
+
+        tapText("See all")
+        assertRoute(HISTORY)
+        assertShellActions(shown = false)
+
+        tapTab(CreateKey)
+        assertRoute(CREATE)
+        assertShellActions(shown = false)
+    }
+
+    private fun flagOn(state: NavigationState = puzzleBoxNavigationState(navV2 = true), block: ShellRobot.() -> Unit) =
+        shellRobot(
+            state = state,
+            graph = E2eKoinGraph(E2E_TODAY, releaseFlags = FakeReleaseFlags(NavV2)),
+            destinations = topLevelDestinations(navV2 = true),
+            block = block,
+        )
+
+    /** The fresh flag-on state, selected on [tab], whose stack is [tab] then [pushed]. */
+    private fun at(tab: NavKey, vararg pushed: NavKey): NavigationState {
+        val fresh = puzzleBoxNavigationState(navV2 = true)
+        return NavigationState(
+            tab = tab,
+            stacks = fresh.stacks.map { stack -> if (stack.first() == tab) stack + pushed else stack },
+        )
+    }
+
+    private fun ShellRobot.assertShellActions(shown: Boolean) {
+        if (shown) awaitTag(AVATAR)
+        val expected = if (shown) 1 else 0
+        assertEquals("avatars (state $state)", expected, rule.onAllNodesWithTag(AVATAR).fetchSemanticsNodes().size)
+        assertEquals("gears (state $state)", expected, rule.onAllNodesWithTag(GEAR).fetchSemanticsNodes().size)
+    }
+
+    private fun ShellRobot.avatarSemantics() = rule.onNodeWithTag(AVATAR).fetchSemanticsNode().config
+
+    private fun ShellRobot.avatarText(): List<String>? =
+        avatarSemantics().getOrNull(SemanticsProperties.Text)?.map { it.text }
+
+    private companion object {
+        const val AVATAR = "shell.avatar"
+        const val GEAR = "shell.settings"
+        const val ZIP = "zip"
+        const val HOME = "route.home"
+        const val HISTORY = "route.history"
+        const val CREATE = "route.create"
+        const val FRIEND = "route.friend"
+        const val GAME = "route.game"
+        const val RESULT = "route.result"
+        const val PROFILE = "route.profile"
+        const val SETTINGS = "route.settings"
+    }
+}
