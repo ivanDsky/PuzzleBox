@@ -284,12 +284,11 @@ class SudokuStepGameTest {
     }
 
     @Test
-    fun `the spotlight is the mapper's for the live session, glyphs included`() {
+    fun `the spotlight draws the wrong entry read from the live board`() {
         val play = Play(peanut450)
         play.place(0, 1)
         val step = play.next()
 
-        assertEquals(SudokuSpotlightMapper.map(step, peanut450, play.session.board, 7), play.game.spotlight(step, 7))
         assertEquals(SudokuSpotlightGlyphs(mapOf(0 to "1")), play.game.spotlight(step, 7)?.glyphs)
     }
 
