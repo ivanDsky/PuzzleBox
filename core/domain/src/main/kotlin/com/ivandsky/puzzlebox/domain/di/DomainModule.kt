@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.domain.di
 
 import com.ivandsky.puzzlebox.domain.GetAppUpdate
+import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
 import com.ivandsky.puzzlebox.domain.ImportDraftFromText
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.CreateDraft
@@ -23,6 +24,7 @@ import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import java.time.Instant
 import java.util.UUID
+import kotlin.random.Random
 import org.koin.dsl.module
 
 /**
@@ -30,7 +32,7 @@ import org.koin.dsl.module
  * [com.ivandsky.puzzlebox.game.GameRegistry], except [SyncTodayPuzzles] — a single, so
  * every surface reads the same failed fetches. Today's leaderboard day is the device's
  * local date, read when the board (re)starts. A new draft's id (blank or copied) is a random
- * UUID and its timestamp the wall clock.
+ * UUID and its timestamp the wall clock. A duel's draw shuffles with [Random.Default].
  */
 val domainModule = module {
     factory { ObserveGameHistory(registry = get(), daily = get(), completions = get()) }
@@ -83,6 +85,16 @@ val domainModule = module {
             history = get(),
             calendar = get(),
             leaderboard = get(),
+        )
+    }
+    factory {
+        ComputeMatchLegs(
+            registry = get(),
+            daily = get(),
+            calendar = get(),
+            history = get(),
+            received = get(),
+            random = Random.Default,
         )
     }
 }
