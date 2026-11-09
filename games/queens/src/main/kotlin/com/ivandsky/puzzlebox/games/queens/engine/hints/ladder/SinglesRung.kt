@@ -4,6 +4,8 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
+private typealias PlaceFound = Pair<QueensDeduction.Place, () -> Set<Int>>
+
 /**
  * First rung: a row, column or region whose missing queens fit only its open cells
  * (for N=1: one open cell left) places its lowest open cell.
@@ -16,17 +18,28 @@ object SinglesRung : QueensRung {
     override val level: Difficulty.Level = Difficulty.Level.Easy
     override val captionKey: String = "queens.hint.rung.singles"
 
-    override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? {
+    override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
+        found(puzzle, candidates).sortedWith(order(puzzle)).asSequence().map { (deduction, evidence) -> QueensProof(deduction, evidence()) }
+
+    override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
+        found(puzzle, candidates).minWithOrNull(order(puzzle))?.first
+
+    private fun order(puzzle: QueensPuzzle): Comparator<PlaceFound> = compareBy(
+        { puzzle.regions[it.first.cell] },
+        { it.first.cell },
+        { it.first.unit.kind },
+    )
+
+    /** Deductions with evidence still unbuilt, so [step] builds none for the losing candidates. */
+    private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<PlaceFound> {
         val n = puzzle.size
         val units = List(n) { row -> HintReason(HintReason.Kind.ROW, row) to List(n) { row * n + it } } +
             List(n) { col -> HintReason(HintReason.Kind.COLUMN, col) to List(n) { it * n + col } } +
             List(n) { region -> HintReason(HintReason.Kind.REGION, region) to puzzle.regions.indices.filter { puzzle.regions[it] == region } }
-        return units
-            .mapNotNull { (unit, cells) ->
-                val missing = puzzle.queensPerUnit - cells.count { it in candidates.queens }
-                val open = cells.filter(candidates::isOpen)
-                if (missing > 0 && open.size == missing) QueensDeduction.Place(this, unit, open.first()) else null
-            }
-            .minWithOrNull(compareBy({ puzzle.regions[it.cell] }, { it.cell }, { it.unit.kind }))
+        return units.mapNotNull { (unit, cells) ->
+            val missing = puzzle.queensPerUnit - cells.count { it in candidates.queens }
+            val open = cells.filter(candidates::isOpen)
+            if (missing > 0 && open.size == missing) QueensDeduction.Place(this, unit, open.first()) to { cells.toSet() } else null
+        }
     }
 }
