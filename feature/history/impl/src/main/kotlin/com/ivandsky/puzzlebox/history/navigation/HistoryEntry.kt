@@ -5,22 +5,37 @@ import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.HistoryRoute
 import com.ivandsky.puzzlebox.history.api.HistoryKey
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.GameKey
+import java.time.LocalDate
 
-/** History's route: a replayed day pushes [GameKey] for that (game, day) once. */
+/**
+ * History's routes: the pushed [HistoryKey] with a back arrow, and the tab root
+ * [HistoryRootKey] without one. A replayed day pushes [GameKey] for that (game, day) once.
+ */
 fun EntryProviderScope<NavKey>.historyEntry(
     navigator: Navigator,
     layout: HistoryLayout,
 ) {
+    val replay: (GameId, LocalDate) -> Unit = { game, day ->
+        navigator.pushOnce(GameKey(game.value, day.toString()))
+    }
     entry<HistoryKey> { key ->
         HistoryRoute(
             key = key,
             layout = layout,
             onBack = { navigator.pop() },
-            onReplay = { game, day ->
-                navigator.pushOnce(GameKey(game.value, day.toString()))
-            },
+            onReplay = replay,
+        )
+    }
+    entry<HistoryRootKey> {
+        HistoryRoute(
+            key = HistoryKey(),
+            layout = layout,
+            onBack = null,
+            onReplay = replay,
         )
     }
 }

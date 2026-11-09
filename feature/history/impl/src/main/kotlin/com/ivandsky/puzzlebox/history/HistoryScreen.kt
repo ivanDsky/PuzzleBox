@@ -45,7 +45,7 @@ import java.time.LocalDate
 @Composable
 fun HistoryScreen(
     layout: HistoryLayout,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     days: LazyPagingItems<HistoryDayRow>,
     state: HistoryUiState,
     onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit,
