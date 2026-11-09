@@ -44,6 +44,7 @@ import com.ivandsky.puzzlebox.app.nav.PuzzleBoxNavShell
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
 import com.ivandsky.puzzlebox.app.nav.applyFriendLink
+import com.ivandsky.puzzlebox.app.nav.applySharedText
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -79,6 +80,8 @@ import org.koin.compose.koinInject
  * A [pendingLink] (a tapped share link's URI) lands on the back stack in the composition
  * that first sees it, so a cold start draws the friend's card on its first frame; then
  * [onLinkApplied]. A link whose code doesn't parse opens Play's code sheet holding its text.
+ * A [pendingShare] (shared text waiting in the store, which `MainActivity` filled) shows
+ * Create's root the same way, then [onShareApplied]; the root imports the text.
  */
 @Composable
 fun PuzzleBoxApp(
@@ -87,6 +90,8 @@ fun PuzzleBoxApp(
     navigator: Navigator = rememberNavigator(),
     pendingLink: String? = null,
     onLinkApplied: () -> Unit = {},
+    pendingShare: Boolean = false,
+    onShareApplied: () -> Unit = {},
     todaySet: ObserveTodaySet = koinInject(),
 ) {
     var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
@@ -98,6 +103,10 @@ fun PuzzleBoxApp(
             }
         }
         SideEffect(onLinkApplied)
+    }
+    if (pendingShare) {
+        remember { navigator.applySharedText() }
+        SideEffect(onShareApplied)
     }
     // Two-pane needs width AND height: a large tablet in portrait still measures
     // Expanded by width class, so the orientation comes from the current window

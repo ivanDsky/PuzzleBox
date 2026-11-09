@@ -14,17 +14,14 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.ivandsky.puzzlebox.app.nav.FriendLink
 import com.ivandsky.puzzlebox.app.nav.SharedText
-import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.repository.SharedTextStore
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -91,19 +88,12 @@ class MainActivity : ComponentActivity(), KoinComponent {
                 }
 
                 PuzzleBoxTheme(darkTheme = darkTheme) {
-                    val navigator = rememberNavigator()
-                    if (pendingShare) {
-                        // ApplySharedText's move (select Create, popping a Create already on
-                        // top to its root), made on the live navigator: the Create root then
-                        // resumes and takes the text.
-                        remember { navigator.selectTab(CreateKey) }
-                        SideEffect { pendingShare = false }
-                    }
                     PuzzleBoxApp(
                         windowWidthSizeClass = windowSize.widthSizeClass,
-                        navigator = navigator,
                         pendingLink = pendingLink,
                         onLinkApplied = { pendingLink = null },
+                        pendingShare = pendingShare,
+                        onShareApplied = { pendingShare = false },
                     )
                 }
             }

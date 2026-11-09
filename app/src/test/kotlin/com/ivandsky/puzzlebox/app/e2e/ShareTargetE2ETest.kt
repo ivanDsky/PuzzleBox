@@ -16,12 +16,22 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.platform.app.InstrumentationRegistry
 import com.ivandsky.puzzlebox.app.MainActivity
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.SharedTextStore
+import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.editor.DraftState
+import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.games.queens.QueensVariants
+import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
+import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
 import java.time.Duration
+import java.time.Instant
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -108,6 +118,44 @@ class ShareTargetE2ETest {
     }
 
     @Test
+    fun `a share from Play while Create holds a Studio opens the shared draft, not the old one`() {
+        startGraph(ReleaseFlag.ShareTarget)
+        seedBlankDraft()
+        launching(fromRecents(send(UNIQUE))) {
+            openSeededStudio()
+            tap("nav.tab.play")
+            assertRoute(LIBRARY)
+
+            deliver(send(UNIQUE))
+            awaitVerdict()
+            assertRoute(EDITOR)
+            assertEquals("the seeded draft and the imported one", 2, drafts.rows.size)
+            assertNull(store.pending.value)
+
+            back()
+            assertRoute(CREATE)
+            rule.onNodeWithTag("nav.tab.create").assertIsSelected()
+        }
+    }
+
+    @Test
+    fun `a share while Create shows a Studio opens the shared draft, then back is the Create root`() {
+        startGraph(ReleaseFlag.ShareTarget)
+        seedBlankDraft()
+        launching(fromRecents(send(UNIQUE))) {
+            openSeededStudio()
+
+            deliver(send(UNIQUE))
+            awaitVerdict()
+            assertRoute(EDITOR)
+            assertEquals(2, drafts.rows.size)
+
+            back()
+            assertRoute(CREATE)
+        }
+    }
+
+    @Test
     fun `recreating the activity after a share creates no second draft`() {
         startGraph(ReleaseFlag.ShareTarget)
         launching(send(UNIQUE)) {
@@ -145,6 +193,39 @@ class ShareTargetE2ETest {
             rule.onNodeWithTag("nav.tab.home").assertIsSelected()
             assertEquals(emptyMap<String, Any>(), drafts.rows)
             assertNull("nothing waits in the store", store.pending.value)
+        }
+    }
+
+    /** Create's root, then the seeded draft's row opens its Studio. */
+    private fun openSeededStudio() {
+        tap("nav.tab.create")
+        assertRoute(CREATE)
+        tap("create.draft.row")
+        awaitTag("create.editor.board")
+        assertRoute(EDITOR)
+    }
+
+    /** A blank 5×5 Queens draft: a Studio whose verdict is not Unique. */
+    private fun seedBlankDraft() {
+        val editor = checkNotNull(graph.koin.get<GameRegistry>()[GameId("queens")]?.editor)
+        val board = EditorDraft(QueensEditor, DraftState(QueensDraft(SIZE, List(SIZE * SIZE) { 0 })))
+        runBlocking {
+            drafts.upsert(
+                Draft(
+                    id = "castle",
+                    gameId = GameId("queens"),
+                    variant = QueensVariants.variant(SIZE).id,
+                    draftFormatVersion = editor.draftFormatVersion,
+                    blob = board.encode(),
+                    title = "Castle",
+                    updatedAt = Instant.parse("2026-01-01T00:00:00Z"),
+                    testSolve = null,
+                    reservedCode = null,
+                    imported = false,
+                    authorName = "",
+                    note = "",
+                ),
+            )
         }
     }
 
@@ -234,6 +315,7 @@ class ShareTargetE2ETest {
         const val CREATE = "route.create"
         const val EDITOR = "route.editor"
         const val VERDICT = "create.editor.pill"
+        const val SIZE = 5
         const val TIMEOUT_MS = 10_000L
         const val IDLE_STEP_MS = 50L
         const val SETTLE_MS = 500L
