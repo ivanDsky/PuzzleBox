@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLatestSolvedToday
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveMatch
+import com.ivandsky.puzzlebox.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
@@ -96,6 +97,9 @@ val domainModule = module {
             registry = get(),
             clock = { Instant.now() },
         )
+    }
+    factory {
+        ObserveMyDuels(repo = get(), outbox = get(), local = get(), identity = get(), clock = { Instant.now() })
     }
     factory { ImportDraftFromText(registry = get(), createDraft = get(), drafts = get(), dispatchers = get()) }
     factory { ValidatePublish() }
