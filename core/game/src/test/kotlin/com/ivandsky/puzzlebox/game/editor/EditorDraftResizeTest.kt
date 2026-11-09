@@ -5,11 +5,13 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.model.GameId
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Resize keeps content only for an editor with [DraftResize]; either way it is one undo step. */
+/** Resize keeps content only for an editor with [DraftResize]; either way it is one undo step. [EditorDraft.isBlank] reads the board only. */
 class EditorDraftResizeTest {
 
     private fun edited(editor: GameEditor<List<Int>>) =
@@ -51,6 +53,32 @@ class EditorDraftResizeTest {
         val cleared = edited(KeepingEditor).clear()
 
         assertEquals(listOf(0, 0, 0), cleared.state.draft)
+    }
+
+    @Test
+    fun `a fresh board is blank`() {
+        assertTrue(EditorDraft.fresh(BlankEditor, VariantId("list/n3")).isBlank)
+    }
+
+    @Test
+    fun `an edited board is not blank`() {
+        assertFalse(edited(BlankEditor).isBlank)
+    }
+
+    @Test
+    fun `a cleared board is blank again`() {
+        assertTrue(edited(BlankEditor).clear().isBlank)
+    }
+
+    @Test
+    fun `history does not count towards blank`() {
+        val cleared = edited(BlankEditor).clear()
+        val undone = edited(BlankEditor).undo()!!
+
+        assertTrue(cleared.canUndo)
+        assertTrue(undone.canRedo)
+        assertTrue(undone.isBlank)
+        assertFalse(cleared.undo()!!.isBlank)
     }
 
     private data class SetAll(val before: List<Int>, val after: List<Int>) : Command<List<Int>> {

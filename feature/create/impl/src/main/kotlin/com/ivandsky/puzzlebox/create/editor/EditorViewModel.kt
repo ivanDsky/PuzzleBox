@@ -130,6 +130,9 @@ class EditorViewModel(
     /** Unpublish and its confirm dialog. */
     internal val unpublish = UnpublishSession(updatePublishState, viewModelScope)
 
+    /** The Size picker's resize and its "Start a blank board?" confirm. */
+    internal val resizes = ResizeSession(board = { board }, locked = { published }, apply = history::resize)
+
     private val studioImport = StudioImport(games, drafts, dispatchers, clock, releaseFlags, viewModelScope)
 
     /** The overflow's Import from text sheet; a draft it imports is sent on [importedDrafts]. */
@@ -194,8 +197,8 @@ class EditorViewModel(
     /** The undone step again, handled like [undo]. */
     fun redo() = history.redo()
 
-    /** A blank [variant] board as one undoable step (A5); picking the open size is not a step. */
-    fun resize(variant: VariantId) = history.resize(variant)
+    /** Another size as one undoable step (A5), confirmed first when it would blank a board with content; the open size is not a step. */
+    fun resize(variant: VariantId) = resizes.request(variant)
 
     /** A blank board of the open size as one undoable step (A5). */
     fun clear() = history.clear()
