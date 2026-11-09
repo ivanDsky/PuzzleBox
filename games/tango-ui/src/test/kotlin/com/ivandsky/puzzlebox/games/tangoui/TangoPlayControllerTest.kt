@@ -102,6 +102,21 @@ class TangoPlayControllerTest {
     }
 
     @Test
+    fun `a fully given board that breaks a rule is refused by the A15 gate`() {
+        val s = controller()
+        // The fixture solution with cell 0 flipped: its row holds four of one value.
+        val clashing = TangoPlayFixture.solution.mapIndexed { idx, cell ->
+            if (idx == 0) (if (cell == TangoCell.SUN) TangoCell.MOON else TangoCell.SUN) else cell
+        }
+        val puzzle = TangoPlayFixture.puzzle.copy(givens = clashing.withIndex().associate { it.index to it.value })
+
+        val adopt = s.adoptToday(TangoPlayFixture.envelope(puzzle), TangoPlayFixture.ref(today))
+
+        assertTrue((adopt as Adopt.Rejected).message.contains("didn't load right"))
+        assertNull(s.session)
+    }
+
+    @Test
     fun `valid placements land and correct values complete the session`() {
         val s = loaded()
 

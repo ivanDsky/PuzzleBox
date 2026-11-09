@@ -6,8 +6,8 @@ import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 
 /**
  * A15: every accepted Tango puzzle has exactly one solution — ambiguous puzzles are
- * rejected, never guessed through. Exhaustive solver over the empty cells with local
- * consistency pruning; exposed for the fetch path (ticket 03) to gate dailies and
+ * rejected, never guessed through. Exhaustive solver: forced moves and failed-literal
+ * probing fill what the rules decide, then it branches on the most constrained cell; exposed for the fetch path (ticket 03) to gate dailies and
  * archive playback. JVM-only, pure.
  *
  * [bounded] polls a [Budget] at every search node and answers [TangoSearchOutcome.Exhausted]
@@ -56,67 +56,38 @@ object TangoUniqueness {
     }
 
     /**
-     * Backtracks over the empty cells, handing each full grid to [onSolution], up to [limit].
-     * Polls [budget] once per node; false when it ran out before the search settled.
+     * Depth-first search handing each full grid to [onSolution], up to [limit]. Every node fills
+     * the forced cells ([TangoPropagation.propagate], then failed-literal [TangoPropagation.probe])
+     * and branches SUN then MOON on [TangoPropagation.mostConstrained]. Polls [budget] once per node;
+     * false when it ran out before the search settled.
      */
     private fun search(puzzle: TangoPuzzle, limit: Int, budget: Budget, onSolution: (Array<TangoCell?>) -> Unit): Boolean {
-        val grid = Array<TangoCell?>(puzzle.cellCount) { idx -> puzzle.givens[idx] }
-        val empty = (0 until puzzle.cellCount).filter { idx -> grid[idx] == null }
+        val state = TangoPropagation(puzzle)
         var count = 0
         var exhausted = false
 
-        fun consistentAt(idx: Int): Boolean {
-            val n = puzzle.n
-            // The placed cell's own lines and marker edges — everything a new value can break.
-            if (TangoMarkerRule.violationAt(puzzle, grid.toList(), idx)) return false
-            if (tripleThrough(grid, n, idx)) return false
-            val half = n / 2
-            val rowCountS = countLine(grid, n, idx / n * n, 1)
-            val colCountS = countLine(grid, n, idx % n, n)
-            val rowCountM = countLine(grid, n, idx / n * n, 1, TangoCell.MOON)
-            val colCountM = countLine(grid, n, idx % n, n, TangoCell.MOON)
-            return rowCountS <= half && colCountS <= half && rowCountM <= half && colCountM <= half
-        }
-
-        fun rec(i: Int) {
+        fun rec() {
             if (exhausted || count >= limit) return
             if (budget.exhausted()) {
                 exhausted = true
                 return
             }
-            if (i == empty.size) {
+            if (!state.propagate() || !state.probe()) return
+            val idx = state.mostConstrained()
+            if (idx < 0) {
                 count++
-                onSolution(grid)
+                onSolution(state.grid)
                 return
             }
-            val idx = empty[i]
-            for (value in listOf(TangoCell.SUN, TangoCell.MOON)) {
-                grid[idx] = value
-                if (consistentAt(idx)) rec(i + 1)
+            for (value in branchOrder) {
+                val mark = state.mark()
+                if (state.place(idx, value)) rec()
+                state.undoTo(mark)
             }
-            grid[idx] = null
         }
-        rec(0)
+        rec()
         return !exhausted
     }
 
-    private fun countLine(grid: Array<TangoCell?>, n: Int, start: Int, step: Int, value: TangoCell = TangoCell.SUN): Int {
-        var c = 0
-        for (k in 0 until n) if (grid[start + k * step] == value) c++
-        return c
-    }
-
-    private fun tripleThrough(grid: Array<TangoCell?>, n: Int, idx: Int): Boolean {
-        val value = grid[idx] ?: return false
-        val row = idx / n
-        val col = idx % n
-        // Every length-3 run (row and column) that contains idx.
-        for (shift in -2..0) {
-            val c0 = col + shift
-            if (c0 >= 0 && c0 + 2 < n && (0..2).all { grid[row * n + c0 + it] == value }) return true
-            val r0 = row + shift
-            if (r0 >= 0 && r0 + 2 < n && (0..2).all { grid[(r0 + it) * n + col] == value }) return true
-        }
-        return false
-    }
+    private val branchOrder = arrayOf(TangoCell.SUN, TangoCell.MOON)
 }
