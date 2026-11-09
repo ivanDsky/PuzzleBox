@@ -31,13 +31,13 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.AppDropdownMenu
 import com.ivandsky.puzzlebox.designsystem.AppShapes
+import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.pressScale
-import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -188,7 +188,7 @@ private fun ImportedChip() {
         modifier = Modifier
             .background(MaterialTheme.colorScheme.secondaryContainer, PillShape)
             .padding(horizontal = Spacing.sm, vertical = ChipVerticalPadding)
-            .testTag("studio.imported"),
+            .testTag("create.studio.imported"),
     )
 }
 
@@ -223,7 +223,7 @@ private fun OverflowMenu(
                 DropdownMenuItem(
                     text = { Text("Import from text") },
                     onClick = pick(it),
-                    modifier = Modifier.testTag("studio.overflow.import"),
+                    modifier = Modifier.testTag("create.studio.import"),
                 )
             }
             onUnpublish?.let {

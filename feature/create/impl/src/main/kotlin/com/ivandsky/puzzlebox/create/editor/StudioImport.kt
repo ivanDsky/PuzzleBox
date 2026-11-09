@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.stateIn
 private const val STOP_TIMEOUT_MS = 5_000L
 
 /**
- * The Studio's Import from text (M5-07), built from what the Studio already holds, the way
+ * The Studio's Import from text, built from what the Studio already holds, the way
  * `DomainModule` binds [ImportDraftFromText]: the sheet's [text] holder, whether the overflow
  * offers it ([enabled]: [ReleaseFlag.TextImport] is on, live) and the id of each draft it
  * imports on [imported], once each, for the route to open in the Studio's place.

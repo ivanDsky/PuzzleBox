@@ -46,8 +46,8 @@ import org.koin.core.parameter.parametersOf
  * Unpublish… opens the [UnpublishDialog], and once taken down the ticket strikes its code and the
  * "Unpublished" toast shows in the same slot. The overflow's Import from text opens the
  * [ImportSheet] over the Studio; the draft it stores is reported to [onImported], which opens it
- * in the Studio's place. The holders stay here: the screen gets their state
- * and events.
+ * in the Studio's place. That Studio, [importedPending] set, shows the [ImportedToast] once and
+ * reports [onImportedShown]. The holders stay here: the screen gets their state and events.
  */
 @Composable
 internal fun EditorRoute(
@@ -57,6 +57,8 @@ internal fun EditorRoute(
     onOpen: (draftId: String) -> Unit,
     onDelete: (draftId: String) -> Unit,
     onImported: (draftId: String) -> Unit,
+    importedPending: Boolean,
+    onImportedShown: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: EditorViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
@@ -189,6 +191,7 @@ internal fun EditorRoute(
                         SignInFailureToast(failure = publish.signInFailure, onGone = viewModel.publish::dismissSignInFailure, modifier = Modifier)
                         CodeCopiedToast(code = ticket?.code, copies = copies, modifier = Modifier)
                         UnpublishedToast(code = ticket?.code, done = unpublish.done, modifier = Modifier)
+                        ImportedToast(pending = importedPending, onShown = onImportedShown, modifier = Modifier)
                     }
                 },
                 readOnly = ticket != null,

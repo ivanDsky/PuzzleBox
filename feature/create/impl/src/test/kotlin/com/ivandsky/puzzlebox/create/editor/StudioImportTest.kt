@@ -1,7 +1,10 @@
 package com.ivandsky.puzzlebox.create.editor
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -60,7 +63,6 @@ import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
-import org.robolectric.shadows.ShadowToast
 
 /**
  * The Studio's overflow Import from text (M5-07) over the real view model, the real
@@ -109,7 +111,7 @@ class StudioImportTest {
         assertTrue("the new draft is stored imported", drafts.rows.getValue(created.draftId).imported)
         assertEquals("the source row is as it was", source, drafts.rows.getValue(SOURCE_ID))
         awaitTag(IMPORTED)
-        assertEquals("one toast", 1, ShadowToast.shownToastCount())
+        awaitTag(IMPORTED_TOAST)
     }
 
     @Test
@@ -134,7 +136,22 @@ class StudioImportTest {
         awaitTag(SHEET)
         assertEquals(before, navigator.state.currentStack)
         assertEquals("nothing was stored", setOf(SOURCE_ID), drafts.rows.keys)
-        assertEquals("no toast", 0, ShadowToast.shownToastCount())
+        assertTrue("no toast", composeRule.onAllNodes(hasTestTag(IMPORTED_TOAST), useUnmergedTree = true).fetchSemanticsNodes().isEmpty())
+    }
+
+    @Test
+    fun `the imported toast shows on the new Studio and not again once it is back on screen`() {
+        open(FakeReleaseFlags(ReleaseFlag.TextImport))
+        importText(NOTATION)
+        awaitTag(IMPORTED_TOAST)
+
+        mounted = false
+        composeRule.waitForIdle()
+        mounted = true
+
+        awaitTag(TITLE)
+        composeRule.waitForIdle()
+        assertTrue("shown once", composeRule.onAllNodes(hasTestTag(IMPORTED_TOAST), useUnmergedTree = true).fetchSemanticsNodes().isEmpty())
     }
 
     @Test
@@ -178,6 +195,9 @@ class StudioImportTest {
 
     private lateinit var vm: EditorViewModel
 
+    /** False while the Studio is taken off the screen, as a rotation or a Back and return does. */
+    private var mounted by mutableStateOf(true)
+
     private fun importText(text: String) {
         composeRule.onNodeWithTag(MORE).performClick()
         awaitTag(MENU_IMPORT)
@@ -212,6 +232,7 @@ class StudioImportTest {
                             releaseFlags = flags,
                         ).also { vm = it }
                     }
+                    idleCreateRoot(drafts)
                 },
             )
         }
@@ -220,8 +241,10 @@ class StudioImportTest {
         }
         composeRule.setContent {
             PuzzleBoxTheme {
-                val top = navigator.state.currentStack.last()
-                key(top) { entries(top).Content() }
+                if (mounted) {
+                    val top = navigator.state.currentStack.last()
+                    key(top) { entries(top).Content() }
+                }
             }
         }
         awaitTag(TITLE)
@@ -298,8 +321,9 @@ class StudioImportTest {
         const val TITLE = "create.studio.title"
         const val MORE = "create.studio.more"
         const val MENU_DUPLICATE = "create.studio.duplicate"
-        const val MENU_IMPORT = "studio.overflow.import"
-        const val IMPORTED = "studio.imported"
+        const val MENU_IMPORT = "create.studio.import"
+        const val IMPORTED = "create.studio.imported"
+        const val IMPORTED_TOAST = "create.toast.imported"
         const val SHEET = "create.import.sheet"
         const val TEXT = "create.import.text"
         const val SUBMIT = "create.import.submit"
