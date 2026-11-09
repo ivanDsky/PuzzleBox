@@ -68,8 +68,8 @@ class SpotlightTokensTest {
         for ((name, board, scheme) in themes) {
             val dimmedInk = SpotlightTokens.dimOverlay(board.boardSurface).compositeOver(scheme.onSurface)
             val ratio = contrast(SpotlightTokens.culprit(scheme), dimmedInk)
-            println("\$name culprit vs dimmed ink: \$ratio")
-            assertTrue("\$name culprit vs dimmed ink \$ratio", ratio >= 1.1f)
+            println("$name culprit vs dimmed ink: $ratio")
+            assertTrue("$name culprit vs dimmed ink $ratio", ratio >= 1.1f)
         }
     }
 
@@ -80,7 +80,7 @@ class SpotlightTokensTest {
             val dimmedSurface = SpotlightTokens.dimOverlay(board.boardSurface).compositeOver(board.boardSurface)
             val ghost = SpotlightTokens.targetGhost(scheme).compositeOver(dimmedSurface)
             val ratio = contrast(ghost, dimmedSurface)
-            assertTrue("\$name ghost vs dimmed surface \$ratio", ratio >= 1.1f)
+            assertTrue("$name ghost vs dimmed surface $ratio", ratio >= 1.1f)
         }
     }
 
@@ -88,7 +88,7 @@ class SpotlightTokensTest {
     fun `the worst-case sequence ends within 400 ms`() {
         val lastStaggerStart = (SpotlightTokens.EXCLUDED_MAX_STAGGERED - 1) * SpotlightTokens.EXCLUDED_STAGGER_MS
         val worst = lastStaggerStart + SpotlightTokens.FADE_MS + SpotlightTokens.PULSE_DURATION_MS
-        assertTrue("worst \$worst", worst <= SpotlightTokens.TOTAL_MS)
+        assertTrue("worst $worst", worst <= SpotlightTokens.TOTAL_MS)
         assertTrue(SpotlightTokens.PULSE_DELAY_MS + SpotlightTokens.PULSE_DURATION_MS <= SpotlightTokens.TOTAL_MS)
         assertTrue(SpotlightTokens.EXCLUDED_START_SCALE < SpotlightTokens.CALLOUT_START_SCALE)
         assertTrue(SpotlightTokens.CALLOUT_START_SCALE < 1f)
