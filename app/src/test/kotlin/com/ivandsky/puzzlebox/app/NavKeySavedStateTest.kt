@@ -9,6 +9,8 @@ import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import com.ivandsky.puzzlebox.app.nav.CatalogKey
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavKeys
+import com.ivandsky.puzzlebox.compete.api.DuelKey
+import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
@@ -43,7 +45,7 @@ class NavKeySavedStateTest {
         stacks = listOf(
             // History's all-games key and a per-game tab key (A8).
             listOf(HomeKey, HistoryKey(), HistoryKey("zip"), GameKey("zip", "2026-03-09")),
-            listOf(PlayKey, ResultKey("zip", "2026-03-09", 61_200, 2)),
+            listOf(PlayKey, ResultKey("zip", "2026-03-09", 61_200, 2), DuelKey("K7Q2MX"), DuelRevealKey("K7Q2MX")),
             listOf(CreateKey, EditorKey("d1")),
             listOf(ProfileKey, CatalogKey),
         ),

@@ -123,6 +123,8 @@ dependencies {
     implementation(projects.feature.history.impl)
     implementation(projects.feature.profile.api)
     implementation(projects.feature.profile.impl)
+    implementation(projects.feature.compete.api)
+    implementation(projects.feature.compete.impl)
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3.windowsizeclass)
