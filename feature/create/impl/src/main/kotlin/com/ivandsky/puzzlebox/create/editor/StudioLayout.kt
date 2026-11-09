@@ -42,6 +42,8 @@ import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
  * above the strip; on the tablet inside the side pane, above the action area. With [hugBoard]
  * (a read-only board) the phone slot takes only the group's height, so the board sits under the
  * bar with the strip and the actions right below it and the spare height left at the bottom.
+ * While the [keyboard] covers the Studio, the phone's column and the tablet's board pane keep
+ * their size and scroll above it ([KeyboardScroll]); the side pane ends at the keyboard's top.
  */
 @Composable
 internal fun StudioLayout(
@@ -56,28 +58,33 @@ internal fun StudioLayout(
     toolStrip: @Composable (Modifier) -> Unit,
     issues: @Composable (Modifier) -> Unit,
     actionArea: @Composable (Modifier) -> Unit,
+    keyboard: StudioKeyboard,
     modifier: Modifier = Modifier,
     toast: @Composable (Modifier) -> Unit = {},
     hugBoard: Boolean = false,
 ) {
     when (layout) {
-        PlayLayout.SinglePane -> Column(modifier.fillMaxSize()) {
-            // No bottom padding: the game's reserved rows already part the grid from the strip.
-            PhoneBoardSlot(
-                board = board,
-                toast = toast,
-                hug = hugBoard,
-                modifier = Modifier.weight(1f, fill = !hugBoard).fillMaxWidth().padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg),
-            )
-            toolStrip(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md))
-            actionArea(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg))
+        PlayLayout.SinglePane -> KeyboardScroll(keyboard, modifier.fillMaxSize()) { fullHeight ->
+            Column(fullHeight.fillMaxWidth()) {
+                // No bottom padding: the game's reserved rows already part the grid from the strip.
+                PhoneBoardSlot(
+                    board = board,
+                    toast = toast,
+                    hug = hugBoard,
+                    modifier = Modifier.weight(1f, fill = !hugBoard).fillMaxWidth().padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg),
+                )
+                toolStrip(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md))
+                actionArea(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg))
+            }
         }
         PlayLayout.TwoPane -> Row(modifier.fillMaxSize()) {
-            SquareBoardSlot(
-                alignment = Alignment.Center,
-                board = board,
-                modifier = Modifier.weight(1f).fillMaxHeight().padding(Spacing.lg),
-            )
+            KeyboardScroll(keyboard, Modifier.weight(1f).fillMaxHeight()) { fullHeight ->
+                SquareBoardSlot(
+                    alignment = Alignment.Center,
+                    board = board,
+                    modifier = fullHeight.fillMaxWidth().padding(Spacing.lg),
+                )
+            }
             VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             StudioSidePane(
                 verdict = verdict,
@@ -91,6 +98,7 @@ internal fun StudioLayout(
                 actionArea = actionArea,
                 toast = toast,
                 modifier = Modifier.fillMaxHeight(),
+                keyboard = keyboard,
             )
         }
     }
@@ -197,5 +205,6 @@ private fun PreviewLayout(layout: PlayLayout) {
         actionArea = { areaModifier ->
             ActionArea(passed = null, canTestSolve = false, onTestSolve = {}, blocks = emptyList(), modifier = areaModifier)
         },
+        keyboard = rememberStudioKeyboard(),
     )
 }

@@ -35,7 +35,8 @@ internal val SidePaneWidth = 372.dp
  * (so there is no pill), with Check again ([onCheckAgain]), the witness A/B over [overlay]
  * ([onOverlay]), the saved Auto-show ([autoShow], [onAutoShow]) and the game's fix list ([issues]); then the [toolStrip] with its game hint; both
  * scroll when the pane is short. The [actionArea] stays pinned at the bottom, the [toast] just
- * above it.
+ * above it. While the [keyboard] covers the pane, the pane ends at its top, so the actions sit
+ * above it and a focused field in the scroll stays in view.
  */
 @Composable
 internal fun StudioSidePane(
@@ -50,11 +51,13 @@ internal fun StudioSidePane(
     actionArea: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier,
     toast: @Composable (Modifier) -> Unit = {},
+    keyboard: StudioKeyboard? = null,
 ) {
     Column(
         modifier = modifier
             .width(SidePaneWidth)
             .background(MaterialTheme.colorScheme.surface)
+            .then(keyboard?.padding ?: Modifier)
             .padding(horizontal = Spacing.lg, vertical = Spacing.md)
             .testTag("create.studio.sidePane"),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),

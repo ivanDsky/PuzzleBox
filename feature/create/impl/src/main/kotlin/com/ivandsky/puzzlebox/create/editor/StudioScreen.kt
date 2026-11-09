@@ -118,7 +118,8 @@ fun StudioScreen(
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
     // A wide single pane keeps a readable width, centred; the two panes use the whole width.
     val width = if (layout == PlayLayout.SinglePane) Modifier.widthIn(max = MaxContentWidth) else Modifier
-    Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    val keyboard = rememberStudioKeyboard()
+    Box(modifier.fillMaxSize().then(keyboard.measure), contentAlignment = Alignment.TopCenter) {
         Column(width.fillMaxSize()) {
             StudioTopBar(
                 title = title,
@@ -163,6 +164,7 @@ fun StudioScreen(
                 toolStrip = { stripModifier -> ToolsOrPublished(readOnly, unpublished, toolStrip, onDuplicate, stripModifier) },
                 issues = issues,
                 actionArea = actionArea,
+                keyboard = keyboard,
                 toast = { toastModifier ->
                     TestClearedToast(shown = testCleared, onUndo = onUndoTestClear, onGone = onTestClearedGone, modifier = toastModifier)
                     toast(toastModifier)

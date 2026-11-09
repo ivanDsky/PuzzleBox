@@ -13,11 +13,16 @@
         <!-- singleTask: a tapped share link reaches the running app as a new intent
              instead of stacking a second copy of it. The https filter claims puzzle links
              (ShareCode.LINK_PREFIX, /p/) and duel links (ShareCode.MATCH_LINK_PREFIX, /m/);
-             autoVerify checks it against the host's /.well-known/assetlinks.json. -->
+             autoVerify checks it against the host's /.well-known/assetlinks.json.
+             adjustResize: the window draws edge to edge, so the keyboard resizes nothing and
+             screens read the IME inset themselves (the Studio scrolls above it); without it
+             the system picks pan, sliding the top bar under the status bar, and below API 30
+             reports no IME inset at all. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTask">
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
