@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.games.strandsui.board
 
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -47,10 +49,12 @@ internal object HintOutlinedSpec : StrandsCellSpec {
     override fun DrawScope.decorate(colors: BoardColors, tokenRadius: Float, frame: StrandsCellFrame) {
         val width = StrandsBoardSpec.HintRingWidth.toPx()
         val dash = floatArrayOf(StrandsBoardSpec.HintDash.toPx(), StrandsBoardSpec.HintGap.toPx())
-        drawCircle(
+        val half = (tokenRadius + width / 2) * frame.ringScale
+        drawRoundRect(
             color = colors.strandsHintRing,
-            radius = (tokenRadius + width / 2) * frame.ringScale,
-            center = Offset(size.width / 2, size.height / 2),
+            topLeft = Offset(center.x - half, center.y - half),
+            size = Size(half * 2, half * 2),
+            cornerRadius = CornerRadius(half * 2 * StrandsBoardSpec.TokenCornerFraction),
             style = Stroke(width = width, pathEffect = PathEffect.dashPathEffect(dash)),
         )
     }
