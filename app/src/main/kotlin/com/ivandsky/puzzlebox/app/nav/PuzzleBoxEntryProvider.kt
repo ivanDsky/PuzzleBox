@@ -67,6 +67,6 @@ internal fun puzzleBoxEntryProvider(
         onOpenHistory = { game -> navigator.pushOnce(HistoryKey(game.value)) },
         onOpenCatalog = { navigator.push(CatalogKey) },
     )
-    competeEntry(navigator)
+    competeEntry(navigator, playLayout)
     entry<CatalogKey> { CatalogScreen(openGame = { navigator.pushOnce(GameKey(it)) }) }
 }
