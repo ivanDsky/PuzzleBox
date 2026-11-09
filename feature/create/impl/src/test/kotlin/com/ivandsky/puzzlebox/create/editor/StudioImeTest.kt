@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.create.editor
 import android.content.Context
 import android.provider.Settings
 import android.view.View
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -129,33 +128,6 @@ abstract class StudioImeTest(private val layout: PlayLayout, private val device:
             // The side pane too, its own padding above the keyboard.
             val pane = rule.onNodeWithTag("create.studio.sidePane").getUnclippedBoundsInRoot()
             assertEquals(keyboardTop().value, (pane.bottom + Spacing.md).value, 1f)
-        }
-    }
-
-    @Test
-    fun `the window resizes for the keyboard while the Studio shows and pans no more`() {
-        assertWindowModeRestored(from = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
-    }
-
-    @Test
-    fun `a window relaunched by a config change gets its unspecified mode back on every leave`() {
-        // Rotation, dark mode or font scale relaunch the activity: the new window holds the
-        // manifest's mode 0, without the forward bit a fresh launch ORs in.
-        assertWindowModeRestored(from = WindowManager.LayoutParams.SOFT_INPUT_STATE_UNSPECIFIED)
-    }
-
-    private fun assertWindowModeRestored(from: Int) {
-        var shown by mutableStateOf(false)
-        val window = rule.activity.window
-        rule.runOnUiThread { window.attributes = window.attributes.apply { softInputMode = from } }
-        setContent { if (shown) Studio() }
-        repeat(2) { visit ->
-            shown = true
-            rule.waitForIdle()
-            assertEquals("visit $visit", WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE, window.attributes.softInputMode and ADJUST)
-            shown = false
-            rule.waitForIdle()
-            assertEquals("visit $visit", from, window.attributes.softInputMode)
         }
     }
 
@@ -286,7 +258,6 @@ abstract class StudioImeTest(private val layout: PlayLayout, private val device:
         const val ROWS = 8
         const val GRID = "ime.board.grid"
         const val FIELD = "ime.word"
-        const val ADJUST = WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST
         val CHROME = 80.dp
 
         fun row(index: Int) = "ime.board.row.$index"

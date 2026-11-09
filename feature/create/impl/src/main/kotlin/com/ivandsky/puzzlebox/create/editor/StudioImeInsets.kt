@@ -1,8 +1,5 @@
 package com.ivandsky.puzzlebox.create.editor
 
-import android.view.Window
-import android.view.WindowManager
-import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -14,7 +11,6 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -36,13 +32,13 @@ import kotlin.math.roundToInt
 
 /**
  * The Studio's one keyboard policy (device check R3), the same for every game. The window draws
- * edge to edge, so the keyboard resizes nothing: while the Studio shows, the window adjusts by
- * resize, never by pan (a pan slid the top bar under the status bar), and the Studio reads
- * [WindowInsets.ime] itself. [measure], on the Studio's root, finds the window's bottom chrome
- * under the Studio (the tab bar, the navigation bar), which the keyboard covers first; [padding]
- * pads by the rest, the part of the keyboard over the Studio, and consumes the IME inset for
- * what it holds. Both read the inset at layout, so the keyboard's slide relays the panes out
- * without recomposing them.
+ * edge to edge and the manifest adjusts it by resize, never by pan (a pan slid the top bar under
+ * the status bar), so the keyboard resizes nothing and the Studio reads [WindowInsets.ime]
+ * itself. [measure], on the Studio's root, finds the window's bottom chrome under the Studio
+ * (the tab bar, the navigation bar), which the keyboard covers first; [padding] pads by the
+ * rest, the part of the keyboard over the Studio, and consumes the IME inset for what it holds.
+ * Both read the inset at layout, so the keyboard's slide relays the panes out without
+ * recomposing them.
  */
 @Stable
 internal class StudioKeyboard(private val ime: WindowInsets) {
@@ -69,16 +65,9 @@ internal class StudioKeyboard(private val ime: WindowInsets) {
     }
 }
 
-/** The Studio's [StudioKeyboard]; while it is in the composition the window adjusts by resize. */
+/** The Studio's [StudioKeyboard]. */
 @Composable
 internal fun rememberStudioKeyboard(): StudioKeyboard {
-    val window = LocalActivity.current?.window
-    DisposableEffect(window) {
-        if (window == null) return@DisposableEffect onDispose {}
-        val before = window.attributes.softInputMode and ADJUST
-        window.adjust(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-        onDispose { window.adjust(before) }
-    }
     val ime = WindowInsets.ime
     return remember(ime) { StudioKeyboard(ime) }
 }
@@ -111,12 +100,5 @@ internal fun KeyboardScroll(keyboard: StudioKeyboard, modifier: Modifier, conten
     }
 }
 
-private const val ADJUST = WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST
-
 /** The viewport over the keyboard's top: the phone's column, the tablet's board pane. */
 private const val KeyboardScrollTag = "create.studio.keyboardScroll"
-
-/** Writes the attributes: `setSoftInputMode(0)` leaves them as they are, so 0 would never come back. */
-private fun Window.adjust(mode: Int) {
-    attributes = attributes.apply { softInputMode = (softInputMode and ADJUST.inv()) or mode }
-}
