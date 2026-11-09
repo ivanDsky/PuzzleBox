@@ -143,14 +143,16 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   and `update/` `AppReleaseRepository` (GitHub releases); `repository/SharedTextStore` →
   `InMemorySharedTextStore` (text another app shared: `pending` flow, `put`, atomic `take`;
   in memory only, never persisted or in a NavKey).
-- `core/database/` (`:core:database`) — Room v7 `PuzzleBoxDatabase`: `PuzzleDailyDao`/
+- `core/database/` (`:core:database`) — Room v8 `PuzzleBoxDatabase`: `PuzzleDailyDao`/
   `PuzzleDailyEntity` (`puzzle_dailies`, keyed gameId+day), `CompletionDao`/`CompletionEntity`
   (`completions`, keyed on the encoded puzzle-ref string), `SavedPlayDao`/`SavedPlayEntity`
   (`saved_plays`, keyed gameId+day, `blob` + `updatedAt`, `saveAndPrune`), v7 additions
   `DraftDao`/`DraftEntity` (`drafts`: id, gameId, variant, title, note, blob),
   `CustomSavedPlayDao`/`CustomSavedPlayEntity` (`custom_saved_plays`), `PublishedPuzzleEntity`
-  (`published_puzzles`), `ReceivedPuzzleEntity` (`received_puzzles`); schemas 1–7 exported under
-  `core/database/schemas/`, `Migrations.ALL` = 1→…→7; Koin `databaseModule`.
+  (`published_puzzles`), `ReceivedPuzzleEntity` (`received_puzzles`), v8 duel entities (no DAOs
+  yet) `LegSavedPlayEntity` (`leg_saved_plays`), `MatchLocalEntity` (`matches_local`),
+  `MatchResultEntity` (`match_results`) and nullable `completions.matchCode`; schemas 1–8
+  exported under `core/database/schemas/`, `Migrations.ALL` = 1→…→8; Koin `databaseModule`.
 - `core/network/` (`:core:network`, pure JVM) — the one LinkedIn client: internal
   `LinkedInGamesApi` (Retrofit), `LinkedInSessionCookieJar` + `LinkedInCsrfInterceptor`
   (anonymous session), `LinkedInFeedTransport` implementing `core:game`'s `FeedTransport`;
@@ -440,10 +442,12 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `FakeCompletionRepository`, `FakeIdentityService`, `FakeLeaderboardRepository`,
   `FakeSavedPlayRepository`, `FakeUserPreferencesRepository`, `FakeGameCalendar`, `TestGames`.
 - **Pure layout policies** — `homeLayoutFor`, `playLayoutFor`, `historyLayoutFor`.
-- **`Migrations.ALL`** (`core:database`) — every schema change bumps the Room version (now 7),
+- **`Migrations.ALL`** (`core:database`) — every schema change bumps the Room version (now 8),
   commits the schema JSON, and registers a migration (1→2 puzzle_dailies, 2→3 completions,
   3→4 daily_puzzles rebuild, 4→5 drops the legacy daily_puzzles, 5→6 adds saved_plays, 6→7
-  adds drafts, custom_saved_plays, published_puzzles, received_puzzles); no destructive fallback.
+  adds drafts, custom_saved_plays, published_puzzles, received_puzzles, 7→8 (MIGRATION_7_8)
+  adds leg_saved_plays, matches_local, match_results and completions.matchCode); no
+  destructive fallback.
 - **Module graph guard** — `checkModuleGraph` (ADR-0008, see Layout) fails the build on a
   forbidden edge; `feature:create:impl` reaches games only through the registries.
 - **Structure rules** — `:konsist` S0–S7 / P1–P8 (see Layout); allowlists only shrink.

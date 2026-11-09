@@ -174,6 +174,57 @@ object Migrations {
         }
     }
 
+    /**
+     * v8 (competitions): adds `leg_saved_plays`, `matches_local` and `match_results` and the
+     * nullable `completions.matchCode`; additive only, v7 rows untouched.
+     */
+    val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `leg_saved_plays` (" +
+                    "`matchCode` TEXT NOT NULL, " +
+                    "`legIndex` INTEGER NOT NULL, " +
+                    "`gameId` TEXT NOT NULL, " +
+                    "`blob` BLOB NOT NULL, " +
+                    "`elapsedMs` INTEGER NOT NULL, " +
+                    "`updatedAt` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`matchCode`, `legIndex`))",
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `matches_local` (" +
+                    "`code` TEXT NOT NULL, " +
+                    "`role` TEXT NOT NULL, " +
+                    "`opponentName` TEXT, " +
+                    "`openedAt` INTEGER NOT NULL, " +
+                    "`revealSeenAt` INTEGER, " +
+                    "`dismissed` INTEGER NOT NULL DEFAULT 0, " +
+                    "PRIMARY KEY(`code`))",
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `match_results` (" +
+                    "`matchCode` TEXT NOT NULL, " +
+                    "`legIndex` INTEGER NOT NULL, " +
+                    "`uid` TEXT NOT NULL, " +
+                    "`timeMs` INTEGER NOT NULL, " +
+                    "`hints` INTEGER NOT NULL, " +
+                    "`completedAtMs` INTEGER NOT NULL, " +
+                    "`gaveUp` INTEGER NOT NULL, " +
+                    "`postState` TEXT NOT NULL, " +
+                    "`postAttempts` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`matchCode`, `legIndex`, `uid`))",
+            )
+            db.execSQL("ALTER TABLE `completions` ADD COLUMN `matchCode` TEXT")
+        }
+    }
+
     val ALL: Array<Migration> =
-        arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+        arrayOf(
+            MIGRATION_1_2,
+            MIGRATION_2_3,
+            MIGRATION_3_4,
+            MIGRATION_4_5,
+            MIGRATION_5_6,
+            MIGRATION_6_7,
+            MIGRATION_7_8,
+        )
 }

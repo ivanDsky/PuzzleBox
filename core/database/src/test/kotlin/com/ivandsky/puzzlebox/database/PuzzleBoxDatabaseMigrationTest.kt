@@ -1,12 +1,15 @@
 package com.ivandsky.puzzlebox.database
 
+import androidx.room.Room
 import androidx.room.testing.MigrationTestHelper
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
@@ -341,5 +344,176 @@ class PuzzleBoxDatabaseMigrationTest {
             }
         }
         db.close()
+    }
+
+    @Test
+    fun `migrate 7 to 8 keeps every completion and saved play and opens three empty tables`() {
+        val dbName = "puzzlebox-migration-7-8-test.db"
+        val v7 = helper.createDatabase(dbName, 7)
+        v7.execSQL(
+            "INSERT INTO puzzle_dailies (gameId, day, puzzleNumber, variant, formatVersion, payload, fetchedAtMs) " +
+                "VALUES ('zip', '2026-10-31', 592, 'zip/n6', 1, x'00ff', 5000)",
+        )
+        v7.execSQL(
+            "INSERT INTO completions (puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord) " +
+                "VALUES ('zip/2026-10-31/592', 95000, 2, 1, '{\"v\":1}', 7000, 7000, 1)",
+        )
+        v7.execSQL(
+            "INSERT INTO completions (puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord) " +
+                "VALUES ('zip/2026-10-31/592', 80000, 0, 1, '{\"v\":1}', 8000, NULL, 0)",
+        )
+        v7.execSQL(
+            "INSERT INTO saved_plays (gameId, day, blob, elapsedMs, updatedAt) " +
+                "VALUES ('queens', '2026-11-01', x'0102', 4200, 9000)",
+        )
+        v7.execSQL(
+            "INSERT INTO custom_saved_plays (puzzleId, gameId, blob, elapsedMs, updatedAt) " +
+                "VALUES ('AB12CD', 'tango', x'030405', 1300, 9500)",
+        )
+        v7.close()
+
+        // Validates against the committed 8.json.
+        val db = helper.runMigrationsAndValidate(dbName, 8, true, Migrations.MIGRATION_7_8)
+
+        db.query("SELECT gameId, day, puzzleNumber, LENGTH(payload), fetchedAtMs FROM puzzle_dailies").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals("zip", cursor.getString(0))
+            assertEquals("2026-10-31", cursor.getString(1))
+            assertEquals(592, cursor.getInt(2))
+            assertEquals(2, cursor.getInt(3))
+            assertEquals(5000L, cursor.getLong(4))
+        }
+        db.query(
+            "SELECT puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, matchCode " +
+                "FROM completions ORDER BY id",
+        ).use { cursor ->
+            assertEquals(2, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals("zip/2026-10-31/592", cursor.getString(0))
+            assertEquals(95000L, cursor.getLong(1))
+            assertEquals(2, cursor.getInt(2))
+            assertEquals(1, cursor.getInt(3))
+            assertEquals("{\"v\":1}", cursor.getString(4))
+            assertEquals(7000L, cursor.getLong(5))
+            assertEquals(7000L, cursor.getLong(6))
+            assertEquals(1, cursor.getInt(7))
+            assertNull(cursor.getString(8))
+            assertTrue(cursor.moveToNext())
+            assertEquals("zip/2026-10-31/592", cursor.getString(0))
+            assertEquals(80000L, cursor.getLong(1))
+            assertEquals(0, cursor.getInt(2))
+            assertEquals(8000L, cursor.getLong(5))
+            assertTrue(cursor.isNull(6))
+            assertEquals(0, cursor.getInt(7))
+            assertNull(cursor.getString(8))
+        }
+        db.query("SELECT gameId, day, blob, elapsedMs, updatedAt FROM saved_plays").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals("queens", cursor.getString(0))
+            assertEquals("2026-11-01", cursor.getString(1))
+            assertTrue(byteArrayOf(1, 2).contentEquals(cursor.getBlob(2)))
+            assertEquals(4200L, cursor.getLong(3))
+            assertEquals(9000L, cursor.getLong(4))
+        }
+        db.query("SELECT puzzleId, gameId, blob, elapsedMs, updatedAt FROM custom_saved_plays").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals("AB12CD", cursor.getString(0))
+            assertEquals("tango", cursor.getString(1))
+            assertTrue(byteArrayOf(3, 4, 5).contentEquals(cursor.getBlob(2)))
+            assertEquals(1300L, cursor.getLong(3))
+            assertEquals(9500L, cursor.getLong(4))
+        }
+        for (table in listOf("matches_local", "match_results", "leg_saved_plays")) {
+            db.query("SELECT COUNT(*) FROM `$table`").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(0, cursor.getInt(0))
+            }
+        }
+        db.close()
+    }
+
+    @Test
+    fun `fresh v8 database is created by the normal builder path`() {
+        val dbName = "puzzlebox-fresh-v8.db"
+        val context = RuntimeEnvironment.getApplication()
+        context.deleteDatabase(dbName)
+        val database = Room.databaseBuilder(context, PuzzleBoxDatabase::class.java, dbName)
+            .addMigrations(*Migrations.ALL)
+            .build()
+        try {
+            val db = database.openHelper.writableDatabase
+            assertEquals(8, db.version)
+
+            db.execSQL(
+                "INSERT INTO leg_saved_plays (matchCode, legIndex, gameId, blob, elapsedMs, updatedAt) " +
+                    "VALUES ('K7Q2MX', 1, 'queens', x'0a0b', 3100, 9100)",
+            )
+            db.query("SELECT matchCode, legIndex, gameId, blob, elapsedMs, updatedAt FROM leg_saved_plays").use { cursor ->
+                assertEquals(1, cursor.count)
+                assertTrue(cursor.moveToFirst())
+                assertEquals("K7Q2MX", cursor.getString(0))
+                assertEquals(1, cursor.getInt(1))
+                assertEquals("queens", cursor.getString(2))
+                assertTrue(byteArrayOf(10, 11).contentEquals(cursor.getBlob(3)))
+                assertEquals(3100L, cursor.getLong(4))
+                assertEquals(9100L, cursor.getLong(5))
+            }
+
+            // dismissed is omitted: the column default (0) fills it.
+            db.execSQL(
+                "INSERT INTO matches_local (code, role, opponentName, openedAt, revealSeenAt) " +
+                    "VALUES ('K7Q2MX', 'Invite', NULL, 9000, NULL)",
+            )
+            db.query("SELECT code, role, opponentName, openedAt, revealSeenAt, dismissed FROM matches_local").use { cursor ->
+                assertEquals(1, cursor.count)
+                assertTrue(cursor.moveToFirst())
+                assertEquals("K7Q2MX", cursor.getString(0))
+                assertEquals("Invite", cursor.getString(1))
+                assertTrue(cursor.isNull(2))
+                assertEquals(9000L, cursor.getLong(3))
+                assertTrue(cursor.isNull(4))
+                assertEquals(0, cursor.getInt(5))
+            }
+
+            db.execSQL(
+                "INSERT INTO match_results " +
+                    "(matchCode, legIndex, uid, timeMs, hints, completedAtMs, gaveUp, postState, postAttempts) " +
+                    "VALUES ('K7Q2MX', 1, 'uid-a', 61000, 1, 9200, 0, 'Pending', 0)",
+            )
+            db.query(
+                "SELECT matchCode, legIndex, uid, timeMs, hints, completedAtMs, gaveUp, postState, postAttempts " +
+                    "FROM match_results",
+            ).use { cursor ->
+                assertEquals(1, cursor.count)
+                assertTrue(cursor.moveToFirst())
+                assertEquals("K7Q2MX", cursor.getString(0))
+                assertEquals(1, cursor.getInt(1))
+                assertEquals("uid-a", cursor.getString(2))
+                assertEquals(61000L, cursor.getLong(3))
+                assertEquals(1, cursor.getInt(4))
+                assertEquals(9200L, cursor.getLong(5))
+                assertEquals(0, cursor.getInt(6))
+                assertEquals("Pending", cursor.getString(7))
+                assertEquals(0, cursor.getInt(8))
+            }
+
+            db.execSQL(
+                "INSERT INTO completions " +
+                    "(puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, matchCode) " +
+                    "VALUES ('queens/2026-11-08/400', 61000, 1, 1, '{\"v\":1}', 9200, 9200, 1, 'K7Q2MX')",
+            )
+            db.query("SELECT puzzleRef, matchCode FROM completions").use { cursor ->
+                assertEquals(1, cursor.count)
+                assertTrue(cursor.moveToFirst())
+                assertEquals("queens/2026-11-08/400", cursor.getString(0))
+                assertEquals("K7Q2MX", cursor.getString(1))
+            }
+        } finally {
+            database.close()
+            context.deleteDatabase(dbName)
+        }
     }
 }
