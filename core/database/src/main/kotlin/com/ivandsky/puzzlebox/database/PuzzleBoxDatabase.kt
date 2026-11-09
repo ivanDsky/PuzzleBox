@@ -12,8 +12,11 @@ import androidx.room.RoomDatabase
         PublishedPuzzleEntity::class,
         ReceivedPuzzleEntity::class,
         CustomSavedPlayEntity::class,
+        LegSavedPlayEntity::class,
+        MatchLocalEntity::class,
+        MatchResultEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 abstract class PuzzleBoxDatabase : RoomDatabase() {
