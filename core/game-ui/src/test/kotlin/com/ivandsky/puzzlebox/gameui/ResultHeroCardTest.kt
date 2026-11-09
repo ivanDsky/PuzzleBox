@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
@@ -42,6 +43,7 @@ class ResultHeroCardTest {
         rolloverAt: Instant? = null,
         playAgain: Boolean = true,
         wide: Boolean = false,
+        actions: Boolean = true,
     ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
@@ -53,6 +55,7 @@ class ResultHeroCardTest {
                     onPlayAgain = if (playAgain) ({ again++ }) else null,
                     rolloverAt = rolloverAt,
                     wide = wide,
+                    actions = actions,
                 )
             }
         }
@@ -166,5 +169,32 @@ class ResultHeroCardTest {
 
         composeRule.onNodeWithTag("result.next").assertDoesNotExist()
         composeRule.onNodeWithTag("result.hero.time").assertIsDisplayed()
+    }
+
+    @Test
+    fun `actionsOffDrawsNoActionButtons`() {
+        setContent(heroSampleModel(verdict = RecordVerdict.NotBest), actions = false)
+
+        composeRule.onNodeWithTag("result.next").assertDoesNotExist()
+        composeRule.onNodeWithTag("result.share").assertDoesNotExist()
+        composeRule.onNodeWithTag("result.playAgain").assertDoesNotExist()
+    }
+
+    @Test
+    fun `duelChipReplacesTodayChip`() {
+        setContent(resultHeroModel(heroSampleFacts(), chip = "1 of 3"))
+
+        composeRule.onNodeWithTag("result.hero.chip.duel").assertIsDisplayed()
+        composeRule.onNodeWithText("1 of 3").assertIsDisplayed()
+        composeRule.onNodeWithTag("result.hero.chip.today").assertDoesNotExist()
+        composeRule.onNodeWithTag("result.hero.chip.hints").assertIsDisplayed()
+    }
+
+    @Test
+    fun `noDuelChipKeepsTodayChip`() {
+        setContent(heroSampleModel(verdict = RecordVerdict.NotBest))
+
+        composeRule.onNodeWithTag("result.hero.chip.today").assertIsDisplayed()
+        composeRule.onNodeWithTag("result.hero.chip.duel").assertDoesNotExist()
     }
 }

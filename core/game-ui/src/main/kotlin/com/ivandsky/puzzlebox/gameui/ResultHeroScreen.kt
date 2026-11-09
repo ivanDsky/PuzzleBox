@@ -52,6 +52,7 @@ private const val SIDE_WEIGHT = 1f
  * failed record write ([writeFailed]) shows above the cards and retries through
  * [onRetryWrite]. [onSignIn] is the rank row's sign-in when the player is signed out.
  * [board], when given, is a board block drawn below the cards (the daily board, behind its own flag).
+ * [actions] false drops the hero's action row; [chip] is the duel's count, shown in place of the Today chip.
  */
 @Composable
 fun ResultHeroScreen(
@@ -65,9 +66,11 @@ fun ResultHeroScreen(
     brand: GameBrand = GameBrand.Neutral,
     rolloverAt: Instant? = null,
     writeFailed: Boolean = false,
+    actions: Boolean = true,
+    chip: String? = null,
     board: (@Composable () -> Unit)? = null,
 ) {
-    val model = remember(facts) { resultHeroModel(facts) }
+    val model = remember(facts, chip) { resultHeroModel(facts, chip = chip) }
     val hasSide = model.streak != null || model.spread != null || model.rank != null
     BoxWithConstraints(modifier.fillMaxSize()) {
         val compact = maxHeight < CompactHeight
@@ -95,11 +98,11 @@ fun ResultHeroScreen(
                 if (writeFailed) WriteFailedRow(onRetryWrite)
                 if (twoColumns) {
                     Row(horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.Top) {
-                        ResultHeroCard(model, brand, onPrimary, onShare, onPlayAgain, rolloverAt, Modifier.weight(HERO_WEIGHT), wide)
+                        ResultHeroCard(model, brand, onPrimary, onShare, onPlayAgain, rolloverAt, Modifier.weight(HERO_WEIGHT), wide, actions)
                         ResultSideCard(model, brand, onSignIn, Modifier.weight(SIDE_WEIGHT), wide)
                     }
                 } else {
-                    ResultHeroCard(model, brand, onPrimary, onShare, onPlayAgain, rolloverAt, Modifier, wide)
+                    ResultHeroCard(model, brand, onPrimary, onShare, onPlayAgain, rolloverAt, Modifier, wide, actions)
                     ResultSideCard(model, brand, onSignIn, Modifier, wide)
                 }
                 board?.invoke()
