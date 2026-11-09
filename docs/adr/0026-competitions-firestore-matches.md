@@ -20,7 +20,7 @@ compute an outcome, enforce a deadline by job, or hide data except through rules
 3. **Reads**: `get: if true` (signed-out invite card); `list` only when `request.auth.uid in resource.data.participants`.
 4. **Claim** (update): a non-challenger, `opponentUid == null`, not cancelled, before the deadline, and `invitedUid`
    unset or equal to the caller. Affected keys only: opponent fields, `participants`, `claimedAt == request.time`.
-   Set once. **Cancel**: challenger, unclaimed, `cancelled` false → true only. **Decline**: `invitedUid` sets
+   Set once. **Cancel**: challenger, unclaimed, `cancelled` false → true only. **Decline**: `invitedUid`, unclaimed,
    `declined` false → true only. Delete is never allowed (tombstones).
 5. **Results** `matches/{code}/results/{legIndex}_{uid}` = `{formatVersion, uid, legIndex, timeMs, hints,
    completedAtMs, gaveUp}`. Create only, by that participant, `legIndex < legs.size()`, `request.time < closesAt`,

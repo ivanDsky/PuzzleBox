@@ -38,6 +38,78 @@
       "timeMs": 61000,
       "hints": 0,
       "completedAtMs": 1794052800000
+    },
+    "newMatch": {
+      "formatVersion": 1,
+      "createdAt": "2026-11-07T12:00:00Z",
+      "deadlineHours": 24,
+      "challengerUid": "alice",
+      "challengerName": "Alice",
+      "challengerPhoto": null,
+      "invitedUid": null,
+      "opponentUid": null,
+      "opponentName": null,
+      "opponentPhoto": null,
+      "participants": [
+        "alice"
+      ],
+      "legs": [
+        {
+          "ref": "zip/2026-11-07/1",
+          "authorUid": null
+        },
+        {
+          "ref": "queens/2026-11-06/12",
+          "authorUid": null
+        },
+        {
+          "ref": "custom/tango/K7Q2MX",
+          "authorUid": "carol"
+        }
+      ],
+      "includeFriends": true,
+      "cancelled": false,
+      "declined": false,
+      "rematchOf": null,
+      "progress": {},
+      "claimedAt": null
+    },
+    "match": {
+      "$fixture": "newMatch",
+      "createdAt": "2026-11-07T00:00:00Z"
+    },
+    "invitedMatch": {
+      "$fixture": "match",
+      "invitedUid": "bob",
+      "participants": [
+        "alice",
+        "bob"
+      ],
+      "rematchOf": "R3M4CH"
+    },
+    "claimedMatch": {
+      "$fixture": "match",
+      "opponentUid": "bob",
+      "opponentName": "Bob",
+      "participants": [
+        "alice",
+        "bob"
+      ],
+      "claimedAt": "2026-11-07T01:00:00Z",
+      "progress": {
+        "alice": [
+          0
+        ]
+      }
+    },
+    "result": {
+      "formatVersion": 1,
+      "uid": "bob",
+      "legIndex": 1,
+      "timeMs": 95000,
+      "hints": 0,
+      "completedAtMs": 1794049200000,
+      "gaveUp": false
     }
   },
   "cases": [
@@ -2121,6 +2193,3066 @@
       "data": {
         "$fixture": "dailyEntry",
         "puzzleRef": "queens/2026-11-31/1"
+      }
+    },
+    {
+      "group": "matches (create)",
+      "name": "open match with the matchQuota bump (3 -> 4, last = code)",
+      "expect": "allow",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "rematch inviting a player (participants = [challenger, invited])",
+      "expect": "allow",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "invitedUid": "bob",
+        "participants": [
+          "alice",
+          "bob"
+        ],
+        "rematchOf": "R3M4CH"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "first-ever match starts the matchQuota doc at 1",
+      "expect": "allow",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": false
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 1,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "0 legs",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "legs": []
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "1 leg",
+      "expect": "allow",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "legs": [
+          {
+            "ref": "zip/2026-11-07/1",
+            "authorUid": null
+          }
+        ]
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "10 legs",
+      "expect": "allow",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "legs": [
+          {
+            "ref": "zip/2026-11-01/1",
+            "authorUid": null
+          },
+          {
+            "ref": "zip/2026-11-02/2",
+            "authorUid": null
+          },
+          {
+            "ref": "zip/2026-11-03/3",
+            "authorUid": null
+          },
+          {
+            "ref": "zip/2026-11-04/4",
+            "authorUid": null
+          },
+          {
+            "ref": "zip/2026-11-05/5",
+            "authorUid": null
+          },
+          {
+            "ref": "zip/2026-11-06/6",
+            "authorUid": null
+          },
+          {
+            "ref": "zip/2026-11-07/7",
+            "authorUid": null
+          },
+          {
+            "ref": "zip/2026-11-01/8",
+            "authorUid": null
+          },
+          {
+            "ref": "zip/2026-11-02/9",
+            "authorUid": null
+          },
+          {
+            "ref": "custom/queens/K7Q2MX",
+            "authorUid": "carol"
+          }
+        ]
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "10 custom legs with authors on a rematch (expression budget)",
+      "expect": "allow",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "invitedUid": "bob",
+        "participants": [
+          "alice",
+          "bob"
+        ],
+        "rematchOf": "R3M4CH",
+        "challengerPhoto": "https://example.com/a.png",
+        "legs": [
+          {
+            "ref": "custom/queens/K7Q2M0",
+            "authorUid": "carol"
+          },
+          {
+            "ref": "custom/queens/K7Q2M1",
+            "authorUid": "carol"
+          },
+          {
+            "ref": "custom/queens/K7Q2M2",
+            "authorUid": "carol"
+          },
+          {
+            "ref": "custom/queens/K7Q2M3",
+            "authorUid": "carol"
+          },
+          {
+            "ref": "custom/queens/K7Q2M4",
+            "authorUid": "carol"
+          },
+          {
+            "ref": "custom/queens/K7Q2M5",
+            "authorUid": "carol"
+          },
+          {
+            "ref": "custom/queens/K7Q2M6",
+            "authorUid": "carol"
+          },
+          {
+            "ref": "custom/queens/K7Q2M7",
+            "authorUid": "carol"
+          },
+          {
+            "ref": "custom/queens/K7Q2M8",
+            "authorUid": "carol"
+          },
+          {
+            "ref": "custom/queens/K7Q2M9",
+            "authorUid": "carol"
+          }
+        ]
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "11 legs",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "legs": [
+          {
+            "ref": "zip/2026-11-01/1",
+            "authorUid": null
+          },
+          {
+            "ref": "zip/2026-11-02/2",
+            "authorUid": null
+          },
+          {
+            "ref": "zip/2026-11-03/3",
+            "authorUid": null
+          },
+          {
+            "ref": "zip/2026-11-04/4",
+            "authorUid": null
+          },
+          {
+            "ref": "zip/2026-11-05/5",
+            "authorUid": null
+          },
+          {
+            "ref": "zip/2026-11-06/6",
+            "authorUid": null
+          },
+          {
+            "ref": "zip/2026-11-07/7",
+            "authorUid": null
+          },
+          {
+            "ref": "zip/2026-11-01/8",
+            "authorUid": null
+          },
+          {
+            "ref": "zip/2026-11-02/9",
+            "authorUid": null
+          },
+          {
+            "ref": "custom/queens/K7Q2MX",
+            "authorUid": "carol"
+          },
+          {
+            "ref": "zip/2026-11-07/1",
+            "authorUid": null
+          }
+        ]
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "deadlineHours 23",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "deadlineHours": 23
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "deadlineHours 24",
+      "expect": "allow",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "deadlineHours": 24
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "deadlineHours 48",
+      "expect": "allow",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "deadlineHours": 48
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "deadlineHours 72",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "deadlineHours": 72
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "empty challenger name",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "challengerName": ""
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "64-char challenger name",
+      "expect": "allow",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "challengerName": {
+          "$repeat": [
+            "a",
+            64
+          ]
+        }
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "65-char challenger name",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "challengerName": {
+          "$repeat": [
+            "a",
+            65
+          ]
+        }
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "an extra field",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "winner": "alice"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "challengerUid of another user",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "challengerUid": "bob"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "opponent already set",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "opponentUid": "bob",
+        "opponentName": "Bob",
+        "participants": [
+          "alice",
+          "bob"
+        ]
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "daily leg ref numbered 0",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "legs": [
+          {
+            "ref": "zip/2026-11-07/0",
+            "authorUid": null
+          }
+        ]
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "custom leg ref with a code outside the share alphabet",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "legs": [
+          {
+            "ref": "custom/queens/K7Q2MI",
+            "authorUid": null
+          }
+        ]
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "daily leg ref for a game without a daily board",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "legs": [
+          {
+            "ref": "nope/2026-11-07/1",
+            "authorUid": null
+          }
+        ]
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "2049-char challenger photo",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "challengerPhoto": {
+          "$repeat": [
+            "p",
+            2049
+          ]
+        }
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "invited player missing from participants",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "invitedUid": "bob"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "createdAt other than the server time",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch",
+        "createdAt": "2026-11-07T11:00:00Z"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "create without bumping matchQuota",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "matchQuota bump whose last names another code",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "newMatch"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "R3M4CH"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (create)",
+      "name": "signed-out create",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX",
+      "auth": null,
+      "data": {
+        "$fixture": "newMatch"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "matchQuota/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 3,
+            "last": "R3M4CH"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matchQuota/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4,
+            "last": "D7K2QX"
+          }
+        }
+      ]
+    },
+    {
+      "group": "matches (claim)",
+      "name": "stranger claims an open match",
+      "expect": "allow",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "match",
+        "opponentUid": "bob",
+        "opponentName": "Bob",
+        "participants": [
+          "alice",
+          "bob"
+        ],
+        "claimedAt": "2026-11-07T12:00:00Z"
+      },
+      "resource": {
+        "$fixture": "match"
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "invited player claims the rematch",
+      "expect": "allow",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "invitedMatch",
+        "opponentUid": "bob",
+        "opponentName": "Bob",
+        "claimedAt": "2026-11-07T12:00:00Z"
+      },
+      "resource": {
+        "$fixture": "invitedMatch"
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "challenger claims own match",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "match",
+        "opponentUid": "alice",
+        "opponentName": "Alice",
+        "participants": [
+          "alice",
+          "alice"
+        ],
+        "claimedAt": "2026-11-07T12:00:00Z"
+      },
+      "resource": {
+        "$fixture": "match"
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "another player claims a match that invites bob",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "carol",
+      "data": {
+        "$fixture": "invitedMatch",
+        "opponentUid": "carol",
+        "opponentName": "Carol",
+        "participants": [
+          "alice",
+          "bob",
+          "carol"
+        ],
+        "claimedAt": "2026-11-07T12:00:00Z"
+      },
+      "resource": {
+        "$fixture": "invitedMatch"
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "claim of a taken seat (set once)",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "carol",
+      "data": {
+        "$fixture": "claimedMatch",
+        "opponentUid": "carol",
+        "opponentName": "Carol",
+        "participants": [
+          "alice",
+          "bob",
+          "carol"
+        ],
+        "claimedAt": "2026-11-07T12:00:00Z"
+      },
+      "resource": {
+        "$fixture": "claimedMatch"
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "claim of a cancelled match",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "match",
+        "opponentUid": "bob",
+        "opponentName": "Bob",
+        "participants": [
+          "alice",
+          "bob"
+        ],
+        "claimedAt": "2026-11-07T12:00:00Z",
+        "cancelled": true
+      },
+      "resource": {
+        "$fixture": "match",
+        "cancelled": true
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "claim of a declined match",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "match",
+        "opponentUid": "bob",
+        "opponentName": "Bob",
+        "participants": [
+          "alice",
+          "bob"
+        ],
+        "claimedAt": "2026-11-07T12:00:00Z",
+        "declined": true
+      },
+      "resource": {
+        "$fixture": "match",
+        "declined": true
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "claim after the deadline",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "match",
+        "createdAt": "2026-11-06T11:00:00Z",
+        "opponentUid": "bob",
+        "opponentName": "Bob",
+        "participants": [
+          "alice",
+          "bob"
+        ],
+        "claimedAt": "2026-11-07T12:00:00Z"
+      },
+      "resource": {
+        "$fixture": "match",
+        "createdAt": "2026-11-06T11:00:00Z"
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "claim that also changes includeFriends",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "match",
+        "opponentUid": "bob",
+        "opponentName": "Bob",
+        "participants": [
+          "alice",
+          "bob"
+        ],
+        "claimedAt": "2026-11-07T12:00:00Z",
+        "includeFriends": false
+      },
+      "resource": {
+        "$fixture": "match"
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "claim seating another uid",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "match",
+        "opponentUid": "carol",
+        "opponentName": "Carol",
+        "participants": [
+          "alice",
+          "carol"
+        ],
+        "claimedAt": "2026-11-07T12:00:00Z"
+      },
+      "resource": {
+        "$fixture": "match"
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "claim with claimedAt other than the server time",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "match",
+        "opponentUid": "bob",
+        "opponentName": "Bob",
+        "participants": [
+          "alice",
+          "bob"
+        ],
+        "claimedAt": "2026-11-07T11:00:00Z"
+      },
+      "resource": {
+        "$fixture": "match"
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "claim that leaves the caller out of participants",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "match",
+        "opponentUid": "bob",
+        "opponentName": "Bob",
+        "claimedAt": "2026-11-07T12:00:00Z"
+      },
+      "resource": {
+        "$fixture": "match"
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "claim without opponentName",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "formatVersion": 1,
+        "createdAt": "2026-11-07T00:00:00Z",
+        "deadlineHours": 24,
+        "challengerUid": "alice",
+        "challengerName": "Alice",
+        "challengerPhoto": null,
+        "invitedUid": null,
+        "opponentUid": "bob",
+        "opponentPhoto": null,
+        "participants": [
+          "alice",
+          "bob"
+        ],
+        "legs": [
+          {
+            "ref": "zip/2026-11-07/1",
+            "authorUid": null
+          },
+          {
+            "ref": "queens/2026-11-06/12",
+            "authorUid": null
+          },
+          {
+            "ref": "custom/tango/K7Q2MX",
+            "authorUid": "carol"
+          }
+        ],
+        "includeFriends": true,
+        "cancelled": false,
+        "declined": false,
+        "rematchOf": null,
+        "progress": {},
+        "claimedAt": "2026-11-07T12:00:00Z"
+      },
+      "resource": {
+        "$fixture": "match"
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "claim with a null opponentName",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "match",
+        "opponentUid": "bob",
+        "participants": [
+          "alice",
+          "bob"
+        ],
+        "claimedAt": "2026-11-07T12:00:00Z"
+      },
+      "resource": {
+        "$fixture": "match"
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "claim with a non-string opponentName",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "match",
+        "opponentUid": "bob",
+        "opponentName": 42,
+        "participants": [
+          "alice",
+          "bob"
+        ],
+        "claimedAt": "2026-11-07T12:00:00Z"
+      },
+      "resource": {
+        "$fixture": "match"
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "claim with an empty opponentName",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "match",
+        "opponentUid": "bob",
+        "opponentName": "",
+        "participants": [
+          "alice",
+          "bob"
+        ],
+        "claimedAt": "2026-11-07T12:00:00Z"
+      },
+      "resource": {
+        "$fixture": "match"
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "claim with a 64-char opponentName",
+      "expect": "allow",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "match",
+        "opponentUid": "bob",
+        "opponentName": {
+          "$repeat": [
+            "b",
+            64
+          ]
+        },
+        "participants": [
+          "alice",
+          "bob"
+        ],
+        "claimedAt": "2026-11-07T12:00:00Z"
+      },
+      "resource": {
+        "$fixture": "match"
+      }
+    },
+    {
+      "group": "matches (claim)",
+      "name": "claim with a 65-char opponentName",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "match",
+        "opponentUid": "bob",
+        "opponentName": {
+          "$repeat": [
+            "b",
+            65
+          ]
+        },
+        "participants": [
+          "alice",
+          "bob"
+        ],
+        "claimedAt": "2026-11-07T12:00:00Z"
+      },
+      "resource": {
+        "$fixture": "match"
+      }
+    },
+    {
+      "group": "matches (cancel and decline)",
+      "name": "challenger cancels an unclaimed match",
+      "expect": "allow",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "match",
+        "cancelled": true
+      },
+      "resource": {
+        "$fixture": "match"
+      }
+    },
+    {
+      "group": "matches (cancel and decline)",
+      "name": "challenger cancels after the claim",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "claimedMatch",
+        "cancelled": true
+      },
+      "resource": {
+        "$fixture": "claimedMatch"
+      }
+    },
+    {
+      "group": "matches (cancel and decline)",
+      "name": "opponent cancels",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "claimedMatch",
+        "cancelled": true
+      },
+      "resource": {
+        "$fixture": "claimedMatch"
+      }
+    },
+    {
+      "group": "matches (cancel and decline)",
+      "name": "challenger cancels and edits a leg",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "match",
+        "cancelled": true,
+        "legs": [
+          {
+            "ref": "zip/2026-11-07/1",
+            "authorUid": null
+          }
+        ]
+      },
+      "resource": {
+        "$fixture": "match"
+      }
+    },
+    {
+      "group": "matches (cancel and decline)",
+      "name": "invited player declines",
+      "expect": "allow",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "invitedMatch",
+        "declined": true
+      },
+      "resource": {
+        "$fixture": "invitedMatch"
+      }
+    },
+    {
+      "group": "matches (cancel and decline)",
+      "name": "stranger declines an invite",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "carol",
+      "data": {
+        "$fixture": "invitedMatch",
+        "declined": true
+      },
+      "resource": {
+        "$fixture": "invitedMatch"
+      }
+    },
+    {
+      "group": "matches (cancel and decline)",
+      "name": "invited player declines after claiming",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "invitedMatch",
+        "opponentUid": "bob",
+        "opponentName": "Bob",
+        "claimedAt": "2026-11-07T01:00:00Z",
+        "declined": true
+      },
+      "resource": {
+        "$fixture": "invitedMatch",
+        "opponentUid": "bob",
+        "opponentName": "Bob",
+        "claimedAt": "2026-11-07T01:00:00Z"
+      }
+    },
+    {
+      "group": "matches (read)",
+      "name": "anonymous get of a match (invite card)",
+      "expect": "allow",
+      "method": "get",
+      "path": "matches/D7K2QX",
+      "auth": null,
+      "resource": {
+        "$fixture": "match"
+      }
+    },
+    {
+      "group": "matches (read)",
+      "name": "participant lists own matches",
+      "expect": "allow",
+      "method": "list",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "claimedMatch"
+      }
+    },
+    {
+      "group": "matches (read)",
+      "name": "non-participant lists matches",
+      "expect": "deny",
+      "method": "list",
+      "path": "matches/D7K2QX",
+      "auth": "carol",
+      "resource": {
+        "$fixture": "claimedMatch"
+      }
+    },
+    {
+      "group": "matches (read)",
+      "name": "challenger deletes a match",
+      "expect": "deny",
+      "method": "delete",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "match"
+      }
+    },
+    {
+      "group": "matches (progress)",
+      "name": "own key grows by one with its result",
+      "expect": "allow",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "claimedMatch",
+        "progress": {
+          "alice": [
+            0,
+            1
+          ]
+        }
+      },
+      "resource": {
+        "$fixture": "claimedMatch"
+      },
+      "mocks": [
+        {
+          "fn": "existsAfter",
+          "path": "matches/D7K2QX/results/1_alice",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "matches (progress)",
+      "name": "opponent's first progress entry with its result",
+      "expect": "allow",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "claimedMatch",
+        "progress": {
+          "alice": [
+            0
+          ],
+          "bob": [
+            0
+          ]
+        }
+      },
+      "resource": {
+        "$fixture": "claimedMatch"
+      },
+      "mocks": [
+        {
+          "fn": "existsAfter",
+          "path": "matches/D7K2QX/results/0_bob",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "matches (progress)",
+      "name": "writes the other player's key",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "claimedMatch",
+        "progress": {
+          "alice": [
+            0
+          ],
+          "bob": [
+            1
+          ]
+        }
+      },
+      "resource": {
+        "$fixture": "claimedMatch"
+      },
+      "mocks": [
+        {
+          "fn": "existsAfter",
+          "path": "matches/D7K2QX/results/1_bob",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "matches (progress)",
+      "name": "own key grows by two",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "claimedMatch",
+        "progress": {
+          "alice": [
+            0,
+            1,
+            2
+          ]
+        }
+      },
+      "resource": {
+        "$fixture": "claimedMatch"
+      },
+      "mocks": [
+        {
+          "fn": "existsAfter",
+          "path": "matches/D7K2QX/results/2_alice",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "matches (progress)",
+      "name": "own key grows without its result",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "claimedMatch",
+        "progress": {
+          "alice": [
+            0,
+            1
+          ]
+        }
+      },
+      "resource": {
+        "$fixture": "claimedMatch"
+      },
+      "mocks": [
+        {
+          "fn": "existsAfter",
+          "path": "matches/D7K2QX/results/1_alice",
+          "value": false
+        }
+      ]
+    },
+    {
+      "group": "matches (progress)",
+      "name": "own key rewrites its prefix (reorder)",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "claimedMatch",
+        "progress": {
+          "alice": [
+            1,
+            0
+          ]
+        }
+      },
+      "resource": {
+        "$fixture": "claimedMatch"
+      },
+      "mocks": [
+        {
+          "fn": "existsAfter",
+          "path": "matches/D7K2QX/results/0_alice",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "matches (progress)",
+      "name": "own key grows on a cancelled match",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "claimedMatch",
+        "progress": {
+          "alice": [
+            0,
+            1
+          ]
+        },
+        "cancelled": true
+      },
+      "resource": {
+        "$fixture": "claimedMatch",
+        "cancelled": true
+      },
+      "mocks": [
+        {
+          "fn": "existsAfter",
+          "path": "matches/D7K2QX/results/1_alice",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "matches (progress)",
+      "name": "non-participant writes own key",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX",
+      "auth": "carol",
+      "data": {
+        "$fixture": "claimedMatch",
+        "progress": {
+          "alice": [
+            0
+          ],
+          "carol": [
+            0
+          ]
+        }
+      },
+      "resource": {
+        "$fixture": "claimedMatch"
+      },
+      "mocks": [
+        {
+          "fn": "existsAfter",
+          "path": "matches/D7K2QX/results/0_carol",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "opponent posts a leg in time with its progress",
+      "expect": "allow",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "progress": {
+              "alice": [
+                0
+              ],
+              "bob": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "challenger posts a leg in time with its progress",
+      "expect": "allow",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_alice",
+      "auth": "alice",
+      "data": {
+        "$fixture": "result",
+        "uid": "alice",
+        "legIndex": 1
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "progress": {
+              "alice": [
+                0,
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "opponent gives up a leg (time 0)",
+      "expect": "allow",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result",
+        "timeMs": 0,
+        "gaveUp": true
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "progress": {
+              "alice": [
+                0
+              ],
+              "bob": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "non-participant posts",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_carol",
+      "auth": "carol",
+      "data": {
+        "$fixture": "result",
+        "uid": "carol"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "progress": {
+              "alice": [
+                0
+              ],
+              "carol": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "rematch invitee posts before claiming",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "invitedMatch"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "invitedMatch",
+            "progress": {
+              "bob": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "second write of the same leg",
+      "expect": "deny",
+      "method": "update",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result",
+        "timeMs": 1000
+      },
+      "resource": {
+        "$fixture": "result"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "progress": {
+              "alice": [
+                0
+              ],
+              "bob": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "post after close",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result",
+        "completedAtMs": 1793995200000
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "createdAt": "2026-11-06T00:00:00Z"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "createdAt": "2026-11-06T00:00:00Z",
+            "progress": {
+              "alice": [
+                0
+              ],
+              "bob": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "post in grace, completed before the deadline",
+      "expect": "allow",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result",
+        "completedAtMs": 1794038340000
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "createdAt": "2026-11-06T08:00:00Z"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "createdAt": "2026-11-06T08:00:00Z",
+            "progress": {
+              "alice": [
+                0
+              ],
+              "bob": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "post in grace, completed exactly at the deadline",
+      "expect": "allow",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result",
+        "completedAtMs": 1794038400000
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "createdAt": "2026-11-06T08:00:00Z"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "createdAt": "2026-11-06T08:00:00Z",
+            "progress": {
+              "alice": [
+                0
+              ],
+              "bob": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "post in grace, completed after the deadline",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result",
+        "completedAtMs": 1794038401000
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "createdAt": "2026-11-06T08:00:00Z"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "createdAt": "2026-11-06T08:00:00Z",
+            "progress": {
+              "alice": [
+                0
+              ],
+              "bob": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "legIndex past the last leg",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX/results/3_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result",
+        "legIndex": 3
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "progress": {
+              "alice": [
+                0
+              ],
+              "bob": [
+                3
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "id names another leg",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX/results/2_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "progress": {
+              "alice": [
+                0
+              ],
+              "bob": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "gave up with a non-zero time",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result",
+        "gaveUp": true
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "progress": {
+              "alice": [
+                0
+              ],
+              "bob": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "solved with time 0",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result",
+        "timeMs": 0
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "progress": {
+              "alice": [
+                0
+              ],
+              "bob": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "negative hints",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result",
+        "hints": -1
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "progress": {
+              "alice": [
+                0
+              ],
+              "bob": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "completedAtMs 0",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result",
+        "completedAtMs": 0
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "progress": {
+              "alice": [
+                0
+              ],
+              "bob": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "post without its progress in the same write",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "post on a cancelled match",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "cancelled": true
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "cancelled": true,
+            "progress": {
+              "alice": [
+                0
+              ],
+              "bob": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "an extra field",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result",
+        "note": "gg"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "progress": {
+              "alice": [
+                0
+              ],
+              "bob": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
+      "name": "owner deletes a result",
+      "expect": "deny",
+      "method": "delete",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "result"
+      }
+    },
+    {
+      "group": "results (sealed read)",
+      "name": "owner reads own result",
+      "expect": "allow",
+      "method": "get",
+      "path": "matches/D7K2QX/results/1_alice",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "result",
+        "uid": "alice",
+        "timeMs": 88000
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "exists",
+          "path": "matches/D7K2QX/results/1_alice",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "results (sealed read)",
+      "name": "opponent reads before posting own leg",
+      "expect": "deny",
+      "method": "get",
+      "path": "matches/D7K2QX/results/1_alice",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "result",
+        "uid": "alice",
+        "timeMs": 88000
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "exists",
+          "path": "matches/D7K2QX/results/1_bob",
+          "value": false
+        },
+        {
+          "fn": "exists",
+          "path": "matches/D7K2QX/results/1_alice",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "results (sealed read)",
+      "name": "opponent reads after posting own leg",
+      "expect": "allow",
+      "method": "get",
+      "path": "matches/D7K2QX/results/1_alice",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "result",
+        "uid": "alice",
+        "timeMs": 88000
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "exists",
+          "path": "matches/D7K2QX/results/1_bob",
+          "value": true
+        },
+        {
+          "fn": "exists",
+          "path": "matches/D7K2QX/results/1_alice",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "results (sealed read)",
+      "name": "opponent reads after close without own leg",
+      "expect": "allow",
+      "method": "get",
+      "path": "matches/D7K2QX/results/1_alice",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "result",
+        "uid": "alice",
+        "timeMs": 88000
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "createdAt": "2026-11-06T00:00:00Z"
+          }
+        },
+        {
+          "fn": "exists",
+          "path": "matches/D7K2QX/results/1_bob",
+          "value": false
+        },
+        {
+          "fn": "exists",
+          "path": "matches/D7K2QX/results/1_alice",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "results (sealed read)",
+      "name": "non-participant reads after close",
+      "expect": "deny",
+      "method": "get",
+      "path": "matches/D7K2QX/results/1_alice",
+      "auth": "carol",
+      "resource": {
+        "$fixture": "result",
+        "uid": "alice",
+        "timeMs": 88000
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "createdAt": "2026-11-06T00:00:00Z"
+          }
+        },
+        {
+          "fn": "exists",
+          "path": "matches/D7K2QX/results/1_carol",
+          "value": false
+        },
+        {
+          "fn": "exists",
+          "path": "matches/D7K2QX/results/1_alice",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "results (sealed read)",
+      "name": "opponent gets an absent result before posting own leg",
+      "expect": "allow",
+      "method": "get",
+      "path": "matches/D7K2QX/results/1_alice",
+      "auth": "bob",
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "exists",
+          "path": "matches/D7K2QX/results/1_bob",
+          "value": false
+        },
+        {
+          "fn": "exists",
+          "path": "matches/D7K2QX/results/1_alice",
+          "value": false
+        }
+      ]
+    },
+    {
+      "group": "results (sealed read)",
+      "name": "opponent gets an absent result after posting own leg",
+      "expect": "allow",
+      "method": "get",
+      "path": "matches/D7K2QX/results/1_alice",
+      "auth": "bob",
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "exists",
+          "path": "matches/D7K2QX/results/1_bob",
+          "value": true
+        },
+        {
+          "fn": "exists",
+          "path": "matches/D7K2QX/results/1_alice",
+          "value": false
+        }
+      ]
+    },
+    {
+      "group": "results (sealed read)",
+      "name": "non-participant gets an absent result",
+      "expect": "deny",
+      "method": "get",
+      "path": "matches/D7K2QX/results/1_alice",
+      "auth": "carol",
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "exists",
+          "path": "matches/D7K2QX/results/1_carol",
+          "value": false
+        },
+        {
+          "fn": "exists",
+          "path": "matches/D7K2QX/results/1_alice",
+          "value": false
+        }
+      ]
+    },
+    {
+      "group": "results (sealed read)",
+      "name": "signed-out get of an absent result",
+      "expect": "deny",
+      "method": "get",
+      "path": "matches/D7K2QX/results/1_alice",
+      "auth": null,
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (sealed read)",
+      "name": "opponent lists results",
+      "expect": "deny",
+      "method": "list",
+      "path": "matches/D7K2QX/results/1_alice",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "result",
+        "uid": "alice",
+        "timeMs": 88000
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "exists",
+          "path": "matches/D7K2QX/results/1_bob",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "matchQuota",
+      "name": "first bump starts at 1",
+      "expect": "allow",
+      "method": "create",
+      "path": "matchQuota/alice",
+      "auth": "alice",
+      "data": {
+        "day": "2026-11-07",
+        "count": 1,
+        "last": "D7K2QX"
+      }
+    },
+    {
+      "group": "matchQuota",
+      "name": "20th match of the day (19 -> 20)",
+      "expect": "allow",
+      "method": "update",
+      "path": "matchQuota/alice",
+      "auth": "alice",
+      "data": {
+        "day": "2026-11-07",
+        "count": 20,
+        "last": "D7K2QX"
+      },
+      "resource": {
+        "day": "2026-11-07",
+        "count": 19,
+        "last": "R3M4CH"
+      }
+    },
+    {
+      "group": "matchQuota",
+      "name": "21st match of the day (20 -> 21)",
+      "expect": "deny",
+      "method": "update",
+      "path": "matchQuota/alice",
+      "auth": "alice",
+      "data": {
+        "day": "2026-11-07",
+        "count": 21,
+        "last": "D7K2QX"
+      },
+      "resource": {
+        "day": "2026-11-07",
+        "count": 20,
+        "last": "R3M4CH"
+      }
+    },
+    {
+      "group": "matchQuota",
+      "name": "first match of a new UTC day restarts at 1",
+      "expect": "allow",
+      "method": "update",
+      "path": "matchQuota/alice",
+      "auth": "alice",
+      "data": {
+        "day": "2026-11-07",
+        "count": 1,
+        "last": "D7K2QX"
+      },
+      "resource": {
+        "day": "2026-11-06",
+        "count": 20,
+        "last": "R3M4CH"
+      }
+    },
+    {
+      "group": "matchQuota",
+      "name": "bump without last",
+      "expect": "deny",
+      "method": "update",
+      "path": "matchQuota/alice",
+      "auth": "alice",
+      "data": {
+        "day": "2026-11-07",
+        "count": 5
+      },
+      "resource": {
+        "day": "2026-11-07",
+        "count": 4,
+        "last": "R3M4CH"
+      }
+    },
+    {
+      "group": "matchQuota",
+      "name": "owner reads own quota",
+      "expect": "allow",
+      "method": "get",
+      "path": "matchQuota/alice",
+      "auth": "alice",
+      "resource": {
+        "day": "2026-11-07",
+        "count": 4,
+        "last": "D7K2QX"
+      }
+    },
+    {
+      "group": "matchQuota",
+      "name": "another user reads the quota",
+      "expect": "deny",
+      "method": "get",
+      "path": "matchQuota/alice",
+      "auth": "bob",
+      "resource": {
+        "day": "2026-11-07",
+        "count": 4,
+        "last": "D7K2QX"
+      }
+    },
+    {
+      "group": "matchQuota",
+      "name": "owner deletes the quota",
+      "expect": "deny",
+      "method": "delete",
+      "path": "matchQuota/alice",
+      "auth": "alice",
+      "resource": {
+        "day": "2026-11-07",
+        "count": 4,
+        "last": "D7K2QX"
       }
     },
     {
