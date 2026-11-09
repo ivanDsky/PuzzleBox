@@ -289,6 +289,17 @@ class TangoPlayControllerTest {
     }
 
     @Test
+    fun `a hint on a stopped clock reopens it`() {
+        val s = loaded()
+        s.onBackground()
+        assertNull(s.clockWindow)
+
+        s.requestHint()
+
+        assertNotNull(s.clockWindow)
+    }
+
+    @Test
     fun `completing the board stops the clock`() {
         val s = loaded()
         fakeNow = fakeNow.plusMillis(7_000)
