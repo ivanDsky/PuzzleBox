@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 import org.koin.core.Koin
 import org.koin.core.qualifier.qualifier
@@ -22,18 +23,25 @@ class SudokuHintModeWiringTest {
     private val env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {})
 
     // The Sudoku modules are top-level vals and Koin caches each singleton on its factory, so a play UI built
-    // under one source would leak into the next test. Drop those instances along with the Koin graphs.
+    // by another test (or test class) would leak in. Drop those instances before and after each test.
     private val koins = mutableListOf<Koin>()
 
     private fun koinWith(source: HintModeSource): Koin = koinApplication {
         modules(miniSudokuUiModule, sudokuUiModule, module { single { source } })
     }.koin.also { koins += it }
 
-    @After
     @OptIn(KoinInternalApi::class)
+    private fun dropCachedSingles() {
+        listOf(miniSudokuUiModule, sudokuUiModule).forEach { module -> module.mappings.values.forEach { it.dropAll() } }
+    }
+
+    @Before
+    fun dropBefore() = dropCachedSingles()
+
+    @After
     fun closeKoins() {
         koins.forEach { it.close() }
-        listOf(miniSudokuUiModule, sudokuUiModule).forEach { module -> module.mappings.values.forEach { it.dropAll() } }
+        dropCachedSingles()
     }
 
     private fun playUi(koin: Koin, definition: SudokuDefinition) =
