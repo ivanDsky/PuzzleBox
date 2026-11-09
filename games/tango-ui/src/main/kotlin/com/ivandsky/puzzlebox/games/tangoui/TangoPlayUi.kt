@@ -165,7 +165,9 @@ private fun TangoBoard(controller: TangoPlayController, paneCap: Dp?, modifier: 
     // The renderer owns the tap-cycle policy (04); the
     // play shell only wires placements into the controller. The outline
     // rides the board modifier (§2 — the Zip outline pattern).
-    val renderer = remember(controller) { TangoBoardRenderer(onPlacement = controller::onPlacement) }
+    val renderer = remember(controller) {
+        TangoBoardRenderer(onPlacement = controller::onPlacement, spotlight = { controller.spotlight })
+    }
     val cap = paneCap ?: PlayBoardMaxWidth
     renderer.Content(
         model = model,

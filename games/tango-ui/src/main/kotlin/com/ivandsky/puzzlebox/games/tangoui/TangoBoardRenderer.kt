@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -21,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
@@ -29,6 +31,8 @@ import androidx.compose.ui.semantics.stateDescription
 import com.ivandsky.puzzlebox.designsystem.BoardTokens
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
+import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightOverlay
 import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.EdgeOverlay
@@ -39,6 +43,8 @@ import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 
+/** The overlay's box is the board's: square and top-start, even in a pane wider than the board is tall (00 §3). */
+private val SpotlightOnBoard = Modifier.wrapContentSize(Alignment.TopStart).aspectRatio(1f).testTag("tango.spotlight")
 
 /**
  * Maps [TangoRendererModel] onto the shared game-ui [BoardGrid] (design-direction
@@ -51,6 +57,7 @@ import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
  */
 class TangoBoardRenderer(
     private val onPlacement: ((TangoPlacement) -> Unit)? = null,
+    private val spotlight: () -> Spotlight? = { null },
 ) {
 
     @Composable
@@ -116,6 +123,8 @@ class TangoBoardRenderer(
                         )
                     },
                 )
+                // Above cells, marks, tint and frame; no pointer input, so taps reach the board.
+                SpotlightOverlay(spotlight(), SpotlightOnBoard)
             }
         }
     }

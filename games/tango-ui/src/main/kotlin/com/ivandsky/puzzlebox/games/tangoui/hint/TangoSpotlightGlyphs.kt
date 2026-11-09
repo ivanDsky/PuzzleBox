@@ -5,8 +5,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.scale
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightGlyphs
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
+import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightTokens
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tangoui.MoonPaths
 import com.ivandsky.puzzlebox.games.tangoui.TangoBoardSpec
@@ -27,13 +29,24 @@ internal data class TangoSpotlightGlyphs(val n: Int, val values: Map<Int, TangoC
 
     override fun DrawScope.draw(cell: Int, role: SpotlightRole, size: Size, color: Color) {
         when (role) {
-            SpotlightRole.TARGET, SpotlightRole.CULPRIT -> when (values[cell]) {
-                TangoCell.SUN -> drawSun(color, n)
-                TangoCell.MOON -> drawMoon(color, n, moonPaths)
-                null -> Unit
+            SpotlightRole.TARGET -> drawValue(cell, color)
+            // The board's own glyph sits under a culprit at 1.0x, its anti-aliased edge a rim of board colour: the
+            // 110 % glyph covers the outer edge and a 1.0x outline 2 hairlines wide the rest, the crescent's inner arc
+            // included (the Queens recipe).
+            SpotlightRole.CULPRIT -> {
+                scale(CULPRIT_SCALE) { drawValue(cell, color) }
+                drawValue(cell, color, rim = SpotlightTokens.HairlineWidth.toPx())
             }
             SpotlightRole.EXCLUDED -> drawCross(color)
             SpotlightRole.EVIDENCE -> Unit
+        }
+    }
+
+    private fun DrawScope.drawValue(cell: Int, color: Color, rim: Float = 0f) {
+        when (values[cell]) {
+            TangoCell.SUN -> drawSun(color, n, rim)
+            TangoCell.MOON -> drawMoon(color, n, moonPaths, rim)
+            null -> Unit
         }
     }
 
@@ -51,5 +64,8 @@ internal data class TangoSpotlightGlyphs(val n: Int, val values: Map<Int, TangoC
         /** Half the × extent and its stroke width, fractions of the glyph box. */
         const val CROSS_ARM = 0.32f
         const val CROSS_STROKE = 0.12f
+
+        /** The culprit's size over the board glyph's, as Sudoku's and Queens' culprits. */
+        const val CULPRIT_SCALE = 1.1f
     }
 }

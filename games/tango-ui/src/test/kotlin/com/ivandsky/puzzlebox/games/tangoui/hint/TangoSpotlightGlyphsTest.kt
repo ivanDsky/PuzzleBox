@@ -47,10 +47,17 @@ class TangoSpotlightGlyphsTest {
         assertNotEquals(sun, moon)
     }
 
+    private fun List<Int>.paintedAt(): Set<Int> = indices.filterTo(HashSet()) { this[it] ushr 24 != 0 }
+
     @Test
-    fun `a culprit paints the placed value`() {
-        assertEquals(paint(0, SpotlightRole.TARGET), paint(0, SpotlightRole.CULPRIT))
-        assertEquals(paint(1, SpotlightRole.TARGET), paint(1, SpotlightRole.CULPRIT))
+    fun `a culprit paints the placed value past its edge, so it covers the board's own glyph`() {
+        for (cell in listOf(0, 1)) {
+            val target = paint(cell, SpotlightRole.TARGET).paintedAt()
+            val culprit = paint(cell, SpotlightRole.CULPRIT).paintedAt()
+
+            assertEquals("cell $cell: target pixels the culprit leaves bare", emptySet<Int>(), target - culprit)
+            assertTrue("cell $cell: the culprit is larger", culprit.size > target.size)
+        }
     }
 
     @Test
