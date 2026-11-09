@@ -22,8 +22,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightOverlay
 import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.GridGeometry
@@ -32,6 +34,9 @@ import com.ivandsky.puzzlebox.gameui.GridGeometry
  *  instant state change (direction doc §5 reduced-motion rule). Read at board level
  *  from the shared [rememberReducedMotion] and provided down. */
 val LocalQueensReducedMotion = staticCompositionLocalOf { false }
+
+/** The Spotlight layer's modifier; built once, the overlay sizes itself to the board box (the cell grid). */
+private val SpotlightOnBoard = Modifier.testTag("queens.spotlight")
 
 /**
  * The full Queens board UI (queens-08): provenance-distinct X marks (§3.2/§3.3), spec
@@ -178,5 +183,8 @@ private fun QueensPlayBoardContent(
                     },
             )
         }
+        // The Stepwise hint (28) over everything above, so no line or highlight crosses its callout; it takes no
+        // taps, so the board's gestures still get them. Null composes nothing.
+        SpotlightOverlay(state.spotlight, SpotlightOnBoard)
     }
 }

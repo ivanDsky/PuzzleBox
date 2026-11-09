@@ -133,6 +133,7 @@ class QueensBoardStateTest {
         state.requestHint()
         assertEquals("Hint — the red region", state.hintCaption)
         assertEquals(1, state.session.hintsUsed)
+        assertNull(state.spotlight)
     }
 
     @Test
