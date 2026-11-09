@@ -156,6 +156,31 @@ class TraceLineMotionTest {
     }
 
     @Test
+    fun `a tip armed while a step blend runs extends from the blended end and reaches its lean`() = runTest {
+        // A drag commits a cell and the finger keeps going, so the lean arms while the commit's
+        // grow blend is pending or mid-flight (GrowDuration is six frames). The end must keep
+        // climbing from where the blend has it, never snap back to the tail, never stall there.
+        // Green on first run: the lean is part of the blend's target, so it is never swallowed.
+        // The stall seen under Robolectric came from that test, which draws the board first at
+        // its capture (see StrandsEditorDragRenderTest), not from this class.
+        for (armAfterFrames in 0..8) {
+            for (committed in listOf(listOf(0, 1, 2), listOf(0, 1, 2, 3, 4))) {
+                val motion = motion()
+                motion.step(listOf(0, 1), animate = false)
+                motion.step(committed, animate = true)
+                val lean = TraceTip(TipKind.Forward, committed.last() + 1, 0.9f)
+
+                val before = frames(armAfterFrames * FRAME_MS) { motion.step(committed, animate = true) }
+                val ends = before + frames(MotionTokens.Trace.GrowDuration + 5 * FRAME_MS) { motion.step(committed, lean, animate = true) }
+
+                val label = "armed after $armAfterFrames frames on $committed: $ends"
+                ends.zipWithNext().forEach { (a, b) -> assertTrue("never backwards, $label", b >= a - 1e-4f) }
+                assertEquals("reaches the lean, $label", committed.lastIndex + 0.9f, ends.last(), 1e-4f)
+            }
+        }
+    }
+
+    @Test
     fun `reduced motion draws the tip at once, and home on lift`() = runTest {
         val motion = motion()
         motion.step(listOf(0, 1), animate = false)
