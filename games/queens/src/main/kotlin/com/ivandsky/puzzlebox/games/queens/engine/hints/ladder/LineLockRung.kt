@@ -4,6 +4,8 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
+private typealias LockFound = Pair<QueensDeduction.Exclude, () -> Set<Int>>
+
 /**
  * Second rung (spec A9): a region whose open cells all lie in one row (or column) owes
  * that line its missing queens, so the rest of the line is excluded. The dual: a line whose
@@ -20,17 +22,30 @@ object LineLockRung : QueensRung {
     override val level: Difficulty.Level = Difficulty.Level.Medium
     override val captionKey: String = "queens.hint.rung.line-lock"
 
-    override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? {
+    override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
+        found(puzzle, candidates).sortedWith(order(puzzle)).asSequence().map { (deduction, evidence) -> QueensProof(deduction, evidence()) }
+
+    override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
+        found(puzzle, candidates).minWithOrNull(order(puzzle))?.first
+
+    private fun order(puzzle: QueensPuzzle): Comparator<LockFound> = compareBy(
+        { found -> found.first.cells.minOf { puzzle.regions[it] } },
+        { it.first.cells.min() },
+        { it.first.unit.kind },
+    )
+
+    /** Deductions with evidence still unbuilt, so [step] builds none for the losing candidates. */
+    private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<LockFound> {
         val n = puzzle.size
         val regions = List(n) { region -> puzzle.regions.indices.filter { puzzle.regions[it] == region } }
         fun missing(cells: List<Int>): Int = puzzle.queensPerUnit - cells.count { it in candidates.queens }
 
-        val found = ArrayList<QueensDeduction.Exclude>()
+        val found = ArrayList<LockFound>()
         for (kind in listOf(HintReason.Kind.ROW, HintReason.Kind.COLUMN)) {
             val lineOf: (Int) -> Int = if (kind == HintReason.Kind.ROW) { cell -> cell / n } else { cell -> cell % n }
             val lines = List(n) { line -> (0 until n * n).filter { lineOf(it) == line } }
-            fun lock(line: Int, cells: Set<Int>) {
-                if (cells.isNotEmpty()) found += QueensDeduction.Exclude(this, HintReason(kind, line, this), cells)
+            fun lock(line: Int, cells: Set<Int>, evidence: List<Int>) {
+                if (cells.isNotEmpty()) found += QueensDeduction.Exclude(this, HintReason(kind, line, this), cells) to { evidence.toSet() }
             }
             // A region locked into one line closes the rest of that line …
             regions.forEachIndexed { region, cells ->
@@ -38,7 +53,7 @@ object LineLockRung : QueensRung {
                 val line = open.map(lineOf).distinct().singleOrNull() ?: return@forEachIndexed
                 val need = missing(cells)
                 if (need > 0 && open.size > need && missing(lines[line]) == need) {
-                    lock(line, lines[line].filter { candidates.isOpen(it) && puzzle.regions[it] != region }.toSet())
+                    lock(line, lines[line].filter { candidates.isOpen(it) && puzzle.regions[it] != region }.toSet(), open)
                 }
             }
             // … and a line locked into one region closes the rest of that region.
@@ -47,12 +62,10 @@ object LineLockRung : QueensRung {
                 val region = open.map { puzzle.regions[it] }.distinct().singleOrNull() ?: return@forEachIndexed
                 val need = missing(cells)
                 if (need > 0 && open.size > need && missing(regions[region]) == need) {
-                    lock(line, regions[region].filter { candidates.isOpen(it) && lineOf(it) != line }.toSet())
+                    lock(line, regions[region].filter { candidates.isOpen(it) && lineOf(it) != line }.toSet(), open)
                 }
             }
         }
-        return found.minWithOrNull(
-            compareBy({ it.cells.minOf { cell -> puzzle.regions[cell] } }, { it.cells.min() }, { it.unit.kind }),
-        )
+        return found
     }
 }

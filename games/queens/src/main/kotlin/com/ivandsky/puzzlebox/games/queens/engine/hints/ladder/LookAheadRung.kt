@@ -18,19 +18,29 @@ class LookAheadRung(private val propagate: List<QueensRung>) : QueensRung {
     override val level: Difficulty.Level = Difficulty.Level.Expert
     override val captionKey: String = "queens.hint.rung.look-ahead"
 
-    override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? {
+    /** Lazy: probes cells in order and yields at each failed one, so [step] stops at the first. */
+    override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> {
         val units = units(puzzle)
         return puzzle.regions.indices
             .filter(candidates::isOpen)
             .sortedWith(compareBy({ puzzle.regions[it] }, { it }))
-            .firstNotNullOfOrNull { cell ->
-                probe(puzzle, units, candidates.place(puzzle, cell))
-                    ?.let { unit -> QueensDeduction.Exclude(this, unit, setOf(cell)) }
+            .asSequence()
+            .mapNotNull { cell ->
+                probe(puzzle, units, candidates.place(puzzle, cell))?.let { (unit, cells) ->
+                    QueensProof(QueensDeduction.Exclude(this, unit, setOf(cell)), cells.filter { it != cell && candidates.isOpen(it) }.toSet())
+                }
             }
     }
 
-    /** Propagates [hypothesis] with the lower rungs; the first emptied unit, or null if none. */
-    private fun probe(puzzle: QueensPuzzle, units: List<Pair<HintReason, List<Int>>>, hypothesis: QueensCandidates): HintReason? {
+    override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
+        steps(puzzle, candidates).firstOrNull()?.deduction
+
+    /** Propagates [hypothesis] with the lower rungs; the first emptied unit with its cells, or null if none. */
+    private fun probe(
+        puzzle: QueensPuzzle,
+        units: List<Pair<HintReason, List<Int>>>,
+        hypothesis: QueensCandidates,
+    ): Pair<HintReason, List<Int>>? {
         var state = hypothesis
         while (true) {
             emptied(puzzle, units, state)?.let { return it }
@@ -41,10 +51,10 @@ class LookAheadRung(private val propagate: List<QueensRung>) : QueensRung {
         }
     }
 
-    private fun emptied(puzzle: QueensPuzzle, units: List<Pair<HintReason, List<Int>>>, state: QueensCandidates): HintReason? =
+    private fun emptied(puzzle: QueensPuzzle, units: List<Pair<HintReason, List<Int>>>, state: QueensCandidates): Pair<HintReason, List<Int>>? =
         units.firstOrNull { (_, cells) ->
             cells.count { it in state.queens } + cells.count(state::isOpen) < puzzle.queensPerUnit
-        }?.first
+        }
 
     private fun units(puzzle: QueensPuzzle): List<Pair<HintReason, List<Int>>> {
         val n = puzzle.size
