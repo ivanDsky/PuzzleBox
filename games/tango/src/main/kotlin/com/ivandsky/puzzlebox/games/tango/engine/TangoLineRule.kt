@@ -13,15 +13,14 @@ import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 object TangoLineRule {
 
     /** First empty cell of the first line whose every legal fill agrees on it, or null. */
-    fun deduction(puzzle: TangoPuzzle, grid: List<TangoCell?>): TangoHint.Forced? {
+    fun deduction(puzzle: TangoPuzzle, grid: List<TangoCell?>): TangoHint.Forced? =
+        forced(puzzle, grid).firstOrNull()
+
+    /** Every empty cell, in every line, on which all legal fills agree; rows first, then columns. */
+    fun forced(puzzle: TangoPuzzle, grid: List<TangoCell?>): List<TangoHint.Forced> {
         val n = puzzle.n
-        for (index in 0 until n) {
-            forcedIn(puzzle, grid, index, isRow = true)?.let { return it }
-        }
-        for (index in 0 until n) {
-            forcedIn(puzzle, grid, index, isRow = false)?.let { return it }
-        }
-        return null
+        return (0 until n).flatMap { forcedIn(puzzle, grid, it, isRow = true) } +
+            (0 until n).flatMap { forcedIn(puzzle, grid, it, isRow = false) }
     }
 
     private fun forcedIn(
@@ -29,17 +28,18 @@ object TangoLineRule {
         grid: List<TangoCell?>,
         index: Int,
         isRow: Boolean,
-    ): TangoHint.Forced? {
+    ): List<TangoHint.Forced> {
         val n = puzzle.n
         val cells = IntArray(n) { pos -> if (isRow) index * n + pos else pos * n + index }
-        if (cells.none { grid[it] == null }) return null
+        if (cells.none { grid[it] == null }) return emptyList()
         val fills = fillsOf(puzzle, cells, grid)
-        if (fills.isEmpty()) return null
+        if (fills.isEmpty()) return emptyList()
+        val found = mutableListOf<TangoHint.Forced>()
         for (pos in 0 until n) {
             if (grid[cells[pos]] != null) continue
             val value = fills.first()[pos]
             if (fills.all { it[pos] == value }) {
-                return TangoHint.Forced(
+                found += TangoHint.Forced(
                     idx = cells[pos],
                     value = value,
                     why = TangoHint.Why.LineFills(
@@ -50,7 +50,7 @@ object TangoLineRule {
                 )
             }
         }
-        return null
+        return found
     }
 
     /** Every assignment of the line that keeps its filled cells and breaks no rule inside it. */
