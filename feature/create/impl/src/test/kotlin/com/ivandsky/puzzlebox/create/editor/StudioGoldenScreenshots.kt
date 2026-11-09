@@ -44,6 +44,8 @@ import java.io.File
  * with a difficulty, Unique · needs guessing (blocked), 2+ solutions, no solution and
  * Undetermined. On the phone the pill's card is open in its bottom sheet (its own window, so
  * the whole screen is captured); on the tablet the card sits inline in the side pane. Light and dark.
+ * System animations are off, so Checking shows its still cue; `checking-running` keeps them on
+ * to pin the indeterminate bar a long check shows past its grace (on a frozen clock).
  * The board is the Studio preview's placeholder square: the game's own looks are the
  * Queens editor goldens (games/queens-ui) and the app's Studio composites. Recorded by
  * default, verified with `-Proborazzi.verify=true`; goldens in `snapshots/studio/`.
@@ -69,6 +71,9 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
     @Test fun `checking light`() = capture("checking", Verdict.Checking, dark = false)
     @Test fun `checking dark`() = capture("checking", Verdict.Checking, dark = true)
 
+    @Test fun `checking running light`() = capture("checking-running", Verdict.Checking, dark = false, motion = true)
+    @Test fun `checking running dark`() = capture("checking-running", Verdict.Checking, dark = true, motion = true)
+
     @Test fun `unique with difficulty light`() = capture("unique-difficulty", UNIQUE, dark = false)
     @Test fun `unique with difficulty dark`() = capture("unique-difficulty", UNIQUE, dark = true)
 
@@ -85,9 +90,9 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
     @Test fun `undetermined dark`() = capture("undetermined", Verdict.Undetermined, dark = true)
 
     @OptIn(ExperimentalRoborazziApi::class)
-    private fun capture(name: String, verdict: Verdict, dark: Boolean) {
+    private fun capture(name: String, verdict: Verdict, dark: Boolean, motion: Boolean = false) {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+        Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, if (motion) 1f else 0f)
         rule.mainClock.autoAdvance = false
         rule.setContent {
             val config = Configuration(LocalConfiguration.current).apply {
