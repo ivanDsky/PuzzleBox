@@ -23,3 +23,27 @@ _Avoid_: counter
 **Hint mode**:
 Legacy (today's hint, which Classic Sudoku keeps) or Stepwise (one deduction per press), chosen per game at registration; read from the `HintParity` flag while it exists.
 _Avoid_: hint type
+
+**Match** (visible word: duel):
+One 1v1 best-of-N contest.
+_Avoid_: game, battle
+
+**Leg**:
+One puzzle of a match. Code only; visible copy says "puzzle".
+_Avoid_: round
+
+**Seat claim**:
+The first non-challenger accept, which sets the opponent.
+_Avoid_: join
+
+**Settled**:
+Both players have a result on every leg, or the match has closed.
+
+**Sealed**:
+An opponent's leg result stays unreadable until your own exists or the match closes.
+
+**Reveal**:
+The once-per-device animated outcome sequence that ends on the summary.
+
+**Late / LocalOnly**:
+The two failed post states: rejected because the match had closed, or rejected three times.

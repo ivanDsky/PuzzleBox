@@ -33,7 +33,7 @@ seam (`GameEditor` in `core:game`, `GameEditorUi` in `core:game-ui`, one game-ag
 `feature:create`), ADR-0020 shared puzzles in Firestore, ADR-0021 the tools module family,
 ADR-0022 trunk delivery (unfinished work merges dark behind a
 `ReleaseFlag`, bound per build type; the flip PR releases), ADR-0023 CI on main only (PRs
-run no CI; the local `assembleDebug test` is the merge gate; main tests before releasing), ADR-0024 per-game daily boards (rules allow-list, day window, rank-ordered queries; amends ADR-0013 and ADR-0020), ADR-0025 Spotlight and press ledger (one generic `StepHints` press flow, shape-only glyph seam, `HintModeSource` bound once; hint-parity seams).
+run no CI; the local `assembleDebug test` is the merge gate; main tests before releasing), ADR-0024 per-game daily boards (rules allow-list, day window, rank-ordered queries; amends ADR-0013 and ADR-0020), ADR-0025 Spotlight and press ledger (one generic `StepHints` press flow, shape-only glyph seam, `HintModeSource` bound once; hint-parity seams). ADR-0026 Competitions (match documents, sealed results, device-derived outcome).
 
 ## Layout
 
@@ -335,7 +335,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - `PROFILE.md` — product frame, ranked care-axes, deploy targets, testing style.
 - `docs/puzzle-notation.md` — the `puzzlebox <game> v<n>` text format agents write (spec A23);
   every sample is pinned by `NotationDocTest` in `:tools:puzzle-cli`.
-- `docs/adr/` — ADR-0001…0025; 0001–0025 are summarized under Purpose.
+- `docs/adr/` — ADR-0001…0026; 0001–0026 are summarized under Purpose.
 
 ## Entry points
 
