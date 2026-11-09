@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.history
 
+import com.ivandsky.puzzlebox.domain.DuelOrigin
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -32,6 +33,8 @@ data class HistoryDayRow(
     val rankOrder: RankOrder = RankOrder.TimeThenHints,
     /** Opened after its own day (ADR-0012): tagged "From the archive", off the streak. */
     val archived: Boolean = false,
+    /** Solved in a duel: the row says so, with the opponent's name when known. */
+    val duel: DuelOrigin? = null,
     /** The year "today" falls in; days from any other year spell theirs out (A23). */
     val currentYear: Int = LocalDate.now().year,
 ) {
@@ -83,6 +86,7 @@ internal fun GameHistoryDay.toRow(gameName: String, brand: GameBrand, currentYea
     brand = brand,
     record = record,
     archived = archived,
+    duel = duel,
     currentYear = currentYear,
 )
 

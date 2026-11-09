@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import java.time.LocalDate
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -32,12 +33,14 @@ class ObserveGameHistoryTest {
 
     private val games = listOf(alpha, beta)
 
-    private fun record(game: GameId, day: LocalDate, puzzleNumber: Int? = 916) = CompletionRecord(
-        puzzleRef = Ref(game, PuzzleKey.Daily(day, puzzleNumber)),
-        time = 41_000L,
-        hints = 1,
-        stats = RecordStats(schemaVersion = 1, blob = "{}"),
-    )
+    private fun record(game: GameId, day: LocalDate, puzzleNumber: Int? = 916, matchCode: String? = null) =
+        CompletionRecord(
+            puzzleRef = Ref(game, PuzzleKey.Daily(day, puzzleNumber)),
+            time = 41_000L,
+            hints = 1,
+            stats = RecordStats(schemaVersion = 1, blob = "{}"),
+            matchCode = matchCode,
+        )
 
     private fun entry(game: GameId, day: LocalDate, puzzleNumber: Int? = 592, fetchedAtMs: Long = 0L) =
         DailyEntry(game, day, puzzleNumber, "${game.value}/v1", fetchedAtMs)
@@ -45,8 +48,12 @@ class ObserveGameHistoryTest {
     private fun daily(vararg entries: DailyEntry) = FakeDailyRepository().apply { entries.forEach(::addEntry) }
 
     /** The use case over a registry of exactly [games] (registration order = list order). */
-    private fun gameHistoryDays(daily: DailyRepository, games: List<GameId>, completions: FakeCompletionRepository) =
-        ObserveGameHistory(TestGames.registry(games), daily, completions)()
+    private fun gameHistoryDays(
+        daily: DailyRepository,
+        games: List<GameId>,
+        completions: FakeCompletionRepository,
+        duelOpponents: Map<String, String> = emptyMap(),
+    ) = ObserveGameHistory(TestGames.registry(games), daily, completions, flowOf(duelOpponents))()
 
     @Test
     fun `a completion surfaces without a captured day`() = runTest {
@@ -171,5 +178,72 @@ class ObserveGameHistoryTest {
         ).first()
 
         assertEquals(listOf(GameHistoryDay(beta, day, 916, record(beta, day))), rows)
+    }
+
+    @Test
+    fun `a duel-solved day carries the match code and the opponent's name`() = runTest {
+        val day = LocalDate.of(2026, 11, 1)
+        val rows = gameHistoryDays(
+            daily = daily(),
+            games = games,
+            completions = FakeCompletionRepository(listOf(record(alpha, day, matchCode = "K7Q2MX"))),
+            duelOpponents = mapOf("K7Q2MX" to "Sam"),
+        ).first()
+
+        assertEquals(DuelOrigin("K7Q2MX", "Sam"), rows.single().duel)
+    }
+
+    @Test
+    fun `a duel-solved day with no known name still carries the origin`() = runTest {
+        val day = LocalDate.of(2026, 11, 1)
+        val rows = gameHistoryDays(
+            daily = daily(),
+            games = games,
+            completions = FakeCompletionRepository(listOf(record(alpha, day, matchCode = "K7Q2MX"))),
+        ).first()
+
+        assertEquals(DuelOrigin("K7Q2MX", null), rows.single().duel)
+    }
+
+    @Test
+    fun `a solo solve carries no duel origin`() = runTest {
+        val day = LocalDate.of(2026, 11, 1)
+        val rows = gameHistoryDays(
+            daily = daily(),
+            games = games,
+            completions = FakeCompletionRepository(listOf(record(alpha, day))),
+            duelOpponents = mapOf("K7Q2MX" to "Sam"),
+        ).first()
+
+        assertEquals(null, rows.single().duel)
+    }
+
+    @Test
+    fun `a duel solve merges into its captured day and keeps the origin`() = runTest {
+        val day = LocalDate.of(2026, 11, 1)
+        val rows = gameHistoryDays(
+            daily = daily(entry(alpha, day, 592)),
+            games = games,
+            completions = FakeCompletionRepository(listOf(record(alpha, day, matchCode = "K7Q2MX"))),
+            duelOpponents = mapOf("K7Q2MX" to "Sam"),
+        ).first()
+
+        assertEquals(1, rows.size)
+        assertEquals(DuelOrigin("K7Q2MX", "Sam"), rows.single().duel)
+    }
+
+    @Test
+    fun `a duel record of a custom puzzle adds no row`() = runTest {
+        val day = LocalDate.of(2026, 11, 1)
+        val custom = record(alpha, day, matchCode = "K7Q2MX")
+            .copy(puzzleRef = CustomRef(alpha, PuzzleKey.Custom("ABC123")))
+        val rows = gameHistoryDays(
+            daily = daily(),
+            games = games,
+            completions = FakeCompletionRepository(listOf(custom)),
+            duelOpponents = mapOf("K7Q2MX" to "Sam"),
+        ).first()
+
+        assertEquals(emptyList<GameHistoryDay>(), rows)
     }
 }
