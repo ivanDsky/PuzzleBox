@@ -37,7 +37,7 @@ class SudokuPlayController(
     hintMode: HintMode = HintMode.Legacy,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
-    /** Stored for the Stepwise hint path (ticket 34); nothing reads it yet. */
+    /** The hint path every board this controller builds runs (ticket 34); CLASSIC always gets Legacy (A24). */
     internal val hintMode: HintMode = hintMode
 
     /** The live interaction holder, null until a session is adopted. */
@@ -104,6 +104,8 @@ class SudokuPlayController(
         now = now,
         onSessionChanged = ::publish,
         settle = ::settle,
+        hintMode = hintMode,
+        scope = env.scope,
     )
 
     private fun publish(s: SudokuSession) {

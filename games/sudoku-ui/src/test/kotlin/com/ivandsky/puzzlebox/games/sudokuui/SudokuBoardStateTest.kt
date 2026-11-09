@@ -17,6 +17,7 @@ import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -269,5 +270,19 @@ class SudokuBoardStateTest {
             "There's no simple step from here, so here's one cell to get you going: row 6, column 6 is 4.",
             SudokuHintCaptions.hint(SudokuHint.Reveal(35, 4), board),
         )
+    }
+
+    @Test
+    fun `the default legacy mode keeps the two-stage hint and never shows a spotlight`() {
+        val s = state()
+        s.requestHint()
+        assertNull(s.spotlight)
+        assertNotNull(s.hintTarget)
+        assertEquals(SudokuHintCaptions.hint(s.hint, s.session.board), s.hintCaption)
+
+        s.requestHint()
+
+        assertTrue(s.hintRevealed)
+        assertNull(s.spotlight)
     }
 }
