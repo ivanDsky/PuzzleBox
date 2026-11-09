@@ -44,7 +44,12 @@ import com.ivandsky.puzzlebox.app.nav.isImmersive
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
+import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.games.zip.ZipDefinition
+import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
+import com.ivandsky.puzzlebox.gameui.DragEvent
+import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.navigation.NavigationState
@@ -231,6 +236,22 @@ class ShellRobot internal constructor(
         val result = state.currentStack.last()
         check(result is MatchLegResultKey) { "the solve of $key opened $result" }
         return result
+    }
+
+    /**
+     * Solves today's open Zip: its live controller, once its session has loaded, takes the
+     * fixture's solution as drag events in one frame, and the wait ends on `route.result`.
+     */
+    fun solveTodaysZip() {
+        val store = graph.koin.get<PlaySessionStore>()
+        val slot = PlaySlot.Daily(ZipDefinition.id, E2E_TODAY)
+        fun zip() = rule.runOnIdle { store.peek(slot) }?.controller as? ZipPlayController
+        rule.waitUntil(TIMEOUT_MS) { rule.runOnIdle { zip()?.session } != null }
+        val controller = checkNotNull(zip()) { "no live zip play for $E2E_TODAY" }
+        rule.runOnIdle {
+            ZipPlayFixture.solution.forEach { controller.onDragEvent(DragEvent.Extend(GridCell(it.idx / ZIP_SIZE, it.idx % ZIP_SIZE))) }
+        }
+        awaitTag(RESULT_ROUTE)
     }
 
     fun awaitTag(tag: String) {
@@ -433,6 +454,7 @@ class ShellRobot internal constructor(
         const val TIMEOUT_MS = 5_000L
         const val IDLE_STEP_MS = 100L
         const val GAME_ROUTE = "route.game"
+        const val ZIP_SIZE = 5
         const val RESULT_ROUTE = "route.result"
         val isRoute = SemanticsMatcher("test tag route.*") {
             it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("route.") == true
