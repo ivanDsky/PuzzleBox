@@ -33,18 +33,20 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.PlayOverflowItem
 import com.ivandsky.puzzlebox.gameui.PlaySolveFrame
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
+import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import com.ivandsky.puzzlebox.gameui.playBoardPane
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.delay
 
 /** Queens' one play registration (ADR-0001): its controller, its board and its play screen. */
-class QueensPlayUi : GamePlayUi {
+class QueensPlayUi(private val hintMode: HintModeSource = HintModeSource { HintMode.Legacy }) : GamePlayUi {
     override val gameId: GameId get() = QueensDefinition.id
 
     override val brand: GameBrand get() = QueensBrand
 
-    override fun createController(env: PlayEnvironment): GamePlayController = QueensPlayController(env)
+    override fun createController(env: PlayEnvironment): GamePlayController = QueensPlayController(env, hintMode = hintMode.current())
 
     override val tutorial: List<TutorialStep> get() = QueensTutorial.steps
 
