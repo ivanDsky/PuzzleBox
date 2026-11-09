@@ -4,7 +4,7 @@ import android.content.Context
 import android.provider.Settings
 import android.view.View
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.layout.Box
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -15,12 +15,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -55,6 +58,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.math.abs
 
 /**
  * Device check D8 (pass 2): the phone Studio keeps every Strands row in the board slot, so
@@ -84,14 +88,41 @@ class StrandsStudioPhoneBoardTest {
 
     @Test
     fun `a path just traced keeps its word field inside the board slot`() {
+        traceTheLastRow()
+
+        assertTrue("the traced path is not selected", controller.selectedPath.value != null)
+        assertWordFieldInTheSlot()
+    }
+
+    @Test
+    fun `a word longer than the path keeps its fit line inside the board slot`() {
+        traceTheLastRow()
+        rule.runOnIdle { controller.typeWord(WORDS.last() + WORDS.last()) }
+        rule.mainClock.advanceTimeBy(SETTLE_MS)
+
+        rule.onNodeWithTag(WORD_FIT, useUnmergedTree = true).assertExists()
+        assertWordFieldInTheSlot()
+    }
+
+    @Test
+    fun `selecting a path keeps the board's size`() {
         show(tested = false, traced = StrandsDraft.ROWS - 1)
+        val idle = drawn(GRID)
+
+        traceTheLastRow()
+
+        assertTrue("the traced path is not selected", controller.selectedPath.value != null)
+        val selected = drawn(GRID)
+        assertTrue("the board went from $idle to $selected on the selection", abs((selected.height - idle.height).value) < 0.5f)
+    }
+
+    /** The Studio with every row but the last a path, then the last row traced by taps. */
+    private fun traceTheLastRow() {
+        if (!::controller.isInitialized) show(tested = false, traced = StrandsDraft.ROWS - 1)
         val lastRow = (StrandsDraft.ROWS - 1) * StrandsDraft.COLS until StrandsDraft.ROWS * StrandsDraft.COLS
         lastRow.forEach { rule.onNodeWithTag("strands.editor.cell.$it").performClick() }
         rule.onNodeWithTag("strands.editor.cell.${lastRow.last}").performClick()
         rule.mainClock.advanceTimeBy(SETTLE_MS)
-
-        assertTrue("the traced path is not selected", controller.selectedPath.value != null)
-        assertWordFieldInTheSlot()
     }
 
     @Test
@@ -112,6 +143,65 @@ class StrandsStudioPhoneBoardTest {
         assertTrue("tool slot $tools holds more than the tools $strip", tools.height <= strip.height + 1.dp)
         assertEveryRowInTheSlot()
         assertWordFieldInTheSlot()
+    }
+
+    @Test
+    fun `Edit board to the details shrinks the board through the slot's animation`() {
+        show(tested = true, motion = true)
+        rule.onNodeWithTag(EDIT_BOARD).performClick()
+        rule.mainClock.advanceTimeBy(SETTLE_MS)
+        val editing = drawn(GRID)
+
+        rule.runOnIdle { editBoard = false }
+        val frames = framesOfTheSwap()
+
+        assertTheBoardFollowsTheSlot(frames, from = editing.height, to = frames.last().first.height)
+    }
+
+    @Test
+    fun `the details to Edit board grow the board through the slot's animation`() {
+        show(tested = true, motion = true)
+        val details = drawn(GRID)
+
+        rule.onNodeWithTag(EDIT_BOARD).performClick()
+        val frames = framesOfTheSwap()
+
+        assertTheBoardFollowsTheSlot(frames, from = details.height, to = frames.last().first.height)
+    }
+
+    /** The grid and the board slot each frame, from the swap's first frame until well after the slot's animation. */
+    private fun framesOfTheSwap(): List<Pair<DpRect, DpRect>> = List(SWAP_FRAMES) {
+        rule.mainClock.advanceTimeByFrame()
+        drawn(GRID) to slot()
+    }
+
+    /** The node's bounds as drawn, its layers' scale included: the unclipped bounds keep the unscaled size. */
+    private fun drawn(tag: String): DpRect {
+        val coordinates = rule.onNodeWithTag(tag).fetchSemanticsNode().layoutInfo.coordinates
+        val box = coordinates.findRootCoordinates().localBoundingBoxOf(coordinates, clipBounds = false)
+        return with(rule.density) { DpRect(box.left.toDp(), box.top.toDp(), box.right.toDp(), box.bottom.toDp()) }
+    }
+
+    /**
+     * Every frame the grid lies inside the board slot and moves only towards its end height, and
+     * the frames while the slot is mid-way draw it strictly between the two: it follows the slot,
+     * never jumps to its end size while the slot still animates.
+     */
+    private fun assertTheBoardFollowsTheSlot(frames: List<Pair<DpRect, DpRect>>, from: Dp, to: Dp) {
+        val heights = frames.map { it.first.height }
+        frames.forEachIndexed { at, (grid, slot) ->
+            assertTrue("frame $at: grid $grid outside the slot $slot", grid.top >= slot.top - 0.5.dp && grid.bottom <= slot.bottom + 0.5.dp)
+        }
+        val towards = heights.zipWithNext().all { (a, b) -> if (to < from) b <= a + 0.5.dp else b >= a - 0.5.dp }
+        assertTrue("grid heights $heights do not move steadily from $from to $to", towards)
+        val slots = frames.map { it.second.height }
+        // Mid-way: the slot a full dp off both its start and its end height.
+        val mid = slots.indices.filter { at -> listOf(slots.first(), slots.last()).all { abs((slots[at] - it).value) > 1f } }
+        assertTrue("the slot never animated: $slots", mid.isNotEmpty())
+        mid.forEach { at ->
+            val h = heights[at]
+            assertTrue("frame $at: grid height $h not strictly between $from and $to (slot ${slots[at]})", h > minOf(from, to) && h < maxOf(from, to))
+        }
     }
 
     @Test
@@ -139,11 +229,18 @@ class StrandsStudioPhoneBoardTest {
         }
     }
 
-    /** The word field, which names a traced path, starts inside the board slot: in reach, not under the tools. */
+    /**
+     * The word field, which names a traced path, whole inside the board slot, its supporting line
+     * (the dictionary check or the fit) too: in reach and readable, not under the tools.
+     */
     private fun assertWordFieldInTheSlot() {
         val slot = slot()
+        val tools = rule.onNodeWithTag(TOOL_SLOT).getUnclippedBoundsInRoot()
         val field = rule.onNodeWithTag(WORD).getUnclippedBoundsInRoot()
-        assertTrue("word field $field outside the slot $slot", field.top >= slot.top && field.top + FIELD_PEEK <= slot.bottom)
+        val line = rule.onNode(hasTestTag(WORD_CHECK) or hasTestTag(WORD_FIT), useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val bottom = maxOf(field.bottom, line.bottom)
+        assertTrue("word field $field outside the slot $slot", field.top >= slot.top && bottom <= slot.bottom + 0.5.dp)
+        assertTrue("word field $field, its line $line, under the tools $tools", bottom <= tools.top + 0.5.dp)
     }
 
     private fun slot(): DpRect = rule.onNodeWithTag(BOARD_SLOT).getUnclippedBoundsInRoot()
@@ -158,10 +255,13 @@ class StrandsStudioPhoneBoardTest {
         rule.mainClock.advanceTimeBy(SETTLE_MS)
     }
 
-    /** The Studio over the [WORDS] board with its first [traced] rows as paths (Unique when all are). */
-    private fun show(tested: Boolean, traced: Int = StrandsDraft.ROWS) {
+    /**
+     * The Studio over the [WORDS] board with its first [traced] rows as paths (Unique when all
+     * are); animations off unless [motion].
+     */
+    private fun show(tested: Boolean, traced: Int = StrandsDraft.ROWS, motion: Boolean = false) {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+        Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, if (motion) 1f else 0f)
         val letters = WORDS.joinToString("")
         val paths = WORDS.take(traced).mapIndexed { row, word -> StrandsDraftPath(List(StrandsDraft.COLS) { row * StrandsDraft.COLS + it }, word) }
         val draft = StrandsDraft(letters, CLUE, paths, SPANGRAM)
@@ -175,8 +275,9 @@ class StrandsStudioPhoneBoardTest {
             view = LocalView.current
             PuzzleBoxTheme(darkTheme = true) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    // The app's nav shell is a SharedTransitionLayout, so the Studio is measured with a lookahead pass.
                     // The emulator's status bar above the Studio; its tab and navigation bars below.
-                    Box(Modifier.fillMaxSize().padding(top = STATUS_BAR, bottom = BOTTOM_CHROME)) {
+                    SharedTransitionLayout(Modifier.fillMaxSize().padding(top = STATUS_BAR, bottom = BOTTOM_CHROME)) {
                         Studio(editorDraft, controller, verdict, passed)
                     }
                 }
@@ -257,6 +358,9 @@ class StrandsStudioPhoneBoardTest {
 
     private companion object {
         const val SETTLE_MS = 2_000L
+
+        /** Frames of the swap watched: the slot's medium tween (240 ms) is about 15 of them. */
+        const val SWAP_FRAMES = 40
         const val TITLE = "Untitled Strands"
         const val CLUE = "Rainbow shades"
         const val SPANGRAM = 5
@@ -270,8 +374,8 @@ class StrandsStudioPhoneBoardTest {
         val STATUS_BAR = 24.dp
         val BOTTOM_CHROME = 128.dp
 
-        /** A text field's least height (Material's 56 dp): the word field, enough of it to tap. */
-        val FIELD_PEEK = 56.dp
+        const val WORD_CHECK = "strands.editor.word.check"
+        const val WORD_FIT = "strands.editor.word.fit"
 
         /** One word per row: the only tiling is the rows themselves. */
         val WORDS = listOf("SPRING", "PLANET", "HOLLOW", "BRIGHT", "FLOWER", "WINDOW", "CASTLE", "QUIVER")

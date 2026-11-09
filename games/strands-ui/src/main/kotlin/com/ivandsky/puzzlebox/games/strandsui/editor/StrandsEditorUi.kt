@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -93,8 +94,10 @@ private fun StrandsToolHint(controller: StrandsEditorController, modifier: Modif
     val draft by controller.draft.collectAsState()
     val selected by controller.selectedPath.collectAsState()
     val path = selected?.let { (draft.state.draft as StrandsDraft).paths.getOrNull(it) }
+    // The row reserves Remove's touch target with or without a selection, so selecting a path
+    // never grows the tools and shrinks the phone board above them.
     Row(
-        modifier.fillMaxWidth(),
+        modifier.fillMaxWidth().heightIn(min = LocalMinimumInteractiveComponentSize.current),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {

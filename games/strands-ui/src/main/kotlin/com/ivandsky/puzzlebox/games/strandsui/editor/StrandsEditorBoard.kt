@@ -60,10 +60,10 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
  * for a word get a dashed outline (`strands.editor.cell.<idx>.pocket`). The [verdict] and the card's witness choice
  * ([StrandsEditorController.overlay]) are drawn by [StrandsDiagnosticsLayer]. The trace takes
  * any drag on the grid, so nothing scrolls it: with [withTools] (the phone Studio) the whole
- * grid fits the slot, below the touch floor if it must, and the [StrandsAuthoringTools] scroll
- * under it in what is left, the word field ([ToolsPeek]) kept in view while that leaves the
- * grid half the slot; without them (the tablet Studio draws them in its side pane) the grid
- * alone fits the width and the height at the touch floor, centred.
+ * grid fits the slot, below the touch floor if it must, the word field under it in view while the
+ * slot has room, and the [StrandsPathTools] scroll in what is left ([StrandsPhoneBoard]); without
+ * them (the tablet Studio draws them in its side pane) the grid alone fits the width and the
+ * height at the touch floor, centred.
  */
 @Composable
 internal fun StrandsEditorBoard(
@@ -72,15 +72,15 @@ internal fun StrandsEditorBoard(
     verdict: Verdict = Verdict.Checking,
     withTools: Boolean = true,
 ) {
-    BoxWithConstraints(modifier) {
-        if (withTools) {
-            val peek = if (maxHeight >= ToolsPeek * 2) ToolsPeek else 0.dp
-            val cell = strandsCellSizeFor(maxWidth, maxHeight - peek, StrandsDraft.ROWS, StrandsDraft.COLS, floor = 0.dp)
-            Column {
-                StrandsEditorGrid(controller, verdict, 0.dp, Modifier.fillMaxWidth().height(cell * StrandsDraft.ROWS))
-                StrandsAuthoringTools(controller, Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()))
-            }
-        } else {
+    if (withTools) {
+        StrandsPhoneBoard(
+            grid = { StrandsEditorGrid(controller, verdict, 0.dp, Modifier.fillMaxSize()) },
+            field = { StrandsWordField(controller) },
+            rest = { StrandsPathTools(controller, Modifier.verticalScroll(rememberScrollState())) },
+            modifier = modifier,
+        )
+    } else {
+        BoxWithConstraints(modifier) {
             val cell = strandsCellSizeFor(maxWidth, maxHeight, StrandsDraft.ROWS, StrandsDraft.COLS)
             StrandsEditorGrid(controller, verdict, StrandsBoardSpec.TouchFloor, Modifier.align(Alignment.Center).fillMaxWidth().height(cell * StrandsDraft.ROWS))
         }
@@ -90,16 +90,23 @@ internal fun StrandsEditorBoard(
 /**
  * The authoring controls under the grid: the word field ([StrandsWordField]), which names the
  * selected path and is off while none is selected, first, so the selection that turns it on
- * never pushes it out of view; then the selected path's spangram toggle and
- * [StrandsPathsPanel], one row per path.
+ * never pushes it out of view; then the [StrandsPathTools].
  */
 @Composable
 internal fun StrandsAuthoringTools(controller: StrandsEditorController, modifier: Modifier = Modifier) {
+    Column(modifier) {
+        StrandsWordField(controller)
+        StrandsPathTools(controller)
+    }
+}
+
+/** The selected path's spangram toggle and [StrandsPathsPanel], one row per path. */
+@Composable
+private fun StrandsPathTools(controller: StrandsEditorController, modifier: Modifier = Modifier) {
     val draft by controller.draft.collectAsState()
     val selected by controller.selectedPath.collectAsState()
     val board = draft.state.draft as StrandsDraft
     Column(modifier) {
-        StrandsWordField(controller)
         selected?.let { index ->
             StrandsSpangramToggle(
                 index = index,
@@ -212,9 +219,6 @@ private fun CellTaps(
         }
     }
 }
-
-/** The word field ([StrandsWordField]) and its gap: the tools the phone grid leaves in view in a slot twice this tall. */
-private val ToolsPeek = 64.dp
 
 /** A dashed rectangle just inside the cell: the mark of a cell no word can fill. */
 private fun DrawScope.drawPocketOutline(color: Color) {
