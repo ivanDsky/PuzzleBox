@@ -53,12 +53,13 @@ class CompletionRepositoryTest {
         db.close()
     }
 
-    private fun completion(day: LocalDate, puzzleNumber: Int?, timeMs: Long, hints: Int) =
+    private fun completion(day: LocalDate, puzzleNumber: Int?, timeMs: Long, hints: Int, matchCode: String? = null) =
         CompletionRecord(
             puzzleRef = Ref(alpha, PuzzleKey.Daily(day, puzzleNumber)),
             time = timeMs,
             hints = hints,
             stats = RecordStats(schemaVersion = 1, blob = """{"v":1,"mistakes":3}"""),
+            matchCode = matchCode,
         )
 
     @Test
@@ -132,5 +133,25 @@ class CompletionRepositoryTest {
         assertEquals(30_000L, repository.best(beta)?.timeMs)
         assertEquals(20_000L, repository.best(GameId("alpha2"))?.timeMs)
         assertNull(repository.best(GameId("alph_")))
+    }
+
+    @Test
+    fun `a completion with a match code reads back with it`() = runTest {
+        val day = LocalDate.of(2026, 10, 31)
+        repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 0, matchCode = "ABC123"))
+
+        assertEquals("ABC123", repository.observeRecords().first().single().matchCode)
+    }
+
+    @Test
+    fun `a replay keeps its own match code`() = runTest {
+        val day = LocalDate.of(2026, 10, 31)
+        val ref = Ref(alpha, PuzzleKey.Daily(day, 592))
+        repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 0))
+        nowMs += 1_000
+        repository.onCompleted(completion(day, 592, timeMs = 71_000, hints = 0, matchCode = "XYZ789"))
+
+        assertNull(repository.observeRecords().first().single().matchCode)
+        assertEquals("XYZ789", repository.observeReplays(ref).first().single().matchCode)
     }
 }

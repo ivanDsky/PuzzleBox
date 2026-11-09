@@ -16,5 +16,6 @@ internal fun CompletionEntity.toModel(registry: GameRegistry): CompletionRecord?
         stats = RecordStats(schemaVersion = statsVersion, blob = statsBlob),
         firstCompletedAt = firstCompletedAtMs?.let(Instant::ofEpochMilli),
         isRecord = isRecord,
+        matchCode = matchCode,
     )
 }
