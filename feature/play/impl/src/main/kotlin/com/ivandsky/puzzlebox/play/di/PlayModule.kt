@@ -4,7 +4,9 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.play.GamePageBoardViewModel
 import com.ivandsky.puzzlebox.play.GameViewModel
 import com.ivandsky.puzzlebox.play.LibraryViewModel
 import com.ivandsky.puzzlebox.play.MatchLegResultViewModel
@@ -70,6 +72,7 @@ val playModule = module {
     factory { DeleteReceivedPuzzle(received = get(), saved = get()) }
     viewModel { LibraryViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
+    viewModel { (game: GameId) -> GamePageBoardViewModel(game, get(), get(), get(), get(), get()) }
     viewModel { (slot: PlaySlot) -> PlayStatsViewModel(slot, get(), get(), get(), get(), get()) }
     viewModel { (key: ResultKey) ->
         ResultViewModel(
