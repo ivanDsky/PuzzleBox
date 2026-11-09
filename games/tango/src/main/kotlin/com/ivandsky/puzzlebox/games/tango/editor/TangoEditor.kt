@@ -18,12 +18,12 @@ import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
- * Tango's pure editor (ADR-0019): one variant per offered [TangoDraft.SIZES] width, a new board
- * has no givens and no markers, drafts persist through [TangoDraftCodec], analysis is
- * [TangoDraftAnalyzer] and publishing is gated by [TangoPublishGates]. A unique draft exports
- * through [TangoCodec] so test solve
- * plays a real puzzle, and shares as givens-and-markers [TangoShareCodec] bytes. Its text form
- * is [TangoNotation] (M5-12-a).
+ * Tango's pure editor (ADR-0019): [variants] offers only 6×6 for now (a draft carries any
+ * [TangoDraft.SIZES] width), a new board has no givens and no markers, drafts persist through
+ * [TangoDraftCodec], analysis is [TangoDraftAnalyzer] and publishing is gated by
+ * [TangoPublishGates]. A unique draft exports through [TangoCodec] so test solve plays a real
+ * puzzle, and shares as givens-and-markers [TangoShareCodec] bytes. Its text form is
+ * [TangoNotation] (M5-12-a).
  */
 object TangoEditor :
     GameEditor<TangoDraft>,
