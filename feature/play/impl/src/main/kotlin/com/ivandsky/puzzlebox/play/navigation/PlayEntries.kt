@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.GameRoute
+import com.ivandsky.puzzlebox.play.LibraryRequest
 import com.ivandsky.puzzlebox.play.LibraryRoute
 import com.ivandsky.puzzlebox.play.MatchLegResultRoute
 import com.ivandsky.puzzlebox.play.PlaySessionStore
@@ -39,7 +40,8 @@ import org.koin.compose.koinInject
  * library into the Dailies, Friends and Duels tabs; without one it is the single games list.
  * [onOpenDuel] is the flag's signal for Enter code (null = off, matches are never tried); it
  * is only carried here. A duel puzzle's [MatchLegKey] draws its leg's board; Up pops, and a
- * solve, a give up or a puzzle already taken replaces it with its [MatchLegResultKey].
+ * solve, a give up or a puzzle already taken replaces it with its [MatchLegResultKey]. The library
+ * acts once on [libraryRequest]'s game page or section and hands it back through [onLibraryRequestTaken].
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
@@ -49,6 +51,8 @@ fun EntryProviderScope<NavKey>.playEntry(
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
     onOpenDuel: ((DuelKey) -> Unit)? = null,
+    libraryRequest: () -> LibraryRequest? = { null },
+    onLibraryRequestTaken: () -> Unit = {},
 ) {
     entry<PlayKey> {
         LibraryRoute(
@@ -59,6 +63,8 @@ fun EntryProviderScope<NavKey>.playEntry(
             onCodeDraftTaken = onCodeDraftTaken,
             duels = duels,
             onOpenDuel = onOpenDuel,
+            request = libraryRequest(),
+            onRequestTaken = onLibraryRequestTaken,
         )
     }
     entry<FriendPuzzleKey> { key ->
