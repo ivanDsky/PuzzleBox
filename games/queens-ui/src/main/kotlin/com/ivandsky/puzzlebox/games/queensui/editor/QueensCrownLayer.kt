@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -85,6 +86,7 @@ internal fun QueensCrownLayer(
     val wash = MaterialTheme.colorScheme.errorContainer.copy(alpha = REJECT_WASH_ALPHA)
     val mine = rejection?.takeIf { it.cell == idx }
     val jolt = remember { Animatable(1f) }
+    val crownPath = remember { Path() }
     LaunchedEffect(mine?.seq) {
         val bounce = spring<Float>(MotionTokens.RejectSpringDamping, MotionTokens.RejectSpringStiffness)
         if (mine != null && !reducedMotion) jolt.animateTo(REJECT_SCALE, bounce)
@@ -106,7 +108,7 @@ internal fun QueensCrownLayer(
     ) {
         if (mine != null) drawRect(wash)
         if (crowned) {
-            drawQueen(ink, QueensBoardDefaults.queenHeightFraction, alpha = 1f)
+            drawQueen(ink, QueensBoardDefaults.queenHeightFraction, alpha = 1f, path = crownPath)
         } else {
             val alpha = if (ghosted) QueensEditorDefaults.ghostedXAlpha else 1f
             drawX(ink, QueensBoardDefaults.crossWeight.toPx(), QueensBoardDefaults.crossLengthFraction, alpha = alpha)

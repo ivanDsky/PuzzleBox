@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -65,6 +66,8 @@ internal fun QueensCell(
     // §3.3 auto fade, A13 auto Stagger). A tapped queen's entrance is its Pop, drawn from
     // [motion]. Exits animate OUT then swap `shown`.
     val presence = remember { Animatable(1f) }
+    // Scratch for the crown outline, rewound by every draw so the draw pass allocates nothing.
+    val crownPath = remember { Path() }
     LaunchedEffect(visual) {
         when {
             reducedMotion -> {
@@ -178,7 +181,7 @@ internal fun QueensCell(
                         translate(left = shake)
                         scale(scale, scale)
                     }) {
-                        drawQueen(ink, QueensBoardDefaults.queenHeightFraction, alpha = p * (motion?.alphaOf(idx) ?: 1f))
+                        drawQueen(ink, QueensBoardDefaults.queenHeightFraction, alpha = p * (motion?.alphaOf(idx) ?: 1f), path = crownPath)
                     }
                 }
                 QueensCellVisual.EMPTY -> Unit
@@ -217,6 +220,7 @@ internal fun QueensCell(
                 drawQueen(
                     ink, QueensBoardDefaults.queenHeightFraction,
                     alpha = QueensBoardDefaults.ghostOutlineAlpha,
+                    path = crownPath,
                     style = Stroke(
                         width = QueensBoardDefaults.ghostStrokeWeight.toPx(),
                         join = StrokeJoin.Round,
