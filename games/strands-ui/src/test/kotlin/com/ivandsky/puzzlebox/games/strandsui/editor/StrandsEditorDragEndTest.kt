@@ -167,6 +167,25 @@ class StrandsEditorDragEndTest {
     }
 
     @Test
+    fun `a turn through the side cell's middle keeps the side cell`() {
+        selectedStar()
+        // (1, 3) is a side cell of the end (0, 3), (1, 4) the diagonal beyond it: no corner cut.
+        drag(3, 9, 10)
+
+        assertEquals(listOf(0, 1, 2, 3, 9, 10), board().paths.single().cells)
+    }
+
+    @Test
+    fun `one finger jump back over two cells pops both`() {
+        selectedStar()
+        controller.step(TraceInput.dragStart(coord(3)))
+        controller.step(TraceInput.dragTo(Trace(listOf(coord(3))), coord(2)))
+        controller.fingerAt(Offset(1.5f, 0.5f))
+
+        assertEquals(listOf(0, 1), controller.trace.value)
+    }
+
+    @Test
     fun `shortening stops at one cell and never removes the path`() {
         path(0, 1, 2)
         controller.selectPath(0)
