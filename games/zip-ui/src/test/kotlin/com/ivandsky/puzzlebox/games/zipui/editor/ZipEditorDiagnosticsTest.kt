@@ -68,6 +68,17 @@ class ZipEditorDiagnosticsTest {
     }
 
     @Test
+    fun `a new Multiple straight after another moves the rings to its cells`() {
+        show(controller(), MULTIPLE)
+        val moved = Verdict.Multiple(A, Solution(listOf(0, 1, 2, 9, 14)), setOf(3, 9, 14))
+
+        verdict = moved
+        rule.waitForIdle()
+
+        assertEquals(moved.differingCells, tagged("diff"))
+    }
+
+    @Test
     fun `Show on board draws witness A and the toggle switches it to B`() {
         val controller = controller()
         controller.adoptOverlay(EditorOverlay(EditorOverlay.Witness.A, showOnBoard = true))

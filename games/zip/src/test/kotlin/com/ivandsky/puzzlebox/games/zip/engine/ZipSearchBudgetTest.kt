@@ -11,8 +11,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * [ZipSearch.bounded] polls its [Budget] inside the DFS, so the editor's 1.5 s analysis
- * bound holds on the largest open boards, and [Budget.Unlimited] leaves results unchanged.
+ * [ZipSearch.bounded] polls its [Budget] inside the DFS and stops at its node cap, so the
+ * editor's analysis stays bounded (node cap + cancel) on the largest open boards, and
+ * [Budget.Unlimited] with no cap leaves results unchanged.
  */
 class ZipSearchBudgetTest {
 
@@ -71,6 +72,15 @@ class ZipSearchBudgetTest {
 
         assertEquals(ZipSearchOutcome.Exhausted, outcome)
         assertEquals(2, polls)
+    }
+
+    @Test
+    fun `a node cap stops the search with no clock and no cancel`() {
+        val capped = ZipSearch.bounded(ZipWorstCaseFixtures.adjacentCorners, limit = 2, budget = Budget.Unlimited, maxNodes = 1_000)
+        val roomy = ZipSearch.bounded(twoPathBoard, limit = 2, budget = Budget.Unlimited, maxNodes = 1_000)
+
+        assertEquals(ZipSearchOutcome.Exhausted, capped)
+        assertEquals(2, (roomy as ZipSearchOutcome.Done).solutions.size)
     }
 
     @Test
