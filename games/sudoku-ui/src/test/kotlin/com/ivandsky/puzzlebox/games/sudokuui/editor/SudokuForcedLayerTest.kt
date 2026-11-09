@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.sudokuui.editor
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -8,6 +9,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.state.ToggleableState
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
@@ -18,6 +20,7 @@ import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuEditor
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuForcedCells
 import kotlinx.coroutines.CoroutineDispatcher
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -68,9 +71,14 @@ class SudokuForcedLayerTest {
         .toSet()
 
     private fun assertToggle(on: Boolean) {
-        rule.onNodeWithTag("sudoku.editor.forced").assert(
-            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, if (on) "On" else "Off"),
-        )
+        rule.onNodeWithTag("sudoku.editor.forced")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
+            .assert(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.ToggleableState,
+                    if (on) ToggleableState.On else ToggleableState.Off,
+                ),
+            )
     }
 
     private fun checkToggle(game: SudokuDefinition, givens: String, size: Int) {
@@ -105,10 +113,19 @@ class SudokuForcedLayerTest {
     fun `the toggle button flips the view`() {
         val (controller, _) = open(SudokuGames.MINI, MINI_GIVENS)
 
+        assertToggle(on = false)
+
         rule.onNodeWithTag("sudoku.editor.forced").performClick()
+        rule.waitForIdle()
 
         assertTrue(controller.forcedView.value)
         assertToggle(on = true)
+
+        rule.onNodeWithTag("sudoku.editor.forced").performClick()
+        rule.waitForIdle()
+
+        assertFalse(controller.forcedView.value)
+        assertToggle(on = false)
     }
 
     @Test
