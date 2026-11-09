@@ -179,7 +179,7 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
             onRename = {},
             onDuplicate = {},
             onDelete = {},
-            board = { boardModifier -> QueensEditorUi.Board(controller, verdict, boardModifier) },
+            board = { boardModifier -> QueensEditorUi.Board(controller, verdict, layout, boardModifier) },
             toolStrip = { stripModifier ->
                 ToolStrip(
                     canUndo = true,

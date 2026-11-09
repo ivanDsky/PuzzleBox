@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -51,7 +52,7 @@ class StrandsEditorWordTest {
     private fun show() = rule.setContent {
         PuzzleBoxTheme {
             CompositionLocalProvider(LocalEditorDispatchers provides QueueDispatcherProvider(queue)) {
-                Column { StrandsEditorUi.Board(controller, Verdict.Checking, Modifier.weight(1f)) }
+                Column { StrandsEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier.weight(1f)) }
             }
         }
     }

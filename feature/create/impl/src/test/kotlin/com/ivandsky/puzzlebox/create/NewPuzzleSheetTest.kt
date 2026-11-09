@@ -34,6 +34,7 @@ import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
@@ -237,7 +238,7 @@ class NewPuzzleSheetTest {
         ): GameEditorController = error("the sheet never opens a board")
 
         @Composable
-        override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) = Unit
+        override fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) = Unit
     }
 
     private companion object {

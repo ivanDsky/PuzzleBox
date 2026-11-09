@@ -94,17 +94,9 @@ class FakeGameEditorUi(
         FakeEditorController(initial, onEdit).also { controllers += it }
 
     @Composable
-    override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) {
-        Text("${controller.draft.value.encode().last()}", modifier.testTag("fake.editor.board"))
-    }
-
-    @Composable
     override fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) {
-        if (gameSlots) {
-            Text("${controller.draft.value.encode().last()}", modifier.testTag("fake.editor.board.$layout"))
-        } else {
-            Board(controller, verdict, modifier)
-        }
+        val tag = if (gameSlots) "fake.editor.board.$layout" else "fake.editor.board"
+        Text("${controller.draft.value.encode().last()}", modifier.testTag(tag))
     }
 
     @Composable

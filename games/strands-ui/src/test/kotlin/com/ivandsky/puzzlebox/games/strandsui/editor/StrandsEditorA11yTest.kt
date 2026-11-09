@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -38,7 +39,7 @@ class StrandsEditorA11yTest {
     private val controller = StrandsEditorController(EditorDraft.fresh(StrandsEditor, StrandsDefinition.VARIANT)) {}
 
     private fun show() = rule.setContent {
-        PuzzleBoxTheme { StrandsEditorUi.Board(controller, Verdict.Checking, Modifier) }
+        PuzzleBoxTheme { StrandsEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier) }
     }
 
     private fun path(vararg cells: Int) {
@@ -58,7 +59,7 @@ class StrandsEditorA11yTest {
         rule.setContent {
             PuzzleBoxTheme {
                 Column {
-                    StrandsEditorUi.Board(controller, Verdict.Checking, Modifier.weight(1f))
+                    StrandsEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier.weight(1f))
                     StrandsEditorUi.PublishFields(controller, enabled = true, modifier = Modifier)
                 }
             }

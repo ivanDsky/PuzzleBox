@@ -24,6 +24,7 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.editor.TangoDraft
 import com.ivandsky.puzzlebox.games.tango.editor.TangoPublishGates
+import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.model.GameId
@@ -46,7 +47,7 @@ object TangoEditorUi : GameEditorUi {
     ): GameEditorController = TangoEditorController(initial, onEdit)
 
     @Composable
-    override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) {
+    override fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) {
         TangoEditorBoard(controller as TangoEditorController, modifier, verdict)
     }
 

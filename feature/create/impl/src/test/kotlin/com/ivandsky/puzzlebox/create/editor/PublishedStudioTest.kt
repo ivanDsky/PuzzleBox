@@ -351,16 +351,10 @@ class PublishedStudioTest {
         val controllers: List<FakeEditorController> get() = base.controllers
 
         @Composable
-        override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) {
+        override fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) {
             val fake = controller as FakeEditorController
             val marks = fake.draft.value.encode().last().toInt()
             Text("$marks", modifier.testTag(BOARD).clickable { fake.edit(next(marks + 1)) })
-        }
-
-        // `by base` would hand the Studio's layout board to the base's own board, past this one.
-        @Composable
-        override fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) {
-            Board(controller, verdict, modifier)
         }
     }
 

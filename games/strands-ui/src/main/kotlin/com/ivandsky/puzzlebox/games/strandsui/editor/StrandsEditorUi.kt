@@ -48,11 +48,6 @@ object StrandsEditorUi : GameEditorUi {
         onEdit: (EditorDraft<*>) -> Unit,
     ): GameEditorController = StrandsEditorController(initial, onEdit)
 
-    @Composable
-    override fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier) {
-        StrandsEditorBoard(controller as StrandsEditorController, modifier, verdict)
-    }
-
     /** The grid and, on a phone, the [StrandsAuthoringTools] under it; on a tablet the grid alone. */
     @Composable
     override fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) {

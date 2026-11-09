@@ -115,7 +115,7 @@ private fun PublishedPage(
     var copies by remember { mutableIntStateOf(0) }
     val asked by unpublish.state.collectAsStateWithLifecycle()
     val board: @Composable (Modifier) -> Unit = { boardModifier ->
-        ReadOnlyBoard(board = { page.ui.Board(page.controller, page.verdict, it) }, modifier = boardModifier)
+        ReadOnlyBoard(board = { page.ui.Board(page.controller, page.verdict, layout, it) }, modifier = boardModifier)
     }
     val actions: @Composable ColumnScope.() -> Unit = {
         PublishedActions(page.ticket, onCopied = { copies++ }, onDuplicate = onDuplicate, onUnpublish = unpublish::ask)

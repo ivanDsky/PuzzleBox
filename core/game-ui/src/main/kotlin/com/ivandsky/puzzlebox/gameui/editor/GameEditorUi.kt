@@ -12,8 +12,8 @@ import com.ivandsky.puzzlebox.model.GameId
 /**
  * One game's editor UI (ADR-0019): the Compose half of
  * [com.ivandsky.puzzlebox.game.editor.GameEditor]. The create feature draws any game's
- * Studio through this seam and never names a game. [Board]'s signature is fixed for M2–M5:
- * the game draws its own diagnostics from [Verdict].
+ * Studio through this seam and never names a game. [Board] draws its own diagnostics from
+ * [Verdict].
  */
 interface GameEditorUi {
     val gameId: GameId
@@ -24,16 +24,12 @@ interface GameEditorUi {
     /** UI-only state (selection, ring, overlay) lives in the controller; the VM owns the draft. */
     fun createController(initial: EditorDraft<*>, onEdit: (EditorDraft<*>) -> Unit): GameEditorController
 
-    @Composable
-    fun Board(controller: GameEditorController, verdict: Verdict, modifier: Modifier)
-
     /**
-     * The board in the Studio's [layout]; the default is [Board]. In [PlayLayout.TwoPane] the
-     * host draws [PaneTools] in the side pane, so a game that has them leaves them off this board.
+     * The board in the host's [layout]. In [PlayLayout.TwoPane] the Studio draws [PaneTools]
+     * in the side pane, so a game that has them leaves them off this board.
      */
-    @Composable fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) {
-        Board(controller, verdict, modifier)
-    }
+    @Composable
+    fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier)
 
     /**
      * Authoring controls the tablet ([PlayLayout.TwoPane]) Studio draws in its side pane, under
