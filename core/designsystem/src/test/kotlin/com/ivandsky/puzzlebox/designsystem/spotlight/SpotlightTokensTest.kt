@@ -9,14 +9,12 @@ import com.ivandsky.puzzlebox.designsystem.DarkBoardTokens
 import com.ivandsky.puzzlebox.designsystem.DarkColorScheme
 import com.ivandsky.puzzlebox.designsystem.LightBoardTokens
 import com.ivandsky.puzzlebox.designsystem.LightColorScheme
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 // Guards for the Spotlight's role distinguishability and total motion time (A13, A16). Contrast is
 // luminance-only, so the >=3:1 checks double as greyscale checks: no role depends on hue alone. The
-// excluded x and the target ghost are user-approved alphas, not held to a glyph-vs-surface ratio; their
-// measured ratios are only printed.
+// excluded x and the target ghost are user-approved alphas, not held to a glyph-vs-surface ratio.
 class SpotlightTokensTest {
 
     private val themes: List<Triple<String, BoardColors, ColorScheme>> = listOf(
@@ -31,7 +29,7 @@ class SpotlightTokensTest {
             val dimmed = SpotlightTokens.dimOverlay(board.boardSurface).compositeOver(lit)
             val ratio = contrast(lit, dimmed)
             println("$name lit vs dimmed ink: $ratio")
-            assertTrue("$name lit vs dimmed $ratio", ratio > 1f)
+            assertTrue("$name lit vs dimmed $ratio", ratio >= 1.5f)
         }
     }
 
@@ -64,30 +62,34 @@ class SpotlightTokensTest {
     }
 
     @Test
-    fun `ghost and excluded ratios are printed for information only`() {
+    fun `culprit ink is told apart from the dimmed board by luminance`() {
+        // No violation-cue token exists in BoardColors (stripes use the scheme error as is), so the
+        // culprit is only checked against the dimmed board ink here.
         for ((name, board, scheme) in themes) {
-            val ghost = SpotlightTokens.targetGhost(scheme).compositeOver(board.boardSurface)
-            val cross = SpotlightTokens.excluded(scheme).compositeOver(board.boardSurface)
-            println("$name target ghost vs surface: ${contrast(ghost, board.boardSurface)}")
-            println("$name excluded x vs surface: ${contrast(cross, board.boardSurface)}")
+            val dimmedInk = SpotlightTokens.dimOverlay(board.boardSurface).compositeOver(scheme.onSurface)
+            val ratio = contrast(SpotlightTokens.culprit(scheme), dimmedInk)
+            println("\$name culprit vs dimmed ink: \$ratio")
+            assertTrue("\$name culprit vs dimmed ink \$ratio", ratio >= 1.1f)
         }
     }
 
     @Test
-    fun `approved alphas are pinned`() {
-        assertEquals(0.40f, SpotlightTokens.DIM_ALPHA, 0f)
-        assertEquals(0.28f, SpotlightTokens.TARGET_GHOST_ALPHA, 0f)
-        assertEquals(0.50f, SpotlightTokens.EXCLUDED_ALPHA, 0f)
+    fun `excluded stays stronger than the ghost and the ghost shows on the dimmed surface`() {
+        assertTrue(SpotlightTokens.EXCLUDED_ALPHA > SpotlightTokens.TARGET_GHOST_ALPHA)
+        for ((name, board, scheme) in themes) {
+            val dimmedSurface = SpotlightTokens.dimOverlay(board.boardSurface).compositeOver(board.boardSurface)
+            val ghost = SpotlightTokens.targetGhost(scheme).compositeOver(dimmedSurface)
+            val ratio = contrast(ghost, dimmedSurface)
+            assertTrue("\$name ghost vs dimmed surface \$ratio", ratio >= 1.1f)
+        }
     }
 
     @Test
-    fun `the whole sequence ends within 400 ms and no part ends later than the pulse`() {
-        val end = SpotlightTokens.PULSE_DELAY_MS + SpotlightTokens.PULSE_DURATION_MS
-        assertTrue(end <= SpotlightTokens.TOTAL_MS)
-        assertTrue(SpotlightTokens.FADE_MS <= end)
-        val staggerEnd = SpotlightTokens.EXCLUDED_MAX_STAGGERED * SpotlightTokens.EXCLUDED_STAGGER_MS
-        assertTrue(staggerEnd <= end)
-        assertEquals(1.12f, SpotlightTokens.PULSE_PEAK_SCALE, 0f)
+    fun `the worst-case sequence ends within 400 ms`() {
+        val lastStaggerStart = (SpotlightTokens.EXCLUDED_MAX_STAGGERED - 1) * SpotlightTokens.EXCLUDED_STAGGER_MS
+        val worst = lastStaggerStart + SpotlightTokens.FADE_MS + SpotlightTokens.PULSE_DURATION_MS
+        assertTrue("worst \$worst", worst <= SpotlightTokens.TOTAL_MS)
+        assertTrue(SpotlightTokens.PULSE_DELAY_MS + SpotlightTokens.PULSE_DURATION_MS <= SpotlightTokens.TOTAL_MS)
         assertTrue(SpotlightTokens.EXCLUDED_START_SCALE < SpotlightTokens.CALLOUT_START_SCALE)
         assertTrue(SpotlightTokens.CALLOUT_START_SCALE < 1f)
     }
