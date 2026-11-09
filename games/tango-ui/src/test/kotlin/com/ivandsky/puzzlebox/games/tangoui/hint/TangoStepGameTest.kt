@@ -24,7 +24,7 @@ import org.junit.Test
 
 /**
  * Pins what the Tango game adds to [StepHints]: the solution searched once per puzzle (A19), `lastMove`, the mapper
- * wiring, the erase hook, and that a press places nothing (A1). Driven through a real [StepHints] on
+ * wiring, and that a press places and erases nothing (A1, A4). Driven through a real [StepHints] on
  * [Dispatchers.Unconfined] (or a held compute dispatcher), so a press delivers at once.
  */
 class TangoStepGameTest {
@@ -53,12 +53,11 @@ class TangoStepGameTest {
         compute: CoroutineDispatcher = Dispatchers.Unconfined,
     ) {
         var session = TangoSession(ref = null, puzzle = board)
-        val erased = mutableListOf<TangoStep.Mistake>()
         var used = 0
         val game = if (solve == null) {
-            TangoStepGame(session = { session }, onEraseCulprit = { erased += it })
+            TangoStepGame(session = { session })
         } else {
-            TangoStepGame(session = { session }, onEraseCulprit = { erased += it }, solve = solve)
+            TangoStepGame(session = { session }, solve = solve)
         }
         val hints = StepHints(HintMode.Stepwise(compute), CoroutineScope(Dispatchers.Unconfined), game, { used }, { used = it })
 
@@ -190,7 +189,7 @@ class TangoStepGameTest {
     // Wrong sun or moon
 
     @Test
-    fun `a wrong entry is shown once as the culprit, then the second press hands it to the erase hook`() {
+    fun `a wrong entry is marked as the culprit, and the second press re-shows the same mark for free`() {
         val play = Play()
         val cell = emptyCells[0]
         play.place(cell, opposite(solution[cell]))
@@ -200,12 +199,13 @@ class TangoStepGameTest {
 
         assertEquals(cell, (step as TangoStep.Mistake).idx)
         assertEquals(listOf(cell), play.hints.spotlight?.roles?.filterValues { it == SpotlightRole.CULPRIT }?.keys?.toList())
-        assertTrue(play.erased.isEmpty())
+        assertEquals(1, play.used)
 
-        play.hints.press()
+        assertEquals(step, play.press())
 
-        assertEquals(listOf(step), play.erased)
-        assertNull(play.hints.spotlight)
+        assertEquals(listOf(cell), play.hints.spotlight?.roles?.filterValues { it == SpotlightRole.CULPRIT }?.keys?.toList())
+        assertEquals(2, play.hints.spotlight?.playId)
+        assertEquals(1, play.used)
         assertEquals(wrong, play.session)
     }
 

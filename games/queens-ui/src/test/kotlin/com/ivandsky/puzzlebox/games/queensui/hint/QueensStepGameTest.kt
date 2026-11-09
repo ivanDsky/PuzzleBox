@@ -17,7 +17,7 @@ import org.junit.Test
 
 /**
  * Pins what the Queens game adds to `StepHints`: the solution resolved once per puzzle inside the compute block (A19),
- * the capture-time snapshot and `lastMove`, and the erase hook. Calls the game directly with a live session.
+ * the capture-time snapshot and `lastMove`, the keys and the Spotlight. Calls the game directly with a live session.
  */
 class QueensStepGameTest {
 
@@ -42,18 +42,17 @@ class QueensStepGameTest {
     )
     private val offSolution = Cell(2)
 
-    /** One play: the live session, a counting solver seam, and a recording erase hook. */
+    /** One play: the live session and a counting solver seam. */
     private inner class Play(
         puzzle: QueensPuzzle,
         solve: ((QueensPuzzle) -> Set<Cell>?)? = null,
     ) {
         var session = QueensSession(ref = null, puzzle = puzzle)
         var solves = 0
-        val erased = mutableListOf<QueensStep.Mistake>()
         val game = if (solve == null) {
-            QueensStepGame(session = { session }, onEraseCulprit = { erased += it })
+            QueensStepGame(session = { session })
         } else {
-            QueensStepGame(session = { session }, onEraseCulprit = { erased += it }, solve = { solves++; solve(it) })
+            QueensStepGame(session = { session }, solve = { solves++; solve(it) })
         }
 
         fun next(): QueensStep = game.capture()()
@@ -210,34 +209,14 @@ class QueensStepGameTest {
         assertEquals(QueensStepper.next(big, QueensBoard(), true, null, solution), play.next())
     }
 
-    // Erase, culprit, key, Spotlight
+    // Key, Spotlight
 
     @Test
-    fun `every kind of mistake goes to the erase hook once, as given`() {
-        val play = Play(small)
-        val mistakes = listOf(
-            QueensStep.Mistake(Cell(2), QueensStep.Mistake.Kind.OFF_SOLUTION, null),
-            QueensStep.Mistake(Cell(5), QueensStep.Mistake.Kind.RULE_BREAK, Cell(1)),
-            QueensStep.Mistake(Cell(1), QueensStep.Mistake.Kind.WRONG_CROSS, null),
-        )
-
-        mistakes.forEach(play.game::eraseCulprit)
-
-        assertEquals(mistakes, play.erased)
-    }
-
-    @Test
-    fun `only a mistake is a culprit, and only shown steps have keys`() {
+    fun `only shown steps have keys`() {
         val game = Play(big).game
-        val deduction = game.capture()()
-        assertTrue("precondition: the empty board opens with a deduction, got $deduction", deduction is QueensStep.Deduction)
-        val mistake = QueensStep.Mistake(Cell(2), QueensStep.Mistake.Kind.OFF_SOLUTION, null)
-        val reveal = QueensStep.Reveal(Cell(2), holdsQueen = false)
 
-        assertEquals(listOf(true, false, false), listOf(mistake, deduction, reveal).map(game::isCulprit))
         assertNull(game.keyOf(QueensStep.Solved))
         assertNull(game.keyOf(QueensStep.Unavailable))
-        assertFalse(game.isCulprit(QueensStep.Solved))
     }
 
     @Test
