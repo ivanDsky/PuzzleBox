@@ -19,15 +19,20 @@ import com.ivandsky.puzzlebox.games.strandsui.FoundEvent
  */
 internal class LinkSettle(val link: StrandsLink, val spec: StrandsCellSpec, val elapsedMs: Int) {
 
-    private fun frames(): List<StrandsCellFrame> = List(link.cells.size) {
-        spec.frame(elapsedMs, StrandsMotionCue(it, link.cells.size), reduceMotion = false)
+    private val frames: List<StrandsCellFrame> by lazy {
+        List(link.cells.size) { spec.frame(elapsedMs, StrandsMotionCue(it, link.cells.size), reduceMotion = false) }
     }
 
     /** Each step's thickness relative to rest: the smaller [StrandsCellFrame.scale] of its two letters. */
-    fun stepScales(): FloatArray = frames().let { f -> FloatArray(f.size - 1) { minOf(f[it].scale, f[it + 1].scale) } }
+    fun stepScales(): FloatArray =
+        FloatArray(frames.lastIndex) { minOf(frames[it].scale, frames[it + 1].scale) }
 
-    /** How far each step has turned from the trace's look to the link's own: the lesser [StrandsCellFrame.lit] of its two letters. */
-    fun stepLit(): FloatArray = frames().let { f -> FloatArray(f.size - 1) { minOf(f[it].lit, f[it + 1].lit) } }
+    /**
+     * How far each step has turned from the trace's look to the link's own: the lesser
+     * [StrandsCellFrame.lit] of its two letters.
+     */
+    fun stepLit(): FloatArray =
+        FloatArray(frames.lastIndex) { minOf(frames[it].lit, frames[it + 1].lit) }
 }
 
 /**

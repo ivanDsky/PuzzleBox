@@ -67,7 +67,8 @@ internal fun StrandsConnectors(
                     val settling = settle()
                     for (i in drawn.indices) {
                         if (settling != null && visible[i] == settling.link) {
-                            drawSettling(settling, geometry, linkColor(visible[i], colors, visible[i] in alt), connectorColor(LinkKind.Trace, colors))
+                            val color = linkColor(visible[i], colors, visible[i] in alt)
+                            drawSettling(settling, geometry, color, connectorColor(LinkKind.Trace, colors))
                         } else {
                             drawn[i](this)
                         }
@@ -108,7 +109,12 @@ private fun linkColor(link: StrandsLink, colors: BoardColors, alt: Boolean): Col
  * is the trace line the player just drew ([LinkKind.Trace]'s colour and width); it turns into
  * the link's own with them, and is as thick as the thinner of its two tiles is scaled.
  */
-private fun DrawScope.drawSettling(settle: LinkSettle, geometry: GridGeometry, color: Color, traceColor: Color) {
+private fun DrawScope.drawSettling(
+    settle: LinkSettle,
+    geometry: GridGeometry,
+    color: Color,
+    traceColor: Color,
+) {
     val scales = settle.stepScales()
     val lit = settle.stepLit()
     val traceWidth = connectorWidth(LinkKind.Trace).toPx()
