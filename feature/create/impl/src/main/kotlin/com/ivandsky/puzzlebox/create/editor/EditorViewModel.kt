@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
 import com.ivandsky.puzzlebox.domain.PublishOutcome
@@ -33,9 +34,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
@@ -64,6 +67,7 @@ class EditorViewModel(
     identity: IdentityService,
     idTokens: GoogleIdTokenProvider,
     updatePublishState: UpdatePublishState,
+    private val preferences: UserPreferencesRepository,
     private val validatePublish: ValidatePublish = ValidatePublish(),
     releaseFlags: ReleaseFlags = ShippedReleaseFlags,
 ) : ViewModel() {
@@ -75,10 +79,15 @@ class EditorViewModel(
     private val verdicts = VerdictPipeline(viewModelScope, dispatchers)
     private val history = EditHistory()
 
+    /** The saved Auto-show: each new Multiple opens with its witness on the board while it is on (the default). */
+    val autoShowWitness: StateFlow<Boolean> =
+        preferences.autoShowWitness.stateIn(viewModelScope, SharingStarted.Eagerly, initialValue = true)
+
     /** The verdict card; Check again resubmits the board as it stands; its witness choice goes to the board's controller. */
     val verdictCard = VerdictCardState(
         recheck = { (state.value as? EditorUiState.Ready)?.controller?.draft?.value?.let(verdicts::recheck) },
         controller = { (state.value as? EditorUiState.Ready)?.controller },
+        autoShow = { autoShowWitness.value },
     )
 
     /** The draft's title, rename, duplicate and delete. */
@@ -163,6 +172,11 @@ class EditorViewModel(
             controller = ui.createController(draft, ::onEdit),
             imported = stored.imported,
         )
+    }
+
+    /** The card's Auto-show switch: saved for every editor and later sessions; the next new Multiple reads it. */
+    fun setAutoShowWitness(on: Boolean) {
+        viewModelScope.launch { preferences.setAutoShowWitness(on) }
     }
 
     /**

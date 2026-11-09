@@ -24,6 +24,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import kotlinx.coroutines.CoroutineDispatcher
@@ -81,7 +82,7 @@ class EditorAutosaveTest {
 
     private suspend fun TestScope.open(saves: CoroutineScope = backgroundScope): EditorViewModel {
         drafts.upsert(storedRow(editor.draft(marks = 1).encode()))
-        val vm = EditorViewModel(EditorKey(DRAFT_ID), store, games, editors, GamePlayRegistry(emptyList()), copyDraft, lanes, saves, clock = { NOW }, createShared = signedOutPublishing(store), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(), idTokens = noGoogleAccount, updatePublishState = signedOutUnpublishing())
+        val vm = EditorViewModel(EditorKey(DRAFT_ID), store, games, editors, GamePlayRegistry(emptyList()), copyDraft, lanes, saves, clock = { NOW }, createShared = signedOutPublishing(store), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(), idTokens = noGoogleAccount, updatePublishState = signedOutUnpublishing(), preferences = FakeUserPreferencesRepository())
         runCurrent()
         return vm
     }
@@ -122,7 +123,7 @@ class EditorAutosaveTest {
     @Test
     fun `a stored edit carries the editor's draft format version`() = runTest(mainRule.testDispatcher) {
         drafts.upsert(storedRow(editor.draft(marks = 1).encode()).copy(draftFormatVersion = 0))
-        EditorViewModel(EditorKey(DRAFT_ID), store, games, editors, GamePlayRegistry(emptyList()), copyDraft, lanes, backgroundScope, clock = { NOW }, createShared = signedOutPublishing(store), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(), idTokens = noGoogleAccount, updatePublishState = signedOutUnpublishing())
+        EditorViewModel(EditorKey(DRAFT_ID), store, games, editors, GamePlayRegistry(emptyList()), copyDraft, lanes, backgroundScope, clock = { NOW }, createShared = signedOutPublishing(store), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(), idTokens = noGoogleAccount, updatePublishState = signedOutUnpublishing(), preferences = FakeUserPreferencesRepository())
         runCurrent()
 
         controller.edit(edited)

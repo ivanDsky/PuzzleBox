@@ -30,6 +30,7 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -112,6 +113,9 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
             saving = false,
             verdict = verdict,
             cardOpen = layout == PlayLayout.SinglePane,
+            // Auto-show at its fresh-install default: a Multiple opens with its witness on the board.
+            overlay = EditorOverlay(showOnBoard = true),
+            autoShow = true,
             layout = layout,
             onBack = {},
             onRename = {},

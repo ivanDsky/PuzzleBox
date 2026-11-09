@@ -66,8 +66,8 @@ private const val GlyphPillBelowDp = 360
  * [cardOpen] the card shows as a half-expanded bottom sheet on a compact width and as a popover
  * over the pill on a wider one, the game's fix list ([issues]) inside it, closing through
  * [onDismissCard]. In [PlayLayout.TwoPane] the card sits inline in the side pane and there is
- * no pill. The card's Check again goes to [onCheckAgain] and its witness choice ([overlay]) to
- * [onOverlay]. The title and the overflow's Rename open the [RenameSheet], whose Save reports
+ * no pill. The card's Check again goes to [onCheckAgain], its witness choice ([overlay]) to
+ * [onOverlay] and its Auto-show switch ([autoShow]) to [onAutoShow]. The title and the overflow's Rename open the [RenameSheet], whose Save reports
  * through [onRename]. While [testCleared] (a board edit invalidated the passed test) a toast
  * above the action area offers Undo ([onUndoTestClear]); it reports its timeout to [onTestClearedGone].
  * The [toast] slot shows the route's other notices in the same place. Once published
@@ -98,6 +98,8 @@ fun StudioScreen(
     onDismissCard: () -> Unit = {},
     onCheckAgain: () -> Unit = {},
     onOverlay: (EditorOverlay) -> Unit = {},
+    autoShow: Boolean = true,
+    onAutoShow: (Boolean) -> Unit = {},
     issues: @Composable (Modifier) -> Unit = {},
     actionArea: @Composable (Modifier) -> Unit = {},
     testCleared: Boolean = false,
@@ -142,6 +144,8 @@ fun StudioScreen(
                             onDismiss = onDismissCard,
                             onCheckAgain = onCheckAgain,
                             onOverlay = onOverlay,
+                            autoShow = autoShow,
+                            onAutoShow = onAutoShow,
                             issues = issues,
                         )
                     }
@@ -153,6 +157,8 @@ fun StudioScreen(
                 overlay = overlay,
                 onCheckAgain = onCheckAgain,
                 onOverlay = onOverlay,
+                autoShow = autoShow,
+                onAutoShow = onAutoShow,
                 board = { boardModifier -> if (readOnly) ReadOnlyBoard(board, boardModifier) else board(boardModifier) },
                 toolStrip = { stripModifier -> ToolsOrPublished(readOnly, unpublished, toolStrip, onDuplicate, stripModifier) },
                 issues = issues,

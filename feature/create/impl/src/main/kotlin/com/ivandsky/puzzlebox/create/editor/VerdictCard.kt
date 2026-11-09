@@ -49,8 +49,8 @@ private val GradeIconSize = 16.dp
  * The verdict in full (02 handoff, "Pill popover"): title, subtitle, the grade of a Unique
  * (its difficulty, or the Needs guessing flag, under `create.verdict.grade` with the grade's
  * machine name as state), a line on what the verdict means and, after Undetermined,
- * Check again ([onCheckAgain]), after 2+ solutions the witness A/B toggle and Show on board
- * ([VerdictWitness] over [overlay], changes to [onOverlay]), then the game's fix list ([issues], `GameEditorUi.Issues`).
+ * Check again ([onCheckAgain]), after 2+ solutions the witness A/B toggle, Show on board and Auto-show
+ * ([VerdictWitness] over [overlay] and [autoShow], changes to [onOverlay] and [onAutoShow]), then the game's fix list ([issues], `GameEditorUi.Issues`).
  * Motion: a new verdict **Crossfade**s in on MotionTokens medium, emphasized decelerate;
  * under reduced motion a plain 120 ms fade.
  */
@@ -61,6 +61,8 @@ fun VerdictCard(
     modifier: Modifier = Modifier,
     overlay: EditorOverlay = EditorOverlay(),
     onOverlay: (EditorOverlay) -> Unit = {},
+    autoShow: Boolean = true,
+    onAutoShow: (Boolean) -> Unit = {},
     issues: @Composable (Modifier) -> Unit = {},
 ) {
     val reducedMotion = rememberReducedMotion()
@@ -86,7 +88,7 @@ fun VerdictCard(
                 },
                 label = "create-verdict-card",
                 contentKey = ::faceKey,
-            ) { shown -> CardFace(shown, onCheckAgain, overlay, onOverlay) }
+            ) { shown -> CardFace(shown, onCheckAgain, overlay, onOverlay, autoShow, onAutoShow) }
             // Outside the crossfade: the fix list follows the live draft, so it is never drawn twice.
             issues(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm))
         }
@@ -99,6 +101,8 @@ private fun CardFace(
     onCheckAgain: () -> Unit,
     overlay: EditorOverlay,
     onOverlay: (EditorOverlay) -> Unit,
+    autoShow: Boolean,
+    onAutoShow: (Boolean) -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm),
@@ -126,7 +130,7 @@ private fun CardFace(
                 modifier = Modifier.fillMaxWidth().testTag("create.verdict.checkAgain"),
             )
         }
-        if (verdict is Verdict.Multiple) VerdictWitness(overlay, onOverlay)
+        if (verdict is Verdict.Multiple) VerdictWitness(overlay, autoShow, onOverlay, onAutoShow)
     }
 }
 

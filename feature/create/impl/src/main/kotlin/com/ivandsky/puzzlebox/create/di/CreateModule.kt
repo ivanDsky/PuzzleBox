@@ -55,6 +55,7 @@ val createModule: Module = module {
             identity = get(),
             idTokens = get(),
             updatePublishState = get(),
+            preferences = get(),
             validatePublish = get(),
             releaseFlags = get(),
         )
