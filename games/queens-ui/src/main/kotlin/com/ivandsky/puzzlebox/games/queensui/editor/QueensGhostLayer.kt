@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.games.queensui.editor
 
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Path
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeJoin
@@ -17,6 +19,7 @@ import com.ivandsky.puzzlebox.games.queensui.drawQueen
  */
 @Composable
 internal fun QueensGhostLayer(idx: Int, ghost: Boolean, reducedMotion: Boolean) {
+    val crownPath = remember { Path() }
     if (!ghost) return
     val tint = LocalBoardColors.current.editorDiffRing
     FadingMark("queens.editor.cell.$idx.ghost", reducedMotion) {
@@ -25,6 +28,7 @@ internal fun QueensGhostLayer(idx: Int, ghost: Boolean, reducedMotion: Boolean) 
             tint,
             QueensBoardDefaults.queenHeightFraction,
             alpha = QueensEditorDefaults.ghostOutlineAlpha,
+            path = crownPath,
             style = Stroke(
                 width = QueensBoardDefaults.ghostStrokeWeight.toPx(),
                 join = StrokeJoin.Round,
