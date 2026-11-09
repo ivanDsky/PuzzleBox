@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -40,9 +39,6 @@ import com.ivandsky.puzzlebox.gameui.GridEdge
 import com.ivandsky.puzzlebox.gameui.GridGeometry
 import com.ivandsky.puzzlebox.games.tangoui.TangoBoardRenderer
 import com.ivandsky.puzzlebox.games.tangoui.TangoBoardSpec
-
-/** Widest the editor board grows, so a tablet pane does not stretch the cells. */
-private val EditorBoardMaxWidth = 480.dp
 
 /**
  * The editor's board: the play renderer over the [controller]'s draft, every cell a free
@@ -78,7 +74,6 @@ internal fun TangoEditorBoard(
     val renderer = remember { TangoBoardRenderer() }
     Box(
         Modifier
-            .widthIn(max = EditorBoardMaxWidth)
             .then(modifier)
             .fillMaxWidth()
             .testTag("tango.editor.board")
