@@ -34,6 +34,14 @@ class ReleaseShareLinksTest {
     }
 
     @Test
+    fun `release routes a match link to the app`() {
+        assertEquals(
+            listOf(MainActivity::class.java.name),
+            handlers("${ShareCode.MATCH_LINK_PREFIX}K7Q2MX"),
+        )
+    }
+
+    @Test
     fun `release does not route a link on another host or path`() {
         assertEquals(emptyList<String>(), handlers("https://example.com/p/K7Q2MX"))
         assertEquals(emptyList<String>(), handlers("https://puzzlebox-f3356.web.app/x/K7Q2MX"))
