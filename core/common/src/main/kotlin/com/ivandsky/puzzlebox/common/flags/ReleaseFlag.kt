@@ -33,4 +33,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
 
     /** Competitions: async 1v1 duels between friends (spec A16). */
     Competitions(label = "Competitions: 1v1 duels", releaseDefault = false),
+
+    /** Navigation v2: the Today · Games · History · Create tab set, Profile and Settings off the shell (ADR-0027). */
+    NavV2(label = "Navigation v2: Today · Games · History · Create", releaseDefault = false),
 }
