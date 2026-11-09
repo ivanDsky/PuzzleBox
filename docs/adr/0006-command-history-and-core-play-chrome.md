@@ -31,7 +31,9 @@ chrome. The Play tab opened Queens directly, skipping the game picker.
      empty or finished board it is a no-op. Sudoku returns null because its Clear sits in
      the keypad (and the TwoPane toolbar), equally never disabled.
    - `GamePlayUi.overflowFor(controller): List<PlayOverflowItem>` carries a game's
-     toggles into the overflow menu; Queens' Auto-cross lives only there.
+     toggles into the overflow menu; Queens' Auto-cross lives only there. It is Queens'
+     per-game setting (`game.queens.auto_cross`, default on), not a session field: a flip
+     applies to the open board and every later Queens puzzle, and is not an undo unit.
    - `PlaySolveFrame` wraps the board: a solve made in play runs `SolveSweep` in the
      game's accent, then the glyph `Stamp`, then hands off to Result once. Reduced motion
      shows only the outline. A board that is already solved when it first draws hands off

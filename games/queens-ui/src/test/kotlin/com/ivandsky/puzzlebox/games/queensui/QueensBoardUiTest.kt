@@ -470,13 +470,14 @@ class QueensBoardUiTest {
                 onSessionChanged = {},
                 onWon = {},
             ),
+            settings = null,
         )
         val lesson = QueensTutorial.steps.first()
         controller.adoptToday(lesson.puzzle, lesson.ref)
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 androidx.compose.foundation.layout.Box(Modifier.size(379.dp, 600.dp)) {
-                    QueensPlayUi().Board(controller, Modifier)
+                    QueensPlayUi(InMemoryQueensSettings()).Board(controller, Modifier)
                 }
             }
         }

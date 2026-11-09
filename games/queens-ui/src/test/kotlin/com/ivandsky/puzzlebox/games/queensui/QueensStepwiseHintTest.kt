@@ -56,6 +56,7 @@ class QueensStepwiseHintTest {
 
     private fun stepwise(compute: CoroutineDispatcher = Dispatchers.Unconfined) = QueensPlayController(
         env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), { saved += it }, {}),
+        settings = InMemoryQueensSettings(),
         now = { Instant.EPOCH },
         hintMode = HintMode.Stepwise(compute),
     ).also { assertEquals(Adopt.Adopted, it.adoptToday(QueensPlayFixtures.envelope(), QueensPlayFixtures.ref())) }

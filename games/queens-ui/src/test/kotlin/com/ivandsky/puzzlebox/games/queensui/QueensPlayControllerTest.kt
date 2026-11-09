@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.queensui
 
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.games.queens.Cell
+import com.ivandsky.puzzlebox.games.queens.MarkKind
 import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
 import com.ivandsky.puzzlebox.game.DecodeResult
@@ -28,8 +29,11 @@ class QueensPlayControllerTest {
     private val saved = ArrayList<ByteArray>()
     private val won = ArrayList<CompletionRecord>()
 
+    private val settings = InMemoryQueensSettings()
+
     private fun controller() = QueensPlayController(
         env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), { saved += it }, { won += it }),
+        settings = settings,
         now = { Instant.ofEpochMilli(clockMs) },
     )
 
@@ -301,6 +305,103 @@ class QueensPlayControllerTest {
         assertNull(state.rejection)
         state.undo()
         assertNull(state.violation)
+    }
+
+    // ------------------------------------------------------------ Auto-cross is a per-game setting
+
+    private fun QueensBoardState.hasAutoMarks() = session.marks.values.any { it.kind == MarkKind.AUTO }
+
+    private fun QueensBoardState.placeQueen(idx: Int) {
+        onTap(idx) // X
+        onTap(idx) // queen
+    }
+
+    /** The ⋮ menu's Auto-cross item as the screen reads it. */
+    private fun QueensPlayController.autoCrossItem() = QueensPlayUi(settings).overflowFor(this).single { it.label == "Auto-cross" }
+
+    @Test
+    fun `flipping Auto-cross writes the setting and re-derives the open board at once`() {
+        val state = readyBoard()
+        val board = state.board!!
+        board.placeQueen(0)
+        assertTrue(board.hasAutoMarks())
+        assertTrue(state.autoCrossItem().checked == true)
+
+        val savesBefore = saved.size
+        state.autoCrossItem().onClick()
+
+        assertEquals("one write, the new value", listOf(false), settings.writes)
+        assertFalse(settings.stored.value)
+        assertFalse(state.autoCross)
+        assertFalse("the open board lost its AUTO marks", board.hasAutoMarks())
+        assertTrue(Cell(0) in board.session.queens)
+        assertTrue(state.autoCrossItem().checked == false)
+        assertTrue("the flip is saved", saved.size > savesBefore)
+
+        state.autoCrossItem().onClick()
+
+        assertEquals(listOf(false, true), settings.writes)
+        assertTrue("flipping back re-derives them", board.hasAutoMarks())
+    }
+
+    @Test
+    fun `a setting changed elsewhere re-derives the open board`() {
+        val state = readyBoard()
+        val board = state.board!!
+        board.placeQueen(0)
+
+        settings.stored.value = false
+
+        assertFalse(state.autoCross)
+        assertFalse(board.hasAutoMarks())
+    }
+
+    @Test
+    fun `a flip is not an undo unit and undo never brings AUTO marks back`() {
+        val state = readyBoard()
+        val board = state.board!!
+        board.placeQueen(0)
+        state.autoCrossItem().onClick()
+
+        state.undo() // reverts the queen's placement, not the flip
+
+        assertFalse(state.autoCross)
+        assertFalse(board.hasAutoMarks())
+        state.redo()
+        assertTrue(Cell(0) in board.session.queens)
+        assertFalse("redo under OFF stays bare", board.hasAutoMarks())
+    }
+
+    @Test
+    fun `a new session starts under the stored value`() {
+        settings.stored.value = false
+        val state = readyBoard()
+        val board = state.board!!
+        assertFalse(board.session.autoCross)
+
+        board.placeQueen(0)
+        assertFalse("OFF places queens bare", board.hasAutoMarks())
+
+        state.replay()
+        assertFalse(state.board!!.session.autoCross)
+        state.board!!.placeQueen(0)
+        assertFalse(state.board!!.hasAutoMarks())
+    }
+
+    @Test
+    fun `a restored save follows the setting, not the one it was played under`() {
+        val played = readyBoard()
+        played.board!!.placeQueen(0)
+        assertTrue(played.board!!.hasAutoMarks())
+        val bytes = savedSession().let(QueensSessionCodec::serialize)
+
+        settings.stored.value = false
+        val restored = controller()
+        assertEquals(Restored(QueensPlayFixtures.ref()), restored.adoptRestored(bytes))
+
+        assertFalse(restored.board!!.session.autoCross)
+        assertFalse(restored.board!!.hasAutoMarks())
+        assertTrue(Cell(0) in restored.board!!.session.queens)
     }
 
     private fun solve(board: QueensBoardState) {

@@ -44,7 +44,8 @@ data class QueensMark(val kind: MarkKind, val source: Cell? = null) {
  * marks are re-derived after every apply/revert, so one undo step reverts one user
  * action TOGETHER WITH its auto-fill side effects while earlier manual marks survive.
  * [autoCross], [hintsUsed], [elapsedMs] and [completedAt] live OUTSIDE the history:
- * undoing never rewinds a setting, a hint count or the clock.
+ * undoing never rewinds a setting, a hint count or the clock. [autoCross] is the runtime
+ * input of the derivation only, never saved: the player's per-game setting supplies it.
  *
  * Win detection (queens-02): all [QueensPuzzle.size] × queensPerUnit queens placed and the
  * placement rule-clean per [QueensVerifier.isSolution]; the moment is stamped [completedAt].
@@ -236,7 +237,8 @@ data class QueensSession(
     companion object {
         /**
          * The codec's way in: a session over a stored [board] with AUTO marks derived
-         * under [autoCross], so a save never has to persist (or be trusted on) them.
+         * under the default [autoCross] (ON); a save never stores the setting, so the
+         * caller applies the player's setting with [withAutoCross].
          */
         internal fun restore(
             ref: QueensPuzzleRef?,
@@ -246,7 +248,6 @@ data class QueensSession(
             completedAt: Instant?,
             elapsedMs: Long,
             hintsUsed: Int,
-            autoCross: Boolean,
         ): QueensSession = QueensSession(
             ref = ref,
             puzzle = puzzle,
@@ -254,7 +255,6 @@ data class QueensSession(
             completedAt = completedAt,
             elapsedMs = elapsedMs,
             hintsUsed = hintsUsed,
-            autoCross = autoCross,
         ).withBoard(board)
     }
 }

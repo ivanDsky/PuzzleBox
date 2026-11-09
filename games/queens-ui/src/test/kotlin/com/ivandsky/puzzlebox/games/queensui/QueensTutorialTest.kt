@@ -58,6 +58,7 @@ class QueensTutorialTest {
 
     private fun controller(won: MutableList<CompletionRecord> = mutableListOf()) = QueensPlayController(
         env = PlayEnvironment(scope, onSessionChanged = {}, onWon = { won += it }),
+        settings = null,
     )
 
     private fun adopted(step: TutorialStep, won: MutableList<CompletionRecord> = mutableListOf()) =
@@ -87,7 +88,7 @@ class QueensTutorialTest {
 
     @Test
     fun `the play registration ships three lessons`() {
-        assertSame(steps, QueensPlayUi().tutorial)
+        assertSame(steps, QueensPlayUi(InMemoryQueensSettings()).tutorial)
         assertEquals(3, steps.size)
         assertEquals(steps.size, taps.size)
     }
@@ -240,7 +241,23 @@ class QueensTutorialTest {
         repeat(index) { session.advance(); session.next() }
         val lesson = session.state.value as TutorialState.Playing
         assertEquals(index, lesson.index)
-        return TutorialSandbox(QueensPlayUi(), session).controllerFor(lesson, scope) as QueensPlayController
+        return TutorialSandbox(QueensPlayUi(InMemoryQueensSettings()), session).controllerFor(lesson, scope) as QueensPlayController
+    }
+
+    /** A player who switched Auto-cross off still meets the lessons as authored: crosses fill in, the setting is untouched. */
+    @Test
+    fun `a lesson keeps Auto-cross on whatever the player's setting is`() {
+        val settings = InMemoryQueensSettings(initialAutoCross = false)
+        val session = TutorialSession(steps)
+        val lesson = session.state.value as TutorialState.Playing
+        val c = TutorialSandbox(QueensPlayUi(settings), session).controllerFor(lesson, scope) as QueensPlayController
+
+        assertTrue(c.board!!.session.autoCross)
+        c.tap(answerOrder[0][0])
+        c.tap(answerOrder[0][0]) // × then queen
+        assertTrue(c.board!!.session.marks.values.any { it.kind == MarkKind.AUTO })
+        assertEquals(emptyList<Boolean>(), settings.writes)
+        assertFalse(settings.stored.value)
     }
 
     /** Through the sandbox, as the host builds them: these lessons teach rules, so they show the break. */
@@ -265,7 +282,7 @@ class QueensTutorialTest {
 
     @Test
     fun `the play registration's tutorial plays through the sandbox to ready`() {
-        val ui = QueensPlayUi()
+        val ui = QueensPlayUi(InMemoryQueensSettings())
         val session = TutorialSession(ui.tutorial)
         val sandbox = TutorialSandbox(ui, session)
         for ((index, lessonTaps) in taps.withIndex()) {

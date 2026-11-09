@@ -13,12 +13,14 @@ import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.GameSettingsRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeGameSettingsRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
@@ -70,6 +72,7 @@ class E2eKoinGraph(
             com.ivandsky.puzzlebox.games.strands.StrandsDefinition.id,
         ),
     )
+    val gameSettings = FakeGameSettingsRepository()
     val identity = FakeIdentityService()
     val leaderboard = FakeLeaderboardRepository()
     val matches = FakeMatchRepository()
@@ -87,6 +90,7 @@ class E2eKoinGraph(
         single<SavedPlayRepository> { saved }
         single<GameCalendar> { calendar }
         single<UserPreferencesRepository> { preferences }
+        single<GameSettingsRepository> { gameSettings }
         single<IdentityService> { identity }
         single<LeaderboardRepository> { leaderboard }
         single<MatchRepository> { matches }

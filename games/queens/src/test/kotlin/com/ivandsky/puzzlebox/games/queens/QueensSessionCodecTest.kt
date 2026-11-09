@@ -118,9 +118,9 @@ class QueensSessionCodecTest {
     }
 
     @Test
-    fun `C1 - hintsUsed elapsed and autoCross OFF round trip`() {
+    fun `C1 - hintsUsed and elapsed round trip`() {
         val p = puzzle()
-        var s = QueensSession(ref = null, puzzle = p).withAutoCross(false)
+        var s = QueensSession(ref = null, puzzle = p)
         s = s.withCrossToggled(cell(0, 0), now)
         s = s.withHintUsed().withHintUsed()
         s = s.withQueenPlaced(cell(1, 4), now)
@@ -129,9 +129,35 @@ class QueensSessionCodecTest {
         assertEquals(s, restored)
         assertEquals(3, restored.hintsUsed)
         assertEquals(9_000L, restored.elapsedMs)
-        assertEquals(false, restored.autoCross)
-        // the default (fresh session) decodes ON
-        assertEquals(true, roundTrip(fresh()).autoCross)
+    }
+
+    /** Flags byte of a v4 blob: version u8, puzzleLen u16, puzzle, then the flags. */
+    private fun flagsAt(blob: ByteArray): Int = 3 + (((blob[1].toInt() and 0xFF) shl 8) or (blob[2].toInt() and 0xFF))
+
+    @Test
+    fun `bit3 is retired - a save never sets it, whatever the runtime autoCross is`() {
+        val on = session(completedAt = null)
+        val off = on.withAutoCross(false)
+        for (s in listOf(on, off, fresh(), fresh().withAutoCross(false))) {
+            val blob = QueensSessionCodec.serialize(s)
+            assertEquals(0, blob[flagsAt(blob)].toInt() and 8)
+        }
+        // the runtime derivation input is not in the bytes at all
+        assertArrayEquals(QueensSessionCodec.serialize(on), QueensSessionCodec.serialize(off))
+    }
+
+    @Test
+    fun `an old save with bit3 set still decodes - the bit is ignored`() {
+        val original = session(completedAt = null)
+        val blob = QueensSessionCodec.serialize(original)
+        blob[flagsAt(blob)] = (blob[flagsAt(blob)].toInt() or 8).toByte()
+
+        val restored = (QueensSessionCodec.deserialize(blob) as DecodeResult.Ok).value
+
+        assertEquals(original, restored)
+        assertEquals(true, restored.autoCross)
+        // the setting wins: the caller re-derives under the player's value
+        assertEquals(false, restored.withAutoCross(false).autoCross)
     }
 
     /** C2: the layout, pinned. */
@@ -144,7 +170,7 @@ class QueensSessionCodecTest {
             add(4) // version
             add((puzzleBytes.size shr 8) and 0xFF); add(puzzleBytes.size and 0xFF)
             addAll(puzzleBytes.map(Byte::toInt))
-            add(0) // flags: no completedAt, no ref, autoCross ON
+            add(0) // flags: no completedAt, no ref, bit3 retired (never set)
             add(0) // queensLen
             add(0); add(0) // manualLen u16
             add(0); add(0) // doneLen u16

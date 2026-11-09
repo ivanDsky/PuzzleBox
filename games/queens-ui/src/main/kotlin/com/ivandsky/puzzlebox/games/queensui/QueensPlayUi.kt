@@ -41,12 +41,20 @@ import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.delay
 
 /** Queens' one play registration (ADR-0001): its controller, its board and its play screen. */
-class QueensPlayUi(private val hintMode: HintModeSource = HintModeSource { HintMode.Legacy }) : GamePlayUi {
+class QueensPlayUi(
+    private val settings: QueensSettings,
+    private val hintMode: HintModeSource = HintModeSource { HintMode.Legacy },
+) : GamePlayUi {
     override val gameId: GameId get() = QueensDefinition.id
 
     override val brand: GameBrand get() = QueensBrand
 
-    override fun createController(env: PlayEnvironment): GamePlayController = QueensPlayController(env, hintMode = hintMode.current())
+    override fun createController(env: PlayEnvironment): GamePlayController =
+        QueensPlayController(env, settings, hintMode = hintMode.current())
+
+    /** A lesson teaches the rules with Auto-cross on, whatever the player chose for their own puzzles. */
+    override fun createLessonController(env: PlayEnvironment): GamePlayController =
+        QueensPlayController(env, settings = null, hintMode = hintMode.current())
 
     override val tutorial: List<TutorialStep> get() = QueensTutorial.steps
 
@@ -64,10 +72,11 @@ class QueensPlayUi(private val hintMode: HintModeSource = HintModeSource { HintM
     override fun clearFor(controller: GamePlayController): PlayClear =
         PlayClear { (controller as QueensPlayController).board?.clearBoard() }
 
-    /** A14: the Auto-cross setting (ON auto-fills exclusion marks, OFF places queens bare). */
+    /** A14: the Auto-cross setting (ON auto-fills exclusion marks, OFF places queens bare), saved for every Queens puzzle. */
     override fun overflowFor(controller: GamePlayController): List<PlayOverflowItem> {
-        val board = (controller as QueensPlayController).board ?: return emptyList()
-        return listOf(PlayOverflowItem("Auto-cross", checked = board.autoCross) { board.setAutoCross(!board.autoCross) })
+        val queens = controller as QueensPlayController
+        if (queens.board == null) return emptyList()
+        return listOf(PlayOverflowItem("Auto-cross", checked = queens.autoCross) { queens.chooseAutoCross(!queens.autoCross) })
     }
 
     @Composable
