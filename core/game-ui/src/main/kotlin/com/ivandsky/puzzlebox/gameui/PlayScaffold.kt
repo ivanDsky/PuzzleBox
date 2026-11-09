@@ -32,14 +32,6 @@ enum class PlayLayout { SinglePane, TwoPane }
 val PlayBoardMaxWidth = 552.dp // gate round 3: user asked +15% over the original 480dp
 
 /**
- * The board pane every game draws its board in (A14): the full pane, less a fixed inset
- * under the top bar. Each game aligns its board [Alignment.TopCenter] inside it, so the
- * board's top is the same y in every game at one window size however big its grid; the
- * space a smaller board leaves falls below it, above the caption.
- */
-fun Modifier.playBoardPane(): Modifier = fillMaxSize().padding(top = Spacing.lg)
-
-/**
  * The pane decision as a pure function — same policy as home (A12 / ticket 07):
  * two-pane needs Expanded width AND landscape; a portrait pane has no height to share,
  * and medium stays single-pane per Material 3 window-size guidance.
@@ -59,7 +51,7 @@ fun playLayoutFor(widthSizeClass: WindowWidthSizeClass, isLandscape: Boolean): P
  * board's cap, and the side 30%, ending with the route's [sidePanel].
  *
  * [board] gets its `paneCap`: in two panes the board pane's side under the toolbar, less
- * the [playBoardPane] inset and side gutters; null in a single pane, where each game keeps
+ * the [PlayBoardPane] insets and side gutters; null in a single pane, where each game keeps
  * its own cap. [sidePanel] is the route's content under the game's chrome (A15: the live
  * stats); it gets the height the chrome leaves, so it should scroll when taller. Null, or
  * a single pane, shows nothing.
