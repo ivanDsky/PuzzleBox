@@ -127,4 +127,32 @@ class OfflineUserPreferencesRepositoryTest {
         restarted.setAutoShowWitness(true)
         assertTrue(restarted.autoShowWitness.first())
     }
+
+    @Test
+    fun `both sudoku highlights are on by default`() = runTest {
+        val repository = newRepository()
+
+        assertTrue(repository.sudokuPeerHighlight.first())
+        assertTrue(repository.sudokuSameDigitHighlight.first())
+    }
+
+    @Test
+    fun `sudoku highlights persist independently and survive a fresh repository`() = runTest {
+        val file = tempFile()
+        val firstScope = processScope()
+        val first = newRepository(file, firstScope)
+
+        first.setSudokuPeerHighlight(false)
+        assertFalse(first.sudokuPeerHighlight.first())
+        assertTrue(first.sudokuSameDigitHighlight.first())
+        firstScope.cancel()
+
+        val restarted = newRepository(file, processScope())
+        assertFalse(restarted.sudokuPeerHighlight.first())
+        assertTrue(restarted.sudokuSameDigitHighlight.first())
+        restarted.setSudokuSameDigitHighlight(false)
+        assertFalse(restarted.sudokuSameDigitHighlight.first())
+        restarted.setSudokuPeerHighlight(true)
+        assertTrue(restarted.sudokuPeerHighlight.first())
+    }
 }

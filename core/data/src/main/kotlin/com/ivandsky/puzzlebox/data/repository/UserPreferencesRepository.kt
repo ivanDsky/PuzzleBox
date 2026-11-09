@@ -24,12 +24,14 @@ interface UserPreferencesRepository {
 
     suspend fun setAutoShowWitness(on: Boolean)
 
-    /** Whether Sudoku tints the selected cell's row, column and box; true until switched off. */
+    /**
+     * Sudoku highlights, each true until switched off: peer tints the selected cell's row,
+     * column and box; same-digit marks every cell holding its digit.
+     */
     val sudokuPeerHighlight: Flow<Boolean>
 
     suspend fun setSudokuPeerHighlight(enabled: Boolean)
 
-    /** Whether Sudoku highlights every cell holding the selected digit; true until switched off. */
     val sudokuSameDigitHighlight: Flow<Boolean>
 
     suspend fun setSudokuSameDigitHighlight(enabled: Boolean)
