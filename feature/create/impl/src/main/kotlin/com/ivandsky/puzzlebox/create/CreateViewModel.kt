@@ -89,7 +89,7 @@ class CreateViewModel(
             name = games.displayName(id),
             brand = plays.brandOf(id),
             rule = gameRuleLine(id),
-            defaultSize = sizes[sizes.size / 2],
+            defaultSize = sizes.first { it.variant == editor.defaultVariant },
             sizes = sizes,
         )
     }
