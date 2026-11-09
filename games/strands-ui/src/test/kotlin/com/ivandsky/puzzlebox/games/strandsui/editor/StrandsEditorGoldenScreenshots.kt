@@ -15,6 +15,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.TouchInjectionScope
+import androidx.compose.ui.test.performTouchInput
+import com.ivandsky.puzzlebox.games.strands.Coord
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
@@ -67,6 +71,12 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
     @Test fun `trace in progress light`() = tracing(dark = false)
     @Test fun `trace in progress dark`() = tracing(dark = true)
 
+    @Test fun `held drag leaning into an idle cell light`() = leaning(dark = false)
+    @Test fun `held drag leaning into an idle cell dark`() = leaning(dark = true)
+
+    @Test fun `held long diagonal drag light`() = diagonal(dark = false)
+    @Test fun `held long diagonal drag dark`() = diagonal(dark = true)
+
     @Test fun `selected path with extend handle light`() = selected(dark = false)
     @Test fun `selected path with extend handle dark`() = selected(dark = true)
 
@@ -102,6 +112,46 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
         capture("trace", dark, draft, analyzed<Verdict.Incomplete>(draft)) {
             listOf(0, 1, 2, 9, 14).forEach(it::traceTo)
         }
+    }
+
+    /**
+     * A finger still down after four cells (the last step a diagonal), held 0.57 cell east of
+     * the tail, short of (1, 4)'s join circle: the line's round end leans into that idle
+     * cell's tile and every traced cell is a token.
+     */
+    private fun leaning(dark: Boolean) {
+        val draft = board(WORDS.takeLast(1), startRow = 7)
+        show(dark, draft, analyzed<Verdict.Incomplete>(draft))
+        drag(Coord(0, 0), Coord(0, 1), Coord(0, 2), Coord(1, 3))
+        hold(colCells = 4.07f, rowCells = 1.5f)
+        snap("drag-lean", dark)
+    }
+
+    /** A finger still down at the end of a six-cell diagonal from the top-left corner. */
+    private fun diagonal(dark: Boolean) {
+        val draft = board(WORDS.takeLast(1), startRow = 7)
+        show(dark, draft, analyzed<Verdict.Incomplete>(draft))
+        drag(Coord(0, 0), Coord(1, 1), Coord(2, 2), Coord(3, 3), Coord(4, 4), Coord(5, 5))
+        snap("drag-diagonal", dark)
+    }
+
+    /** Presses on the first of [cells] and slides through the rest, centre to centre, held down. */
+    private fun drag(vararg cells: Coord) {
+        rule.onNodeWithTag(BOARD).performTouchInput {
+            down(boardPoint(cells.first().col + 0.5f, cells.first().row + 0.5f))
+            cells.drop(1).forEach { moveTo(boardPoint(it.col + 0.5f, it.row + 0.5f)) }
+        }
+    }
+
+    /** Slides the held finger to [colCells], [rowCells] cell units from the grid's top-left. */
+    private fun hold(colCells: Float, rowCells: Float) {
+        rule.onNodeWithTag(BOARD).performTouchInput { moveTo(boardPoint(colCells, rowCells)) }
+    }
+
+    /** Frames run every 16 ms for a quarter second, as a device would, then the capture. */
+    private fun snap(name: String, dark: Boolean) {
+        repeat(DRAG_FRAMES) { rule.mainClock.advanceTimeBy(FRAME_MS) }
+        rule.onNodeWithTag(GOLDEN).captureRoboImage(out(name, dark))
     }
 
     /** A three-cell path whose typed word is five letters long: the "+2" handle at its end. */
@@ -188,6 +238,17 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
         verdict: Verdict,
         setUp: (StrandsEditorController) -> Unit = {},
     ) {
+        show(dark, draft, verdict, setUp)
+        rule.onNodeWithTag(GOLDEN).captureRoboImage(out(name, dark))
+    }
+
+    /** The editor over [draft], settled: its word check run and every mark at rest. */
+    private fun show(
+        dark: Boolean,
+        draft: StrandsDraft,
+        verdict: Verdict,
+        setUp: (StrandsEditorController) -> Unit = {},
+    ) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         val controller = StrandsEditorController(EditorDraft(StrandsEditor, DraftState(draft))) {}
@@ -218,7 +279,6 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
         queue.runAll()
         // Past the handle's and every mark's settle.
         rule.mainClock.advanceTimeBy(MotionTokens.SettleMillis + SETTLE_SLACK_MS)
-        rule.onNodeWithTag(GOLDEN).captureRoboImage(out(name, dark))
     }
 
     private fun out(name: String, dark: Boolean): String =
@@ -230,7 +290,9 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
 
     private companion object {
         const val GOLDEN = "golden"
+        const val BOARD = "strands.editor.board"
         const val FRAME_MS = 16L
+        const val DRAG_FRAMES = 16
         const val SETTLE_SLACK_MS = 1_000L
         const val SPANGRAM = 5
 
@@ -245,4 +307,11 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
         /** One word per row, eight rows: the only tiling is the rows themselves. */
         val WORDS = listOf("SPRING", "PLANET", "HOLLOW", "BRIGHT", "FLOWER", "WINDOW", "CASTLE", "QUIVER")
     }
+}
+
+/** The point [colCells], [rowCells] cell units from the top-left of the board's centred grid. */
+private fun TouchInjectionScope.boardPoint(colCells: Float, rowCells: Float): Offset {
+    val cell = height / StrandsDraft.ROWS
+    val left = (width - cell * StrandsDraft.COLS) / 2
+    return Offset(left + colCells * cell, rowCells * cell)
 }
