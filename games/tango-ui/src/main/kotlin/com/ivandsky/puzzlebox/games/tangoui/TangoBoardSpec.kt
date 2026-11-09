@@ -8,9 +8,9 @@ import androidx.compose.ui.unit.dp
  * the cell pitch so n6→n8 and phone→tablet scale without new values (ZipBoardSpec
  * discipline). Retune through these names — never call-site literals.
  *
- * Measured floors: glyph cap ≥ 10.3 dp at the content worst case (n8 on a 360 dp
- * phone, pitch 41.0 dp → 0.28 × 41.0 = 11.5 dp ✓); mark height ≥ 10.3 dp same case
- * (mark fraction 0.30 × 41.0 = 12.3 dp).
+ * Measured floors at the content worst case, n10 on a 360 dp phone (328 dp board, pitch
+ * 32.8 dp), both ≥ the 10.3 dp [markHeightFloor]: mark 0.32 × 32.8 = 10.5 dp; glyph box
+ * 0.66 × 32.8 = 21.6 dp, its smallest solid ink, the sun disc, 0.64 × 21.6 = 13.9 dp.
  */
 object TangoBoardSpec {
 
@@ -41,14 +41,22 @@ object TangoBoardSpec {
      *  on preplaced cells; violation tint draws above it when they co-occur. */
     val givenTintAlpha: Float = 0.5f
 
-    /** `=`/`×` mark size, fraction of cell pitch (n≥8 rescue step).
-     *  Worst case (§1): n8 mark = 0.30 × 41.0 = 12.3 dp ≥ 10.3 floor. */
-    fun markSizeFraction(n: Int): Float = if (n >= 8) 0.30f else 0.34f
+    /** `=`/`×` mark size, fraction of cell pitch (n≥8 and n≥10 rescue steps).
+     *  Worst case: n10 mark = 0.32 × 32.8 = 10.5 dp ≥ 10.3 floor (n8: 0.30 × 41.0 = 12.3 dp). */
+    fun markSizeFraction(n: Int): Float = when {
+        n >= 10 -> 0.32f // since M4-tango-25
+        n >= 8 -> 0.30f
+        else -> 0.34f
+    }
 
     /** Mark FONT size, fraction of pitch: the `=`/`×` ink is ~0.35 em, so the font
      *  must overshoot markSize to hit the ink floor. 0.36 after user QA round 4
-     *  (0.44 still read oversized on the tablet). */
-    fun markTextFraction(n: Int): Float = if (n >= 8) 0.32f else 0.36f
+     *  (0.44 still read oversized on the tablet); each step keeps the font 0.02 over the mark. */
+    fun markTextFraction(n: Int): Float = when {
+        n >= 10 -> 0.34f // since M4-tango-25
+        n >= 8 -> 0.32f
+        else -> 0.36f
+    }
 
     /** Mark bar/stroke thickness, fraction of the mark box. */
     const val markStrokeFraction: Float = 0.14f

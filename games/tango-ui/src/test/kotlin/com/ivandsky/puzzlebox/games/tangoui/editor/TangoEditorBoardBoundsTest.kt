@@ -37,14 +37,14 @@ class TangoEditorBoardBoundsTest {
     private val draft = TangoDraft(6, (0..2).associateWith { TangoCell.SUN }, emptyList())
     private val controller = TangoEditorController(EditorDraft(TangoEditor, DraftState(draft))) {}
 
-    private fun show() {
+    private fun show(shown: TangoEditorController = controller) {
         rule.setContent {
             PuzzleBoxTheme {
                 // The Studio's SquareBoardSlot: the smaller of the pane's width and height, filled.
                 Box(Modifier.size(PaneWidth, PaneHeight)) {
                     Box(Modifier.size(minOf(PaneWidth, PaneHeight))) {
                         val verdict = Verdict.None(setOf(0, 1, 2))
-                        TangoEditorBoard(controller, Modifier.fillMaxSize(), verdict)
+                        TangoEditorBoard(shown, Modifier.fillMaxSize(), verdict)
                     }
                 }
             }
@@ -77,6 +77,34 @@ class TangoEditorBoardBoundsTest {
 
         val board = rule.onNodeWithTag("tango.editor.board")
         board.assertHeightIsEqualTo(board.getUnclippedBoundsInRoot().let { it.right - it.left })
+    }
+
+    @Test
+    fun `at n4 the board stays square, fills the slot, and a cell is a quarter of it`() {
+        assertSquareAt(4)
+    }
+
+    @Test
+    fun `at n8 the board stays square, fills the slot, and a cell is an eighth of it`() {
+        assertSquareAt(8)
+    }
+
+    @Test
+    fun `at n10 the board stays square, fills the slot, and a cell is a tenth of it`() {
+        assertSquareAt(10)
+    }
+
+    private fun assertSquareAt(n: Int) {
+        show(TangoEditorController(EditorDraft(TangoEditor, DraftState(TangoDraft(n, emptyMap(), emptyList())))) {})
+
+        val slot = minOf(PaneWidth, PaneHeight)
+        rule.onNodeWithTag("tango.editor.board").assertWidthIsEqualTo(slot).assertHeightIsEqualTo(slot)
+        val board = rule.onNodeWithTag("tango.editor.board").getUnclippedBoundsInRoot()
+        val cell = rule.onNodeWithTag("tango.editor.cell.2.clash").getUnclippedBoundsInRoot()
+        val pitch = (board.right - board.left).value / n
+        assertEquals(pitch, (cell.right - cell.left).value, 0.5f)
+        assertEquals(pitch, (cell.bottom - cell.top).value, 0.5f)
+        assertEquals(board.left.value + 2 * pitch, cell.left.value, 0.5f)
     }
 
     private companion object {
