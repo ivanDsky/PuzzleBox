@@ -13,7 +13,8 @@ import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
  * inside it. Rows and columns are tried both ways. With one queen per unit this is "k lines
  * hold k queens, k−1 regions inside".
  *
- * The evidence is the band's open cells (the inside units' open cells plus S); the reason names
+ * The evidence is the band's open cells (the inside units' open cells plus S) minus the excluded
+ * cells, which may lie inside the band; the reason names
  * the band's lowest unit. Order: smallest k, then lowest excluded cell, then lowest unit.
  */
 object LeftoverQueenRung : QueensRung {
@@ -120,7 +121,7 @@ object LeftoverQueenRung : QueensRung {
                 if (cells.isEmpty()) continue
                 val unit = HintReason(bands.kind, Integer.numberOfTrailingZeros(bandBits), LeftoverQueenRung)
                 found += Found(k, QueensDeduction.Exclude(LeftoverQueenRung, unit, cells)) {
-                    (0 until n * n).filter { candidates.isOpen(it) && bandBits and (1 shl bands.of(it)) != 0 }.toSet()
+                    (0 until n * n).filter { candidates.isOpen(it) && bandBits and (1 shl bands.of(it)) != 0 && it !in cells }.toSet()
                 }
             }
             return found
