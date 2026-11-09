@@ -10,13 +10,14 @@ import com.ivandsky.puzzlebox.games.tango.TangoMarker
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 
 /**
- * Tango notation v1 (M5-12-a, spec A23): after the header, exactly six non-blank rows
- * of six characters — `S` (sun), `M` (moon) or `.` (empty). Spaces inside a row are
- * not allowed; trailing whitespace is ignored. Each marker line is `=` ([TangoMarkerKind.SAME])
- * or `x` ([TangoMarkerKind.OPPOSITE]), then `r,c right|down`: the edge on that cell's right or
- * bottom side. A border edge, or two markers on one edge, is an error. Blank lines and `#`
- * comment lines are ignored (§2.8, already blanked by NotationText).
- * [print] writes the rows, then the markers sorted by (row, col, right before down) — the same
+ * Tango notation v1 (M5-12-a, spec A23): after the header, n non-blank rows of n characters,
+ * n ∈ {4, 6, 8, 10} ([TangoDraft.SIZES]) — `S` (sun), `M` (moon) or `.` (empty). The first
+ * row's width sets n, as Zip and Queens read their size from the rows, so the header stays v1.
+ * Spaces inside a row are not allowed; trailing whitespace is ignored. Each marker line is `=`
+ * ([TangoMarkerKind.SAME]) or `x` ([TangoMarkerKind.OPPOSITE]), then `r,c right|down`: the edge
+ * on that cell's right or bottom side. A border edge, or two markers on one edge, is an error.
+ * Blank lines and `#` comment lines are ignored (§2.8, already blanked by NotationText).
+ * [print] writes the n rows, then the markers sorted by (row, col, right before down) — the same
  * canonical order the draft codec produces. Errors carry the offending token's whole-text
  * 1-based line and column. The letters are the tutorial DSL's ([TangoTutorial]).
  */
@@ -28,52 +29,54 @@ internal object TangoNotation : EditorNotation<TangoDraft> {
     private const val MOON_CHAR = 'M'
     private const val EMPTY_CHAR = '.'
 
-    /** The board width [parse] reads; every notation board is 6×6 for now. */
-    private const val ROWS = 6
-
     override fun parse(text: String): NotationResult<TangoDraft> {
         val content = text.lines()
             .withIndex()
             .filter { it.value.isNotBlank() && !it.value.trimStart().startsWith("#") }
             .map { IndexedLine(it.index + 1, it.value.trimEnd()) }
-        val rowLines = content.take(ROWS)
-        if (rowLines.size < ROWS) {
-            val last = content.lastOrNull()
-            return NotationResult.Err(last?.line ?: 1, 1, "board is ${rowLines.size} rows; expected $ROWS")
+        val first = content.firstOrNull() ?: return NotationResult.Err(1, 1, "no rows after the header")
+        val n = first.row.length
+        if (n !in TangoDraft.SIZES) {
+            val sizes = TangoDraft.SIZES.joinToString()
+            return NotationResult.Err(first.line, 1, "board is $n wide; Tango sizes are $sizes")
+        }
+        val rowLines = content.take(n)
+        if (rowLines.size < n) {
+            return NotationResult.Err(rowLines.last().line, 1, "board is ${rowLines.size} rows; expected $n")
         }
         val givens = HashMap<Int, TangoCell>()
         for ((index, entry) in rowLines.withIndex()) {
-            val row = parseRow(entry, index) ?: return errRow(entry, index)
+            val row = parseRow(entry, n) ?: return errRow(entry, index, n)
             for ((col, ch) in row.withIndex()) {
                 when (ch) {
-                    SUN_CHAR -> givens[index * ROWS + col] = TangoCell.SUN
-                    MOON_CHAR -> givens[index * ROWS + col] = TangoCell.MOON
+                    SUN_CHAR -> givens[index * n + col] = TangoCell.SUN
+                    MOON_CHAR -> givens[index * n + col] = TangoCell.MOON
                 }
             }
         }
         val markers = ArrayList<TangoMarker>()
         val edges = HashSet<Pair<Int, TangoEdgeSide>>()
-        for (entry in content.drop(ROWS)) {
-            val (marker, error) = parseMarker(entry)
+        for (entry in content.drop(n)) {
+            val (marker, error) = parseMarker(entry, n)
             val m = marker ?: return NotationResult.Err(entry.line, error!!.col, error.message)
             if (!edges.add(m.cell to m.side)) {
-                return NotationResult.Err(entry.line, 3, duplicateMessage(m))
+                return NotationResult.Err(entry.line, 3, duplicateMessage(m, n))
             }
             markers += m
         }
-        return NotationResult.Ok(TangoDraft(ROWS, givens, markers.canonicalMarkers()))
+        return NotationResult.Ok(TangoDraft(n, givens, markers.canonicalMarkers()))
     }
 
     /** The row's characters, or null when the length or a character breaks the grammar. */
-    private fun parseRow(entry: IndexedLine, index: Int): String? {
-        if (entry.row.length != ROWS) return null
+    private fun parseRow(entry: IndexedLine, n: Int): String? {
+        if (entry.row.length != n) return null
         if (entry.row.any { it !in listOf(SUN_CHAR, MOON_CHAR, EMPTY_CHAR) }) return null
         return entry.row
     }
 
-    private fun errRow(entry: IndexedLine, index: Int): NotationResult.Err {
-        if (entry.row.length != ROWS) {
-            return NotationResult.Err(entry.line, 1, "row ${index + 1} has ${entry.row.length} cells, expected $ROWS")
+    private fun errRow(entry: IndexedLine, index: Int, n: Int): NotationResult.Err {
+        if (entry.row.length != n) {
+            return NotationResult.Err(entry.line, 1, "row ${index + 1} has ${entry.row.length} cells, expected $n")
         }
         val col = entry.row.indexOfFirst { it !in listOf(SUN_CHAR, MOON_CHAR, EMPTY_CHAR) }
         return NotationResult.Err(entry.line, col + 1, "unexpected character '${entry.row[col]}'")
@@ -82,7 +85,7 @@ internal object TangoNotation : EditorNotation<TangoDraft> {
     /** A grammar error at [MarkerError.col]; null [TangoMarker] means [MarkerError] applies. */
     private data class MarkerError(val col: Int, val message: String)
 
-    private fun parseMarker(entry: IndexedLine): Pair<TangoMarker?, MarkerError?> {
+    private fun parseMarker(entry: IndexedLine, n: Int): Pair<TangoMarker?, MarkerError?> {
         val row = entry.row
         val kind = when (row.getOrNull(0)) {
             '=' -> TangoMarkerKind.SAME
@@ -99,7 +102,7 @@ internal object TangoNotation : EditorNotation<TangoDraft> {
         }
         val r = coord[0].toInt()
         val c = coord[1].toInt()
-        if (r !in 1..ROWS || c !in 1..ROWS) {
+        if (r !in 1..n || c !in 1..n) {
             return null to MarkerError(3, "cell $r,$c outside the board")
         }
         if (coordEnd >= row.length || row[coordEnd] != ' ') {
@@ -110,18 +113,18 @@ internal object TangoNotation : EditorNotation<TangoDraft> {
             "down" -> TangoEdgeSide.DOWN
             else -> return null to MarkerError(coordEnd + 2, "expected direction 'right' or 'down'")
         }
-        if (side == TangoEdgeSide.RIGHT && c == ROWS) {
+        if (side == TangoEdgeSide.RIGHT && c == n) {
             return null to MarkerError(3, "edge $r,$c right is a border edge")
         }
-        if (side == TangoEdgeSide.DOWN && r == ROWS) {
+        if (side == TangoEdgeSide.DOWN && r == n) {
             return null to MarkerError(3, "edge $r,$c down is a border edge")
         }
-        return TangoMarker((r - 1) * ROWS + (c - 1), side, kind) to null
+        return TangoMarker((r - 1) * n + (c - 1), side, kind) to null
     }
 
-    private fun duplicateMessage(marker: TangoMarker): String {
-        val r = marker.cell / ROWS + 1
-        val c = marker.cell % ROWS + 1
+    private fun duplicateMessage(marker: TangoMarker, n: Int): String {
+        val r = marker.cell / n + 1
+        val c = marker.cell % n + 1
         val side = if (marker.side == TangoEdgeSide.RIGHT) "right" else "down"
         return "edge $r,$c $side already has a marker"
     }
