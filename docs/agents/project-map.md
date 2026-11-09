@@ -1,6 +1,6 @@
 # PuzzleBox — project map
 
-pinned: 500ae6f7f63dd9190aeda733d043085e01a54c4a
+pinned: d5e783fce0eefe16b2eda2117c462e5d0b3bb38a
 
 ## Purpose
 
@@ -47,7 +47,8 @@ through Koin. `:core:data` exposes `:core:common`/`:core:game`/`:core:model` and
 `:backend:firebase` implements seams declared in `:core:data`. Every module except app/backend
 tests via `testImplementation(projects.core.testing)`. Pure JVM modules
 (`puzzlebox.jvm.library`): `:core:model`, `:core:game`, `:core:network`, `:games:zip`,
-`:games:tango`, `:games:queens`, `:games:strands`, `:games:sudoku`, plus `:konsist` (test-only `jvm.library`, zero project
+`:games:tango`, `:games:queens`, `:games:strands`, `:games:sudoku`, `:tools:puzzle-cli` (ADR-0021; the
+one `tools` family module, adds Gradle's `application` plugin), plus `:konsist` (test-only `jvm.library`, zero project
 edges; reads the repo's sources as files).
 
 Forbidden edges (ADR-0008, [docs/adr/0008-module-graph.md](../adr/0008-module-graph.md)),
@@ -58,7 +59,9 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 `feature:*` → `games:*`; `feature:*:api` → anything but `:core:navigation`/`:core:model`;
 `feature:a:impl` → `feature:b:impl`; `games:*` → `feature:*`; `games:x` → `games:y` except
 `games:x-ui` → `games:x`. Two more arms guard the verification module `:konsist` (ADR-0009):
-`:konsist` → any module, and any module → `:konsist` (test configurations too).
+`:konsist` → any module, and any module → `:konsist` (test configurations too). Two more arms
+guard the `tools` family (ADR-0021): `tools:*` → anything but `:core:game`, a non-UI `games:*`
+and (test configurations only) `:core:testing`; and any module outside `tools:*` → a tool.
 
 - `app/` (`:app`) — `PuzzleBoxApplication` (starts Koin, then starts `LeaderboardSubmitWatcher`),
   `MainActivity` (Compose host, theme resolution, edge-to-edge), `PuzzleBoxApp` (bar or rail
@@ -97,6 +100,15 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   S5 no colour literals, S6 no infinite animation, S7 no system night flag outside theme resolution; P1 package root, P2 dispatchers location,
   P3 ViewModel shape, P4 use-case shape, P5 naming, P6 Koin module location, P7 Android-free
   pure modules, P8 NavKey payload.
+- `tools/puzzle-cli/` (`:tools:puzzle-cli`, pure JVM `application`, ADR-0021; ships nowhere) —
+  `PuzzleCli.kt` (`main`, the one file that names games: a `GameRegistry` over every non-UI
+  plugin; `validate <file>` / `solve <file>` print one `CliVerdict` JSON line, exit codes in
+  `CliExit`), `CliVerdicts`/`CliVerdict`/`CliError`. It reaches games only through
+  `NotationText` and `GamePlugin.editor`, so a game's editor joins the tool by one registration.
+  Tests: one parity test per game (CLI vs the app's import path over the shared fixtures),
+  `NotationFixtures` (loader for `games/*/src/test/resources/notation/*.txt`) and
+  `NotationDocTest`, which pins `docs/puzzle-notation.md` to those fixtures and to the lines
+  `PuzzleCli` prints. Run it from `build/install/puzzle-cli/bin/puzzle-cli` after `installDist`.
 - `core/navigation/` (`:core:navigation`) — `NavigationState` (immutable `@Serializable` tab +
   one stack per tab, invariants I1–I4, pure verbs `selectTab`/`push`/`pushOnce`/`pop`/
   `replaceTop`, `reconciledWith`, spec-notation `toString`; `navigationState(vararg tabs)`),
@@ -128,7 +140,9 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `SubmitResult` Ok/Deduped/Err, `LeaderboardEntries.fromRecord`); Koin `dataModule` (includes
   `databaseModule`, `networkModule`, `datastoreModule`); `DraftRepository` →
   `RoomDraftRepository` (the draft store: `Draft` rows; observeAll/observe/get/upsert/delete)
-  and `update/` `AppReleaseRepository` (GitHub releases).
+  and `update/` `AppReleaseRepository` (GitHub releases); `repository/SharedTextStore` →
+  `InMemorySharedTextStore` (text another app shared: `pending` flow, `put`, atomic `take`;
+  in memory only, never persisted or in a NavKey).
 - `core/database/` (`:core:database`) — Room v7 `PuzzleBoxDatabase`: `PuzzleDailyDao`/
   `PuzzleDailyEntity` (`puzzle_dailies`, keyed gameId+day), `CompletionDao`/`CompletionEntity`
   (`completions`, keyed on the encoded puzzle-ref string), `SavedPlayDao`/`SavedPlayEntity`
@@ -162,7 +176,10 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `TodayLeaderboard`), `ObserveLatestSolvedToday` (the game whose numbered daily was solved most recently on its own today, or null),
   `ObservePlayStats` (one slot's tablet side-panel stats: streak, week,
   today progress, times → `PlayStats`), `ObserveTodaySet` (saved plays + records + each game's calendar day →
-  registry-order `TodayEntry` per game: Solved/InProgress(elapsed)/NotStarted; `nextUnsolved`). Android library.
+  registry-order `TodayEntry` per game: Solved/InProgress(elapsed)/NotStarted; `nextUnsolved`),
+  `ImportDraftFromText` (whole-text import: `NotationText.parse` on `dispatchers.default`, and
+  only a parsed draft is stored, via `CreateDraft` + one `DraftRepository.upsert`, as an
+  imported row → `ImportResult`). Android library.
 - `core/game/` (`:core:game`, pure JVM) — the orthogonal game contracts (ADR-0001):
   `GameDefinition`, `GameRules<P>`, `GameSession` + `GameSessionCodec`, `ScoreModel<S>` →
   `CompletionRecord?`, `PuzzleSource` (`fetch(date)` → `FetchResult`; `FetchError`), composed
@@ -178,6 +195,11 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   type-erased draft + `CommandHistory` the UI holds: apply/undo/redo/resize, `canTestSolve`,
   `toPuzzle`), `Verdict` (sealed solvability/uniqueness/`Difficulty` outcome), `DraftState`,
   `DraftExport`, `Budget`, `PublishBlock`, `IncompleteReason`, `LadderRung`, `Solution`.
+  `EditorNotation<D>` (opt-in capability of a `GameEditor`: `parse`/`print`/`columns`,
+  `notationVersion`, the `puzzlebox <game> v<n>` text of `docs/puzzle-notation.md`) and
+  `NotationText` (the one whole-text entry: 64 KiB cap → header → `registry[id].editor as?
+  EditorNotation` → version → parse → `NotationParse`), shared by `ImportDraftFromText` and
+  the CLI.
 - `core/game-ui/` (`:core:game-ui`) — the Compose mapping layer keyed by `GameId` (no Compose in
   `:core:game`): play contracts (ADR-0007) `GamePlayUi` (`createController(PlayEnvironment)`,
   `Screen`), `GamePlayController` (+ `PlayClock`/`PlayHints`/`PlayUndo`), `GamePlayRegistry`
@@ -298,14 +320,22 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   `DraftAutosave`, `EditHistory`), `StudioScreen` (`StudioLayout`, top bar, `ToolStrip`, side
   pane, `ActionArea`, `VerdictCard`/`VerdictPill`), `VerdictPipeline` (debounced
   `analyze` → `Verdict` flow), `TestSolveScreen` + `TestSolveSession` (play the draft before
-  publish); `di/CreateModule`. Use cases in `core:domain`: `CreateDraft`, `ValidatePublish`.
+  publish); `di/CreateModule`. `importtext/`: `ImportTextState` (the Import-from-text sheet's
+  holder: open/edit/submit, clipboard offer, `onImported(draftId)`; one per screen that offers
+  the sheet — Create root and Studio) over `ImportDraftFromText`, with `ImportSheetActions`
+  (its callbacks). `CreateViewModel.importSharedText` imports text another app shared.
+  Use cases in `core:domain`: `CreateDraft`, `ValidatePublish`, `ImportDraftFromText`.
 - `backend/firebase/` (`:backend:firebase`) — implements the `core:data` seams:
   `FirebaseIdentityService` over an internal `AuthGateway`/`FirebaseAuthGateway`,
   `FirestoreLeaderboardStore` + `FirestoreLeaderboardRepository` (dedupe on (uid, puzzleRef)),
   `LeaderboardDocCodec`, `BackendModule` (`firebaseBackendModule`). Rules and indexes live
-  alongside (`firebase.json`, `firestore.rules`, `firestore.indexes.json`).
+  alongside (`firebase.json`, `firestore.rules`, `firestore.indexes.json`); `hosting/` is the
+  share-link page (`p/code.js`, `p/index.html`, `.well-known/assetlinks.json`) and
+  `hosting-test/` its Node test (`code.test.mjs` over `share-code-vectors.json`).
 - `PROFILE.md` — product frame, ranked care-axes, deploy targets, testing style.
-- `docs/adr/` — ADR-0001…0022, summarized under Purpose.
+- `docs/puzzle-notation.md` — the `puzzlebox <game> v<n>` text format agents write (spec A23);
+  every sample is pinned by `NotationDocTest` in `:tools:puzzle-cli`.
+- `docs/adr/` — ADR-0001…0024; 0001–0023 are summarized under Purpose.
 
 ## Entry points
 
@@ -331,7 +361,17 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
   root; back at a Play/Profile root returns to Home; back at the Home root exits
   (ADR-0011). Bottom bar on compact widths, rail on expanded-width landscape
   (`homeLayoutFor`/`playLayoutFor`/`historyLayoutFor`).
-- No deep links, widgets, or services.
+- Share target (`ShareTarget` flag, debug builds only): the debug manifest
+  (`app/src/debug/AndroidManifest.xml`) adds a `SEND` `text/plain` intent filter to
+  `MainActivity`; M5-22 moves it to the main manifest. `MainActivity` (new intent or fresh
+  start, gated by the flag) → `SharedText.of` → `SharedTextStore.put` → `PuzzleBoxApp`'s
+  `pendingShare` → `Navigator.applySharedText()` (select Create, pop to its root, from any
+  tab) → the Create root's `CreateViewModel.importSharedText` takes the text and imports it
+  while RESUMED.
+- `puzzle-cli` — `PuzzleCliKt.main` (`:tools:puzzle-cli`), run from `installDist`, never
+  from the app: `puzzle-cli validate|solve <file>` → one JSON verdict line, exit code `CliExit`.
+- No widgets or services. The main manifest's other filter is the `https` share-link VIEW
+  (`puzzlebox-f3356.web.app/p/`); `MainActivity` hands it to `PuzzleBoxApp` as `pendingLink`.
 
 ## Seams
 
@@ -373,9 +413,20 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 - **Editor seam** (ADR-0019) — `GamePlugin.editor` (`GameEditor`, `core:game`) + a
   `GameEditorUi` binding (`core:game-ui`, collected into `GameEditorRegistry`); the Studio
   holds an `EditorDraft` and feeds `VerdictPipeline`, so adding an editor never touches
-  `feature:create`. Queens is the only editor today.
+  `feature:create`. Queens ships its editor; Zip, Tango, Sudoku and Strands editors are wired
+  end to end behind `ReleaseFlag.ZipEditor`/`TangoEditor`/`SudokuEditor`/`StrandsEditor`
+  (default off).
 - **`DraftRepository`** (`core:data`) — the draft store over Room `drafts`; drafts persist
   as the editor's versioned blob, autosaved by `DraftAutosave`.
+- **`EditorNotation` / `NotationText`** (`core:game`, 00-interfaces §2.1/§2.8) — the text
+  seam: a game opts in by implementing `EditorNotation<D>` on its `GameEditor`; callers go
+  only through `NotationText.parse(text, registry)` → `NotationParse` (positions whole-text,
+  1-based). Two callers, one verdict (ADR-0021 §5): `ImportDraftFromText` (`core:domain`,
+  behind `ImportTextState`/`ImportSheetActions` in `feature:create:impl`) and `PuzzleCli`.
+  Format doc: `docs/puzzle-notation.md`, pinned by `NotationDocTest`.
+- **`SharedTextStore`** (`core:data`, 00-interfaces §5.2) — in-memory handoff of shared text
+  from `MainActivity` to Create's ViewModel (see Entry points); `FakeSharedTextStore` in
+  `core:testing`, one `SharedTextStoreContract`.
 - **Repository interfaces** (`core:data`) — `DailyRepository.today()` is network-first
   (`DailyToday.Cached` carries the fetch error), `cached()`/`observeHistory()` never touch the
   network; `CompletionRepository` stamps ADR-0004 first-win semantics via `FirstWinPolicy`
@@ -410,43 +461,48 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 ## Working test commands
 
 Counts are `@Test` annotation counts over each module's `src/test*/` trees at the pin
-(2419 total excl. `:konsist`) — not executions. Robolectric where device APIs are touched; `:app` needs `ANDROID_HOME`
+(4350 total excl. `:konsist`) — not executions. Robolectric where device APIs are touched; `:app` needs `ANDROID_HOME`
 or `local.properties` (SDK at `~/Library/Android/sdk` here); Gradle toolchain pinned to JVM 25
 via `gradle/gradle-daemon-jvm.properties`. Android modules run `testDebugUnitTest`, pure-JVM
 modules run `test`. Full suite:
 
 `./gradlew assembleDebug testDebugUnitTest :core:game:test :games:zip:test :games:queens:test
-:games:tango:test :games:strands:test :games:sudoku:test :core:model:test :core:network:test -Proborazzi.verify=true --continue` —
+:games:tango:test :games:strands:test :games:sudoku:test :core:model:test :core:network:test :tools:puzzle-cli:test -Proborazzi.verify=true --continue` —
 the 0.13.0 gate.
 
 Structure rules (ADR-0009): `./gradlew :konsist:test` — runs the 15 in-module rules (S0–S7 without S3, P1–P8; 127 tests), the
 census and the engine tests over the whole repo's sources (not in the count above; reruns
 when any source, build script or allowlist changes).
 
-- `:app:testDebugUnitTest` — 144 (DI graph, nav routes, saved-state restore, per-tab shell,
-  E2E robot rows, submit watcher, browser screenshots)
-- `:backend:firebase:testDebugUnitTest` — 32
+- `:app:testDebugUnitTest` — 246 (DI graph, nav routes, saved-state restore, per-tab shell,
+  E2E robot rows, submit watcher, share target, browser screenshots)
+- `:backend:firebase:testDebugUnitTest` — 70
 - `:core:common:testDebugUnitTest` — 8
-- `:core:data:testDebugUnitTest` — 101
+- `:core:data:testDebugUnitTest` — 157
 - `:core:database:testDebugUnitTest` — 18 (DAOs + migrations through 6→7)
 - `:core:datastore:testDebugUnitTest` — 2
-- `:core:designsystem:testDebugUnitTest` — 54
-- `:core:domain:testDebugUnitTest` — 125
-- `:core:game:test` — 34
-- `:core:game-ui:testDebugUnitTest` — 111
+- `:core:designsystem:testDebugUnitTest` — 91
+- `:core:domain:testDebugUnitTest` — 243
+- `:core:game:test` — 75
+- `:core:game-ui:testDebugUnitTest` — 239
 - `:core:navigation:testDebugUnitTest` — 29
 - `:core:network:test` — 39
-- `:core:model`, `:core:testing`, `:feature:*:api` — 0
-- `:feature:home:impl:testDebugUnitTest` — 61
+- `:core:model:test` — 7
+- `:core:testing`, `:feature:*:api` — 0
+- `:feature:home:impl:testDebugUnitTest` — 63
 - `:feature:history:impl:testDebugUnitTest` — 50
-- `:feature:play:impl:testDebugUnitTest` — 121
-- `:feature:profile:impl:testDebugUnitTest` — 36
-- `:feature:create:impl:testDebugUnitTest` — 63
-- `:games:zip:test` — 174; `:games:zip-ui:testDebugUnitTest` — 83
-- `:games:tango:test` — 140; `:games:tango-ui:testDebugUnitTest` — 67
-- `:games:queens:test` — 294; `:games:queens-ui:testDebugUnitTest` — 178
-- `:games:sudoku:test` — 140; `:games:sudoku-ui:testDebugUnitTest` — 107
-- `:games:strands:test` — 94; `:games:strands-ui:testDebugUnitTest` — 114
+- `:feature:play:impl:testDebugUnitTest` — 318
+- `:feature:profile:impl:testDebugUnitTest` — 41
+- `:feature:create:impl:testDebugUnitTest` — 330
+- `:games:zip:test` — 287; `:games:zip-ui:testDebugUnitTest` — 181
+- `:games:tango:test` — 249; `:games:tango-ui:testDebugUnitTest` — 138
+- `:games:queens:test` — 324; `:games:queens-ui:testDebugUnitTest` — 226
+- `:games:sudoku:test` — 232; `:games:sudoku-ui:testDebugUnitTest` — 195
+- `:games:strands:test` — 217; `:games:strands-ui:testDebugUnitTest` — 250
+- `:tools:puzzle-cli:test` — 25 (CLI contract, per-game CLI↔app parity, `NotationDocTest`; the
+  fixtures live under each game's `src/test/resources/notation/`)
+- `node --test backend/firebase/hosting-test/` — 5 (share-code normalizer; needs Node, not
+  Gradle, not in the count above)
 - `./gradlew checkModuleGraph` — forbidden-edge guard (also run by `check`)
 
 ## Diagram
