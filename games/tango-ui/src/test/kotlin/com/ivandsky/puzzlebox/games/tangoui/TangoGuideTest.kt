@@ -40,13 +40,9 @@ class TangoGuideTest {
             if (step.guided) it.guide()
         }
 
-    private fun TangoPlayController.tap(idx: Int) {
-        TangoTapPolicy.onTap(rendererModel()!!, idx).forEach(this::onPlacement)
-    }
-
     /** Taps [idx] until it holds [value] (a sun is one tap, a moon two). */
     private fun TangoPlayController.tapTo(idx: Int, value: TangoCell) {
-        repeat(if (value == TangoCell.SUN) 1 else 2) { tap(idx) }
+        repeat(if (value == TangoCell.SUN) 1 else 2) { onTap(idx) }
     }
 
     private fun TangoPlayController.assertNoRuleFeedback(at: String) {
@@ -72,14 +68,14 @@ class TangoGuideTest {
     fun `a sun on every open square shows no caption and no violation while guided`() {
         val unguided = TangoPlayController(env(mutableListOf())).apply {
             adoptToday(lesson1.puzzle, lesson1.ref)
-            answer.keys.forEach { tap(it) }
+            answer.keys.forEach { onTap(it) }
         }
         // The same taps on an unguided board break a rule, so the guided silence is real.
         assertNotNull(unguided.violation)
 
         val s = lesson(lesson1)
         for (idx in answer.keys) {
-            s.tap(idx)
+            s.onTap(idx)
             s.assertNoRuleFeedback("sun on $idx")
         }
         assertFalse(s.isComplete)
@@ -106,8 +102,8 @@ class TangoGuideTest {
         // A wandering order wins too: every square a sun first, then the moon square again.
         val won = mutableListOf<CompletionRecord>()
         val s = lesson(lesson1, won)
-        squares.forEach { s.tap(it) }
-        s.tap(answer.filterValues { it == TangoCell.MOON }.keys.single())
+        squares.forEach { s.onTap(it) }
+        s.onTap(answer.filterValues { it == TangoCell.MOON }.keys.single())
         assertTrue(s.isComplete)
         assertEquals(1, won.size)
     }
@@ -118,12 +114,12 @@ class TangoGuideTest {
         assertEquals(answer, s.rendererModel()!!.ghosts)
         val moon = answer.filterValues { it == TangoCell.MOON }.keys.single()
 
-        s.tap(moon) // a sun, not yet the answer
+        s.onTap(moon) // a sun, not yet the answer
         val model = s.rendererModel()!!
         assertEquals(TangoCell.MOON, model.ghosts[moon])
         assertTrue(TangoSemantics.cellStateDescription(model, moon).endsWith(TangoSemantics.ghostPhrase(TangoCell.MOON)))
 
-        s.tap(moon) // the moon: its ghost goes, the others stay
+        s.onTap(moon) // the moon: its ghost goes, the others stay
         val matched = s.rendererModel()!!
         assertNull(matched.ghosts[moon])
         assertFalse(TangoSemantics.cellStateDescription(matched, moon).contains(TangoSemantics.ghostPhrase(TangoCell.MOON)))
@@ -163,11 +159,11 @@ class TangoGuideTest {
             val s = sandbox.controllerFor(playing, scope) as TangoPlayController
             assertEquals(playing.step.guided, s.guidance.active)
             if (s.guidance.active) {
-                taps.forEach { s.tap(it) } // all suns first: no feedback, no win yet
+                taps.forEach { s.onTap(it) } // all suns first: no feedback, no win yet
                 s.assertNoRuleFeedback("lesson ${index + 1}")
-                s.tap(answer.filterValues { it == TangoCell.MOON }.keys.single())
+                s.onTap(answer.filterValues { it == TangoCell.MOON }.keys.single())
             } else {
-                taps.forEach { s.tap(it) }
+                taps.forEach { s.onTap(it) }
                 assertTrue(s.rendererModel()!!.ghosts.isEmpty())
             }
             assertTrue((session.state.value as TutorialState.Playing).solved)

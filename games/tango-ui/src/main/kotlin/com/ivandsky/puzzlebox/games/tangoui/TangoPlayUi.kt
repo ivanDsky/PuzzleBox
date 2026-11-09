@@ -69,8 +69,8 @@ class TangoPlayUi(private val hintMode: HintModeSource = HintModeSource { HintMo
 
 /**
  * The Tango play screen (tango-05, A14): the Zip play shell (ticket 13/23 semantics) with
- * 04's board renderer. Tap placements land through [TangoBoardRenderer]'s placement
- * callback; the caption is the shared [PlayChrome] and the controls the shared
+ * 04's board renderer. Taps land through [TangoPlayController.onTap] (the cycle step read
+ * off the live session); the caption is the shared [PlayChrome] and the controls the shared
  * [PlayActionBar], whose Clear wipes the player's cells. Design §6: the win moment is the same
  * [PlaySolveFrame] then route handoff; this screen never renders win content.
  */
@@ -162,11 +162,15 @@ private fun TangoBoard(controller: TangoPlayController, paneCap: Dp?, modifier: 
     ) {
         controller.rendererModel()
     } ?: return
-    // The renderer owns the tap-cycle policy (04); the
-    // play shell only wires placements into the controller. The outline
+    // Taps go to the controller by cell index, so the cycle step reads the live session
+    // (M4-tango-28); TalkBack actions land as placements. The outline
     // rides the board modifier (§2 — the Zip outline pattern).
     val renderer = remember(controller) {
-        TangoBoardRenderer(onPlacement = controller::onPlacement, spotlight = { controller.spotlight })
+        TangoBoardRenderer(
+            onTap = controller::onTap,
+            onPlacement = controller::onPlacement,
+            spotlight = { controller.spotlight },
+        )
     }
     val cap = paneCap ?: PlayBoardMaxWidth
     renderer.Content(

@@ -52,11 +52,6 @@ class TangoTutorialTest {
             if (step.guided) it.guide()
         }
 
-    /** One tap on [idx], through the board's own tap cycle. */
-    private fun TangoPlayController.tap(idx: Int) {
-        TangoTapPolicy.onTap(rendererModel()!!, idx).forEach(this::onPlacement)
-    }
-
     @Test
     fun `the play registration ships four lessons`() {
         assertSame(steps, TangoPlayUi().tutorial)
@@ -91,9 +86,9 @@ class TangoTutorialTest {
             val won = mutableListOf<CompletionRecord>()
             val s = adopted(step, won)
 
-            lessonTaps.dropLast(1).forEach { s.tap(it) }
+            lessonTaps.dropLast(1).forEach { s.onTap(it) }
             assertFalse(step.instruction, s.isComplete)
-            s.tap(lessonTaps.last())
+            s.onTap(lessonTaps.last())
 
             assertTrue(step.instruction, s.isComplete)
             // The win is what moves the tutorial on: one record, under the lesson's own ref.
@@ -107,7 +102,7 @@ class TangoTutorialTest {
             val s = adopted(step)
 
             for ((count, idx) in lessonTaps.withIndex()) {
-                s.tap(idx)
+                s.onTap(idx)
 
                 val at = "${step.instruction} (tap ${count + 1})"
                 assertNull(at, s.lastRejection)

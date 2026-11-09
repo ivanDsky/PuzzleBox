@@ -88,6 +88,16 @@ class TangoPlayController(
 
     val suppressedSets: Set<Set<Int>> get() = settle.suppressed
 
+    /**
+     * A board tap on [idx]: the [TangoTapPolicy] cycle step read off the LIVE session, so a
+     * second tap before the board recomposes still advances sun → moon (M4-tango-28 — a
+     * step computed from the last composed model repeated the first and no-opped).
+     */
+    fun onTap(idx: Int) {
+        val model = rendererModel() ?: return
+        TangoTapPolicy.onTap(model, idx).forEach(::onPlacement)
+    }
+
     fun onPlacement(placement: TangoPlacement) {
         lastRejection = null // next input clears the violation verdict (Zip hintArrow discipline)
         legacyHint.clear()
