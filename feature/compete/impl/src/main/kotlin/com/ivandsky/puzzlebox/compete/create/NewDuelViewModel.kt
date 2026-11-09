@@ -3,11 +3,8 @@ package com.ivandsky.puzzlebox.compete.create
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
-import com.ivandsky.puzzlebox.data.identity.AuthError
-import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.Match
@@ -175,7 +172,7 @@ private const val STOP_TIMEOUT_MS = 5_000L
 internal class NewDuelViewModel(
     private val createMatch: CreateMatch,
     private val identity: IdentityService,
-    private val idTokens: GoogleIdTokenProvider,
+    idTokens: GoogleIdTokenProvider,
     todaySet: ObserveTodaySet,
     calendar: GameCalendar,
     daily: DailyRepository,
@@ -192,6 +189,7 @@ internal class NewDuelViewModel(
         val generation: Int = 0,
     )
 
+    private val signInStep = DuelSignInStep(identity, idTokens)
     private val working = MutableStateFlow(Working(DuelDraft.quick(emptyList())))
     private val createdCodes = Channel<ShareCode>(Channel.BUFFERED)
 
@@ -273,7 +271,7 @@ internal class NewDuelViewModel(
     suspend fun signIn(activityContext: Context) {
         if (working.getAndUpdate { it.copy(signIn = DuelSignIn.SigningIn) }.signIn == DuelSignIn.SigningIn) return
         val failure = try {
-            attemptSignIn(activityContext)
+            signInStep(activityContext)
         } catch (cancelled: CancellationException) {
             working.update { it.copy(signIn = DuelSignIn.Idle) }
             throw cancelled
@@ -282,18 +280,4 @@ internal class NewDuelViewModel(
             it.copy(signIn = failure ?: DuelSignIn.Idle, signInRequired = it.signInRequired && failure != null)
         }
     }
-
-    /** Null when the account is signed in; otherwise how the panel should read. */
-    private suspend fun attemptSignIn(activityContext: Context): DuelSignIn? =
-        when (val token = idTokens.idToken(activityContext)) {
-            is GoogleIdToken.Available -> when (val result = identity.signInWithGoogleIdToken(token.token)) {
-                is AuthResult.Ok -> null
-                is AuthResult.Err -> if (result.error is AuthError.Unavailable) DuelSignIn.Offline else DuelSignIn.Failed
-            }
-            is GoogleIdToken.Unavailable -> when (token.reason) {
-                GoogleIdToken.Unavailable.Reason.CANCELLED -> DuelSignIn.Idle
-                GoogleIdToken.Unavailable.Reason.NETWORK -> DuelSignIn.Offline
-                else -> DuelSignIn.Failed
-            }
-        }
 }
