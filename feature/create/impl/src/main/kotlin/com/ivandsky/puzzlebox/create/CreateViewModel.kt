@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.create.importtext.ImportTextState
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
+import com.ivandsky.puzzlebox.data.repository.SharedTextStore
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.ImportDraftFromText
@@ -28,6 +29,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -56,7 +59,9 @@ import kotlinx.coroutines.launch
  *
  * [importText] owns the Import from text sheet; the header pill shows while [importEnabled]
  * ([ReleaseFlag.TextImport]). An imported draft is sent on [created], like a new one. A Studio's
- * import hands its draft to the next Studio through [importedNotice].
+ * import hands its draft to the next Studio through [importedNotice]. Text another app shared
+ * ([SharedTextStore]) goes through that same sheet while the root is resumed
+ * ([importSharedText]).
  */
 class CreateViewModel(
     private val games: GameRegistry,
@@ -69,6 +74,7 @@ class CreateViewModel(
     private val dispatchers: DispatcherProvider,
     private val syncSolves: SyncSolvesCounts,
     private val releaseFlags: ReleaseFlags,
+    private val sharedText: SharedTextStore,
     private val clock: () -> Instant,
     private val nanoTime: () -> Long = System::nanoTime,
 ) : ViewModel() {
@@ -150,6 +156,24 @@ class CreateViewModel(
         gameName = { games.displayName(GameId(it)) },
         onImported = { createdIds.trySend(it) },
     )
+
+    /**
+     * Imports the text another app shared, the way a paste would: each text waiting in
+     * [SharedTextStore] is taken once, then [importText] opens the sheet and submits it, so a
+     * good one is sent on [created] and an error stays on the open sheet. A text that arrives
+     * during a check stays in the store until that check ends, so two shares import one after
+     * the other. Runs until cancelled; the Create root runs it while it is resumed, so nothing
+     * is taken while another screen covers it or a transition is still settling.
+     */
+    suspend fun importSharedText() {
+        sharedText.pending.filterNotNull().collect {
+            importText.ui.first { !it.checking }
+            // No suspension from here to submit, so a cancel never splits take from import.
+            val text = sharedText.take() ?: return@collect
+            importText.open()
+            importText.submit(text)
+        }
+    }
 
     /**
      * Stores a blank [variant] draft of [gameId] (a choice the sheet offered) and sends its id on

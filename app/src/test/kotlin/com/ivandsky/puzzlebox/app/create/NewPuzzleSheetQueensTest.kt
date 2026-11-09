@@ -33,6 +33,7 @@ import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
 import java.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -84,6 +85,7 @@ class NewPuzzleSheetQueensTest {
                             createDraft,
                             CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW }),
                             DefaultDispatcherProvider(),
+                            sharedText = FakeSharedTextStore(),
                             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
                             releaseFlags = get(),
                             clock = { NOW },

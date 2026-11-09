@@ -53,6 +53,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
 import java.time.Instant
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
@@ -163,6 +164,7 @@ class NewPuzzleSheetStrandsGateTest {
                             createDraft,
                             CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW }),
                             DefaultDispatcherProvider(),
+                            sharedText = FakeSharedTextStore(),
                             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
                             releaseFlags = get(),
                             clock = { NOW },

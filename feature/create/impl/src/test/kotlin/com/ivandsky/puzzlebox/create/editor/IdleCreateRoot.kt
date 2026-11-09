@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
 import java.time.Instant
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
@@ -35,6 +36,7 @@ internal fun Module.idleCreateRoot(drafts: DraftRepository) {
             CreateDraft(games, drafts, newId = { "new-1" }, clock = { IdleNow }),
             CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { IdleNow }),
             DefaultDispatcherProvider(),
+            sharedText = FakeSharedTextStore(),
             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { IdleNow }),
             releaseFlags = FakeReleaseFlags(),
             clock = { IdleNow },

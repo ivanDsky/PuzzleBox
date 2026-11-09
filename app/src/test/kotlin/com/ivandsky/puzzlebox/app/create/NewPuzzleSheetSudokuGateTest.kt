@@ -45,6 +45,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
@@ -128,6 +129,7 @@ class NewPuzzleSheetSudokuGateTest {
                             createDraft,
                             CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW }),
                             DefaultDispatcherProvider(),
+                            sharedText = FakeSharedTextStore(),
                             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
                             releaseFlags = flags,
                             clock = { NOW },

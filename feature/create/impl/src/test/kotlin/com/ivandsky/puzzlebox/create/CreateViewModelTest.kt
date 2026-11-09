@@ -22,6 +22,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Duration
 import java.time.Instant
@@ -82,7 +83,7 @@ class CreateViewModelTest {
     ): CreateViewModel {
         val createDraft = CreateDraft(games, drafts, newId = { "new" }, clock = { NOW })
         val copyDraft = CreateDraftCopy(drafts, newId = { "copy" }, clock = { NOW })
-        val vm = CreateViewModel(games, editors, GamePlayRegistry(emptyList()), drafts, FakePublishedPuzzleRepository(), createDraft, copyDraft, lanes, syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }), releaseFlags = flags, clock = { NOW })
+        val vm = CreateViewModel(games, editors, GamePlayRegistry(emptyList()), drafts, FakePublishedPuzzleRepository(), createDraft, copyDraft, lanes, sharedText = FakeSharedTextStore(), syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }), releaseFlags = flags, clock = { NOW })
         backgroundScope.launch(mainRule.testDispatcher) { vm.uiState.collect {} }
         return vm
     }
@@ -201,7 +202,7 @@ class CreateViewModelTest {
         var next = 0
         val createDraft = CreateDraft(games, slowDrafts, newId = { "new-${++next}" }, clock = { NOW })
         val copyDraft = CreateDraftCopy(drafts, newId = { "copy" }, clock = { NOW })
-        val vm = CreateViewModel(games, editors, GamePlayRegistry(emptyList()), drafts, FakePublishedPuzzleRepository(), createDraft, copyDraft, lanes, syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }), releaseFlags = FakeReleaseFlags(), clock = { NOW })
+        val vm = CreateViewModel(games, editors, GamePlayRegistry(emptyList()), drafts, FakePublishedPuzzleRepository(), createDraft, copyDraft, lanes, sharedText = FakeSharedTextStore(), syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }), releaseFlags = FakeReleaseFlags(), clock = { NOW })
         val opened = mutableListOf<String>()
         backgroundScope.launch(mainRule.testDispatcher) { vm.created.collect(opened::add) }
 

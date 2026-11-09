@@ -38,6 +38,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
@@ -174,6 +175,7 @@ class StudioTopBarTest {
                             CreateDraft(games, drafts, newId = { "new-1" }, clock = { NOW }),
                             copyDraft,
                             DefaultDispatcherProvider(),
+                            sharedText = FakeSharedTextStore(),
                             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
                             releaseFlags = FakeReleaseFlags(),
                             clock = { NOW },

@@ -31,6 +31,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
 import java.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -159,6 +160,7 @@ class ImportEntriesTest {
                             createDraft,
                             CreateDraftCopy(drafts, newId = { "copy" }, clock = { NOW }),
                             DefaultDispatcherProvider(),
+                            sharedText = FakeSharedTextStore(),
                             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
                             releaseFlags = flags,
                             clock = { NOW },
