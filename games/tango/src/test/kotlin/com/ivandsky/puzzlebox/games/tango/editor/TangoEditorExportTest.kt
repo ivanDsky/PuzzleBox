@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.game.editor.canShare
 import com.ivandsky.puzzlebox.game.editor.encodeShare
+import com.ivandsky.puzzlebox.game.editor.shareFormatVersion
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoTestSupport
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
@@ -44,9 +45,21 @@ class TangoEditorExportTest {
         assertArrayEquals(fixture(), draft.encodeShare())
     }
 
+    /** The value CreateSharedPuzzle writes into doc.shareCodecVersion: 1 keeps 6×6 open on v1-only builds. */
+    @Test
+    fun `a published doc carries share version 1 at 6x6 and 2 at every other size`() {
+        val versions = TangoDraft.SIZES.associateWith { n ->
+            EditorDraft(TangoEditor, DraftState(TangoDraft(n, emptyMap(), emptyList()))).shareFormatVersion
+        }
+
+        assertEquals(mapOf(4 to 2, 6 to 1, 8 to 2, 10 to 2), versions)
+    }
+
     @Test
     fun `the frozen fixture re-verifies into a Tango puzzle`() {
-        val result = SharedOpen.verify(TangoEditor, TangoEditor.shareFormatVersion, fixture(), Budget.Unlimited)
+        val docVersion = checkNotNull(EditorDraft(TangoEditor, DraftState(sample)).shareFormatVersion)
+
+        val result = SharedOpen.verify(TangoEditor, docVersion, fixture(), Budget.Unlimited)
 
         val verified = result as SharedOpenResult.Verified
         assertEquals(TangoDefinition.id, verified.puzzle.gameId)
