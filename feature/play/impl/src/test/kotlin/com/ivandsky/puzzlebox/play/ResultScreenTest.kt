@@ -190,7 +190,7 @@ class ResultScreenTest {
      * The route wiring end-to-end on the store: the slot's solved live play stamps the
      * pill (the write is fire-and-observe — the surface never waits for it), Up hands back
      * to navigation, the only game solved shows the countdown, and "Play again" hands back
-     * so the game's reopen resets the SAME puzzle to a fresh session.
+     * so the store's explicit replay resets the SAME puzzle to a fresh session.
      */
     @Test
     fun `result route reads its slot's live play`() {
@@ -237,7 +237,7 @@ class ResultScreenTest {
             composeRule.onNodeWithTag("result.playAgain").performScrollTo().performClick()
             composeRule.runOnIdle {
                 assertTrue(replayed)
-                store.open(gameKey)
+                store.replay(ResultKey(game.value, day.toString(), FakeController.TIME_MS, 0))
                 val controller = fakes[game].latest
                 assertEquals(1, controller.replays)
                 assertTrue(!controller.isComplete)

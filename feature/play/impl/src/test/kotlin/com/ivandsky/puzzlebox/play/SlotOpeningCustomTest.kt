@@ -10,7 +10,6 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
-import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -151,20 +150,6 @@ class SlotOpeningCustomTest {
         assertSame(play, reopened)
         assertTrue("the solve waits for its hand-off", fakes[alpha].latest.isComplete)
         assertEquals("never reset in place", 0, fakes[alpha].latest.replays)
-    }
-
-    @Test
-    fun `a solved daily board reopened is played again`() = runTest {
-        val store = store()
-        val key = GameKey(alpha.value, today.toString())
-        checkNotNull(store.open(key))
-        fakes[alpha].latest.move()
-        fakes[alpha].latest.win()
-
-        store.open(key)
-
-        assertFalse(fakes[alpha].latest.isComplete)
-        assertEquals(1, fakes[alpha].latest.replays)
     }
 
     private fun store(): PlaySessionStore {

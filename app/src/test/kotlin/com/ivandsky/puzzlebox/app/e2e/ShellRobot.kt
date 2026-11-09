@@ -176,9 +176,9 @@ class ShellRobot internal constructor(
     /**
      * Opens [gameId]'s page in the Play library (a phone first leaves another game's page,
      * since back from a board returns to the page it started from) and plays today once
-     * today has loaded.
+     * today has loaded. [landing] is the route that opens: a finished day lands on its result.
      */
-    fun openGame(gameId: String) {
+    fun openGame(gameId: String, landing: String = GAME_ROUTE) {
         val page = "library.page.$gameId"
         if (rule.onAllNodesWithTag(page).fetchSemanticsNodes().isEmpty()) {
             if (rule.onAllNodesWithTag("library.page.back").fetchSemanticsNodes().isNotEmpty()) tap("library.page.back")
@@ -192,7 +192,7 @@ class ShellRobot internal constructor(
                 rule.onAllNodes(offlineCard, useUnmergedTree = true).fetchSemanticsNodes().isEmpty()
         }
         tap("library.play")
-        awaitTag(GAME_ROUTE)
+        awaitTag(landing)
     }
 
     fun awaitTag(tag: String) {

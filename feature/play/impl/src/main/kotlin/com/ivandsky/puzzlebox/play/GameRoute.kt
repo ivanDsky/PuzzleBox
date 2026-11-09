@@ -193,6 +193,15 @@ private fun statsPanel(stats: PlayStatsViewModel, clock: PlayClock?): @Composabl
     PlayStatsPanel(state, elapsedMs = { clock?.displayedElapsedMs() })
 }
 
+/** The game's frame while its open is still being decided: the top bar over the loading board. */
+@Composable
+internal fun GameLoading(onBack: () -> Unit) {
+    Column {
+        PlayTopBar(title = "", pastDay = false, onBack = onBack)
+        PlayBoardFallback(PlayBoardStatus.Loading, onRetry = {}, tagPrefix = "game")
+    }
+}
+
 /** The play top bar: Up, the game's [glyph] and [title], then the play [actions]. */
 @Composable
 private fun PlayTopBar(
