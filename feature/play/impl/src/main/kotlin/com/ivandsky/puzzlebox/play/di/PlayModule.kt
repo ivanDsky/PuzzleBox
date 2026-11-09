@@ -59,6 +59,7 @@ val playModule = module {
             ),
             writers = { slot -> SlotWriter(slot, saved, lane, writes) },
             completions = get(),
+            finishLeg = get(),
             calendar = get(),
             dispatchers = dispatchers,
         )

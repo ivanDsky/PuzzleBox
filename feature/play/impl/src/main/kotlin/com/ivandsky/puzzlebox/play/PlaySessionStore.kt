@@ -5,6 +5,9 @@ import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.domain.FinishResult
+import com.ivandsky.puzzlebox.domain.LegFinish
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -24,6 +27,7 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainCoroutineDispatcher
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
@@ -48,6 +52,7 @@ class PlaySessionStore internal constructor(
     private val opening: SlotOpening,
     private val writers: (PlaySlot) -> SlotWriter,
     private val completions: CompletionRepository,
+    private val finishLeg: FinishLeg,
     private val calendar: GameCalendar,
     dispatchers: DispatcherProvider,
 ) {
@@ -190,6 +195,22 @@ class PlaySessionStore internal constructor(
      *  code is unreadable or the game is unplayable. */
     fun open(key: MatchLegKey): ActivePlay? = key.slot?.let { open(it) }
 
+    /** Gives up [key]'s leg (A22: a loss, never restarted): the loss is queued first, then the live
+     *  play is dropped without its save, or the saved row when none is live; no completion. Signed
+     *  out, nothing is queued and the play and its save stay. Runs on the store's scope, so a
+     *  navigation right after can't cut it. Null for an unreadable code. */
+    suspend fun giveUp(key: MatchLegKey): FinishResult? {
+        val code = ShareCode.parse(key.code) ?: return null
+        val slot = PlaySlot.Leg(GameId(key.gameId), code.value, key.legIndex)
+        return scope.async {
+            finishLeg(code, key.legIndex, LegFinish.GaveUp).also {
+                if (it == FinishResult.SignedOut) return@also
+                val live = slots.remove(slot)
+                if (live != null) live.close(save = false) else writers(slot).discard()
+            }
+        }.await()
+    }
+
     /** The live play of [slot]; never creates one. */
     fun peek(slot: PlaySlot): ActivePlay? = slots[slot]
 
@@ -251,7 +272,7 @@ class PlaySessionStore internal constructor(
             ui = gameUi,
             opening = opening,
             writer = writers(slot),
-            completions = completions,
+            completions = completions.forSlot(slot, finishLeg),
             scope = playScope(),
             recordScope = scope,
         ).also {
