@@ -26,6 +26,16 @@ rules_version = '2';
 //   puzzle create must bump it in the same write, and the bump is capped at 20 per day.
 //   `last` is the share code the bump is for; when present, the create must be for that code,
 //   so one bump covers one create. Older clients omit it, and a doc without it is still valid.
+//
+// Layout (ADR-0026): matches/{code} — one async duel per share code, in its own namespace. Readable
+//   by id (the invite card opens signed out); listed only by its participants. Created once with
+//   a matchQuota bump; afterwards only claim, cancel, decline and progress updates; never deleted.
+//   deadline = createdAt + deadlineHours; close = deadline + 6 h grace.
+// Layout: matches/{code}/results/{legIndex}_{uid} — one write-once result per player and leg,
+//   posted with that player's progress in the same batch. Sealed: readable by its owner, by a
+//   participant who has posted the same leg, and by any participant once the match closes.
+// Layout: matchQuota/{uid} = {day, count, last} — match creates on one UTC day, capped at 20;
+//   `last` names the code the bump is for, so one bump covers one create.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -44,11 +54,6 @@ service cloud.firestore {
 
       // First write stands (A4): no score edits, no deletes, no replay overwrites (A5).
       allow update, delete: if false;
-
-      // The games with a daily board; FirestoreRulesAllowListTest pins it to the game registry.
-      function dailyGameIds() {
-        return ['zip', 'tango', 'queens', 'strands', 'minisudoku'];
-      }
 
       // The four UTC days an entry may be for: server today -2, -1, 0 and +1 (ADR-0024).
       // Exact days, not a string range: a range would also admit a day that does not exist.
@@ -191,6 +196,235 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /matches/{code} {
+      allow get: if true;
+      allow list: if request.auth != null && request.auth.uid in resource.data.participants;
+
+      allow create: if request.auth != null
+        && validNewMatch()
+        && bumpsMatchQuota();
+
+      allow update: if request.auth != null
+        && (isClaim() || isCancel() || isDecline() || isProgress());
+
+      allow delete: if false;
+
+      function validNewMatch() {
+        let m = request.resource.data;
+        let uid = request.auth.uid;
+        let fields = ['formatVersion', 'createdAt', 'deadlineHours', 'challengerUid', 'challengerName',
+          'challengerPhoto', 'invitedUid', 'opponentUid', 'opponentName', 'opponentPhoto', 'participants',
+          'legs', 'includeFriends', 'cancelled', 'declined', 'rematchOf', 'progress', 'claimedAt'];
+        return m.keys().hasAll(fields)
+          && m.keys().hasOnly(fields)
+          && isShareCode(code)
+          && m.formatVersion == 1
+          && m.createdAt == request.time
+          && m.deadlineHours in [24, 48]
+          && m.challengerUid == uid
+          && isPlayerName(m.challengerName)
+          && isPhoto(m.challengerPhoto)
+          && m.opponentUid == null
+          && m.opponentName == null
+          && m.opponentPhoto == null
+          && m.claimedAt == null
+          && (m.invitedUid == null || m.invitedUid is string)
+          && m.participants == (m.invitedUid == null ? [uid] : [uid, m.invitedUid])
+          && m.includeFriends is bool
+          && (m.rematchOf == null || isShareCode(m.rematchOf))
+          && m.cancelled == false
+          && m.declined == false
+          && m.progress is map
+          && m.progress.size() == 0
+          && validLegs(m.legs);
+      }
+
+      // Rules cannot loop, so the at most ten legs are checked unrolled; a leg past the end passes.
+      // Kept lean: the 10-leg create sits close to the 1000-expression budget of one request.
+      function validLegs(legs) {
+        let n = legs.size();
+        return legs is list
+          && n >= 1
+          && n <= 10
+          && validLeg(legs[0])
+          && (n < 2 || validLeg(legs[1])) && (n < 3 || validLeg(legs[2])) && (n < 4 || validLeg(legs[3]))
+          && (n < 5 || validLeg(legs[4])) && (n < 6 || validLeg(legs[5])) && (n < 7 || validLeg(legs[6]))
+          && (n < 8 || validLeg(legs[7])) && (n < 9 || validLeg(legs[8])) && (n < 10 || validLeg(legs[9]));
+      }
+
+      // Exactly {ref, authorUid}: a daily ref of a daily game, or a custom ref.
+      function validLeg(leg) {
+        let ref = leg.ref;
+        return leg.keys().hasOnly(['ref', 'authorUid'])
+          && leg.keys().size() == 2
+          && ref is string
+          && ((ref.matches('^[a-z]+/[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])/[1-9][0-9]*$')
+              && ref.split('/')[0] in dailyGameIds())
+            || ref.matches('^custom/[a-z]+/[0-9A-HJKMNP-TV-Z]{6}$'))
+          && (leg.authorUid == null || leg.authorUid is string);
+      }
+
+      // The caller's matchQuota doc must move by exactly one create in this same write, for this code.
+      function bumpsMatchQuota() {
+        let quota = /databases/$(database)/documents/matchQuota/$(request.auth.uid);
+        let before = exists(quota) ? get(quota).data : null;
+        let after = getAfter(quota).data;
+        return isMatchQuotaBump(before, after) && after.last == code;
+      }
+
+      // A non-challenger takes the open seat before the deadline; the seat is set once.
+      function isClaim() {
+        let before = resource.data;
+        let after = request.resource.data;
+        let uid = request.auth.uid;
+        return uid != before.challengerUid
+          && before.opponentUid == null
+          && before.cancelled == false
+          && before.declined == false
+          && request.time < matchDeadline(before)
+          && (before.invitedUid == null || before.invitedUid == uid)
+          && after.diff(before).affectedKeys()
+            .hasOnly(['opponentUid', 'opponentName', 'opponentPhoto', 'participants', 'claimedAt'])
+          && after.opponentUid == uid
+          && isPlayerName(after.opponentName)
+          && isPhoto(after.opponentPhoto)
+          && after.participants == (uid in before.participants
+            ? before.participants
+            : before.participants.concat([uid]))
+          && after.claimedAt == request.time;
+      }
+
+      function isCancel() {
+        let before = resource.data;
+        return request.auth.uid == before.challengerUid
+          && before.opponentUid == null
+          && before.cancelled == false
+          && request.resource.data.cancelled == true
+          && request.resource.data.diff(before).affectedKeys().hasOnly(['cancelled']);
+      }
+
+      // Only before the claim: an invitee who took the seat cannot void the match by declining.
+      function isDecline() {
+        let before = resource.data;
+        return before.invitedUid == request.auth.uid
+          && before.opponentUid == null
+          && before.declined == false
+          && request.resource.data.declined == true
+          && request.resource.data.diff(before).affectedKeys().hasOnly(['declined']);
+      }
+
+      // A player appends one leg index to their own progress, and that leg's result exists after
+      // this write (it is posted in the same batch).
+      function isProgress() {
+        let before = resource.data;
+        let after = request.resource.data;
+        let uid = request.auth.uid;
+        let old = before.progress.get(uid, []);
+        let now = after.progress.get(uid, []);
+        return (uid == before.challengerUid || uid == before.opponentUid)
+          && before.cancelled == false
+          && before.declined == false
+          && after.diff(before).affectedKeys().hasOnly(['progress'])
+          && after.progress.diff(before.progress).affectedKeys().hasOnly([uid])
+          && now is list
+          && now.size() == old.size() + 1
+          && (old.size() == 0 || now[0:old.size()] == old)
+          && now[old.size()] is int
+          && existsAfter(/databases/$(database)/documents/matches/$(code)/results/$(string(now[old.size()]) + '_' + uid));
+      }
+    }
+
+    match /matches/{code}/results/{resultId} {
+      // A result that exists: its owner, or a participant it is unsealed for. A result that does not exist:
+      // any participant, so the reader learns Missing; the match's progress already says who posted what.
+      // For an absent doc the first two branches error on the null `resource`, and `error || true` is true.
+      // The absent check is `!exists` rather than `resource == null`: the Rules Test API cannot send a null
+      // resource, so only this form is pinned by the matrix.
+      allow get: if request.auth != null
+        && (resource.data.uid == request.auth.uid
+          || mayReadSealed(get(/databases/$(database)/documents/matches/$(code)).data)
+          || (!exists(/databases/$(database)/documents/matches/$(code)/results/$(resultId))
+            && request.auth.uid in get(/databases/$(database)/documents/matches/$(code)).data.participants));
+      allow list: if false;
+
+      allow create: if request.auth != null
+        && validResult(
+          get(/databases/$(database)/documents/matches/$(code)).data,
+          getAfter(/databases/$(database)/documents/matches/$(code)).data);
+
+      // Write once: no edits, no deletes.
+      allow update, delete: if false;
+
+      // A participant reads an opponent's leg once their own result for it exists, or after close.
+      function mayReadSealed(m) {
+        let uid = request.auth.uid;
+        return uid in m.participants
+          && (request.time >= matchCloses(m)
+            || exists(/databases/$(database)/documents/matches/$(code)/results/$(string(resource.data.legIndex) + '_' + uid)));
+      }
+
+      // [m] is the match before this write, [after] the match after it (progress in the same batch).
+      function validResult(m, after) {
+        let result = request.resource.data;
+        let uid = request.auth.uid;
+        let fields = ['formatVersion', 'uid', 'legIndex', 'timeMs', 'hints', 'completedAtMs', 'gaveUp'];
+        return result.keys().hasAll(fields)
+          && result.keys().hasOnly(fields)
+          && result.formatVersion == 1
+          && result.uid == uid
+          && result.legIndex is int
+          && resultId == string(result.legIndex) + '_' + uid
+          && result.legIndex >= 0
+          && result.legIndex < m.legs.size()
+          && (uid == m.challengerUid || uid == m.opponentUid)
+          && m.cancelled == false
+          && m.declined == false
+          && request.time < matchCloses(m)
+          && result.completedAtMs is int
+          && result.completedAtMs > 0
+          && result.completedAtMs <= m.createdAt.toMillis() + m.deadlineHours * 3600000
+          && result.gaveUp is bool
+          && result.timeMs is int
+          && (result.gaveUp ? result.timeMs == 0 : result.timeMs > 0)
+          && result.hints is int
+          && result.hints >= 0
+          && result.legIndex in after.progress.get(uid, []);
+      }
+    }
+
+    match /matchQuota/{uid} {
+      // The create batch reads its own quota doc before bumping it.
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list: if false;
+
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && isMatchQuotaBump(null, request.resource.data);
+
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && isMatchQuotaBump(resource.data, request.resource.data);
+
+      allow delete: if false;
+    }
+
+    function matchDeadline(m) {
+      return m.createdAt + duration.value(m.deadlineHours, 'h');
+    }
+
+    // Results whose solve finished by the deadline may still be posted until the close.
+    function matchCloses(m) {
+      return m.createdAt + duration.value(m.deadlineHours + 6, 'h');
+    }
+
+    function isPlayerName(s) {
+      return s is string && s.size() > 0 && s.size() <= 64;
+    }
+
+    function isPhoto(s) {
+      return s == null || (s is string && s.size() <= 2048);
+    }
+
     // [after] is [before] plus one publish today (UTC); a doc from an earlier day restarts at one.
     // The optional [last] is shaped like a share code.
     function isPublishQuotaBump(before, after) {
@@ -202,6 +436,24 @@ service cloud.firestore {
         && after.count == (before != null && before.day == today ? before.count + 1 : 1)
         && (!('last' in after) || isShareCode(after.last))
         && after.count <= 20;
+    }
+
+    // [after] is [before] plus one match create today (UTC); a doc from an earlier day restarts at
+    // one. [last] names the share code of the match the bump is for.
+    function isMatchQuotaBump(before, after) {
+      let today = utcDay(request.time);
+      return after.keys().hasAll(['day', 'count', 'last'])
+        && after.keys().hasOnly(['day', 'count', 'last'])
+        && after.day == today
+        && after.count is int
+        && after.count == (before != null && before.day == today ? before.count + 1 : 1)
+        && isShareCode(after.last)
+        && after.count <= 20;
+    }
+
+    // The games with a daily board; FirestoreRulesAllowListTest pins it to the game registry.
+    function dailyGameIds() {
+      return ['zip', 'tango', 'queens', 'strands', 'minisudoku'];
     }
 
     function isShareCode(s) {

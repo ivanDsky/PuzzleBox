@@ -151,6 +151,161 @@ the ref and the day always agree, so each row's path day is the ref day.
 | deny | create | `leaderboards/minisudoku_2025-11-07/entries/bob` | bob | minisudoku entry a year back |
 | deny | create | `leaderboards/queens_2026-11-31/entries/bob` | bob | queens entry for a day that does not exist |
 
+## matches (create)
+
+Ticket 12 (ADR-0026, spec SC7). A create must bump `matchQuota/alice` in the same write with `last` set to
+the match code; the quota reads are mocked. `D7K2QX` is the match code, `R3M4CH` an earlier one.
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| allow | create | `matches/D7K2QX` | alice | open match with the matchQuota bump (3 -> 4, last = code) |
+| allow | create | `matches/D7K2QX` | alice | rematch inviting a player (participants = [challenger, invited]) |
+| allow | create | `matches/D7K2QX` | alice | first-ever match starts the matchQuota doc at 1 |
+| deny | create | `matches/D7K2QX` | alice | 0 legs |
+| allow | create | `matches/D7K2QX` | alice | 1 leg |
+| allow | create | `matches/D7K2QX` | alice | 10 legs |
+| allow | create | `matches/D7K2QX` | alice | 10 custom legs with authors on a rematch (expression budget) |
+| deny | create | `matches/D7K2QX` | alice | 11 legs |
+| deny | create | `matches/D7K2QX` | alice | deadlineHours 23 |
+| allow | create | `matches/D7K2QX` | alice | deadlineHours 24 |
+| allow | create | `matches/D7K2QX` | alice | deadlineHours 48 |
+| deny | create | `matches/D7K2QX` | alice | deadlineHours 72 |
+| deny | create | `matches/D7K2QX` | alice | empty challenger name |
+| allow | create | `matches/D7K2QX` | alice | 64-char challenger name |
+| deny | create | `matches/D7K2QX` | alice | 65-char challenger name |
+| deny | create | `matches/D7K2QX` | alice | an extra field |
+| deny | create | `matches/D7K2QX` | alice | challengerUid of another user |
+| deny | create | `matches/D7K2QX` | alice | opponent already set |
+| deny | create | `matches/D7K2QX` | alice | daily leg ref numbered 0 |
+| deny | create | `matches/D7K2QX` | alice | custom leg ref with a code outside the share alphabet |
+| deny | create | `matches/D7K2QX` | alice | daily leg ref for a game without a daily board |
+| deny | create | `matches/D7K2QX` | alice | 2049-char challenger photo |
+| deny | create | `matches/D7K2QX` | alice | invited player missing from participants |
+| deny | create | `matches/D7K2QX` | alice | createdAt other than the server time |
+| deny | create | `matches/D7K2QX` | alice | create without bumping matchQuota |
+| deny | create | `matches/D7K2QX` | alice | matchQuota bump whose last names another code |
+| deny | create | `matches/D7K2QX` | — | signed-out create |
+
+## matches (claim)
+
+The fixture match was created at `2026-11-07T00:00:00Z` with 24 h, so its deadline is `2026-11-08T00:00:00Z`;
+the late match was created at `2026-11-06T11:00:00Z` (deadline an hour before the request time).
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| allow | update | `matches/D7K2QX` | bob | stranger claims an open match |
+| allow | update | `matches/D7K2QX` | bob | invited player claims the rematch |
+| deny | update | `matches/D7K2QX` | alice | challenger claims own match |
+| deny | update | `matches/D7K2QX` | carol | another player claims a match that invites bob |
+| deny | update | `matches/D7K2QX` | carol | claim of a taken seat (set once) |
+| deny | update | `matches/D7K2QX` | bob | claim of a cancelled match |
+| deny | update | `matches/D7K2QX` | bob | claim of a declined match |
+| deny | update | `matches/D7K2QX` | bob | claim after the deadline |
+| deny | update | `matches/D7K2QX` | bob | claim that also changes includeFriends |
+| deny | update | `matches/D7K2QX` | bob | claim seating another uid |
+| deny | update | `matches/D7K2QX` | bob | claim with claimedAt other than the server time |
+| deny | update | `matches/D7K2QX` | bob | claim that leaves the caller out of participants |
+| deny | update | `matches/D7K2QX` | bob | claim without opponentName |
+| deny | update | `matches/D7K2QX` | bob | claim with a null opponentName |
+| deny | update | `matches/D7K2QX` | bob | claim with a non-string opponentName |
+| deny | update | `matches/D7K2QX` | bob | claim with an empty opponentName |
+| allow | update | `matches/D7K2QX` | bob | claim with a 64-char opponentName |
+| deny | update | `matches/D7K2QX` | bob | claim with a 65-char opponentName |
+
+## matches (cancel and decline)
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| allow | update | `matches/D7K2QX` | alice | challenger cancels an unclaimed match |
+| deny | update | `matches/D7K2QX` | alice | challenger cancels after the claim |
+| deny | update | `matches/D7K2QX` | bob | opponent cancels |
+| deny | update | `matches/D7K2QX` | alice | challenger cancels and edits a leg |
+| allow | update | `matches/D7K2QX` | bob | invited player declines |
+| deny | update | `matches/D7K2QX` | carol | stranger declines an invite |
+| deny | update | `matches/D7K2QX` | bob | invited player declines after claiming |
+
+## matches (read)
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| allow | get | `matches/D7K2QX` | — | anonymous get of a match (invite card) |
+| allow | list | `matches/D7K2QX` | bob | participant lists own matches |
+| deny | list | `matches/D7K2QX` | carol | non-participant lists matches |
+| deny | delete | `matches/D7K2QX` | alice | challenger deletes a match |
+
+## matches (progress)
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| allow | update | `matches/D7K2QX` | alice | own key grows by one with its result |
+| allow | update | `matches/D7K2QX` | bob | opponent's first progress entry with its result |
+| deny | update | `matches/D7K2QX` | alice | writes the other player's key |
+| deny | update | `matches/D7K2QX` | alice | own key grows by two |
+| deny | update | `matches/D7K2QX` | alice | own key grows without its result |
+| deny | update | `matches/D7K2QX` | alice | own key rewrites its prefix (reorder) |
+| deny | update | `matches/D7K2QX` | alice | own key grows on a cancelled match |
+| deny | update | `matches/D7K2QX` | carol | non-participant writes own key |
+
+## results (create)
+
+The match is read before and after the write (`get` / `getAfter`); the after state carries the poster's progress.
+The grace rows use a match whose deadline is `2026-11-07T08:00:00Z` and whose close is `14:00:00Z`; the closed
+match closed at `2026-11-07T06:00:00Z`.
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| allow | create | `matches/D7K2QX/results/1_bob` | bob | opponent posts a leg in time with its progress |
+| allow | create | `matches/D7K2QX/results/1_alice` | alice | challenger posts a leg in time with its progress |
+| allow | create | `matches/D7K2QX/results/1_bob` | bob | opponent gives up a leg (time 0) |
+| deny | create | `matches/D7K2QX/results/1_carol` | carol | non-participant posts |
+| deny | create | `matches/D7K2QX/results/1_bob` | bob | rematch invitee posts before claiming |
+| deny | update | `matches/D7K2QX/results/1_bob` | bob | second write of the same leg |
+| deny | create | `matches/D7K2QX/results/1_bob` | bob | post after close |
+| allow | create | `matches/D7K2QX/results/1_bob` | bob | post in grace, completed before the deadline |
+| allow | create | `matches/D7K2QX/results/1_bob` | bob | post in grace, completed exactly at the deadline |
+| deny | create | `matches/D7K2QX/results/1_bob` | bob | post in grace, completed after the deadline |
+| deny | create | `matches/D7K2QX/results/3_bob` | bob | legIndex past the last leg |
+| deny | create | `matches/D7K2QX/results/2_bob` | bob | id names another leg |
+| deny | create | `matches/D7K2QX/results/1_bob` | bob | gave up with a non-zero time |
+| deny | create | `matches/D7K2QX/results/1_bob` | bob | solved with time 0 |
+| deny | create | `matches/D7K2QX/results/1_bob` | bob | negative hints |
+| deny | create | `matches/D7K2QX/results/1_bob` | bob | completedAtMs 0 |
+| deny | create | `matches/D7K2QX/results/1_bob` | bob | post without its progress in the same write |
+| deny | create | `matches/D7K2QX/results/1_bob` | bob | post on a cancelled match |
+| deny | create | `matches/D7K2QX/results/1_bob` | bob | an extra field |
+| deny | delete | `matches/D7K2QX/results/1_bob` | bob | owner deletes a result |
+
+## results (sealed read)
+
+`results/1_alice` is read; the match, the reader's own result for leg 1 and `1_alice` itself are mocked
+(the absent rows mock `1_alice` as missing and send no resource).
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| allow | get | `matches/D7K2QX/results/1_alice` | alice | owner reads own result |
+| deny | get | `matches/D7K2QX/results/1_alice` | bob | opponent reads before posting own leg |
+| allow | get | `matches/D7K2QX/results/1_alice` | bob | opponent reads after posting own leg |
+| allow | get | `matches/D7K2QX/results/1_alice` | bob | opponent reads after close without own leg |
+| deny | get | `matches/D7K2QX/results/1_alice` | carol | non-participant reads after close |
+| allow | get | `matches/D7K2QX/results/1_alice` | bob | opponent gets an absent result before posting own leg |
+| allow | get | `matches/D7K2QX/results/1_alice` | bob | opponent gets an absent result after posting own leg |
+| deny | get | `matches/D7K2QX/results/1_alice` | carol | non-participant gets an absent result |
+| deny | get | `matches/D7K2QX/results/1_alice` | — | signed-out get of an absent result |
+| deny | list | `matches/D7K2QX/results/1_alice` | bob | opponent lists results |
+
+## matchQuota
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| allow | create | `matchQuota/alice` | alice | first bump starts at 1 |
+| allow | update | `matchQuota/alice` | alice | 20th match of the day (19 -> 20) |
+| deny | update | `matchQuota/alice` | alice | 21st match of the day (20 -> 21) |
+| allow | update | `matchQuota/alice` | alice | first match of a new UTC day restarts at 1 |
+| deny | update | `matchQuota/alice` | alice | bump without last |
+| allow | get | `matchQuota/alice` | alice | owner reads own quota |
+| deny | get | `matchQuota/alice` | bob | another user reads the quota |
+| deny | delete | `matchQuota/alice` | alice | owner deletes the quota |
+
 ## deny-all
 
 | Expect | Method | Path | Auth | Case |
@@ -161,8 +316,8 @@ the ref and the day always agree, so each row's path day is the ref day.
 
 ## Last run
 
-2026-11-08, local `firestore.rules` after the daily-board rules and the optional `last` field (not deployed;
-the run uses the local source on the Rules Test API): **110 cases, 110/110 passed**, exit 0.
+2026-11-09, local `firestore.rules` after the duel rules (`matches`, `results`, `matchQuota`; not deployed;
+the run uses the local source on the Rules Test API): **212 cases, 212/212 passed**, exit 0.
 
 ```
 PASS  ALLOW  [puzzles] anonymous get of a puzzle
@@ -272,8 +427,110 @@ PASS  DENY  [daily leaderboards (allow-list and day window)] tango entry three d
 PASS  DENY  [daily leaderboards (allow-list and day window)] strands entry two days ahead
 PASS  DENY  [daily leaderboards (allow-list and day window)] minisudoku entry a year back
 PASS  DENY  [daily leaderboards (allow-list and day window)] queens entry for a day that does not exist
+PASS  ALLOW  [matches (create)] open match with the matchQuota bump (3 -> 4, last = code)
+PASS  ALLOW  [matches (create)] rematch inviting a player (participants = [challenger, invited])
+PASS  ALLOW  [matches (create)] first-ever match starts the matchQuota doc at 1
+PASS  DENY  [matches (create)] 0 legs
+PASS  ALLOW  [matches (create)] 1 leg
+PASS  ALLOW  [matches (create)] 10 legs
+PASS  ALLOW  [matches (create)] 10 custom legs with authors on a rematch (expression budget)
+PASS  DENY  [matches (create)] 11 legs
+PASS  DENY  [matches (create)] deadlineHours 23
+PASS  ALLOW  [matches (create)] deadlineHours 24
+PASS  ALLOW  [matches (create)] deadlineHours 48
+PASS  DENY  [matches (create)] deadlineHours 72
+PASS  DENY  [matches (create)] empty challenger name
+PASS  ALLOW  [matches (create)] 64-char challenger name
+PASS  DENY  [matches (create)] 65-char challenger name
+PASS  DENY  [matches (create)] an extra field
+PASS  DENY  [matches (create)] challengerUid of another user
+PASS  DENY  [matches (create)] opponent already set
+PASS  DENY  [matches (create)] daily leg ref numbered 0
+PASS  DENY  [matches (create)] custom leg ref with a code outside the share alphabet
+PASS  DENY  [matches (create)] daily leg ref for a game without a daily board
+PASS  DENY  [matches (create)] 2049-char challenger photo
+PASS  DENY  [matches (create)] invited player missing from participants
+PASS  DENY  [matches (create)] createdAt other than the server time
+PASS  DENY  [matches (create)] create without bumping matchQuota
+PASS  DENY  [matches (create)] matchQuota bump whose last names another code
+PASS  DENY  [matches (create)] signed-out create
+PASS  ALLOW  [matches (claim)] stranger claims an open match
+PASS  ALLOW  [matches (claim)] invited player claims the rematch
+PASS  DENY  [matches (claim)] challenger claims own match
+PASS  DENY  [matches (claim)] another player claims a match that invites bob
+PASS  DENY  [matches (claim)] claim of a taken seat (set once)
+PASS  DENY  [matches (claim)] claim of a cancelled match
+PASS  DENY  [matches (claim)] claim of a declined match
+PASS  DENY  [matches (claim)] claim after the deadline
+PASS  DENY  [matches (claim)] claim that also changes includeFriends
+PASS  DENY  [matches (claim)] claim seating another uid
+PASS  DENY  [matches (claim)] claim with claimedAt other than the server time
+PASS  DENY  [matches (claim)] claim that leaves the caller out of participants
+PASS  DENY  [matches (claim)] claim without opponentName
+PASS  DENY  [matches (claim)] claim with a null opponentName
+PASS  DENY  [matches (claim)] claim with a non-string opponentName
+PASS  DENY  [matches (claim)] claim with an empty opponentName
+PASS  ALLOW  [matches (claim)] claim with a 64-char opponentName
+PASS  DENY  [matches (claim)] claim with a 65-char opponentName
+PASS  ALLOW  [matches (cancel and decline)] challenger cancels an unclaimed match
+PASS  DENY  [matches (cancel and decline)] challenger cancels after the claim
+PASS  DENY  [matches (cancel and decline)] opponent cancels
+PASS  DENY  [matches (cancel and decline)] challenger cancels and edits a leg
+PASS  ALLOW  [matches (cancel and decline)] invited player declines
+PASS  DENY  [matches (cancel and decline)] stranger declines an invite
+PASS  DENY  [matches (cancel and decline)] invited player declines after claiming
+PASS  ALLOW  [matches (read)] anonymous get of a match (invite card)
+PASS  ALLOW  [matches (read)] participant lists own matches
+PASS  DENY  [matches (read)] non-participant lists matches
+PASS  DENY  [matches (read)] challenger deletes a match
+PASS  ALLOW  [matches (progress)] own key grows by one with its result
+PASS  ALLOW  [matches (progress)] opponent's first progress entry with its result
+PASS  DENY  [matches (progress)] writes the other player's key
+PASS  DENY  [matches (progress)] own key grows by two
+PASS  DENY  [matches (progress)] own key grows without its result
+PASS  DENY  [matches (progress)] own key rewrites its prefix (reorder)
+PASS  DENY  [matches (progress)] own key grows on a cancelled match
+PASS  DENY  [matches (progress)] non-participant writes own key
+PASS  ALLOW  [results (create)] opponent posts a leg in time with its progress
+PASS  ALLOW  [results (create)] challenger posts a leg in time with its progress
+PASS  ALLOW  [results (create)] opponent gives up a leg (time 0)
+PASS  DENY  [results (create)] non-participant posts
+PASS  DENY  [results (create)] rematch invitee posts before claiming
+PASS  DENY  [results (create)] second write of the same leg
+PASS  DENY  [results (create)] post after close
+PASS  ALLOW  [results (create)] post in grace, completed before the deadline
+PASS  ALLOW  [results (create)] post in grace, completed exactly at the deadline
+PASS  DENY  [results (create)] post in grace, completed after the deadline
+PASS  DENY  [results (create)] legIndex past the last leg
+PASS  DENY  [results (create)] id names another leg
+PASS  DENY  [results (create)] gave up with a non-zero time
+PASS  DENY  [results (create)] solved with time 0
+PASS  DENY  [results (create)] negative hints
+PASS  DENY  [results (create)] completedAtMs 0
+PASS  DENY  [results (create)] post without its progress in the same write
+PASS  DENY  [results (create)] post on a cancelled match
+PASS  DENY  [results (create)] an extra field
+PASS  DENY  [results (create)] owner deletes a result
+PASS  ALLOW  [results (sealed read)] owner reads own result
+PASS  DENY  [results (sealed read)] opponent reads before posting own leg
+PASS  ALLOW  [results (sealed read)] opponent reads after posting own leg
+PASS  ALLOW  [results (sealed read)] opponent reads after close without own leg
+PASS  DENY  [results (sealed read)] non-participant reads after close
+PASS  ALLOW  [results (sealed read)] opponent gets an absent result before posting own leg
+PASS  ALLOW  [results (sealed read)] opponent gets an absent result after posting own leg
+PASS  DENY  [results (sealed read)] non-participant gets an absent result
+PASS  DENY  [results (sealed read)] signed-out get of an absent result
+PASS  DENY  [results (sealed read)] opponent lists results
+PASS  ALLOW  [matchQuota] first bump starts at 1
+PASS  ALLOW  [matchQuota] 20th match of the day (19 -> 20)
+PASS  DENY  [matchQuota] 21st match of the day (20 -> 21)
+PASS  ALLOW  [matchQuota] first match of a new UTC day restarts at 1
+PASS  DENY  [matchQuota] bump without last
+PASS  ALLOW  [matchQuota] owner reads own quota
+PASS  DENY  [matchQuota] another user reads the quota
+PASS  DENY  [matchQuota] owner deletes the quota
 PASS  DENY  [deny-all] signed-in read of an unmatched path
 PASS  DENY  [deny-all] signed-in write of an unmatched path
 PASS  DENY  [deny-all] signed-in read of a puzzle's unknown subcollection
-110/110 passed
+212/212 passed
 ```
