@@ -31,8 +31,9 @@ import org.robolectric.annotation.Config
 /**
  * A Result keeps its own solve's verdict (A9, F2): today's Zip solved from Home leaves a
  * Result on Home's stack; the same slot opened on Play shows that Result, whose Play again
- * replays the shared live play and solves it again, slower. Home's Result still shows its first solve's First solve badge —
- * neither the replay's in-flight state nor the second solve's verdict leaks into it.
+ * replays the shared live play and solves it again, slower. Home's Result still shows its
+ * first solve's First solve badge — neither the replay's in-flight state nor the second
+ * solve's verdict leaks into it.
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.

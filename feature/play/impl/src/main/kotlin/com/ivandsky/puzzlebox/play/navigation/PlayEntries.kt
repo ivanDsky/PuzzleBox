@@ -27,8 +27,8 @@ import org.koin.compose.koinInject
  * "Older puzzles" footer; it stays because the app's entry provider (outside this ticket)
  * still passes it. A [GameKey] on any stack draws its slot's live play: Up is
  * the navigator's back, and solving replaces the board with its slot's result, so back
- * from there lands on the game's origin (SC4); a day that already has a result opens that
- * result instead of a board ([GameEntry]). The library's Enter code pushes that code's
+ * from there lands on the game's origin (SC4); [GameEntry] sends a finished day to its
+ * result instead. The library's Enter code pushes that code's
  * [FriendPuzzleKey] card; its Play pushes the puzzle's [CustomGameKey] board, and solving
  * replaces the board with its [CustomResultKey] result, whose Done pops back to the card and
  * whose Play again replaces it with the board again. The library opens its code sheet on

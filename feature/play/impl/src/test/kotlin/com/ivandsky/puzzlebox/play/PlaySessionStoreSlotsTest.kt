@@ -240,7 +240,10 @@ class PlaySessionStoreSlotsTest {
 
         val result = ResultKey(alpha.value, today.toString(), FakeController.TIME_MS, 0)
         assertEquals(result, store.completedResult(key))
-        assertEquals("opening never resets it", result, store.completedResult(key))
+        val live = store.peek(slot)
+        assertSame("opening hands back the same play", live, store.open(key))
+        assertTrue("opening never resets it", fakes[alpha].latest.isComplete)
+        assertEquals(0, fakes[alpha].latest.replays)
 
         store.replay(result)
 
@@ -262,6 +265,38 @@ class PlaySessionStoreSlotsTest {
         assertNotNull(store.peek(slot))
         assertFalse(fakes[alpha].latest.isComplete)
         assertNull("the replay is live, so its board opens", store.completedResult(key))
+    }
+
+    @Test
+    fun `a solved live play decides its result without a read, an unsolved day decides its board`() = runTest {
+        val store = store()
+        assertEquals(OpenDecision.Open, store.decide(key))
+        store.open(key)
+        runCurrent()
+        fakes[alpha].latest.win()
+        runCurrent()
+
+        assertEquals(
+            OpenDecision.Finished(ResultKey(alpha.value, today.toString(), FakeController.TIME_MS, 0)),
+            store.decide(key),
+        )
+    }
+
+    @Test
+    fun `a solve released before its record lands still opens its result`() = runTest {
+        val store = store()
+        store.open(key)
+        runCurrent()
+        fakes[alpha].latest.win()
+        runCurrent()
+
+        store.retain(emptyList())
+        runCurrent()
+
+        assertEquals(
+            ResultKey(alpha.value, today.toString(), FakeController.TIME_MS, 0),
+            store.completedResult(key),
+        )
     }
 
     @Test

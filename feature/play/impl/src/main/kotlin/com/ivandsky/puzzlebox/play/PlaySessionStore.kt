@@ -13,12 +13,12 @@ import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import java.time.LocalDate
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainCoroutineDispatcher
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 
@@ -61,6 +61,35 @@ class PlaySessionStore internal constructor(
     /** The slot each null-day key resolved to on its first [open] — today, pinned. */
     private val pinned = HashMap<GameKey, PlaySlot>()
 
+    /** Each day's first solve as the record rows hold it, replaced on every emission. */
+    private var recordedSolves = emptyMap<PlaySlot.Daily, ActivePlay.Solve>()
+
+    /** Solves of released plays until their record lands in [recordedSolves]. */
+    private val releasedSolves = HashMap<PlaySlot.Daily, ActivePlay.Solve>()
+
+    /** Completes when [recordedSolves] holds the first records read. */
+    private val snapshotLoaded = CompletableDeferred<Unit>()
+
+    init {
+        scope.launch {
+            completions.observeRecords().collect { rows ->
+                recordedSolves = rows.mapNotNull { row ->
+                    val date = (row.puzzleRef.key as? PuzzleKey.Daily)?.date ?: return@mapNotNull null
+                    PlaySlot.Daily(row.puzzleRef.gameId, date) to ActivePlay.Solve(row.time, row.hints)
+                }.toMap()
+                releasedSolves.keys.removeAll(recordedSolves.keys)
+                snapshotLoaded.complete(Unit)
+            }
+        }
+    }
+
+    private fun solvedBefore(slot: PlaySlot.Daily): ActivePlay.Solve? = recordedSolves[slot] ?: releasedSolves[slot]
+
+    private fun resultOf(slot: PlaySlot.Daily, solve: ActivePlay.Solve) =
+        ResultKey(slot.gameId.value, slot.day.toString(), solve.timeMs, solve.hints)
+
+    private fun ResultKey.slot() = PlaySlot.Daily(GameId(gameId), LocalDate.parse(day))
+
     /**
      * The live play of [key]'s slot (N21), created through [SlotOpening] on first open
      * (saved row → today's fetch → a past day's build, A11). A null day resolves to the
@@ -81,23 +110,37 @@ class PlaySessionStore internal constructor(
     fun open(key: CustomGameKey): ActivePlay? = open(key.slot)
 
     /**
-     * The result a [GameKey]'s day already has, or null when its board should open: a
-     * complete live play shows its own solve; an unfinished live or saved play (a replay
-     * under way) wins over the day's record; otherwise the day's completion record (its
-     * first solve) names the time and hints. The one place "open a finished day" is
-     * decided; custom games never ask.
+     * What opening [key] shows, without a read: a live play is its own answer (complete →
+     * its solve's result, else its board); with none live, a day the snapshot does not hold
+     * is a board, and a solved one is a [OpenDecision.Check] (a saved replay row would still
+     * win). [OpenDecision.Cold] until the first records read lands.
+     */
+    internal fun decide(key: GameKey): OpenDecision {
+        val game = GameId(key.gameId)
+        if (games[game] == null || ui[game] == null) return OpenDecision.Open
+        val slot = slotOf(key, game) as? PlaySlot.Daily ?: return OpenDecision.Open
+        val live = slots[slot]
+        if (live != null) {
+            if (!live.controller.isComplete) return OpenDecision.Open
+            val solve = live.record.value.solve ?: solvedBefore(slot) ?: return OpenDecision.Open
+            return OpenDecision.Finished(resultOf(slot, solve))
+        }
+        if (!snapshotLoaded.isCompleted) return OpenDecision.Cold
+        return solvedBefore(slot)?.let { OpenDecision.Check(resultOf(slot, it)) } ?: OpenDecision.Open
+    }
+
+    /**
+     * The result a [GameKey]'s day already has, or null when its board should open: [decide]
+     * after the snapshot has loaded, with a solved day's saved replay row read. The one place
+     * "open a finished day" is decided; custom games never ask.
      */
     suspend fun completedResult(key: GameKey): ResultKey? {
-        val game = GameId(key.gameId)
-        if (games[game] == null || ui[game] == null) return null
-        val slot = slotOf(key, game) as? PlaySlot.Daily ?: return null
-        val live = slots[slot]
-        val solve = when {
-            live != null -> if (live.controller.isComplete) live.record.value.solve ?: recorded(slot) else null
-            opening.savedRow(slot) != null -> null
-            else -> recorded(slot)
+        snapshotLoaded.await()
+        return when (val decision = decide(key)) {
+            is OpenDecision.Finished -> decision.result
+            is OpenDecision.Check -> decision.result.takeIf { opening.savedRow(it.slot()) == null }
+            OpenDecision.Open, OpenDecision.Cold -> null
         }
-        return solve?.let { ResultKey(game.value, slot.day.toString(), it.timeMs, it.hints) }
     }
 
     /**
@@ -139,6 +182,10 @@ class PlaySessionStore internal constructor(
         val released = slots.filterKeys { it !in named }.values.toList()
         released.forEach { play ->
             slots.remove(play.slot)
+            // A solve whose record write has not landed must still read as solved on reopen.
+            val daily = play.slot as? PlaySlot.Daily
+            val solve = play.record.value.solve
+            if (daily != null && solve != null && play.controller.isComplete) releasedSolves[daily] = solve
             scope.launch(start = CoroutineStart.UNDISPATCHED) { play.close() }
         }
     }
@@ -174,12 +221,6 @@ class PlaySessionStore internal constructor(
             it.load()
         }
     }
-
-    /** The day's first-solve record as a [ActivePlay.Solve]; null with none stored. */
-    private suspend fun recorded(slot: PlaySlot.Daily): ActivePlay.Solve? =
-        completions.observeRecords().first()
-            .firstOrNull { it.puzzleRef.gameId == slot.gameId && (it.puzzleRef.key as? PuzzleKey.Daily)?.date == slot.day }
-            ?.let { ActivePlay.Solve(it.time, it.hints) }
 
     private fun slotOf(key: GameKey, game: GameId): PlaySlot? {
         key.day?.let { return PlaySlot.Daily(game, LocalDate.parse(it)) }
