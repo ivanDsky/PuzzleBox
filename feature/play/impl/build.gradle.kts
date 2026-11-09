@@ -10,6 +10,8 @@ android {
 dependencies {
     implementation(projects.core.navigation)
     implementation(projects.feature.play.api)
+    // DuelKey: the type of the onOpenDuel pass-through (api to api edge, ADR-0008).
+    implementation(projects.feature.compete.api)
     implementation(projects.core.common)
     implementation(projects.core.data)
     // LoadPastDay: SlotOpening opens a past day through the same use case History uses;
