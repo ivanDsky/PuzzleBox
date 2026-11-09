@@ -106,10 +106,13 @@ private fun CacheDrawScope.linkDrawing(link: StrandsLink, geometry: GridGeometry
         val stroke = roundStroke(link.kind)
         // A faded token shows what is under it, so the line is cut out of the tokens it runs
         // under; at full strength the opaque tokens hide it anyway and nothing is cut.
-        val tokens = Path().apply {
-            link.cells.forEach { cell ->
-                val c = geometry.centerOf(GridCell(cell.row, cell.col))
-                addRect(Rect(c.x - tokenRadius, c.y - tokenRadius, c.x + tokenRadius, c.y + tokenRadius))
+        // Built on the first faded draw: play never fades, so it never pays for it.
+        val tokens by lazy(LazyThreadSafetyMode.NONE) {
+            Path().apply {
+                link.cells.forEach { cell ->
+                    val c = geometry.centerOf(GridCell(cell.row, cell.col))
+                    addRect(Rect(c.x - tokenRadius, c.y - tokenRadius, c.x + tokenRadius, c.y + tokenRadius))
+                }
             }
         }
         return { alpha ->
