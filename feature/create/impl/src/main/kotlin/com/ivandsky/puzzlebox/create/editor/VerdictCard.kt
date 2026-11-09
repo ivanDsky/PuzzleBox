@@ -6,9 +6,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -45,6 +47,9 @@ import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 private val CardMaxWidth = 320.dp
 private val GradeIconSize = 16.dp
 
+/** The checking cue's drop below the title's bottom edge: its bar sits centred in the gap to the next line. */
+private val CueDrop = (Spacing.sm + Spacing.xs) / 2
+
 /**
  * The verdict in full (02 handoff, "Pill popover"): title, subtitle, the grade of a Unique
  * (its difficulty, or the Needs guessing flag, under `create.verdict.grade` with the grade's
@@ -52,7 +57,9 @@ private val GradeIconSize = 16.dp
  * Check again ([onCheckAgain]), after 2+ solutions the witness A/B toggle, Show on board and Auto-show
  * ([VerdictWitness] over [overlay] and [autoShow], changes to [onOverlay] and [onAutoShow]), then the game's fix list ([issues], `GameEditorUi.Issues`).
  * Motion: a new verdict **Crossfade**s in on MotionTokens medium, emphasized decelerate;
- * under reduced motion a plain 120 ms fade.
+ * under reduced motion a plain 120 ms fade. A check still running after [CHECKING_CUE_GRACE_MS]
+ * shows an indeterminate bar under the title ([VerdictCheckingCue]), gone the moment the
+ * verdict lands; under reduced motion a still bar instead.
  */
 @Composable
 fun VerdictCard(
@@ -88,7 +95,9 @@ fun VerdictCard(
                 },
                 label = "create-verdict-card",
                 contentKey = ::faceKey,
-            ) { shown -> CardFace(shown, onCheckAgain, overlay, onOverlay, autoShow, onAutoShow) }
+            ) { shown ->
+                CardFace(shown, checking = verdict == Verdict.Checking, reducedMotion, onCheckAgain, overlay, onOverlay, autoShow, onAutoShow)
+            }
             // Outside the crossfade: the fix list follows the live draft, so it is never drawn twice.
             issues(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm))
         }
@@ -98,6 +107,8 @@ fun VerdictCard(
 @Composable
 private fun CardFace(
     verdict: Verdict,
+    checking: Boolean,
+    reducedMotion: Boolean,
     onCheckAgain: () -> Unit,
     overlay: EditorOverlay,
     onOverlay: (EditorOverlay) -> Unit,
@@ -108,7 +119,19 @@ private fun CardFace(
         modifier = Modifier.padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Text(titleOf(verdict), style = MaterialTheme.typography.titleMedium)
+        // The cue hangs in the gap under the title and takes no height, so the Checking face is as
+        // tall as before: a check never moves the lines below (the tablet's tool strip included).
+        // [checking] is the live verdict, so an outgoing Checking face drops its cue at once.
+        Box {
+            Text(titleOf(verdict), style = MaterialTheme.typography.titleMedium)
+            if (verdict == Verdict.Checking) {
+                VerdictCheckingCue(
+                    running = checking,
+                    reducedMotion = reducedMotion,
+                    modifier = Modifier.align(Alignment.BottomStart).offset(y = CueDrop),
+                )
+            }
+        }
         if (verdict is Verdict.Unique && verdict.gradeState() != null) {
             Grade(verdict)
         } else {
