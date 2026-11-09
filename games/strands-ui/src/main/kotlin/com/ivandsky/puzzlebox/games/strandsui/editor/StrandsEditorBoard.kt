@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.strandsui.editor
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.verticalScroll
@@ -32,27 +33,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsPockets
-import com.ivandsky.puzzlebox.games.strands.render.CellState
-import com.ivandsky.puzzlebox.games.strands.render.LinkKind
-import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
-import com.ivandsky.puzzlebox.games.strands.render.StrandsLink
-import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 import com.ivandsky.puzzlebox.games.strandsui.StrandsBoardContent
 import com.ivandsky.puzzlebox.games.strandsui.Trace
+import com.ivandsky.puzzlebox.games.strandsui.board.dimSpec
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import com.ivandsky.puzzlebox.game.editor.Verdict
-
-/** What a blank cell shows in place of a letter. */
-private const val BLANK_GLYPH = ' '
 
 /**
  * The editor's one 8×6 board, drawn by the play renderer over the [controller]'s draft: each
@@ -60,9 +54,9 @@ private const val BLANK_GLYPH = ' '
  * under the line ([StrandsIdleTiles]), and the live trace over them, its cells as trace
  * tokens. Touch is the play board's: a drag or taps trace cells, a lift commits the
  * path ([StrandsEditorController.endTrace]); a tap on a traced cell or its chip selects that
- * path, drawn outlined, a ring on each of its ends: a drag from one shortens or extends it
- * ([StrandsEndDrag]); uncovered areas too small for a word get a dashed outline
- * (`strands.editor.cell.<idx>.pocket`). The [verdict] and the card's witness choice
+ * path, which keeps its word look while everything else fades ([dimOf]), a ring on each of its
+ * ends: a drag from one shortens or extends it ([StrandsEndDrag]); uncovered areas too small
+ * for a word get a dashed outline (`strands.editor.cell.<idx>.pocket`). The [verdict] and the card's witness choice
  * ([StrandsEditorController.overlay]) are drawn by [StrandsDiagnosticsLayer]. With [withTools]
  * the [StrandsAuthoringTools] follow the grid in one scroll and the grid keeps its width's touch
  * size; without them (the tablet Studio draws them in its side pane) the grid alone fits the
@@ -126,7 +120,11 @@ private fun StrandsEditorGrid(controller: StrandsEditorController, verdict: Verd
     val live by controller.trace.collectAsState()
     val selected by controller.selectedPath.collectAsState()
     val board = draft.state.draft as StrandsDraft
-    val model = remember(board, live, selected) { modelOf(board, live, selected) }
+    val model = remember(board, live) { modelOf(board, live) }
+    val dim = remember(board, selected) { dimOf(board, selected) }
+    val reduceMotion = rememberReducedMotion()
+    // The tiles are the editor's own, so they fade here, with the board's letters and connectors.
+    val tileAlpha = animateFloatAsState(dim.alpha, dimSpec(reduceMotion), label = "tileDim")
     val overlay by controller.overlay.collectAsState()
     // The last settled verdict, so the witness paths hold while a new analysis runs.
     val settled = remember { mutableStateOf<Verdict?>(null) }
@@ -143,11 +141,12 @@ private fun StrandsEditorGrid(controller: StrandsEditorController, verdict: Verd
         StrandsBoardContent(
             model = model,
             found = null,
-            reduceMotion = rememberReducedMotion(),
+            reduceMotion = reduceMotion,
             trace = trace,
             onTrace = controller::step,
-            tiles = { StrandsIdleTiles(idle, Modifier.fillMaxSize()) },
+            tiles = { StrandsIdleTiles(idle, Modifier.fillMaxSize().graphicsLayer { alpha = tileAlpha.value }) },
             onFinger = controller::fingerAt,
+            dim = dim,
             modifier = Modifier.fillMaxSize().testTag("strands.editor.board"),
         )
         StrandsDiagnosticsLayer(diagnostics, Modifier.fillMaxSize())
@@ -228,36 +227,5 @@ private fun DrawScope.drawPocketOutline(color: Color) {
         topLeft = Offset(width, width),
         size = Size(size.width - 2 * width, size.height - 2 * width),
         style = Stroke(width, pathEffect = PathEffect.dashPathEffect(floatArrayOf(dash, dash))),
-    )
-}
-
-private fun coordOf(cell: Int) = Coord(cell / StrandsDraft.COLS, cell % StrandsDraft.COLS)
-
-private fun modelOf(board: StrandsDraft, live: List<Int>, selected: Int?): StrandsRendererModel {
-    val states = HashMap<Int, CellState>()
-    board.paths.forEachIndexed { index, path ->
-        val state = when {
-            index == selected -> CellState.HintOutlined
-            index == board.spangram -> CellState.FoundSpangram
-            else -> CellState.FoundTheme
-        }
-        path.cells.forEach { states[it] = state }
-    }
-    val trace = live.map(::coordOf)
-    val cells = List(StrandsDraft.ROWS * StrandsDraft.COLS) { cell ->
-        val letter = board.letters[cell].takeIf { it != StrandsDraft.BLANK } ?: BLANK_GLYPH
-        StrandsCell(coordOf(cell), letter, states[cell] ?: CellState.Idle, live.indexOf(cell).takeIf { it >= 0 })
-    }
-    val links = board.paths.mapIndexed { index, path ->
-        StrandsLink(path.cells.map(::coordOf), if (index == board.spangram) LinkKind.Spangram else LinkKind.Theme)
-    } + listOfNotNull(StrandsLink(trace, LinkKind.Trace).takeIf { trace.isNotEmpty() })
-    return StrandsRendererModel(
-        rows = StrandsDraft.ROWS,
-        cols = StrandsDraft.COLS,
-        cells = cells,
-        links = links,
-        foundCount = board.paths.size,
-        totalCount = board.paths.size,
-        complete = false,
     )
 }
