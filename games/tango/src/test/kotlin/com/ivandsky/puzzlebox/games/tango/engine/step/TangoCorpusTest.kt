@@ -68,6 +68,7 @@ class TangoCorpusTest {
         )
         assertEquals(0, reveals)
         assertTrue("LINE_OPTIONS $d8Steps of ${steps.size} steps is over 1%", d8Steps <= 0.01 * steps.size)
+        assertTrue("LINE_OPTIONS $d8Cells of $cells cells is over 1%", d8Cells <= 0.01 * cells)
     }
 
     private data class Board(val id: String, val puzzle: TangoPuzzle, val solution: List<TangoCell>)
