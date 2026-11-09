@@ -14,6 +14,7 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
@@ -64,6 +65,17 @@ object PuzzleIcons {
 
     /** Overflow menu: three dots stacked. */
     val More: ImageVector = Icons.Rounded.MoreVert
+
+    /**
+     * History tab, both states: Material Symbols `history`, a clock with a counter-clockwise
+     * arrow. The Symbols set has no distinct filled form, so the nav bar's selection indicator
+     * alone marks the selected tab.
+     */
+    val History: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_history)
+
+    /** The shell's gear: the Outlined settings glyph from the core set. */
+    val Settings: ImageVector = Icons.Outlined.Settings
 
     /** Appearance setting: the half-filled `contrast` circle. */
     val Appearance: ImageVector
@@ -162,6 +174,8 @@ internal fun PuzzleIconsPreview() {
             "CreateFilled" to PuzzleIcons.CreateFilled,
             "Profile" to PuzzleIcons.Profile,
             "ProfileFilled" to PuzzleIcons.ProfileFilled,
+            "History" to PuzzleIcons.History,
+            "Settings" to PuzzleIcons.Settings,
             "Appearance" to PuzzleIcons.Appearance,
             "HowTo" to PuzzleIcons.HowTo,
             "Hint" to PuzzleIcons.Hint,
