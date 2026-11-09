@@ -22,26 +22,32 @@ object TangoCountRule {
     }
 
     /** First line already holding n/2 of one value with an empty cell left — the gap takes the other value. */
-    fun deduction(puzzle: TangoPuzzle, grid: List<TangoCell?>): TangoHint.Forced? {
+    fun deduction(puzzle: TangoPuzzle, grid: List<TangoCell?>): TangoHint.Forced? =
+        forced(puzzle, grid).firstOrNull()
+
+    /** Every empty cell of every line already holding n/2 of one value, in scan order. */
+    fun forced(puzzle: TangoPuzzle, grid: List<TangoCell?>): List<TangoHint.Forced> {
         val half = puzzle.n / 2
+        val found = mutableListOf<TangoHint.Forced>()
         for (line in lines(puzzle.n)) {
             val cells = (0 until line.size).map(line)
             for (value in listOf(TangoCell.SUN, TangoCell.MOON)) {
                 if (cells.count { grid[it] == value } != half) continue
-                val empty = cells.firstOrNull { grid[it] == null } ?: continue
                 val forced = if (value == TangoCell.SUN) TangoCell.MOON else TangoCell.SUN
-                return TangoHint.Forced(
-                    idx = empty,
-                    value = forced,
-                    why = TangoHint.Why.LineFull(
-                        row = line.index.takeIf { line.isRow },
-                        col = line.index.takeIf { !line.isRow },
-                        fullOf = value,
-                    ),
-                )
+                for (empty in cells.filter { grid[it] == null }) {
+                    found += TangoHint.Forced(
+                        idx = empty,
+                        value = forced,
+                        why = TangoHint.Why.LineFull(
+                            row = line.index.takeIf { line.isRow },
+                            col = line.index.takeIf { !line.isRow },
+                            fullOf = value,
+                        ),
+                    )
+                }
             }
         }
-        return null
+        return found
     }
 
     /** One row or column: position 0 until size maps to a row-major cell index. */

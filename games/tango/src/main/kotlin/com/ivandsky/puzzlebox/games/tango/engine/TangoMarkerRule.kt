@@ -20,7 +20,12 @@ object TangoMarkerRule {
         }
 
     /** First marker edge with exactly one filled end — the empty end is forced (marker propagation). */
-    fun deduction(puzzle: TangoPuzzle, grid: List<TangoCell?>): TangoHint.Forced? {
+    fun deduction(puzzle: TangoPuzzle, grid: List<TangoCell?>): TangoHint.Forced? =
+        forced(puzzle, grid).firstOrNull()
+
+    /** One entry per marker edge with exactly one filled end; a cell on two such edges appears twice. */
+    fun forced(puzzle: TangoPuzzle, grid: List<TangoCell?>): List<TangoHint.Forced> {
+        val found = mutableListOf<TangoHint.Forced>()
         for (marker in puzzle.markers) {
             val nb = neighbor(puzzle.n, marker)
             val a = grid[marker.cell]
@@ -32,13 +37,13 @@ object TangoMarkerRule {
                 TangoMarkerKind.SAME -> filled
                 TangoMarkerKind.OPPOSITE -> filled.other()
             }
-            return TangoHint.Forced(
+            found += TangoHint.Forced(
                 idx = emptyIdx,
                 value = forced,
                 why = TangoHint.Why.MarkerBinding(marker.cell, nb, marker.kind),
             )
         }
-        return null
+        return found
     }
 
     /** True iff any marker edge touching [idx] has both ends filled and the relation broken. */
