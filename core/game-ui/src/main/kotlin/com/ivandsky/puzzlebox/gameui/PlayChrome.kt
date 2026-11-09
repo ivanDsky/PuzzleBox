@@ -116,10 +116,11 @@ fun PlayClockEffects(clock: PlayClock) {
 /**
  * The play chrome every game shares beside or under its board (A14, tango-05, split
  * core | game 2026-11-03): the degrade banner (§6 copy passed in) and the one reserved
- * caption slot ([PlayCaptionSlot] over [playCaption]: violation > rejection > hint). The
- * controls are the scaffold's [AdaptivePlayScaffold] actions ([PlayActionBar]); the
- * title, timer, How to play and the overflow live in the route's top bar. [clock] runs the
- * shared clock loop here so the fold follows the game's screen.
+ * caption slot ([PlayCaptionSlot] over [playCaption]: violation > rejection > hint, then the
+ * route's [LocalRouteCaption]). The controls are the scaffold's [AdaptivePlayScaffold]
+ * actions ([PlayActionBar]); the title, timer, How to play and the overflow live in the
+ * route's top bar. [clock] runs the shared clock loop here so the fold follows the game's
+ * screen.
  */
 @Composable
 fun PlayChrome(
@@ -155,6 +156,6 @@ fun PlayChrome(
             }
         }
 
-        PlayCaptionSlot(caption = playCaption(feedback, hints))
+        PlayCaptionSlot(caption = playCaption(feedback, hints) ?: LocalRouteCaption.current)
     }
 }
