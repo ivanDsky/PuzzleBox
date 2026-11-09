@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
+import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import org.junit.Assert.assertEquals
@@ -50,8 +51,10 @@ class SharedTextTest {
             stacks(PlayKey),
             stacks(PlayKey, play = listOf(PlayKey, EditorKey("castle"))),
             stacks(ProfileKey, profile = listOf(ProfileKey, HistoryKey())),
+            stacks(PlayKey, create = listOf(CreateKey, EditorKey("castle"))),
+            stacks(HomeKey, create = listOf(CreateKey, EditorKey("castle"), EditorKey("other"))),
         ).forEach { before ->
-            val after = before.applySharedText()
+            val after = before.applied()
 
             assertEquals("from $before", CreateKey, after.tab)
             assertEquals("from $before", listOf<NavKey>(CreateKey), after.stackOf(CreateKey))
@@ -67,8 +70,11 @@ class SharedTextTest {
     fun `a deep Create stack pops to its root`() {
         val before = stacks(CreateKey, create = listOf(CreateKey, EditorKey("castle")))
 
-        assertEquals(stacks(CreateKey), before.applySharedText())
+        assertEquals(stacks(CreateKey), before.applied())
     }
+
+    private fun NavigationState.applied(): NavigationState =
+        Navigator(this).apply { applySharedText() }.state
 
     private fun stacks(
         tab: NavKey,
