@@ -51,7 +51,7 @@ class QueensPlayController(
     private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
     /** Read once at creation (spec A20); stored and not yet used — the Stepwise hint path (28) reads it. */
-    val hintMode: HintMode = HintMode.Legacy,
+    internal val hintMode: HintMode = HintMode.Legacy,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
     /** The live interaction holder, null until a session is adopted. */
