@@ -19,8 +19,10 @@ internal object StrandsEditorCopy {
     const val TRACE_FIRST = "Trace a word first"
 
     /** Under the word field when [letters] outrun the selected path's [cells]: the extra ones are kept, not written. */
-    fun overflow(letters: Int, cells: Int): String =
-        "$letters letters, path has $cells: the extra ${letters - cells} aren't written"
+    fun overflow(letters: Int, cells: Int): String {
+        val extra = letters - cells
+        return "$letters letters, path has $cells: the extra $extra ${if (extra == 1) "isn't" else "aren't"} written"
+    }
 
     /** The clue field's label, so the two boxes tell themselves apart. */
     const val CLUE_FIELD = "Theme clue"
