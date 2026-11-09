@@ -17,6 +17,8 @@ import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.MatchLegKey
+import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
@@ -45,7 +47,14 @@ class NavKeySavedStateTest {
         stacks = listOf(
             // History's all-games key and a per-game tab key (A8).
             listOf(HomeKey, HistoryKey(), HistoryKey("zip"), GameKey("zip", "2026-03-09")),
-            listOf(PlayKey, ResultKey("zip", "2026-03-09", 61_200, 2), DuelKey("K7Q2MX"), DuelRevealKey("K7Q2MX")),
+            listOf(
+                PlayKey,
+                ResultKey("zip", "2026-03-09", 61_200, 2),
+                MatchLegKey("K7Q2MX", 0, "zip"),
+                MatchLegResultKey("K7Q2MX", 0, 61_200, 0, false),
+                DuelKey("K7Q2MX"),
+                DuelRevealKey("K7Q2MX"),
+            ),
             listOf(CreateKey, EditorKey("d1")),
             listOf(ProfileKey, CatalogKey),
         ),

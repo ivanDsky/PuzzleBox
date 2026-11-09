@@ -40,16 +40,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.nav.NAVIGATION_STATE_KEY
+import com.ivandsky.puzzlebox.app.nav.isImmersive
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.play.api.CustomGameKey
-import com.ivandsky.puzzlebox.play.api.CustomResultKey
-import com.ivandsky.puzzlebox.play.api.GameKey
-import com.ivandsky.puzzlebox.play.api.ResultKey
 import java.time.Duration
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -387,9 +384,9 @@ class ShellRobot internal constructor(
         }
     }
 
-    /** Immersive play (N2), as the shell decides it: the selected tab's top is a board or a result, a daily's or a friend's. */
+    /** Immersive play (N2), as the shell decides it: the selected tab's top is immersive ([isImmersive]). */
     private val NavigationState.immersive: Boolean
-        get() = currentStack.last().let { it is GameKey || it is CustomGameKey || it is ResultKey || it is CustomResultKey }
+        get() = isImmersive(currentStack.last())
 
     private companion object {
         const val TIMEOUT_MS = 5_000L
