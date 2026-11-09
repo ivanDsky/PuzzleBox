@@ -1,6 +1,9 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
 import com.ivandsky.puzzlebox.create.api.CreateKey
@@ -27,8 +30,8 @@ import org.robolectric.annotation.Config
 
 /**
  * A Result keeps its own solve's verdict (A9, F2): today's Zip solved from Home leaves a
- * Result on Home's stack; the same slot reopened on Play replays the shared live play and
- * solves it again, slower. Home's Result still shows its first solve's First solve badge —
+ * Result on Home's stack; the same slot opened on Play shows that Result, whose Play again
+ * replays the shared live play and solves it again, slower. Home's Result still shows its first solve's First solve badge —
  * neither the replay's in-flight state nor the second solve's verdict leaks into it.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -45,14 +48,15 @@ class ResultIsolationE2ETest {
         awaitBadge()
 
         switchTab(PlayKey)
-        openGame(ZIP)
-        assertRoute(GAME)
+        openGame(ZIP, landing = RESULT) // a finished day opens its Result, not a fresh board
         switchTab(HomeKey)
-        assertState(stacks(tab = HomeKey, home = listOf(HomeKey, first), play = listOf(PlayKey, GameKey(ZIP))))
+        assertState(stacks(tab = HomeKey, home = listOf(HomeKey, first), play = listOf(PlayKey, first)))
         assertRoute(RESULT)
         awaitBadge()
 
         switchTab(PlayKey)
+        rule.onNodeWithTag(PLAY_AGAIN).performScrollTo().performClick()
+        awaitTag(GAME)
         solveZip(takingMs = SLOWER_MS) // slower than the first, so a distinct solve and no record
         val second = state.currentStack.last()
         assertTrue("Play's top is the second solve's Result: $state", second is ResultKey)
@@ -108,6 +112,7 @@ class ResultIsolationE2ETest {
     private companion object {
         const val GAME = "route.game"
         const val RESULT = "route.result"
+        const val PLAY_AGAIN = "result.playAgain"
         const val BADGE = "result.hero.pill"
         const val HOME_PLAY = "home.today_play"
         const val ZIP = "zip"

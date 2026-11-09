@@ -4,11 +4,11 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.GameRoute
 import com.ivandsky.puzzlebox.play.LibraryRoute
+import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.ResultRoute
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.friend.CustomResultRoute
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleRoute
+import org.koin.compose.koinInject
 
 /**
  * The play feature's routes. [PlayKey] is the Play tab's games library: a day card's
@@ -26,7 +27,8 @@ import com.ivandsky.puzzlebox.play.friend.FriendPuzzleRoute
  * "Older puzzles" footer; it stays because the app's entry provider (outside this ticket)
  * still passes it. A [GameKey] on any stack draws its slot's live play: Up is
  * the navigator's back, and solving replaces the board with its slot's result, so back
- * from there lands on the game's origin (SC4). The library's Enter code pushes that code's
+ * from there lands on the game's origin (SC4); a day that already has a result opens that
+ * result instead of a board ([GameEntry]). The library's Enter code pushes that code's
  * [FriendPuzzleKey] card; its Play pushes the puzzle's [CustomGameKey] board, and solving
  * replaces the board with its [CustomResultKey] result, whose Done pops back to the card and
  * whose Play again replaces it with the board again. The library opens its code sheet on
@@ -79,28 +81,23 @@ fun EntryProviderScope<NavKey>.playEntry(
             onDone = { navigator.pop() },
         )
     }
-    entry<GameKey> { key ->
-        GameRoute(
-            key = key,
-            layout = layout,
-            onBack = { navigator.pop() },
-            onSolved = { slot, timeMs, hintsUsed ->
-                val day = (slot as? PlaySlot.Daily)?.day ?: return@GameRoute
-                navigator.replaceTop(ResultKey(slot.gameId.value, day.toString(), timeMs, hintsUsed))
-            },
-        )
-    }
+    entry<GameKey> { key -> GameEntry(key, layout, navigator) }
 }
 
 /**
- * A slot's result: "Play again" replaces it with the same day's game, which opens a
- * fresh attempt (A9); Next replaces it with another game's today (17); Up and Done pop.
+ * A slot's result: "Play again" starts a fresh attempt of the same day explicitly
+ * ([PlaySessionStore.replay], A9) and replaces the result with its game; Next replaces it
+ * with another game's today (17); Up and Done pop.
  */
 fun EntryProviderScope<NavKey>.resultEntry(navigator: Navigator) {
     entry<ResultKey> { key ->
+        val store = koinInject<PlaySessionStore>()
         ResultRoute(
             key = key,
-            onPlayAgain = { navigator.replaceTop(GameKey(key.gameId, key.day)) },
+            onPlayAgain = {
+                store.replay(key)
+                navigator.replaceTop(GameKey(key.gameId, key.day))
+            },
             onNext = { game -> navigator.replaceTop(GameKey(game.value)) },
             onDone = { navigator.pop() },
         )

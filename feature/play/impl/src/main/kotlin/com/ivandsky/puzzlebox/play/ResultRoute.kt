@@ -36,8 +36,8 @@ import org.koin.core.parameter.parametersOf
  * from [ResultViewModel] — the record write is never awaited here (F2 §7).
  *
  * Up and Done both hand back [onDone] (a pop to the game's origin, SC4). "Play again"
- * hands back [onPlayAgain]: the app replaces this entry with the game, whose open resets
- * the solved live play to a fresh attempt. "Next: <game>" hands back [onNext] with the
+ * hands back [onPlayAgain]: the app resets the solved live play to a fresh attempt
+ * ([PlaySessionStore.replay]) and replaces this entry with the game. "Next: <game>" hands back [onNext] with the
  * next unsolved daily (A7, SC10). Share (A17) opens the system share sheet with the
  * plain [resultShareText] — no screen of our own.
  *

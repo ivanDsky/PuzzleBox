@@ -4,8 +4,10 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.GamePlayController
@@ -17,6 +19,7 @@ import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
@@ -37,6 +40,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
@@ -67,6 +71,7 @@ class PlaySessionStoreSlotsTest {
     }
     private val saved = FakeSavedPlayRepository()
     private val calendar = FakeGameCalendar(today)
+    private val completions = FakeCompletionRepository()
 
     private fun TestScope.store(ui: GamePlayRegistry = fakes.registry): PlaySessionStore {
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
@@ -76,7 +81,7 @@ class PlaySessionStoreSlotsTest {
             ui = ui,
             opening = SlotOpening(daily, LoadPastDay(daily, fakes.games), saved, calendar, fakes.games, lane, FakeReceivedPuzzleRepository()),
             writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
-            completions = FakeCompletionRepository(),
+            completions = completions,
             calendar = calendar,
             dispatchers = object : DispatcherProvider {
                 override val main = dispatcher
@@ -190,6 +195,73 @@ class PlaySessionStoreSlotsTest {
         assertSame(kept, store.peek(slot))
         assertArrayEquals(blob(beta, fakes[beta].latest.bytes()), saved.rows[betaSlot])
         assertNotSame(released, store.open(GameKey(beta.value, today.toString())))
+    }
+
+    private fun solved(time: Long, hints: Int) = CompletionRecord(
+        TestGames.Ref(alpha, PuzzleKey.Daily(today, 7)),
+        time,
+        hints,
+        RecordStats(1, "{}"),
+        isRecord = true,
+    )
+
+    @Test
+    fun `a day with a completion record opens its result with that record's time and hints`() = runTest {
+        completions.setRecords(listOf(solved(time = 61_000L, hints = 2)))
+        val store = store()
+
+        val expected = ResultKey(alpha.value, today.toString(), 61_000L, 2)
+        assertEquals(expected, store.completedResult(key))
+        assertEquals("a null-day key resolves to today's slot", expected, store.completedResult(todayKey))
+        assertNull("nothing is opened to decide", store.peek(slot))
+        assertNull("another game's day has no record", store.completedResult(GameKey(beta.value, today.toString())))
+    }
+
+    @Test
+    fun `an unsolved day opens its board`() = runTest {
+        assertNull(store().completedResult(key))
+    }
+
+    @Test
+    fun `a replay saved mid-way opens its board though the day has a record`() = runTest {
+        completions.setRecords(listOf(solved(time = 61_000L, hints = 2)))
+        saved.save(slot, blob(alpha, byteArrayOf(1)), elapsedMs = 0L)
+
+        assertNull(store().completedResult(key))
+    }
+
+    @Test
+    fun `a solved live play opens its own solve until Play again resets it`() = runTest {
+        val store = store()
+        store.open(key)
+        runCurrent()
+        fakes[alpha].latest.win()
+        runCurrent()
+
+        val result = ResultKey(alpha.value, today.toString(), FakeController.TIME_MS, 0)
+        assertEquals(result, store.completedResult(key))
+        assertEquals("opening never resets it", result, store.completedResult(key))
+
+        store.replay(result)
+
+        assertEquals(1, fakes[alpha].latest.replays)
+        assertFalse(fakes[alpha].latest.isComplete)
+        assertNull("the fresh attempt opens as a board", store.completedResult(key))
+        assertSame(store.peek(slot), store.open(key))
+    }
+
+    @Test
+    fun `Play again with no live play opens a fresh board of the solved day`() = runTest {
+        completions.setRecords(listOf(solved(time = 61_000L, hints = 2)))
+        val store = store()
+        val result = checkNotNull(store.completedResult(key))
+
+        store.replay(result)
+        runCurrent()
+
+        assertNotNull(store.peek(slot))
+        assertFalse(fakes[alpha].latest.isComplete)
+        assertNull("the replay is live, so its board opens", store.completedResult(key))
     }
 
     @Test

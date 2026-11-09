@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
@@ -17,6 +18,7 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainCoroutineDispatcher
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 
@@ -24,7 +26,7 @@ import kotlinx.coroutines.launch
  * Owner of the play feature's live plays: one [ActivePlay] per [PlaySlot] (A9, N21), so
  * every stack that shows a game's day shares its board. A play outlives its entry's
  * composition: the record write is fire-and-observe (a navigation must not cancel it),
- * the badge lands on the result screen, and "Play again" resets in place. A Koin single
+ * the badge lands on the result screen, and [replay] (Result's "Play again") resets in place. A Koin single
  * is the process lifetime; [retain] releases what no back stack names (fold → flush →
  * cancel) and [flush] writes every pending save at app stop (A10).
  *
@@ -62,20 +64,51 @@ class PlaySessionStore internal constructor(
     /**
      * The live play of [key]'s slot (N21), created through [SlotOpening] on first open
      * (saved row → today's fetch → a past day's build, A11). A null day resolves to the
-     * game's today once and stays pinned while the key is retained. A complete live play
-     * is reset to a fresh attempt (Play again). Null when the game is unplayable.
+     * game's today once and stays pinned while the key is retained. Never resets a complete
+     * play: a finished day is shown by [completedResult] before this opens, and a fresh
+     * attempt is [replay]'s. Null when the game is unplayable.
      */
     fun open(key: GameKey): ActivePlay? {
         val game = GameId(key.gameId)
         if (games[game] == null || ui[game] == null) return null
-        return open(slotOf(key, game) ?: return null, playAgain = true)
+        return open(slotOf(key, game) ?: return null)
     }
 
     /** The live play of a friend's puzzle, opened as [open] opens a daily's; its board is
      *  the received puzzle stored when the code opened. A live play is returned as it
-     *  stands, never reset: its key is still on a back stack, so a solve it shows has not
-     *  handed off yet. Null when the game is unplayable. */
-    fun open(key: CustomGameKey): ActivePlay? = open(key.slot, playAgain = false)
+     *  stands: its key is still on a back stack, so a solve it shows has not handed off
+     *  yet. Null when the game is unplayable. */
+    fun open(key: CustomGameKey): ActivePlay? = open(key.slot)
+
+    /**
+     * The result a [GameKey]'s day already has, or null when its board should open: a
+     * complete live play shows its own solve; an unfinished live or saved play (a replay
+     * under way) wins over the day's record; otherwise the day's completion record (its
+     * first solve) names the time and hints. The one place "open a finished day" is
+     * decided; custom games never ask.
+     */
+    suspend fun completedResult(key: GameKey): ResultKey? {
+        val game = GameId(key.gameId)
+        if (games[game] == null || ui[game] == null) return null
+        val slot = slotOf(key, game) as? PlaySlot.Daily ?: return null
+        val live = slots[slot]
+        val solve = when {
+            live != null -> if (live.controller.isComplete) live.record.value.solve ?: recorded(slot) else null
+            opening.savedRow(slot) != null -> null
+            else -> recorded(slot)
+        }
+        return solve?.let { ResultKey(game.value, slot.day.toString(), it.timeMs, it.hints) }
+    }
+
+    /**
+     * Result's "Play again" (A9): [key]'s slot starts a fresh attempt of the same puzzle. A
+     * complete live play is reset in place; with none live the slot opens fresh (a solve
+     * deleted its row). The play is live afterwards, so the board that follows opens it as is.
+     */
+    fun replay(key: ResultKey) {
+        val live = open(PlaySlot.Daily(GameId(key.gameId), LocalDate.parse(key.day))) ?: return
+        if (live.controller.isComplete) live.replay()
+    }
 
     /** The live play of [slot]; never creates one. */
     fun peek(slot: PlaySlot): ActivePlay? = slots[slot]
@@ -123,14 +156,10 @@ class PlaySessionStore internal constructor(
         return scope.launch(start = CoroutineStart.UNDISPATCHED) { saves.joinAll() }
     }
 
-    /** [playAgain]: a complete live play is reset to a fresh attempt. */
-    private fun open(slot: PlaySlot, playAgain: Boolean): ActivePlay? {
+    private fun open(slot: PlaySlot): ActivePlay? {
         val plugin = games[slot.gameId] ?: return null
         val gameUi = ui[slot.gameId] ?: return null
-        slots[slot]?.let { live ->
-            if (playAgain && live.controller.isComplete) live.replay()
-            return live
-        }
+        slots[slot]?.let { return it }
         return ActivePlay(
             slot = slot,
             plugin = plugin,
@@ -145,6 +174,12 @@ class PlaySessionStore internal constructor(
             it.load()
         }
     }
+
+    /** The day's first-solve record as a [ActivePlay.Solve]; null with none stored. */
+    private suspend fun recorded(slot: PlaySlot.Daily): ActivePlay.Solve? =
+        completions.observeRecords().first()
+            .firstOrNull { it.puzzleRef.gameId == slot.gameId && (it.puzzleRef.key as? PuzzleKey.Daily)?.date == slot.day }
+            ?.let { ActivePlay.Solve(it.time, it.hints) }
 
     private fun slotOf(key: GameKey, game: GameId): PlaySlot? {
         key.day?.let { return PlaySlot.Daily(game, LocalDate.parse(it)) }
