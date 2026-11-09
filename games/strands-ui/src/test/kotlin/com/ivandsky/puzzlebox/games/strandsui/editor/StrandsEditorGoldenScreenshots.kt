@@ -80,8 +80,8 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
     @Test fun `held long diagonal drag light`() = diagonal(dark = false)
     @Test fun `held long diagonal drag dark`() = diagonal(dark = true)
 
-    @Test fun `selected path with extend handle light`() = selected(dark = false)
-    @Test fun `selected path with extend handle dark`() = selected(dark = true)
+    @Test fun `selected path with end rings light`() = selected(dark = false)
+    @Test fun `selected path with end rings dark`() = selected(dark = true)
 
     @Test fun `pockets light`() = pockets(dark = false)
     @Test fun `pockets dark`() = pockets(dark = true)
@@ -160,17 +160,17 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
         rule.onNodeWithTag(GOLDEN).captureRoboImage(out(name, dark))
     }
 
-    /** A three-cell path whose typed word is five letters long: the "+2" handle at its end. */
+    /** A four-cell path, one turn down, selected and named: a ring in its tint on either end. */
     private fun selected(dark: Boolean) {
         val draft = StrandsDraft(
             letters = BLANK_LETTERS,
             clue = "",
-            paths = listOf(StrandsDraftPath(listOf(12, 13, 14), null)),
+            paths = listOf(StrandsDraftPath(listOf(12, 13, 19, 20), null)),
             spangram = StrandsDraft.NO_SPANGRAM,
         )
-        capture("selected-extend", dark, draft, analyzed<Verdict.Incomplete>(draft)) {
+        capture("selected-ends", dark, draft, analyzed<Verdict.Incomplete>(draft)) {
             it.selectPath(0)
-            it.typeWord("HEART")
+            it.typeWord("HEAT")
         }
     }
 
@@ -294,7 +294,7 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
         // never racing it.
         rule.mainClock.advanceTimeBy(FRAME_MS)
         queue.runAll()
-        // Past the handle's and every mark's settle.
+        // Past every mark's settle.
         rule.mainClock.advanceTimeBy(MotionTokens.SettleMillis + SETTLE_SLACK_MS)
     }
 
