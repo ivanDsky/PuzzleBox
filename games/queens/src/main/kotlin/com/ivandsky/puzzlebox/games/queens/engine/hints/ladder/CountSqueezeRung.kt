@@ -18,24 +18,31 @@ object CountSqueezeRung : QueensRung {
     override val level: Difficulty.Level = Difficulty.Level.Hard
     override val captionKey: String = "queens.hint.rung.count-squeeze"
 
-    /** Eager: the order needs every violation, so [step] probes every open cell too. */
-    override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> {
+    override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
+        found(puzzle, candidates).sortedWith(order).asSequence().map { QueensProof(it.deduction, it.evidence()) }
+
+    override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
+        found(puzzle, candidates).minWithOrNull(order)?.deduction
+
+    /** A deduction with its evidence still unbuilt, so [step] builds none for the losing candidates. */
+    private class Found(val firstCell: Int, val deduction: QueensDeduction.Exclude, val evidence: () -> Set<Int>)
+
+    private val order: Comparator<Found> = compareBy({ it.deduction.unit.kind }, { it.deduction.unit.unit }, { it.firstCell })
+
+    /** Eager: the order needs every violation, so every open cell is probed. */
+    private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<Found> {
         val causes = LinkedHashMap<HallViolation.Violation, MutableSet<Int>>()
         for (x in puzzle.regions.indices) {
             if (!candidates.isOpen(x)) continue
             val violation = HallViolation.smallest(puzzle, candidates.place(puzzle, x))?.takeIf { it.k >= 2 } ?: continue
             causes.getOrPut(violation, ::mutableSetOf) += x
         }
-        return causes.entries
-            .sortedWith(compareBy({ it.key.kind }, { it.key.units.first() }, { it.value.min() }))
-            .asSequence()
-            .map { (violation, cells) ->
-                val unit = HintReason(violation.kind, violation.units.first(), this)
-                val evidence = violation.cells(puzzle).filter { candidates.isOpen(it) && it !in cells }.toSet()
-                QueensProof(QueensDeduction.Exclude(this, unit, cells), evidence)
+        return causes.map { (violation, cells) ->
+            val unit = HintReason(violation.kind, violation.units.first(), this)
+            // Insertion order is ascending x, so the first cause is the lowest.
+            Found(cells.first(), QueensDeduction.Exclude(this, unit, cells)) {
+                violation.cells(puzzle).filter { candidates.isOpen(it) && it !in cells }.toSet()
             }
+        }
     }
-
-    override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
-        steps(puzzle, candidates).firstOrNull()?.deduction
 }

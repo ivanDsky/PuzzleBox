@@ -4,6 +4,8 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
+private typealias SqueezeFound = Pair<QueensDeduction.Exclude, () -> Set<Int>>
+
 /**
  * D8: a row, column or region still missing queens, with at least 2 open cells, would be
  * left no room by a queen on any open cell outside it that rules out all of them, so each
@@ -18,33 +20,52 @@ object SqueezeRung : QueensRung {
     override val level: Difficulty.Level = Difficulty.Level.Hard
     override val captionKey: String = "queens.hint.rung.squeeze"
 
-    /** Lazy: one unit at a time, so [step] stops at the first. */
-    override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> {
-        val n = puzzle.size
-        val units = List(n) { row -> HintReason(HintReason.Kind.ROW, row, this) to List(n) { row * n + it } } +
-            List(n) { col -> HintReason(HintReason.Kind.COLUMN, col, this) to List(n) { it * n + col } } +
-            List(n) { region -> HintReason(HintReason.Kind.REGION, region, this) to puzzle.regions.indices.filter { puzzle.regions[it] == region } }
-        return units.asSequence().mapNotNull { (unit, cells) ->
-            val missing = puzzle.queensPerUnit - cells.count { it in candidates.queens }
-            val open = cells.filter(candidates::isOpen)
-            if (missing <= 0 || open.size < 2) return@mapNotNull null
-            val squeezing = puzzle.regions.indices.filter { x ->
-                candidates.isOpen(x) && x !in cells && open.all { rulesOut(puzzle, candidates, x, it) }
-            }.toSet()
-            if (squeezing.isEmpty()) null else QueensProof(QueensDeduction.Exclude(this, unit, squeezing), open.toSet())
-        }
-    }
+    override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
+        found(puzzle, candidates).map { (deduction, evidence) -> QueensProof(deduction, evidence()) }
 
     override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
-        steps(puzzle, candidates).firstOrNull()?.deduction
+        found(puzzle, candidates).firstOrNull()?.first
+
+    /**
+     * Lazy and already in order, one unit at a time, so [step] stops at the first and builds
+     * no evidence. The buffers are shared across units: a unit's scan finishes before the next.
+     */
+    private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<SqueezeFound> {
+        val n = puzzle.size
+        val isOpen = BooleanArray(n * n) { candidates.isOpen(it) }
+        val queens = HintReason.Kind.entries.associateWith { kind ->
+            IntArray(n).also { count -> for (queen in candidates.queens) count[unitOf(puzzle, kind, queen)]++ }
+        }
+        val open = IntArray(n * n)
+        return HintReason.Kind.entries.asSequence()
+            .flatMap { kind -> (0 until n).asSequence().map { kind to it } }
+            .mapNotNull { (kind, unit) ->
+                if (queens.getValue(kind)[unit] >= puzzle.queensPerUnit) return@mapNotNull null
+                var size = 0
+                for (cell in 0 until n * n) if (isOpen[cell] && unitOf(puzzle, kind, cell) == unit) open[size++] = cell
+                if (size < 2) return@mapNotNull null
+                val squeezing = (0 until n * n).filter { x ->
+                    isOpen[x] && unitOf(puzzle, kind, x) != unit && (0 until size).all { rulesOut(puzzle, queens, x, open[it]) }
+                }.toSet()
+                if (squeezing.isEmpty()) return@mapNotNull null
+                val reason = HintReason(kind, unit, this)
+                QueensDeduction.Exclude(this, reason, squeezing) to {
+                    (0 until n * n).filter { isOpen[it] && unitOf(puzzle, kind, it) == unit }.toSet()
+                }
+            }
+    }
 
     /** A queen on [x] crosses [cell]; on one-queen boards this is [QueensAttack.attacks]. */
-    private fun rulesOut(puzzle: QueensPuzzle, candidates: QueensCandidates, x: Int, cell: Int): Boolean {
+    private fun rulesOut(puzzle: QueensPuzzle, queens: Map<HintReason.Kind, IntArray>, x: Int, cell: Int): Boolean {
         val n = puzzle.size
-        val others = puzzle.queensPerUnit - 1
-        return QueensAttack.touches(x, cell, n) ||
-            x / n == cell / n && candidates.queens.count { it / n == x / n } >= others ||
-            x % n == cell % n && candidates.queens.count { it % n == x % n } >= others ||
-            puzzle.regions[x] == puzzle.regions[cell] && candidates.queens.count { puzzle.regions[it] == puzzle.regions[x] } >= others
+        fun fills(kind: HintReason.Kind): Boolean =
+            unitOf(puzzle, kind, x) == unitOf(puzzle, kind, cell) && queens.getValue(kind)[unitOf(puzzle, kind, x)] + 1 >= puzzle.queensPerUnit
+        return QueensAttack.touches(x, cell, n) || fills(HintReason.Kind.ROW) || fills(HintReason.Kind.COLUMN) || fills(HintReason.Kind.REGION)
+    }
+
+    private fun unitOf(puzzle: QueensPuzzle, kind: HintReason.Kind, cell: Int): Int = when (kind) {
+        HintReason.Kind.ROW -> cell / puzzle.size
+        HintReason.Kind.COLUMN -> cell % puzzle.size
+        HintReason.Kind.REGION -> puzzle.regions[cell]
     }
 }

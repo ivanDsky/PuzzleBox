@@ -28,58 +28,68 @@ internal object HallViolation {
 
     /** The violation with the fewest units, the earlier kind pair then the lower subset winning ties; null when none. */
     fun smallest(puzzle: QueensPuzzle, candidates: QueensCandidates): Violation? {
+        val scan = Scan(puzzle, candidates)
         var best: Violation? = null
         for ((kind, targetKind) in pairs) {
-            best = smallest(puzzle, candidates, kind, targetKind, best?.k ?: Int.MAX_VALUE) ?: best
+            best = scan.smallest(kind, targetKind, best?.k ?: Int.MAX_VALUE) ?: best
         }
         return best
     }
 
-    /** The smallest violation of [kind] against [targetKind] with fewer than [below] units, or null. */
-    private fun smallest(puzzle: QueensPuzzle, candidates: QueensCandidates, kind: Kind, targetKind: Kind, below: Int): Violation? {
-        val n = puzzle.size
-        val missing = missing(puzzle, candidates, kind)
-        val room = missing(puzzle, candidates, targetKind)
-        val open = IntArray(n)
-        val reach = IntArray(n)
-        for (cell in puzzle.regions.indices) {
-            if (!candidates.isOpen(cell)) continue
-            val unit = indexOf(puzzle, kind, cell)
-            open[unit]++
-            reach[unit] = reach[unit] or (1 shl indexOf(puzzle, targetKind, cell))
-        }
-        val groups = (0 until n).filter { missing[it] > 0 }
-        val reachOf = IntArray(1 shl groups.size)
-        val needOf = IntArray(1 shl groups.size)
-        var smallest = below
-        var found: Violation? = null
-        for (mask in 1 until (1 shl groups.size)) {
-            val low = mask and -mask
-            val group = groups[Integer.numberOfTrailingZeros(low)]
-            reachOf[mask] = reachOf[mask xor low] or reach[group]
-            needOf[mask] = needOf[mask xor low] + missing[group]
-            val k = Integer.bitCount(mask)
-            if (k >= smallest) continue
-            val space = (0 until n).sumOf { if (reachOf[mask] shr it and 1 == 1) room[it] else 0 }
-            val starved = k == 1 && open[group] < missing[group]
-            if (needOf[mask] > space || starved) {
-                smallest = k
-                found = Violation(
-                    kind,
-                    groups.filterIndexed { i, _ -> mask shr i and 1 == 1 },
-                    targetKind,
-                    (0 until n).filter { reachOf[mask] shr it and 1 == 1 },
-                )
+    /** One state's open cells and missing queens, read once and shared by the six kind pairs, with the subset buffers. */
+    private class Scan(private val puzzle: QueensPuzzle, candidates: QueensCandidates) {
+        private val n = puzzle.size
+        private val isOpen = BooleanArray(n * n) { candidates.isOpen(it) }
+        private val missingOf = Kind.entries.associateWith { kind ->
+            IntArray(n) { puzzle.queensPerUnit }.also { left ->
+                for (queen in candidates.queens) left[indexOf(puzzle, kind, queen)]--
+                for (unit in 0 until n) left[unit] = maxOf(0, left[unit])
             }
         }
-        return found
-    }
+        private val open = IntArray(n)
+        private val reach = IntArray(n)
+        private val groups = IntArray(n)
+        private val reachOf = IntArray(1 shl n)
+        private val needOf = IntArray(1 shl n)
 
-    /** Queens each unit of [kind] still misses; 0 for a full (or overfull) unit. */
-    private fun missing(puzzle: QueensPuzzle, candidates: QueensCandidates, kind: Kind): IntArray {
-        val missing = IntArray(puzzle.size) { puzzle.queensPerUnit }
-        for (queen in candidates.queens) missing[indexOf(puzzle, kind, queen)]--
-        return IntArray(puzzle.size) { maxOf(0, missing[it]) }
+        /** The smallest violation of [kind] against [targetKind] with fewer than [below] units, or null. */
+        fun smallest(kind: Kind, targetKind: Kind, below: Int): Violation? {
+            val missing = missingOf.getValue(kind)
+            val room = missingOf.getValue(targetKind)
+            open.fill(0)
+            reach.fill(0)
+            for (cell in 0 until n * n) {
+                if (!isOpen[cell]) continue
+                val unit = indexOf(puzzle, kind, cell)
+                open[unit]++
+                reach[unit] = reach[unit] or (1 shl indexOf(puzzle, targetKind, cell))
+            }
+            var m = 0
+            for (unit in 0 until n) if (missing[unit] > 0) groups[m++] = unit
+            var smallest = below
+            var found: Violation? = null
+            for (mask in 1 until (1 shl m)) {
+                val low = mask and -mask
+                val group = groups[Integer.numberOfTrailingZeros(low)]
+                reachOf[mask] = reachOf[mask xor low] or reach[group]
+                needOf[mask] = needOf[mask xor low] + missing[group]
+                val k = Integer.bitCount(mask)
+                if (k >= smallest) continue
+                var space = 0
+                for (target in 0 until n) if (reachOf[mask] shr target and 1 == 1) space += room[target]
+                val starved = k == 1 && open[group] < missing[group]
+                if (needOf[mask] > space || starved) {
+                    smallest = k
+                    found = Violation(
+                        kind,
+                        (0 until m).filter { mask shr it and 1 == 1 }.map { groups[it] },
+                        targetKind,
+                        (0 until n).filter { reachOf[mask] shr it and 1 == 1 },
+                    )
+                }
+            }
+            return found
+        }
     }
 
     private fun indexOf(puzzle: QueensPuzzle, kind: Kind, cell: Int): Int = when (kind) {
