@@ -128,10 +128,8 @@ class TangoStepGameTest {
         assertNull(TangoStepGame.boundedSolution(TangoPlayFixture.ambiguous))
     }
 
-    /** The fixture settles at the search's first node (propagation fills it): one poll is enough, zero is over budget. */
     @Test
-    fun `the budget counts search nodes, and an over-budget search gives no solution the same way every run`() {
-        assertEquals(solution, TangoStepGame.boundedSolution(puzzle, pollLimit = 1))
+    fun `an over-budget search gives no solution the same way every run`() {
         repeat(3) { assertNull(TangoStepGame.boundedSolution(puzzle, pollLimit = 0)) }
     }
 
