@@ -14,9 +14,10 @@ import kotlin.math.abs
 
 /**
  * The one next step on a board, in catalog order: the wrong entry nearest the last move, then the
- * cheapest single (last cell, box, line, naked), then a reveal. Candidates come from the givens and
- * correct entries minus the `known` strikes (cell to digit mask), so notes and wrong entries never
- * seed a step. Mistakes and the reveal digit read the stored solution; nothing is solved here.
+ * cheapest single (last cell, box, line, naked), then one elimination, then a reveal. Candidates
+ * come from the givens and correct entries minus the `known` strikes (cell to digit mask), so notes
+ * and wrong entries never seed a step. Mistakes and the reveal digit read the stored solution;
+ * nothing is solved here.
  */
 object SudokuStepper {
 
@@ -34,7 +35,8 @@ object SudokuStepper {
         val scan = Scan(geometry, board, candidates, lastMove)
         scan.cheapest(scan.lastCells())?.let { return it }
         val rung = ladder.single(geometry, candidates, null, emptyList())?.technique
-            ?: return reveal(puzzle, board, candidates, lastMove)
+            ?: return SudokuEliminations.next(geometry, candidates, lastMove) { ladder.single(geometry, it, null, emptyList()) != null }
+                ?: reveal(puzzle, board, candidates, lastMove)
         val found = if (rung == SudokuTechnique.NAKED_SINGLE) scan.nakedSingles() else scan.hiddenSingles(rung)
         return checkNotNull(scan.cheapest(found)) { "the ladder found a $rung the scan missed" }
     }
@@ -158,5 +160,5 @@ object SudokuStepper {
 }
 
 /** Chebyshev distance between two cells; 0 with no last move, so ties fall to the lowest index. */
-private fun SudokuGeometry.distance(cell: Int, lastMove: Int?): Int =
+internal fun SudokuGeometry.distance(cell: Int, lastMove: Int?): Int =
     if (lastMove == null) 0 else maxOf(abs(rowOf(cell) - rowOf(lastMove)), abs(colOf(cell) - colOf(lastMove)))

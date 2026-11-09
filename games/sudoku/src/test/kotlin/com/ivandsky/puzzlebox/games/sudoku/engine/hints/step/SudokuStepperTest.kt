@@ -17,7 +17,7 @@ class SudokuStepperTest {
 
     private val mini = KnownSolutions.miniSample
 
-    /** Norvig's grid2, as in SudokuHintsTest: singles stall on it, so the replay reaches Reveal. */
+    /** Norvig's grid2, as in SudokuHintsTest: singles stall on it, so the replay needs eliminations. */
     private val hard = SudokuPuzzle(
         SudokuVariants.CLASSIC,
         KnownSolutions.grid("4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......"),
@@ -183,50 +183,63 @@ class SudokuStepperTest {
     }
 
     @Test
-    fun `with no single the reveal names the open cell with fewest candidates nearest the last move`() {
-        // Only cells 0 1 2 (row 0) and 9 10 11 (box 1) are down to three candidates.
+    fun `with no single and no elimination the reveal names the open cell with fewest candidates nearest the last move`() {
+        // Box 1 confines 1, 2 and 6 to row 1; with that pointing already struck from cells 6 7 8, no rung applies
+        // and cells 0 1 2 (row 0), 6 7 8 (box 0) and 9 10 11 (box 1) are all down to three candidates.
         val puzzle = puzzle(shifted, mapOf(3 to 3, 4 to 4, 5 to 5))
-        assertEquals(SudokuStep.Reveal(0, 6), next(puzzle, lastMove = null))
-        assertEquals(SudokuStep.Reveal(9, 6), next(puzzle, lastMove = 35))
-        assertEquals(SudokuStep.Reveal(10, 1), next(puzzle, lastMove = 10))
+        val pointed = (6..8).associateWith { 0b100011 }
+        assertEquals(SudokuStep.Reveal(0, 6), next(puzzle, lastMove = null, known = pointed))
+        assertEquals(SudokuStep.Reveal(9, 6), next(puzzle, lastMove = 23, known = pointed))
+        assertEquals(SudokuStep.Reveal(10, 1), next(puzzle, lastMove = 10, known = pointed))
     }
 
     @Test
-    fun `replaying every single and reveal from the givens solves the legacy fixtures`() {
+    fun `replaying every step from the givens, strikes through known, solves the legacy fixtures soundly`() {
         for (puzzle in listOf(mini, KnownSolutions.classicSample, hard)) {
             var board = SudokuBoard.of(puzzle)
             var lastMove: Int? = null
-            val seen = mutableListOf<SudokuStep>()
+            var known = emptyMap<Int, Int>()
+            val placed = mutableListOf<SudokuStep>()
             while (true) {
-                val step = next(puzzle, board, lastMove)
-                seen += step
+                val step = next(puzzle, board, lastMove, known)
                 val (cell, digit) = when (step) {
+                    is SudokuStep.Elimination -> {
+                        for ((struckCell, mask) in step.struck) {
+                            assertEquals("strike at $struckCell", 0, mask and (1 shl (puzzle.solution[struckCell] - 1)))
+                        }
+                        known = (known.keys + step.struck.keys).associateWith { (known[it] ?: 0) or (step.struck[it] ?: 0) }
+                        continue
+                    }
                     is SudokuStep.Single -> step.place.cell to step.place.digit
                     is SudokuStep.Reveal -> step.cell to step.digit
                     SudokuStep.Solved -> break
-                    else -> throw AssertionError("unexpected $step on a clean board")
+                    is SudokuStep.Mistake -> throw AssertionError("unexpected $step on a clean board")
                 }
+                placed += step
                 assertEquals("digit at $cell", puzzle.solution[cell], digit)
                 board = board.put(cell, digit)
                 lastMove = cell
             }
-            assertEquals(puzzle.givens.count { it == 0 } + 1, seen.size)
+            assertEquals(puzzle.givens.count { it == 0 }, placed.size)
         }
     }
 
     @Test
-    fun `the hard fixture needs a reveal once singles stall`() {
+    fun `the hard fixture stalls singles, and eliminations carry it to solved without a reveal`() {
         var board = SudokuBoard.of(hard)
+        var known = emptyMap<Int, Int>()
+        var eliminations = 0
         while (true) {
-            when (val step = next(hard, board)) {
+            when (val step = next(hard, board, known = known)) {
                 is SudokuStep.Single -> board = board.put(step.place.cell, step.place.digit)
-                is SudokuStep.Reveal -> {
-                    assertEquals(hard.solution[step.cell], step.digit)
-                    assertTrue(board.digitAt(step.cell) == 0)
-                    return
+                is SudokuStep.Elimination -> {
+                    eliminations++
+                    known = (known.keys + step.struck.keys).associateWith { (known[it] ?: 0) or (step.struck[it] ?: 0) }
                 }
-                else -> throw AssertionError("expected singles to stall, got $step")
+                SudokuStep.Solved -> break
+                else -> throw AssertionError("expected only singles and eliminations, got $step")
             }
         }
+        assertTrue("singles alone never stalled", eliminations > 0)
     }
 }
