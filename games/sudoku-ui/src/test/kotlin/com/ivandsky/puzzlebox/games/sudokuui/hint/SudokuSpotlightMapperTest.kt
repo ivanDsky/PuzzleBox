@@ -88,7 +88,7 @@ class SudokuSpotlightMapperTest {
 
     @Test
     fun `an elimination lights its evidence, strikes its cells and has no target`() {
-        val step = SudokuStep.Elimination(SudokuTechnique.POINTING, box0, mapOf(3 to bit(6), 9 to bit(6)), setOf(0, 1))
+        val step = SudokuStep.Elimination(SudokuTechnique.POINTING, box0, bit(6), mapOf(3 to bit(6), 9 to bit(6)), setOf(0, 1))
 
         val roles = rolesOf(step)
 
@@ -101,7 +101,7 @@ class SudokuSpotlightMapperTest {
 
     @Test
     fun `a cell that is both evidence and struck is excluded`() {
-        val step = SudokuStep.Elimination(SudokuTechnique.NAKED_PAIR, row0, mapOf(1 to bit(5)), setOf(0, 1))
+        val step = SudokuStep.Elimination(SudokuTechnique.NAKED_PAIR, row0, bit(5) or bit(6), mapOf(1 to bit(5)), setOf(0, 1))
 
         assertEquals(SpotlightRole.EXCLUDED, rolesOf(step)[1])
         assertEquals(SpotlightRole.EVIDENCE, rolesOf(step)[0])
@@ -147,7 +147,7 @@ class SudokuSpotlightMapperTest {
     fun `the callout text is the step copy and anchors on evidence, else the target, else the struck cells`() {
         val single = SudokuStep.Single(place(0, 4, SudokuTechnique.NAKED_SINGLE, null), null, setOf(1, 8))
         val reveal = SudokuStep.Reveal(4, 5)
-        val blind = SudokuStep.Elimination(SudokuTechnique.NAKED_PAIR, row0, mapOf(2 to bit(1)), emptySet())
+        val blind = SudokuStep.Elimination(SudokuTechnique.NAKED_PAIR, row0, bit(1) or bit(2), mapOf(2 to bit(1)), emptySet())
 
         assertEquals(SudokuStepCopy.text(single, mini, miniBoard), map(single).callout?.text)
         assertEquals(setOf(1, 8), map(single).callout?.anchor)
@@ -171,14 +171,14 @@ class SudokuSpotlightMapperTest {
 
     @Test
     fun `glyph texts of an elimination are the struck digits of each cell from its mask`() {
-        val step = SudokuStep.Elimination(SudokuTechnique.HIDDEN_PAIR, row0, mapOf(0 to (bit(1) or bit(4) or bit(6)), 1 to bit(2)), setOf(0, 1))
+        val step = SudokuStep.Elimination(SudokuTechnique.HIDDEN_PAIR, row0, bit(2) or bit(3), mapOf(0 to (bit(1) or bit(4) or bit(6)), 1 to bit(2)), setOf(0, 1))
 
         assertEquals(SudokuSpotlightGlyphs(mapOf(0 to "1 4 6", 1 to "2")), map(step).glyphs)
     }
 
     @Test
     fun `equal inputs give equal spotlights`() {
-        val step = SudokuStep.Elimination(SudokuTechnique.POINTING, box0, mapOf(3 to bit(6)), setOf(0))
+        val step = SudokuStep.Elimination(SudokuTechnique.POINTING, box0, bit(6), mapOf(3 to bit(6)), setOf(0))
 
         assertEquals(map(step), map(step.copy()))
     }
@@ -188,7 +188,7 @@ class SudokuSpotlightMapperTest {
     @Test
     fun `equal steps give equal keys and any change of the step changes the key`() {
         val single = SudokuStep.Single(place(7, 4, SudokuTechnique.NAKED_SINGLE, null), null, setOf(1))
-        val elim = SudokuStep.Elimination(SudokuTechnique.POINTING, box0, mapOf(3 to bit(6)), setOf(0))
+        val elim = SudokuStep.Elimination(SudokuTechnique.POINTING, box0, bit(6), mapOf(3 to bit(6)), setOf(0))
         val key = SudokuSpotlightMapper::keyOf
 
         assertEquals(key(single), key(single.copy()))

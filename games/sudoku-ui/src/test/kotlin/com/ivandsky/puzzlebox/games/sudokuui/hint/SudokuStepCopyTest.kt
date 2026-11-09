@@ -51,7 +51,12 @@ class SudokuStepCopyTest {
         val eliminations = SudokuTechnique.entries.filter { it !in setOf(SudokuTechnique.HIDDEN_SINGLE_BOX, SudokuTechnique.HIDDEN_SINGLE_LINE, SudokuTechnique.NAKED_SINGLE) }
             .associate { technique ->
                 val unit = if (technique == SudokuTechnique.POINTING) box0 else col3
-                "$technique" to SudokuStep.Elimination(technique, unit, if (technique == SudokuTechnique.POINTING || technique == SudokuTechnique.CLAIMING) struck else mapOf(9 to bit(7)), setOf(2, 3))
+                val group = when (technique) {
+                    SudokuTechnique.POINTING, SudokuTechnique.CLAIMING -> bit(1)
+                    SudokuTechnique.NAKED_PAIR, SudokuTechnique.HIDDEN_PAIR -> bit(7) or bit(8)
+                    else -> bit(1) or bit(2) or bit(4)
+                }
+                "$technique" to SudokuStep.Elimination(technique, unit, group, if (technique == SudokuTechnique.POINTING || technique == SudokuTechnique.CLAIMING) struck else mapOf(9 to bit(7)), setOf(2, 3))
             }
         return mapOf(
             "HIDDEN_SINGLE_BOX" to single(SudokuTechnique.HIDDEN_SINGLE_BOX, box0),
@@ -101,8 +106,8 @@ class SudokuStepCopyTest {
     @Test
     fun `pointing names the digit from the mask for every digit and the shared line`() {
         for (digit in 1..9) {
-            val row = SudokuStep.Elimination(SudokuTechnique.POINTING, box0, mapOf(45 to bit(digit), 46 to bit(digit)), setOf(2))
-            val col = SudokuStep.Elimination(SudokuTechnique.POINTING, box0, mapOf(5 to bit(digit), 14 to bit(digit)), setOf(0))
+            val row = SudokuStep.Elimination(SudokuTechnique.POINTING, box0, bit(digit), mapOf(45 to bit(digit), 46 to bit(digit)), setOf(2))
+            val col = SudokuStep.Elimination(SudokuTechnique.POINTING, box0, bit(digit), mapOf(5 to bit(digit), 14 to bit(digit)), setOf(0))
 
             assertEquals(
                 "Pointing: this box puts its $digit in row 6, so the rest of row 6 can't take $digit",
@@ -118,7 +123,7 @@ class SudokuStepCopyTest {
     @Test
     fun `claiming names the line and the digit from the mask for every digit`() {
         for (digit in 1..9) {
-            val step = SudokuStep.Elimination(SudokuTechnique.CLAIMING, SudokuUnit(UnitKind.COLUMN, 4), mapOf(0 to bit(digit)), setOf(4))
+            val step = SudokuStep.Elimination(SudokuTechnique.CLAIMING, SudokuUnit(UnitKind.COLUMN, 4), bit(digit), mapOf(0 to bit(digit)), setOf(4))
 
             assertEquals("Claiming: col 5 puts its $digit in this box, so the rest of the box can't take $digit", text(step))
         }
@@ -126,25 +131,24 @@ class SudokuStepCopyTest {
 
     @Test
     fun `a pointing step that strikes two digits is refused`() {
-        val step = SudokuStep.Elimination(SudokuTechnique.POINTING, box0, mapOf(45 to (bit(1) or bit(2))), setOf(2))
+        val step = SudokuStep.Elimination(SudokuTechnique.POINTING, box0, bit(1) or bit(2), mapOf(45 to (bit(1) or bit(2))), setOf(2))
 
         assertTrue(runCatching { text(step) }.isFailure)
     }
 
     @Test
-    fun `a naked pair names the two digits its cells still hold`() {
-        val board = miniBoard(2 to 2, 3 to 3, 4 to 4, 5 to 5)
-        val step = SudokuStep.Elimination(SudokuTechnique.NAKED_PAIR, row0, mapOf(6 to bit(1)), setOf(0, 1))
+    fun `a naked pair names its group digits, not the board's candidates`() {
+        // The empty board leaves every digit open; the group is what the engine proved, after earlier strikes.
+        val step = SudokuStep.Elimination(SudokuTechnique.NAKED_PAIR, row0, bit(2) or bit(5), mapOf(6 to bit(2)), setOf(0, 1))
 
-        assertEquals("Naked pair: these two cells only take 1 and 6, so the rest of row 1 loses both", text(step, mini, board))
+        assertEquals("Naked pair: these two cells only take 2 and 5, so the rest of row 1 loses both", text(step, mini, miniBoard()))
     }
 
     @Test
-    fun `a hidden pair names the digits of its cells that are not struck`() {
-        val board = miniBoard(2 to 2, 3 to 3)
-        val step = SudokuStep.Elimination(SudokuTechnique.HIDDEN_PAIR, row0, mapOf(0 to (bit(4) or bit(5)), 1 to (bit(4) or bit(5))), setOf(0, 1))
+    fun `a hidden pair names its group digits, not the board's candidates`() {
+        val step = SudokuStep.Elimination(SudokuTechnique.HIDDEN_PAIR, row0, bit(1) or bit(6), mapOf(0 to bit(4), 1 to bit(4)), setOf(0, 1))
 
-        assertEquals("Hidden pair: 1 and 6 only fit these two cells, so they take nothing else", text(step, mini, board))
+        assertEquals("Hidden pair: 1 and 6 only fit these two cells, so they take nothing else", text(step, mini, miniBoard()))
     }
 
     @Test

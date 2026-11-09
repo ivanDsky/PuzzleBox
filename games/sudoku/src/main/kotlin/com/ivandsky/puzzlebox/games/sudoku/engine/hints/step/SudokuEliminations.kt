@@ -66,7 +66,7 @@ internal object SudokuEliminations {
                 val other = confining(geometry, holders, pointing) ?: continue
                 val inUnit = cells.toSet()
                 val struck = strike(candidates, geometry.cellsOf(other).filter { it !in inUnit }, bit)
-                if (struck.isNotEmpty()) found += SudokuStep.Elimination(technique, unit, struck, holders.toSet())
+                if (struck.isNotEmpty()) found += SudokuStep.Elimination(technique, unit, bit, struck, holders.toSet())
             }
         }
         return found
@@ -95,7 +95,7 @@ internal object SudokuEliminations {
                 if (Integer.bitCount(digits) != 2) continue
                 val struck = strike(candidates, open.filter { it != open[i] && it != open[j] }, digits)
                 if (struck.isNotEmpty()) {
-                    found += SudokuStep.Elimination(SudokuTechnique.NAKED_PAIR, unit, struck, setOf(open[i], open[j]))
+                    found += SudokuStep.Elimination(SudokuTechnique.NAKED_PAIR, unit, digits, struck, setOf(open[i], open[j]))
                 }
             }
         }
@@ -115,7 +115,7 @@ internal object SudokuEliminations {
                 if (pair.size != 2) continue
                 val keep = (1 shl a) or (1 shl b)
                 val struck = strike(candidates, pair, keep.inv())
-                if (struck.isNotEmpty()) found += SudokuStep.Elimination(SudokuTechnique.HIDDEN_PAIR, unit, struck, pair.toSet())
+                if (struck.isNotEmpty()) found += SudokuStep.Elimination(SudokuTechnique.HIDDEN_PAIR, unit, keep, struck, pair.toSet())
             }
         }
         return found

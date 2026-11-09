@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.games.sudokuui.hint
 
 import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
-import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGeometry
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuUnit
@@ -17,35 +16,15 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStep
  */
 internal object SudokuStepCopy {
 
-    private class Facts(val puzzle: SudokuPuzzle, val board: SudokuBoard) {
-        val geometry: SudokuGeometry get() = puzzle.geometry
-
-        /** The digits no known peer holds, as the engine derives them: givens and correct entries only. */
-        val candidates: IntArray by lazy {
-            val known = IntArray(geometry.cellCount) { idx ->
-                when (val cell = board.cells[idx]) {
-                    is SudokuCell.Given -> cell.digit
-                    is SudokuCell.Entry -> if (cell.digit == puzzle.solution[idx]) cell.digit else 0
-                    is SudokuCell.Notes, SudokuCell.Empty -> 0
-                }
-            }
-            IntArray(geometry.cellCount) { idx ->
-                if (known[idx] != 0) 0 else geometry.peersOf(idx).fold((1 shl geometry.size) - 1) { mask, peer ->
-                    if (known[peer] != 0) mask and (1 shl (known[peer] - 1)).inv() else mask
-                }
-            }
-        }
-    }
-
-    private val singles: Map<SudokuTechnique, (SudokuStep.Single, Facts) -> String> = mapOf(
+    private val singles: Map<SudokuTechnique, (SudokuStep.Single, SudokuBoard) -> String> = mapOf(
         SudokuTechnique.HIDDEN_SINGLE_BOX to { step, _ ->
             "Hidden single (box): in this box only this cell can take ${step.place.digit}"
         },
         SudokuTechnique.HIDDEN_SINGLE_LINE to { step, _ ->
             "Hidden single (line): in ${unitName(requireNotNull(step.place.unit))} only this cell can take ${step.place.digit}"
         },
-        SudokuTechnique.NAKED_SINGLE to { step, facts ->
-            val seen = step.blockers.map { facts.board.digitAt(it) }.distinct().sorted()
+        SudokuTechnique.NAKED_SINGLE to { step, board ->
+            val seen = step.blockers.map { board.digitAt(it) }.distinct().sorted()
             "Naked single: it sees ${seen.joinToString(", ")}, so it is ${step.place.digit}"
         },
     )
@@ -54,38 +33,37 @@ internal object SudokuStepCopy {
         "Last cell: ${unitName(unit)} only needs ${step.place.digit}"
     }
 
-    private val eliminations: Map<SudokuTechnique, (SudokuStep.Elimination, Facts) -> String> = mapOf(
-        SudokuTechnique.POINTING to { step, facts ->
-            val line = sharedLine(step, facts.geometry)
-            val digit = struckDigit(step)
+    private val eliminations: Map<SudokuTechnique, (SudokuStep.Elimination, SudokuPuzzle) -> String> = mapOf(
+        SudokuTechnique.POINTING to { step, puzzle ->
+            val line = sharedLine(step, puzzle.geometry)
+            val digit = digitsOf(step.group).single()
             "Pointing: this box puts its $digit in $line, so the rest of $line can't take $digit"
         },
         SudokuTechnique.CLAIMING to { step, _ ->
             val unit = unitName(requireNotNull(step.unit))
-            val digit = struckDigit(step)
+            val digit = digitsOf(step.group).single()
             "Claiming: $unit puts its $digit in this box, so the rest of the box can't take $digit"
         },
-        SudokuTechnique.NAKED_PAIR to { step, facts ->
-            "Naked pair: these two cells only take ${nakedDigits(step, facts)}, so the rest of ${unitName(requireNotNull(step.unit))} loses both"
+        SudokuTechnique.NAKED_PAIR to { step, _ ->
+            "Naked pair: these two cells only take ${digitList(step.group)}, so the rest of ${unitName(requireNotNull(step.unit))} loses both"
         },
-        SudokuTechnique.HIDDEN_PAIR to { step, facts ->
-            "Hidden pair: ${hiddenDigits(step, facts)} only fit these two cells, so they take nothing else"
+        SudokuTechnique.HIDDEN_PAIR to { step, _ ->
+            "Hidden pair: ${digitList(step.group)} only fit these two cells, so they take nothing else"
         },
-        SudokuTechnique.NAKED_TRIPLE to { step, facts ->
-            "Naked triple: these 3 cells only take ${nakedDigits(step, facts)}, so the rest of ${unitName(requireNotNull(step.unit))} loses all"
+        SudokuTechnique.NAKED_TRIPLE to { step, _ ->
+            "Naked triple: these 3 cells only take ${digitList(step.group)}, so the rest of ${unitName(requireNotNull(step.unit))} loses all"
         },
-        SudokuTechnique.HIDDEN_TRIPLE to { step, facts ->
-            "Hidden triple: ${hiddenDigits(step, facts)} only fit these 3 cells, so they take nothing else"
+        SudokuTechnique.HIDDEN_TRIPLE to { step, _ ->
+            "Hidden triple: ${digitList(step.group)} only fit these 3 cells, so they take nothing else"
         },
     )
 
     fun text(step: SudokuStep, puzzle: SudokuPuzzle, board: SudokuBoard): String {
-        val facts = Facts(puzzle, board)
         return when (step) {
             is SudokuStep.Single -> step.lastCell?.let { lastCell(step, it) }
-                ?: checkNotNull(singles[step.place.technique]) { "no copy for ${step.place.technique}" }(step, facts)
+                ?: checkNotNull(singles[step.place.technique]) { "no copy for ${step.place.technique}" }(step, board)
             is SudokuStep.Elimination ->
-                checkNotNull(eliminations[step.technique]) { "no copy for ${step.technique}" }(step, facts)
+                checkNotNull(eliminations[step.technique]) { "no copy for ${step.technique}" }(step, puzzle)
             is SudokuStep.Reveal ->
                 "Reveal: ${cellName(step.cell, puzzle.geometry)} is ${step.digit} — no simple step here"
             is SudokuStep.Mistake -> mistake(step, puzzle.geometry)
@@ -123,30 +101,6 @@ internal object SudokuStepCopy {
             "col ${geometry.colOf(first) + 1}"
         }
     }
-
-    /** The one digit a pointing or claiming step strikes: the single bit of its masks. */
-    private fun struckDigit(step: SudokuStep.Elimination): Int {
-        val mask = step.struck.values.fold(0) { all, one -> all or one }
-        check(Integer.bitCount(mask) == 1) { "${step.technique} strikes one digit, got mask $mask" }
-        return Integer.numberOfTrailingZeros(mask) + 1
-    }
-
-    /**
-     * The digits the evidence cells hold between them. When earlier strikes left the board's candidates wider
-     * than the group, the struck digits are the part of the group the step still proves.
-     */
-    private fun nakedDigits(step: SudokuStep.Elimination, facts: Facts): String {
-        val union = step.evidence.fold(0) { all, cell -> all or facts.candidates[cell] }
-        return digitList(if (Integer.bitCount(union) == step.evidence.size) union else struckMask(step))
-    }
-
-    /** The digits of the evidence cells that the step does not strike. */
-    private fun hiddenDigits(step: SudokuStep.Elimination, facts: Facts): String {
-        val union = step.evidence.fold(0) { all, cell -> all or facts.candidates[cell] }
-        return digitList(union and struckMask(step).inv())
-    }
-
-    private fun struckMask(step: SudokuStep.Elimination): Int = step.struck.values.fold(0) { all, one -> all or one }
 
     /** `5`, `5 and 6`, `1, 2 and 3`. */
     private fun digitList(mask: Int): String {
