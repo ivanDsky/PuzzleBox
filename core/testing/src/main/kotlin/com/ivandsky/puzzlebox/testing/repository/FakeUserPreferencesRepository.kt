@@ -12,18 +12,22 @@ import kotlinx.coroutines.flow.update
 /**
  * In-memory [UserPreferencesRepository] with the real one's semantics: one theme mode,
  * a per-game tutorial-seen flag that starts false and, once marked, stays set, and the
- * witness auto-show switch, on by default. Every change re-emits. [seen] reads the marked
+ * witness auto-show switch and the two Sudoku highlights, all on by default. Every change re-emits. [seen] reads the marked
  * games synchronously for assertions.
  */
 class FakeUserPreferencesRepository(
     seen: Set<GameId> = emptySet(),
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     autoShowWitness: Boolean = true,
+    sudokuPeerHighlight: Boolean = true,
+    sudokuSameDigitHighlight: Boolean = true,
 ) : UserPreferencesRepository {
 
     private val theme = MutableStateFlow(themeMode)
     private val seenGames = MutableStateFlow(seen)
     private val autoShow = MutableStateFlow(autoShowWitness)
+    private val peerHighlight = MutableStateFlow(sudokuPeerHighlight)
+    private val sameDigitHighlight = MutableStateFlow(sudokuSameDigitHighlight)
 
     /** The games whose tutorial is marked seen right now. */
     val seen: Set<GameId> get() = seenGames.value
@@ -44,5 +48,17 @@ class FakeUserPreferencesRepository(
 
     override suspend fun setAutoShowWitness(on: Boolean) {
         autoShow.value = on
+    }
+
+    override val sudokuPeerHighlight: Flow<Boolean> = peerHighlight
+
+    override suspend fun setSudokuPeerHighlight(enabled: Boolean) {
+        peerHighlight.value = enabled
+    }
+
+    override val sudokuSameDigitHighlight: Flow<Boolean> = sameDigitHighlight
+
+    override suspend fun setSudokuSameDigitHighlight(enabled: Boolean) {
+        sameDigitHighlight.value = enabled
     }
 }

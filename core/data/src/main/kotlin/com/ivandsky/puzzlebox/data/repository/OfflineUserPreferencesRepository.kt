@@ -31,4 +31,18 @@ internal class OfflineUserPreferencesRepository(
     override suspend fun setAutoShowWitness(on: Boolean) {
         dataSource.setAutoShowWitness(on)
     }
+
+    override val sudokuPeerHighlight: Flow<Boolean> =
+        dataSource.preferences.map { it.sudokuPeerHighlight }.distinctUntilChanged()
+
+    override suspend fun setSudokuPeerHighlight(enabled: Boolean) {
+        dataSource.setSudokuPeerHighlight(enabled)
+    }
+
+    override val sudokuSameDigitHighlight: Flow<Boolean> =
+        dataSource.preferences.map { it.sudokuSameDigitHighlight }.distinctUntilChanged()
+
+    override suspend fun setSudokuSameDigitHighlight(enabled: Boolean) {
+        dataSource.setSudokuSameDigitHighlight(enabled)
+    }
 }

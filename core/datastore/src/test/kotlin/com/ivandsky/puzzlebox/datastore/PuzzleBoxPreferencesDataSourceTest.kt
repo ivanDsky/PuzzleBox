@@ -88,4 +88,28 @@ class PuzzleBoxPreferencesDataSourceTest {
         val restartedProcess = newDataSource(file)
         assertFalse(restartedProcess.preferences.first().autoShowWitness)
     }
+
+    @Test
+    fun `first launch highlights both sudoku aids`() = runTest {
+        val preferences = newDataSource(tempFile()).preferences.first()
+
+        assertTrue(preferences.sudokuPeerHighlight)
+        assertTrue(preferences.sudokuSameDigitHighlight)
+    }
+
+    @Test
+    fun `sudoku highlights off survive a new data source and stay independent`() = runTest {
+        val file = tempFile()
+        val firstScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + SupervisorJob())
+        val firstProcess = PuzzleBoxPreferencesDataSource(
+            PreferenceDataStoreFactory.create(scope = firstScope) { file },
+        )
+
+        firstProcess.setSudokuPeerHighlight(false)
+        firstScope.cancel()
+
+        val restarted = newDataSource(file).preferences.first()
+        assertFalse(restarted.sudokuPeerHighlight)
+        assertTrue(restarted.sudokuSameDigitHighlight)
+    }
 }
