@@ -65,6 +65,7 @@ class HomeScreenTest {
         onOpenGame: (GameId) -> Unit = {},
         onOpenProfile: () -> Unit = {},
         reselect: SharedFlow<Unit> = MutableSharedFlow(),
+        hideOwnedElsewhere: Boolean = false,
     ) {
         composeRule.setContent {
             CompositionLocalProvider(LocalTabReselect provides reselect) {
@@ -75,6 +76,7 @@ class HomeScreenTest {
                         onOpenGame = onOpenGame,
                         onOpenProfile = onOpenProfile,
                         modifier = Modifier,
+                        hideOwnedElsewhere = hideOwnedElsewhere,
                     )
                 }
             }
@@ -349,6 +351,29 @@ class HomeScreenTest {
         composeRule.runOnIdle { reselect.tryEmit(Unit) }
 
         composeRule.onNodeWithText("PuzzleBox").assertIsDisplayed()
+    }
+
+    @Test
+    fun `phone with owned-elsewhere hidden drops recent days and the account card`() {
+        val day = HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))
+        setContent(HomeLayout.SinglePane, history = listOf(day), hideOwnedElsewhere = true)
+
+        composeRule.onNodeWithTag("home.history_row_2026-11-03").assertDoesNotExist()
+        composeRule.onNodeWithText("Sign in").assertDoesNotExist()
+        composeRule.onNodeWithTag("home.today").assertExists()
+        composeRule.onNodeWithTag("home.streak").assertExists()
+    }
+
+    @Test
+    fun `tablet with owned-elsewhere hidden always shows the streak pane without bests or day detail`() {
+        val day = HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))
+        setContent(HomeLayout.TwoPane, history = listOf(day), hideOwnedElsewhere = true)
+
+        composeRule.onNodeWithTag("home.history_row_2026-11-03").assertDoesNotExist()
+        composeRule.onNodeWithTag("home.streak_pane").assertExists()
+        composeRule.onNodeWithTag("home.pane_week").assertExists()
+        TODAY.forEach { composeRule.onNodeWithTag("home.best.${it.game.value}", useUnmergedTree = true).assertDoesNotExist() }
+        composeRule.onNodeWithTag("home.day_detail").assertDoesNotExist()
     }
 
     private companion object {
