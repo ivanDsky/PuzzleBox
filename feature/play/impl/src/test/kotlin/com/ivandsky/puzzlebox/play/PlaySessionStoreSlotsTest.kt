@@ -26,6 +26,8 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.MatchLegKey
+import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -348,6 +350,20 @@ class PlaySessionStoreSlotsTest {
 
         assertSame("the result names its game's slot", play, store.peek(slot))
         assertNull(store.peek(PlaySlot.Daily(beta, today)))
+    }
+
+    @Test
+    fun `a duel puzzle's result key keeps its live leg play`() = runTest {
+        val store = store()
+        val leg = MatchLegKey("M8T3VQ", 1, alpha.value)
+        val play = store.open(leg)!!
+        store.open(MatchLegKey(leg.code, 0, alpha.value))
+
+        store.retain(listOf(MatchLegResultKey(leg.code, leg.legIndex, 1_000L, 0, gaveUp = false)))
+        runCurrent()
+
+        assertSame("the result names its puzzle's leg", play, store.peek(play.slot))
+        assertNull(store.peek(PlaySlot.Leg(alpha, leg.code, 0)))
     }
 
     @Test

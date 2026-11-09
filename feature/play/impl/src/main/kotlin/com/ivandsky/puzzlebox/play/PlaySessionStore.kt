@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
+import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import java.time.LocalDate
 import kotlin.coroutines.cancellation.CancellationException
@@ -223,11 +224,9 @@ class PlaySessionStore internal constructor(
     internal suspend fun latestSave(slot: PlaySlot): ByteArray? = slots[slot]?.unsavedSession ?: opening.savedRow(slot)
 
     /**
-     * Releases every live slot that no key in [keys] names: a [GameKey] with a day names
-     * that day, a null-day one the slot it pinned, a [ResultKey] its play's slot (the
-     * result's badge and retry read it), a [CustomGameKey] its friend's puzzle, and a
-     * [MatchLegKey] its duel leg. A released play folds its clock and queues its final save
-     * before this returns, so a reopen's read is ordered after it.
+     * Releases every live slot no key in [keys] names: a [GameKey] with a day names that day, a null-day one the slot it pinned,
+     * a [ResultKey] its play's slot (its badge and retry read it), a [CustomGameKey] its friend's puzzle, a [MatchLegKey] its leg,
+     * and a [MatchLegResultKey] the live leg of its code and index. A released play folds and queues its last save before return.
      */
     fun retain(keys: Collection<NavKey>) {
         val gameKeys = keys.filterIsInstance<GameKey>().toSet()
@@ -238,6 +237,8 @@ class PlaySessionStore internal constructor(
         keys.filterIsInstance<ResultKey>().mapTo(named) { PlaySlot.Daily(GameId(it.gameId), LocalDate.parse(it.day)) }
         keys.filterIsInstance<CustomGameKey>().mapTo(named) { it.slot }
         keys.filterIsInstance<MatchLegKey>().mapNotNullTo(named) { it.slot }
+        val legResults = keys.filterIsInstance<MatchLegResultKey>().mapTo(HashSet()) { it.code to it.legIndex }
+        slots.keys.filterIsInstance<PlaySlot.Leg>().filterTo(named) { (it.matchCode to it.legIndex) in legResults }
         val released = slots.filterKeys { it !in named }.values.toList()
         released.forEach { play ->
             slots.remove(play.slot)

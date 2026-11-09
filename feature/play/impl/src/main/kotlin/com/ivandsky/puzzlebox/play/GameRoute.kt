@@ -72,6 +72,7 @@ internal fun GameRoute(
         layout = layout,
         onBack = onBack,
         onSolved = onSolved,
+        overflow = emptyList(),
         modifier = modifier,
     )
 }
@@ -99,14 +100,16 @@ internal fun GameRoute(
         layout = layout,
         onBack = onBack,
         onSolved = onSolved,
+        overflow = emptyList(),
         modifier = modifier,
     )
 }
 
 /** One live [play]'s top bar and board, behind the [tutorial] gate; How to play shows
- *  when [onHowToPlay] is given and the game has lessons. */
+ *  when [onHowToPlay] is given and the game has lessons, and the route's [overflow] items
+ *  follow the game's own in the bar's menu. */
 @Composable
-private fun GameBoard(
+internal fun GameBoard(
     play: ActivePlay?,
     pastDay: Boolean,
     tutorial: TutorialGate,
@@ -115,6 +118,7 @@ private fun GameBoard(
     layout: PlayLayout,
     onBack: () -> Unit,
     onSolved: (slot: PlaySlot, timeMs: Long, hintsUsed: Int) -> Unit,
+    overflow: List<PlayOverflowItem>,
     modifier: Modifier,
 ) {
     Column(modifier = modifier.testTag("route.game")) {
@@ -152,7 +156,7 @@ private fun GameBoard(
                     )
                 }
             }
-            PlayOverflow(play.ui.overflowFor(board.controller))
+            PlayOverflow(play.ui.overflowFor(board.controller) + overflow)
         }
         when (tutorial) {
             TutorialGate.Checking -> PlayBoardFallback(PlayBoardStatus.Loading, onRetry = {}, tagPrefix = "game")

@@ -14,6 +14,8 @@ import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.MatchLegKey
+import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.friend.CustomResultRoute
@@ -35,7 +37,8 @@ import org.koin.compose.koinInject
  * [codeDraft]'s text and hands it back through [onCodeDraftTaken]. A [duels] slot turns the
  * library into the Dailies, Friends and Duels tabs; without one it is the single games list.
  * [onOpenDuel] is the flag's signal for Enter code (null = off, matches are never tried); it
- * is only carried here.
+ * is only carried here. A duel puzzle's [MatchLegKey] draws its leg's board; Up pops, and a
+ * solve, a give up or a puzzle already taken replaces it with its [MatchLegResultKey].
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
@@ -82,6 +85,18 @@ fun EntryProviderScope<NavKey>.playEntry(
         )
     }
     entry<GameKey> { key -> GameEntry(key, layout, navigator) }
+    entry<MatchLegKey> { key ->
+        GameRoute(
+            key = key,
+            layout = layout,
+            onBack = { navigator.pop() },
+            onSolved = { timeMs, hintsUsed ->
+                navigator.replaceTop(MatchLegResultKey(key.code, key.legIndex, timeMs, hintsUsed, gaveUp = false))
+            },
+            onGaveUp = { navigator.replaceTop(MatchLegResultKey(key.code, key.legIndex, 0L, 0, gaveUp = true)) },
+            onTaken = { result -> navigator.replaceTop(result) },
+        )
+    }
 }
 
 /**
