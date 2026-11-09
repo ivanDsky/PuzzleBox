@@ -231,4 +231,15 @@ class TangoDraftCommandTest {
             }
         }
     }
+
+    @Test
+    fun `the frozen v2 history undoes through the resize to a blank 6x6 board`() {
+        val state = decodeOk(fixture("tango-draft-v2.bin"))
+        assertEquals(8, state.draft.n)
+
+        var step = CommandHistory.Step(state.draft, state.history)
+        while (step.history.canUndo) step = step.history.undo(step.state)!!
+
+        assertEquals(blank, step.state)
+    }
 }
