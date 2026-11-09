@@ -22,6 +22,9 @@ class EditorDraft<D : Any>(val editor: GameEditor<D>, val state: DraftState<D>) 
     /** True when [editor] also implements [DraftExport]. */
     val canTestSolve: Boolean get() = editor is DraftExport<*>
 
+    /** The board equals the editor's blank board of this variant; history is ignored. */
+    val isBlank: Boolean get() = state.draft == editor.newDraft(variant)
+
     /** SHA-256 hex of editor.encodeDraft(DraftState(editor.layoutOf(state.draft))): layout only, empty history. */
     val layoutKey: String by lazy {
         MessageDigest.getInstance("SHA-256")

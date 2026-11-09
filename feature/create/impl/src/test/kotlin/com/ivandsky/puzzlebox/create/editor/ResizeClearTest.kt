@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.create.editor
 
 import androidx.activity.ComponentActivity
+import androidx.activity.ComponentDialog
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
@@ -66,13 +67,16 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowDialog
 import org.robolectric.shadows.ShadowLooper
 
 /**
  * Resize and Clear from the Studio tool strip (spec A5, S3): the size popover offers exactly
  * the editor's variant table with the open size checked; a resize and a clear are each one
  * ReplaceDraft step whose undo restores the exact board, through the VM's EditHistory into
- * the board's controller and the stored row.
+ * the board's controller and the stored row. A resize that would start a blank board over
+ * content asks first ("Start a blank board?"); Cancel changes nothing, and a blank board
+ * resizes at once.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -142,12 +146,24 @@ class ResizeClearTest {
     }
 
     @Test
-    fun `resizing 7 to 9 is one step and undo restores the exact 7x7 board`() {
-        composeRule.onNodeWithTag(SIZE).performClick()
-        composeRule.onNodeWithTag(CHIP + NINE.value).performClick()
+    fun `picking another size on a board with content shows the dialog and leaves the board unchanged`() {
+        pick(NINE)
 
         composeRule.onAllNodesWithTag(POPOVER).assertCountEquals(0)
+        composeRule.onNodeWithTag(DIALOG).assertExists()
+        assertEquals(SEVEN, board())
+        composeRule.onNodeWithTag(UNDO).assertIsNotEnabled()
+        assertTrue(controller().adopted.isEmpty())
+    }
+
+    @Test
+    fun `confirming resizes 7 to 9 as one step and undo restores the exact 7x7 board`() {
+        pick(NINE)
+        composeRule.onNodeWithTag(CONFIRM).performClick()
+
+        composeRule.onAllNodesWithTag(DIALOG).assertCountEquals(0)
         assertEquals(Grid(9), board())
+        assertEquals(ReplaceDraft(SEVEN, Grid(9)), controller().draft.value.state.history.done.single())
         awaitStored { drafts.rows.getValue(DRAFT_ID).variant == NINE }
         composeRule.onNodeWithTag(UNDO).assertIsEnabled()
 
@@ -158,6 +174,47 @@ class ResizeClearTest {
         composeRule.onNodeWithTag(REDO).assertIsEnabled()
         awaitStored { drafts.rows.getValue(DRAFT_ID).variant == SEVEN_ID }
         assertEquals(SEVEN, GridEditor.decodeDraft(drafts.rows.getValue(DRAFT_ID).blob).getOrNull()!!.draft)
+    }
+
+    @Test
+    fun `cancel closes the dialog and changes nothing`() {
+        pick(NINE)
+        composeRule.onNodeWithTag(CANCEL).performClick()
+
+        composeRule.onAllNodesWithTag(DIALOG).assertCountEquals(0)
+        assertEquals(SEVEN, board())
+        composeRule.onNodeWithTag(UNDO).assertIsNotEnabled()
+        assertTrue(controller().adopted.isEmpty())
+    }
+
+    @Test
+    fun `back closes the dialog and changes nothing`() {
+        pick(NINE)
+        val dialog = ShadowDialog.getLatestDialog() as ComponentDialog
+        composeRule.runOnUiThread { dialog.onBackPressedDispatcher.onBackPressed() }
+
+        composeRule.onAllNodesWithTag(DIALOG).assertCountEquals(0)
+        assertEquals(SEVEN, board())
+        composeRule.onNodeWithTag(UNDO).assertIsNotEnabled()
+        assertTrue(controller().adopted.isEmpty())
+    }
+
+    @Test
+    fun `a blank board resizes at once with no dialog`() {
+        composeRule.onNodeWithTag(CLEAR).performClick()
+        assertEquals(Grid(7), board())
+
+        pick(NINE)
+
+        composeRule.onAllNodesWithTag(DIALOG).assertCountEquals(0)
+        assertEquals(Grid(9), board())
+    }
+
+    @Test
+    fun `the size popover shows its range hint`() {
+        composeRule.onNodeWithTag(SIZE).performClick()
+
+        composeRule.onNodeWithTag(HINT).assertExists()
     }
 
     @Test
@@ -183,6 +240,12 @@ class ResizeClearTest {
         assertEquals(SEVEN, board())
         composeRule.onNodeWithTag(UNDO).assertIsNotEnabled()
         assertTrue(controller().adopted.isEmpty())
+    }
+
+    private fun pick(size: VariantId) {
+        composeRule.onNodeWithTag(SIZE).performClick()
+        composeRule.onNodeWithTag(CHIP + size.value).performClick()
+        composeRule.waitForIdle()
     }
 
     private fun controller(): FakeEditorController = ui.controllers.single()
@@ -244,6 +307,10 @@ class ResizeClearTest {
         const val REDO = "create.tool.redo"
         const val POPOVER = "create.size.popover"
         const val CHIP = "create.size.chip."
+        const val HINT = "create.size.hint"
+        const val DIALOG = "create.resize.dialog"
+        const val CONFIRM = "create.resize.confirm"
+        const val CANCEL = "create.resize.cancel"
 
         /** A painted 7×7: three marked cells. */
         val SEVEN = Grid(7, setOf(0, 8, 48))

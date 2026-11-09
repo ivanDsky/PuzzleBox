@@ -77,7 +77,7 @@ class EditorViewModel(
 
     private val loadDraft = LoadDraft(drafts, games, editors)
     private val verdicts = VerdictPipeline(viewModelScope, dispatchers)
-    private val history = EditHistory()
+    private val history = EditHistory(locked = { published }, adopt = ::adopt)
 
     /** The saved Auto-show: each new Multiple opens with its witness on the board while it is on (the default). */
     val autoShowWitness: StateFlow<Boolean> =
@@ -129,6 +129,9 @@ class EditorViewModel(
 
     /** Unpublish and its confirm dialog. */
     internal val unpublish = UnpublishSession(updatePublishState, viewModelScope)
+
+    /** The Size picker's resize and its "Start a blank board?" confirm. */
+    internal val resizes = ResizeSession(board = { board }, locked = { published }, apply = history::resize)
 
     private val studioImport = StudioImport(games, drafts, dispatchers, clock, releaseFlags, viewModelScope)
 
@@ -185,33 +188,20 @@ class EditorViewModel(
      */
     fun restoreTest() {
         testSolve.dismissCleared()
-        if (published) return
-        history.undoTo(testSolve::isTested)?.let(::adopt)
+        history.undoTo(testSolve::isTested)
     }
 
     /** One step back: the board adopts it, then it is checked and stored like any edit. */
-    fun undo() {
-        if (published) return
-        history.undo()?.let(::adopt)
-    }
+    fun undo() = history.undo()
 
     /** The undone step again, handled like [undo]. */
-    fun redo() {
-        if (published) return
-        history.redo()?.let(::adopt)
-    }
+    fun redo() = history.redo()
 
-    /** A blank [variant] board as one undoable step (A5); picking the open size is not a step. */
-    fun resize(variant: VariantId) {
-        if (published) return
-        history.resize(variant)?.let(::adopt)
-    }
+    /** Another size as one undoable step (A5), confirmed first when it would blank a board with content; the open size is not a step. */
+    fun resize(variant: VariantId) = resizes.request(variant)
 
     /** A blank board of the open size as one undoable step (A5). */
-    fun clear() {
-        if (published) return
-        history.clear()?.let(::adopt)
-    }
+    fun clear() = history.clear()
 
     /** The overflow's Unpublish, once confirmed in its dialog. */
     fun confirmUnpublish() {
@@ -248,7 +238,7 @@ class EditorViewModel(
         saves.launch { autosave.flush() }
     }
 
-    /** Undo, redo, resize and clear replace the board; only these can change its size, so the subtitle follows here. */
+    /** [history]'s moves (undo, redo, resize, clear) replace the board; only these can change its size, so the subtitle follows here. */
     private fun adopt(draft: EditorDraft<*>) {
         (mutableState.value as? EditorUiState.Ready)?.let { ready ->
             ready.controller.adopt(draft)
