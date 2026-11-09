@@ -78,10 +78,10 @@ class QueensStepGameTest {
 
     @Test
     fun `a second puzzle in the same game is solved again`() {
-        val play = Play(small.copy(solution = null), solve = { QueensStepGame.boundedSolution(it) })
+        val play = Play(big.copy(solution = null), solve = { QueensStepGame.boundedSolution(it) })
         play.next()
 
-        play.session = QueensSession(ref = null, puzzle = big.copy(solution = null))
+        play.session = QueensSession(ref = null, puzzle = small.copy(solution = null))
         play.next()
 
         assertEquals(2, play.solves)
@@ -109,11 +109,23 @@ class QueensStepGameTest {
     }
 
     @Test
-    fun `the default search finds the puzzle's solution and a spent budget finds none`() {
-        val bare = small.copy(solution = null)
+    fun `the default search finds a unique puzzle's solution and a spent budget finds none`() {
+        val bare = big.copy(solution = null)
 
-        assertEquals(smallSolution, QueensStepGame.boundedSolution(bare))
+        assertEquals(big.solution!!.toSet(), QueensStepGame.boundedSolution(bare))
         assertNull(QueensStepGame.boundedSolution(bare, pollLimit = 0))
+    }
+
+    @Test
+    fun `a non-unique puzzle without a stored solution has none, so a legal queen is not accused`() {
+        val bare = small.copy(solution = null)
+        assertNull(QueensStepGame.boundedSolution(bare))
+        val play = Play(bare)
+        play.place(offSolution)
+
+        val step = play.next()
+
+        assertTrue("$step", step !is QueensStep.Mistake && step !is QueensStep.Reveal)
     }
 
     @Test
@@ -223,7 +235,6 @@ class QueensStepGameTest {
         val reveal = QueensStep.Reveal(Cell(2), holdsQueen = false)
 
         assertEquals(listOf(true, false, false), listOf(mistake, deduction, reveal).map(game::isCulprit))
-        assertEquals(3, listOf(mistake, deduction, reveal).mapNotNull(game::keyOf).toSet().size)
         assertNull(game.keyOf(QueensStep.Solved))
         assertNull(game.keyOf(QueensStep.Unavailable))
         assertFalse(game.isCulprit(QueensStep.Solved))

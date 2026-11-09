@@ -18,9 +18,11 @@ import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSolver
  * wrong cross with `withCrossToggled`, one undo unit, A4). A press never places anything (A1).
  *
  * The solution is resolved once per puzzle (A19) inside the compute block: the stored one when the puzzle carries it,
- * else a search bounded by a poll-counting [Budget], never wall-clock, so the answer is repeatable. A spent budget or
- * no solution is null, and the stepper then accuses only rule breaks and never reveals. Main-confined except the
- * compute block, which only reads the snapshot and the memo. [solve] is a seam for tests.
+ * else a search bounded by a poll-counting [Budget], never wall-clock, so the answer is repeatable. The search keeps a
+ * solution only when it is the one solution (Main ruling on 27, as Tango): judging entries against one of several would
+ * accuse a queen that is right in another. A spent budget, no solution or several is null, and the stepper then
+ * accuses only rule breaks and never reveals. Main-confined except the compute block, which only reads the snapshot
+ * and the memo. [solve] is a seam for tests.
  */
 internal class QueensStepGame(
     private val session: () -> QueensSession,
@@ -71,11 +73,11 @@ internal class QueensStepGame(
         /** Budget polls allowed, each after 1024 column candidates; only guarantees the call never hangs. */
         const val POLL_LIMIT = 20_000
 
-        /** [puzzle]'s first solution within [pollLimit] budget polls; null when exhausted or none exists. */
+        /** [puzzle]'s one solution within [pollLimit] budget polls; null when exhausted, unsolvable or not unique. */
         fun boundedSolution(puzzle: QueensPuzzle, pollLimit: Int = POLL_LIMIT): Set<Cell>? {
             var polls = 0
-            val outcome = QueensSolver().solutionsWithin(puzzle, limit = 1, budget = Budget { polls++ >= pollLimit })
-            return (outcome as? QueensSearchOutcome.Done)?.solutions?.firstOrNull()?.toSet()
+            val outcome = QueensSolver().solutionsWithin(puzzle, limit = 2, budget = Budget { polls++ >= pollLimit })
+            return (outcome as? QueensSearchOutcome.Done)?.solutions?.singleOrNull()?.toSet()
         }
     }
 }
