@@ -30,4 +30,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
 
     /** Hint parity: one deduction per Hint press in Queens, Tango and Mini Sudoku (ADR-0022, spec A20). */
     HintParity(label = "Hint parity: one deduction per press", releaseDefault = false),
+
+    /** Competitions: async 1v1 duels between friends (spec A16). */
+    Competitions(label = "Competitions: 1v1 duels", releaseDefault = false),
 }
