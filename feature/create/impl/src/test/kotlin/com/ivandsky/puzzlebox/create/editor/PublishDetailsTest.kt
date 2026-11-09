@@ -226,7 +226,12 @@ class PublishDetailsTest {
         val board = editor.draft(marks = 1)
         runBlocking { drafts.upsert(storedRow(board)) }
         startKoin {
-            modules(module { viewModel { (_: EditorKey) -> editorViewModel().also { vm = it } } })
+            modules(
+                module {
+                    viewModel { (_: EditorKey) -> editorViewModel().also { vm = it } }
+                    idleCreateRoot(drafts)
+                },
+            )
         }
         val entries = entryProvider<NavKey> { editorEntry(navigator, PlayLayout.SinglePane) }
         composeRule.setContent {

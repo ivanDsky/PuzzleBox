@@ -3,11 +3,13 @@ package com.ivandsky.puzzlebox.create.editor
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -17,6 +19,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.create.api.EditorKey
+import com.ivandsky.puzzlebox.create.importtext.ImportSheet
+import com.ivandsky.puzzlebox.create.importtext.ImportSheetActions
 import com.ivandsky.puzzlebox.create.published.UnpublishDialog
 import com.ivandsky.puzzlebox.create.published.UnpublishedToast
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -40,8 +44,10 @@ import org.koin.core.parameter.parametersOf
  * published the action area morphs into the [PublishedTicket] (Copy code toasts in the same slot)
  * and the Studio turns read-only, its Duplicate the way on to an editable copy; the overflow's
  * Unpublish… opens the [UnpublishDialog], and once taken down the ticket strikes its code and the
- * "Unpublished" toast shows in the same slot. The holders stay here: the screen gets their state
- * and events.
+ * "Unpublished" toast shows in the same slot. The overflow's Import from text opens the
+ * [ImportSheet] over the Studio; the draft it stores is reported to [onImported], which opens it
+ * in the Studio's place. That Studio, [importedPending] set, shows the [ImportedToast] once and
+ * reports [onImportedShown]. The holders stay here: the screen gets their state and events.
  */
 @Composable
 internal fun EditorRoute(
@@ -50,6 +56,9 @@ internal fun EditorRoute(
     onBack: () -> Unit,
     onOpen: (draftId: String) -> Unit,
     onDelete: (draftId: String) -> Unit,
+    onImported: (draftId: String) -> Unit,
+    importedPending: Boolean,
+    onImportedShown: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: EditorViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
@@ -68,6 +77,11 @@ internal fun EditorRoute(
     // Each Copy code bumps it, so the same code copied twice still toasts twice.
     var copies by remember { mutableIntStateOf(0) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flush() }
+    val importEnabled by viewModel.importEnabled.collectAsStateWithLifecycle()
+    val importSheet by viewModel.importText.ui.collectAsStateWithLifecycle()
+    val importActions = remember(viewModel) { ImportSheetActions.of(viewModel.importText) }
+    val importedOpen by rememberUpdatedState(onImported)
+    LaunchedEffect(viewModel) { viewModel.importedDrafts.collect { importedOpen(it) } }
     // Google's account picker needs the activity: read in composition, handed per call.
     val activityContext = LocalContext.current
     val routeModifier = modifier.testTag("route.editor")
@@ -177,11 +191,16 @@ internal fun EditorRoute(
                         SignInFailureToast(failure = publish.signInFailure, onGone = viewModel.publish::dismissSignInFailure, modifier = Modifier)
                         CodeCopiedToast(code = ticket?.code, copies = copies, modifier = Modifier)
                         UnpublishedToast(code = ticket?.code, done = unpublish.done, modifier = Modifier)
+                        ImportedToast(pending = importedPending, onShown = onImportedShown, modifier = Modifier)
                     }
                 },
                 readOnly = ticket != null,
                 unpublished = ticket?.unpublished == true,
                 onUnpublish = (viewModel.unpublish::ask).takeIf { ticket?.unpublished == false },
+                imported = ready.imported,
+                onImport = (viewModel.importText::open).takeIf { importEnabled },
+                importSheet = importSheet,
+                importActions = importActions,
             )
         }
     }

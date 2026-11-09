@@ -300,6 +300,7 @@ class TestSolveSessionTest {
                         EditorViewModel(key, drafts, games, editors, plays, copyDraft, DefaultDispatcherProvider(), saves = CoroutineScope(SupervisorJob() + Dispatchers.Main), clock = { NOW }, createShared = signedOutPublishing(drafts), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(), idTokens = noGoogleAccount, updatePublishState = signedOutUnpublishing())
                             .also { vm = it }
                     }
+                    idleCreateRoot(drafts)
                 },
             )
         }

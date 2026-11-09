@@ -48,29 +48,24 @@ private val SpinnerStroke = 3.dp
 private const val TEXT_MIME = "text/*"
 
 /**
- * The Import from text sheet (spec A23): a monospace box for the pasted notation ([onEdit]),
- * an Import button that [onSubmit]s the box and stays off while the box is empty, and, after a
- * failed import, one plain inline line ([ImportErrorLine]). While [ImportSheetUi.checking] the
- * button gives way to a spinner row, the box turns read-only and a swipe cannot close the
- * sheet (back and scrim still close it). Draws nothing until [ImportSheetUi.visible];
- * [onDismiss] closes it.
+ * The Import from text sheet (spec A23): a monospace box for the pasted notation
+ * ([ImportSheetActions.onEdit]), an Import button that [ImportSheetActions.onSubmit]s the box
+ * and stays off while the box is empty, and, after a failed import, one plain inline line
+ * ([ImportErrorLine]). While [ImportSheetUi.checking] the button gives way to a spinner row,
+ * the box turns read-only and a swipe cannot close the sheet (back and scrim still close it).
+ * Draws nothing until [ImportSheetUi.visible]; [ImportSheetActions.onDismiss] closes it.
  *
- * Once per open, from this user-opened surface only, the clipboard's text goes to [onClipboard]
- * (null when it holds none). When [ImportSheetUi.clipboard] is set a banner above the box
- * offers Paste ([onPaste]) and a close button ([onDismissClipboard]). The sheet grows upward,
- * so the banner sits above the box: its arrival moves the title, never the box or the button.
- * Hidden while a check runs.
+ * Once per open, from this user-opened surface only, the clipboard's text goes to
+ * [ImportSheetActions.onClipboard] (null when it holds none). When [ImportSheetUi.clipboard] is
+ * set a banner above the box offers Paste ([ImportSheetActions.onPaste]) and a close button
+ * ([ImportSheetActions.onDismissClipboard]). The sheet grows upward, so the banner sits above
+ * the box: its arrival moves the title, never the box or the button. Hidden while a check runs.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImportSheet(
     ui: ImportSheetUi,
-    onEdit: (String) -> Unit,
-    onSubmit: (String) -> Unit,
-    onDismiss: () -> Unit,
-    onClipboard: (String?) -> Unit,
-    onPaste: () -> Unit,
-    onDismissClipboard: () -> Unit,
+    actions: ImportSheetActions,
     modifier: Modifier = Modifier,
 ) {
     if (!ui.visible) return
@@ -80,16 +75,16 @@ fun ImportSheet(
     LaunchedEffect(Unit) {
         if (!read) {
             read = true
-            onClipboard(clipboard.textOrNull())
+            actions.onClipboard(clipboard.textOrNull())
         }
     }
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = actions.onDismiss,
         modifier = modifier.testTag("create.import.sheet"),
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         sheetGesturesEnabled = !ui.checking,
     ) {
-        ImportSheetContent(ui, onEdit, onSubmit, onPaste, onDismissClipboard)
+        ImportSheetContent(ui, actions.onEdit, actions.onSubmit, actions.onPaste, actions.onDismissClipboard)
     }
 }
 
@@ -258,14 +253,6 @@ private fun ImportSheetCheckingPreview() {
 @Composable
 private fun ImportSheetPreview() {
     PuzzleBoxTheme {
-        ImportSheet(
-            ui = ImportSheetUi(visible = true),
-            onEdit = {},
-            onSubmit = {},
-            onDismiss = {},
-            onClipboard = {},
-            onPaste = {},
-            onDismissClipboard = {},
-        )
+        ImportSheet(ui = ImportSheetUi(visible = true), actions = ImportSheetActions())
     }
 }

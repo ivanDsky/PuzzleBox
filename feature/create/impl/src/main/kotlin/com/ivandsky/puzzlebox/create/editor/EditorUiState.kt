@@ -14,12 +14,14 @@ sealed interface EditorUiState {
 
     /**
      * The open draft: its [subtitle] ("Queens 4×4"), the live [verdict], and the game's
-     * [editor] UI drawing the board over [controller]. The title lives in [DraftMeta].
+     * [editor] UI drawing the board over [controller]. The title lives in [DraftMeta]. An
+     * [imported] draft was copied in from text: its Studio carries the Imported chip.
      */
     data class Ready(
         val subtitle: String,
         val verdict: Verdict,
         val editor: GameEditorUi,
         val controller: GameEditorController,
+        val imported: Boolean = false,
     ) : EditorUiState
 }
