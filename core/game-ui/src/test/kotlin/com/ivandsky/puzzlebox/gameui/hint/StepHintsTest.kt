@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.isActive
@@ -236,17 +237,22 @@ class StepHintsTest {
 
     @Test
     fun `a throwing compute is no hint and the next press searches again`() {
+        // A plain Job, not SupervisorJob: a failure escaping the press would cancel this scope.
+        val strictScope = CoroutineScope(Job() + StandardTestDispatcher(scheduler, name = "main"))
+        val strictHints = StepHints(HintMode.Stepwise(compute), strictScope, game, used = { used }, onCount = { counts += it; used = it })
         game.step = "a"
         game.throwing = true
-        press()
-        assertTrue(scope.isActive)
-        assertNull(hints.spotlight)
+        strictHints.press()
+        scheduler.runCurrent()
+        assertTrue(strictScope.isActive)
+        assertNull(strictHints.spotlight)
         assertTrue(counts.isEmpty())
 
         game.throwing = false
-        press()
+        strictHints.press()
+        scheduler.runCurrent()
         assertEquals(listOf(1), counts)
-        assertEquals(1, hints.spotlight?.playId)
+        assertEquals(1, strictHints.spotlight?.playId)
     }
 
     private class FlaggingDispatcher(private val inner: CoroutineDispatcher) : CoroutineDispatcher() {
