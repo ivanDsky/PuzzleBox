@@ -41,9 +41,10 @@ import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
  * violet while on) has the board draw it. Both report through [onChange]. Beside it the
  * **Auto-show** switch (`create.verdict.autoShow`, announced as a switch with its On/Off state)
  * reads the saved [autoShow] and reports a flip through [onAutoShow]; switching it on also puts
- * this verdict's witness on the board at once. The chip and the switch share a [FlowRow], so on
- * a narrow sheet or at a large font scale the switch wraps under the chip instead of spilling
- * past the card. No motion: the selection swaps at once.
+ * this verdict's witness on the board at once. The chip and the switch share a [FlowRow] with a
+ * [Spacing.sm] gap, tight enough to keep one line on a 320 dp phone at default font size, so the
+ * card still fits the half-open sheet; at a large font scale the switch wraps under the chip
+ * instead of spilling past the card, and the sheet drags up. No motion: the selection swaps at once.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -69,7 +70,7 @@ internal fun VerdictWitness(
             }
         }
         FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             FilterChip(

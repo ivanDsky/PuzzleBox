@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import kotlin.math.abs
@@ -24,6 +25,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * Where the Studio's chrome lands by window: the test-cleared toast never covers Test solve and
@@ -40,14 +42,14 @@ class StudioChromePlacementTest {
 
     private var cardOpen by mutableStateOf(false)
 
-    private fun studio(layout: PlayLayout, testCleared: Boolean = false) {
+    private fun studio(layout: PlayLayout, testCleared: Boolean = false, verdict: Verdict = NONE) {
         composeRule.setContent {
             PuzzleBoxTheme {
                 StudioScreen(
                     title = "Untitled 3",
                     subtitle = "Queens 6×6",
                     saving = false,
-                    verdict = NONE,
+                    verdict = verdict,
                     layout = layout,
                     onBack = {},
                     onRename = {},
@@ -121,6 +123,22 @@ class StudioChromePlacementTest {
         composeRule.onNodeWithTag(SHEET).assertDoesNotExist()
     }
 
+    // Native graphics: real font metrics, so the witness row takes its true width.
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(qualifiers = "w320dp-h640dp-xhdpi")
+    fun `at 320 dp the 2+ solutions card fits the half-open sheet, its bottom on screen`() {
+        studio(PlayLayout.SinglePane, verdict = MULTIPLE)
+
+        composeRule.onNodeWithTag(PILL).performClick()
+        composeRule.waitForIdle()
+
+        val card = composeRule.onNodeWithTag(CARD).fetchSemanticsNode()
+        val window = generateSequence(card) { it.parent }.last().size.height
+        val bottom = card.positionInRoot.y + card.size.height
+        assertTrue("card bottom $bottom falls past the window's $window px", bottom <= window)
+    }
+
     @Test
     fun `on a phone the board slot spans the content width`() {
         studio(PlayLayout.SinglePane)
@@ -163,5 +181,6 @@ class StudioChromePlacementTest {
         val STRIP_HEIGHT = 96.dp
 
         val NONE = Verdict.None(emptySet())
+        val MULTIPLE = Verdict.Multiple(Solution(listOf(0, 2)), Solution(listOf(1, 3)), setOf(0, 1))
     }
 }
