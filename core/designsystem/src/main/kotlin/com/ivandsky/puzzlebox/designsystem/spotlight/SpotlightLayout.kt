@@ -70,7 +70,8 @@ internal fun Spotlight.calloutPlacement(size: Size, height: Float): CalloutPlace
     val anchorTop = anchor.minOf { it / cols }
     val anchorBottom = anchor.maxOf { it / cols }
     val anchorX = (anchor.minOf { it % cols } + anchor.maxOf { it % cols } + 1) / 2f * (size.width / cols)
-    val span = ceil(height / cellH).toInt().coerceAtLeast(1)
+    // Prototype `ceil(h / p - 0.1)`: a bubble a hair over a row still takes one row.
+    val span = ceil(height / cellH - 0.1f).toInt().coerceAtLeast(1)
     if (span > rows) return CalloutPlacement(0f, CalloutSide.OVER, anchorX)
 
     fun sideOf(band: Int) = when {

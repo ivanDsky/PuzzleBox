@@ -7,12 +7,16 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
+import com.ivandsky.puzzlebox.games.sudoku.SudokuSamples
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuSessionCodec
 import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.Restored
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
+import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
 import java.time.LocalDate
@@ -24,6 +28,10 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.koin.core.annotation.KoinInternalApi
+import org.koin.core.qualifier.qualifier
+import org.koin.dsl.koinApplication
+import org.koin.dsl.module
 
 class SudokuPlayControllerTest {
 
@@ -251,5 +259,92 @@ class SudokuPlayControllerTest {
         assertEquals(SudokuCell.Notes(1 shl 3), c.board!!.session.board.cells[0])
         assertNull(c.board!!.selected)
         assertNotNull(c.clockWindow)
+    }
+
+    // Stepwise hints (ticket 34)
+
+    private val stepwiseSource = HintModeSource { HintMode.Stepwise(Dispatchers.Unconfined) }
+
+    private val env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), { saved += it }, { won += it })
+
+    /** Lab board rnd:154: no single, so the first press shows an elimination. */
+    private val noSingle = SudokuPuzzle(
+        SudokuGames.MINI.variant,
+        grid("..62.4 42.6.. 6.142. 24...6 .6254. ..4.62"),
+        grid("516234 423651 631425 245316 162543 354162"),
+    )
+
+    private fun stepwiseMini(puzzle: SudokuPuzzle = peanut450): SudokuPlayController =
+        SudokuPlayController(SudokuGames.MINI, env, now = { Instant.ofEpochMilli(clockMs) }, hintMode = stepwiseSource.current())
+            .also { assertEquals(Adopt.Adopted, it.adoptToday(envelope(puzzle), ref)) }
+
+    @Test
+    fun `a stepwise mini press shows a spotlight, places nothing and publishes the count`() {
+        val c = SudokuPlayUi(SudokuGames.MINI, MiniSudokuBrand, stepwiseSource).createController(env) as SudokuPlayController
+        assertEquals(Adopt.Adopted, c.adoptToday(envelope(), ref))
+        val board = c.board!!.session.board
+
+        c.requestHint()
+
+        assertNotNull(c.board!!.spotlight)
+        assertNull(c.board!!.hint)
+        assertNull(c.hintCaption)
+        assertEquals(board, c.board!!.session.board)
+        assertEquals(1, c.hintsUsed)
+        assertEquals(1, savedSession().hintsUsed)
+    }
+
+    @Test
+    fun `a stepwise press leaves the running clock exactly as the legacy press does`() {
+        val c = stepwiseMini()
+        clockMs += 2_000
+        val window = c.clockWindow
+        val shown = c.shown()
+        val banked = c.board!!.session.elapsedMs
+
+        c.requestHint()
+
+        assertNotNull(c.board!!.spotlight)
+        assertEquals(window, c.clockWindow)
+        assertEquals(shown, c.shown())
+        assertEquals(banked, c.board!!.session.elapsedMs)
+        assertEquals(1, c.hintsUsed)
+    }
+
+    @Test
+    fun `a replay starts a board with no spotlight and nothing known`() {
+        val c = stepwiseMini(noSingle)
+        c.requestHint()
+        val first = checkNotNull(c.board!!.spotlight)
+        c.board!!.toggleNotesMode()
+
+        c.replay()
+
+        assertNull(c.board!!.spotlight)
+        c.requestHint()
+        assertEquals(first.roles, c.board!!.spotlight?.roles)
+        assertEquals(1, c.hintsUsed)
+    }
+
+    @OptIn(KoinInternalApi::class)
+    @Test
+    fun `classic keeps the legacy hint under a stepwise source`() {
+        val koin = koinApplication { modules(miniSudokuUiModule, sudokuUiModule, module { single { stepwiseSource } }) }.koin
+        try {
+            val c = koin.get<GamePlayUi>(qualifier(SudokuGames.CLASSIC.id.value)).createController(env) as SudokuPlayController
+            val classicRef = SudokuPuzzleRef(SudokuGames.CLASSIC.id, ref.key)
+            assertEquals(Adopt.Adopted, c.adoptToday(envelope(SudokuSamples.classic, SudokuGames.CLASSIC.id), classicRef))
+
+            c.requestHint()
+
+            assertNull(c.board!!.spotlight)
+            assertNotNull(c.board!!.hint)
+            assertNotNull(c.hintCaption)
+            assertEquals(1, c.hintsUsed)
+        } finally {
+            koin.close()
+            // Koin caches each single on the top-level module's factory; drop it so no other test sees this play UI.
+            listOf(miniSudokuUiModule, sudokuUiModule).forEach { module -> module.mappings.values.forEach { it.dropAll() } }
+        }
     }
 }

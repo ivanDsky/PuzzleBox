@@ -124,7 +124,7 @@ internal fun SudokuStackedBoard(
             verticalArrangement = Arrangement.spacedBy(layout.keyGap),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            SudokuGrid(state.model, state::select, Modifier.size(layout.board))
+            SudokuGrid(state.model, state::select, Modifier.size(layout.board), spotlight = state.spotlight)
             // A pane-filling grid is height-bound: keys as wide as the pane would be slabs.
             SudokuBoardKeypad(state, layout, Modifier.widthIn(max = if (paneCap != null) layout.board else PlayBoardMaxWidth))
         }
