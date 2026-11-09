@@ -15,6 +15,13 @@ interface GameEditor<D : Any> {
 
     /** Variant table only; the size picker never offers anything else (A5). */
     val variants: List<VariantId>
+
+    /**
+     * The New puzzle sheet's preselected size; must be in [variants]. An editor that takes another
+     * `by` delegation and overrides [variants] overrides this too, or it gets the delegate's pick.
+     */
+    val defaultVariant: VariantId get() = variants[variants.size / 2]
+
     val draftFormatVersion: Int
 
     /** Blank board; also what resize and clear reset to (A5). */

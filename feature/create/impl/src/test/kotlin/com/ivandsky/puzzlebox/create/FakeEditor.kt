@@ -33,9 +33,11 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 data class TestDraft(val marks: Int = 0)
 
-class FakeGameEditor(override val gameId: GameId = GameId("fake")) : GameEditor<TestDraft> {
+class FakeGameEditor(
+    override val gameId: GameId = GameId("fake"),
+    override val variants: List<VariantId> = listOf(VariantId("${gameId.value}/v1")),
+) : GameEditor<TestDraft> {
 
-    override val variants: List<VariantId> = listOf(VariantId("${gameId.value}/v1"))
     override val draftFormatVersion: Int = 1
 
     /** Every board [analyze] was asked about, in call order. */

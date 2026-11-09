@@ -60,9 +60,7 @@ class CreateViewModelTest {
     private val fake = FakeGameEditor(GameId("fake"))
     private val wideId = GameId("wide")
     private val wideSizes = (1..5).map { VariantId("wide/$it") }
-    private val wide = object : GameEditor<TestDraft> by FakeGameEditor(wideId) {
-        override val variants: List<VariantId> = wideSizes
-    }
+    private val wide = FakeGameEditor(wideId, wideSizes)
 
     private val games = GameRegistry(
         listOf(withEditor(fake.gameId, fake), TestGames.plugin(TestGames.beta), withEditor(wideId, wide)),
@@ -188,6 +186,20 @@ class CreateViewModelTest {
         val byId = vm.uiState.value.games.associateBy { it.id }
         assertEquals(VariantId("wide/3"), byId.getValue(wideId).defaultSize.variant)
         assertEquals(fake.variants.single(), byId.getValue(fake.gameId).defaultSize.variant)
+    }
+
+    @Test
+    fun `a game's own default variant is the preselected size`() = runTest(mainRule.testDispatcher) {
+        val pinnedId = GameId("pinned")
+        val pinned = object : GameEditor<TestDraft> by FakeGameEditor(pinnedId, wideSizes) {
+            override val defaultVariant: VariantId = wideSizes[1]
+        }
+        val vm = viewModel(
+            games = GameRegistry(listOf(withEditor(pinnedId, pinned))),
+            editors = GameEditorRegistry(listOf(FakeGameEditorUi(pinnedId))),
+        )
+
+        assertEquals(wideSizes[1], vm.uiState.value.games.single().defaultSize.variant)
     }
 
     @Test
