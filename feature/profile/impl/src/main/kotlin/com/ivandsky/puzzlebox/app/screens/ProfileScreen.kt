@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app.screens
 
 import androidx.compose.foundation.background
+import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,8 +51,9 @@ import java.time.LocalDate
  * (N4), and — only when [onOpenCatalog] is given (debug builds) — the catalog link.
  *
  * [slim] keeps only the header and the account line: it hides the lifetime grid, the game
- * rows, today's board, Appearance and the catalog link. A non-null [onBack] draws a back
- * icon at the top left, in either form.
+ * rows, today's board, Appearance and the catalog link. A non-null [onBack] draws a top
+ * bar with a back icon at the left, in either form, and a non-null [onOpenSettings] adds
+ * a gear at its right.
  */
 @Composable
 internal fun ProfileContent(
@@ -65,25 +67,43 @@ internal fun ProfileContent(
     modifier: Modifier = Modifier,
     slim: Boolean = false,
     onBack: (() -> Unit)? = null,
+    onOpenSettings: (() -> Unit)? = null,
 ) {
     val account = state.account
+    Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    if (onBack != null) {
+        CompactTopBar(
+            title = "Profile",
+            navigationIcon = {
+                IconButton(onClick = onBack, modifier = Modifier.testTag("profile.back")) {
+                    Icon(
+                        imageVector = PuzzleIcons.Back,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            actions = {
+                if (onOpenSettings != null) {
+                    IconButton(onClick = onOpenSettings, modifier = Modifier.testTag("profile.settings")) {
+                        Icon(
+                            imageVector = PuzzleIcons.Settings,
+                            contentDescription = "Settings",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            },
+        )
+    }
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Spacing.xl, vertical = Spacing.xxl),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        if (onBack != null) {
-            IconButton(onClick = onBack, modifier = Modifier.testTag("profile.back")) {
-                Icon(
-                    imageVector = PuzzleIcons.Back,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
         val name = when (account) {
             is ProfileUiState.Account.SignedIn -> account.identity.displayName.ifEmpty { "Player" }
             is ProfileUiState.Account.SignedOut -> "Guest player"
@@ -112,6 +132,7 @@ internal fun ProfileContent(
                 )
             }
         }
+    }
     }
 }
 

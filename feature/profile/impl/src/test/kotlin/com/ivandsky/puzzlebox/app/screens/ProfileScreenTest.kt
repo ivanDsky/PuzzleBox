@@ -83,6 +83,7 @@ class ProfileScreenTest {
         showCatalog: Boolean = true,
         slim: Boolean = false,
         onBack: (() -> Unit)? = null,
+        onOpenSettings: (() -> Unit)? = null,
     ) {
         signInClicks = 0
         signOutClicks = 0
@@ -99,6 +100,7 @@ class ProfileScreenTest {
                     onOpenCatalog = if (showCatalog) ({ catalogClicks++ }) else null,
                     slim = slim,
                     onBack = onBack,
+                    onOpenSettings = onOpenSettings,
                 )
             }
         }
@@ -367,6 +369,23 @@ class ProfileScreenTest {
         setContent(stateOf(signedIn))
 
         composeRule.onNodeWithTag("profile.back").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the gear calls the settings callback once, and only shows when given`() {
+        var opened = 0
+        setContent(stateOf(signedIn), slim = true, onBack = {}, onOpenSettings = { opened++ })
+
+        composeRule.onNodeWithTag("profile.settings").performClick()
+
+        composeRule.runOnIdle { assertEquals(1, opened) }
+    }
+
+    @Test
+    fun `without a settings callback there is no gear`() {
+        setContent(stateOf(signedIn), slim = true, onBack = {})
+
+        composeRule.onNodeWithTag("profile.settings").assertDoesNotExist()
     }
 
 }
