@@ -26,7 +26,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h891dp")
 class StrandsFriendHintE2ETest {
 
-    private val world = FriendWorld(StrandsWoods.flag)
+    private val world = FriendWorld(StrandsWoods.flags)
 
     @After
     fun close() = world.close()

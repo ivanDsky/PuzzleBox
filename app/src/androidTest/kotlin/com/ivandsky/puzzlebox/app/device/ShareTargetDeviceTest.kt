@@ -31,7 +31,7 @@ class ShareTargetDeviceTest {
 
     private val graph = E2eKoinGraph(
         E2E_TODAY,
-        releaseFlags = FakeReleaseFlags(ReleaseFlag.ShareTarget, ReleaseFlag.ZipEditor),
+        releaseFlags = FakeReleaseFlags(ReleaseFlag.ShareTarget),
     )
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 

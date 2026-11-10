@@ -63,7 +63,7 @@ internal const val FRIEND_TIMEOUT_MS = 10_000L
  * started [CustomBoardSubmitter] posts the win to [boards] and [LeaderboardSubmitWatcher] posts
  * the dailies to the graph's daily board. [close] after the run.
  */
-internal class FriendWorld(vararg flags: ReleaseFlag) {
+internal class FriendWorld(flags: List<ReleaseFlag> = emptyList()) {
 
     val drafts = FakeDraftRepository()
     val shared = FakeSharedPuzzleRepository()
@@ -89,7 +89,7 @@ internal class FriendWorld(vararg flags: ReleaseFlag) {
                 }.also { room = it }.koin.get()
             }
         },
-        releaseFlags = FakeReleaseFlags(*flags),
+        releaseFlags = FakeReleaseFlags(*flags.toTypedArray()),
     )
 
     fun close() {

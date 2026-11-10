@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.app
 
 import com.ivandsky.puzzlebox.app.debug.flags.DebugReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,5 +30,17 @@ class DebugReleaseFlagsBindingTest {
         } finally {
             stopKoin()
         }
+    }
+
+    @Test
+    fun `a stored override named for a deleted flag is ignored`() {
+        val context = RuntimeEnvironment.getApplication()
+        context.getSharedPreferences("release_flags", android.content.Context.MODE_PRIVATE)
+            .edit().putBoolean("ZipEditor", false).commit()
+
+        val flags = DebugReleaseFlags(context)
+
+        assertEquals(emptyMap<ReleaseFlag, Boolean>(), flags.overrides.value)
+        assertEquals(ReleaseFlag.entries.filter { it.releaseDefault }.toSet(), flags.enabled.value)
     }
 }

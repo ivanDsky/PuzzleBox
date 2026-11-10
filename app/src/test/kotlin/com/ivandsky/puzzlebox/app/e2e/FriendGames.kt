@@ -27,11 +27,11 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 
 /**
- * A game the friend open loop runs over: its editor [flag], the one-solution [board] its author
+ * A game the friend open loop runs over: its editor [flags] (none once released), the one-solution [board] its author
  * publishes, and how a friend plays that board to its win through the board's own input (the
  * handlers its gestures call), never by writing a result.
  */
-abstract class FriendGame(private val label: String, val flag: ReleaseFlag) {
+abstract class FriendGame(private val label: String, val flags: List<ReleaseFlag> = emptyList()) {
     abstract val board: EditorDraft<*>
     val id: GameId get() = board.gameId
 
@@ -42,7 +42,7 @@ abstract class FriendGame(private val label: String, val flag: ReleaseFlag) {
 }
 
 /** A 5×5 Zip board whose walls force one path: a corridor snaking row by row. */
-object ZipCorridor : FriendGame("Zip", ReleaseFlag.ZipEditor) {
+object ZipCorridor : FriendGame("Zip") {
     private const val SIZE = 5
 
     /** The one path, row-major cell indices. */
@@ -63,7 +63,7 @@ object ZipCorridor : FriendGame("Zip", ReleaseFlag.ZipEditor) {
 }
 
 /** A unique 6×6 Tango board: ten givens and four edge markers. */
-object TangoSunMoon : FriendGame("Tango", ReleaseFlag.TangoEditor) {
+object TangoSunMoon : FriendGame("Tango", listOf(ReleaseFlag.TangoEditor)) {
     /** The board's full solution, row-major. */
     private val SOLUTION: List<TangoCell> = listOf("SSMSMM", "SSMSMM", "MMSMSS", "SSMMSM", "MMSSMS", "MMSMSS")
         .flatMap { row -> row.map { if (it == 'S') TangoCell.SUN else TangoCell.MOON } }
@@ -89,7 +89,7 @@ object TangoSunMoon : FriendGame("Tango", ReleaseFlag.TangoEditor) {
 }
 
 /** A 6×6 Mini Sudoku with one solution the hint ladder finishes. */
-object MiniSudokuCorner : FriendGame("MiniSudoku", ReleaseFlag.SudokuEditor) {
+object MiniSudokuCorner : FriendGame("MiniSudoku", listOf(ReleaseFlag.SudokuEditor)) {
     private val MINI = SudokuGames.MINI
 
     /** `0` is an empty cell. */

@@ -175,7 +175,7 @@ class CreateViewModelTest {
         on.value = setOf(ReleaseFlag.StrandsEditor)
         assertEquals(listOf(queens.gameId, strands.gameId), vm.uiState.value.games.map { it.id })
 
-        on.value = setOf(ReleaseFlag.ZipEditor)
+        on.value = setOf(ReleaseFlag.TangoEditor)
         assertEquals(listOf(queens.gameId), vm.uiState.value.games.map { it.id })
     }
 
