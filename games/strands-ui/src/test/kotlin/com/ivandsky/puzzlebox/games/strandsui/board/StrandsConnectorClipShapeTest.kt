@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.StrandsState
+import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.games.strands.render.LinkKind
 import com.ivandsky.puzzlebox.games.strands.render.StrandsLink
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
@@ -49,7 +50,13 @@ class StrandsConnectorClipShapeTest {
 
     private fun show(links: List<StrandsLink>, dim: StrandsDim, end: TraceEnd?, reduceMotion: Boolean) {
         rule.mainClock.autoAdvance = false
-        val model = StrandsRendererModel.of(StrandsState(StrandsUiFixtures.puzzle), emptyList()).copy(links = links)
+        val base = StrandsRendererModel.of(StrandsState(StrandsUiFixtures.puzzle), emptyList())
+        // The editor's tiles are found-theme ones: fill and lip, which an idle cell has neither of.
+        val linked = links.flatMap { it.cells }.toSet()
+        val model = base.copy(
+            links = links,
+            cells = base.cells.map { if (it.coord in linked) it.copy(state = CellState.FoundTheme) else it },
+        )
         rule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 Box(Modifier.size(256.dp)) {
@@ -75,6 +82,31 @@ class StrandsConnectorClipShapeTest {
     }
 
     private fun board(): PixelMap = rule.onNodeWithTag("strands.board").captureToImage().toPixelMap()
+
+    @Test
+    fun `a dimmed vertical link leaves no bare board between its tiles, whatever lip they paint`() {
+        val vertical = listOf(Coord(0, 0), Coord(1, 0))
+        val link = StrandsLink(vertical, LinkKind.Theme)
+        show(listOf(link), StrandsDim(vertical.toSet(), setOf(link), alpha = 0.4f), end = null, reduceMotion = true)
+        rule.mainClock.advanceTimeByFrame()
+        val pixels = board()
+        assertNoBareBoardBetweenTiles(pixels, pixels[1, 1])
+    }
+
+    @Test
+    fun `a dissolving rejected vertical path leaves no bare board between its tiles`() {
+        show(emptyList(), StrandsDim.None, TraceEnd(listOf(Coord(0, 0), Coord(1, 0)), TraceEndKind.Short, 1), reduceMotion = false)
+        rule.mainClock.advanceTimeBy(StrandsMotion.ShortHoldMs + 40L)
+        val pixels = board()
+        assertNoBareBoardBetweenTiles(pixels, pixels[1, 1])
+    }
+
+    /** Down the column through two stacked tiles' centres, tile, stroke and tile run on: no pixel is the bare [board]. */
+    private fun assertNoBareBoardBetweenTiles(pixels: PixelMap, board: Color) {
+        val pitch = pixels.width / 4f
+        val x = (pitch * 0.5f).toInt()
+        for (y in (pitch * 0.5f).toInt()..(pitch * 1.5f).toInt()) assertNotEquals("bare board at y=$y", board, pixels[x, y])
+    }
 
     @Test
     fun `a dimmed diagonal link stays on the bare board past the tile's rounded corner`() {
