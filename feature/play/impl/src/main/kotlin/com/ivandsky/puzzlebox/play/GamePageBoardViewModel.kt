@@ -28,25 +28,19 @@ import kotlinx.coroutines.flow.stateIn
 /** Which day's board the game page shows; Today is first. */
 internal enum class BoardDay { Today, Yesterday }
 
-/** How much of the board the game page shows: the first rows, or the rows around the player. */
-internal enum class BoardView { Top, Near }
-
 /**
- * What [GamePageBoard] draws: the [day] and [view] chosen, the [board] to draw for them,
- * and whether [BoardView.Near] is [nearOffered] (the player has a row on that day's
- * board). [view] is what a loaded [board] shows, so it is [BoardView.Top] whenever Near is
- * not offered. While the chosen day's board has not arrived, [board] is Loading.
+ * What [GamePageBoard] draws: the [day] chosen and the [board] to draw for it, the top rows
+ * with the player's own row pinned under them when it ranks lower. While the chosen day's
+ * board has not arrived, [board] is Loading.
  */
 internal data class GamePageBoardState(
     val day: BoardDay = BoardDay.Today,
-    val view: BoardView = BoardView.Top,
     val board: DailyBoardState = DailyBoardState.Loading,
-    val nearOffered: Boolean = false,
 )
 
 /**
  * One game's board on its page: today's or yesterday's, read through [leaderboard] so every
- * identity change restarts it, and sliced by [PlayTimes.Board]'s own Top and Near you rule.
+ * identity change restarts it, and sliced by [PlayTimes.Board]'s own top rule.
  * Sign-in goes through one [BoardSignInHolder], so the page's board signs in without leaving.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -60,7 +54,6 @@ internal class GamePageBoardViewModel(
 ) : ViewModel() {
 
     private val day = MutableStateFlow(BoardDay.Today)
-    private val view = MutableStateFlow(BoardView.Top)
     private val signInHolder = BoardSignInHolder(identity, idTokens)
 
     /** The game's display name, for the board's title. */
@@ -70,9 +63,9 @@ internal class GamePageBoardViewModel(
     val order: RankOrder = registry.rankOrderOf(game)
 
     val state: StateFlow<GamePageBoardState> =
-        combine(day, boards(), view) { chosen, (drawnDay, board), selected ->
+        combine(day, boards()) { chosen, (drawnDay, board) ->
             // The chosen day is shown at once; another day's rows never stay under it while its board loads.
-            if (drawnDay == chosen) stateOf(chosen, selected, board) else GamePageBoardState(day = chosen, view = selected)
+            if (drawnDay == chosen) stateOf(chosen, board) else GamePageBoardState(day = chosen)
         }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GamePageBoardState())
 
@@ -81,10 +74,6 @@ internal class GamePageBoardViewModel(
 
     fun selectDay(day: BoardDay) {
         this.day.value = day
-    }
-
-    fun selectView(view: BoardView) {
-        this.view.value = view
     }
 
     /** The board's Google button: [activityContext] hosts Google's account picker, and is not kept. */
@@ -97,21 +86,23 @@ internal class GamePageBoardViewModel(
             .map { chosen to it }
     }
 
-    private fun stateOf(day: BoardDay, view: BoardView, board: TodayLeaderboard): GamePageBoardState {
+    private fun stateOf(day: BoardDay, board: TodayLeaderboard): GamePageBoardState {
         val drawn = board.toDailyBoardState()
         val ranked = (drawn as? DailyBoardState.Ranked)?.rows?.let { rows ->
             PlayTimes.Board(rows.map { PlayTimeRow(it.rank, it.name, it.timeMs, it.hints, it.isSelf) }, solved = false)
         } ?: return GamePageBoardState(day = day, board = drawn)
-        val near = ranked.nearYou
-        val shown = if (view == BoardView.Near && near != null) BoardView.Near else BoardView.Top
-        val rows = if (shown == BoardView.Near) near.orEmpty() else ranked.top
+        val pinned = ranked.pinned
+        val top = if (pinned == null) ranked.top else ranked.top.dropLast(1)
         return GamePageBoardState(
             day = day,
-            view = shown,
-            board = DailyBoardState.Ranked(rows.map { DailyBoardRowModel(it.rank, it.name, it.timeMs, it.hints, isSelf = it.you) }),
-            nearOffered = near != null,
+            board = DailyBoardState.Ranked(
+                top.map { it.toRow() },
+                pinned = pinned?.toRow(),
+            ),
         )
     }
+
+    private fun PlayTimeRow.toRow() = DailyBoardRowModel(rank, name, timeMs, hints, isSelf = you)
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
