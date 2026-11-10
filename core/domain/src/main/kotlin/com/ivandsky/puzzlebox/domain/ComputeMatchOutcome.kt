@@ -8,7 +8,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 
 /**
- * The one rule for who won a duel (spec A2, A3, A10): per-leg verdicts and the match verdict as [me] (either
+ * The one rule for who won a duel: per-leg verdicts and the match verdict as [me] (either
  * participant) sees them, from the results seen so far and [now]. Pure: no clock, no I/O.
  *
  * A result counts only when completed at or before the deadline. A leg compares whole seconds under its game's

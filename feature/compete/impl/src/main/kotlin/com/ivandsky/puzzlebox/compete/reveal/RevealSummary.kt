@@ -63,7 +63,7 @@ private val WinBorder = 3.dp
 private val QuietBorder = 1.dp
 
 /**
- * The reveal's end (handoff 03-reveal, "Final score and summary"): the verdict card, the three tiles, the puzzles list
+ * The reveal's end: the verdict card, the three tiles, the puzzles list
  * and Rematch / Share / Watch again. [wide] puts the summary on the left and the list on the right; a phone has one
  * column. Back arrow leaves through [onBack].
  */

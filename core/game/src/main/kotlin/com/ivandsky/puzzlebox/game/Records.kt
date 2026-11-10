@@ -5,7 +5,7 @@ import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
 
 /**
- * Per-puzzle identity as the game authors it (finding F2-3 / ADR-0004). Record semantics
+ * Per-puzzle identity as the game authors it (ADR-0004). Record semantics
  * are per-puzzle, so a record without identity cannot exist. core/data keys and stamps
  * records per game + ref.
  *
@@ -42,9 +42,9 @@ class RecordStats(
 
 /**
  * Normalized completion emitted by a game (ADR-0004). Indexed semantics: [time] + [hints],
- * lower is better (A3) — mistakes are never recorded there, only in [stats] as analytics.
+ * lower is better — mistakes are never recorded there, only in [stats] as analytics.
  * Games emit EVERY completion, replays included; [firstCompletedAt]/[isRecord] are stamped
- * by core/data (A4/A5) and are null/false as emitted.
+ * by core/data and are null/false as emitted.
  */
 data class CompletionRecord(
     val puzzleRef: PuzzleRef,

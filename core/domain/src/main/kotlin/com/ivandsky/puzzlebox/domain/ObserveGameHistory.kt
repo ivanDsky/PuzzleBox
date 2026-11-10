@@ -28,7 +28,7 @@ data class GameHistoryDay(
     /** Capture recency when the day was fetched into the daily cache; 0 for rows that
      *  exist only as a completion record. */
     val fetchedAtMs: Long = 0L,
-    /** Played from the archive (A23) rather than captured as that day's daily; false for
+    /** Played from the archive rather than captured as that day's daily; false for
      *  rows that exist only as a completion record. */
     val archived: Boolean = false,
     /** Set when the day's record was solved in a duel; null for every other day. */
@@ -39,8 +39,8 @@ data class GameHistoryDay(
  * The merged, newest-first history across games: every listed game's record rows
  * UNION the captured days of every game in [GameRegistry.all] (replayable through the daily cache; a solved day merges into its captured
  * row instead of duplicating it). Rows whose key no registered game can decode are
- * dropped upstream by the repository's preserve-or-drop read (A19), so every record here
- * is decodable. A custom (friend-puzzle) record has no day and adds no row (A12). An
+ * dropped upstream by the repository's preserve-or-drop read, so every record here
+ * is decodable. A custom (friend-puzzle) record has no day and adds no row. An
  * unlisted game's records (the debug 9x9, ADR-0015) are dropped here, so
  * no history, Home, stats or Profile surface ever shows them.
  *

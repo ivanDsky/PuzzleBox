@@ -9,7 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import org.koin.dsl.module
 
 /**
- * Backend bindings (design §1): the contract seams bind to this module's
+ * Backend bindings: the contract seams bind to this module's
  * implementations — swapping backends later means changing these bindings and
  * deleting the module, never touching `core/` or `:feature:*`.
  *

@@ -90,7 +90,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The Play tab's games library over stand-in games (A25–A29): the tablet shows the list
+ * The Play tab's games library over stand-in games: the tablet shows the list
  * beside the first game's page and a row tap switches it; the phone pushes a page from a
  * row and back returns to the list. The day card's action reports its game; opening the
  * library fetches today once, and an offline row's tap retries. "Open the lesson" runs

@@ -27,9 +27,9 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
- * The pinned CompletionRepository contract over real Room (A17): the DoD play-twice test —
+ * The pinned CompletionRepository contract over real Room: the play-twice test —
  * first win is the record and stays immutable after faster replays; replay rows are kept
- * for stats and never leaderboard-eligible (A5).
+ * for stats and never leaderboard-eligible.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -69,7 +69,7 @@ class CompletionRepositoryTest {
 
         repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 2))
         nowMs += 60_000
-        // The replay is objectively better (A3: 71_000 < 95_000) — the record must not move.
+        // The replay is objectively better (71_000 < 95_000) — the record must not move.
         repository.onCompleted(completion(day, 592, timeMs = 71_000, hints = 0))
 
         val records = repository.observeRecords().first()

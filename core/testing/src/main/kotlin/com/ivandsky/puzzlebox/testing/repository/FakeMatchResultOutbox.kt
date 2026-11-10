@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
-/** In-memory [MatchResultOutbox]; it passes the same contract test as the Room adapter (S15). */
+/** In-memory [MatchResultOutbox]; it passes the same contract test as the Room adapter. */
 class FakeMatchResultOutbox : MatchResultOutbox {
 
     private data class Key(val code: ShareCode, val legIndex: Int, val uid: String)

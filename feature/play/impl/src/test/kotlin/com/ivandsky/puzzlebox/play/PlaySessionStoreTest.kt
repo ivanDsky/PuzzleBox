@@ -34,7 +34,7 @@ import org.junit.Test
 /**
  * The play session store's catalogue and its process lifetime over stand-in games: which
  * games are playable, that an unplayable key opens nothing, and that a mid-game play
- * resumes (A26: it no longer "never resumes") even in a brand-new store after process
+ * resumes (it no longer "never resumes") even in a brand-new store after process
  * death. Slot sharing, pinning, release and flush are [PlaySessionStoreSlotsTest]'s.
  */
 class PlaySessionStoreTest {

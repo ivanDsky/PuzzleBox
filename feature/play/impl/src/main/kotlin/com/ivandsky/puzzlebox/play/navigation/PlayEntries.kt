@@ -28,11 +28,11 @@ import org.koin.compose.koinInject
 /**
  * The play feature's routes. [PlayKey] is the Play tab's games library: a day card's
  * action pushes that game's [GameKey] for today, or with the day for a past one picked on
- * the calendar (guarded against a double tap), so back returns to the library (N2, N3). [onOpenHistory] is unused since the library replaced the hub's
- * "Older puzzles" footer; it stays because the app's entry provider (outside this ticket)
+ * the calendar (guarded against a double tap), so back returns to the library. [onOpenHistory] is unused since the library replaced the hub's
+ * "Older puzzles" footer; it stays because the app's entry provider (in the app module)
  * still passes it. A [GameKey] on any stack draws its slot's live play: Up is
  * the navigator's back, and solving replaces the board with its slot's result, so back
- * from there lands on the game's origin (SC4); [GameEntry] sends a finished day to its
+ * from there lands on the game's origin; [GameEntry] sends a finished day to its
  * result instead. The library's Enter code pushes that code's
  * [FriendPuzzleKey] card; its Play pushes the puzzle's [CustomGameKey] board, and solving
  * replaces the board with its [CustomResultKey] result, whose Done pops back to the card and
@@ -118,7 +118,7 @@ fun EntryProviderScope<NavKey>.playEntry(
 
 /**
  * A slot's result: "Play again" starts a fresh attempt of the same day explicitly
- * ([PlaySessionStore.replay], A9) and replaces the result with its game; Next replaces it
+ * ([PlaySessionStore.replay]) and replaces the result with its game; Next replaces it
  * with another game's today (17); Up and Done pop. [onOpenBoard] turns today's board block into a
  * "Full board" row handing back the result's game; null keeps the board.
  */

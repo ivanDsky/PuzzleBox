@@ -79,8 +79,8 @@ private fun ChipSurface(
 }
 
 // Previews — Studio tooling only, zero public API surface (internal, not private, so
-// Showkase's generated index can access them; ticket 00 visibility findings). Exactly
-// light + dark, always inside PuzzleBoxTheme (spec A1/A5). A8: neither chip animates —
+// Showkase's generated index can access them). Exactly
+// light + dark, always inside PuzzleBoxTheme. Neither chip animates —
 // no infinite transition, no trigger — so static panes show the resting state.
 
 @ShowkaseComposable(name = "ScoreChip", group = "Chips")

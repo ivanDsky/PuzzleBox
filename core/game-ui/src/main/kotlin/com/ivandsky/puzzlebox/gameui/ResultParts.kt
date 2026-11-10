@@ -46,7 +46,7 @@ internal fun resultTitle(game: String, number: Int?, practice: Boolean): String 
 }
 
 /**
- * The result's header row (spec A16): the game's glyph tile (tag `result.stamp`), which
+ * The result's header row: the game's glyph tile (tag `result.stamp`), which
  * lands with the [Stamp] once on entry (Stamp handles reduced motion; a preview shows it
  * at rest), then [title] (tag `result.label`, wrapping to a second line rather than losing
  * words to the pill) and the record pill. The glyph's box is reserved from the first
@@ -78,7 +78,7 @@ internal fun ResultHeader(brand: GameBrand, title: String, verdict: RecordVerdic
 }
 
 /**
- * The honest-best pill (tag `result.record_badge`, A10): "New best", "Tied your best!" or
+ * The honest-best pill (tag `result.record_badge`): "New best", "Tied your best!" or
  * "First solve"; nothing for a slower solve, a replay or an unknown verdict. A tag, not a
  * button — 28 dp, pill-shaped, in the game's accent container, with a leading trophy.
  */

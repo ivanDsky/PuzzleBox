@@ -108,7 +108,7 @@ class TangoCompeteLoopTest {
 
         val record = completions.observeRecords().first()[0]
 
-        // The A4 stamp (isRecord + firstCompletedAt) is Room's onCompleted job; the fake
+        // The record stamp (isRecord + firstCompletedAt) is Room's onCompleted job; the fake
         // skips it, so emulate the stamp from the session's completedAt exactly as the
         // store derives it.
         assertEquals(135_000L, record.time)

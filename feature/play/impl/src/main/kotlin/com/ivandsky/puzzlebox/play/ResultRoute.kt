@@ -34,12 +34,12 @@ import org.koin.core.parameter.parametersOf
 /**
  * The result screen's DI-bound entry point for [key]'s slot. The frozen facts ride the
  * key (process-death stable); the pill, the read facts and the write-failure retry come
- * from [ResultViewModel] — the record write is never awaited here (F2 §7).
+ * from [ResultViewModel] — the record write is never awaited here.
  *
- * Up and Done both hand back [onDone] (a pop to the game's origin, SC4). "Play again" hands
+ * Up and Done both hand back [onDone] (a pop to the game's origin). "Play again" hands
  * back [onPlayAgain]: the app resets the solved live play to a fresh attempt
  * ([PlaySessionStore.replay]) and replaces this entry with the game. "Next: <game>" hands back
- * [onNext] with the next unsolved daily (A7, SC10). Share (A17) opens the system share sheet
+ * [onNext] with the next unsolved daily. Share opens the system share sheet
  * with the plain [resultShareText] — no screen of our own.
  *
  * The hero page ([ResultHeroScreen]) draws the solve: the frozen facts, the view model's
@@ -164,7 +164,7 @@ private fun resultBoard(
             order = viewModel.boardOrder,
             state = shown,
             signIn = {
-                // RG11: the hero rank row is the one sign-in action, so the board says text only.
+                // The hero rank row is the one sign-in action, so the board says text only.
                 SignInPrompt(
                     title = "Sign in to see today's board",
                     yourTimeMs = key.timeMs,

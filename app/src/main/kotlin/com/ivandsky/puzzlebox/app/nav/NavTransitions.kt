@@ -139,7 +139,7 @@ internal data class NavMotion(
  * The shell's one chooser over NavDisplay scene metadata ([OWNER_TAB], [ENTRY_KEY]); [from] is
  * the outgoing entry's, [to] the incoming one's. [liftable] says the game has a card to grow
  * out of (push) or shrink back into (pop); only the tablet form reads it.
- * - Reduced motion: the upper page fades for every case (A20).
+ * - Reduced motion: the upper page fades for every case.
  * - Another owner tab: phone fade-through; tablet rise-over.
  * - Phone, same tab: the full-screen slide, result included.
  * - Tablet, into or out of a game: lift from its card, or the phone slide without one

@@ -109,7 +109,7 @@ class RealGamesResultRouteTest {
                 }
             }
             composeRule.waitForIdle()
-            // The route speaks for the live play only for the solve it holds (F2): key it by that solve.
+            // The route speaks for the live play only for the solve it holds: key it by that solve.
             val solved = composeRule.runOnIdle { checkNotNull(zip().session) }
             var replayed = false
             composeRule.setContent {
@@ -166,7 +166,7 @@ class RealGamesResultRouteTest {
                 }
             }
             composeRule.waitForIdle()
-            // The board shows (signed out) and says text only; the rank row keeps the action (RG11).
+            // The board shows (signed out) and says text only; the rank row keeps the action.
             composeRule.onNodeWithTag("daily_board.title").assertExists()
             composeRule.onNodeWithText("Sign in to see today's board").assertExists()
             composeRule.onNodeWithTag("result.side.rank.signin").assertExists()

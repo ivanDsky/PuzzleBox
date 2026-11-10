@@ -69,7 +69,7 @@ import org.junit.Test
 
 /**
  * The result VM for a [ResultKey]'s slot: live (the slot's play in the store, holding
- * this solve) it shows the play's A10 verdict, previous best and write retry; once the
+ * this solve) it shows the play's verdict, previous best and write retry; once the
  * live play replays or re-solves it keeps the verdict it saw and hides retry; cold (after
  * process death) the verdict is unknown — the session-start baseline died with the play.
  * The read facts hold either way: the edition number (none = practice), today's progress

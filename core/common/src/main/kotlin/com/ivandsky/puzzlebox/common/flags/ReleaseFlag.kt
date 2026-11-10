@@ -19,13 +19,13 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     /** The Strands puzzle editor. */
     StrandsEditor(label = "Strands editor", releaseDefault = false),
 
-    /** Import from text: the Create header pill, empty-state button, New-puzzle row and Studio overflow item (spec A23). */
+    /** Import from text: the Create header pill, empty-state button, New-puzzle row and Studio overflow item. */
     TextImport(label = "Import from text", releaseDefault = false),
 
-    /** PuzzleBox as an Android share target for plain text (spec A3, A28). */
+    /** PuzzleBox as an Android share target for plain text. */
     ShareTarget(label = "Share text to PuzzleBox", releaseDefault = false),
 
-    /** Competitions: async 1v1 duels between friends (spec A16). */
+    /** Competitions: async 1v1 duels between friends. */
     Competitions(label = "Competitions: 1v1 duels", releaseDefault = false),
 
     /** Navigation v2: the Today · Games · History · Create tab set, Profile and Settings off the shell (ADR-0027). */

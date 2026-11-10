@@ -28,12 +28,12 @@ import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 
 /**
- * Owner of the play feature's live plays: one [ActivePlay] per [PlaySlot] (A9, N21), so
+ * Owner of the play feature's live plays: one [ActivePlay] per [PlaySlot], so
  * every stack that shows a game's day shares its board. A play outlives its entry's
  * composition: the record write is fire-and-observe (a navigation must not cancel it),
  * the badge lands on the result screen, and [replay] (Result's "Play again") resets in place.
  * A Koin single is the process lifetime; [retain] releases what no back stack names (fold →
- * flush → cancel) and [flush] writes every pending save at app stop (A10).
+ * flush → cancel) and [flush] writes every pending save at app stop.
  *
  * Confined to [DispatcherProvider.main] (immediate where it has one): the plays, their
  * [SlotWriter]s and the release/flush jobs all run on that one thread.
@@ -51,7 +51,7 @@ class PlaySessionStore internal constructor(
     private val calendar: GameCalendar,
     dispatchers: DispatcherProvider,
 ) {
-    /** The picker's entries (A14): every game with both a plugin and a play UI, in
+    /** The picker's entries: every game with both a plugin and a play UI, in
      *  [GameRegistry.all] order, with its display name. */
     val playable: List<Pair<GameId, String>> =
         games.all.filter { ui[it.definition.id] != null }.map { it.definition.id to it.definition.displayName }
@@ -76,8 +76,8 @@ class PlaySessionStore internal constructor(
     private fun ResultKey.slot() = PlaySlot.Daily(GameId(gameId), LocalDate.parse(day))
 
     /**
-     * The live play of [key]'s slot (N21), created through [SlotOpening] on first open
-     * (saved row → today's fetch → a past day's build, A11). A null day resolves to the
+     * The live play of [key]'s slot, created through [SlotOpening] on first open
+     * (saved row → today's fetch → a past day's build). A null day resolves to the
      * game's today once and stays pinned while the key is retained. Never resets a complete
      * play: a finished day is shown by [completedResult] before this opens, and a fresh
      * attempt is [replay]'s. Null when the game is unplayable.
@@ -129,7 +129,7 @@ class PlaySessionStore internal constructor(
     }
 
     /**
-     * Result's "Play again" (A9): [key]'s slot starts a fresh attempt of the same puzzle. A
+     * Result's "Play again": [key]'s slot starts a fresh attempt of the same puzzle. A
      * complete live play is reset in place; with none live the slot opens fresh (a solve
      * deleted its row). The play is live afterwards, so the board that follows opens it as is.
      */
@@ -143,7 +143,7 @@ class PlaySessionStore internal constructor(
      *  code is unreadable or the game is unplayable. */
     fun open(key: MatchLegKey): ActivePlay? = key.slot?.let { open(it) }
 
-    /** Gives up [key]'s leg (A22: a loss, never restarted): the loss is queued first, then the live
+    /** Gives up [key]'s leg (a loss, never restarted): the loss is queued first, then the live
      *  play is dropped without its save, or the saved row when none is live; no completion. Signed
      *  out, nothing is queued and the play and its save stay. Runs on the store's scope, so a
      *  navigation right after can't cut it. Null for an unreadable code. */

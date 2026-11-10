@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.airbnb.android.showkase.annotation.ShowkaseComposable
 
 /**
- * The app's one icon set (identity §2.5, spec A3): every icon call site reads a member
+ * The app's one icon set: every icon call site reads a member
  * here, never `Icons.*` directly. Members the frozen material-icons-core set carries are
  * its Rounded glyphs (Outlined for the unselected nav states); the rest are Material
  * Symbols Rounded 24dp drawables in res/drawable (`ic_<symbol name>.xml`, FILL 0), read

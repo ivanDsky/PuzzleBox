@@ -138,10 +138,10 @@ internal fun navV2At(tab: NavKey, vararg pushed: NavKey): NavigationState {
 /**
  * The E2E vocabulary: user gestures (tabs, taps, system and predictive back), lifecycle
  * (background, saved-state restore, relaunch) and the row assertions. Every assertion of
- * a state also checks SC2 (exactly one tab selected, the state's tab; no tab at all in
- * immersive play, N2); every route
- * assertion checks that the tag is the only `route.*` on screen (SC1). Failures print
- * states in spec notation (`**Home**[Home] Play[Play] Profile[Profile]`).
+ * a state also checks that exactly one tab is selected (the state's tab; no tab at all in
+ * immersive play); every route
+ * assertion checks that the tag is the only `route.*` on screen. Failures print
+ * states in a compact notation (`**Home**[Home] Play[Play] Profile[Profile]`).
  */
 class ShellRobot internal constructor(
     val graph: E2eKoinGraph,
@@ -196,7 +196,7 @@ class ShellRobot internal constructor(
     }
 
     /**
-     * A tab switch from a board or a result, where immersive play (N2) hides the bar: the
+     * A tab switch from a board or a result, where immersive play hides the bar: the
      * same [Navigator.selectTab] the bar's tap makes, for rows that hop away from live play.
      */
     fun switchTab(key: NavKey) {
@@ -529,8 +529,8 @@ class ShellRobot internal constructor(
     }
 
     /**
-     * SC2: every tab shows once, and exactly [tab] is selected — or, while the live state is
-     * immersive (N2: a board or a result on top), no tab shows at all.
+     * Every tab shows once, and exactly [tab] is selected — or, while the live state is
+     * immersive (a board or a result on top), no tab shows at all.
      */
     fun assertSelectedTab(tab: NavKey) {
         if (state.immersive) {
@@ -545,7 +545,7 @@ class ShellRobot internal constructor(
         assertEquals("selected tabs (state $state)", listOf(tab), selected.map { it.key })
     }
 
-    /** N2: neither bar nor rail shows a tab. */
+    /** Neither bar nor rail shows a tab. */
     fun assertNoNavigation() {
         destinations.forEach { destination ->
             val nodes = rule.onAllNodesWithTag(destination.tag).fetchSemanticsNodes()
@@ -553,7 +553,7 @@ class ShellRobot internal constructor(
         }
     }
 
-    /** SC1: [tag] is displayed and is the only `route.*` tag on screen. */
+    /** [tag] is displayed and is the only `route.*` tag on screen. */
     fun assertRoute(tag: String) {
         awaitTag(tag)
         rule.onNodeWithTag(tag, useUnmergedTree = true).assertIsDisplayed()
@@ -650,7 +650,7 @@ class ShellRobot internal constructor(
         }
     }
 
-    /** Immersive play (N2), as the shell decides it: the selected tab's top is immersive ([isImmersive]). */
+    /** Immersive play, as the shell decides it: the selected tab's top is immersive ([isImmersive]). */
     private val NavigationState.immersive: Boolean
         get() = isImmersive(currentStack.last())
 

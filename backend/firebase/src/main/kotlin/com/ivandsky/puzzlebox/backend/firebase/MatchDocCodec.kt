@@ -12,7 +12,7 @@ import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.model.ShareCode
 
 /**
- * The field names and value shapes of a duel's Firestore documents (ADR-0026, I6):
+ * The field names and value shapes of a duel's Firestore documents (ADR-0026):
  * `matches/{code}`, `matches/{code}/results/{legIndex}_{uid}`. The code is the document id,
  * so it is not a field. Pure maps in both directions; readers ignore unknown fields.
  * `matchQuota/{uid}` belongs to the store's quota transaction and is not shaped here.

@@ -15,7 +15,7 @@ dependencies {
     implementation(projects.core.common)
     implementation(projects.core.data)
     // LoadPastDay: SlotOpening opens a past day through the same use case History uses;
-    // ObserveTodaySet: the hub's statuses and Result's "Next" (spec A14).
+    // ObserveTodaySet: the hub's statuses and Result's "Next".
     implementation(projects.core.domain)
     implementation(projects.core.game)
     // ADR-0001/ADR-0007: play is game-agnostic — every game reaches it through the

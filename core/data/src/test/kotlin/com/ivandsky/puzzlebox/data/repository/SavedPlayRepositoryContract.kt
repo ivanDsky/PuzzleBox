@@ -11,7 +11,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * Behavior every [SavedPlayRepository] adapter must pass (A12). Subclasses supply a fresh,
+ * Behavior every [SavedPlayRepository] adapter must pass. Subclasses supply a fresh,
  * empty [repository]; adapter-specific cases (eviction) live in the subclass.
  */
 abstract class SavedPlayRepositoryContract {

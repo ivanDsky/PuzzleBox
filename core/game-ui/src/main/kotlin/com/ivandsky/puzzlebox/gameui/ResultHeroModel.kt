@@ -58,7 +58,7 @@ internal data class ResultHeroModel(
 )
 
 /**
- * The model for [facts] (spec: Results hero). A practice puzzle (A22) counts nothing: no
+ * The model for [facts]. A practice puzzle counts nothing: no
  * pill, streak, spread or rank. A replay counts nothing either but shows the spread: no
  * pill, streak or rank. The streak, spread and rank wait for their data, so none shows a
  * placeholder; the Average chip hides on a first solve.

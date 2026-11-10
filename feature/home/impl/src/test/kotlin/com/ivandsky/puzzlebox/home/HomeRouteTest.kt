@@ -120,7 +120,7 @@ class HomeRouteTest {
         releases: AppReleaseRepository = FakeAppReleaseRepository(),
     ) {
         val fakeIdentity = FakeIdentityService()
-        // Home prefetches today's puzzles on resume (A12): by default a fresh fetch keeps Zip not started.
+        // Home prefetches today's puzzles on resume: by default a fresh fetch keeps Zip not started.
         daily.setToday(GameId("zip"), zipToday)
         startKoin {
             modules(
