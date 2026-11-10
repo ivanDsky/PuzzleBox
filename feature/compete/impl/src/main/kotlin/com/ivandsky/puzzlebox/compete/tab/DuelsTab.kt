@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.compete.tab
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -91,19 +92,22 @@ internal fun DuelsTabContent(
         item(key = "challenge") { DuelChallengeCard(signedIn = signedIn, onClick = onNewDuel) }
         items(rows, key = { it.code.value }) { row ->
             val open = { onOpenDuel(DuelKey(row.code.value)) }
-            when (row.kind) {
-                DuelRowKind.Invited -> InvitedRow(
-                    row = row,
-                    inFlight = row.code in inFlight,
-                    note = notes[row.code],
-                    onAccept = { onAccept(row.code) },
-                    onDecline = { onDecline(row.code) },
-                    onClick = open,
-                )
-                DuelRowKind.Unclaimed -> UnclaimedRow(row, inviter, onClick = open)
-                DuelRowKind.RevealReady ->
-                    DuelCard(row, now, onClick = { onOpenReveal(DuelRevealKey(row.code.value)) })
-                DuelRowKind.YourMove, DuelRowKind.Waiting -> DuelCard(row, now, onClick = open)
+            // One tag per row of any kind: the kinds carry their own tags (an invite's, say), a second would clash.
+            Box(Modifier.testTag("duel.row.${row.code.value}")) {
+                when (row.kind) {
+                    DuelRowKind.Invited -> InvitedRow(
+                        row = row,
+                        inFlight = row.code in inFlight,
+                        note = notes[row.code],
+                        onAccept = { onAccept(row.code) },
+                        onDecline = { onDecline(row.code) },
+                        onClick = open,
+                    )
+                    DuelRowKind.Unclaimed -> UnclaimedRow(row, inviter, onClick = open)
+                    DuelRowKind.RevealReady ->
+                        DuelCard(row, now, onClick = { onOpenReveal(DuelRevealKey(row.code.value)) })
+                    DuelRowKind.YourMove, DuelRowKind.Waiting -> DuelCard(row, now, onClick = open)
+                }
             }
         }
         if (rows.isEmpty()) item(key = "empty") { DuelsEmptyNote() }

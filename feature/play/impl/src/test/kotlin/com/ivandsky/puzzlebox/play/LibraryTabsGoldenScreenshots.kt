@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -89,6 +90,8 @@ abstract class LibraryTabsGoldenScreenshots(private val layout: PlayLayout, priv
             rule.onNodeWithTag("library.tab.${tab.name.lowercase()}").performClick()
             rule.mainClock.advanceTimeBy(SETTLE_MS)
         }
+        // The frame is the tab it names: the Duels golden (criterion 6) is the Duels pill selected, not a stale Dailies.
+        rule.onNodeWithTag("library.tab.${tab.name.lowercase()}").assertIsSelected()
         rule.settleAndCapture("tabs", name, device, dark)
     }
 

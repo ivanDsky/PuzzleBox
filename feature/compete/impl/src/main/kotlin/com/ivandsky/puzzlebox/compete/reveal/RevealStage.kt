@@ -81,7 +81,7 @@ internal fun RevealStage(
     onSkip: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+    Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).testTag("reveal.stage")) {
         RevealTopBar(plan, onSkip)
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             when (val phase = state.phase) {

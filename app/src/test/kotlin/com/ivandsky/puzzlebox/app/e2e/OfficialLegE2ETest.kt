@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.app.e2e
 
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollToNode
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
@@ -21,7 +23,6 @@ import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.domain.ArchiveProgress
-import com.ivandsky.puzzlebox.domain.DuelOrigin
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
@@ -134,7 +135,6 @@ class OfficialLegE2ETest {
         rule.waitUntil(TIMEOUT_MS) { graph.leaderboard.submitted.isNotEmpty() }
         val afterToday = awaitReads(today)
         assertEquals("the day reads solved by the leg", record, afterToday.day(today).record)
-        assertEquals("the day names its duel", DuelOrigin(code.value, OPPONENT), afterToday.day(today).duel)
         assertEquals("the streak counts the leg's day", 0 to 1, before.streak to afterToday.streak)
         assertEquals("the best is the leg's solve", BestScore(record.time, record.hints), afterToday.stats.getValue(ZIP).best)
 
@@ -142,7 +142,6 @@ class OfficialLegE2ETest {
         solveLeg(archiveLeg)
         awaitRecord(ZipPuzzleRef(PuzzleKey.Daily(archiveDay, ARCHIVE_NUMBER)))
         val after = awaitReads(archiveDay)
-        assertEquals("the archive day names its duel", DuelOrigin(code.value, OPPONENT), after.day(archiveDay).duel)
         assertNotEquals("the archive progress moved", before.archive, after.archive)
         assertEquals("stats and archive progress move exactly as solo solves", soloReads().copy(history = after.history), after)
 
@@ -155,6 +154,23 @@ class OfficialLegE2ETest {
         // Checked last, after the walk: a late submit of the out-of-window day has had every chance to land.
         assertEquals(
             "only the in-window day reached the daily board, once",
+            listOf(PuzzleRefKeys.encode(record.puzzleRef)),
+            graph.leaderboard.submitted.map { it.puzzleRef },
+        )
+    }
+
+    @Test
+    fun aLegSolvedInsideTheDailyWindowPostsToTheDailyBoard() = duel {
+        graph.koin.get<LeaderboardSubmitWatcher>().start()
+
+        openDuelPuzzle(todayLeg)
+        solveLeg(todayLeg)
+        val record = awaitRecord(todayRef)
+
+        rule.waitUntil(TIMEOUT_MS) { graph.leaderboard.submitted.isNotEmpty() }
+        awaitWallClock(SETTLE_MS) // a second submit would have been launched by now
+        assertEquals(
+            "the first solve of a leg on today's day posts to that day's board, once",
             listOf(PuzzleRefKeys.encode(record.puzzleRef)),
             graph.leaderboard.submitted.map { it.puzzleRef },
         )
@@ -184,6 +200,7 @@ class OfficialLegE2ETest {
         assertEquals("the solo solve is one replay of its own", listOf(null), replays.map { it.matchCode })
         assertEquals("the leg's record stands", listOf(record), records())
         assertEquals("history is unchanged", history, reads().history)
+        awaitWallClock(SETTLE_MS) // a wrongly submitted replay would have been launched by now
         assertEquals("a replay never reaches the board", submitted, graph.leaderboard.submitted.toList())
     }
 
@@ -294,13 +311,21 @@ class OfficialLegE2ETest {
         return records().single { it.puzzleRef == ref }
     }
 
+    /** Lets [ms] of wall clock pass while the UI keeps idling. */
+    private fun ShellRobot.awaitWallClock(ms: Long) {
+        val since = System.currentTimeMillis()
+        rule.waitUntil(ms + TIMEOUT_MS) { System.currentTimeMillis() - since >= ms }
+    }
+
     /** Scrolls History's list to [day]'s Zip row once it shows, and checks it carries the duel pill. */
     private fun ShellRobot.assertDuelPill(day: LocalDate) {
         val key = "${ZIP.value}/$day"
         rule.waitUntil(TIMEOUT_MS) {
             runCatching { rule.onNodeWithTag(HISTORY_LIST).performScrollToNode(hasTestTag("history.row.$key")) }.isSuccess
         }
-        rule.onNodeWithTag("history.duel.$key", useUnmergedTree = true).assertExists()
+        // The row's own pill, as the user reads it: the duel and its opponent, not the history data behind it.
+        rule.onNode(hasTestTag("history.duel.$key") and hasAnyDescendant(hasText("Solved in a duel vs $OPPONENT")), useUnmergedTree = true)
+            .assertExists()
     }
 
     /** The reads History, Home and Profile render, once [day]'s solve shows in them. */
@@ -363,5 +388,6 @@ class OfficialLegE2ETest {
         const val RESULT_NEXT = "result.next"
         const val PLAY_AGAIN = "result.playAgain"
         const val TIMEOUT_MS = 10_000L
+        const val SETTLE_MS = 300L
     }
 }
