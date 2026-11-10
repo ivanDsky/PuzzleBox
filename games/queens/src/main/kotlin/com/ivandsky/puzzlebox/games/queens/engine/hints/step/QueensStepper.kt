@@ -154,7 +154,7 @@ object QueensStepper {
                 best = cell
             }
         }
-        return if (best < 0) null else QueensStep.Reveal(Cell(best), holdsQueen = false)
+        return if (best < 0) null else QueensStep.Reveal(Cell(best))
     }
 
     /**

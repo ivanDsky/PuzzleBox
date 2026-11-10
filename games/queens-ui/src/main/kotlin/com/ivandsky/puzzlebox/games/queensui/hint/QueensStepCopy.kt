@@ -34,8 +34,7 @@ internal object QueensStepCopy {
             QueensStep.Mistake.Kind.WRONG_CROSS -> "Wrong ×: a queen belongs on this square."
         }
         is QueensStep.Reveal ->
-            if (step.holdsQueen) "No simple step here: a queen belongs on this square."
-            else "No simple step here: this square can't hold a queen."
+            "No simple step here: this square can't hold a queen."
         QueensStep.Solved, QueensStep.Unavailable -> error("$step has no callout")
     }
 

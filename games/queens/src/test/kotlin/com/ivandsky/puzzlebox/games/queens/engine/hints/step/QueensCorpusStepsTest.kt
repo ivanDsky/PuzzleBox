@@ -163,7 +163,7 @@ class QueensCorpusStepsTest {
                 is QueensStep.Reveal -> {
                     rung = "reveal"
                     long = true
-                    if (hint.holdsQueen || hint.cell in board.solution || !open.isOpen(hint.cell.idx)) {
+                    if (hint.cell in board.solution || !open.isOpen(hint.cell.idx)) {
                         tally.reject("${board.id} press $press: unsound reveal $hint")
                         return
                     }

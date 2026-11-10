@@ -79,9 +79,8 @@ class QueensSpotlightMapperTest {
     }
 
     @Test
-    fun `a reveal excludes a cell that holds no queen and targets one that does`() {
-        assertEquals(mapOf(7 to SpotlightRole.EXCLUDED), map(QueensStep.Reveal(Cell(7), holdsQueen = false))!!.roles)
-        assertEquals(mapOf(7 to SpotlightRole.TARGET), map(QueensStep.Reveal(Cell(7), holdsQueen = true))!!.roles)
+    fun `a reveal excludes a cell that holds no queen`() {
+        assertEquals(mapOf(7 to SpotlightRole.EXCLUDED), map(QueensStep.Reveal(Cell(7)))!!.roles)
     }
 
     @Test
@@ -94,7 +93,7 @@ class QueensSpotlightMapperTest {
 
     @Test
     fun `the spotlight is board sized, carries the play id and the step's copy`() {
-        val step = QueensStep.Reveal(Cell(7), holdsQueen = true)
+        val step = QueensStep.Reveal(Cell(7))
         val spotlight = map(step, playId = 9)!!
 
         assertEquals(9, spotlight.playId)
