@@ -46,7 +46,7 @@ import java.io.File
 
 /**
  * The Strands editor's looks, on a 411 dp phone and in the tablet Studio's 876×720 left pane,
- * light and dark: the blank board, a trace in progress, a selected path with its end rings (on
+ * light and dark: the blank board, a trace in progress, a selected path (on
  * the phone also with overflow text in the word field),
  * pockets, Unique, Multiple, None and each witness on the board. The phone's board carries its
  * authoring tools, so its Unique shows the paths panel; the tablet's is the board alone (they
@@ -82,8 +82,8 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
     @Test fun `held long diagonal drag light`() = diagonal(dark = false)
     @Test fun `held long diagonal drag dark`() = diagonal(dark = true)
 
-    @Test fun `selected path with end rings light`() = selected(dark = false)
-    @Test fun `selected path with end rings dark`() = selected(dark = true)
+    @Test fun `selected path light`() = selected(dark = false)
+    @Test fun `selected path dark`() = selected(dark = true)
 
     @Test fun `selected word with the rest dimmed light`() = selectedDim(dark = false)
     @Test fun `selected word with the rest dimmed dark`() = selectedDim(dark = true)
@@ -168,7 +168,7 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
         rule.onNodeWithTag(GOLDEN).captureRoboImage(out(name, dark))
     }
 
-    /** A four-cell path, one turn down, selected and named: a ring in its tint on either end. */
+    /** A four-cell path, one turn down, selected and named. */
     private fun selected(dark: Boolean) = selected("selected-ends", "HEAT", dark)
 
     /**
