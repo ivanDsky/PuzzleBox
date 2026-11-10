@@ -477,7 +477,7 @@ class QueensBoardUiTest {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 androidx.compose.foundation.layout.Box(Modifier.size(379.dp, 600.dp)) {
-                    QueensPlayUi(InMemoryQueensSettings()).Board(controller, Modifier)
+                    QueensPlayFixtures.playUi().Board(controller, Modifier)
                 }
             }
         }

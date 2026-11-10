@@ -15,6 +15,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -42,6 +43,7 @@ import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.queensPlugin
 import com.ivandsky.puzzlebox.games.queensui.QueensPlayUi
@@ -126,7 +128,7 @@ class PlayBoardPositionTest {
                     single<DailyRepository> { freshDailyForAllGames() }
                     single<CompletionRepository> { FakeCompletionRepository() }
                     single { GameRegistry(listOf(zipPlugin, tangoPlugin, queensPlugin)) }
-                    single { GamePlayRegistry(listOf(ZipPlayUi(), TangoPlayUi(), QueensPlayUi(PreferencesQueensSettings(FakeGameSettingsRepository())))) }
+                    single { GamePlayRegistry(listOf(ZipPlayUi(), TangoPlayUi(), QueensPlayUi(PreferencesQueensSettings(FakeGameSettingsRepository()), HintMode.Stepwise(get<DispatcherProvider>().default)))) }
                     single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }
