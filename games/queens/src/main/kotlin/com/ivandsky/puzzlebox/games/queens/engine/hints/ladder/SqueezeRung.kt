@@ -34,7 +34,7 @@ object SqueezeRung : QueensRung {
         val n = puzzle.size
         val isOpen = BooleanArray(n * n) { candidates.isOpen(it) }
         val queens = HintReason.Kind.entries.associateWith { kind ->
-            IntArray(n).also { count -> for (queen in candidates.queens) count[unitOf(puzzle, kind, queen)]++ }
+            IntArray(n).also { count -> for (queen in candidates.queens) count[QueensUnits.indexOf(puzzle, kind, queen)]++ }
         }
         val open = IntArray(n * n)
         return HintReason.Kind.entries.asSequence()
@@ -42,15 +42,15 @@ object SqueezeRung : QueensRung {
             .mapNotNull { (kind, unit) ->
                 if (queens.getValue(kind)[unit] >= puzzle.queensPerUnit) return@mapNotNull null
                 var size = 0
-                for (cell in 0 until n * n) if (isOpen[cell] && unitOf(puzzle, kind, cell) == unit) open[size++] = cell
+                for (cell in QueensUnits.cells(puzzle, kind)[unit]) if (isOpen[cell]) open[size++] = cell
                 if (size < 2) return@mapNotNull null
                 val squeezing = (0 until n * n).filter { x ->
-                    isOpen[x] && unitOf(puzzle, kind, x) != unit && (0 until size).all { rulesOut(puzzle, queens, x, open[it]) }
+                    isOpen[x] && QueensUnits.indexOf(puzzle, kind, x) != unit && (0 until size).all { rulesOut(puzzle, queens, x, open[it]) }
                 }.toSet()
                 if (squeezing.isEmpty()) return@mapNotNull null
                 val reason = HintReason(kind, unit, this)
                 QueensDeduction.Exclude(this, reason, squeezing) to {
-                    (0 until n * n).filter { isOpen[it] && unitOf(puzzle, kind, it) == unit }.toSet()
+                    QueensUnits.cells(puzzle, kind)[unit].filter { isOpen[it] }.toSet()
                 }
             }
     }
@@ -58,14 +58,10 @@ object SqueezeRung : QueensRung {
     /** A queen on [x] crosses [cell]; on one-queen boards this is [QueensAttack.attacks]. */
     private fun rulesOut(puzzle: QueensPuzzle, queens: Map<HintReason.Kind, IntArray>, x: Int, cell: Int): Boolean {
         val n = puzzle.size
-        fun fills(kind: HintReason.Kind): Boolean =
-            unitOf(puzzle, kind, x) == unitOf(puzzle, kind, cell) && queens.getValue(kind)[unitOf(puzzle, kind, x)] + 1 >= puzzle.queensPerUnit
+        fun fills(kind: HintReason.Kind): Boolean {
+            val unit = QueensUnits.indexOf(puzzle, kind, x)
+            return unit == QueensUnits.indexOf(puzzle, kind, cell) && queens.getValue(kind)[unit] + 1 >= puzzle.queensPerUnit
+        }
         return QueensAttack.touches(x, cell, n) || fills(HintReason.Kind.ROW) || fills(HintReason.Kind.COLUMN) || fills(HintReason.Kind.REGION)
-    }
-
-    private fun unitOf(puzzle: QueensPuzzle, kind: HintReason.Kind, cell: Int): Int = when (kind) {
-        HintReason.Kind.ROW -> cell / puzzle.size
-        HintReason.Kind.COLUMN -> cell % puzzle.size
-        HintReason.Kind.REGION -> puzzle.regions[cell]
     }
 }

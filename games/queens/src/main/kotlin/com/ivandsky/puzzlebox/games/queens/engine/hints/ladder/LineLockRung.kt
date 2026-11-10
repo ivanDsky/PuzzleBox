@@ -36,14 +36,13 @@ object LineLockRung : QueensRung {
 
     /** Deductions with evidence still unbuilt, so [step] builds none for the losing candidates. */
     private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<LockFound> {
-        val n = puzzle.size
-        val regions = List(n) { region -> puzzle.regions.indices.filter { puzzle.regions[it] == region } }
+        val regions = puzzle.regionCells
         fun missing(cells: List<Int>): Int = puzzle.queensPerUnit - cells.count { it in candidates.queens }
 
         val found = ArrayList<LockFound>()
         for (kind in listOf(HintReason.Kind.ROW, HintReason.Kind.COLUMN)) {
-            val lineOf: (Int) -> Int = if (kind == HintReason.Kind.ROW) { cell -> cell / n } else { cell -> cell % n }
-            val lines = List(n) { line -> (0 until n * n).filter { lineOf(it) == line } }
+            val lineOf: (Int) -> Int = { QueensUnits.indexOf(puzzle, kind, it) }
+            val lines = QueensUnits.cells(puzzle, kind)
             fun lock(line: Int, cells: Set<Int>, evidence: List<Int>) {
                 if (cells.isNotEmpty()) found += QueensDeduction.Exclude(this, HintReason(kind, line, this), cells) to { evidence.toSet() }
             }

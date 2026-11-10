@@ -37,15 +37,13 @@ object PigeonholeRung : QueensRung {
     /** Deductions with evidence still unbuilt, so [step] builds none for the losing candidates. */
     private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<ConfinementFound> {
         val n = puzzle.size
-        val rows = List(n) { row -> List(n) { row * n + it } }
-        val cols = List(n) { col -> List(n) { it * n + col } }
-        val regions = List(n) { region -> puzzle.regions.indices.filter { puzzle.regions[it] == region } }
-        val confinements =
-            confined(puzzle, candidates, regions, rows, { it / n }, HintReason.Kind.ROW) +
-                confined(puzzle, candidates, regions, cols, { it % n }, HintReason.Kind.COLUMN) +
-                confined(puzzle, candidates, rows, regions, puzzle.regions::get, HintReason.Kind.REGION) +
-                confined(puzzle, candidates, cols, regions, puzzle.regions::get, HintReason.Kind.REGION)
-        return confinements
+        val rows = puzzle.rowCells
+        val cols = puzzle.columnCells
+        val regions = puzzle.regionCells
+        return confined(puzzle, candidates, regions, rows, { it / n }, HintReason.Kind.ROW) +
+            confined(puzzle, candidates, regions, cols, { it % n }, HintReason.Kind.COLUMN) +
+            confined(puzzle, candidates, rows, regions, puzzle.regions::get, HintReason.Kind.REGION) +
+            confined(puzzle, candidates, cols, regions, puzzle.regions::get, HintReason.Kind.REGION)
     }
 
     /**

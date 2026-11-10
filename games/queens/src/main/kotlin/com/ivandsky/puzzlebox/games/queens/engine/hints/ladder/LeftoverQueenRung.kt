@@ -46,11 +46,13 @@ object LeftoverQueenRung : QueensRung {
 
     private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<Found> {
         val n = puzzle.size
-        fun units(cells: List<List<Int>>, of: (Int) -> Int, kind: HintReason.Kind) =
-            Units(cells, cells.map { unit -> puzzle.queensPerUnit - unit.count { it in candidates.queens } }, of, kind)
-        val rows = units(List(n) { row -> List(n) { row * n + it } }, { it / n }, HintReason.Kind.ROW)
-        val cols = units(List(n) { col -> List(n) { it * n + col } }, { it % n }, HintReason.Kind.COLUMN)
-        val regions = units(List(n) { region -> puzzle.regions.indices.filter { puzzle.regions[it] == region } }, puzzle.regions::get, HintReason.Kind.REGION)
+        fun units(kind: HintReason.Kind, of: (Int) -> Int): Units {
+            val cells = QueensUnits.cells(puzzle, kind)
+            return Units(cells, cells.map { unit -> puzzle.queensPerUnit - unit.count { it in candidates.queens } }, of, kind)
+        }
+        val rows = units(HintReason.Kind.ROW) { it / n }
+        val cols = units(HintReason.Kind.COLUMN) { it % n }
+        val regions = units(HintReason.Kind.REGION, puzzle.regions::get)
         val board = Board(puzzle, candidates, rows, cols, regions)
         return listOf(rows, cols).flatMap { lines -> board.leftovers(lines, regions) + board.leftovers(regions, lines) }
     }

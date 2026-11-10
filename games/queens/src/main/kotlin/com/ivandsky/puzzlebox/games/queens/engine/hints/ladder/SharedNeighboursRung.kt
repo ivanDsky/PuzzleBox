@@ -18,20 +18,23 @@ object SharedNeighboursRung : QueensRung {
     override val captionKey: String = "queens.hint.rung.shared-neighbours"
 
     /** Lazy: one unit at a time, so [step] stops at the first. */
-    override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> {
+    override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> = sequence {
         val n = puzzle.size
-        val units = List(n) { row -> HintReason(HintReason.Kind.ROW, row, this) to List(n) { row * n + it } } +
-            List(n) { col -> HintReason(HintReason.Kind.COLUMN, col, this) to List(n) { it * n + col } } +
-            List(n) { region -> HintReason(HintReason.Kind.REGION, region, this) to puzzle.regions.indices.filter { puzzle.regions[it] == region } }
-        return units.asSequence().mapNotNull { (unit, cells) ->
-            val missing = puzzle.queensPerUnit - cells.count { it in candidates.queens }
-            val open = cells.filter(candidates::isOpen)
-            if (missing <= 0 || open.size < 2) return@mapNotNull null
-            // A cell never touches itself, so no open cell of the unit can touch all of them.
-            val smothering = (0 until n * n).filter { cell ->
-                candidates.isOpen(cell) && open.all { QueensAttack.touches(cell, it, n) }
-            }.toSet()
-            if (smothering.isEmpty()) null else QueensProof(QueensDeduction.Exclude(this, unit, smothering), open.toSet())
+        for (kind in HintReason.Kind.entries) {
+            val units = QueensUnits.cells(puzzle, kind)
+            for (index in units.indices) {
+                val cells = units[index]
+                val missing = puzzle.queensPerUnit - cells.count { it in candidates.queens }
+                val open = cells.filter(candidates::isOpen)
+                if (missing <= 0 || open.size < 2) continue
+                // A cell never touches itself, so no open cell of the unit can touch all of them.
+                val smothering = (0 until n * n).filter { cell ->
+                    candidates.isOpen(cell) && open.all { QueensAttack.touches(cell, it, n) }
+                }.toSet()
+                if (smothering.isNotEmpty()) {
+                    yield(QueensProof(QueensDeduction.Exclude(this@SharedNeighboursRung, HintReason(kind, index, this@SharedNeighboursRung), smothering), open.toSet()))
+                }
+            }
         }
     }
 
