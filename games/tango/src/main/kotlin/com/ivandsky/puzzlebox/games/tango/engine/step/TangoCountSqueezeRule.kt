@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.games.tango.engine.step
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
+import com.ivandsky.puzzlebox.games.tango.engine.TangoLines
 
 /**
  * D7 count squeeze: suppose a value on one empty cell of a line. If that uses up a value's count,
@@ -15,10 +16,10 @@ object TangoCountSqueezeRule : TangoStepRule {
     override fun forced(puzzle: TangoPuzzle, grid: List<TangoCell?>): List<TangoStep.Deduction> {
         val n = puzzle.n
         val found = mutableListOf<TangoStep.Deduction>()
-        val cells = IntArray(n)
+        val lines = TangoLines.all(n)
         val vals = arrayOfNulls<TangoCell>(n)
         for (line in 0 until 2 * n) {
-            for (j in 0 until n) cells[j] = if (line < n) line * n + j else j * n + (line - n)
+            val cells = lines[line]
             for (j in 0 until n) {
                 if (grid[cells[j]] != null) continue
                 for (value in TangoCell.entries) {
@@ -38,7 +39,7 @@ object TangoCountSqueezeRule : TangoStepRule {
                     val filled = LinkedHashSet<Int>()
                     for (q in 0 until n) if (q != j && grid[cells[q]] == null) filled += cells[q]
                     found += TangoStep.Deduction(
-                        TangoStepRung.COUNT_SQUEEZE, cells[j], value.other(), filled,
+                        TangoStepRung.COUNT_SQUEEZE, cells[j], value.other, filled,
                         row = line.takeIf { it < n },
                         col = (line - n).takeIf { it >= 0 },
                         options = null,
@@ -62,6 +63,4 @@ object TangoCountSqueezeRule : TangoStepRule {
         }
         return false
     }
-
-    private fun TangoCell.other(): TangoCell = if (this == TangoCell.SUN) TangoCell.MOON else TangoCell.SUN
 }

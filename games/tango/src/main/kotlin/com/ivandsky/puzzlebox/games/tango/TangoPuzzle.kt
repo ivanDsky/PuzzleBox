@@ -18,6 +18,9 @@ enum class TangoCell { SUN, MOON;
     }
 
     fun toByte(): Int = ordinal + 1
+
+    /** The opposite value. */
+    val other: TangoCell get() = if (this == SUN) MOON else SUN
 }
 
 /** Orientation of an interior edge marker, matching EdgeSide semantics: toward the RIGHT or DOWN neighbor. */

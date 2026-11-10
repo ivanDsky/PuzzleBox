@@ -67,9 +67,7 @@ internal object TangoStepCopy {
     private fun lineName(step: TangoStep.Deduction): String =
         step.row?.let { "row ${it + 1}" } ?: "column ${(step.col ?: 0) + 1}"
 
-    private val TangoStep.Deduction.other: TangoCell get() = other(value)
-
-    private fun other(value: TangoCell): TangoCell = if (value == TangoCell.SUN) TangoCell.MOON else TangoCell.SUN
+    private val TangoStep.Deduction.other: TangoCell get() = value.other
 
     private fun word(value: TangoCell): String = if (value == TangoCell.SUN) "sun" else "moon"
 

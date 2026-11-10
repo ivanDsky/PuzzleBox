@@ -72,7 +72,7 @@ internal object TangoBoardGenerator {
         fun fill(idx: Int): Boolean {
             if (idx == n * n) return true
             val first = if (rnd.nextBoolean()) TangoCell.SUN else TangoCell.MOON
-            for (value in listOf(first, first.other())) {
+            for (value in listOf(first, first.other)) {
                 grid[idx] = value
                 if (fits(idx) && fill(idx + 1)) return true
             }
@@ -97,6 +97,4 @@ internal object TangoBoardGenerator {
             }
         }
     }
-
-    private fun TangoCell.other(): TangoCell = if (this == TangoCell.SUN) TangoCell.MOON else TangoCell.SUN
 }

@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.games.tango.engine.step
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
+import com.ivandsky.puzzlebox.games.tango.engine.TangoLines
 
 /**
  * D5 sign count: a `×` joining two empty cells of a line holds one sun and one moon, so the line
@@ -27,7 +28,7 @@ object TangoSignCountRule : TangoStepRule {
             }
             var suns = 0
             var moons = 0
-            for (j in 0 until n) when (grid[cellAt(n, line, j)]) {
+            for (j in 0 until n) when (grid[TangoLines.cellAt(n, line, j)]) {
                 TangoCell.SUN -> suns++
                 TangoCell.MOON -> moons++
                 null -> Unit
@@ -43,21 +44,21 @@ object TangoSignCountRule : TangoStepRule {
                 for (at in pairs) {
                     inPair[at] = true
                     inPair[at + 1] = true
-                    pairCells += cellAt(n, line, at)
-                    pairCells += cellAt(n, line, at + 1)
+                    pairCells += TangoLines.cellAt(n, line, at)
+                    pairCells += TangoLines.cellAt(n, line, at + 1)
                 }
-                val single = BooleanArray(n) { j -> grid[cellAt(n, line, j)] == null && !inPair[j] }
+                val single = BooleanArray(n) { j -> grid[TangoLines.cellAt(n, line, j)] == null && !inPair[j] }
                 // With no pair counted a used-up value is Full line (D3), not a sign count.
                 if (pairs.isNotEmpty()) for (value in TangoCell.entries) if (left(value) == 0) {
                     val rest = LinkedHashMap<Int, TangoCell>()
-                    for (j in 0 until n) if (single[j]) rest[cellAt(n, line, j)] = value.other()
+                    for (j in 0 until n) if (single[j]) rest[TangoLines.cellAt(n, line, j)] = value.other
                     emit(rest, pairCells)
                 }
                 for (j in 0 until n - 1) {
-                    val a = cellAt(n, line, j)
-                    val b = cellAt(n, line, j + 1)
+                    val a = TangoLines.cellAt(n, line, j)
+                    val b = TangoLines.cellAt(n, line, j + 1)
                     if (!single[j] || !single[j + 1] || puzzle.markerBetween(a, b) != TangoMarkerKind.SAME) continue
-                    for (value in TangoCell.entries) if (left(value) == 1) emit(mapOf(a to value.other(), b to value.other()), pairCells + setOf(a, b))
+                    for (value in TangoCell.entries) if (left(value) == 1) emit(mapOf(a to value.other, b to value.other), pairCells + setOf(a, b))
                 }
             }
         }
@@ -75,8 +76,8 @@ object TangoSignCountRule : TangoStepRule {
             val used = BooleanArray(n)
             val starts = mutableListOf<Int>()
             for (j in order) {
-                val a = cellAt(n, line, j)
-                val b = cellAt(n, line, j + 1)
+                val a = TangoLines.cellAt(n, line, j)
+                val b = TangoLines.cellAt(n, line, j + 1)
                 if (grid[a] != null || grid[b] != null || used[j] || used[j + 1]) continue
                 if (puzzle.markerBetween(a, b) != TangoMarkerKind.OPPOSITE) continue
                 starts += j
@@ -86,9 +87,4 @@ object TangoSignCountRule : TangoStepRule {
             starts.sorted()
         }.distinct()
     }
-
-    /** Row-major index of position [j] in [line]: lines 0 until n are rows, n until 2n columns. */
-    private fun cellAt(n: Int, line: Int, j: Int): Int = if (line < n) line * n + j else j * n + (line - n)
-
-    private fun TangoCell.other(): TangoCell = if (this == TangoCell.SUN) TangoCell.MOON else TangoCell.SUN
 }

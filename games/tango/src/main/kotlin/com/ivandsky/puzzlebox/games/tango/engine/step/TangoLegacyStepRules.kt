@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.engine.TangoCountRule
 import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.engine.TangoLineRule
+import com.ivandsky.puzzlebox.games.tango.engine.TangoLines
 import com.ivandsky.puzzlebox.games.tango.engine.TangoMarkerRule
 import com.ivandsky.puzzlebox.games.tango.engine.TangoTripleRule
 
@@ -44,17 +45,13 @@ object TangoLegacyStepRules {
                 TangoStep.Deduction(rung, idx, value, setOf(why.first, why.second), null, null, null)
             }
             is TangoHint.Why.LineFull -> {
-                val evidence = lineCells(puzzle.n, why.row, why.col).filterTo(LinkedHashSet()) { grid[it] == why.fullOf }
+                val evidence = TangoLines.cells(puzzle.n, why.row ?: (puzzle.n + requireNotNull(why.col))).filterTo(LinkedHashSet()) { grid[it] == why.fullOf }
                 TangoStep.Deduction(TangoStepRung.FULL_LINE, idx, value, evidence, why.row, why.col, null)
             }
             is TangoHint.Why.LineFills -> {
-                val evidence = lineCells(puzzle.n, why.row, why.col).filterTo(LinkedHashSet()) { grid[it] != null }
+                val evidence = TangoLines.cells(puzzle.n, why.row ?: (puzzle.n + requireNotNull(why.col))).filterTo(LinkedHashSet()) { grid[it] != null }
                 TangoStep.Deduction(TangoStepRung.LINE_OPTIONS, idx, value, evidence, why.row, why.col, why.fills)
             }
         }
     }
-
-    /** Row-major cells of row [row] when non-null, else of column [col]. */
-    private fun lineCells(n: Int, row: Int?, col: Int?): List<Int> =
-        if (row != null) List(n) { row * n + it } else List(n) { it * n + requireNotNull(col) }
 }
