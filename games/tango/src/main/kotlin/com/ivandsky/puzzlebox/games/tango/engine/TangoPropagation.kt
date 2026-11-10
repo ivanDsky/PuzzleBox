@@ -216,16 +216,16 @@ internal class TangoPropagation(puzzle: TangoPuzzle) {
         val b = grid[first + step]
         val c = grid[first + 2 * step]
         return when {
-            a != null && a == b && c == null -> place(first + 2 * step, a.other())
-            b != null && b == c && a == null -> place(first, b.other())
-            a != null && a == c && b == null -> place(first + step, a.other())
+            a != null && a == b && c == null -> place(first + 2 * step, a.other)
+            b != null && b == c && a == null -> place(first, b.other)
+            a != null && a == c && b == null -> place(first + step, a.other)
             else -> true
         }
     }
 
     private fun forceEdge(neighbor: Int, value: TangoCell, kind: TangoMarkerKind?): Boolean {
         if (kind == null || grid[neighbor] != null) return true
-        return place(neighbor, if (kind == TangoMarkerKind.SAME) value else value.other())
+        return place(neighbor, if (kind == TangoMarkerKind.SAME) value else value.other)
     }
 
     /** Once [line] holds n/2 of [value], its empty cells take the other value. */
@@ -233,7 +233,7 @@ internal class TangoPropagation(puzzle: TangoPuzzle) {
         if (counts[2 * line + value.ordinal] < half) return true
         for (k in 0 until n) {
             val idx = first + k * step
-            if (grid[idx] == null && !place(idx, value.other())) return false
+            if (grid[idx] == null && !place(idx, value.other)) return false
         }
         return true
     }
@@ -264,6 +264,4 @@ internal class TangoPropagation(puzzle: TangoPuzzle) {
     }
 
     private fun overHalf(line: Int): Boolean = counts[2 * line] > half || counts[2 * line + 1] > half
-
-    private fun TangoCell.other(): TangoCell = if (this == TangoCell.SUN) TangoCell.MOON else TangoCell.SUN
 }
