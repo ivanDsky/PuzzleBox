@@ -64,12 +64,14 @@ class TangoStepGameTest {
         /** What the next press would find, read off the game's own pure block. */
         fun next(): TangoStep = game.capture()()
 
-        /** Presses, checks the Spotlight on screen is exactly the step's, and returns that step. */
+        /** Presses, checks the Spotlight on screen is exactly the step's (none for a step without a key), and returns that step. */
         fun press(): TangoStep {
             val step = next()
             hints.press()
             val shown = hints.spotlight
-            assertEquals(TangoSpotlightMapper.map(step, session.puzzle, session.grid(), shown?.playId ?: 0), shown)
+            val expected = TangoSpotlightMapper.keyOf(step)
+                ?.let { TangoSpotlightMapper.map(step, session.puzzle, session.grid(), shown?.playId ?: 0) }
+            assertEquals(expected, shown)
             return step
         }
 
@@ -276,7 +278,7 @@ class TangoStepGameTest {
         val spotlight = play.game.spotlight(step, 7)
 
         assertEquals(TangoSpotlightMapper.map(step, puzzle, play.session.grid(), 7), spotlight)
-        assertEquals(TangoSpotlightGlyphs(puzzle.n, mapOf(cell to opposite(solution[cell]))), spotlight?.glyphs)
+        assertEquals(TangoSpotlightGlyphs(puzzle.n, mapOf(cell to opposite(solution[cell]))), spotlight.glyphs)
     }
 
     /** A player cell whose wrong value breaks no rule on the bare board, so only the solution can accuse it. */

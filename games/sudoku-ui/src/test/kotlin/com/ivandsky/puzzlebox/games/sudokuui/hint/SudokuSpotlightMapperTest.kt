@@ -15,6 +15,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -35,7 +36,7 @@ class SudokuSpotlightMapperTest {
         SudokuHint.Place(cell, digit, technique, unit, null, emptyList())
 
     private fun map(step: SudokuStep, puzzle: SudokuPuzzle = mini, board: SudokuBoard = miniBoard, playId: Int = 0) =
-        checkNotNull(SudokuSpotlightMapper.map(step, puzzle, board, playId)) { "no spotlight for $step" }
+        SudokuSpotlightMapper.map(step, puzzle, board, playId)
 
     private fun rolesOf(step: SudokuStep) = map(step).roles
 
@@ -126,9 +127,13 @@ class SudokuSpotlightMapperTest {
     }
 
     @Test
-    fun `a solved board has no spotlight and no key`() {
-        assertNull(SudokuSpotlightMapper.map(SudokuStep.Solved, mini, miniBoard, 0))
+    fun `a solved board has no key`() {
         assertNull(SudokuSpotlightMapper.keyOf(SudokuStep.Solved))
+    }
+
+    @Test
+    fun `a step with no key is refused, not mapped to an empty spotlight`() {
+        assertThrows(IllegalStateException::class.java) { SudokuSpotlightMapper.map(SudokuStep.Solved, mini, miniBoard, 0) }
     }
 
     // Size, playId, callout

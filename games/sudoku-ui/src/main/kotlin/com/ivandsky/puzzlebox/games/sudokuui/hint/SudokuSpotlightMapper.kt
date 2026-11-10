@@ -23,10 +23,32 @@ internal object SudokuSpotlightMapper {
         data class Mistake(val cell: Int, val digit: Int) : Key
     }
 
-    /** The Spotlight of [step], null for a solved board. */
-    fun map(step: SudokuStep, puzzle: SudokuPuzzle, board: SudokuBoard, playId: Int): Spotlight? {
-        if (step == SudokuStep.Solved) return null
-        val roles = roles(step, puzzle)
+    /** The Spotlight of a keyed [step]; [SudokuStep.Solved] has none and throws. */
+    fun map(step: SudokuStep, puzzle: SudokuPuzzle, board: SudokuBoard, playId: Int): Spotlight = when (step) {
+        is SudokuStep.Single -> spotlight(
+            step, puzzle, board, singleRoles(step, puzzle), mapOf(step.place.cell to step.place.digit.toString()), playId,
+        )
+        is SudokuStep.Elimination -> spotlight(
+            step, puzzle, board, eliminationRoles(step),
+            step.struck.mapValues { (_, mask) -> SudokuStepCopy.digitsOf(mask).joinToString(" ") }, playId,
+        )
+        is SudokuStep.Reveal -> spotlight(
+            step, puzzle, board, mapOf(step.cell to SpotlightRole.TARGET), mapOf(step.cell to step.digit.toString()), playId,
+        )
+        is SudokuStep.Mistake -> spotlight(
+            step, puzzle, board, mistakeRoles(step), mapOf(step.cell to board.digitAt(step.cell).toString()), playId,
+        )
+        SudokuStep.Solved -> error("a solved board has no Spotlight")
+    }
+
+    private fun spotlight(
+        step: SudokuStep,
+        puzzle: SudokuPuzzle,
+        board: SudokuBoard,
+        roles: Map<Int, SpotlightRole>,
+        texts: Map<Int, String>,
+        playId: Int,
+    ): Spotlight {
         val anchor = ANCHOR_ORDER.firstNotNullOf { role ->
             roles.filterValues { it == role }.keys.takeIf { it.isNotEmpty() }
         }
@@ -36,7 +58,7 @@ internal object SudokuSpotlightMapper {
             cols = size,
             roles = roles,
             callout = SpotlightCallout(SudokuStepCopy.text(step, puzzle, board), anchor),
-            glyphs = SudokuSpotlightGlyphs(texts(step, board)),
+            glyphs = SudokuSpotlightGlyphs(texts),
             playId = playId,
         )
     }
@@ -52,38 +74,30 @@ internal object SudokuSpotlightMapper {
     /** The callout sits by the evidence, else by the cell the step is about, else by the struck cells. */
     private val ANCHOR_ORDER = listOf(SpotlightRole.EVIDENCE, SpotlightRole.TARGET, SpotlightRole.CULPRIT, SpotlightRole.EXCLUDED)
 
-    /** One role per cell: later writes win, so the target, culprit or struck mark replaces evidence on the same cell. */
-    private fun roles(step: SudokuStep, puzzle: SudokuPuzzle): Map<Int, SpotlightRole> {
+    /** One role per cell: later writes win, so the target or struck mark replaces evidence on the same cell. */
+    private fun singleRoles(step: SudokuStep.Single, puzzle: SudokuPuzzle): Map<Int, SpotlightRole> {
         val roles = LinkedHashMap<Int, SpotlightRole>()
-        when (step) {
-            is SudokuStep.Single -> {
-                step.blockers.forEach { roles[it] = SpotlightRole.EVIDENCE }
-                litUnit(step)?.let { unit -> puzzle.geometry.cellsOf(unit).forEach { roles[it] = SpotlightRole.EVIDENCE } }
-                roles[step.place.cell] = SpotlightRole.TARGET
-            }
-            is SudokuStep.Elimination -> {
-                step.evidence.forEach { roles[it] = SpotlightRole.EVIDENCE }
-                step.struck.keys.forEach { roles[it] = SpotlightRole.EXCLUDED }
-            }
-            is SudokuStep.Reveal -> roles[step.cell] = SpotlightRole.TARGET
-            is SudokuStep.Mistake -> {
-                step.conflictsWith?.let { roles[it] = SpotlightRole.EVIDENCE }
-                roles[step.cell] = SpotlightRole.CULPRIT
-            }
-            SudokuStep.Solved -> Unit
-        }
+        step.blockers.forEach { roles[it] = SpotlightRole.EVIDENCE }
+        litUnit(step)?.let { unit -> puzzle.geometry.cellsOf(unit).forEach { roles[it] = SpotlightRole.EVIDENCE } }
+        roles[step.place.cell] = SpotlightRole.TARGET
+        return roles
+    }
+
+    private fun eliminationRoles(step: SudokuStep.Elimination): Map<Int, SpotlightRole> {
+        val roles = LinkedHashMap<Int, SpotlightRole>()
+        step.evidence.forEach { roles[it] = SpotlightRole.EVIDENCE }
+        step.struck.keys.forEach { roles[it] = SpotlightRole.EXCLUDED }
+        return roles
+    }
+
+    /** The wrong cell is the culprit; the cell it clashes with, if any, is evidence. */
+    private fun mistakeRoles(step: SudokuStep.Mistake): Map<Int, SpotlightRole> {
+        val roles = LinkedHashMap<Int, SpotlightRole>()
+        step.conflictsWith?.let { roles[it] = SpotlightRole.EVIDENCE }
+        roles[step.cell] = SpotlightRole.CULPRIT
         return roles
     }
 
     /** The unit a hidden or last-cell single names ("this box", "col 4"); a naked single names none. */
     private fun litUnit(step: SudokuStep.Single): SudokuUnit? = step.lastCell ?: step.place.unit
-
-    private fun texts(step: SudokuStep, board: SudokuBoard): Map<Int, String> = when (step) {
-        is SudokuStep.Single -> mapOf(step.place.cell to step.place.digit.toString())
-        is SudokuStep.Elimination ->
-            step.struck.mapValues { (_, mask) -> SudokuStepCopy.digitsOf(mask).joinToString(" ") }
-        is SudokuStep.Reveal -> mapOf(step.cell to step.digit.toString())
-        is SudokuStep.Mistake -> mapOf(step.cell to board.digitAt(step.cell).toString())
-        SudokuStep.Solved -> emptyMap()
-    }
 }
