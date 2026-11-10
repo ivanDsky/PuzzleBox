@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
@@ -31,11 +32,14 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onChildAt
+import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
 import androidx.lifecycle.Lifecycle
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
@@ -47,12 +51,14 @@ import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.ActivePlay
@@ -61,8 +67,11 @@ import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import java.time.Duration
 import java.time.LocalDate
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.runner.Description
 import org.junit.runners.model.Statement
 import org.robolectric.Shadows.shadowOf
@@ -123,6 +132,7 @@ class ShellRobot internal constructor(
     private var generation by mutableIntStateOf(0)
     private var pendingLegacy: Bundle? = null
     private var ignoreRestored = false
+    private var restoredState: MutableMap<String, MutableList<Any?>>? = null
     private var exits = 0
 
     /** The live navigation state. */
@@ -133,8 +143,9 @@ class ShellRobot internal constructor(
             // The system's stand-in: registered before the shell, so it only sees a back
             // the shell leaves unhandled — the press that would leave the app.
             BackHandler { exits++ }
-            // Keyed outside the `if`, so relaunch()'s bump recomposes even while hidden.
-            key(generation) { if (shown) Shell() }
+            // Read outside the `if`, so relaunch()'s bump recomposes even while hidden. Read, not keyed: a key
+            // would change every saveable key beneath it, and relaunch(keepSavedState) hands those back.
+            generation.let { if (shown) Shell() }
         }
         rule.waitForIdle()
     }
@@ -171,13 +182,31 @@ class ShellRobot internal constructor(
 
     /** Taps the node tagged [tag], scrolling it into view first when it sits in a scrolling screen. */
     fun tap(tag: String) {
-        awaitTag(tag)
-        val node = rule.onNodeWithTag(tag)
-        val scrolls = rule.onAllNodes(hasTestTag(tag) and hasAnyAncestor(hasScrollAction())).fetchSemanticsNodes().isNotEmpty()
-        if (scrolls) node.performScrollTo()
-        node.performClick()
+        scrollIntoView(tag)
+        rule.onNodeWithTag(tag).performClick()
         rule.waitForIdle()
     }
+
+    /**
+     * Holds the main clock, then taps [tag]: from here on only [advanceUntilShown] and [advanceFrame] move
+     * time, so a timed sequence such as the reveal can be watched step by step.
+     */
+    fun holdClockAndTap(tag: String) {
+        scrollIntoView(tag)
+        rule.mainClock.autoAdvance = false
+        rule.onNodeWithTag(tag).performClick()
+        rule.waitForIdle()
+    }
+
+    private fun scrollIntoView(tag: String) {
+        awaitTag(tag)
+        val scrolls = rule.onAllNodes(hasTestTag(tag) and hasAnyAncestor(hasScrollAction())).fetchSemanticsNodes().isNotEmpty()
+        if (scrolls) rule.onNodeWithTag(tag).performScrollTo()
+    }
+
+    /** Whether a node tagged [tag] is on screen now. */
+    fun shows(tag: String): Boolean =
+        rule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
 
     /** Taps the node showing [text], scrolling its screen to it first. */
     fun tapText(text: String) {
@@ -193,8 +222,11 @@ class ShellRobot internal constructor(
      */
     fun openGame(gameId: String, landing: String = GAME_ROUTE) {
         val page = "library.page.$gameId"
-        if (rule.onAllNodesWithTag(page).fetchSemanticsNodes().isEmpty()) {
-            if (rule.onAllNodesWithTag("library.page.back").fetchSemanticsNodes().isNotEmpty()) tap("library.page.back")
+        if (!shows(page)) {
+            // A duel screen opened from the Duels pill goes back to the library, onto its Dailies.
+            if (shows("duel.back")) tap("duel.back")
+            if (shows("library.page.back")) tap("library.page.back")
+            if (shows("library.tab.dailies") && !shows("library.row.$gameId")) tap("library.tab.dailies")
             tap("library.row.$gameId")
         }
         awaitTag(page)
@@ -209,13 +241,99 @@ class ShellRobot internal constructor(
     }
 
     /**
-     * Opens duel puzzle [key] on the selected tab's stack, as a duel's Play does, and waits for
-     * [landing]: its board, or the result of a puzzle already played. The duel screen has no
-     * route of its own yet, so the push stands in for its tap.
+     * Opens duel puzzle [key] as the player does: the duel's screen from the Duels pill (unless it is already
+     * open), then the puzzle's Start or Resume; waits for [landing], its board or the result of a puzzle already
+     * played. A played puzzle has no button on the phone's duel screen, so its key is pushed, as a stale open of it
+     * would be.
      */
     fun openDuelPuzzle(key: MatchLegKey, landing: String = GAME_ROUTE) {
-        rule.runOnIdle { navigator.push(key) }
+        if (!shows("duel.legs.title")) openDuel(checkNotNull(ShareCode.parse(key.code)))
+        val action = "duel.legs.action.${key.legIndex}"
+        if (shows(action)) tap(action) else rule.runOnIdle { navigator.push(key) }
         awaitTag(landing)
+    }
+
+    /** The Play library's Duels pill, from the library or one of its game pages. */
+    fun openDuelsTab() {
+        if (shows("library.page.back")) tap("library.page.back")
+        tap("library.tab.duels")
+        awaitTag(DUELS_LIST)
+    }
+
+    /** The duel screen of [code], through its row under the Duels pill. */
+    fun openDuel(code: ShareCode) {
+        openDuelsTab()
+        tapDuelRow(code)
+        awaitTag("duel.legs.title")
+    }
+
+    /**
+     * Taps [code]'s row under the Duels pill (already open), holding the clock first when [holdClock] (see
+     * [holdClockAndTap]). The rows carry no tags: the list holds the challenge card, then the rows in
+     * [ObserveMyDuels] order.
+     */
+    fun tapDuelRow(code: ShareCode, holdClock: Boolean = false) {
+        awaitTag(DUELS_LIST)
+        val index = 1 + duels().rows.indexOfFirst { it.code == code }
+        check(index > 0) { "no duel row for ${code.value}: ${duels().rows}" }
+        rule.waitUntil(TIMEOUT_MS) { rule.onNodeWithTag(DUELS_LIST).onChildren().fetchSemanticsNodes().size > index }
+        val row = rule.onNodeWithTag(DUELS_LIST).onChildAt(index).performScrollTo()
+        if (holdClock) rule.mainClock.autoAdvance = false
+        row.performClick()
+        rule.waitForIdle()
+    }
+
+    /**
+     * Creates a Daily duel over today's [game] alone through the New duel sheet (the Duels pill's challenge card),
+     * and leaves its Created sheet open. Returns the new duel's code.
+     */
+    fun createDuel(game: GameId): ShareCode {
+        val before = graph.matches.matches.keys
+        openDuelsTab()
+        rule.onNodeWithTag(DUELS_LIST).onChildAt(0).performClick()
+        rule.waitForIdle()
+        awaitTag("duel.new.sheet")
+        tap("duel.preset.daily")
+        val mine = "duel.game.${game.value}"
+        rule.onAllNodes(isDuelGame).fetchSemanticsNodes()
+            .map { it.config[SemanticsProperties.TestTag] to (it.config.getOrNull(SemanticsProperties.Selected) == true) }
+            .filter { (tag, selected) -> selected != (tag == mine) }
+            .forEach { (tag, _) -> tap(tag) }
+        tap("duel.create")
+        awaitTag("duel.created.sheet")
+        return (graph.matches.matches.keys - before).single()
+    }
+
+    /** What the Duels pill lists now. */
+    fun duels() = runBlocking { graph.koin.get<ObserveMyDuels>()().first() }
+
+    /** A tap on the reveal's stage, off its Skip button: it speeds the reveal up. */
+    fun tapRevealStage() {
+        rule.onNodeWithTag("reveal.title").performTouchInput { click() }
+        rule.waitForIdle()
+    }
+
+    /**
+     * Moves the held clock (see [holdClockAndTap]) on in small steps until [tag] shows, and returns the clock time
+     * that took. Fails if any of [never] shows first, or once [budgetMs] of clock time has passed.
+     */
+    fun advanceUntilShown(tag: String, never: Collection<String> = emptyList(), budgetMs: Long = CLOCK_BUDGET_MS): Long {
+        check(!rule.mainClock.autoAdvance) { "the clock is not held" }
+        var elapsed = 0L
+        while (true) {
+            never.firstOrNull(::shows)?.let { fail("$it showed before $tag, after $elapsed ms (state $state)") }
+            if (shows(tag)) return elapsed
+            if (elapsed >= budgetMs) fail("$tag did not show within $budgetMs ms (state $state)")
+            rule.mainClock.advanceTimeBy(CLOCK_STEP_MS)
+            rule.waitForIdle()
+            elapsed += CLOCK_STEP_MS
+        }
+    }
+
+    /** One frame of the held clock. */
+    fun advanceFrame() {
+        rule.mainClock.advanceTimeByFrame()
+        rule.waitForIdle()
     }
 
     /** [key]'s live play once [ready] holds for it, e.g. once its board's session has loaded. */
@@ -312,6 +430,7 @@ class ShellRobot internal constructor(
     /** Saved-instance-state round trip (rotation or process death with a saved bundle). */
     fun restoreState() {
         ignoreRestored = false
+        restoredState = null
         restoration.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
     }
@@ -324,8 +443,9 @@ class ShellRobot internal constructor(
     }
 
     /**
-     * Process death without saved state: the composition, every ViewModel and the Koin graph
-     * are discarded; the fakes (the "disk") survive; the shell relaunches at the seed.
+     * Process death: the composition, every ViewModel and the Koin graph are discarded; the fakes (the "disk")
+     * survive. Without [keepSavedState] the shell relaunches at the seed; with it, the shell's saved state comes
+     * back as the system would hand it to the new process. Works with the clock held, one frame per step.
      *
      * The generation bump rides with the ViewModel clear so a recomposer frame follows it.
      * After a background/foreground, Compose 1.12.1's LifecycleRetainedValuesStoreOwner
@@ -334,17 +454,25 @@ class ShellRobot internal constructor(
      * frame-end awaiter count, hasPendingWork stays true and Compose never idles. Only a
      * frame's end resets the count (cf. issuetracker.google.com/issues/544987094).
      */
-    fun relaunch() {
+    fun relaunch(keepSavedState: Boolean = false) {
+        val saved = if (keepSavedState) rule.runOnIdle { registry.performSave() } else null
         rule.runOnIdle { shown = false }
-        rule.waitForIdle()
+        settle()
         rule.runOnIdle {
             rule.activity.viewModelStore.clear()
             generation++
         }
         graph.stop()
         graph.start()
-        ignoreRestored = true
+        restoredState = saved?.mapValuesTo(mutableMapOf()) { it.value.toMutableList() }
+        ignoreRestored = saved == null
         rule.runOnIdle { shown = true }
+        settle()
+    }
+
+    /** Idles, first drawing the frame a state change needs when the clock is held. */
+    private fun settle() {
+        if (!rule.mainClock.autoAdvance) rule.mainClock.advanceTimeByFrame()
         rule.waitForIdle()
     }
 
@@ -432,7 +560,8 @@ class ShellRobot internal constructor(
 
     /**
      * The tester's registry, seen by the shell. On restore it can hand back a legacy bundle
-     * in place of the navigator's saved one, or nothing at all after a relaunch.
+     * in place of the navigator's saved one, nothing at all after a relaunch, or the state
+     * saved before a relaunch that kept it.
      */
     private inner class SwappingRegistry(
         private val parent: SaveableStateRegistry,
@@ -440,7 +569,9 @@ class ShellRobot internal constructor(
         override fun consumeRestored(key: String): Any? {
             val restored = parent.consumeRestored(key)
             val legacy = pendingLegacy
+            val kept = restoredState
             return when {
+                kept != null -> kept[key]?.takeIf { it.isNotEmpty() }?.removeAt(0)
                 ignoreRestored -> null
                 legacy != null && (restored as? Bundle)?.containsKey(NAVIGATION_STATE_KEY) == true -> {
                     pendingLegacy = null
@@ -458,9 +589,15 @@ class ShellRobot internal constructor(
     private companion object {
         const val TIMEOUT_MS = 5_000L
         const val IDLE_STEP_MS = 100L
+        const val CLOCK_STEP_MS = 50L
+        const val CLOCK_BUDGET_MS = 60_000L
         const val GAME_ROUTE = "route.game"
         const val ZIP_SIZE = 5
         const val RESULT_ROUTE = "route.result"
+        const val DUELS_LIST = "duels.tab"
+        val isDuelGame = SemanticsMatcher("test tag duel.game.*") {
+            it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("duel.game.") == true
+        }
         val isRoute = SemanticsMatcher("test tag route.*") {
             it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("route.") == true
         }
