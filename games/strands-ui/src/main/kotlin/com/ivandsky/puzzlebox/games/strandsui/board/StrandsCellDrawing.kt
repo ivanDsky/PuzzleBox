@@ -8,7 +8,6 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.drawscope.Fill
@@ -104,11 +103,10 @@ internal fun DrawScope.drawTokenSquare(
 }
 
 /**
- * What one faded token paints at [scale] about its face's centre [center]: its face, and its lip
- * [StrandsBoardSpec.TokenLipFraction] lower only inside the face's own box, because a translucent
- * layer clips its content to its bounds (the lip hangs below them). A connector cut out of its
+ * What [drawTokenSquare] paints for one token at [scale] about its face's centre [center]: the face
+ * and, [StrandsBoardSpec.TokenLipFraction] lower, its lip. A connector cut out of its faded
  * tokens clips this exact shape, so the line meets the visible edge with no gap at a corner or
- * below the lip. Not what an opaque token paints: that keeps its whole lip, and cuts nothing.
+ * below the lip.
  */
 internal fun Path.addToken(center: Offset, half: Float, scale: Float = 1f) {
     val reach = half * scale
@@ -116,9 +114,7 @@ internal fun Path.addToken(center: Offset, half: Float, scale: Float = 1f) {
     val corner = CornerRadius(reach * 2 * StrandsBoardSpec.TokenCornerFraction)
     val box = Rect(center.x - reach, center.y - reach, center.x + reach, center.y + reach)
     addRoundRect(RoundRect(box, corner))
-    val lip = Path().apply { addRoundRect(RoundRect(box.translate(0f, drop), corner)) }
-    val inBox = Path().apply { addRect(box) }
-    addPath(Path.combine(PathOperation.Intersect, lip, inBox))
+    addRoundRect(RoundRect(box.translate(0f, drop), corner))
 }
 
 /**
