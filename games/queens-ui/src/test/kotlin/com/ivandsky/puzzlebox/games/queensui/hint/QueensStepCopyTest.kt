@@ -18,7 +18,7 @@ class QueensStepCopyTest {
     }
 
     private val mistakes = QueensStep.Mistake.Kind.entries.map { QueensStep.Mistake(Cell(0), it, null) }
-    private val reveals = listOf(true, false).map { QueensStep.Reveal(Cell(0), it) }
+    private val reveals = listOf(QueensStep.Reveal(Cell(0)))
 
     @Test
     fun `every text opens with a name and a colon and fits the budget`() {

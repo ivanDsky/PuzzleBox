@@ -41,7 +41,7 @@ internal object QueensSpotlightMapper {
                     roles[result.cell.idx] = SpotlightRole.TARGET
                 }
             }
-            is QueensStep.Reveal -> roles[step.cell.idx] = if (step.holdsQueen) SpotlightRole.TARGET else SpotlightRole.EXCLUDED
+            is QueensStep.Reveal -> roles[step.cell.idx] = SpotlightRole.EXCLUDED
             QueensStep.Solved, QueensStep.Unavailable -> return null
         }
         val lit = roles.filterValues { it != SpotlightRole.EXCLUDED }.keys

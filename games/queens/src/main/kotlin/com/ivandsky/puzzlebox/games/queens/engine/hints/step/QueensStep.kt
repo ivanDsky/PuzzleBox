@@ -23,8 +23,8 @@ sealed interface QueensStep {
         }
     }
 
-    /** No rung has a proof: the solution's state of [cell], shown without one. */
-    data class Reveal(val cell: Cell, val holdsQueen: Boolean) : QueensStep
+    /** No rung has a proof: [cell] is open and holds no queen, shown without one. */
+    data class Reveal(val cell: Cell) : QueensStep
 
     data object Solved : QueensStep
 

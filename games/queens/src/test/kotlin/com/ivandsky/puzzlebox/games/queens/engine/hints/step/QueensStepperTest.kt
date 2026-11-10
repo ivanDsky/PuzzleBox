@@ -106,7 +106,7 @@ class QueensStepperTest {
                         }
                     }
                     is QueensStep.Reveal -> {
-                        assertTrue("$step", open.isOpen(step.cell.idx) && step.cell !in solution && !step.holdsQueen)
+                        assertTrue("$step", open.isOpen(step.cell.idx) && step.cell !in solution)
                         board = board.copy(manual = board.manual + step.cell)
                         last = step.cell
                     }
@@ -334,11 +334,11 @@ class QueensStepperTest {
         // Row 3 has open 14 (solution) and 15 after crosses on 12 and 13: two open cells, the fewest of any unsolved unit.
         val crossed = QueensBoard(manual = cells(12, 13))
         val step = QueensStepper.next(n4, crossed, true, null, n4.solution!!.toSet(), none)
-        assertEquals(QueensStep.Reveal(Cell(15), holdsQueen = false), step)
+        assertEquals(QueensStep.Reveal(Cell(15)), step)
         assertEquals(step, QueensStepper.next(n4, crossed, true, null, n4.solution!!.toSet(), none))
         // Region 3 is the lone solution cell 14, so it offers nothing; every row then ties at four and the lowest cell goes.
-        assertEquals(QueensStep.Reveal(Cell(0), holdsQueen = false), QueensStepper.next(n4, QueensBoard(), true, null, n4.solution!!.toSet(), none))
-        assertEquals(QueensStep.Reveal(Cell(15), holdsQueen = false), QueensStepper.next(n4, QueensBoard(), true, Cell(15), n4.solution!!.toSet(), none))
+        assertEquals(QueensStep.Reveal(Cell(0)), QueensStepper.next(n4, QueensBoard(), true, null, n4.solution!!.toSet(), none))
+        assertEquals(QueensStep.Reveal(Cell(15)), QueensStepper.next(n4, QueensBoard(), true, Cell(15), n4.solution!!.toSet(), none))
     }
 
     @Test
@@ -347,7 +347,7 @@ class QueensStepperTest {
         assertEquals(QueensStep.Unavailable, QueensStepper.next(twoSolutions, board, true, null, null))
         val solution = twoSolutions.solution!!.toSet()
         val reveal = QueensStepper.next(twoSolutions, board, true, null, solution) as QueensStep.Reveal
-        assertTrue("$reveal", stall.isOpen(reveal.cell.idx) && reveal.cell !in solution && !reveal.holdsQueen)
+        assertTrue("$reveal", stall.isOpen(reveal.cell.idx) && reveal.cell !in solution)
     }
 
     @Test
