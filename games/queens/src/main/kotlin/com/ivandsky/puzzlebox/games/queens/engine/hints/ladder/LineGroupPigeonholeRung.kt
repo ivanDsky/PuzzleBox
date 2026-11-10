@@ -38,8 +38,8 @@ object LineGroupPigeonholeRung : QueensRung {
 
     private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<Found> {
         val n = puzzle.size
-        val rows = List(n) { row -> List(n) { row * n + it } }
-        val cols = List(n) { col -> List(n) { it * n + col } }
+        val rows = puzzle.rowCells
+        val cols = puzzle.columnCells
         return confined(puzzle, candidates, rows, cols, { it % n }, HintReason.Kind.COLUMN) +
             confined(puzzle, candidates, cols, rows, { it / n }, HintReason.Kind.ROW)
     }

@@ -32,14 +32,16 @@ object SinglesRung : QueensRung {
 
     /** Deductions with evidence still unbuilt, so [step] builds none for the losing candidates. */
     private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<PlaceFound> {
-        val n = puzzle.size
-        val units = List(n) { row -> HintReason(HintReason.Kind.ROW, row) to List(n) { row * n + it } } +
-            List(n) { col -> HintReason(HintReason.Kind.COLUMN, col) to List(n) { it * n + col } } +
-            List(n) { region -> HintReason(HintReason.Kind.REGION, region) to puzzle.regions.indices.filter { puzzle.regions[it] == region } }
-        return units.mapNotNull { (unit, cells) ->
-            val missing = puzzle.queensPerUnit - cells.count { it in candidates.queens }
-            val open = cells.filter(candidates::isOpen)
-            if (missing > 0 && open.size == missing) QueensDeduction.Place(this, unit, open.first()) to { cells.toSet() } else null
+        val found = ArrayList<PlaceFound>()
+        for (kind in HintReason.Kind.entries) {
+            val units = QueensUnits.cells(puzzle, kind)
+            for (index in units.indices) {
+                val cells = units[index]
+                val missing = puzzle.queensPerUnit - cells.count { it in candidates.queens }
+                val open = cells.filter(candidates::isOpen)
+                if (missing > 0 && open.size == missing) found += QueensDeduction.Place(this, HintReason(kind, index), open.first()) to { cells.toSet() }
+            }
         }
+        return found
     }
 }

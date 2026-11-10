@@ -55,6 +55,19 @@ data class QueensPuzzle(
 
     val cellCount: Int = size * size
 
+    /**
+     * Cell indices (ascending) of each row, column and region, derived once per puzzle for the
+     * hint rungs. Body members: not constructor properties, so [equals], [hashCode], [copy] and
+     * the codec never see them.
+     */
+    val rowCells: List<List<Int>> by lazy { List(size) { row -> List(size) { row * size + it } } }
+    val columnCells: List<List<Int>> by lazy { List(size) { col -> List(size) { it * size + col } } }
+    val regionCells: List<List<Int>> by lazy {
+        val cells = List(size) { ArrayList<Int>() }
+        for (cell in regions.indices) cells[regions[cell]] += cell
+        cells
+    }
+
     fun rowOf(cell: Cell): Int = cell.idx / size
     fun colOf(cell: Cell): Int = cell.idx % size
     fun regionOf(cell: Cell): Int = regions[cell.idx]
