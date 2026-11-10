@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.games.tangoui.hint
 
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.hint.StepHints
+import com.ivandsky.puzzlebox.games.tango.TangoCell
+import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.TangoSession
 import kotlinx.coroutines.CoroutineScope
 
@@ -15,10 +17,11 @@ internal fun tangoStepHints(
     scope: CoroutineScope,
     session: () -> TangoSession?,
     count: (TangoSession) -> Unit,
+    solve: (TangoPuzzle) -> List<TangoCell>?,
 ): StepHints<*, *> = StepHints(
     mode,
     scope,
-    TangoStepGame(session = { checkNotNull(session()) }),
+    TangoStepGame(session = { checkNotNull(session()) }, solve = solve),
     used = { session()?.hintsUsed ?: 0 },
     onCount = { used -> session()?.let { count(it.copy(hintsUsed = used)) } },
 )
