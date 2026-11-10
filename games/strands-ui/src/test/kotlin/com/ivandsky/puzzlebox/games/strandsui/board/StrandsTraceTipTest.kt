@@ -4,9 +4,10 @@ import androidx.compose.ui.geometry.Offset
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.gameui.TipKind
 import com.ivandsky.puzzlebox.games.strands.Coord
+import com.ivandsky.puzzlebox.games.strandsui.Trace
+import com.ivandsky.puzzlebox.games.strandsui.TraceStep
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -28,16 +29,47 @@ class StrandsTraceTipTest {
         strandsTip(path, finger(path.last(), tailDx, tailDy), rows, cols, found)
 
     @Test
-    fun `toward a free letter the tip follows the finger, capped short of it`() {
+    fun `toward a free letter the tip follows the finger, to the walk's join line and no further`() {
         val tail = Coord(1, 1)
         val near = tip(listOf(tail), 0.3f, 0f)!!
         assertEquals(TipKind.Forward, near.kind)
         assertEquals(Coord(1, 2), near.toward)
         assertEquals(0.3f, near.extent, 1e-4f)
 
-        val far = tip(listOf(tail), 3f, 0f)!!
-        assertEquals(MotionTokens.Trace.TipMaxCells, far.extent, 1e-5f)
-        assertTrue(far.extent < 1f)
+        val atLine = 1f - StrandsBoardSpec.SideJoinCells
+        assertEquals(atLine - 0.01f, tip(listOf(tail), atLine - 0.01f, 0f)!!.extent, 1e-4f)
+        assertNull("past the join line the letter was refused", tip(listOf(tail), atLine + 0.01f, 0f))
+        assertNull(tip(listOf(tail), 3f, 0f))
+    }
+
+    @Test
+    fun `a diagonal tip ends at the diagonal join line`() {
+        val tail = Coord(1, 1)
+        val below = StrandsBoardSpec.DiagonalJoinFraction - 0.01f
+        assertEquals(below, tip(listOf(tail), below, below)!!.extent, 1e-4f)
+        val past = StrandsBoardSpec.DiagonalJoinFraction + 0.01f
+        assertNull(tip(listOf(tail), past, past))
+    }
+
+    @Test
+    fun `a finger the walk refused a letter leaves no link to it, though it points at it`() {
+        // The finger takes O from G, then goes 0.45 east of O's centre and south to 1.1 pitches
+        // below it: 0.45 from the centre of the G below O at the nearest, so the walk joins
+        // nothing (a side letter needs the finger within 0.4 of its centre), yet the finger
+        // points south of O, so the tip once leaned the connector 0.9 of the way into that G:
+        // a link to a letter outside the path.
+        val rows = 8
+        val cols = 6
+        val g = Coord(5, 4)
+        val o = Coord(5, 3)
+        val session = StrandsDragSession(rows, cols, g, centreOf(g))
+        var trace = Trace()
+        for (point in listOf(centreOf(o), Offset(3.95f, 5.5f), Offset(3.95f, 6.6f))) {
+            session.move(point, trace).forEach { trace = (it as TraceStep.Updated).trace }
+        }
+        assertEquals(listOf(g, o), trace.path)
+
+        assertNull(strandsTip(trace.path, session.finger()!!, rows, cols, free))
     }
 
     @Test
