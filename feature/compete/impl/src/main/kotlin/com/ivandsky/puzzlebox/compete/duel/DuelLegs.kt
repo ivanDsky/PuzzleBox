@@ -160,9 +160,12 @@ private fun LegsHeader(content: LegsContent) {
                 )
             }
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Pill(timeLeftText(content.deadline, content.now), Modifier.testTag("duel.legs.timeLeft"))
-            Pill("Score hidden until it settles")
+        // Once the reveal is ready the footer says why ("Both finished" / "Closed"); a countdown and "hidden" would be stale.
+        if (model.footer != DuelFooter.RevealReady) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Pill(timeLeftText(content.deadline, content.now), Modifier.testTag("duel.legs.timeLeft"))
+                Pill("Score hidden until it settles")
+            }
         }
     }
 }
