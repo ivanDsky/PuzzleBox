@@ -101,8 +101,9 @@ abstract class RevealGoldenScreenshots(private val device: String, private val w
 
     private fun stage(name: String, plan: RevealPlan, at: Long, dark: Boolean) {
         val machine = RevealMachine(plan.legs, reduced = false).apply { advance(at) }
+        val state = machine.state.value
         rule.showGolden(dark) {
-            RevealStage(plan, machine.state.value, GamePlayRegistry(emptyList()), wide, onSkip = {})
+            RevealStage(plan, state, GamePlayRegistry(emptyList()), wide, onSkip = {})
         }
         rule.settleAndCapture(name, device, dark)
     }
@@ -162,6 +163,9 @@ abstract class RevealGoldenScreenshots(private val device: String, private val w
             val verdicts = plan.legs.map { it.verdict }
             val wins = verdicts.count { it is LegVerdict.Win }
             val losses = verdicts.count { it is LegVerdict.Loss }
+            check(verdict == if (wins > losses) MatchVerdict.Won else if (wins < losses) MatchVerdict.Lost else MatchVerdict.Drawn) {
+                "fixture verdict $verdict does not match $wins wins to $losses losses"
+            }
             val match = Match(
                 code = CODE,
                 formatVersion = Match.FORMAT_VERSION,
@@ -183,8 +187,9 @@ abstract class RevealGoldenScreenshots(private val device: String, private val w
         val WIN = summaryOf(plan("Ivan", "Sam", ZIP_WIN, STRANDS_WIN, QUEENS_LOSS), MatchVerdict.Won)
         val LOSS = summaryOf(plan("Ivan", "Sam", QUEENS_LOSS, NO_RESULT, ZIP_WIN), MatchVerdict.Lost)
         val DRAW = summaryOf(plan("Ivan", "Sam", ZIP_WIN, QUEENS_LOSS, TIE), MatchVerdict.Drawn)
+        // 4 wins, 2 losses (one a no-result) and a tie: a won best of 7; the tie scores for neither side.
         val BEST_OF_7 = summaryOf(
-            plan("Ivan", "Sam", ZIP_WIN, QUEENS_LOSS, STRANDS_WIN, NO_RESULT, TIE, ZIP_WIN, QUEENS_LOSS),
+            plan("Ivan", "Sam", ZIP_WIN, QUEENS_LOSS, STRANDS_WIN, NO_RESULT, TIE, ZIP_WIN, STRANDS_WIN),
             MatchVerdict.Won,
         )
     }

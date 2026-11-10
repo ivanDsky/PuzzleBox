@@ -48,15 +48,14 @@ import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.Stamp
 import com.ivandsky.puzzlebox.designsystem.formatDuration
+import com.ivandsky.puzzlebox.designsystem.rememberCountUp
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.rememberSolveSweepState
 import com.ivandsky.puzzlebox.designsystem.resultBeat
 import com.ivandsky.puzzlebox.designsystem.solveSweep
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import kotlin.math.roundToInt
 
-private const val CountUpMs = 700
 private const val QuietFadeMs = 900
 private val PhoneMaxWidth = 560.dp
 private val TileMinHeight = 64.dp
@@ -233,13 +232,9 @@ private fun CardBody(summary: DuelSummary, win: Boolean) {
 
 @Composable
 private fun Numeral(target: Int, win: Boolean, modifier: Modifier) {
-    val instant = rememberReducedMotion() || LocalInspectionMode.current
-    val progress = remember(target) { Animatable(if (instant) 1f else 0f) }
-    LaunchedEffect(progress) {
-        progress.animateTo(1f, tween(CountUpMs, easing = MotionTokens.EasingEmphasizedDecelerate))
-    }
+    val shown = rememberCountUp(target.toLong(), durationMs = MotionTokens.ScoreCountUpDuration)
     Text(
-        text = (target * progress.value).roundToInt().toString(),
+        text = shown.toString(),
         style = MaterialTheme.typography.displayLarge.tabular(),
         color = if (win) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
         modifier = modifier,

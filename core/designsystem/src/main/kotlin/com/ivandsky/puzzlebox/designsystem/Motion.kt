@@ -112,6 +112,9 @@ object MotionTokens {
     // CountUp: numbers roll on EasingEmphasizedDecelerate. Reduced: the final value.
     const val CountUpDuration = 400
 
+    // CountUp, slower: a score that rolls up to a small whole-number tally, e.g. a duel's final score.
+    const val ScoreCountUpDuration = 700
+
     // SolveSweep: a diagonal accent band (a fraction of the board width, at a low alpha)
     // crosses the board TL→BR on EasingStandard; the board outline turns accent at a
     // thicker width. Reduced: the outline only, instantly.
