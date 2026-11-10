@@ -26,16 +26,14 @@ object LeftoverQueenRung : QueensRung {
     private const val MAX_BAND = 4
 
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
-        found(puzzle, candidates).sortedWith(order).asSequence().map { QueensProof(it.deduction, it.evidence()) }
+        found(puzzle, candidates).proofs(order)
 
     override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
-        found(puzzle, candidates).minWithOrNull(order)?.deduction
+        found(puzzle, candidates).first(order)
 
-    /** A deduction with its evidence still unbuilt, so [step] builds none for the losing candidates. */
-    private class Found(val k: Int, val deduction: QueensDeduction.Exclude, val evidence: () -> Set<Int>)
-
-    private val order: Comparator<Found> = compareBy(
-        { it.k },
+    /** [Found.rank] is the band size k. */
+    private val order: Comparator<Found<QueensDeduction.Exclude>> = compareBy(
+        { it.rank },
         { it.deduction.cells.min() },
         { it.deduction.unit.kind },
         { it.deduction.unit.unit },
@@ -44,11 +42,11 @@ object LeftoverQueenRung : QueensRung {
     /** One family of units: its cells and missing queens per index, a cell's index, and its kind. */
     private class Units(val cells: List<List<Int>>, val missing: List<Int>, val of: (Int) -> Int, val kind: HintReason.Kind)
 
-    private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<Found> {
+    private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<Found<QueensDeduction.Exclude>> {
         val n = puzzle.size
         fun units(kind: HintReason.Kind, of: (Int) -> Int): Units {
             val cells = QueensUnits.cells(puzzle, kind)
-            return Units(cells, cells.map { unit -> puzzle.queensPerUnit - unit.count { it in candidates.queens } }, of, kind)
+            return Units(cells, cells.map { candidates.missing(puzzle, it) }, of, kind)
         }
         val rows = units(HintReason.Kind.ROW) { it / n }
         val cols = units(HintReason.Kind.COLUMN) { it % n }
@@ -78,7 +76,7 @@ object LeftoverQueenRung : QueensRung {
                 (puzzle.regions[x] == puzzle.regions[s] && regions.missing[puzzle.regions[x]] == 1)
 
         /** Every exclusion from a band of [bands] units with [insides] units wholly inside it. */
-        fun leftovers(bands: Units, insides: Units): List<Found> {
+        fun leftovers(bands: Units, insides: Units): List<Found<QueensDeduction.Exclude>> {
             val unsolved = bands.cells.indices.filter { bands.missing[it] > 0 }
             // Unsolved inside candidates with at least one open cell, and the bitmask of band units those cells reach.
             val insideUnits = ArrayList<Int>()
@@ -91,7 +89,7 @@ object LeftoverQueenRung : QueensRung {
             }
             val leftover = IntArray(n * n)
             val inLeftover = BooleanArray(n * n)
-            val found = ArrayList<Found>()
+            val found = ArrayList<Found<QueensDeduction.Exclude>>()
             for (mask in 1 until (1 shl unsolved.size)) {
                 val k = Integer.bitCount(mask)
                 if (k < 2 || k > MAX_BAND) continue
@@ -122,7 +120,7 @@ object LeftoverQueenRung : QueensRung {
                 for (i in 0 until size) inLeftover[leftover[i]] = false
                 if (cells.isEmpty()) continue
                 val unit = HintReason(bands.kind, Integer.numberOfTrailingZeros(bandBits), LeftoverQueenRung)
-                found += Found(k, QueensDeduction.Exclude(LeftoverQueenRung, unit, cells)) {
+                found += Found(QueensDeduction.Exclude(LeftoverQueenRung, unit, cells), rank = k) {
                     (0 until n * n).filter { candidates.isOpen(it) && bandBits and (1 shl bands.of(it)) != 0 && it !in cells }.toSet()
                 }
             }
