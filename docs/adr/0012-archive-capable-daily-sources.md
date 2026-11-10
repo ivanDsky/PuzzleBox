@@ -1,6 +1,6 @@
 # ADR-0012 — Archive-capable daily sources (amends ADR-0002)
 
-Date: 2026-11-05 · Status: accepted · Source: Strands spec A9, A20, A23, A24; goldfish A data-3/4/5, failure-1/4/13, reuse-2
+Date: 2026-11-05 · Status: accepted · Source: Strands spec A9, A20, A23, A24; goldfish A data-3/4/5, failure-1/4/13, reuse-2 · Amended by ADR-0028 (the streak skip no longer applies to a day covered by a LinkedIn import)
 
 ## Context
 ADR-0002 left the archive as a future `PuzzleSource` adapter. Strands (NYT) is the first

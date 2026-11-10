@@ -1,6 +1,6 @@
 # ADR-0017 — LinkedIn past days by number from games-by-id
 
-Date: 2026-11-05 · Status: accepted · Source: remote-collection research 02 + 07, spec A2–A6, A17, A23 · Amends ADR-0012 (LinkedIn feeds serve only today) · Builds on ADR-0016 (persisted-query rung)
+Date: 2026-11-05 · Status: accepted · Source: remote-collection research 02 + 07, spec A2–A6, A17, A23 · Amends ADR-0012 (LinkedIn feeds serve only today) · Builds on ADR-0016 (persisted-query rung) · Amended by ADR-0028 (§6 terms posture: the opt-in LinkedIn account feature reads with the player's session and names LinkedIn)
 
 ## Context
 LinkedIn expires each Zip, Queens, Tango and Mini Sudoku puzzle at midnight PT, and every

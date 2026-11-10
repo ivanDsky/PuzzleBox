@@ -47,3 +47,12 @@ The once-per-device animated outcome sequence that ends on the summary.
 
 **Late / LocalOnly**:
 The two failed post states: rejected because the match had closed, or rejected three times.
+
+**Import**:
+A completion written from the player's own LinkedIn result, stored with `source = LinkedIn`; it follows first win like any solve.
+
+**Ghost**:
+A LinkedIn connection's row for a day, shown unranked beside the PuzzleBox board and stored only on this phone.
+
+**Pause**:
+The persisted latch set by the first LinkedIn rejection; every account read waits until the player taps Resume, Reconnect or Disconnect.
