@@ -107,6 +107,7 @@ private fun RevealRunScreen(
     val state by machine.state.collectAsStateWithLifecycle()
     var rematch by remember { mutableStateOf(false) }
     var invite by rememberSaveable(stateSaver = createdInviteSaver) { mutableStateOf<Pair<String, String>?>(null) }
+    RevealHapticsEffect(machine)
     LaunchedEffect(machine) {
         var last = withFrameNanos { it }
         while (machine.state.value.phase != RevealPhase.End) {
