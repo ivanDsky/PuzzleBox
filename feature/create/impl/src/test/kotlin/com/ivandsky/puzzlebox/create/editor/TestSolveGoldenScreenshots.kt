@@ -139,6 +139,7 @@ class TestSolveGoldenScreenshots {
                     publish = PublishSession.State(details = DETAILS),
                     title = TITLE,
                     onShowDetails = {}.takeIf { editBoard },
+                    compact = true,
                 )
             },
         )

@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -132,6 +133,92 @@ class ToolSlotSwapTest {
 
         awaitTag(DETAILS)
         awaitGone(STRIP)
+    }
+
+    @Test
+    fun `on a phone Edit board leaves the action area only the summary and Publish, and the details bring the rest back`() {
+        open(PlayLayout.SinglePane)
+        awaitTag(EDIT_BOARD)
+        assertFullActionArea()
+
+        composeRule.onNodeWithTag(EDIT_BOARD).performClick()
+
+        awaitTag(STRIP)
+        awaitGone(TEST_STATUS)
+        awaitGone(TEST_SOLVE)
+        awaitGone(READINESS)
+        awaitTag(SUMMARY)
+        awaitTag(PUBLISH)
+
+        composeRule.onNodeWithTag(SUMMARY).performClick()
+
+        awaitTag(DETAILS)
+        assertFullActionArea()
+    }
+
+    @Test
+    fun `on a phone a board edit after Edit board brings the whole action area back with Test solve, and a restored test slims it again`() {
+        open(PlayLayout.SinglePane)
+        awaitTag(EDIT_BOARD)
+        composeRule.onNodeWithTag(EDIT_BOARD).performClick()
+        awaitGone(TEST_SOLVE)
+
+        editMarks(2)
+
+        awaitTrue { vm.testSolve.passed.value == null }
+        awaitTag(TEST_STATUS)
+        awaitTag(TEST_SOLVE)
+        awaitTag(STRIP)
+
+        editMarks(1)
+
+        awaitTrue { vm.testSolve.passed.value != null }
+        assertStillEditingTheBoard()
+        awaitGone(TEST_SOLVE)
+        awaitTag(SUMMARY)
+        awaitTag(PUBLISH)
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp-land")
+    fun `on a tablet Edit board keeps the whole action area`() {
+        open(PlayLayout.TwoPane)
+        awaitTag(EDIT_BOARD)
+        composeRule.onNodeWithTag(EDIT_BOARD).performClick()
+        awaitTag(STRIP)
+        awaitTag(SUMMARY)
+
+        assertFullActionArea()
+    }
+
+    @Test
+    fun `on a phone a publish from Edit board never brings Test again or the readiness line back on its way to the ticket`() {
+        open(PlayLayout.SinglePane)
+        awaitTag(EDIT_BOARD)
+        composeRule.onNodeWithTag(EDIT_BOARD).performClick()
+        awaitGone(TEST_SOLVE)
+        val enabled = hasTestTag(PUBLISH) and isEnabled()
+        awaitTrue { composeRule.onAllNodes(enabled).fetchSemanticsNodes().isNotEmpty() }
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.onNode(enabled).performClick()
+
+        // Frame by frame through the publish and the morph, the leaving action area included.
+        val flashed = mutableSetOf<String>()
+        composeRule.waitUntil(TIMEOUT_MS) {
+            ShadowLooper.idleMainLooper(FRAME_MS, TimeUnit.MILLISECONDS)
+            composeRule.mainClock.advanceTimeByFrame()
+            flashed += listOf(TEST_STATUS, TEST_SOLVE, READINESS).filter { shown(it) }
+            shown(TICKET) && !shown(PUBLISH)
+        }
+        assertTrue("$flashed showed on the way to the ticket", flashed.isEmpty())
+    }
+
+    private fun shown(tag: String) = composeRule.onAllNodes(hasTestTag(tag), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+
+    /** The status line, Test solve, the readiness line and Publish, all shown. */
+    private fun assertFullActionArea() {
+        listOf(TEST_STATUS, TEST_SOLVE, READINESS, PUBLISH).forEach(::awaitTag)
     }
 
     @Test
@@ -382,6 +469,11 @@ class ToolSlotSwapTest {
         const val BOARD = "create.editor.board"
         const val TOOL_SLOT = "create.tool.slot"
         const val SIDE_PANE = "create.studio.sidePane"
+        const val TEST_STATUS = "create.action.testStatus"
+        const val TEST_SOLVE = "create.action.testSolve"
+        const val READINESS = "create.readiness"
+        const val PUBLISH = "create.action.publish"
+        const val TICKET = "create.published.ticket"
 
         fun storedRow(board: EditorDraft<TestDraft>) = Draft(
             id = DRAFT_ID,

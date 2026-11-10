@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.create.importtext.ImportSheet
 import com.ivandsky.puzzlebox.create.importtext.ImportSheetActions
 import com.ivandsky.puzzlebox.create.published.UnpublishDialog
 import com.ivandsky.puzzlebox.create.published.UnpublishedToast
+import com.ivandsky.puzzlebox.domain.PublishOutcome
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.koin.androidx.compose.koinViewModel
@@ -199,8 +200,10 @@ internal fun EditorRoute(
                             // The live verdict, like Test solve: a tap while Checking is refused as not ready.
                             onPublish = { viewModel.publish.publish(draft, ready.verdict) },
                             title = title,
-                            onShowDetails = { editBoard = false }.takeIf { detailsReady && editBoard },
+                            // Through the publish too: the leaving area keeps Edit board's look under the ticket morph.
+                            onShowDetails = { editBoard = false }.takeIf { editBoard && (detailsReady || publish.outcome is PublishOutcome.Published) },
                             fieldCopy = ready.editor.publishFieldCopy,
+                            compact = layout == PlayLayout.SinglePane,
                         )
                     }
                 },

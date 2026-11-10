@@ -74,7 +74,7 @@ internal fun StrandsEditorBoard(
     if (withTools) {
         StrandsPhoneBoard(
             grid = { StrandsEditorGrid(controller, verdict, 0.dp, Modifier.fillMaxSize()) },
-            field = { StrandsWordField(controller) },
+            field = { StrandsWordField(controller, compact = true) },
             modifier = modifier,
         )
     } else {
