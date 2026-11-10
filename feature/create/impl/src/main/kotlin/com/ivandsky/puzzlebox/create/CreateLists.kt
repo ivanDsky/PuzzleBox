@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -19,10 +20,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.EmptyState
+import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -75,7 +78,11 @@ internal fun CreateTabContent(
 @Composable
 private fun PublishedList(state: CreateUiState, onOpen: (code: String) -> Unit) {
     val reducedMotion = rememberReducedMotion()
+    val listState = rememberLazyListState()
+    val reselect = LocalTabReselect.current
+    LaunchedEffect(reselect, listState) { reselect.collect { listState.animateScrollToItem(0) } }
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize().maxContentWidth().testTag("create.published.list"),
         contentPadding = PaddingValues(bottom = ListBottomInset),
     ) {
@@ -94,7 +101,11 @@ private fun DraftList(
     onFilter: (GameId?) -> Unit,
 ) {
     val reducedMotion = rememberReducedMotion()
+    val listState = rememberLazyListState()
+    val reselect = LocalTabReselect.current
+    LaunchedEffect(reselect, listState) { reselect.collect { listState.animateScrollToItem(0) } }
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize().maxContentWidth().testTag("create.list"),
         contentPadding = PaddingValues(bottom = ListBottomInset),
     ) {
