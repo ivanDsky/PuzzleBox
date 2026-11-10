@@ -59,8 +59,9 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
  * ([StrandsEditorController.overlay]) are drawn by [StrandsDiagnosticsLayer]. The trace takes
  * any drag on the grid, so nothing scrolls it: with [withTools] (the phone Studio) the whole
  * grid fits the slot, below the touch floor if it must, the word field under it while the slot
- * has room ([StrandsPhoneBoard]); the path rows stay in the tablet's pane, a tap on the board
- * selects a path on the phone. Without them (the tablet Studio draws its tools in its side pane)
+ * has room ([StrandsPhoneBoard]); the path rows stay in the tablet's pane, so on the phone a tap
+ * on the board selects a path and a second tap on one of its inner cells lets it go. Without them
+ * (the tablet Studio draws its tools in its side pane)
  * the grid alone fits the width and the height at the touch floor, centred.
  */
 @Composable

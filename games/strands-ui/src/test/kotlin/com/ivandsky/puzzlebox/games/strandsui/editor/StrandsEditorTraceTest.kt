@@ -2,8 +2,6 @@ package com.ivandsky.puzzlebox.games.strandsui.editor
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -43,15 +41,12 @@ class StrandsEditorTraceTest {
 
     private fun board() = controller.draft.value.state.draft as StrandsDraft
 
-    /** The phone board and tool hint, and the tablet pane's paths panel under them. */
+    /** The phone board and its tool hint, as the phone Studio lays them out: no paths panel. */
     private fun show() = rule.setContent {
         PuzzleBoxTheme {
             Column {
                 StrandsEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier.weight(1f))
                 StrandsEditorUi.ToolHint(controller, Modifier.fillMaxWidth())
-                val draft by controller.draft.collectAsState()
-                val selected by controller.selectedPath.collectAsState()
-                StrandsPathsPanel(draft.state.draft as StrandsDraft, selected, controller::selectPath)
             }
         }
     }
@@ -145,17 +140,27 @@ class StrandsEditorTraceTest {
     }
 
     @Test
-    fun `tapping a path chip selects it and a second tap lets it go`() {
+    fun `a second tap on an inner cell of the selected path lets it go`() {
         show()
-        trace(0, 1)
-        trace(6, 7)
+        trace(0, 1, 2)
         controller.selectPath(null)
 
-        rule.onNodeWithTag("strands.editor.path.1").performClick()
-        assertEquals(1, controller.selectedPath.value)
-        rule.onNodeWithTag("strands.editor.path.1").performClick()
+        tap(1)
+        assertEquals(0, controller.selectedPath.value)
+        tap(1)
         assertNull(controller.selectedPath.value)
+        assertEquals(1, edits.size)
         rule.onNodeWithTag("strands.editor.remove").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a tap on an end of the selected path keeps it`() {
+        show()
+        trace(0, 1, 2)
+
+        tap(2)
+        tap(0)
+        assertEquals(0, controller.selectedPath.value)
     }
 
     @Test
@@ -163,7 +168,7 @@ class StrandsEditorTraceTest {
         show()
         trace(0, 1)
         trace(6, 7)
-        rule.onNodeWithTag("strands.editor.path.0").performClick()
+        tap(0)
         rule.onNodeWithTag("strands.editor.remove").performClick()
 
         assertEquals(listOf(listOf(6, 7)), board().paths.map { it.cells })
