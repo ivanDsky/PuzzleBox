@@ -68,5 +68,8 @@ interface DailyRepository {
 
     /** [game]'s puzzle number for [day] from its source (A20), or null; never touches the network nor the cache. */
     fun puzzleNumber(game: GameId, day: LocalDate): Int?
+
+    /** [game]'s LinkedIn Games type id from its source, or null for any other game; never touches the network nor the cache. */
+    fun linkedInGameTypeId(game: GameId): Int?
 }
 

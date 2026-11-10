@@ -112,7 +112,7 @@ object TestGames {
  * dates. Default fails Unavailable so tests assert the degrade path explicitly.
  * [requestedDates] logs every fetch; [requestedPastDates] only those that came through
  * [fetchPast]. [placeholder] is the stored puzzle this source calls a stand-in, and
- * [puzzleNumbers] its numbering (none by default).
+ * [puzzleNumbers] its numbering (none by default); [linkedInGameTypeId] its LinkedIn type id (none by default).
  */
 class FakeDailySource(override val gameId: GameId) : DailySource {
 
@@ -123,6 +123,7 @@ class FakeDailySource(override val gameId: GameId) : DailySource {
     var nextError: FetchError = FetchError.Unavailable("FakeDailySource: nothing queued")
     var placeholder: Puzzle? = null
     var puzzleNumbers: (LocalDate) -> Int? = { null }
+    override var linkedInGameTypeId: Int? = null
 
     override suspend fun fetchDaily(date: LocalDate): FetchResult<DailyFetch> {
         requestedDates += date
