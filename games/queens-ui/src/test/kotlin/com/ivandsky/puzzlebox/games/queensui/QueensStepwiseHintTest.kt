@@ -15,10 +15,12 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
+import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.MarkKind
 import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
+import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
 import java.time.Instant
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -92,6 +94,25 @@ class QueensStepwiseHintTest {
     }
 
     @Test
+    fun `a deduction that crosses cells out crosses nothing on the board and counts once`() {
+        val c = stepwise()
+        c.state.setAutoCross(false)
+        c.state.placeQueen(SOLUTION_CELL) // auto-cross off: the queen's attacks stay open
+        val before = c.state.session
+
+        c.requestHint()
+
+        val roles = checkNotNull(c.state.spotlight).roles
+        assertTrue("$roles", SpotlightRole.EVIDENCE in roles.values) // a deduction, never a reveal
+        assertTrue("$roles", SpotlightRole.EXCLUDED in roles.values) // it crosses cells out
+        assertEquals(before.board, c.state.session.board)
+        assertEquals(before.marks, c.state.session.marks)
+        assertEquals(before.history, c.state.session.history)
+        assertEquals(1, c.hintsUsed)
+        assertEquals(1, savedSession().hintsUsed)
+    }
+
+    @Test
     fun `re-pressing the same step is free and never escalates to the crown ghost`() {
         val c = stepwise()
         c.requestHint()
@@ -103,6 +124,23 @@ class QueensStepwiseHintTest {
         assertNull(c.state.hint)
         assertFalse(c.state.hintPointed)
         assertEquals(1, c.hintsUsed)
+    }
+
+    @Test
+    fun `after an unrelated move the same step re-shows twice for free`() {
+        val c = stepwise()
+        c.requestHint()
+        val first = checkNotNull(c.state.spotlight)
+        assertEquals(1, c.hintsUsed)
+
+        c.state.onTap(UNRELATED_CROSS) // a right × off the step
+        assertNull(c.state.spotlight)
+        c.requestHint()
+        c.requestHint()
+
+        assertEquals(first.roles, c.state.spotlight?.roles)
+        assertEquals(1, c.hintsUsed)
+        assertEquals(1, savedSession().hintsUsed)
     }
 
     // Culprit mark only (A4)
@@ -257,6 +295,24 @@ class QueensStepwiseHintTest {
         assertEquals(solved, c.state.session)
     }
 
+    // Mode source (A20)
+
+    @Test
+    fun `the play UI reads its mode per board - Legacy pulses the region, Stepwise shows the spotlight`() {
+        val answers = ArrayDeque(listOf(HintMode.Legacy, HintMode.Stepwise(Dispatchers.Unconfined)))
+        val ui = QueensPlayUi(InMemoryQueensSettings(), HintModeSource { answers.removeFirst() })
+        fun next() = (ui.createController(PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {})) as QueensPlayController)
+            .also { assertEquals(Adopt.Adopted, it.adoptToday(QueensPlayFixtures.envelope(), QueensPlayFixtures.ref())) }
+
+        val legacy = next().apply { requestHint() }
+        assertTrue(legacy.state.hint is QueensHint.Region)
+        assertNull(legacy.state.spotlight)
+
+        val stepwise = next().apply { requestHint() }
+        assertNotNull(stepwise.state.spotlight)
+        assertNull(stepwise.state.hint)
+    }
+
     // Overlay
 
     private fun show(c: QueensPlayController) {
@@ -302,6 +358,9 @@ class QueensStepwiseHintTest {
 
         /** Row 7, column 7: free and off the solution, far from row 0. */
         const val FREE_CELL = 63
+
+        /** Row 1, column 1: off the solution and off the first step, which stays the one shown after a × here. */
+        const val UNRELATED_CROSS = 9
 
         /** Columns 1 3 5 7 2 0 6 4 by row: one queen per row (= region) and column, no two touching. */
         val OTHER_SOLUTION = listOf(1, 11, 21, 31, 34, 40, 54, 60)
