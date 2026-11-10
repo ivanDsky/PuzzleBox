@@ -1,0 +1,86 @@
+{
+  "data": {
+    "data": {
+      "identityDashGameEndPageByGame": {
+        "*elements": [
+          "urn:li:fsd_gameEndPage:urn:li:fsd_game:(ACoAAFAKE0001,6,538)"
+        ]
+      }
+    }
+  },
+  "included": [
+    {
+      "entityUrn": "urn:li:fsd_gameEndPage:urn:li:fsd_game:(ACoAAFAKE0001,6,538)",
+      "*game": "urn:li:fsd_game:(ACoAAFAKE0001,6,538)"
+    },
+    {
+      "entityUrn": "urn:li:fsd_game:(ACoAAFAKE0001,6,538)",
+      "puzzleId": 539,
+      "gameStoredRecord": {
+        "gamePlayState": "END_SOLVED",
+        "timeElapsed": 14,
+        "completionAttributes": {
+          "isHintFree": true,
+          "isMistakeFree": false
+        },
+        "isFlawless": false
+      },
+      "gameScore": {
+        "timeElapsed": 14,
+        "totalGuessCount": null
+      }
+    },
+    {
+      "entityUrn": "urn:li:fsd_game:(ACoAAFAKE0001,3,860)",
+      "puzzleId": 860,
+      "gameStoredRecord": {
+        "gamePlayState": "END_SOLVED",
+        "timeElapsed": 95,
+        "completionAttributes": {
+          "isHintFree": false,
+          "isMistakeFree": true
+        },
+        "isFlawless": true
+      },
+      "gameScore": {
+        "timeElapsed": 95,
+        "totalGuessCount": null
+      }
+    },
+    {
+      "entityUrn": "urn:li:fsd_game:(ACoAAFAKE0001,5,700)",
+      "puzzleId": 700,
+      "gameStoredRecord": {
+        "gamePlayState": "NOT_STARTED"
+      }
+    },
+    {
+      "entityUrn": "urn:li:fsd_game:(ACoAAFAKE0001,7,392)",
+      "puzzleId": 392,
+      "gameStoredRecord": {
+        "gamePlayState": "END_SOLVED",
+        "completionAttributes": {
+          "isHintFree": true
+        }
+      },
+      "gameScore": {
+        "timeElapsed": 0,
+        "totalGuessCount": null
+      }
+    },
+    {
+      "entityUrn": "urn:li:fsd_game:(ACoAAFAKE0001,4,91)",
+      "puzzleId": 91,
+      "gameStoredRecord": {
+        "gamePlayState": "END_SOLVED",
+        "completionAttributes": {
+          "isHintFree": true
+        }
+      },
+      "gameScore": {
+        "timeElapsed": null,
+        "totalGuessCount": null
+      }
+    }
+  ]
+}
