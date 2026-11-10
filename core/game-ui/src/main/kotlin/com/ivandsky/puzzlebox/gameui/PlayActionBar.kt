@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.cooldownRing
 
 /**
  * The action bar every game shares (A14, A15): Undo · Redo · Hint · Clear, each a tall
@@ -39,6 +40,7 @@ internal fun PlayActionBar(
     accent: AccentSlot,
     modifier: Modifier = Modifier,
     hintsUsed: Int = 0,
+    hintRing: (() -> Float)? = null,
 ) {
     Row(
         modifier.fillMaxWidth().testTag("play.action_bar"),
@@ -52,7 +54,7 @@ internal fun PlayActionBar(
             onClick = onHint,
             icon = PuzzleIcons.Hint,
             label = if (hintsUsed == 0) "Hint" else "Hint · $hintsUsed",
-            modifier = action.testTag("play.hint"),
+            modifier = action.testTag("play.hint").cooldownRing(hintRing, accent),
             enabled = hintEnabled,
             accent = accent,
             size = GameButtonSize.Tall,
@@ -63,20 +65,30 @@ internal fun PlayActionBar(
     }
 }
 
-/** [PlayActionBar] over the play seams: each control reads its game's state. */
+/**
+ * [PlayActionBar] over the play seams: each control reads its game's state. Under
+ * [LocalHintCooldown] every Hint press starts the wait: Hint stays disabled and its ring fills
+ * until it is over, whatever the press did; the game's own [PlayHints.hintEnabled] still wins.
+ */
 @Composable
 fun PlayActionBar(undo: PlayUndo, hints: PlayHints, clear: PlayClear?, accent: AccentSlot, modifier: Modifier = Modifier) {
+    PlayActionBar(undo, hints, clear, accent, modifier, rememberHintCooldown(board = hints))
+}
+
+@Composable
+internal fun PlayActionBar(undo: PlayUndo, hints: PlayHints, clear: PlayClear?, accent: AccentSlot, modifier: Modifier, cooldown: HintCooldown) {
     PlayActionBar(
         onUndo = undo::undo,
         onRedo = undo::redo,
-        onHint = hints::requestHint,
+        onHint = { cooldown.press(hints::requestHint) },
         onClear = clear?.let { it::clear },
         canUndo = undo.canUndo,
         canRedo = undo.canRedo,
-        hintEnabled = hints.hintEnabled,
+        hintEnabled = cooldown.gate(hints.hintEnabled),
         accent = accent,
         modifier = modifier,
         hintsUsed = hints.hintsUsed,
+        hintRing = cooldown.ring,
     )
 }
 

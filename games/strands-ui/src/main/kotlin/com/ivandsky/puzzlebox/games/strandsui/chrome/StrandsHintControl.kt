@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.GameButton
 import com.ivandsky.puzzlebox.designsystem.GameButtonSize
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.designsystem.cooldownRing
+import com.ivandsky.puzzlebox.gameui.rememberHintCooldown
 import com.ivandsky.puzzlebox.games.strandsui.HintUi
 import com.ivandsky.puzzlebox.games.strandsui.StrandsBrand
 import com.ivandsky.puzzlebox.games.strandsui.StrandsCopy
@@ -41,7 +43,8 @@ import com.ivandsky.puzzlebox.games.strandsui.board.keyframes
  * pressable, as on NYT: the press opens the A7 "Need a hint?" modal and spends nothing. A new
  * non-theme word fills a dot and rises a "+1" beside the button ([HintBonus]); the third lights
  * the button and swells it ([rememberHintFace]). TalkBack hears "Hint" and the state: how many
- * hints are banked and how many words toward the next.
+ * hints are banked and how many words toward the next. Under the core hint cooldown (F2) every
+ * press, modal or reveal, waits it out with the shared ring ([rememberHintCooldown]).
  */
 @Composable
 internal fun StrandsHintControl(
@@ -59,6 +62,7 @@ internal fun StrandsHintControl(
         swell.animateTo(1f, tween(StrandsMotion.SwellMs, easing = LinearEasing))
     }
     val state = if (hint.available) StrandsCopy.hintAvailable(hint.count, hint.meterThirds) else StrandsCopy.hintUnavailable(hint.meterThirds)
+    val cooldown = rememberHintCooldown()
     Box(modifier.width(HintWidth)) {
         Box(
             Modifier.graphicsLayer {
@@ -68,14 +72,16 @@ internal fun StrandsHintControl(
             },
         ) {
             GameButton(
-                onClick = onHint,
+                onClick = { cooldown.press(onHint) },
                 label = StrandsCopy.HINT,
+                enabled = cooldown.gate(enabled = true),
                 accent = StrandsBrand.accent.takeIf { shown.available },
                 size = GameButtonSize.Tall,
                 modifier = Modifier
                     .width(HintWidth)
                     .semantics { stateDescription = state }
-                    .testTag("strands.hint"),
+                    .testTag("strands.hint")
+                    .cooldownRing(cooldown.ring, StrandsBrand.accent),
             ) { ink ->
                 Column(
                     Modifier.align(Alignment.Center),
