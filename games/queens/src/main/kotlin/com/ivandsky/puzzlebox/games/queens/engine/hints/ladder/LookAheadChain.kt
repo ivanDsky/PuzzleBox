@@ -33,29 +33,6 @@ internal object LookAheadChain {
         }
     }
 
-    /**
-     * Every break within [maxRounds] rounds on [candidates], fewest rounds first, then lowest
-     * cell, computed only as far as the caller reads. D10 then D11 ask about the same state, so
-     * the last state's [Probe] is kept and D11 resumes where D10 stopped.
-     */
-    fun breaks(puzzle: QueensPuzzle, candidates: QueensCandidates, cheap: List<QueensRung>, maxRounds: Int): Sequence<Break> {
-        val probe = probe(puzzle, candidates, cheap)
-        return generateSequence(0) { it + 1 }.map { probe.breakAt(it, maxRounds) }.takeWhile { it != null }.map { it!! }
-    }
-
-    /**
-     * Every break at the shallowest round count in [minRounds]..[maxRounds], lowest cell first,
-     * or empty. The chains run only until that round count has been checked in full, on the
-     * same kept [Probe] as [breaks].
-     */
-    fun breaksAtFirstDepth(
-        puzzle: QueensPuzzle,
-        candidates: QueensCandidates,
-        cheap: List<QueensRung>,
-        minRounds: Int,
-        maxRounds: Int,
-    ): List<Break> = probe(puzzle, candidates, cheap).atFirstDepth(minRounds, maxRounds)
-
     /** The chain from a queen on the open [cell]: its break within [cap] rounds, or null when it stalls or runs out of rounds. */
     fun run(
         puzzle: QueensPuzzle,
@@ -73,13 +50,6 @@ internal object LookAheadChain {
             rounds++
         }
     }
-
-    @Volatile
-    private var last: Probe? = null
-
-    private fun probe(puzzle: QueensPuzzle, candidates: QueensCandidates, cheap: List<QueensRung>): Probe =
-        last?.takeIf { it.puzzle === puzzle && it.candidates === candidates && it.cheap === cheap }
-            ?: Probe(puzzle, candidates, cheap).also { last = it }
 
     /** One chain in flight: the queens it has forced so far and whether its last round collided. */
     private class Chain(val cell: Int, var state: QueensCandidates) {
@@ -122,9 +92,10 @@ internal object LookAheadChain {
      * Every open cell's chain on one state, run in lockstep: all chains are checked at one round
      * count, in ascending cell order, before any plays the next round. So the breaks come out in
      * (rounds, cell) order and a caller that stops at the first pays only for the rounds it saw.
-     * One [HallViolation.Scratch] serves every chain.
+     * One [HallViolation.Scratch] serves every chain. Not thread-safe: one per rung call, or one
+     * shared by the rungs of a single [QueensRung.Press].
      */
-    private class Probe(val puzzle: QueensPuzzle, val candidates: QueensCandidates, val cheap: List<QueensRung>) {
+    class Probe(val puzzle: QueensPuzzle, val candidates: QueensCandidates, val cheap: List<QueensRung>) {
         private val scratch = HallViolation.Scratch(puzzle)
         private val found = ArrayList<Break>()
         private val live = ArrayList<Chain>()
@@ -135,8 +106,11 @@ internal object LookAheadChain {
         private var checked = 0
         private var done = false
 
-        @Synchronized
-        fun breakAt(index: Int, maxRounds: Int): Break? {
+        /** Every break within [maxRounds] rounds, fewest rounds first, then lowest cell, computed only as far as the caller reads. */
+        fun breaks(maxRounds: Int): Sequence<Break> =
+            generateSequence(0) { it + 1 }.map { breakAt(it, maxRounds) }.takeWhile { it != null }.map { it!! }
+
+        private fun breakAt(index: Int, maxRounds: Int): Break? {
             while (found.size <= index && !done) {
                 if (checkNext()) continue
                 if (rounds >= maxRounds) break
@@ -145,7 +119,11 @@ internal object LookAheadChain {
             return found.getOrNull(index)?.takeIf { it.rounds <= maxRounds }
         }
 
-        @Synchronized
+        /**
+         * Every break at the shallowest round count in [minRounds]..[maxRounds], lowest cell first,
+         * or empty. The chains run only until that round count has been checked in full; a later
+         * call resumes where an earlier one stopped.
+         */
         fun atFirstDepth(minRounds: Int, maxRounds: Int): List<Break> {
             fun shallowest(): Break? = found.firstOrNull { it.rounds in minRounds..maxRounds }
             // A depth below the current round count was checked in full by an earlier call.

@@ -3,14 +3,12 @@ package com.ivandsky.puzzlebox.games.queens.engine.hints.step
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensBoard
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
-import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.LongLookAheadRung
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensAttack
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensCandidates
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensDeduction
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensLadder
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensProof
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensRung
-import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.ShortLookAheadRung
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -83,17 +81,18 @@ object QueensStepper {
     }
 
     /**
-     * The lowest rung with any proof; within it the smallest evidence, then the changed cell
-     * nearest [lastMove], then that cell, then the rung's own order (A6). A look-ahead rung
-     * offers only its shortest chains.
+     * The lowest rung with any proof among its simplest ones; within it the smallest evidence, then
+     * the changed cell nearest [lastMove], then that cell, then the rung's own order (A6). One
+     * [QueensRung.Press] per call, so the rungs share work on this state and nothing outlives it.
      */
     private fun deduction(puzzle: QueensPuzzle, candidates: QueensCandidates, ladder: QueensLadder, lastMove: Cell?): QueensStep.Deduction? {
         val n = puzzle.size
         val nearest = compareBy<Int>({ chebyshev(n, it, lastMove) }, { it })
+        val press = QueensRung.Press()
         for (rung in ladder.rungs) {
             var best: QueensProof? = null
             var bestKey = Long.MAX_VALUE
-            for (proof in candidateProofs(rung, puzzle, candidates)) {
+            for (proof in rung.simplestSteps(puzzle, candidates, press)) {
                 val near = when (val d = proof.deduction) {
                     is QueensDeduction.Place -> d.cell
                     is QueensDeduction.Exclude -> d.cells.minWith(nearest)
@@ -108,17 +107,6 @@ object QueensStepper {
         }
         return null
     }
-
-    /**
-     * A shorter chain is the simpler human step, and stopping at the first break depth spares
-     * running every chain to its end (Main ruling on 13); other rungs offer all their proofs.
-     */
-    private fun candidateProofs(rung: QueensRung, puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
-        when (rung) {
-            is ShortLookAheadRung -> rung.stepsAtFirstBreak(puzzle, candidates).asSequence()
-            is LongLookAheadRung -> rung.stepsAtFirstBreak(puzzle, candidates).asSequence()
-            else -> rung.steps(puzzle, candidates)
-        }
 
     private fun QueensProof.toStep(): QueensStep.Deduction {
         val result = when (val d = deduction) {

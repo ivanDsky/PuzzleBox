@@ -18,12 +18,19 @@ class ShortLookAheadRung(private val cheap: List<QueensRung>) : QueensRung {
 
     // Lazy: step() stops at the first break, often a round-0 one, without probing the other cells.
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
-        LookAheadChain.breaks(puzzle, candidates, cheap, maxRounds = 1).map { it.proof(this, puzzle, candidates) }
+        LookAheadChain.Probe(puzzle, candidates, cheap).breaks(maxRounds = 1).map { it.proof(this, puzzle, candidates) }
 
     override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
         steps(puzzle, candidates).firstOrNull()?.deduction
 
-    /** The [steps] whose chains break at the fewest rounds, lowest cell first. */
-    internal fun stepsAtFirstBreak(puzzle: QueensPuzzle, candidates: QueensCandidates): List<QueensProof> =
-        LookAheadChain.breaksAtFirstDepth(puzzle, candidates, cheap, minRounds = 0, maxRounds = 1).map { it.proof(this, puzzle, candidates) }
+    /**
+     * A shorter chain is the simpler human step, so only the chains that break at the fewest
+     * rounds; they stop at that depth rather than run every chain to its end (Main ruling on 13).
+     */
+    override fun simplestSteps(puzzle: QueensPuzzle, candidates: QueensCandidates, press: QueensRung.Press): Sequence<QueensProof> =
+        stepsAtFirstBreak(puzzle, candidates, press).asSequence()
+
+    /** [simplestSteps] as a list, lowest cell first, on [press]'s chains. */
+    internal fun stepsAtFirstBreak(puzzle: QueensPuzzle, candidates: QueensCandidates, press: QueensRung.Press = QueensRung.Press()): List<QueensProof> =
+        press.lookAhead(puzzle, candidates, cheap).atFirstDepth(minRounds = 0, maxRounds = 1).map { it.proof(this, puzzle, candidates) }
 }
