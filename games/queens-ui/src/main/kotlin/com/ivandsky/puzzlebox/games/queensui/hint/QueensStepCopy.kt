@@ -5,8 +5,8 @@ import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
 
 /**
  * The callout line for a [QueensStep]: one line (at most two at 360 dp), opening with the deduction name and a colon.
- * Plain Kotlin strings like `QueensRungCopy`, keyed by the rung's captionKey the same way, so no `when` over rungs
- * exists to hide a missing entry. The sentences are the Spotlight's own; the legacy `QueensRungCopy` is not reused.
+ * Plain Kotlin strings keyed by the rung's captionKey, so no `when` over rungs exists to hide a missing entry.
+ * The sentences are the Spotlight's own.
  * A sentence that needs it is filled with the named unit's kind (color, row, column).
  */
 internal object QueensStepCopy {

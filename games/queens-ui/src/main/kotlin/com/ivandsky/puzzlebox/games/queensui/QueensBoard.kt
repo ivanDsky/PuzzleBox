@@ -41,11 +41,11 @@ private val SpotlightOnBoard = Modifier.testTag("queens.spotlight")
  * The full Queens board UI (queens-08): provenance-distinct X marks (§3.2/§3.3), spec
  * A13's satisfaction motion ([rememberQueensMotion] — Pop, Stagger, Pulse, Shake, the
  * solve orchestration), the ALWAYS-ON A14 violation stripes (fix round 6), the §5
- * interaction set on [QueensBoardState], and the Spotlight hint ([SpotlightOverlay] over the cells). The win presentation is NOT here: the solved
- * session hands off to the opaque result ROUTE at screen level (fix round 6 — Zip's
- * ResultScreen presentation; the modal overlay is deleted), so the board never renders
- * win content. Gesture surface is board-level with edge-clamped cell resolution (§6);
- * all game decisions stay in the session/state holder.
+ * interaction set on [QueensBoardState], and the Spotlight hint ([SpotlightOverlay] over the
+ * cells). The win presentation is NOT here: the solved session hands off to the opaque result
+ * ROUTE at screen level (fix round 6 — Zip's ResultScreen presentation; the modal overlay is
+ * deleted), so the board never renders win content. Gesture surface is board-level with
+ * edge-clamped cell resolution (§6); all game decisions stay in the session/state holder.
  */
 @Composable
 fun QueensPlayBoard(

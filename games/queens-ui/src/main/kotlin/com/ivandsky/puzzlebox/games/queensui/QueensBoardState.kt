@@ -132,7 +132,7 @@ class QueensBoardState(
         if (current.isComplete || idx !in 0 until current.puzzle.cellCount) return
         val cell = Cell(idx)
         // §5.1 idempotence: no change over a queen or any existing mark (no flicker). A10: the
-        // Spotlight still clears.
+        // Spotlight clears.
         if (cell in current.queens.toSet() || current.markAt(cell) != null) {
             stepHints.inputMade()
             return

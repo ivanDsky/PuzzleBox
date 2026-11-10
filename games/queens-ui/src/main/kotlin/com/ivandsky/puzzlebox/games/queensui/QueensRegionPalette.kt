@@ -79,7 +79,7 @@ object QueensRegionPalette {
         return palette[((region % palette.size) + palette.size) % palette.size]
     }
 
-    // §4's fixed hue set, by NAME (§5.5 hint captions: "the blue region's queen…").
+    // §4's fixed hue set, by NAME (the editor's spoken region descriptions).
     // Index-aligned with the fill lists above.
     private val hueNames = listOf(
         "red", "orange", "amber", "green", "teal", "cyan", "blue", "indigo", "violet", "magenta",

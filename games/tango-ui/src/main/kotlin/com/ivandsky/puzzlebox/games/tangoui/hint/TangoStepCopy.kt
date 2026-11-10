@@ -9,8 +9,8 @@ import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepRung
 
 /**
  * The callout line for a [TangoStep]: one line (at most two at 360 dp), starting with the deduction name and
- * naming what the Spotlight draws. Plain Kotlin strings like `TangoSemantics`. Keyed by rung like `QueensRungCopy`,
- * so no `when` over rungs exists to hide a missing entry.
+ * naming what the Spotlight draws. Plain Kotlin strings like `TangoSemantics`. Keyed by rung, so no `when`
+ * over rungs exists to hide a missing entry.
  *
  * The step holds the target value, evidence, line and option count; the [TangoPuzzle] adds the marker kinds. The sign
  * line reads its marker from the puzzle and the target's own value, so it cannot name the wrong side. The board size
