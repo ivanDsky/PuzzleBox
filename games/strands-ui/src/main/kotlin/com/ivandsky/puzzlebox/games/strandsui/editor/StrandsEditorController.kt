@@ -22,7 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
  * The Strands editor screen's live draft, trace and word text. [traceTo] grows the live
  * [trace] cell by cell over cells no path holds yet; [endTrace] lifts it: a trace of two or
  * more cells becomes one path (an [StrandsDraftCommand.AddPath], one undoable step) and is
- * selected, so the [word] typed next names it. A tap on a traced cell selects its path
+ * selected, so the [word] typed next names it. A tap on a traced cell selects its path, a tap on
+ * an inner cell of the selected path lets it go
  * ([selectedPath]); a drag from the selected path's first or last cell shortens or extends it
  * at that end ([StrandsEndGrip]), one undoable step per drag; [removePath] drops it as one
  * [StrandsDraftCommand.RemovePath]; [toggleSpangram] marks or unmarks one; [setClue] sets the
@@ -195,8 +196,9 @@ class StrandsEditorController(
     }
 
     /**
-     * One step of the play board's touch: a lone traced cell a path holds selects that path. A
-     * step of an end drag ([StrandsEndGrip]) only shows its trace; its finger moves it ([fingerAt]).
+     * One step of the play board's touch: a lone traced cell a path holds selects that path, and
+     * a lone inner (non-end) cell of the selected path lets it go. A step of an end drag
+     * ([StrandsEndGrip]) only shows its trace; its finger moves it ([fingerAt]).
      */
     internal fun step(step: TraceStep) {
         grip.take(step, current.value, selected.value)?.let {
@@ -206,8 +208,11 @@ class StrandsEditorController(
         when (step) {
             is TraceStep.Updated -> {
                 val lone = step.trace.path.singleOrNull()?.let(::cellOf)
-                val owner = if (lone == null) -1 else current.value.state.draft.paths.indexOfFirst { lone in it.cells }
-                if (owner >= 0) selectPath(owner) else show(step.trace.path)
+                val paths = current.value.state.draft.paths
+                val owner = if (lone == null) -1 else paths.indexOfFirst { lone in it.cells }
+                val cells = paths.getOrNull(owner)?.cells
+                val inner = owner == selected.value && cells != null && lone != cells.first() && lone != cells.last()
+                if (cells != null) selectPath(owner.takeUnless { inner }) else show(step.trace.path)
             }
             is TraceStep.Submit -> {
                 show(step.path)

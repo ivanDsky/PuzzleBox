@@ -63,8 +63,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -78,9 +78,9 @@ import org.robolectric.shadows.ShadowLooper
 
 /**
  * The tool slot: once a Unique board's test passes, the publish details take the tool strip's
- * place, so the board keeps its size; Edit board brings the tools back without touching the
- * test, and a board edit then clears it (Undo toast) while the tools stay. A tablet's side pane
- * follows the same rule.
+ * place; Edit board brings the tools back without touching the test, the slot fitting them again
+ * so the board gets the details' height back, and a board edit then clears the test (Undo
+ * toast) while the tools stay. A tablet's side pane follows the same rule.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h640dp")
@@ -182,14 +182,14 @@ class ToolSlotSwapTest {
     }
 
     @Test
-    fun `on a 360 by 640 phone the board keeps its size across the swap`() {
-        assertBoardKeepsItsSize()
+    fun `on a 360 by 640 phone Edit board fits the tools and gives the board the height back`() {
+        assertEditBoardFitsTheTools()
     }
 
     @Test
     @Config(qualifiers = "w411dp-h891dp")
-    fun `on a 411 by 891 phone the board keeps its size across the swap`() {
-        assertBoardKeepsItsSize()
+    fun `on a 411 by 891 phone Edit board fits the tools and gives the board the height back`() {
+        assertEditBoardFitsTheTools()
     }
 
     @Test
@@ -208,7 +208,7 @@ class ToolSlotSwapTest {
         awaitTag(SUMMARY)
     }
 
-    private fun assertBoardKeepsItsSize() {
+    private fun assertEditBoardFitsTheTools() {
         open(PlayLayout.SinglePane)
         awaitTag(EDIT_BOARD)
         val withDetails = boardBounds()
@@ -217,7 +217,10 @@ class ToolSlotSwapTest {
         awaitTag(STRIP)
         composeRule.waitForIdle()
 
-        assertEquals(withDetails, boardBounds())
+        val slot = composeRule.onNodeWithTag(TOOL_SLOT).fetchSemanticsNode().boundsInRoot
+        val strip = composeRule.onNodeWithTag(STRIP).fetchSemanticsNode().boundsInRoot
+        assertTrue("tool slot $slot holds more than the tools $strip", slot.height <= strip.height + 1f)
+        assertTrue("board ${boardBounds()} no taller than with the details $withDetails", boardBounds().height > withDetails.height)
     }
 
     private fun boardBounds(): Rect = composeRule.onNodeWithTag(BOARD).fetchSemanticsNode().boundsInRoot
@@ -317,6 +320,7 @@ class ToolSlotSwapTest {
         const val SUMMARY = "create.details.summary"
         const val TOAST = "create.toast.testCleared"
         const val BOARD = "create.editor.board"
+        const val TOOL_SLOT = "create.tool.slot"
         const val SIDE_PANE = "create.studio.sidePane"
 
         fun storedRow(board: EditorDraft<TestDraft>) = Draft(

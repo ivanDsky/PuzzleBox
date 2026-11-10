@@ -41,4 +41,9 @@ class StrandsSizingTest {
     fun `an unbounded height sizes from the width`() {
         assertEquals(50.dp, cell(300.dp, Dp.Infinity))
     }
+
+    @Test
+    fun `a lowered floor lets a short slot fit the whole board`() {
+        assertEquals(25.dp, strandsCellSizeFor(378.dp, 200.dp, rows = 8, cols = 6, floor = 0.dp))
+    }
 }

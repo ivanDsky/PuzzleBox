@@ -3,8 +3,6 @@ package com.ivandsky.puzzlebox.games.strandsui.editor
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.unit.Dp
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.invisibleToUser
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSpec
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsStroke
 import androidx.compose.runtime.Composable
@@ -57,10 +56,13 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
  * path, which keeps its word look while everything else fades ([dimOf]), whose ends
  * a drag from one shortens or extends it ([StrandsEndDrag]); uncovered areas too small
  * for a word get a dashed outline (`strands.editor.cell.<idx>.pocket`). The [verdict] and the card's witness choice
- * ([StrandsEditorController.overlay]) are drawn by [StrandsDiagnosticsLayer]. With [withTools]
- * the [StrandsAuthoringTools] follow the grid in one scroll and the grid keeps its width's touch
- * size; without them (the tablet Studio draws them in its side pane) the grid alone fits the
- * width and the height, centred, with no scroll.
+ * ([StrandsEditorController.overlay]) are drawn by [StrandsDiagnosticsLayer]. The trace takes
+ * any drag on the grid, so nothing scrolls it: with [withTools] (the phone Studio) the whole
+ * grid fits the slot, below the touch floor if it must, the word field under it while the slot
+ * has room ([StrandsPhoneBoard]); the path rows stay in the tablet's pane, so on the phone a tap
+ * on the board selects a path and a second tap on one of its inner cells lets it go. Without them
+ * (the tablet Studio draws its tools in its side pane)
+ * the grid alone fits the width and the height at the touch floor, centred.
  */
 @Composable
 internal fun StrandsEditorBoard(
@@ -69,43 +71,34 @@ internal fun StrandsEditorBoard(
     verdict: Verdict = Verdict.Checking,
     withTools: Boolean = true,
 ) {
-    BoxWithConstraints(modifier) {
-        if (withTools) {
-            // The grid keeps its touch size and the column scrolls, so the tools never squeeze the board.
-            val cell = strandsCellSizeFor(maxWidth, Dp.Infinity, StrandsDraft.ROWS, StrandsDraft.COLS)
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                StrandsEditorGrid(controller, verdict, Modifier.fillMaxWidth().height(cell * StrandsDraft.ROWS))
-                StrandsAuthoringTools(controller)
-            }
-        } else {
+    if (withTools) {
+        StrandsPhoneBoard(
+            grid = { StrandsEditorGrid(controller, verdict, 0.dp, Modifier.fillMaxSize()) },
+            field = { StrandsWordField(controller) },
+            modifier = modifier,
+        )
+    } else {
+        BoxWithConstraints(modifier) {
             val cell = strandsCellSizeFor(maxWidth, maxHeight, StrandsDraft.ROWS, StrandsDraft.COLS)
-            StrandsEditorGrid(controller, verdict, Modifier.align(Alignment.Center).fillMaxWidth().height(cell * StrandsDraft.ROWS))
+            StrandsEditorGrid(controller, verdict, StrandsBoardSpec.TouchFloor, Modifier.align(Alignment.Center).fillMaxWidth().height(cell * StrandsDraft.ROWS))
         }
     }
 }
 
 /**
- * The authoring controls under the grid: the selected path's spangram toggle, the word field
- * ([StrandsWordField]), which names the selected path and is off while none is selected, and
- * [StrandsPathsPanel], one row per path.
+ * The tablet pane's authoring controls: the word field ([StrandsWordField]), which names the
+ * selected path and is off while none is selected, first, so the selection that turns it on
+ * never pushes it out of view; then [StrandsPathsPanel], one row per path. The selected path's
+ * spangram toggle sits in the tool hint, on the phone and the tablet alike.
  */
 @Composable
 internal fun StrandsAuthoringTools(controller: StrandsEditorController, modifier: Modifier = Modifier) {
     val draft by controller.draft.collectAsState()
     val selected by controller.selectedPath.collectAsState()
-    val board = draft.state.draft as StrandsDraft
     Column(modifier) {
-        selected?.let { index ->
-            StrandsSpangramToggle(
-                index = index,
-                isSpangram = board.spangram == index,
-                onToggle = { controller.toggleSpangram(index) },
-                modifier = Modifier.padding(top = Spacing.sm),
-            )
-        }
         StrandsWordField(controller)
         StrandsPathsPanel(
-            board = board,
+            board = draft.state.draft as StrandsDraft,
             selected = selected,
             onSelect = controller::selectPath,
             modifier = Modifier.padding(top = Spacing.sm),
@@ -113,9 +106,9 @@ internal fun StrandsAuthoringTools(controller: StrandsEditorController, modifier
     }
 }
 
-/** The 8×6 grid with its diagnostics and cell taps, filling [modifier]. */
+/** The 8×6 grid with its diagnostics and cell taps, filling [modifier], its cells no smaller than [floor]. */
 @Composable
-private fun StrandsEditorGrid(controller: StrandsEditorController, verdict: Verdict, modifier: Modifier) {
+private fun StrandsEditorGrid(controller: StrandsEditorController, verdict: Verdict, floor: Dp, modifier: Modifier) {
     val draft by controller.draft.collectAsState()
     val live by controller.trace.collectAsState()
     val selected by controller.selectedPath.collectAsState()
@@ -147,12 +140,14 @@ private fun StrandsEditorGrid(controller: StrandsEditorController, verdict: Verd
             tiles = { StrandsIdleTiles(idle, Modifier.fillMaxSize().graphicsLayer { alpha = tileAlpha.value }) },
             onFinger = controller::fingerAt,
             dim = dim,
+            floor = floor,
             modifier = Modifier.fillMaxSize().testTag("strands.editor.board"),
         )
-        StrandsDiagnosticsLayer(diagnostics, Modifier.fillMaxSize())
+        StrandsDiagnosticsLayer(diagnostics, Modifier.fillMaxSize(), floor)
         CellTaps(
             onTap = controller::tapCell,
             pockets = pockets,
+            floor = floor,
             modifier = Modifier.fillMaxSize(),
         )
     }
@@ -167,11 +162,12 @@ private fun StrandsEditorGrid(controller: StrandsEditorController, verdict: Verd
 private fun CellTaps(
     onTap: (Int) -> Unit,
     pockets: Set<Int>,
+    floor: Dp,
     modifier: Modifier = Modifier,
 ) {
     val outline = MaterialTheme.colorScheme.error
     BoxWithConstraints(modifier) {
-        val cell = strandsCellSizeFor(maxWidth, maxHeight, StrandsDraft.ROWS, StrandsDraft.COLS)
+        val cell = strandsCellSizeFor(maxWidth, maxHeight, StrandsDraft.ROWS, StrandsDraft.COLS, floor)
         Box(Modifier.fillMaxWidth().height(cell * StrandsDraft.ROWS), contentAlignment = Alignment.Center) {
             Box(Modifier.requiredSize(cell * StrandsDraft.COLS, cell * StrandsDraft.ROWS)) {
                 Column {

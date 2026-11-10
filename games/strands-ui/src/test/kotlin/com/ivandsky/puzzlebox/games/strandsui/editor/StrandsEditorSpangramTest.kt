@@ -87,7 +87,7 @@ class StrandsEditorSpangramTest {
     fun `the spangram tag follows the selected path and its state`() {
         path(0, 1)
         controller.selectPath(0)
-        show()
+        rule.setContent { PuzzleBoxTheme { StrandsEditorUi.ToolHint(controller, Modifier) } }
         rule.onNodeWithTag("strands.editor.spangram.0").assertIsNotSelected().performClick()
         rule.onNodeWithTag("strands.editor.spangram.0").assertIsSelected()
         assertEquals(0, board().spangram)

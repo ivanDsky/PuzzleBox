@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.games.strandsui.editor
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -85,7 +87,7 @@ class StrandsEditorA11yTest {
     fun `every path chip is a full touch target`() {
         path(0, 1)
         path(6, 7, 8)
-        show()
+        rule.setContent { PuzzleBoxTheme { Column(Modifier.verticalScroll(rememberScrollState())) { StrandsEditorUi.PaneTools(controller, Modifier) } } }
         val floor = with(rule.density) { 48.dp.toPx() }
         for (chip in 0..1) {
             // The chip's laid-out size: its 48 dp touch floor around the drawn pill.

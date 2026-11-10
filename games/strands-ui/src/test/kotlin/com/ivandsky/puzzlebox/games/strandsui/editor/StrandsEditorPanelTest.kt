@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.games.strandsui.editor
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
@@ -25,7 +27,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The paths panel through the editor's tags. */
+/** The paths panel, in the tablet pane's tools, through the editor's tags. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w360dp-h640dp-420dpi")
@@ -42,7 +44,7 @@ class StrandsEditorPanelTest {
     private fun board() = controller.draft.value.state.draft as StrandsDraft
 
     private fun show() = rule.setContent {
-        PuzzleBoxTheme { Column { StrandsEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier.weight(1f)) } }
+        PuzzleBoxTheme { Column(Modifier.verticalScroll(rememberScrollState())) { StrandsEditorUi.PaneTools(controller, Modifier) } }
     }
 
     private fun path(vararg cells: Int) {
