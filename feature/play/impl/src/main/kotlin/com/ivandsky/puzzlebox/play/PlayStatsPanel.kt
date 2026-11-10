@@ -35,6 +35,7 @@ import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.WeekStrip
 import com.ivandsky.puzzlebox.gameui.bestScoreText
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
 
 private const val NONE = "—"
 
@@ -47,7 +48,12 @@ private const val NONE = "—"
  * It scrolls when the pane is shorter than the panel.
  */
 @Composable
-internal fun ColumnScope.PlayStatsPanel(state: PlayStatsState, elapsedMs: () -> Long?) {
+internal fun ColumnScope.PlayStatsPanel(
+    state: PlayStatsState,
+    elapsedMs: () -> Long?,
+    signIn: BoardSignIn = BoardSignIn.Idle,
+    onSignIn: (() -> Unit)? = null,
+) {
     Column(
         modifier = Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()).testTag("play.stats"),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -68,7 +74,7 @@ internal fun ColumnScope.PlayStatsPanel(state: PlayStatsState, elapsedMs: () -> 
         }
         TodayProgressCard(state)
         StreakCard(state)
-        PlayTimesCard(state.times)
+        PlayTimesCard(state.times, signIn = signIn, onSignIn = onSignIn)
     }
 }
 

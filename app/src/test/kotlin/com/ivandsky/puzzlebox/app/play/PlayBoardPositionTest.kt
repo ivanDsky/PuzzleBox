@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app.play
 
+import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
@@ -11,9 +12,12 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
+import com.ivandsky.puzzlebox.auth.GoogleIdToken
+import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -143,6 +147,8 @@ class PlayBoardPositionTest {
                         ObservePlayStats(get(), get(), get(), get(), ObserveLeaderboard(FakeIdentityService(), FakeLeaderboardRepository(), get(), get()))
                     }
                     single { SubmitStatusTracker() }
+                    single<IdentityService> { FakeIdentityService() }
+                    single<GoogleIdTokenProvider> { CancelledGoogleIdTokenProvider }
                 },
                 playModule,
             )
@@ -224,4 +230,9 @@ class PlayBoardPositionTest {
     }
 
     private fun play(game: GameId) = koin!!.koin.get<PlaySessionStore>().peek(PlaySlot.Daily(game, cadenceToday))
+}
+
+private object CancelledGoogleIdTokenProvider : GoogleIdTokenProvider {
+    override suspend fun idToken(activityContext: Context): GoogleIdToken =
+        GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.CANCELLED)
 }

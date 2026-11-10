@@ -1,8 +1,11 @@
 package com.ivandsky.puzzlebox.play
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
@@ -15,10 +18,13 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.WeekDay
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
+import com.ivandsky.puzzlebox.play.board.BoardSignInHolder
 import com.ivandsky.puzzlebox.model.PlaySlot
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -39,7 +45,19 @@ class PlayStatsViewModel(
     private val calendar: GameCalendar,
     observePlayStats: ObservePlayStats,
     private val posts: SubmitStatusTracker,
+    identity: IdentityService,
+    idTokens: GoogleIdTokenProvider,
 ) : ViewModel() {
+
+    private val signInHolder = BoardSignInHolder(identity, idTokens)
+
+    /** How the in-place sign-in on the signed-out times card last went. */
+    internal val signIn: StateFlow<BoardSignIn> = signInHolder.status
+
+    /** The signed-out card's Google button: [activityContext] hosts Google's account picker. */
+    fun signIn(activityContext: Context) {
+        viewModelScope.launch { signInHolder.signIn(activityContext) }
+    }
 
     private val initial = PlayStatsState(
         gameName = registry[slot.gameId]?.definition?.displayName.orEmpty(),

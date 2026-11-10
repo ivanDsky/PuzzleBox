@@ -44,6 +44,7 @@ import org.koin.compose.koinInject
  * solve, a give up or a puzzle already taken replaces it with its [MatchLegResultKey]. The library
  * acts once on [libraryRequest]'s game page or section and hands it back through [onLibraryRequestTaken].
  * The game page shows its leaderboard with [showGameBoard] and a "Your history" row calling [onOpenGameHistory];
+ * [signInInPlace] puts Google sign-in on a signed-out game's side-panel times card (off = Profile's note).
  * the defaults are the page without either.
  */
 fun EntryProviderScope<NavKey>.playEntry(
@@ -58,6 +59,7 @@ fun EntryProviderScope<NavKey>.playEntry(
     onLibraryRequestTaken: () -> Unit = {},
     showGameBoard: Boolean = false,
     onOpenGameHistory: (() -> Unit)? = null,
+    signInInPlace: Boolean = false,
 ) {
     entry<PlayKey> {
         LibraryRoute(
@@ -98,7 +100,7 @@ fun EntryProviderScope<NavKey>.playEntry(
             onDone = { navigator.pop() },
         )
     }
-    entry<GameKey> { key -> GameEntry(key, layout, navigator) }
+    entry<GameKey> { key -> GameEntry(key, layout, navigator, signInInPlace) }
     entry<MatchLegKey> { key ->
         GameRoute(
             key = key,

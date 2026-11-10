@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -10,7 +11,11 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.auth.GoogleIdToken
+import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
@@ -31,6 +36,9 @@ import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
+import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
+import com.ivandsky.puzzlebox.play.friend.oneGoogleAccount
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -84,8 +92,10 @@ class PlayStatsPanelTest {
         completions: FakeCompletionRepository = this.completions,
         leaderboard: FakeLeaderboardRepository = this.leaderboard,
         slotDay: LocalDate = day,
+        idTokens: GoogleIdTokenProvider = dismissedGoogleSignIn,
     ): PlayStatsViewModel {
         val history = ObserveGameHistory(fakes.games, daily, completions)
+        val identityService = FakeIdentityService(identity)
         return PlayStatsViewModel(
             slot = PlaySlot.Daily(alpha, slotDay),
             registry = fakes.games,
@@ -99,9 +109,11 @@ class PlayStatsPanelTest {
                 stats = ObserveGameStats(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games))),
                 history = history,
                 calendar = calendar,
-                leaderboard = ObserveLeaderboard(FakeIdentityService(identity), leaderboard, fakes.games, calendar),
+                leaderboard = ObserveLeaderboard(identityService, leaderboard, fakes.games, calendar),
             ),
             posts = posts,
+            identity = identityService,
+            idTokens = idTokens,
         )
     }
 
@@ -118,10 +130,10 @@ class PlayStatsPanelTest {
     }
 
     /** The panel over [state] as given, frozen: what it draws before any source has emitted. */
-    private fun showFrozen(state: PlayStatsState) {
+    private fun showFrozen(state: PlayStatsState, signIn: BoardSignIn = BoardSignIn.Idle, onSignIn: (() -> Unit)? = null) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                Column { PlayStatsPanel(state = state, elapsedMs = { null }) }
+                Column { PlayStatsPanel(state = state, elapsedMs = { null }, signIn = signIn, onSignIn = onSignIn) }
             }
         }
         composeRule.waitForIdle()
@@ -286,6 +298,118 @@ class PlayStatsPanelTest {
         composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Sign in on Profile to see today's times")
     }
 
+
+    /** The signed-out card with the in-place sign-in, its state frozen at [signIn]; [onTap] counts taps. */
+    private fun showSignedOutWithSignIn(signIn: BoardSignIn, onTap: () -> Unit) {
+        showFrozen(
+            PlayStatsState(
+                gameName = "Zip",
+                solvedToday = null,
+                gamesToday = 2,
+                streak = null,
+                week = emptyList(),
+                best = null,
+                rankOrder = RankOrder.TimeThenHints,
+                averageMs = null,
+                times = PlayTimes.SignedOut,
+            ),
+            signIn = signIn,
+            onSignIn = onTap,
+        )
+    }
+
+    @Test
+    fun `signed out with sign-in in place, the card offers Google and a tap starts sign-in`() {
+        var taps = 0
+        showSignedOutWithSignIn(BoardSignIn.Idle) { taps++ }
+
+        composeRule.onNodeWithTag("custom_board.sign_in").assertIsEnabled().performClick()
+        composeRule.waitForIdle()
+
+        assert(taps == 1)
+        composeRule.onNodeWithTag("play.stats.times.note").assertDoesNotExist()
+    }
+
+    @Test
+    fun `while signing in the card's button is busy`() {
+        showSignedOutWithSignIn(BoardSignIn.SigningIn) {}
+
+        composeRule.onNodeWithText("Signing in…").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `a failed sign-in in the card says so`() {
+        showSignedOutWithSignIn(BoardSignIn.Failed) {}
+
+        composeRule.onNodeWithTag("custom_board.sign_in.failed").assertExists()
+    }
+
+    @Test
+    fun `a failed tap in the live panel shows the failure in the card`() {
+        val noCredential = object : GoogleIdTokenProvider {
+            override suspend fun idToken(activityContext: android.content.Context) =
+                GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.PROVIDER_UNAVAILABLE)
+        }
+        val vm = viewModel(identity = null, idTokens = noCredential)
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                Column {
+                    val state by vm.state.collectAsStateWithLifecycle()
+                    val signIn by vm.signIn.collectAsStateWithLifecycle()
+                    val context = LocalContext.current
+                    PlayStatsPanel(state = state, elapsedMs = { null }, signIn = signIn, onSignIn = { vm.signIn(context) })
+                }
+            }
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("custom_board.sign_in").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("custom_board.sign_in.failed").assertExists()
+    }
+
+    @Test
+    fun `signed in on the card's button, the card gives way to the board rows`() {
+        val vm = viewModel(identity = null, idTokens = oneGoogleAccount("token"))
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                Column {
+                    val state by vm.state.collectAsStateWithLifecycle()
+                    val signIn by vm.signIn.collectAsStateWithLifecycle()
+                    val context = LocalContext.current
+                    PlayStatsPanel(state = state, elapsedMs = { null }, signIn = signIn, onSignIn = { vm.signIn(context) })
+                }
+            }
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("custom_board.sign_in").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("custom_board.sign_in").assertDoesNotExist()
+        composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(5)
+    }
+
+    @Test
+    fun `signed out without sign-in in place, the card keeps the Profile note`() {
+        showFrozen(
+            PlayStatsState(
+                gameName = "Zip",
+                solvedToday = null,
+                gamesToday = 2,
+                streak = null,
+                week = emptyList(),
+                best = null,
+                rankOrder = RankOrder.TimeThenHints,
+                averageMs = null,
+                times = PlayTimes.SignedOut,
+            ),
+        )
+
+        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Sign in on Profile to see today's times")
+        composeRule.onNodeWithTag("custom_board.sign_in").assertDoesNotExist()
+    }
 
     @Test
     fun `a hints-first game's rows lead with hints under its rule`() {
