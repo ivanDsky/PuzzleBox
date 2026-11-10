@@ -12,6 +12,8 @@ import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
  */
 object TangoLineRule {
 
+    private val SUN_MOON = listOf(TangoCell.SUN, TangoCell.MOON)
+
     /** First empty cell of the first line whose every legal fill agrees on it, or null. */
     fun deduction(puzzle: TangoPuzzle, grid: List<TangoCell?>): TangoHint.Forced? =
         forced(puzzle, grid).firstOrNull()
@@ -70,7 +72,7 @@ object TangoLineRule {
                 return
             }
             val fixed = grid[cells[pos]]
-            for (value in listOf(TangoCell.SUN, TangoCell.MOON)) {
+            for (value in SUN_MOON) {
                 if (fixed != null && fixed != value) continue
                 if (pos >= 2 && line[pos - 1] == value && line[pos - 2] == value) continue
                 val left = line.getOrNull(pos - 1)
