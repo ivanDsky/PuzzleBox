@@ -1,0 +1,26 @@
+package com.ivandsky.puzzlebox.database.linkedin
+
+import androidx.room.Dao
+import androidx.room.Query
+import androidx.room.Upsert
+import kotlinx.coroutines.flow.Flow
+
+/** The log of what was already read from LinkedIn: one entry per game day, item and profile. */
+@Dao
+interface FetchLogDao {
+
+    /** Every entry of one game day for one profile, re-emitted on change. */
+    @Query("SELECT * FROM fetch_log WHERE game = :game AND day = :day AND profileId = :profileId")
+    fun observe(game: String, day: String, profileId: String): Flow<List<FetchLogEntity>>
+
+    /** The last successful read of one item, or null when it was never read. */
+    @Query("SELECT * FROM fetch_log WHERE game = :game AND day = :day AND item = :item AND profileId = :profileId")
+    suspend fun get(game: String, day: String, item: String, profileId: String): FetchLogEntity?
+
+    /** Records a successful read; a newer read of the same item replaces the older entry. */
+    @Upsert
+    suspend fun put(entry: FetchLogEntity)
+
+    @Query("DELETE FROM fetch_log")
+    suspend fun clear()
+}
