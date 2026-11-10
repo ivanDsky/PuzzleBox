@@ -34,13 +34,14 @@ class QueensSpotlightGlyphsTest {
     private fun paint(
         role: SpotlightRole,
         culpritIsCross: Boolean = false,
+        color: Color = Color.Red,
         boardGlyph: (DrawScope.() -> Unit)? = null,
     ): List<Int> {
         val bitmap = ImageBitmap(side, side)
         CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, Canvas(bitmap), size) {
             drawRect(Color.White)
             boardGlyph?.invoke(this)
-            with(QueensSpotlightGlyphs(culpritIsCross)) { draw(0, role, size, Color.Red) }
+            with(QueensSpotlightGlyphs(culpritIsCross)) { draw(0, role, size, color) }
         }
         return IntArray(side * side).also { bitmap.readPixels(it) }.toList()
     }
@@ -72,6 +73,13 @@ class QueensSpotlightGlyphsTest {
 
         assertEquals(0, covered.survivingInk())
         assertTrue(covered.red() > paint(SpotlightRole.TARGET).red())
+    }
+
+    @Test
+    fun `a queen culprit stays opaque under a half-alpha colour`() {
+        val pulsing = paint(SpotlightRole.CULPRIT, color = Color.Red.copy(alpha = 0.5f))
+
+        assertEquals(0xFFFF0000.toInt(), pulsing[side / 2 * side + side / 2])
     }
 
     @Test

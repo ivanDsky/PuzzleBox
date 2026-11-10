@@ -110,11 +110,19 @@ internal fun DrawScope.drawX(color: Color, weightPx: Float, lengthFraction: Floa
  *  [style] Fill is a placed queen; a dashed Stroke is the ghost, "a queen goes here".
  *  [path] is the caller's scratch, rewound on every draw and held across them so a redrawing caller allocates it once. */
 internal fun DrawScope.drawQueen(color: Color, heightFraction: Float, alpha: Float, path: Path, style: DrawStyle = Fill) {
+    buildQueenPath(heightFraction, path)
+    drawPath(path, color.copy(alpha = alpha), style = style)
+}
+
+/** Rewinds [path] and builds the crown and its band into it for a cell-centred glyph [heightFraction] of the cell
+ *  high, so a caller drawing the same crown twice builds it once. No allocation: the band is plain lines. */
+internal fun DrawScope.buildQueenPath(heightFraction: Float, path: Path) {
     val h = size.minDimension * heightFraction
     val w = h * 1.15f
     val left = (size.width - w) / 2f
     val top = (size.height - h) / 2f
-    val band = h * 0.16f
+    val bandTop = top + h * 0.70f
+    val bandBottom = bandTop + h * 0.16f
     path.apply {
         rewind()
         moveTo(left, top + h * 0.62f) // left base of crown body
@@ -125,9 +133,12 @@ internal fun DrawScope.drawQueen(color: Color, heightFraction: Float, alpha: Flo
         lineTo(left + w, top + h * 0.18f)
         lineTo(left + w, top + h * 0.62f)
         close()
-        addRect(androidx.compose.ui.geometry.Rect(left, top + h * 0.70f, left + w, top + h * 0.70f + band))
+        moveTo(left, bandTop) // band, same winding as addRect
+        lineTo(left, bandBottom)
+        lineTo(left + w, bandBottom)
+        lineTo(left + w, bandTop)
+        close()
     }
-    drawPath(path, color.copy(alpha = alpha), style = style)
 }
 
 /** §3.5: 45° diagonal bands — a [scrimBand]-wide scrim margin around each [band]-wide error band, one every [pitch].
