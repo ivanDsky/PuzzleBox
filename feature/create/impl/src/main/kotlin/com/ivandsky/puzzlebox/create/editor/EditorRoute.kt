@@ -40,9 +40,10 @@ import org.koin.core.parameter.parametersOf
  * export puzzles) replaces the Studio with the [TestSolveScreen] sandbox on the game's real play
  * board until its Back; a board edit that invalidates the test shows the toast whose Undo brings
  * the board back to the tested layout. On a phone the passed test's publish details take the
- * tools' [ToolSlot] until Edit board, which holds until that test changes; the game's publish
- * fields close the details, and on a tablet its pane tools follow the strip. Publish while signed
- * out opens the
+ * tools' [ToolSlot] until Edit board, which holds until the author takes the details back (a passed
+ * test that clears and comes back keeps it; a test solve finished from it opens the details); the
+ * game's publish fields close the details, and on a tablet its pane tools follow the strip. Publish
+ * while signed out opens the
  * [SignInPublishSheet]; a failed sign-in shows its reason in the Studio's toast slot. Once
  * published the action area morphs into the [PublishedTicket] (Copy code toasts in the same slot)
  * and the Studio turns read-only, its Duplicate the way on to an editable copy; the overflow's
@@ -97,8 +98,12 @@ internal fun EditorRoute(
         is EditorUiState.Ready -> {
             val held = rememberHeldVerdict(ready.verdict)
             val overlay by ready.controller.overlay.collectAsStateWithLifecycle()
-            // Edit board holds until the test it set aside changes: a clear, its Undo or a new pass.
-            var editBoard by rememberSaveable(passed) { mutableStateOf(false) }
+            // Edit board holds until the author takes the details back (the summary): the passed test clearing or
+            // coming back (an edit undone or retyped, the tools' Undo, the toast's Undo) never closes it. A test solve
+            // finished in the sandbox is the one thing that does: the author just passed, so the details open.
+            var editBoard by rememberSaveable { mutableStateOf(false) }
+            val newPass = sandbox?.result
+            LaunchedEffect(newPass) { if (newPass != null) editBoard = false }
             val detailsReady = detailsOpen(held, passed, publish)
             sandbox?.let { open ->
                 // Its own node under the route's, so both the route's and the screen's tags survive.

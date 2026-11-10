@@ -195,6 +195,25 @@ class TestSolveSessionTest {
     }
 
     @Test
+    fun `a new pass from Edit board opens the details`() {
+        passTest(opened)
+        awaitTrue { composeRule.onAllNodes(hasTestTag(EDIT_BOARD)).fetchSemanticsNodes().isNotEmpty() }
+        composeRule.onNodeWithTag(EDIT_BOARD).performClick()
+        awaitTrue { composeRule.onAllNodes(hasTestTag(STRIP)).fetchSemanticsNodes().isNotEmpty() }
+        val changed = opened.apply(ReplaceDraft(opened.state.draft, AidDraft(marks = 3, aid = 7)))
+        composeRule.runOnIdle { controller.edit(changed) }
+        awaitTrue { vm.testSolve.passed.value == null }
+        // A tap while the edit is still checked starts nothing, so wait for its own verdict.
+        awaitTrue { (vm.state.value as? EditorUiState.Ready)?.verdict == Verdict.Unique(Solution(listOf(3))) }
+
+        startTestSolve()
+        finishTestSolve(changed)
+
+        awaitTrue { composeRule.onAllNodes(hasTestTag(DETAILS)).fetchSemanticsNodes().isNotEmpty() }
+        awaitTrue { composeRule.onAllNodes(hasTestTag(STRIP), useUnmergedTree = true).fetchSemanticsNodes().isEmpty() }
+    }
+
+    @Test
     fun `the toast times out`() {
         passTest(opened)
         composeRule.runOnIdle { controller.edit(opened.apply(ReplaceDraft(opened.state.draft, AidDraft(marks = 3, aid = 7)))) }
@@ -332,6 +351,9 @@ class TestSolveSessionTest {
         const val SANDBOX = "create.testSolve.screen"
         const val SOLVED = "create.testSolve.solved"
         const val DONE = "create.testSolve.done"
+        const val EDIT_BOARD = "create.tool.editBoard"
+        const val STRIP = "create.tool.strip"
+        const val DETAILS = "create.details"
         const val TOAST = "create.toast.testCleared"
         const val PLAY_BOARD = "sandbox.play.board"
         const val NOT_UNIQUE_ENTRY = "create.readiness.not-unique"

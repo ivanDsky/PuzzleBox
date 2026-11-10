@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -80,7 +81,9 @@ import org.robolectric.shadows.ShadowLooper
  * The tool slot: once a Unique board's test passes, the publish details take the tool strip's
  * place; Edit board brings the tools back without touching the test, the slot fitting them again
  * so the board gets the details' height back, and a board edit then clears the test (Undo
- * toast) while the tools stay. A tablet's side pane follows the same rule.
+ * toast) while the tools stay. Edit board holds until the author takes the details back: the test
+ * clearing and coming back (an edit retyped, the tools' Undo, the toast's Undo) and a rotation keep
+ * it. A tablet's side pane follows the same rule.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h640dp")
@@ -88,6 +91,7 @@ class ToolSlotSwapTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
+    private val restoration = StateRestorationTester(composeRule)
 
     private val editor = SharingEditor()
     private val ui = FakeGameEditorUi()
@@ -131,14 +135,13 @@ class ToolSlotSwapTest {
     }
 
     @Test
-    fun `a board edit after Edit board clears the test and keeps the tools, and Undo brings the details back`() {
+    fun `a board edit after Edit board clears the test and keeps the tools, and the toast's Undo restores the test and keeps them`() {
         open(PlayLayout.SinglePane)
         awaitTag(EDIT_BOARD)
         composeRule.onNodeWithTag(EDIT_BOARD).performClick()
         awaitTag(STRIP)
 
-        val opened = editor.draft(marks = 1)
-        composeRule.runOnIdle { ui.controllers.single().edit(opened.apply(ReplaceDraft(opened.state.draft, TestDraft(marks = 2)))) }
+        editMarks(2)
 
         awaitTag(TOAST)
         awaitTrue { vm.testSolve.passed.value == null }
@@ -149,8 +152,52 @@ class ToolSlotSwapTest {
         composeRule.onNode(hasAnyAncestor(hasTestTag(TOAST)) and hasClickAction()).performClick()
 
         awaitTrue { vm.testSolve.passed.value != null }
-        awaitTag(DETAILS)
-        awaitGone(STRIP)
+        assertStillEditingTheBoard()
+    }
+
+    @Test
+    fun `a change that clears the test and a change back that restores it keep Edit board`() {
+        open(PlayLayout.SinglePane)
+        awaitTag(EDIT_BOARD)
+        composeRule.onNodeWithTag(EDIT_BOARD).performClick()
+        awaitTag(STRIP)
+        editMarks(2)
+        awaitTrue { vm.testSolve.passed.value == null }
+
+        editMarks(1)
+
+        awaitTrue { vm.testSolve.passed.value != null }
+        assertStillEditingTheBoard()
+    }
+
+    @Test
+    fun `the tools' Undo that restores the test keeps Edit board`() {
+        open(PlayLayout.SinglePane)
+        awaitTag(EDIT_BOARD)
+        composeRule.onNodeWithTag(EDIT_BOARD).performClick()
+        awaitTag(STRIP)
+        editMarks(2)
+        awaitTrue { vm.testSolve.passed.value == null }
+        awaitTrue { composeRule.onNodeWithTag(UNDO).fetchSemanticsNode().config.getOrNull(SemanticsProperties.Disabled) == null }
+
+        composeRule.onNodeWithTag(UNDO).performClick()
+
+        awaitTrue { vm.testSolve.passed.value != null }
+        assertStillEditingTheBoard()
+    }
+
+    @Test
+    fun `Edit board holds through a rotation`() {
+        open(PlayLayout.SinglePane)
+        awaitTag(EDIT_BOARD)
+        composeRule.onNodeWithTag(EDIT_BOARD).performClick()
+        awaitTag(STRIP)
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        awaitTag(STRIP)
+        awaitGone(DETAILS)
+        awaitTag(SUMMARY)
     }
 
     @Test
@@ -225,6 +272,19 @@ class ToolSlotSwapTest {
 
     private fun boardBounds(): Rect = composeRule.onNodeWithTag(BOARD).fetchSemanticsNode().boundsInRoot
 
+    /** The board's controller adopts an edit to [marks], as a tap on the board does. */
+    private fun editMarks(marks: Int) {
+        val opened = editor.draft(marks = 1)
+        composeRule.runOnIdle { ui.controllers.single().edit(opened.apply(ReplaceDraft(opened.state.draft, TestDraft(marks = marks)))) }
+    }
+
+    /** The tools show, the details stay away and the summary offers them: the author has not left Edit board. */
+    private fun assertStillEditingTheBoard() {
+        awaitTag(STRIP)
+        awaitGone(DETAILS)
+        awaitTag(SUMMARY)
+    }
+
     private fun editorViewModel(): EditorViewModel = EditorViewModel(
         EditorKey(DRAFT_ID), drafts, games, editors, GamePlayRegistry(emptyList()),
         CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW }), DefaultDispatcherProvider(),
@@ -259,7 +319,7 @@ class ToolSlotSwapTest {
             )
         }
         val entries = entryProvider<NavKey> { editorEntry(navigator, layout) }
-        composeRule.setContent {
+        restoration.setContent {
             PuzzleBoxTheme {
                 val top = navigator.state.currentStack.last()
                 key(top) { entries(top).Content() }
