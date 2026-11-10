@@ -9,6 +9,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -16,6 +18,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
@@ -275,6 +278,25 @@ class LibraryRequestTest {
         awaitGone("library.page.alpha")
         composeRule.onNodeWithTag("library.tab.duels").assertIsSelected()
         assertEquals(1, taken)
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h240dp")
+    fun `a section request leaves the Games list at the top`() {
+        setContent(PlayLayout.SinglePane, duels = slot)
+        awaitTag("library.row.alpha")
+        composeRule.onNodeWithTag("library.row.alpha").performScrollTo()
+        composeRule.onNodeWithTag("library.row.zip").assertIsNotDisplayed()
+
+        request = LibraryRequest.Section(GamesTab.Duels)
+        awaitTag(DUELS_BODY)
+        composeRule.waitForIdle()
+        // Opening a page does not scroll, so Dailies shows the offset the request left.
+        request = LibraryRequest.GamePage("alpha")
+        awaitTag("library.page.alpha")
+        back()
+
+        composeRule.onNodeWithTag("library.row.zip").assertIsDisplayed()
     }
 
     @Test
