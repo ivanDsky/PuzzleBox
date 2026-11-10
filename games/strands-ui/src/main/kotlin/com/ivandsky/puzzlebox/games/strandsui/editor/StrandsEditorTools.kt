@@ -10,6 +10,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -61,9 +62,10 @@ internal val LocalEditorDispatchers = staticCompositionLocalOf<DispatcherProvide
  * dictionary line to say how much of it the path takes.
  *
  * [compact] (the phone board) keeps the field one 56dp box: the label rests as its placeholder
- * (the trace-first hint while off) and the verdict is a trailing icon whose description reads
- * it. Only the fit line still shows under the field, while the word is too long: it says what
- * to fix, so it is shown, not just announced.
+ * (the trace-first hint while off, kept at onSurfaceVariant to stay 4.5:1) and the verdict is a
+ * trailing icon whose description reads it; once a word hides the placeholder, the field's
+ * description still names it. Only the fit line still shows under the field, while the word is
+ * too long: it says what to fix, so it is shown, not just announced.
  */
 @Composable
 internal fun StrandsWordField(controller: StrandsEditorController, modifier: Modifier = Modifier, compact: Boolean = false) {
@@ -103,7 +105,13 @@ internal fun StrandsWordField(controller: StrandsEditorController, modifier: Mod
         // Too long, the dictionary verdict is moot: only the fit line shows.
         supportingText = if (overflow) fit else verdictLine.takeUnless { compact },
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
-        modifier = modifier.fillMaxWidth().padding(top = Spacing.sm).testTag("strands.editor.word"),
+        // The off field dims its placeholder below 4.5:1; the trace-first hint must stay readable.
+        colors = OutlinedTextFieldDefaults.colors(disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = Spacing.sm)
+            .testTag("strands.editor.word")
+            .then(if (compact && word.isNotEmpty()) Modifier.semantics { contentDescription = StrandsEditorCopy.WORD_FIELD } else Modifier),
     )
 }
 

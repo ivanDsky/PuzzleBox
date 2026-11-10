@@ -43,8 +43,9 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
  * [title] and author name, whose tap brings them back. [PublishCta] follows, ready once nothing
  * blocks. On the phone's single pane ([compact]) Edit board keeps only that summary and
  * [PublishCta]: the board gets the status line's, Test again's and the readiness line's height,
- * and the details bring them back. The area's height follows (DurationMedium on the standard
- * curve, at once under reduced motion), in step with the [ToolSlot].
+ * and the details bring them back. There the area's height follows (DurationMedium on the
+ * standard curve, at once under reduced motion), in step with the [ToolSlot]; the tablet's
+ * snaps as it always has.
  */
 @Composable
 fun ActionArea(
@@ -62,7 +63,8 @@ fun ActionArea(
 ) {
     val detailBlocks = publish?.blocks.orEmpty()
     val shown = remember(blocks, detailBlocks) { blocks + detailBlocks }
-    val resize = if (rememberReducedMotion()) Modifier else Modifier.animateContentSize(tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard))
+    val reduced = rememberReducedMotion()
+    val resize = if (!compact || reduced) Modifier else Modifier.animateContentSize(tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard))
     Column(modifier.then(resize), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         if (compact && publish != null && onShowDetails != null) {
             PublishDetailsSummary(title, publish.details.authorName, onShowDetails)
