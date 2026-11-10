@@ -41,8 +41,7 @@ internal fun DetailPane(
             slideInVertically(tween(MotionTokens.MixTabIn, easing = MotionTokens.EasingStandard)) { risePx }
     }
     AnimatedContent(
-        // Hidden: the day detail does not exist, so the pane is always the streak and stats.
-        targetState = selected.takeUnless { hideOwnedElsewhere },
+        targetState = selected,
         modifier = modifier
             .testTag("home.detail_pane"),
         // The leaving pane does not animate; it is only held, beneath, until the rise lands.
