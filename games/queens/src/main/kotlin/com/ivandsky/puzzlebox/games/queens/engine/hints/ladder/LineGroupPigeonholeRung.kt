@@ -21,22 +21,20 @@ object LineGroupPigeonholeRung : QueensRung {
     override val captionKey: String = "queens.hint.rung.line-group-pigeonhole"
 
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
-        found(puzzle, candidates).sortedWith(order).asSequence().map { QueensProof(it.deduction, it.evidence()) }
+        found(puzzle, candidates).proofs(order)
 
     override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
-        found(puzzle, candidates).minWithOrNull(order)?.deduction
+        found(puzzle, candidates).first(order)
 
-    /** A deduction with its evidence still unbuilt, so [step] builds none for the losing candidates. */
-    private class Found(val k: Int, val deduction: QueensDeduction.Exclude, val evidence: () -> Set<Int>)
-
-    private val order: Comparator<Found> = compareBy(
-        { it.k },
+    /** [Found.rank] is the number of groups k. */
+    private val order: Comparator<Found<QueensDeduction.Exclude>> = compareBy(
+        { it.rank },
         { it.deduction.cells.min() },
         { it.deduction.unit.kind },
         { it.deduction.unit.unit },
     )
 
-    private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<Found> {
+    private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<Found<QueensDeduction.Exclude>> {
         val n = puzzle.size
         val rows = puzzle.rowCells
         val cols = puzzle.columnCells
@@ -55,12 +53,11 @@ object LineGroupPigeonholeRung : QueensRung {
         targets: List<List<Int>>,
         targetOf: (Int) -> Int,
         kind: HintReason.Kind,
-    ): List<Found> {
-        fun missing(unit: List<Int>): Int = puzzle.queensPerUnit - unit.count { it in candidates.queens }
-        val unsolved = groups.filter { missing(it) > 0 }
+    ): List<Found<QueensDeduction.Exclude>> {
+        val unsolved = groups.filter { candidates.missing(puzzle, it) > 0 }
         val opens = unsolved.map { it.filter(candidates::isOpen) }
-        val targetMissing = targets.map(::missing)
-        val total = unsolved.sumOf(::missing)
+        val targetMissing = targets.map { candidates.missing(puzzle, it) }
+        val total = unsolved.sumOf { candidates.missing(puzzle, it) }
         val subsets = 1 shl unsolved.size
 
         // Per mask: missing queens of the chosen groups, bitmask of the targets their open cells reach,
@@ -72,13 +69,13 @@ object LineGroupPigeonholeRung : QueensRung {
         for (mask in 1 until subsets) {
             val low = Integer.numberOfTrailingZeros(mask)
             val rest = mask and (mask - 1)
-            need[mask] = need[rest] + missing(unsolved[low])
+            need[mask] = need[rest] + candidates.missing(puzzle, unsolved[low])
             reach[mask] = reach[rest] or opens[low].fold(0) { bits, cell -> bits or (1 shl targetOf(cell)) }
             dead[mask] = dead[rest] || opens[low].isEmpty()
             isConfined[mask] = !dead[mask] && targetMissing.indices.sumOf { if (reach[mask] and (1 shl it) != 0) targetMissing[it] else 0 } == need[mask]
         }
 
-        val found = ArrayList<Found>()
+        val found = ArrayList<Found<QueensDeduction.Exclude>>()
         for (mask in 1 until subsets) {
             if (Integer.bitCount(mask) < 2 || need[mask] * 2 > total || !isConfined[mask]) continue
             if (hasConfinedSubset(mask, isConfined)) continue
@@ -88,7 +85,7 @@ object LineGroupPigeonholeRung : QueensRung {
             val cells = lines.flatMap { targets[it] }.filter { candidates.isOpen(it) && it !in inside }.toSet()
             if (cells.isEmpty()) continue
             val deduction = QueensDeduction.Exclude(this, HintReason(kind, lines.first(), this), cells)
-            found += Found(chosen.size, deduction) { chosen.flatMap { opens[it] }.toSet() }
+            found += Found(deduction, rank = chosen.size) { chosen.flatMap { opens[it] }.toSet() }
         }
         return found
     }

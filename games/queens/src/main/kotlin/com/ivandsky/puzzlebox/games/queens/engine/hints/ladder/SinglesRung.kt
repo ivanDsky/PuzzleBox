@@ -4,8 +4,6 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
-private typealias PlaceFound = Pair<QueensDeduction.Place, () -> Set<Int>>
-
 /**
  * First rung: a row, column or region whose missing queens fit only its open cells
  * (for N=1: one open cell left) places its lowest open cell.
@@ -19,15 +17,15 @@ object SinglesRung : QueensRung {
     override val captionKey: String = "queens.hint.rung.singles"
 
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
-        found(puzzle, candidates).sortedWith(order(puzzle)).asSequence().map { (deduction, evidence) -> QueensProof(deduction, evidence()) }
+        found(puzzle, candidates).proofs(order(puzzle))
 
     override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
-        found(puzzle, candidates).minWithOrNull(order(puzzle))?.first
+        found(puzzle, candidates).first(order(puzzle))
 
-    private fun order(puzzle: QueensPuzzle): Comparator<PlaceFound> = compareBy(
-        { puzzle.regions[it.first.cell] },
-        { it.first.cell },
-        { it.first.unit.kind },
+    private fun order(puzzle: QueensPuzzle): Comparator<Found<QueensDeduction.Place>> = compareBy(
+        { puzzle.regions[it.deduction.cell] },
+        { it.deduction.cell },
+        { it.deduction.unit.kind },
     )
 
     /**
@@ -51,10 +49,10 @@ object SinglesRung : QueensRung {
     }
 
     /** Deductions with evidence still unbuilt, so [step] builds none for the losing candidates. */
-    private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<PlaceFound> {
-        val found = ArrayList<PlaceFound>()
+    private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<Found<QueensDeduction.Place>> {
+        val found = ArrayList<Found<QueensDeduction.Place>>()
         forEachSingle(puzzle, candidates) { kind, index, cell ->
-            found += QueensDeduction.Place(this, HintReason(kind, index), cell) to { QueensUnits.cells(puzzle, kind)[index].toSet() }
+            found += Found(QueensDeduction.Place(this, HintReason(kind, index), cell)) { QueensUnits.cells(puzzle, kind)[index].toSet() }
         }
         return found
     }

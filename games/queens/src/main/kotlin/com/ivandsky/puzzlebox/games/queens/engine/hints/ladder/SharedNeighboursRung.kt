@@ -24,7 +24,7 @@ object SharedNeighboursRung : QueensRung {
             val units = QueensUnits.cells(puzzle, kind)
             for (index in units.indices) {
                 val cells = units[index]
-                val missing = puzzle.queensPerUnit - cells.count { it in candidates.queens }
+                val missing = candidates.missing(puzzle, cells)
                 val open = cells.filter(candidates::isOpen)
                 if (missing <= 0 || open.size < 2) continue
                 // A cell never touches itself, so no open cell of the unit can touch all of them.
