@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.create.editor
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -15,11 +17,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.text.style.TextOverflow
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.ValidatePublishDetails
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
@@ -37,7 +41,10 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
  * join the readiness line; the rows themselves live in the [ToolSlot]. While the author edits
  * the board ([onShowDetails] set) the readiness line leads with a one-line summary of them,
  * [title] and author name, whose tap brings them back. [PublishCta] follows, ready once nothing
- * blocks.
+ * blocks. On the phone's single pane ([compact]) Edit board keeps only that summary and
+ * [PublishCta]: the board gets the status line's, Test again's and the readiness line's height,
+ * and the details bring them back. The area's height follows (DurationMedium on the standard
+ * curve, at once under reduced motion), in step with the [ToolSlot].
  */
 @Composable
 fun ActionArea(
@@ -51,31 +58,37 @@ fun ActionArea(
     title: String = "",
     onShowDetails: (() -> Unit)? = null,
     fieldCopy: Map<String, String> = emptyMap(),
+    compact: Boolean = false,
 ) {
     val detailBlocks = publish?.blocks.orEmpty()
     val shown = remember(blocks, detailBlocks) { blocks + detailBlocks }
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text(
-            text = passed?.let(::statusOf) ?: "Not tested",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.testTag("create.action.testStatus"),
-        )
-        val buttonModifier = Modifier.fillMaxWidth().testTag("create.action.testSolve")
-        if (passed == null) {
-            PrimaryButton(text = "Test solve", onClick = onTestSolve, enabled = canTestSolve, modifier = buttonModifier)
+    val resize = if (rememberReducedMotion()) Modifier else Modifier.animateContentSize(tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard))
+    Column(modifier.then(resize), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        if (compact && publish != null && onShowDetails != null) {
+            PublishDetailsSummary(title, publish.details.authorName, onShowDetails)
         } else {
-            SecondaryButton(text = "Test again", onClick = onTestSolve, enabled = canTestSolve, modifier = buttonModifier)
-        }
-        if (publish != null && onShowDetails != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                PublishDetailsSummary(title, publish.details.authorName, onShowDetails, Modifier.weight(1f, fill = false))
-                ReadinessLine(shown, fieldCopy, Modifier.weight(1f, fill = false))
+            Text(
+                text = passed?.let(::statusOf) ?: "Not tested",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag("create.action.testStatus"),
+            )
+            val buttonModifier = Modifier.fillMaxWidth().testTag("create.action.testSolve")
+            if (passed == null) {
+                PrimaryButton(text = "Test solve", onClick = onTestSolve, enabled = canTestSolve, modifier = buttonModifier)
+            } else {
+                SecondaryButton(text = "Test again", onClick = onTestSolve, enabled = canTestSolve, modifier = buttonModifier)
             }
-        } else {
-            ReadinessLine(shown, fieldCopy, Modifier.fillMaxWidth())
+            if (publish != null && onShowDetails != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    PublishDetailsSummary(title, publish.details.authorName, onShowDetails, Modifier.weight(1f, fill = false))
+                    ReadinessLine(shown, fieldCopy, Modifier.weight(1f, fill = false))
+                }
+            } else {
+                ReadinessLine(shown, fieldCopy, Modifier.fillMaxWidth())
+            }
         }
         if (publish != null) PublishCta(publish, ready = shown.isEmpty(), onPublish = onPublish, modifier = Modifier.fillMaxWidth())
     }

@@ -201,6 +201,7 @@ internal fun EditorRoute(
                             title = title,
                             onShowDetails = { editBoard = false }.takeIf { detailsReady && editBoard },
                             fieldCopy = ready.editor.publishFieldCopy,
+                            compact = layout == PlayLayout.SinglePane,
                         )
                     }
                 },
