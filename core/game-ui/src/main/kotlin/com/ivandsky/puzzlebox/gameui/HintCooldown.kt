@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.MotionDurationScale
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -64,7 +65,8 @@ class HintCooldown internal constructor(
     /**
      * Runs the current wait out: the clock frees the button once what is left of the wait has
      * passed, and the fill sweeps beside it at real speed, never stretched or shrunk by the
-     * animator duration scale, and only ever drawing.
+     * animator duration scale, and only ever drawing. The fill goes back to empty before the
+     * wait clears, so the next press's ring starts at 0 on its first frame.
      */
     internal suspend fun runOut() {
         val start = pressedAt ?: return
@@ -81,7 +83,10 @@ class HintCooldown internal constructor(
                 null
             }
             delay(left)
-            sweep?.cancel()
+            if (sweep != null) {
+                sweep.cancelAndJoin()
+                fill.snapTo(0f)
+            }
         }
         pressedAt = null
     }
