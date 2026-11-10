@@ -38,9 +38,6 @@ import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayerAvatar
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import org.koin.compose.koinInject
 
 /** What the card's buttons do: the route turns each into a seat call, a sign-in or a pop. */
@@ -131,6 +128,7 @@ private fun Headline(details: InviteDetails?, modifier: Modifier) {
 @Composable
 private fun Facts(details: InviteDetails, modifier: Modifier) {
     val brands = koinInject<GamePlayRegistry>()
+    val ends = rememberCompeteTime().ends(details.deadline)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             details.games.forEach { game ->
@@ -147,7 +145,7 @@ private fun Facts(details: InviteDetails, modifier: Modifier) {
                 .testTag("duel.invite.rounds"),
         )
         Text(
-            text = "Ends ${endsAt(details)} · better result wins each puzzle",
+            text = "Ends $ends · better result wins each puzzle",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -176,10 +174,6 @@ private fun GameChip(game: InviteGame, brand: GameBrand) {
         )
     }
 }
-
-private val EndsFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE HH:mm", Locale.getDefault())
-
-private fun endsAt(details: InviteDetails): String = EndsFormat.format(details.deadline.atZone(ZoneId.systemDefault()))
 
 private fun cancelledMessage(details: InviteDetails?): String = when {
     details == null -> "This duel was called off before anyone accepted."

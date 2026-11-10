@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.compete.share
 
+import com.ivandsky.puzzlebox.compete.duel.CompeteTime
 import com.ivandsky.puzzlebox.model.ShareCode
+import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.Locale
@@ -56,5 +58,15 @@ class InviteShareTest {
         assertEquals(code.matchLink, link)
         assertTrue(link.contains("/m/"))
         assertFalse(link.contains("/p/"))
+    }
+
+    @Test
+    fun aCreatedInviteEndsDeadlineHoursAfterTheInjectedNow() {
+        val created = Instant.parse("2026-11-13T18:00:00Z")
+        val time = CompeteTime(Clock.fixed(created, ZoneOffset.UTC), Locale.US)
+
+        val challenge = createdInviteText("Ivan", 3, listOf("Zip"), deadlineHours = 24, code = code, time = time).lines().first()
+
+        assertEquals("Ivan challenges you: best of 3 — Zip · ends Sat 18:00", challenge)
     }
 }

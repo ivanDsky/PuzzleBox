@@ -17,10 +17,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -40,18 +38,11 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 import com.ivandsky.puzzlebox.gameui.rankRuleText
 import com.ivandsky.puzzlebox.model.ShareCode
-import java.time.Duration
 import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
 
-private const val MILLIS_PER_MINUTE = 60_000L
 private val AvatarSize = 40.dp
 private val AvatarOverlap = 28.dp
-private val EndsFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE HH:mm", Locale.getDefault())
 
 /** What the screen's buttons do: [onOpenLeg] starts or resumes a puzzle, [onNudge] shares the text, [onReveal] opens the reveal. */
 internal data class LegsActions(
@@ -62,24 +53,25 @@ internal data class LegsActions(
 
 /**
  * The duel's puzzles for a seat holder: header, one card per puzzle, then the footer. [layout] `TwoPane` puts the
- * list on the left and the selected puzzle's detail (with its Start button) on the right. The countdown text is the
- * only thing here that reads the clock; it wakes when the minutes change.
+ * list on the left and the selected puzzle's detail (with its Start button) on the right. [now] is the clock the
+ * countdown, Nudge and footer read; the caller owns the ticker. [time] writes the deadline.
  */
 @Composable
 internal fun DuelLegs(
     state: DuelUiState.Participant,
     layout: PlayLayout,
+    now: Instant,
+    time: CompeteTime,
     actions: LegsActions,
     modifier: Modifier = Modifier,
 ) {
     val view = state.view
     val games = koinInject<GameRegistry>()
     val brands = koinInject<GamePlayRegistry>()
-    val now by rememberCountdownNow(view.match.closesAt)
     val model = remember(view, state.elapsedMs, now) {
         duelLegsModel(view, state.elapsedMs, now, games::displayName, games::rankOrderOf)
     }
-    val content = LegsContent(model, view.match.deadline, view.match.closesAt, view.match.code, now, actions)
+    val content = LegsContent(model, view.match.deadline, time.ends(view.match.deadline), view.match.closesAt, view.match.code, now, actions)
     if (layout == PlayLayout.TwoPane) {
         TwoPaneLegs(content, brands, modifier)
     } else {
@@ -98,6 +90,7 @@ internal fun DuelLegs(
 private class LegsContent(
     val model: DuelLegsModel,
     val deadline: Instant,
+    val ends: String,
     val closesAt: Instant,
     val code: ShareCode,
     val now: Instant,
@@ -154,7 +147,7 @@ private fun LegsHeader(content: LegsContent) {
                     modifier = Modifier.testTag("duel.legs.title"),
                 )
                 Text(
-                    text = "Best of ${model.rows.size} · ends ${EndsFormat.format(content.deadline.atZone(ZoneId.systemDefault()))}",
+                    text = "Best of ${model.rows.size} · ends ${content.ends}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -240,17 +233,5 @@ private fun FooterCard(title: String, action: @Composable () -> Unit) {
             modifier = Modifier.weight(1f),
         )
         action()
-    }
-}
-
-/** The time for the countdown text, refreshed whenever the minutes left change, until [closesAt] has passed. */
-@Composable
-private fun rememberCountdownNow(closesAt: Instant): State<Instant> = produceState(Instant.now(), closesAt) {
-    while (true) {
-        val current = Instant.now()
-        value = current
-        val left = Duration.between(current, closesAt).toMillis()
-        if (left <= 0L) break
-        delay(left % MILLIS_PER_MINUTE + 1)
     }
 }

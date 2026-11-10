@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.compete.duel.rememberCompeteTime
 import com.ivandsky.puzzlebox.compete.share.DuelCreatedSheet
 import com.ivandsky.puzzlebox.compete.share.createdInviteSaver
 import com.ivandsky.puzzlebox.compete.share.createdInviteText
@@ -82,11 +83,12 @@ internal fun NewDuelSheet(
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val who by rememberUpdatedState(inviter)
+    val time by rememberUpdatedState(rememberCompeteTime())
     var shared by rememberSaveable(stateSaver = createdInviteSaver) { mutableStateOf<Pair<String, String>?>(null) }
     LaunchedEffect(viewModel) {
         viewModel.created.collect { (code, puzzles) ->
             val hours = viewModel.state.value.draft.deadlineHours
-            shared = createdInviteText(who, puzzles.size, puzzles.distinct(), hours, code) to code.matchLink
+            shared = createdInviteText(who, puzzles.size, puzzles.distinct(), hours, code, time) to code.matchLink
         }
     }
     val dismiss = {

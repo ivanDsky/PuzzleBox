@@ -25,9 +25,9 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.compete.duel.rememberCompeteTime
 import com.ivandsky.puzzlebox.compete.share.DuelCreatedSheet
 import com.ivandsky.puzzlebox.compete.share.createdInviteSaver
 import com.ivandsky.puzzlebox.compete.share.createdInviteText
@@ -40,7 +40,6 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
-import java.time.ZoneId
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -58,8 +57,8 @@ private const val NanosPerMilli = 1_000_000L
 @Composable
 internal fun RevealRoute(code: String, navigator: Navigator, layout: PlayLayout) {
     val reduced = rememberReducedMotion()
-    val locale = LocalConfiguration.current.locales[0]
-    val vm: RevealViewModel = koinViewModel(key = code, parameters = { parametersOf(code, reduced, ZoneId.systemDefault(), locale) })
+    val time = rememberCompeteTime()
+    val vm: RevealViewModel = koinViewModel(key = code, parameters = { parametersOf(code, reduced, time.zone, time.locale) })
     val state by vm.state.collectAsStateWithLifecycle()
     when (val current = state) {
         is RevealUiState.Running -> RevealRunScreen(current, layout == PlayLayout.TwoPane, vm.brands, navigator, vm::gameName, vm::watchAgain)
@@ -106,6 +105,7 @@ private fun RevealRunScreen(
     SideEffect { shownReplay = run.replay }
     val state by machine.state.collectAsStateWithLifecycle()
     var rematch by remember { mutableStateOf(false) }
+    val time = rememberCompeteTime()
     var invite by rememberSaveable(stateSaver = createdInviteSaver) { mutableStateOf<Pair<String, String>?>(null) }
     RevealHapticsEffect(machine)
     LaunchedEffect(machine) {
@@ -147,7 +147,7 @@ private fun RevealRunScreen(
             onCreated = { created ->
                 rematch = false
                 val games = created.legs.map { nameOf(it.ref.gameId) }.distinct()
-                invite = createdInviteText(run.race.me.name, created.legs.size, games, run.match.deadlineHours, created.code) to
+                invite = createdInviteText(run.race.me.name, created.legs.size, games, run.match.deadlineHours, created.code, time) to
                     created.code.matchLink
             },
             onDismiss = { rematch = false },
