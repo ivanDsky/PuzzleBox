@@ -71,7 +71,8 @@ internal fun ProfileContent(
 ) {
     val account = state.account
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        if (onBack != null || onOpenSettings != null) {
+        val topBar = onBack != null || onOpenSettings != null
+        if (topBar) {
             ProfileTopBar(onBack = onBack, onOpenSettings = onOpenSettings)
         }
         Column(
@@ -79,7 +80,8 @@ internal fun ProfileContent(
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.xl, vertical = Spacing.xxl),
+                // Under the top bar the content starts where Settings' does.
+                .padding(horizontal = Spacing.xl, vertical = if (topBar) Spacing.lg else Spacing.xxl),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
             val name = when (account) {
