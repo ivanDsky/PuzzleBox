@@ -24,6 +24,7 @@ import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.RecordRevealSeen
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
@@ -105,6 +106,7 @@ val domainModule = module {
     }
     factory { CreateMatch(repo = get(), local = get(), draw = get(), identity = get(), random = Random.Default) }
     factory { UpdateMatchSeat(repo = get(), local = get(), identity = get()) }
+    factory { RecordRevealSeen(local = get(), clock = { Instant.now() }) }
     factory { ImportDraftFromText(registry = get(), createDraft = get(), drafts = get(), dispatchers = get()) }
     factory { ValidatePublish() }
     factory {
