@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
  * [row]'s page in the library: its day card and its month calendar. [page] is the selected
  * game's calendar (another game's is ignored) and [month] the one it asked for (null = today's);
  * on the phone a picked day scrolls the page up to the day card. [onBack] is the phone's back row.
+ * [showGameBoard] adds the game's leaderboard; an [onOpenGameHistory] adds the "Your history" row.
  */
 @Composable
 internal fun LibraryGamePage(
@@ -31,6 +32,8 @@ internal fun LibraryGamePage(
     onBack: (() -> Unit)?,
     offline: Boolean,
     hasLesson: Boolean,
+    showGameBoard: Boolean = false,
+    onOpenGameHistory: (() -> Unit)? = null,
 ) {
     val game = row.card.game
     val shown = page?.takeIf { it.game == game }
@@ -83,5 +86,7 @@ internal fun LibraryGamePage(
         offline = offline,
         hasLesson = hasLesson,
         scroll = scroll,
+        board = if (showGameBoard) ({ GamePageBoard(game) }) else null,
+        onOpenHistory = onOpenGameHistory,
     )
 }
