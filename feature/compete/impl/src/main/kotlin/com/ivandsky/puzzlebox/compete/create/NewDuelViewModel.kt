@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.compete.duel.formatEnds
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -20,7 +21,6 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.channels.Channel
@@ -83,7 +83,7 @@ internal data class DuelDraft(
             chosen.size == available.size -> "mixed past dailies"
             else -> chosen.joinToString(", ")
         }
-        val ends = DateTimeFormatter.ofPattern("EEE HH:mm", locale).format(now.plusSeconds(deadlineHours * SECONDS_PER_HOUR).atZone(zone))
+        val ends = formatEnds(now.plusSeconds(deadlineHours * SECONDS_PER_HOUR), zone, locale)
         return buildString {
             append("Best of $count · $gamesText · ends $ends")
             if (includeFriends) append(" · incl. friends' puzzles")
@@ -178,6 +178,8 @@ internal class NewDuelViewModel(
     daily: DailyRepository,
     private val registry: GameRegistry,
     private val clock: () -> Instant,
+    private val zone: () -> ZoneId,
+    private val locale: () -> Locale,
 ) : ViewModel() {
 
     private data class Working(
@@ -222,7 +224,7 @@ internal class NewDuelViewModel(
     private fun build(work: Working, available: List<DuelGame>, who: Identity?) = NewDuelState(
         draft = work.draft,
         games = available,
-        summary = work.draft.summary(clock(), ZoneId.systemDefault(), available, Locale.getDefault()),
+        summary = work.draft.summary(clock(), zone(), available, locale()),
         step = if (who == null || work.signInRequired) DuelStep.SignIn else DuelStep.Create,
         creating = work.creating,
         notice = work.notice,

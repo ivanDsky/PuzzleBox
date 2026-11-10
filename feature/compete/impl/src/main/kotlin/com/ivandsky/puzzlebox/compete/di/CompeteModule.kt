@@ -33,6 +33,8 @@ val competeModule: Module = module {
             daily = get(),
             registry = get(),
             clock = { Instant.now() },
+            zone = { ZoneId.systemDefault() },
+            locale = { Locale.getDefault() },
         )
     }
     viewModel { (code: String) ->

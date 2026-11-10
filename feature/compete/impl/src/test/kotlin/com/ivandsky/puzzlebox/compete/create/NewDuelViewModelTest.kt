@@ -37,6 +37,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.Locale
 import kotlin.random.Random
@@ -104,7 +105,11 @@ class NewDuelViewModelTest {
         override suspend fun puzzleCodeTaken(code: ShareCode): PuzzleCodeCheck = PuzzleCodeCheck.Unavailable(offline = false, message = "denied")
     }
 
-    private fun viewModel(createMatch: CreateMatch = this.createMatch) = NewDuelViewModel(
+    private fun viewModel(
+        createMatch: CreateMatch = this.createMatch,
+        zone: ZoneId = ZoneOffset.UTC,
+        locale: Locale = Locale.US,
+    ) = NewDuelViewModel(
         createMatch = createMatch,
         identity = identity,
         idTokens = idTokens,
@@ -113,6 +118,8 @@ class NewDuelViewModelTest {
         daily = daily,
         registry = registry,
         clock = { NOW },
+        zone = { zone },
+        locale = { locale },
     )
 
     private fun kotlinx.coroutines.test.TestScope.started(createMatch: CreateMatch = this@NewDuelViewModelTest.createMatch): NewDuelViewModel =
@@ -214,6 +221,18 @@ class NewDuelViewModelTest {
         assertFalse(plain, "friends" in plain)
         assertTrue(friends, "friends" in friends)
         assertTrue(DuelDraft.daily(available).summary(NOW, ZoneOffset.UTC, available, Locale.US).let { "Tue 10:00" in it })
+    }
+
+    @Test
+    fun theStateSummaryEndsInTheInjectedZoneAndLocale() = runTest {
+        val vm = viewModel(zone = ZoneOffset.ofHours(14), locale = Locale.FRANCE)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect {} }
+
+        val summary = vm.state.value.summary
+
+        // The deadline is Tue 10:00 UTC, which is 00:00 at +14, and the weekday is not spelled the US way.
+        assertTrue(summary, "00:00" in summary)
+        assertFalse(summary, "Tue" in summary || "Wed" in summary)
     }
 
     @Test

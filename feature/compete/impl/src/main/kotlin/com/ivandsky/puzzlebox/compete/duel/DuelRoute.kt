@@ -14,7 +14,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,9 +32,14 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
+import java.time.Duration
+import java.time.Instant
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
+
+private const val MILLIS_PER_MINUTE = 60_000L
 
 /** The duel at [code]: the invite card for a viewer with no seat; a seat holder gets the puzzles screen. */
 @Composable
@@ -41,6 +48,7 @@ internal fun DuelRoute(code: String, navigator: Navigator, layout: PlayLayout) {
     val state by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val time = rememberCompeteTime()
     LaunchedEffect(vm) { vm.closes.collect { navigator.pop() } }
     val actions = InviteActions(
         onAccept = vm::accept,
@@ -62,7 +70,10 @@ internal fun DuelRoute(code: String, navigator: Navigator, layout: PlayLayout) {
             when (val current = state) {
                 DuelUiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
                 is DuelUiState.Invite -> DuelInviteCard(current, actions, Modifier.verticalScroll(rememberScrollState()))
-                is DuelUiState.Participant -> DuelLegs(current, layout, legsActions(current, context, navigator), Modifier.fillMaxSize())
+                is DuelUiState.Participant -> {
+                    val now by rememberCountdownNow(time, current.view.match.closesAt)
+                    DuelLegs(current, layout, now, time, legsActions(current, context, navigator), Modifier.fillMaxSize())
+                }
                 DuelUiState.NotFound -> EmptyState("This duel link doesn't work", "Check the code with your friend and try again.")
                 DuelUiState.Offline -> ErrorState(
                     title = "You're offline",
@@ -85,3 +96,15 @@ private fun legsActions(state: DuelUiState.Participant, context: Context, naviga
     onNudge = context::shareInvite,
     onReveal = { navigator.push(DuelRevealKey(state.view.match.code.value)) },
 )
+
+/** The time for the countdown text, read from [time]'s clock and refreshed whenever the minutes left change, until [closesAt] has passed. */
+@Composable
+internal fun rememberCountdownNow(time: CompeteTime, closesAt: Instant): State<Instant> = produceState(time.now(), time, closesAt) {
+    while (true) {
+        val current = time.now()
+        value = current
+        val left = Duration.between(current, closesAt).toMillis()
+        if (left <= 0L) break
+        delay(left % MILLIS_PER_MINUTE + 1)
+    }
+}
