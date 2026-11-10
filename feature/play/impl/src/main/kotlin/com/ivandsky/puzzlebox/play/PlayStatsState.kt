@@ -53,9 +53,13 @@ internal sealed interface PlayTimes {
 
         private val you: Int = rows.indexOfFirst { it.you }
 
-        /** The first [TOP] rows, with the player's own row pinned below when it ranks lower. */
+        /** The first [TOP] rows; never the player's own row appended below them. */
+        val head: List<PlayTimeRow>
+            get() = rows.take(TOP)
+
+        /** The [head] rows, with the player's own row pinned below when it ranks lower. */
         val top: List<PlayTimeRow>
-            get() = if (you < TOP) rows.take(TOP) else rows.take(TOP) + rows[you]
+            get() = head + listOfNotNull(pinned)
 
         /** The player's own row when it ranks below the [top] rows' first [TOP]; null when it is inside them or absent. */
         val pinned: PlayTimeRow?

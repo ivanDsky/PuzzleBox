@@ -91,13 +91,11 @@ internal class GamePageBoardViewModel(
         val ranked = (drawn as? DailyBoardState.Ranked)?.rows?.let { rows ->
             PlayTimes.Board(rows.map { PlayTimeRow(it.rank, it.name, it.timeMs, it.hints, it.isSelf) }, solved = false)
         } ?: return GamePageBoardState(day = day, board = drawn)
-        val pinned = ranked.pinned
-        val top = if (pinned == null) ranked.top else ranked.top.dropLast(1)
         return GamePageBoardState(
             day = day,
             board = DailyBoardState.Ranked(
-                top.map { it.toRow() },
-                pinned = pinned?.toRow(),
+                ranked.head.map { it.toRow() },
+                pinned = ranked.pinned?.toRow(),
             ),
         )
     }
