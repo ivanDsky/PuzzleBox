@@ -217,6 +217,7 @@ internal fun LibraryScreen(
             if (duels != null) {
                 tab = next
                 pageOpen = false
+                listScroll.scrollTo(0)
             }
         },
         onTaken = onRequestTaken,
