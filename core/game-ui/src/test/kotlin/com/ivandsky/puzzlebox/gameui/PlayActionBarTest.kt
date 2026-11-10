@@ -310,6 +310,15 @@ class PlayActionBarTest {
         assertNull(gate.pressedAt)
     }
 
+    @Test
+    fun `a second press starts its ring empty, before any frame advances`() = runTest {
+        val gate = HintCooldown(HINT_COOLDOWN, { testScheduler.currentTime }, mutableStateOf(null), sweeps = true)
+        gate.press {}
+        withContext(VirtualFrameClock(testScheduler)) { gate.runOut() }
+        gate.press {}
+        assertEquals(0f, gate.ring?.invoke())
+    }
+
     private class VirtualFrameClock(private val scheduler: TestCoroutineScheduler) : MonotonicFrameClock {
         override suspend fun <R> withFrameNanos(onFrame: (frameTimeNanos: Long) -> R): R {
             delay(FRAME_MS)
