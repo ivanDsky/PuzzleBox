@@ -8,7 +8,6 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.queens.editor.QueensCrownIssue
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraftAnalyzer
 import com.ivandsky.puzzlebox.games.queens.editor.QueensPublishGates
-import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensLadder
 import com.ivandsky.puzzlebox.games.queensui.editor.QueensFixRow
 import com.ivandsky.puzzlebox.games.queensui.editor.QueensFixRows
 import org.junit.Assert.assertEquals
@@ -20,10 +19,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Every id the Queens engine can hand the UI has copy (00-interfaces P-4): a rung added to
- * [QueensLadder.Default] without a [QueensRungCopy] caption fails here, and so does a reason
+ * Every id the Queens editor engine can hand the UI has copy (00-interfaces P-4): a reason
  * ([QueensDraftAnalyzer.reasonIds]), block ([QueensPublishGates.blockIds]) or crown issue
- * ([QueensCrownIssue.ids]) without a fix-list row (25).
+ * ([QueensCrownIssue.ids]) without a fix-list row fails here.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -31,21 +29,6 @@ class QueensCopyCoverageTest {
 
     @get:Rule
     val rule = createComposeRule()
-
-    @Test
-    fun `every rung of the default ladder has a caption`() {
-        val rungs = QueensLadder.Default.rungs
-        assertTrue("the default ladder lists its rungs", rungs.isNotEmpty())
-
-        val missing = rungs.filter { QueensRungCopy.caption(it.captionKey) == null }.map { it.id }
-
-        assertEquals(emptyList<String>(), missing)
-    }
-
-    @Test
-    fun `an unknown caption key has no caption`() {
-        assertEquals(null, QueensRungCopy.caption("queens.hint.rung.unknown"))
-    }
 
     @Test
     fun `every reason, block and crown issue renders a non-empty fix row`() {

@@ -156,9 +156,6 @@ object MotionTokens {
     const val HintHoldMillis = 2000L
     const val HintFadeDuration = 300
 
-    // HintPulse: one half-cycle of a hint region's pulse (dim, or back). Reduced: none.
-    const val HintPulseDuration = 400
-
     // Shimmer: a skeleton sheen sweeps start→end in a Linear loop. Reduced: static skeleton.
     const val ShimmerDuration = 1100
 

@@ -68,8 +68,6 @@ class BoardTokensTest {
         assertEquals(Color(0xFFE40070), light.strandsSelectionFill)
         assertEquals(Color(0xFFCF0064), light.strandsThemeLip)
         assertEquals(Color(0xFFB39100), dark.strandsSpangramLip)
-        assertEquals(Color(0xFFFFDDC9), light.tangoHintFill)
-        assertEquals(Color(0xFF0F0300), dark.tangoHintLip)
     }
 
     @Test
@@ -77,7 +75,6 @@ class BoardTokensTest {
         for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
             assertTrue(tokens.sudokuSelectionLip.luminance() < tokens.sudokuSelection.luminance())
             assertTrue(tokens.pathTraceLip.luminance() < tokens.pathTrace.luminance())
-            assertTrue(tokens.tangoHintLip.luminance() < tokens.tangoHintFill.luminance())
             assertTrue(tokens.strandsThemeLip.luminance() < tokens.strandsThemeFill.luminance())
             assertTrue(tokens.strandsThemeAltLip.luminance() < tokens.strandsThemeAltFill.luminance())
             assertTrue(tokens.strandsSpangramLip.luminance() < tokens.strandsSpangramFill.luminance())
