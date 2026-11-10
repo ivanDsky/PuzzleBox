@@ -1,0 +1,39 @@
+# ADR-0028 — LinkedIn account reads: opt-in, on view, one call per item
+
+Date: 2026-11-09 · Status: accepted · Source: `.scratch/linkedin/spec.md` (A1–A37), spike 08 · Amends ADR-0017 §6 (terms posture), ADR-0012 (streak skips archived rows) and ADR-0027 §2 (owner table)
+
+## Context
+PuzzleBox reads LinkedIn's four games anonymously: puzzles only, no account (ADR-0016, ADR-0017). The player's own LinkedIn results and their connections' board exist only behind a logged-in LinkedIn session. No official API exposes them. Spike 08 showed that the app can read them with a plain GET to the Voyager GraphQL endpoint, sending the cookies from an in-app web-view login, `csrf-token` = JSESSIONID and the web-view user agent.
+
+Reading with the player's session breaches LinkedIn User Agreement §8.2 and puts a full-account credential (`li_at`) on the device. ADR-0017 §6 accepted exposure only for anonymous, unbranded fetches. This feature needs a stricter, explicit posture (A33, A34).
+
+## Decision
+1. **Opt-in posture.** The account link exists only after the player accepts a risk warning that names the breach. The warning is the first step of the login route (`LinkedInLoginKey`), not a Settings dialog, so Settings Connect and the day card's Reconnect both pass through it and "accept before every connect" (A2) holds on both paths with one warning. Reads are GET only, to `/voyager/api/graphql`, and never write to LinkedIn. A read happens only when the day card or the board shows a game day: never on app start and never in the background, in a batch or on a schedule; one call per item per user action. The feature names LinkedIn; this amends ADR-0017 §6's "no LinkedIn branding" for this feature only.
+2. **Credential stays in the web view.** `li_at` lives only in the web view's cookie store. App code reads it per request through a session port, holds it in a value that redacts itself, and never persists, logs, displays or uploads it. Auto Backup and device transfer exclude the web-view directory, the LinkedIn database and the link-state file.
+3. **Two ports, in core/game.** Both ports live in package `com.ivandsky.puzzlebox.game.linkedin`, beside `FeedTransport`.
+   - `LinkedInAccountSource` (implemented by the network adapter) has one method per data item: connect check, own result, board. Each method sends exactly one request and never retries.
+   - `LinkedInSessionCookies` (implemented by the web-view store in the profile feature) supplies and clears the session. Network is a JVM module and cannot touch the web view.
+
+   This corrects the spec, whose mermaid drew `LinkedInAccountSource` as "owned by data". core/data depends on core/network (`implementation`), so network cannot implement a data-owned interface; core/network and feature/profile/impl already see core/game.
+
+   The authenticated client is its own OkHttp client: no cookie jar, no logging interceptor, no redirects, 10 s call timeout. The anonymous client, its cookie jar and its rung ladder never carry `li_at`.
+4. **Pause latch.** The first rejection (any response other than 200 JSON of the expected shape) pauses every account read until the player taps Resume, Reconnect or Disconnect. The latch is persisted and survives process death. It is independent of the anonymous 100 s cooldown (ADR-0017 §5).
+5. **Imports are completions.** An own result is written through the normal completion path with `source = LinkedIn` (schema v9, additive, default `app`). First win holds. Imported records post to the PuzzleBox daily board like any solve. A day with any LinkedIn import counts toward the streak even when archived; this amends ADR-0012's "the streak skips them" for imports only.
+6. **Ghosts stay on the phone.** Connections' rows live in a separate LinkedIn Room database, never in the leaderboard entry type or repository, and never reach a backend. They are device-only and unranked.
+7. **Owner table (ADR-0027 §2).** Add the row "LinkedIn connection | Settings | —". Ghost rows and the import line render on the game page, which already owns daily leaderboards and the past-day archive.
+8. **Small seams.** The connect use case is `CreateLinkedInLink`: Konsist P4 allows only its verb list in core/domain, so there is no `ConnectLinkedIn`. There is no ghost-store port: ghost writes are an internal class over the LinkedIn DAO inside core/data, and only `LinkedInDays` is public.
+9. **A24 deviation.** Spec A24 says a domain use case beside `ObserveLeaderboard` merges ghosts into the board view. The merge (`mergeGhosts`, `GhostRowModel`, `DailyBoardLine`) lives in core/game-ui, where the board is drawn; the ordering and rank math live in domain (`ObserveLinkedInDay`). One shared score function maps an import to a `BestScore`: `fun linkedInScore(timeMs: Long, hintFree: Boolean): BestScore` in core/game (`game/linkedin/LinkedInScore.kt`, ticket 09; hints are 0 when hint-free, else 1). `BestScore` already lives in core/game, so the function sits beside it. The data, domain and game-ui tickets (19, 23, 37) all call it instead of re-deriving it.
+10. **Connect check exempt; type-id seam.** Assumption: the connect `check()` is deliberately exempt from the call budget (A15) and the pause latch (A16). It is a player action, and there is no link yet to pause. One Connect sends at most one `check()` (ticket 30 tests it). A36 is amended: the per-game LinkedIn game-type id (Zip 6, Queens 3, Tango 5, Mini Sudoku 7) comes from the existing `DailySource` seam (`val linkedInGameTypeId: Int?`, with `DailyRepository.linkedInGameTypeId(game)`, ticket 48), not from a closed table in core/data. A fifth game adds the id in its own source and edits no core code.
+
+## Consequences
+- The schema reaches v9 at the first merge even while the flag is off (ADR-0022), and v9 cannot be rolled back to v8.
+- Live LinkedIn behavior (queryIds, response shape, the 7-day board window) is outside CI. A device probe checks it at each release, and any drift lands in the pause latch, never in a retry loop.
+- A person who is both a connection and a PuzzleBox player can show twice, because the identities are never linked.
+
+## Rejected
+- **Reusing the anonymous client and its rung ladder.** It would put `li_at` on anonymous traffic, and one fetch can make up to 5 calls.
+- **A single `readDay` port method.** The pause latch, the cache windows and the one-call-per-item rule all count per item, so a per-day method would hide the unit they count.
+- **A separate import store unioned into history.** It keeps first win untouched but makes every record reader merge two sources. The ruled upload needs the import in the completion stream anyway.
+- **In-page `fetch` from the web view (spike path B).** It needs a JS bridge, makes the result untestable on the JVM, and stays exposed to page script.
+- **Keeping ghosts in the main database.** Backup rules exclude whole files, not tables.
+- **Data-owned ports.** The dependency direction forbids network implementing them (decision 3).
