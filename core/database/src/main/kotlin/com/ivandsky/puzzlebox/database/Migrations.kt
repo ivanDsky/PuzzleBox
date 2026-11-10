@@ -217,6 +217,16 @@ object Migrations {
         }
     }
 
+    /**
+     * v9 (LinkedIn account): adds `completions.source` ('app' for a completion earned in the
+     * app, 'linkedin' for an import); additive only, every v8 row takes the default 'app'.
+     */
+    val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `completions` ADD COLUMN `source` TEXT NOT NULL DEFAULT 'app'")
+        }
+    }
+
     val ALL: Array<Migration> =
         arrayOf(
             MIGRATION_1_2,
@@ -226,5 +236,6 @@ object Migrations {
             MIGRATION_5_6,
             MIGRATION_6_7,
             MIGRATION_7_8,
+            MIGRATION_8_9,
         )
 }

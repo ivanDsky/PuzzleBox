@@ -438,6 +438,173 @@ class PuzzleBoxDatabaseMigrationTest {
     @Test
     fun `fresh v8 database is created by the normal builder path`() {
         val dbName = "puzzlebox-fresh-v8.db"
+        val db = helper.createDatabase(dbName, 8)
+
+        db.execSQL(
+            "INSERT INTO leg_saved_plays (matchCode, legIndex, gameId, blob, elapsedMs, updatedAt) " +
+                "VALUES ('K7Q2MX', 1, 'queens', x'0a0b', 3100, 9100)",
+        )
+        db.query("SELECT matchCode, legIndex, gameId, blob, elapsedMs, updatedAt FROM leg_saved_plays").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals("K7Q2MX", cursor.getString(0))
+            assertEquals(1, cursor.getInt(1))
+            assertEquals("queens", cursor.getString(2))
+            assertTrue(byteArrayOf(10, 11).contentEquals(cursor.getBlob(3)))
+            assertEquals(3100L, cursor.getLong(4))
+            assertEquals(9100L, cursor.getLong(5))
+        }
+
+        // dismissed is omitted: the column default (0) fills it.
+        db.execSQL(
+            "INSERT INTO matches_local (code, role, opponentName, openedAt, revealSeenAt) " +
+                "VALUES ('K7Q2MX', 'Invite', NULL, 9000, NULL)",
+        )
+        db.query("SELECT code, role, opponentName, openedAt, revealSeenAt, dismissed FROM matches_local").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals("K7Q2MX", cursor.getString(0))
+            assertEquals("Invite", cursor.getString(1))
+            assertTrue(cursor.isNull(2))
+            assertEquals(9000L, cursor.getLong(3))
+            assertTrue(cursor.isNull(4))
+            assertEquals(0, cursor.getInt(5))
+        }
+
+        db.execSQL(
+            "INSERT INTO match_results " +
+                "(matchCode, legIndex, uid, timeMs, hints, completedAtMs, gaveUp, postState, postAttempts) " +
+                "VALUES ('K7Q2MX', 1, 'uid-a', 61000, 1, 9200, 0, 'Pending', 0)",
+        )
+        db.query(
+            "SELECT matchCode, legIndex, uid, timeMs, hints, completedAtMs, gaveUp, postState, postAttempts " +
+                "FROM match_results",
+        ).use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals("K7Q2MX", cursor.getString(0))
+            assertEquals(1, cursor.getInt(1))
+            assertEquals("uid-a", cursor.getString(2))
+            assertEquals(61000L, cursor.getLong(3))
+            assertEquals(1, cursor.getInt(4))
+            assertEquals(9200L, cursor.getLong(5))
+            assertEquals(0, cursor.getInt(6))
+            assertEquals("Pending", cursor.getString(7))
+            assertEquals(0, cursor.getInt(8))
+        }
+
+        db.execSQL(
+            "INSERT INTO completions " +
+                "(puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, matchCode) " +
+                "VALUES ('queens/2026-11-08/400', 61000, 1, 1, '{\"v\":1}', 9200, 9200, 1, 'K7Q2MX')",
+        )
+        db.query("SELECT puzzleRef, matchCode FROM completions").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals("queens/2026-11-08/400", cursor.getString(0))
+            assertEquals("K7Q2MX", cursor.getString(1))
+        }
+        db.close()
+    }
+
+    @Test
+    fun `migrate 8 to 9 keeps every completion and stamps source app`() {
+        val dbName = "puzzlebox-migration-8-9-test.db"
+        val v8 = helper.createDatabase(dbName, 8)
+        v8.execSQL(
+            "INSERT INTO puzzle_dailies (gameId, day, puzzleNumber, variant, formatVersion, payload, fetchedAtMs) " +
+                "VALUES ('zip', '2026-10-31', 592, 'zip/n6', 1, x'00ff', 5000)",
+        )
+        v8.execSQL(
+            "INSERT INTO completions " +
+                "(puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, matchCode) " +
+                "VALUES ('zip/2026-10-31/592', 95000, 2, 1, '{\"v\":1}', 7000, 7000, 1, NULL)",
+        )
+        v8.execSQL(
+            "INSERT INTO completions " +
+                "(puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, matchCode) " +
+                "VALUES ('zip/2026-10-31/592', 80000, 0, 1, '{\"v\":1}', 8000, NULL, 0, NULL)",
+        )
+        v8.execSQL(
+            "INSERT INTO completions " +
+                "(puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, matchCode) " +
+                "VALUES ('queens/2026-11-08/400', 61000, 1, 1, '{\"v\":1}', 9200, 9200, 1, 'K7Q2MX')",
+        )
+        v8.execSQL(
+            "INSERT INTO saved_plays (gameId, day, blob, elapsedMs, updatedAt) " +
+                "VALUES ('queens', '2026-11-01', x'0102', 4200, 9000)",
+        )
+        v8.close()
+
+        // Validates against the committed 9.json.
+        val db = helper.runMigrationsAndValidate(dbName, 9, true, Migrations.MIGRATION_8_9)
+
+        db.query("SELECT gameId, day, puzzleNumber, LENGTH(payload), fetchedAtMs FROM puzzle_dailies").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals("zip", cursor.getString(0))
+            assertEquals("2026-10-31", cursor.getString(1))
+            assertEquals(592, cursor.getInt(2))
+            assertEquals(2, cursor.getInt(3))
+            assertEquals(5000L, cursor.getLong(4))
+        }
+        db.query(
+            "SELECT puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, " +
+                "matchCode, source FROM completions ORDER BY id",
+        ).use { cursor ->
+            assertEquals(3, cursor.count)
+            // The record row.
+            assertTrue(cursor.moveToFirst())
+            assertEquals("zip/2026-10-31/592", cursor.getString(0))
+            assertEquals(95000L, cursor.getLong(1))
+            assertEquals(2, cursor.getInt(2))
+            assertEquals(1, cursor.getInt(3))
+            assertEquals("{\"v\":1}", cursor.getString(4))
+            assertEquals(7000L, cursor.getLong(5))
+            assertEquals(7000L, cursor.getLong(6))
+            assertEquals(1, cursor.getInt(7))
+            assertTrue(cursor.isNull(8))
+            assertEquals("app", cursor.getString(9))
+            // The replay row.
+            assertTrue(cursor.moveToNext())
+            assertEquals("zip/2026-10-31/592", cursor.getString(0))
+            assertEquals(80000L, cursor.getLong(1))
+            assertEquals(0, cursor.getInt(2))
+            assertEquals(1, cursor.getInt(3))
+            assertEquals("{\"v\":1}", cursor.getString(4))
+            assertEquals(8000L, cursor.getLong(5))
+            assertTrue(cursor.isNull(6))
+            assertEquals(0, cursor.getInt(7))
+            assertTrue(cursor.isNull(8))
+            assertEquals("app", cursor.getString(9))
+            // The duel row.
+            assertTrue(cursor.moveToNext())
+            assertEquals("queens/2026-11-08/400", cursor.getString(0))
+            assertEquals(61000L, cursor.getLong(1))
+            assertEquals(1, cursor.getInt(2))
+            assertEquals(1, cursor.getInt(3))
+            assertEquals("{\"v\":1}", cursor.getString(4))
+            assertEquals(9200L, cursor.getLong(5))
+            assertEquals(9200L, cursor.getLong(6))
+            assertEquals(1, cursor.getInt(7))
+            assertEquals("K7Q2MX", cursor.getString(8))
+            assertEquals("app", cursor.getString(9))
+        }
+        db.query("SELECT gameId, day, blob, elapsedMs, updatedAt FROM saved_plays").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals("queens", cursor.getString(0))
+            assertEquals("2026-11-01", cursor.getString(1))
+            assertTrue(byteArrayOf(1, 2).contentEquals(cursor.getBlob(2)))
+            assertEquals(4200L, cursor.getLong(3))
+            assertEquals(9000L, cursor.getLong(4))
+        }
+        db.close()
+    }
+
+    @Test
+    fun `fresh v9 database is created by the normal builder path`() {
+        val dbName = "puzzlebox-fresh-v9.db"
         val context = RuntimeEnvironment.getApplication()
         context.deleteDatabase(dbName)
         val database = Room.databaseBuilder(context, PuzzleBoxDatabase::class.java, dbName)
@@ -445,71 +612,28 @@ class PuzzleBoxDatabaseMigrationTest {
             .build()
         try {
             val db = database.openHelper.writableDatabase
-            assertEquals(8, db.version)
+            assertEquals(9, db.version)
 
-            db.execSQL(
-                "INSERT INTO leg_saved_plays (matchCode, legIndex, gameId, blob, elapsedMs, updatedAt) " +
-                    "VALUES ('K7Q2MX', 1, 'queens', x'0a0b', 3100, 9100)",
-            )
-            db.query("SELECT matchCode, legIndex, gameId, blob, elapsedMs, updatedAt FROM leg_saved_plays").use { cursor ->
-                assertEquals(1, cursor.count)
-                assertTrue(cursor.moveToFirst())
-                assertEquals("K7Q2MX", cursor.getString(0))
-                assertEquals(1, cursor.getInt(1))
-                assertEquals("queens", cursor.getString(2))
-                assertTrue(byteArrayOf(10, 11).contentEquals(cursor.getBlob(3)))
-                assertEquals(3100L, cursor.getLong(4))
-                assertEquals(9100L, cursor.getLong(5))
-            }
-
-            // dismissed is omitted: the column default (0) fills it.
-            db.execSQL(
-                "INSERT INTO matches_local (code, role, opponentName, openedAt, revealSeenAt) " +
-                    "VALUES ('K7Q2MX', 'Invite', NULL, 9000, NULL)",
-            )
-            db.query("SELECT code, role, opponentName, openedAt, revealSeenAt, dismissed FROM matches_local").use { cursor ->
-                assertEquals(1, cursor.count)
-                assertTrue(cursor.moveToFirst())
-                assertEquals("K7Q2MX", cursor.getString(0))
-                assertEquals("Invite", cursor.getString(1))
-                assertTrue(cursor.isNull(2))
-                assertEquals(9000L, cursor.getLong(3))
-                assertTrue(cursor.isNull(4))
-                assertEquals(0, cursor.getInt(5))
-            }
-
-            db.execSQL(
-                "INSERT INTO match_results " +
-                    "(matchCode, legIndex, uid, timeMs, hints, completedAtMs, gaveUp, postState, postAttempts) " +
-                    "VALUES ('K7Q2MX', 1, 'uid-a', 61000, 1, 9200, 0, 'Pending', 0)",
-            )
-            db.query(
-                "SELECT matchCode, legIndex, uid, timeMs, hints, completedAtMs, gaveUp, postState, postAttempts " +
-                    "FROM match_results",
-            ).use { cursor ->
-                assertEquals(1, cursor.count)
-                assertTrue(cursor.moveToFirst())
-                assertEquals("K7Q2MX", cursor.getString(0))
-                assertEquals(1, cursor.getInt(1))
-                assertEquals("uid-a", cursor.getString(2))
-                assertEquals(61000L, cursor.getLong(3))
-                assertEquals(1, cursor.getInt(4))
-                assertEquals(9200L, cursor.getLong(5))
-                assertEquals(0, cursor.getInt(6))
-                assertEquals("Pending", cursor.getString(7))
-                assertEquals(0, cursor.getInt(8))
-            }
-
+            // source is omitted: the column default ('app') fills it.
             db.execSQL(
                 "INSERT INTO completions " +
                     "(puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, matchCode) " +
-                    "VALUES ('queens/2026-11-08/400', 61000, 1, 1, '{\"v\":1}', 9200, 9200, 1, 'K7Q2MX')",
+                    "VALUES ('queens/2026-11-08/400', 61000, 1, 1, '{\"v\":1}', 9200, 9200, 1, NULL)",
             )
-            db.query("SELECT puzzleRef, matchCode FROM completions").use { cursor ->
-                assertEquals(1, cursor.count)
+            db.execSQL(
+                "INSERT INTO completions " +
+                    "(puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, " +
+                    "matchCode, source) " +
+                    "VALUES ('zip/2026-11-08/600', 42000, 0, 1, '{\"v\":1}', 9300, 9300, 1, NULL, 'linkedin')",
+            )
+            db.query("SELECT puzzleRef, source FROM completions ORDER BY id").use { cursor ->
+                assertEquals(2, cursor.count)
                 assertTrue(cursor.moveToFirst())
                 assertEquals("queens/2026-11-08/400", cursor.getString(0))
-                assertEquals("K7Q2MX", cursor.getString(1))
+                assertEquals("app", cursor.getString(1))
+                assertTrue(cursor.moveToNext())
+                assertEquals("zip/2026-11-08/600", cursor.getString(0))
+                assertEquals("linkedin", cursor.getString(1))
             }
         } finally {
             database.close()
