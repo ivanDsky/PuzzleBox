@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.gameui.hint
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -87,13 +88,21 @@ class StepHints<S : Any, K : Any>(
         if (next != used()) onCount(next)
     }
 
-    /** A failing search is "no hint": HintSearch would rethrow into the scope, a press must not crash it. */
+    /**
+     * An [Exception] from the search is "no hint": logged, the press clears the Spotlight and counts nothing, and
+     * the scope lives on. A [CancellationException] is rethrown (the search was dropped), and an [Error]
+     * (`OutOfMemoryError`, `StackOverflowError`, an assertion) is not caught: it propagates out of
+     * [HintSearch.request] to the scope's exception handler, as [HintSearch] documents.
+     */
     private fun (() -> S).runCatchingStep(): S? =
         try {
             invoke()
         } catch (e: CancellationException) {
             throw e
-        } catch (_: Throwable) {
+        } catch (e: Exception) {
+            Log.w(TAG, "hint search failed: ${e.message}", e)
             null
         }
 }
+
+private const val TAG = "StepHints"
