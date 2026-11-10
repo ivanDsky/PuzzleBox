@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.games.tangoui
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
-import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 
@@ -234,59 +233,6 @@ object TangoSemantics {
 
     /** Custom action labels (§9): the gesture model; commits are final-only (I4). */
     val customActions = listOf("Place sun", "Place moon", "Clear")
-    // ---- hint copy (§6, exact value-naming; review M1) ----
-
-    /**
-     * The hint's WHY as a §6 sentence, value-naming with evidence from the grid:
-     * "Row 3 would hold three moons — this cell is a sun." /
-     * "Column 5 already has three suns — the rest are moons." /
-     * "= links this cell to a sun — it must be a sun."
-     */
-    fun hintPhrase(model: TangoRendererModel, why: TangoHint.Why): String = when (why) {
-        is TangoHint.Why.MarkerBinding -> {
-            val bound = valueAt(model, why.markerCell)
-                ?: valueAt(model, why.neighborIdx)
-            val word = singular(bound) ?: "cell"
-            when (why.kind) {
-                TangoMarkerKind.SAME -> "= links this cell to a $word — it must be a $word."
-                TangoMarkerKind.OPPOSITE -> {
-                    val other = if (bound == TangoCell.SUN) "moon" else "sun"
-                    "× links this cell to a $word — it must be a $other."
-                }
-            }
-        }
-        is TangoHint.Why.ThreeInARow -> {
-            val value = valueAt(model, why.first)
-            val n = model.n
-            val sameRow = why.first / n == why.second / n
-            val line = if (sameRow) "Row ${why.first / n + 1}" else "Column ${why.first % n + 1}"
-            "$line would hold three ${plural(value ?: TangoCell.SUN)} — " +
-                "this cell is a ${singular((value ?: TangoCell.SUN).other)}."
-        }
-        is TangoHint.Why.LineFull -> {
-            val row = why.row
-            val line = if (row != null) "Row ${row + 1}" else "Column ${(why.col ?: 0) + 1}"
-            val half = numberWord(model.n / 2)
-            "$line already has $half ${plural(why.fullOf)} — the rest are ${plural(why.fullOf.other)}."
-        }
-        is TangoHint.Why.LineFills -> {
-            val row = why.row
-            val line = if (row != null) "Row ${row + 1}" else "Column ${(why.col ?: 0) + 1}"
-            if (why.fills == 1) {
-                "$line has only one way to finish — this cell follows from it."
-            } else {
-                "$line has only ${why.fills} ways to finish, and all of them agree on this cell."
-            }
-        }
-    }
-
-    private fun numberWord(count: Int): String = when (count) {
-        2 -> "two"
-        3 -> "three"
-        4 -> "four"
-        5 -> "five"
-        else -> count.toString()
-    }
 
     private fun singular(value: TangoCell?): String = when (value) {
         TangoCell.MOON -> "moon"

@@ -6,12 +6,9 @@ import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
 import com.ivandsky.puzzlebox.games.tango.TangoMarker
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
-import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
 import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStep
 import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepRung
-import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
-import com.ivandsky.puzzlebox.games.tangoui.TangoSemantics
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -123,23 +120,5 @@ class TangoStepCopyTest {
             "Sign: the sign beside it makes this a moon",
             text(deduction(TangoStepRung.SIGN, TangoCell.MOON, idx = 1, evidence = setOf(0, 1)), plain),
         )
-    }
-
-    @Test
-    fun `the legacy sign phrase is unchanged, so the old caption stays frozen`() {
-        val model = TangoRendererModel(
-            n = 6,
-            cells = (0 until 36).map { idx ->
-                TangoRendererModel.CellRender(value = TangoCell.SUN.takeIf { idx == 0 }, isGiven = false)
-            },
-            markers = emptyList(),
-            rejection = null,
-            status = TangoRendererModel.Status.PLAYING,
-            hintCell = null,
-            hintWhy = null,
-        )
-        val why = TangoHint.Why.MarkerBinding(markerCell = 0, neighborIdx = 1, kind = TangoMarkerKind.OPPOSITE)
-
-        assertEquals("× links this cell to a sun — it must be a moon.", TangoSemantics.hintPhrase(model, why))
     }
 }

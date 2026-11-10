@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.gameui.playCaption
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
 import java.time.LocalDate
@@ -45,6 +46,7 @@ class TangoPlayControllerTest {
     ) = TangoPlayController(
         env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), onSessionChanged, onWon),
         now = { fakeNow },
+        hintMode = HintMode.Stepwise(Dispatchers.Unconfined),
     )
 
     /** A controller that adopted today's fixture under ref (today, [puzzleNumber]). */
@@ -158,19 +160,6 @@ class TangoPlayControllerTest {
         s.onPlacement(TangoPlacement(0, TangoCell.MOON)) // idx 0 is a SUN given
         assertEquals(before, s.session)
         assertNull(s.lastRejection)
-    }
-
-    @Test
-    fun `a counted hint auto-places a forced cell and names its reason`() {
-        val s = loaded()
-
-        s.requestHint()
-
-        assertEquals(1, s.session?.hintsUsed)
-        assertNotNull(s.hintCell)
-        assertNotNull(s.hintWhy)
-        assertNotNull(s.hintCaption)
-        assertNull(s.spotlight) // the default Legacy mode never shows one
     }
 
     @Test
@@ -379,11 +368,10 @@ class TangoPlayControllerTest {
     }
 
     @Test
-    fun `one caption - the settled violation phrase outranks the hint, none is a rejection`() {
+    fun `one caption - the settled violation phrase is the only caption, none is a rejection`() {
         val s = loaded()
-        s.requestHint()
         assertNull(s.violation)
-        assertEquals(s.hintCaption, playCaption(s, s))
+        assertNull(playCaption(s, s))
 
         s.onPlacement(TangoPlacement(2, TangoCell.MOON))
         s.onPlacement(TangoPlacement(3, TangoCell.MOON))
@@ -427,24 +415,6 @@ class TangoPlayControllerTest {
         assertEquals(5_000L, s.session?.elapsedMs)
         assertEquals(s.persist()!!.toList(), saved.last().toList())
         assertFalse(s.canRedo)
-    }
-
-    @Test
-    fun `a hint placement is undoable but the hint stays counted`() {
-        val s = loaded()
-        s.requestHint()
-        assertTrue(s.session!!.placements.isNotEmpty())
-
-        s.undo()
-
-        assertTrue(s.session!!.placements.isEmpty())
-        assertEquals(1, s.session?.hintsUsed)
-        assertNull(s.hintCell) // the reveal goes with the input
-        assertNull(s.hintCaption)
-
-        s.redo()
-        assertTrue(s.session!!.placements.isNotEmpty())
-        assertEquals(1, s.session?.hintsUsed)
     }
 
     @Test
@@ -559,19 +529,6 @@ class TangoPlayControllerTest {
         assertEquals(before, s.session)
         assertEquals(saves, saved.size)
         assertFalse(s.canUndo)
-    }
-
-    @Test
-    fun `clear drops the hint reveal and keeps the counted hint`() {
-        val s = loaded()
-        s.requestHint()
-        assertNotNull(s.hintCell)
-
-        s.clearBoard()
-
-        assertNull(s.hintCell)
-        assertNull(s.hintCaption)
-        assertEquals(1, s.session?.hintsUsed)
     }
 
     @Test

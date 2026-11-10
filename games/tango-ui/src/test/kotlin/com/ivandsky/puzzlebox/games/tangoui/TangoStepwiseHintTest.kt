@@ -93,7 +93,7 @@ class TangoStepwiseHintTest {
     // Press (A1, A9, A15)
 
     @Test
-    fun `a press shows a spotlight, places nothing, leaves the legacy tile inert and counts once`() {
+    fun `a press shows a spotlight, places nothing and counts once`() {
         val s = loaded()
         val before = s.session!!.grid()
 
@@ -101,9 +101,6 @@ class TangoStepwiseHintTest {
 
         assertNotNull(s.spotlight)
         assertEquals(before, s.session!!.grid())
-        assertNull(s.hintCell)
-        assertNull(s.hintWhy)
-        assertNull(s.rendererModel()!!.hintCell)
         assertEquals(1, s.hintsUsed)
         assertEquals(1, lastSaved().hintsUsed) // the count reaches the persisted bytes
 

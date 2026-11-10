@@ -58,7 +58,7 @@ class TangoCompeteLoopTest {
     /** The real Tango play UI with the controller's clock pinned to [fakeNow]. */
     private val tangoUi = object : GamePlayUi by TangoPlayUi(HintMode.Stepwise(Dispatchers.Unconfined)) {
         override fun createController(env: PlayEnvironment): GamePlayController =
-            TangoPlayController(env, now = { fakeNow })
+            TangoPlayController(env, now = { fakeNow }, hintMode = HintMode.Stepwise(Dispatchers.Unconfined))
     }
 
     @Test

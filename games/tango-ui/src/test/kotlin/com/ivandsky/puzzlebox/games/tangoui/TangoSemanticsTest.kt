@@ -3,11 +3,9 @@ package com.ivandsky.puzzlebox.games.tangoui
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
-import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -28,8 +26,6 @@ class TangoSemanticsTest {
         givens: Set<Int> = emptySet(),
         markers: List<TangoRendererModel.MarkerRender> = emptyList(),
         status: TangoRendererModel.Status = TangoRendererModel.Status.PLAYING,
-        hintCell: Int? = null,
-        hintWhy: TangoHint.Why? = null,
     ) = TangoRendererModel(
         n = 6,
         cells = (0 until 36).map { idx ->
@@ -38,8 +34,6 @@ class TangoSemanticsTest {
         markers = markers,
         rejection = null, // marks are scan-derived now; the transient rejection is play-state's concern
         status = status,
-        hintCell = hintCell,
-        hintWhy = hintWhy,
     )
 
     // ---- §9 per-cell strings ----
@@ -196,53 +190,5 @@ class TangoSemanticsTest {
                 .joinToString(separator = "; "),
         )
         assertEquals(emptyList<String>(), TangoSemantics.markerPhrases(m, 20))
-    }
-
-    // ---- §6 hint copy, exact value-naming (M1) ----
-
-    @Test
-    fun `hint copy names the line and both values`() {
-        val m = model(cells = mapOf(0 to TangoCell.MOON, 1 to TangoCell.MOON))
-        assertEquals(
-            "Row 1 would hold three moons — this cell is a sun.",
-            TangoSemantics.hintPhrase(m, TangoHint.Why.ThreeInARow(first = 0, second = 1)),
-        )
-        assertEquals(
-            "Column 5 already has three suns — the rest are moons.",
-            TangoSemantics.hintPhrase(
-                m,
-                TangoHint.Why.LineFull(row = null, col = 4, fullOf = TangoCell.SUN),
-            ),
-        )
-    }
-
-    @Test
-    fun `hint marker copy names the bound value`() {
-        val m = model(cells = mapOf(0 to TangoCell.SUN, 1 to TangoCell.MOON))
-        assertEquals(
-            "= links this cell to a sun — it must be a sun.",
-            TangoSemantics.hintPhrase(
-                m,
-                TangoHint.Why.MarkerBinding(markerCell = 0, neighborIdx = 1, kind = TangoMarkerKind.SAME),
-            ),
-        )
-        assertEquals(
-            "× links this cell to a sun — it must be a moon.",
-            TangoSemantics.hintPhrase(
-                m,
-                TangoHint.Why.MarkerBinding(markerCell = 0, neighborIdx = 1, kind = TangoMarkerKind.OPPOSITE),
-            ),
-        )
-    }
-
-    @Test
-    fun `line fills hint renders a non-empty message for one fill and for several`() {
-        val m = model(cells = emptyMap())
-        listOf(1, 2).forEach { fills ->
-            listOf(
-                TangoHint.Why.LineFills(row = 3, col = null, fills = fills),
-                TangoHint.Why.LineFills(row = null, col = 1, fills = fills),
-            ).forEach { why -> assertTrue(TangoSemantics.hintPhrase(m, why).isNotBlank()) }
-        }
     }
 }
