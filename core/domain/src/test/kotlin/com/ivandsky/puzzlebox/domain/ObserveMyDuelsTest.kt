@@ -59,6 +59,7 @@ class ObserveMyDuelsTest {
     private val identity = FakeIdentityService()
 
     private val closesAtMs = 30L * 3_600_000
+    private val deadlineMs = 24L * 3_600_000
 
     private fun TestScope.observe(): Flow<MyDuels> =
         ObserveMyDuels(repo, outbox, local, identity) { Instant.ofEpochMilli(testScheduler.currentTime) }()
@@ -386,13 +387,125 @@ class ObserveMyDuelsTest {
             val before = latest(this@runTest)
             assertEquals(DuelRowKind.YourMove, before.rows.single().kind)
             assertEquals(1, before.needYou)
-            advanceTimeBy(closesAtMs - 1)
+            advanceTimeBy(deadlineMs - 1)
+            expectNoEvents()
+            advanceTimeBy(1)
+            runCurrent()
+            assertEquals(DuelRowKind.Waiting, awaitItem().rows.single().kind)
+            advanceTimeBy(closesAtMs - deadlineMs - 1)
             expectNoEvents()
             advanceTimeBy(1)
             runCurrent()
             val after = awaitItem()
             assertEquals(DuelRowKind.RevealReady, after.rows.single().kind)
             assertEquals(1, after.needYou)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun aClaimedDuelWithAnUnstartedPuzzleIsWaitingFromTheDeadline() = runTest {
+        val c = code("K7Q2M1")
+        duel(c, claimedBy = bob)
+        takes(ann, c, 0)
+        viewAs(ann)
+        observe().test {
+            assertEquals(DuelRowKind.YourMove, latest(this@runTest).rows.single().kind)
+            advanceTimeBy(deadlineMs)
+            val row = latest(this@runTest).rows.single()
+            assertEquals(DuelRowKind.Waiting, row.kind)
+            assertEquals(bob, row.opponent)
+            assertEquals(1, row.legsDone)
+            assertEquals(2, row.legs)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun aRowMovesFromYourMoveToWaitingAtTheDeadlineWithNoUpstreamChange() = runTest {
+        val c = code("K7Q2M1")
+        duel(c, claimedBy = bob)
+        viewAs(ann)
+        observe().test {
+            assertEquals(DuelRowKind.YourMove, latest(this@runTest).rows.single().kind)
+            advanceTimeBy(deadlineMs - 1)
+            expectNoEvents()
+            advanceTimeBy(1)
+            runCurrent()
+            assertEquals(DuelRowKind.Waiting, awaitItem().rows.single().kind)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun needYouDropsAMatchPastItsDeadline() = runTest {
+        val a = code("K7Q2M1")
+        val b = code("K7Q2M2")
+        duel(a, claimedBy = bob)
+        duel(b, claimedBy = bob, hours = 48)
+        viewAs(ann)
+        observe().test {
+            assertEquals(2, latest(this@runTest).needYou)
+            advanceTimeBy(deadlineMs)
+            val after = latest(this@runTest)
+            assertEquals(1, after.needYou)
+            assertEquals(mapOf(a to DuelRowKind.Waiting, b to DuelRowKind.YourMove), after.kinds())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun aMatchPastItsDeadlineStillReachesRevealReadyAtClosesAt() = runTest {
+        val c = code("K7Q2M1")
+        duel(c, claimedBy = bob)
+        viewAs(ann)
+        observe().test {
+            latest(this@runTest)
+            advanceTimeBy(deadlineMs)
+            assertEquals(DuelRowKind.Waiting, latest(this@runTest).rows.single().kind)
+            advanceTimeBy(closesAtMs - deadlineMs)
+            val after = latest(this@runTest)
+            assertEquals(DuelRowKind.RevealReady, after.rows.single().kind)
+            assertEquals(1, after.needYou)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun aServedInviteIsDroppedFromTheDeadline() = runTest {
+        val c = code("K7Q2M1")
+        duel(c, invited = bob)
+        viewAs(bob)
+        observe().test {
+            val before = latest(this@runTest)
+            assertEquals(listOf(DuelRowKind.Invited), before.rows.map { it.kind })
+            assertEquals(1, before.needYou)
+            advanceTimeBy(deadlineMs - 1)
+            expectNoEvents()
+            advanceTimeBy(1)
+            val after = latest(this@runTest)
+            assertTrue(after.rows.isEmpty())
+            assertEquals(0, after.needYou)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun aCachedLinkInviteIsDroppedFromTheDeadline() = runTest {
+        val c = code("K7Q2M1")
+        duel(c)
+        local.remember(c, LocalRole.Invite, "Ann")
+        viewAs(bob)
+        observe().test {
+            val before = latest(this@runTest)
+            assertEquals(listOf(DuelRowKind.Invited), before.rows.map { it.kind })
+            assertEquals(1, before.needYou)
+            advanceTimeBy(deadlineMs - 1)
+            expectNoEvents()
+            advanceTimeBy(1)
+            val after = latest(this@runTest)
+            assertTrue(after.rows.isEmpty())
+            assertEquals(0, after.needYou)
             cancelAndIgnoreRemainingEvents()
         }
     }
