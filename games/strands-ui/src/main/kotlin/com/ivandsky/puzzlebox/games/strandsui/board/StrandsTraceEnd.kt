@@ -101,6 +101,10 @@ internal fun StrandsTraceEndConnector(rows: Int, cols: Int, frame: () -> TraceEn
                 val geometry = GridGeometry(rows, cols, size.width, size.height)
                 val width = connectorWidth(LinkKind.Trace, geometry.pitch)
                 var builtFor: List<Coord>? = null
+                var tokensFor: List<Coord>? = null
+                var tokensScale = Float.NaN
+                var stroke = Stroke(width = width, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                var strokeScale = 1f
                 val line = Path()
                 val tokens = Path()
                 val half = geometry.pitch * StrandsBoardSpec.TokenFraction / 2
@@ -114,16 +118,23 @@ internal fun StrandsTraceEndConnector(rows: Int, cols: Int, frame: () -> TraceEn
                             if (index == 0) line.moveTo(center.x, center.y) else line.lineTo(center.x, center.y)
                         }
                     }
+                    if (strokeScale != now.scale) {
+                        strokeScale = now.scale
+                        stroke = Stroke(width = width * now.scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                    }
                     val color = now.connector(colors)
-                    val stroke = Stroke(width = width * now.scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
                     translate(now.offsetPx, 0f) {
                         val faded = color.copy(alpha = color.alpha * now.alpha)
                         if (now.alpha >= 1f) {
                             drawPath(line, faded, style = stroke)
                         } else {
-                            tokens.reset()
-                            now.path.forEach { coord ->
-                                tokens.addToken(geometry.centerOf(GridCell(coord.row, coord.col)), half, now.scale)
+                            if (tokensFor !== now.path || tokensScale != now.scale) {
+                                tokensFor = now.path
+                                tokensScale = now.scale
+                                tokens.reset()
+                                now.path.forEach { coord ->
+                                    tokens.addToken(geometry.centerOf(GridCell(coord.row, coord.col)), half, now.scale)
+                                }
                             }
                             clipPath(tokens, ClipOp.Difference) { drawPath(line, faded, style = stroke) }
                         }

@@ -45,8 +45,8 @@ import com.ivandsky.puzzlebox.games.strandsui.board.TraceOverlaySpec
 import com.ivandsky.puzzlebox.games.strandsui.board.at
 import com.ivandsky.puzzlebox.games.strandsui.board.dimSpec
 import com.ivandsky.puzzlebox.games.strandsui.board.drawTokenSquare
+import com.ivandsky.puzzlebox.games.strandsui.board.lipRoomPx
 import com.ivandsky.puzzlebox.games.strandsui.board.tokenColor
-import kotlin.math.ceil
 
 /** Called with a letter's cell each time its token composes; a no-op outside tests, which count recompositions with it. */
 internal val LocalTokenComposed = staticCompositionLocalOf<(Coord) -> Unit> { {} }
@@ -112,17 +112,16 @@ internal fun LetterToken(
                 .drawBehind {
                     val frame = base.value
                     val half = size.minDimension / 2
-                    val drop = size.minDimension * StrandsBoardSpec.TokenLipFraction
                     val ended = end.value.at(cell.coord)
                     if (ended != null) {
-                        drawTokenSquare(ended.lip(colors), half, drop = drop)
+                        drawTokenSquare(ended.lip(colors), half, lip = true)
                         drawTokenSquare(ended.fill(colors), half)
                         return@drawBehind
                     }
                     val lip = if (altTheme) colors.strandsThemeAltLip else spec.lip(colors)
                     val fill = if (altTheme) colors.strandsThemeAltFill else spec.fill(colors)
                     tokenColor(lip, TraceOverlaySpec.lip(colors), traced, frame, join.value)?.let {
-                        drawTokenSquare(it, half, drop = drop)
+                        drawTokenSquare(it, half, lip = true)
                     }
                     tokenColor(fill, TraceOverlaySpec.fill(colors), traced, frame, join.value)?.let { drawTokenSquare(it, half) }
                     with(spec) { decorate(colors, half, frame) }
@@ -148,12 +147,16 @@ internal fun LetterToken(
 }
 
 /**
- * The token's layer bounds reach as far above the face as below it, a lip's depth, while it
+ * The token's layer bounds reach as far above the face as below it, a lip's depth
+ * ([lipRoomPx], from the geometry the painter and the connector clipper read), while it
  * lays out as the face's own square: the lip hangs below the face and a translucent layer clips
  * to its bounds, which would cut it. The face centre, the scale pivot, is exactly where it was.
+ *
+ * Precondition: the constraints are fixed (it follows `.size(tokenSize)`), and `graphicsLayer`
+ * comes after it, so the layer takes the enlarged bounds.
  */
 private fun Modifier.withLipRoom(): Modifier = layout { measurable, constraints ->
-    val lip = ceil(constraints.maxHeight * StrandsBoardSpec.TokenLipFraction).toInt()
+    val lip = lipRoomPx(constraints.maxHeight)
     val placeable = measurable.measure(Constraints.fixed(constraints.maxWidth, constraints.maxHeight + 2 * lip))
     layout(constraints.maxWidth, constraints.maxHeight) { placeable.place(0, -lip) }
 }

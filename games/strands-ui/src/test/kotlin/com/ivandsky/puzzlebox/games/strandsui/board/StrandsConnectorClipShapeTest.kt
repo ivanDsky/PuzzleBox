@@ -83,13 +83,15 @@ class StrandsConnectorClipShapeTest {
 
     private fun board(): PixelMap = rule.onNodeWithTag("strands.board").captureToImage().toPixelMap()
 
-    /** A faded tile's lip hangs below the layer's face box: the strip just under the face, mid-column, must be painted. */
+    /**
+     * A faded tile's lip hangs below the layer's face box: the pixel one row under the face,
+     * mid-column, must not be the bare board. Driven by the pitch alone, so it never repeats the lip's depth.
+     */
     private fun assertLipPainted(pixels: PixelMap) {
         val pitch = pixels.width / 4f
         val half = pitch * StrandsBoardSpec.TokenFraction / 2
-        val drop = half * 2 * StrandsBoardSpec.TokenLipFraction
         val x = (pitch * 0.5f + half * 0.3f).toInt()
-        val y = (pitch * 0.5f + half + drop / 2).toInt()
+        val y = (pitch * 0.5f + half).toInt() + 1
         assertNotEquals("bare board where the lip is", pixels[1, 1], pixels[x, y])
     }
 

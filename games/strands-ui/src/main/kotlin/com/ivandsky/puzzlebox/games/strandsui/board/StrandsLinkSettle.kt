@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.IntState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.Snapshot
@@ -16,23 +17,50 @@ import com.ivandsky.puzzlebox.games.strandsui.FoundEvent
  * A found word's link [elapsedMs] into its settle. It is drawn from its letters' own frames
  * ([spec] is theirs): it carries on the trace line until its letters start, then dips and
  * swells with them, never thicker than the tiles it joins.
+ *
+ * One instance plays the whole settle: [elapsedMs] is state, read in the draw phase, and the two
+ * step arrays are sized once from the link and refilled in place when it moves.
  */
-internal class LinkSettle(val link: StrandsLink, val spec: StrandsCellSpec, val elapsedMs: Int) {
+internal class LinkSettle(val link: StrandsLink, val spec: StrandsCellSpec, elapsedMs: Int) {
 
-    private val frames: List<StrandsCellFrame> by lazy {
-        List(link.cells.size) { spec.frame(elapsedMs, StrandsMotionCue(it, link.cells.size), reduceMotion = false) }
-    }
+    private val elapsed = mutableIntStateOf(elapsedMs)
 
-    /** Each step's thickness relative to rest: the smaller [StrandsCellFrame.scale] of its two letters. */
-    fun stepScales(): FloatArray =
-        FloatArray(frames.lastIndex) { minOf(frames[it].scale, frames[it + 1].scale) }
+    var elapsedMs: Int
+        get() = elapsed.intValue
+        set(value) {
+            elapsed.intValue = value
+        }
+
+    private val scales = FloatArray((link.cells.size - 1).coerceAtLeast(0))
+    private val lit = FloatArray((link.cells.size - 1).coerceAtLeast(0))
+    private var filledFor = -1
+
+    /**
+     * Each step's thickness relative to rest: the smaller [StrandsCellFrame.scale] of its two
+     * letters. The returned array is reused: valid until [elapsedMs] changes.
+     */
+    fun stepScales(): FloatArray = scales.also { fill() }
 
     /**
      * How far each step has turned from the trace's look to the link's own: the lesser
-     * [StrandsCellFrame.lit] of its two letters.
+     * [StrandsCellFrame.lit] of its two letters. The returned array is reused: valid until
+     * [elapsedMs] changes.
      */
-    fun stepLit(): FloatArray =
-        FloatArray(frames.lastIndex) { minOf(frames[it].lit, frames[it + 1].lit) }
+    fun stepLit(): FloatArray = lit.also { fill() }
+
+    private fun fill() {
+        val now = elapsedMs
+        if (now == filledFor) return
+        filledFor = now
+        val count = link.cells.size
+        var from = spec.frame(now, StrandsMotionCue(0, count), reduceMotion = false)
+        for (i in scales.indices) {
+            val to = spec.frame(now, StrandsMotionCue(i + 1, count), reduceMotion = false)
+            scales[i] = minOf(from.scale, to.scale)
+            lit[i] = minOf(from.lit, to.lit)
+            from = to
+        }
+    }
 }
 
 /**
@@ -65,7 +93,7 @@ internal fun rememberLinkSettle(
         while (elapsed < total) {
             elapsed = withFrameMillis { it } - start
             if (touchSeq.intValue != bornTouch) break
-            settle.value = LinkSettle(first.link, first.spec, elapsed.toInt())
+            first.elapsedMs = elapsed.toInt()
         }
         settle.value = null
     }
