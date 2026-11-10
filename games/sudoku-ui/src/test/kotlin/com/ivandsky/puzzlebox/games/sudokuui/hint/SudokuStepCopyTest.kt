@@ -102,8 +102,12 @@ class SudokuStepCopyTest {
     @Test
     fun `pointing names the digit from the mask for every digit and the shared line`() {
         for (digit in 1..9) {
-            val row = SudokuStep.Elimination(SudokuTechnique.POINTING, box0, bit(digit), mapOf(45 to bit(digit), 46 to bit(digit)), setOf(2))
-            val col = SudokuStep.Elimination(SudokuTechnique.POINTING, box0, bit(digit), mapOf(5 to bit(digit), 14 to bit(digit)), setOf(0))
+            val row = SudokuStep.Elimination(
+                SudokuTechnique.POINTING, SudokuUnit(UnitKind.BOX, 3), bit(digit), mapOf(51 to bit(digit), 52 to bit(digit)), setOf(45, 46),
+            )
+            val col = SudokuStep.Elimination(
+                SudokuTechnique.POINTING, SudokuUnit(UnitKind.BOX, 1), bit(digit), mapOf(32 to bit(digit), 41 to bit(digit)), setOf(5, 14),
+            )
 
             assertEquals(
                 "Pointing: this box puts its $digit in row 6, so the rest of row 6 can't take $digit",
@@ -114,6 +118,20 @@ class SudokuStepCopyTest {
                 text(col),
             )
         }
+    }
+
+    @Test
+    fun `pointing along a column names the column both times when one cell is struck`() {
+        val step = SudokuStep.Elimination(SudokuTechnique.POINTING, SudokuUnit(UnitKind.BOX, 1), bit(3), mapOf(32 to bit(3)), setOf(5, 14))
+
+        assertEquals("Pointing: this box puts its 3 in col 6, so the rest of col 6 can't take 3", text(step))
+    }
+
+    @Test
+    fun `pointing along a row names the row both times when one cell is struck`() {
+        val step = SudokuStep.Elimination(SudokuTechnique.POINTING, SudokuUnit(UnitKind.BOX, 3), bit(3), mapOf(51 to bit(3)), setOf(45, 46))
+
+        assertEquals("Pointing: this box puts its 3 in row 6, so the rest of row 6 can't take 3", text(step))
     }
 
     @Test
