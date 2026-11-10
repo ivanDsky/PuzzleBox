@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.queensui.hint
 
 import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.gameui.hint.OncePerPuzzle
 import com.ivandsky.puzzlebox.gameui.hint.StepHints
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensCommand
@@ -26,14 +27,10 @@ import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSolver
  */
 internal class QueensStepGame(
     private val session: () -> QueensSession,
-    private val solve: (QueensPuzzle) -> Set<Cell>? = { boundedSolution(it) },
+    solve: (QueensPuzzle) -> Set<Cell>? = { boundedSolution(it) },
 ) : StepHints.Game<QueensStep, QueensSpotlightMapper.Key> {
 
-    /** The resolved solution of one puzzle; null [solution] when none could be found. */
-    private class Solved(val puzzle: QueensPuzzle, val solution: Set<Cell>?)
-
-    /** Written off-main by a compute block, read by later ones on any thread; racing searches agree (deterministic). */
-    @Volatile private var solved: Solved? = null
+    private val solutions = OncePerPuzzle(solve)
 
     override fun capture(): () -> QueensStep {
         val current = session()
@@ -49,10 +46,7 @@ internal class QueensStepGame(
     override fun spotlight(step: QueensStep, playId: Int): Spotlight =
         QueensSpotlightMapper.map(step, session().puzzle, playId)
 
-    private fun solutionOf(puzzle: QueensPuzzle): Set<Cell>? {
-        solved?.takeIf { it.puzzle == puzzle }?.let { return it.solution }
-        return solve(puzzle).also { solved = Solved(puzzle, it) }
-    }
+    private fun solutionOf(puzzle: QueensPuzzle): Set<Cell>? = solutions.get(puzzle)
 
     /** The cell a player's own edit touched; a clear names none. */
     private fun cellOf(command: QueensCommand): Cell? = when (command) {
