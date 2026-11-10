@@ -35,6 +35,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -382,7 +383,9 @@ class TangoStepwiseHintTest {
     fun `the callout shows on the board after a press and a tap on a cell places and clears it`() {
         val s = loaded()
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false) { TangoPlayUi().Board(s, Modifier.fillMaxWidth()) }
+            PuzzleBoxTheme(darkTheme = false) {
+                TangoPlayUi(HintMode.Stepwise(UnconfinedTestDispatcher())).Board(s, Modifier.fillMaxWidth())
+            }
         }
         s.requestHint()
         composeRule.waitForIdle()
@@ -445,7 +448,9 @@ class TangoStepwiseHintTest {
     private fun assertCulpritCovers(idx: Int, value: TangoCell, fill: androidx.compose.ui.graphics.Color) {
         val s = loaded().apply { onPlacement(TangoPlacement(idx, value)) }
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false) { TangoPlayUi().Board(s, Modifier.fillMaxWidth()) }
+            PuzzleBoxTheme(darkTheme = false) {
+                TangoPlayUi(HintMode.Stepwise(UnconfinedTestDispatcher())).Board(s, Modifier.fillMaxWidth())
+            }
         }
         composeRule.waitForIdle()
         assertTrue("the board draws the $value", glyphPixels(idx, fill).isNotEmpty())
