@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
@@ -207,5 +208,81 @@ class CompletionRepositoryTest {
         )
 
         assertEquals(CompletionSource.App, repository.observeRecords().first().single().source)
+    }
+
+    @Test
+    fun `re-importing a ref inserts nothing and keeps the first import`() = runTest {
+        val day = LocalDate.of(2026, 10, 31)
+        repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 0, source = CompletionSource.LinkedIn))
+        nowMs += 60_000
+        repository.onCompleted(completion(day, 592, timeMs = 71_000, hints = 1, source = CompletionSource.LinkedIn))
+
+        val imports = repository.observeImports().first()
+        assertEquals(1, imports.size)
+        assertEquals(95_000L, imports.single().time)
+        assertEquals(0, imports.single().hints)
+    }
+
+    @Test
+    fun `an import onto an app record is a replay and leaves the record untouched`() = runTest {
+        val day = LocalDate.of(2026, 10, 31)
+        repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 2))
+        nowMs += 1_000
+        repository.onCompleted(completion(day, 592, timeMs = 71_000, hints = 0, source = CompletionSource.LinkedIn))
+
+        val record = repository.observeRecords().first().single()
+        assertEquals(95_000L, record.time)
+        assertEquals(2, record.hints)
+        assertEquals(CompletionSource.App, record.source)
+        val import = repository.observeImports().first().single()
+        assertFalse(import.isRecord)
+        assertEquals(71_000L, import.time)
+    }
+
+    @Test
+    fun `an app solve after an import is a replay`() = runTest {
+        val day = LocalDate.of(2026, 10, 31)
+        val ref = Ref(alpha, PuzzleKey.Daily(day, 592))
+        repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 0, source = CompletionSource.LinkedIn))
+        nowMs += 1_000
+        repository.onCompleted(completion(day, 592, timeMs = 71_000, hints = 0))
+
+        val record = repository.observeRecords().first().single()
+        assertTrue(record.isRecord)
+        assertEquals(CompletionSource.LinkedIn, record.source)
+        assertEquals(CompletionSource.App, repository.observeReplays(ref).first().single().source)
+    }
+
+    @Test
+    fun `an import with no other completion is a record and an import`() = runTest {
+        val day = LocalDate.of(2026, 10, 31)
+        repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 0, source = CompletionSource.LinkedIn))
+
+        val record = repository.observeRecords().first().single()
+        assertTrue(record.isRecord)
+        assertEquals(CompletionSource.LinkedIn, record.source)
+        assertEquals(listOf(record), repository.observeImports().first())
+    }
+
+    @Test
+    fun `room keeps one import and hides the replay from records`() = runTest {
+        assertImportContract(repository)
+    }
+
+    @Test
+    fun `fake keeps one import and hides the replay from records`() = runTest {
+        assertImportContract(FakeCompletionRepository())
+    }
+
+    /** One app row and a LinkedIn import of the same ref, imported twice: the import stays a single non-record row. */
+    private suspend fun assertImportContract(repository: CompletionRepository) {
+        val day = LocalDate.of(2026, 10, 31)
+        repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 2).copy(isRecord = true))
+        val import = completion(day, 592, timeMs = 71_000, hints = 0, source = CompletionSource.LinkedIn)
+        repository.onCompleted(import)
+        repository.onCompleted(import)
+
+        assertEquals(listOf(CompletionSource.App), repository.observeRecords().first().map { it.source })
+        assertEquals(listOf(CompletionSource.LinkedIn), repository.observeImports().first().map { it.source })
     }
 }

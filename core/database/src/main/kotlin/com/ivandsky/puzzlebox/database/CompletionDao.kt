@@ -13,6 +13,14 @@ interface CompletionDao {
     @Query("SELECT * FROM completions WHERE puzzleRef = :puzzleRef AND isRecord = 1 LIMIT 1")
     suspend fun record(puzzleRef: String): CompletionEntity?
 
+    /** Whether any row (record or replay) of the ref came from [source]; backs import idempotence. */
+    @Query("SELECT EXISTS(SELECT 1 FROM completions WHERE puzzleRef = :puzzleRef AND source = :source)")
+    suspend fun hasSource(puzzleRef: String, source: String): Boolean
+
+    /** Every row stored with [source], records and replays alike, newest first. */
+    @Query("SELECT * FROM completions WHERE source = :source ORDER BY completedAtMs DESC")
+    fun observeBySource(source: String): Flow<List<CompletionEntity>>
+
     @Insert
     suspend fun insert(completion: CompletionEntity): Long
 
