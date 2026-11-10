@@ -111,7 +111,7 @@ class ReachabilityInventoryE2ETest {
     }
 
     private fun friendRun(width: Width) {
-        val world = FriendWorld(ZipCorridor.flag)
+        val world = FriendWorld(ZipCorridor.flags)
         try {
             shellRobot(graph = world.graph) {
                 val code = world.publishAsAuthor(this, ZipCorridor.board, TITLE)
@@ -180,7 +180,7 @@ class ReachabilityInventoryE2ETest {
     }
 
     private fun navV2FriendRun(width: Width) {
-        val world = FriendWorld(ZipCorridor.flag, ReleaseFlag.NavV2)
+        val world = FriendWorld(ZipCorridor.flags + ReleaseFlag.NavV2)
         try {
             navV2Robot(graph = world.graph) {
                 val code = world.publishAsAuthor(this, ZipCorridor.board, TITLE)

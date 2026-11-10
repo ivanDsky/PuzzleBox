@@ -30,7 +30,7 @@ import org.robolectric.annotation.Config
 class FriendOpenLoopE2ETest(name: String) {
 
     private val game: FriendGame = GAMES.single { it.toString() == name }
-    private val world = FriendWorld(game.flag)
+    private val world = FriendWorld(game.flags)
 
     @After
     fun close() = world.close()
