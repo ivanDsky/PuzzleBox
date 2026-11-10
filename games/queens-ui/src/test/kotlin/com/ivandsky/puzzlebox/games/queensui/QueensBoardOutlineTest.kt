@@ -37,7 +37,7 @@ class QueensBoardOutlineTest {
         )
         val bitmap = ImageBitmap(200, 200)
         CanvasDrawScope().draw(Density(2f), LayoutDirection.Ltr, Canvas(bitmap), Size(200f, 200f)) {
-            drawCellEdges(model, hintColor = Color.Red, ink = Color.Black)
+            drawCellEdges(model, ink = Color.Black)
         }
         val pixels = bitmap.toPixelMap()
         // 1.5dp at density 2 = 3px: pixels 0..2 are fully inside the outline stroke.

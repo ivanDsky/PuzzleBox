@@ -23,7 +23,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
-import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightOverlay
 import com.ivandsky.puzzlebox.games.queens.QueensSession
@@ -77,7 +76,6 @@ private fun QueensPlayBoardContent(
     modifier: Modifier,
 ) {
     val model = QueensBoardModel.of(state.session, state.hint, state.hintPointed, state.guide)
-    val boardTokens = LocalBoardColors.current
     val haptics = LocalHapticFeedback.current
     var pressedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var tracedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -160,12 +158,11 @@ private fun QueensPlayBoardContent(
         )
         // §3.1 cell-edge layer (F-1): the region fills are opaque and sit ABOVE
         // BoardGrid's under-strokes, so cell boundaries must be drawn over the fills —
-        // a hairline lattice on every cell edge, heavier ink on region boundaries, and
-        // the §5.5 hinted-region boundary on top. Glyphs never reach cell edges, so
-        // the marks stay visually above this layer.
+        // a hairline lattice on every cell edge and heavier ink on region boundaries.
+        // Glyphs never reach cell edges, so the marks stay visually above this layer.
         val edgeInk = MaterialTheme.colorScheme.onSurface
         Canvas(Modifier.matchParentSize()) {
-            drawCellEdges(model, boardTokens.boardSelection, edgeInk)
+            drawCellEdges(model, edgeInk)
         }
         // §3.1: instant pressed-cell highlight — touch-down feedback precedes commit.
         val pressHighlight = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)

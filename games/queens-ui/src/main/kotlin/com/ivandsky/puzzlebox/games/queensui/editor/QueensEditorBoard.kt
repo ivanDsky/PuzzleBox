@@ -36,7 +36,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
-import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -145,10 +144,9 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
                     },
                 )
                 val edgeInk = MaterialTheme.colorScheme.onSurface
-                val hintColor = LocalBoardColors.current.boardSelection
                 val accent = QueensBrand.accent.colors().accent
                 Canvas(Modifier.matchParentSize()) {
-                    drawCellEdges(model, hintColor, edgeInk)
+                    drawCellEdges(model, edgeInk)
                     drawSelection(selection, n, accent)
                 }
                 QueensSelectionRing(

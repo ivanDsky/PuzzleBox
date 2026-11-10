@@ -35,7 +35,6 @@ import com.ivandsky.puzzlebox.gameui.PlayOverflowItem
 import com.ivandsky.puzzlebox.gameui.PlaySolveFrame
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
-import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.delay
@@ -43,18 +42,18 @@ import kotlinx.coroutines.delay
 /** Queens' one play registration (ADR-0001): its controller, its board and its play screen. */
 class QueensPlayUi(
     private val settings: QueensSettings,
-    private val hintMode: HintModeSource = HintModeSource { HintMode.Legacy },
+    private val hintMode: HintMode.Stepwise,
 ) : GamePlayUi {
     override val gameId: GameId get() = QueensDefinition.id
 
     override val brand: GameBrand get() = QueensBrand
 
     override fun createController(env: PlayEnvironment): GamePlayController =
-        QueensPlayController(env, settings, hintMode = hintMode.current())
+        QueensPlayController(env, settings, hintMode = hintMode)
 
     /** A lesson teaches the rules with Auto-cross on, whatever the player chose for their own puzzles. */
     override fun createLessonController(env: PlayEnvironment): GamePlayController =
-        QueensPlayController(env, settings = null, hintMode = hintMode.current())
+        QueensPlayController(env, settings = null, hintMode = hintMode)
 
     override val tutorial: List<TutorialStep> get() = QueensTutorial.steps
 

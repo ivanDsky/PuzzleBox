@@ -15,13 +15,11 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
-import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.MarkKind
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
-import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRules
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRulesVerdict
 import com.ivandsky.puzzlebox.games.queensui.hint.QueensStepGame
@@ -327,22 +325,17 @@ class QueensStepwiseHintTest {
         assertEquals(solved, c.state.session)
     }
 
-    // Mode source (A20)
+    // Mode (A20)
 
     @Test
-    fun `the play UI reads its mode per board - Legacy pulses the region, Stepwise shows the spotlight`() {
-        val answers = ArrayDeque(listOf(HintMode.Legacy, HintMode.Stepwise(Dispatchers.Unconfined)))
-        val ui = QueensPlayUi(InMemoryQueensSettings(), HintModeSource { answers.removeFirst() })
-        fun next() = (ui.createController(PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {})) as QueensPlayController)
-            .also { assertEquals(Adopt.Adopted, it.adoptToday(QueensPlayFixtures.envelope(), QueensPlayFixtures.ref())) }
+    fun `the play UI builds Stepwise controllers - a hint opens the spotlight`() {
+        val ui = QueensPlayUi(InMemoryQueensSettings(), HintMode.Stepwise(Dispatchers.Unconfined))
+        val controller = ui.createController(PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {})) as QueensPlayController
+        assertEquals(Adopt.Adopted, controller.adoptToday(QueensPlayFixtures.envelope(), QueensPlayFixtures.ref()))
 
-        val legacy = next().apply { requestHint() }
-        assertTrue(legacy.state.hint is QueensHint.Region)
-        assertNull(legacy.state.spotlight)
-
-        val stepwise = next().apply { requestHint() }
-        assertNotNull(stepwise.state.spotlight)
-        assertNull(stepwise.state.hint)
+        controller.requestHint()
+        assertNotNull(controller.state.spotlight)
+        assertNull(controller.state.hint)
     }
 
     // Overlay

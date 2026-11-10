@@ -88,7 +88,7 @@ class QueensTutorialTest {
 
     @Test
     fun `the play registration ships three lessons`() {
-        assertSame(steps, QueensPlayUi(InMemoryQueensSettings()).tutorial)
+        assertSame(steps, QueensPlayFixtures.playUi().tutorial)
         assertEquals(3, steps.size)
         assertEquals(steps.size, taps.size)
     }
@@ -241,7 +241,7 @@ class QueensTutorialTest {
         repeat(index) { session.advance(); session.next() }
         val lesson = session.state.value as TutorialState.Playing
         assertEquals(index, lesson.index)
-        return TutorialSandbox(QueensPlayUi(InMemoryQueensSettings()), session).controllerFor(lesson, scope) as QueensPlayController
+        return TutorialSandbox(QueensPlayFixtures.playUi(), session).controllerFor(lesson, scope) as QueensPlayController
     }
 
     /** A player who switched Auto-cross off still meets the lessons as authored: crosses fill in, the setting is untouched. */
@@ -250,7 +250,7 @@ class QueensTutorialTest {
         val settings = InMemoryQueensSettings(initialAutoCross = false)
         val session = TutorialSession(steps)
         val lesson = session.state.value as TutorialState.Playing
-        val c = TutorialSandbox(QueensPlayUi(settings), session).controllerFor(lesson, scope) as QueensPlayController
+        val c = TutorialSandbox(QueensPlayFixtures.playUi(settings), session).controllerFor(lesson, scope) as QueensPlayController
 
         assertTrue(c.board!!.session.autoCross)
         c.tap(answerOrder[0][0])
@@ -282,7 +282,7 @@ class QueensTutorialTest {
 
     @Test
     fun `the play registration's tutorial plays through the sandbox to ready`() {
-        val ui = QueensPlayUi(InMemoryQueensSettings())
+        val ui = QueensPlayFixtures.playUi()
         val session = TutorialSession(ui.tutorial)
         val sandbox = TutorialSandbox(ui, session)
         for ((index, lessonTaps) in taps.withIndex()) {

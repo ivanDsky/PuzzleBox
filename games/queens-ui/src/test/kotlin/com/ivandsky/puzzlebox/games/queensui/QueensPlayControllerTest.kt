@@ -317,7 +317,7 @@ class QueensPlayControllerTest {
     }
 
     /** The ⋮ menu's Auto-cross item as the screen reads it. */
-    private fun QueensPlayController.autoCrossItem() = QueensPlayUi(settings).overflowFor(this).single { it.label == "Auto-cross" }
+    private fun QueensPlayController.autoCrossItem() = QueensPlayFixtures.playUi(settings).overflowFor(this).single { it.label == "Auto-cross" }
 
     @Test
     fun `flipping Auto-cross writes the setting and re-derives the open board at once`() {
