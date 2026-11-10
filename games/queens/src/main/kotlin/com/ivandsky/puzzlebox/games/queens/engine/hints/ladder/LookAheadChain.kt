@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
 /**
  * The what-if behind D10 and D11 (lab `chain`): stand a queen on one open cell and play the
@@ -29,7 +28,7 @@ internal object LookAheadChain {
         fun proof(rung: QueensRung, puzzle: QueensPuzzle, candidates: QueensCandidates): QueensProof {
             val unit = HintReason(violation.kind, violation.units.first(), rung)
             val evidence = violation.cells(puzzle).filter(candidates::isOpen).toSet() + forced - cell
-            return QueensProof(QueensDeduction.Exclude(rung, unit, setOf(cell)), evidence)
+            return QueensProof(QueensDeduction.Exclude(unit, setOf(cell)), evidence)
         }
     }
 

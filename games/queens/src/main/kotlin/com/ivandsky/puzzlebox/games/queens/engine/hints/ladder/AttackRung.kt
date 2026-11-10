@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
 /**
  * D0, for play with Auto-cross off: every open cell a standing queen rules out, one exclusion
@@ -33,7 +32,7 @@ object AttackRung : QueensRung {
             if (cells.isEmpty()) {
                 null
             } else {
-                QueensProof(QueensDeduction.Exclude(this, HintReason(HintReason.Kind.ROW, queen / n, this), cells), setOf(queen))
+                QueensProof(QueensDeduction.Exclude(HintReason(HintReason.Kind.ROW, queen / n, this), cells), setOf(queen))
             }
         }
     }

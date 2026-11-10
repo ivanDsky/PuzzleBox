@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensTestSupport
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -46,12 +45,11 @@ class LookAheadRungTest {
 
         val step = lookAhead.step(puzzle, start(puzzle))
 
-        assertEquals(QueensDeduction.Exclude(lookAhead, HintReason(HintReason.Kind.REGION, 5, lookAhead), setOf(1)), step)
+        assertEquals(QueensDeduction.Exclude(HintReason(HintReason.Kind.REGION, 5, lookAhead), setOf(1)), step)
         assertSame(lookAhead, step!!.unit.rung)
-        assertSame(lookAhead, step.rung)
-        assertEquals("look-ahead", step.rung.id)
-        assertEquals(Difficulty.Level.Expert, step.rung.level)
-        assertEquals("queens.hint.rung.look-ahead", step.rung.captionKey)
+        assertEquals("look-ahead", step.unit.rung.id)
+        assertEquals(Difficulty.Level.Expert, step.unit.rung.level)
+        assertEquals("queens.hint.rung.look-ahead", step.unit.rung.captionKey)
     }
 
     @Test
@@ -69,7 +67,7 @@ class LookAheadRungTest {
         val puzzle = needsLookAhead()
         val bare = LookAheadRung(emptyList())
         assertEquals(
-            QueensDeduction.Exclude(bare, HintReason(HintReason.Kind.REGION, 2, bare), setOf(22)),
+            QueensDeduction.Exclude(HintReason(HintReason.Kind.REGION, 2, bare), setOf(22)),
             bare.step(puzzle, start(puzzle)),
         )
     }

@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensTestSupport
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -53,7 +52,7 @@ class SharedNeighboursRungTest {
     @Test
     fun `the cells touching both cells of a diagonal region are crossed, naming the region`() {
         val proof = naming(five, empty(5), region(0))!!
-        assertEquals(QueensDeduction.Exclude(SharedNeighboursRung, region(0), setOf(1, 5)), proof.deduction)
+        assertEquals(QueensDeduction.Exclude(region(0), setOf(1, 5)), proof.deduction)
         assertEquals(setOf(0, 6), proof.evidence)
     }
 

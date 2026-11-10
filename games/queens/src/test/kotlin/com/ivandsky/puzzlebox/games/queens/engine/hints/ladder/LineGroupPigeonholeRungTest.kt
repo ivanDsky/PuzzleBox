@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensTestSupport
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -54,7 +53,7 @@ class LineGroupPigeonholeRungTest {
         // Rows 0 and 2 are open only in columns 1 and 3.
         val proofs = LineGroupPigeonholeRung.steps(five, state(5, setOf(0, 2, 4, 10, 12, 14))).toList()
         val expected = QueensProof(
-            QueensDeduction.Exclude(LineGroupPigeonholeRung, column(1), setOf(6, 8, 16, 18, 21, 23)),
+            QueensDeduction.Exclude(column(1), setOf(6, 8, 16, 18, 21, 23)),
             setOf(1, 3, 11, 13),
         )
         assertEquals(listOf(expected), proofs)
@@ -65,7 +64,7 @@ class LineGroupPigeonholeRungTest {
         // Columns 0 and 2 are open only in rows 1 and 3.
         val proofs = LineGroupPigeonholeRung.steps(five, state(5, setOf(0, 10, 20, 2, 12, 22))).toList()
         val expected = QueensProof(
-            QueensDeduction.Exclude(LineGroupPigeonholeRung, row(1), setOf(6, 8, 9, 16, 18, 19)),
+            QueensDeduction.Exclude(row(1), setOf(6, 8, 9, 16, 18, 19)),
             setOf(5, 7, 15, 17),
         )
         assertEquals(listOf(expected), proofs)

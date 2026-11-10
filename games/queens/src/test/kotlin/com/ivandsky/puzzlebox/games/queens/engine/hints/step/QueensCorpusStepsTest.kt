@@ -125,8 +125,8 @@ class QueensCorpusStepsTest {
             val stepCells: Int
             when (hint) {
                 is QueensStep.Deduction -> {
-                    rung = hint.rung.id
-                    long = hint.rung is LongLookAheadRung
+                    rung = hint.unit.rung.id
+                    long = hint.unit.rung is LongLookAheadRung
                     if (hint.evidence.isEmpty()) {
                         tally.reject("${board.id} press $press: empty evidence: $hint")
                         return

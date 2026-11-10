@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.games.queensui.hint
 
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
 
 /**
@@ -27,7 +27,7 @@ internal object QueensStepCopy {
 
     /** The callout of a step that has one; [QueensStep.Solved] and [QueensStep.Unavailable] show nothing and throw. */
     fun text(step: QueensStep): String = when (step) {
-        is QueensStep.Deduction -> deductions.getValue(step.rung.captionKey)(unitWord(step.unit.kind))
+        is QueensStep.Deduction -> deductions.getValue(step.unit.rung.captionKey)(unitWord(step.unit.kind))
         is QueensStep.Mistake -> when (step.kind) {
             QueensStep.Mistake.Kind.OFF_SOLUTION -> "Wrong queen: this queen is not in the solution."
             QueensStep.Mistake.Kind.RULE_BREAK -> "Wrong queen: these two queens clash."

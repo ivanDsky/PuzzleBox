@@ -5,7 +5,6 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensTestSupport
 import com.ivandsky.puzzlebox.games.queens.codec.QueensWireParser
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHints
 import com.ivandsky.puzzlebox.games.queens.feed.QueensGameExtractor
@@ -105,14 +104,14 @@ class QueensLadderTest {
         val puzzle = daily("02-byid-gt3-1.json")
         val placed = setOf(puzzle.solution!!.first().idx)
         val step = singlesOnly.next(puzzle, QueensCandidates.start(puzzle, placed))
-        assertEquals(QueensDeduction.Place(SinglesRung, HintReason(HintReason.Kind.REGION, 1), 13), step)
+        assertEquals(QueensDeduction.Place(HintReason(HintReason.Kind.REGION, 1), 13), step)
     }
 
     @Test
     fun `a row proof beats a column proof for the same cell`() {
         val puzzle = QueensTestSupport.n4Puzzle()
         val step = singlesOnly.next(puzzle, QueensCandidates.start(puzzle, setOf(7, 8, 14)))
-        assertEquals(QueensDeduction.Place(SinglesRung, HintReason(HintReason.Kind.ROW, 0), 1), step)
+        assertEquals(QueensDeduction.Place(HintReason(HintReason.Kind.ROW, 0), 1), step)
     }
 
     @Test

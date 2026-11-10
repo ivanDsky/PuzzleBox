@@ -10,7 +10,7 @@ import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.hint.StepHints
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensSession
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHints
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.SinglesRung

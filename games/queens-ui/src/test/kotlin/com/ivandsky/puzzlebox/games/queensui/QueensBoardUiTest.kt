@@ -28,7 +28,7 @@ import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.MarkKind
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.queens.QueensSession
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
